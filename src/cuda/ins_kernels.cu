@@ -69,4 +69,5 @@ int size, char *dat, char const *name){
 //user kernel files
 #include "init_grid_kernel.cu"
 #include "set_ic_kernel.cu"
+#include "div_kernel.cu"
 #include "advection_flux_kernel.cu"

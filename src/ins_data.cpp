@@ -40,6 +40,10 @@ INSData::~INSData() {
   }
   for(int i = 0; i < 4; i++) {
     free(F_data[i]);
+    free(div_data[i]);
+  }
+  for(int i = 0; i < 2; i++) {
+    free(N_data[i]);
   }
 }
 
@@ -65,6 +69,10 @@ void INSData::initOP2() {
   }
   for(int i = 0; i < 4; i++) {
     F_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    div_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+  }
+  for(int i = 0; i < 2; i++) {
+    N_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
 
   // Initialise OP2
@@ -114,5 +122,11 @@ void INSData::initOP2() {
   for(int i = 0; i < 4; i++) {
     string Fname = "F" + to_string(i);
     F[i] = op_decl_dat(cells, 15, "double", F_data[i], Fname.c_str());
+    string divname = "div" + to_string(i);
+    div[i] = op_decl_dat(cells, 15, "double", div_data[i], divname.c_str());
+  }
+  for(int i = 0; i < 2; i++) {
+    string Nname = "N" + to_string(i);
+    N[i] = op_decl_dat(cells, 15, "double", N_data[i], Nname.c_str());
   }
 }

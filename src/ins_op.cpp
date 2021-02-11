@@ -35,6 +35,17 @@ void op_par_loop_set_ic(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_div(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
 void op_par_loop_advection_flux(char const *, op_set,
   op_arg,
   op_arg,
@@ -68,6 +79,7 @@ void op_par_loop_advection_flux(char const *, op_set,
 #include "kernels/init_grid.h"
 #include "kernels/set_ic.h"
 #include "kernels/advection_flux.h"
+#include "kernels/div.h"
 
 using namespace std;
 
@@ -186,6 +198,21 @@ int main(int argc, char **argv) {
   delete data;
 }
 
+void div(INSData *data, op_dat u, op_dat v, op_dat res) {
+  div_blas(data, u, v);
+
+  op_par_loop_div("div",data->cells,
+              op_arg_dat(data->div[0],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->div[1],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->div[2],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->div[3],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->rx,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->sx,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->ry,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->sy,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(res,-1,OP_ID,15,"double",OP_WRITE));
+}
+
 void advection(INSData *data) {
   op_par_loop_advection_flux("advection_flux",data->cells,
               op_arg_dat(data->Q[0],-1,OP_ID,15,"double",OP_READ),
@@ -194,4 +221,7 @@ void advection(INSData *data) {
               op_arg_dat(data->F[1],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->F[2],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->F[3],-1,OP_ID,15,"double",OP_WRITE));
+
+  div(data, data->F[0], data->F[1], data->N[0]);
+  div(data, data->F[2], data->F[3], data->N[0]);
 }

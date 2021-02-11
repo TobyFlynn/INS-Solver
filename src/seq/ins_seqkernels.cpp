@@ -19,4 +19,5 @@ extern int FMASK[15];
 // user kernel files
 #include "init_grid_seqkernel.cpp"
 #include "set_ic_seqkernel.cpp"
+#include "div_seqkernel.cpp"
 #include "advection_flux_seqkernel.cpp"

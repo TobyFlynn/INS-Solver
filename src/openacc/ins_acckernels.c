@@ -21,4 +21,5 @@ int size, char *dat, char const *name){}
 // user kernel files
 #include "init_grid_acckernel.c"
 #include "set_ic_acckernel.c"
+#include "div_acckernel.c"
 #include "advection_flux_acckernel.c"
