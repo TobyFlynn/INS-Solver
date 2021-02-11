@@ -8,3 +8,4 @@
 // user kernel files
 #include "init_grid_omp4kernel.cpp"
 #include "set_ic_omp4kernel.cpp"
+#include "advection_flux_omp4kernel.cpp"

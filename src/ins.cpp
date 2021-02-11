@@ -19,6 +19,7 @@
 // Kernels
 #include "kernels/init_grid.h"
 #include "kernels/set_ic.h"
+#include "kernels/advection_flux.h"
 
 using namespace std;
 
@@ -30,6 +31,8 @@ static struct option options[] = {
   {"alpha", required_argument, 0, 0},
   {0,    0,                  0,  0}
 };
+
+void advection(INSData *data);
 
 int main(int argc, char **argv) {
   // Object that holds all sets, maps and dats
@@ -113,6 +116,7 @@ int main(int argc, char **argv) {
               op_arg_dat(data->Q[2], -1, OP_ID, 15, "double", OP_WRITE));
 
   // TODO
+  advection(data);
 
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
@@ -132,4 +136,14 @@ int main(int argc, char **argv) {
   op_exit();
 
   delete data;
+}
+
+void advection(INSData *data) {
+  op_par_loop(advection_flux, "advection_flux", data->cells,
+              op_arg_dat(data->Q[0], -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->Q[1], -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->F[0], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->F[1], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->F[2], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->F[3], -1, OP_ID, 15, "double", OP_WRITE));
 }

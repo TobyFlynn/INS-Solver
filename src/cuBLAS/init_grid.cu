@@ -39,10 +39,6 @@ inline void cublas_init_grid(cublasHandle_t handle, const int numCells,
     double *temp = temp_d + c * 15;
     double *x = x_d + c * 15;
     double *y = y_d + c * 15;
-    double *xr = xr_d + c * 15;
-    double *xs = xs_d + c * 15;
-    double *yr = yr_d + c * 15;
-    double *ys = ys_d + c * 15;
 
     double alpha = 1.0;
     cublasDcopy(handle, 15, ones_d, 1, x, 1);

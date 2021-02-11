@@ -38,6 +38,9 @@ INSData::~INSData() {
   for(int i = 0; i < 3; i++) {
     free(Q_data[i]);
   }
+  for(int i = 0; i < 4; i++) {
+    free(F_data[i]);
+  }
 }
 
 void INSData::initOP2() {
@@ -59,6 +62,9 @@ void INSData::initOP2() {
   fscale_data = (double *)malloc(3 * 5 * numCells * sizeof(double));
   for(int i = 0; i < 3; i++) {
     Q_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+  }
+  for(int i = 0; i < 4; i++) {
+    F_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
 
   // Initialise OP2
@@ -104,5 +110,9 @@ void INSData::initOP2() {
   for(int i = 0; i < 3; i++) {
     string Qname = "Q" + to_string(i);
     Q[i] = op_decl_dat(cells, 15, "double", Q_data[i], Qname.c_str());
+  }
+  for(int i = 0; i < 4; i++) {
+    string Fname = "F" + to_string(i);
+    F[i] = op_decl_dat(cells, 15, "double", F_data[i], Fname.c_str());
   }
 }

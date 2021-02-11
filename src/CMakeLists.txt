@@ -1,4 +1,4 @@
-set(KERNEL_HEADERS kernels/init_grid.h kernels/set_ic.h)
+set(KERNEL_HEADERS kernels/init_grid.h kernels/set_ic.h kernels/advection_flux.h)
 set(OPENBLAS_SRC openBLAS_op/init_grid_op.cpp)
 set(CUBLAS_SRC cuBLAS_op/init_grid_op.cu)
 
