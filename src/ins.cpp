@@ -67,17 +67,14 @@ int main(int argc, char **argv) {
     bc_u = sqrt(gam * bc_p / bc_r) * bc_mach;
     bc_v = 0.0;
   }
-  bc_e = bc_p / (gam - 1.0) + 0.5 * bc_r * (bc_u * bc_u + bc_v * bc_v);
 
   cout << "gam: " << gam << endl;
   cout << "mu: " << mu << endl;
   cout << "bc_mach: " << bc_mach << endl;
   cout << "bc_alpha: " << bc_alpha << endl;
   cout << "bc_p: " << bc_p << endl;
-  cout << "bc_r: " << bc_r << endl;
   cout << "bc_u: " << bc_u << endl;
   cout << "bc_v: " << bc_v << endl;
-  cout << "bc_e: " << bc_e << endl;
 
   // Declare OP2 constants
   op_decl_const(1, "double", &gam);
@@ -85,10 +82,8 @@ int main(int argc, char **argv) {
   op_decl_const(1, "double", &bc_mach);
   op_decl_const(1, "double", &bc_alpha);
   op_decl_const(1, "double", &bc_p);
-  op_decl_const(1, "double", &bc_r);
   op_decl_const(1, "double", &bc_u);
   op_decl_const(1, "double", &bc_v);
-  op_decl_const(1, "double", &bc_e);
   op_decl_const(15, "double", ones);
   op_decl_const(3 * 5, "int", FMASK);
 
@@ -115,8 +110,7 @@ int main(int argc, char **argv) {
   op_par_loop(set_ic, "set_ic", data->cells,
               op_arg_dat(data->Q[0], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->Q[1], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->Q[2], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->Q[3], -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(data->Q[2], -1, OP_ID, 15, "double", OP_WRITE));
 
   // TODO
 
@@ -124,18 +118,15 @@ int main(int argc, char **argv) {
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *sol_q2 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *sol_q3 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(data->Q[0], sol_q0);
   op_fetch_data(data->Q[1], sol_q1);
   op_fetch_data(data->Q[2], sol_q2);
-  op_fetch_data(data->Q[3], sol_q3);
   save_solution("./naca0012.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-                sol_q0, sol_q1, sol_q2, sol_q3, data->cgnsCells, gam);
+                sol_q0, sol_q1, sol_q2, data->cgnsCells);
 
   free(sol_q0);
   free(sol_q1);
   free(sol_q2);
-  free(sol_q3);
 
   // Clean up OP2
   op_exit();

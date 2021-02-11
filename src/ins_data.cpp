@@ -35,7 +35,7 @@ INSData::~INSData() {
   free(nx_data);
   free(ny_data);
   free(fscale_data);
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     free(Q_data[i]);
   }
 }
@@ -57,7 +57,7 @@ void INSData::initOP2() {
   nx_data = (double *)malloc(3 * 5 * numCells * sizeof(double));
   ny_data = (double *)malloc(3 * 5 * numCells * sizeof(double));
   fscale_data = (double *)malloc(3 * 5 * numCells * sizeof(double));
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     Q_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
 
@@ -101,7 +101,7 @@ void INSData::initOP2() {
   bedge_type = op_decl_dat(bedges, 1, "int", bedge_type_data, "bedge_type");
   edgeNum    = op_decl_dat(edges, 2, "int", edgeNum_data, "edgeNum");
   bedgeNum   = op_decl_dat(bedges, 1, "int", bedgeNum_data, "bedgeNum");
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     string Qname = "Q" + to_string(i);
     Q[i] = op_decl_dat(cells, 15, "double", Q_data[i], Qname.c_str());
   }

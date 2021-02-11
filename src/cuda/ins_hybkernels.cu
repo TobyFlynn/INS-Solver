@@ -127,30 +127,26 @@ void op_par_loop_init_grid(char const *name, op_set set,
 void op_par_loop_set_ic_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2,
-  op_arg arg3);
+  op_arg arg2);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
 void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2,
-  op_arg arg3){
+  op_arg arg2){
 
   if (OP_hybrid_gpu) {
     op_par_loop_set_ic_gpu(name, set,
       arg0,
       arg1,
-      arg2,
-      arg3);
+      arg2);
 
     }else{
     op_par_loop_set_ic_cpu(name, set,
       arg0,
       arg1,
-      arg2,
-      arg3);
+      arg2);
 
   }
 }
@@ -158,14 +154,12 @@ void op_par_loop_set_ic(char const *name, op_set set,
 void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2,
-  op_arg arg3){
+  op_arg arg2){
 
   op_par_loop_set_ic_gpu(name, set,
     arg0,
     arg1,
-    arg2,
-    arg3);
+    arg2);
 
   }
 #endif //OP_HYBRID_GPU

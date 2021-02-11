@@ -12,10 +12,8 @@ __constant__ double mu_cuda;
 __constant__ double bc_mach_cuda;
 __constant__ double bc_alpha_cuda;
 __constant__ double bc_p_cuda;
-__constant__ double bc_r_cuda;
 __constant__ double bc_u_cuda;
 __constant__ double bc_v_cuda;
-__constant__ double bc_e_cuda;
 __constant__ double ones_cuda[15];
 __constant__ int FMASK_cuda[15];
 
@@ -47,20 +45,12 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(bc_p_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"bc_r")) {
-    cutilSafeCall(cudaMemcpyToSymbol(bc_r_cuda, dat, dim*size));
-  }
-  else
   if (!strcmp(name,"bc_u")) {
     cutilSafeCall(cudaMemcpyToSymbol(bc_u_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"bc_v")) {
     cutilSafeCall(cudaMemcpyToSymbol(bc_v_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"bc_e")) {
-    cutilSafeCall(cudaMemcpyToSymbol(bc_e_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"ones")) {

@@ -24,7 +24,7 @@ public:
   op_map cell2nodes, edge2nodes, edge2cells, bedge2nodes, bedge2cells;
   op_dat node_coords, nodeX, nodeY, x, y, xr, yr, xs, ys, rx, ry, sx, sy, nx,
          ny, fscale, bedge_type, edgeNum, bedgeNum;
-  op_dat Q[4];
+  op_dat Q[3];
 private:
   // Pointers to private memory
   double *nodeX_data;
@@ -42,7 +42,7 @@ private:
   double *nx_data;
   double *ny_data;
   double *fscale_data;
-  double *Q_data[4];
+  double *Q_data[3];
 };
 
 #endif
