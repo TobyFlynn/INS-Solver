@@ -58,16 +58,12 @@ inline void openblas_init_grid(const int numCells, const double *node_coords,
     cblas_dcopy(15, s, 1, temp, 1);
     cblas_daxpy(15, 1.0, r, 1, temp, 1);
     cblas_daxpy(15, -0.5 * n0[1], temp, 1, y_c, 1);
-
-    // xr = Dr * x
-    cblas_dgemv(CblasRowMajor, CblasNoTrans, 15, 15, 1.0, Dr, 15, x_c, 1, 0.0, xr_c, 1);
-    // xs = Ds * x
-    cblas_dgemv(CblasRowMajor, CblasNoTrans, 15, 15, 1.0, Ds, 15, x_c, 1, 0.0, xs_c, 1);
-    // yr = Dr * y
-    cblas_dgemv(CblasRowMajor, CblasNoTrans, 15, 15, 1.0, Dr, 15, y_c, 1, 0.0, yr_c, 1);
-    // ys = Ds * y
-    cblas_dgemv(CblasRowMajor, CblasNoTrans, 15, 15, 1.0, Ds, 15, y_c, 1, 0.0, ys_c, 1);
   }
+
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dr, 15, x, 15, 0.0, xr, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Ds, 15, x, 15, 0.0, xs, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dr, 15, y, 15, 0.0, yr, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Ds, 15, y, 15, 0.0, ys, 15);
 }
 
 void init_grid_blas(INSData *nsData) {
