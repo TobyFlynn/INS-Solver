@@ -10,6 +10,11 @@ Dependencies:
 
 Directory structure:
 - The 'src' directory contains the code for the Incompressible Navier-Stokes solver.
+  - The 'constants' directory contains precomputed matrices exported from MATLAB.
+  - The 'cuBLAS' directory contains functions that perform the required BLAS operations on OP2 dats.
+  - The 'openBLAS' directory is the same as above but for OpenBLAS.
+  - The 'kernels' directory contains all the OP2 kernels.
+  - All other directories are created by the OP2 code generation.
 - The 'tools' directory contains an unstructured VTK to CGNS mesh conversion code.
 
 Build instructions:
