@@ -21,3 +21,5 @@ extern int FMASK[15];
 #include "set_ic_seqkernel.cpp"
 #include "div_seqkernel.cpp"
 #include "advection_flux_seqkernel.cpp"
+#include "advection_faces_seqkernel.cpp"
+#include "advection_bc_seqkernel.cpp"

@@ -71,3 +71,5 @@ int size, char *dat, char const *name){
 #include "set_ic_kernel.cu"
 #include "div_kernel.cu"
 #include "advection_flux_kernel.cu"
+#include "advection_faces_kernel.cu"
+#include "advection_bc_kernel.cu"

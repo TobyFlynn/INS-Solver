@@ -44,6 +44,7 @@ INSData::~INSData() {
   }
   for(int i = 0; i < 2; i++) {
     free(N_data[i]);
+    free(exQ_data[i]);
   }
 }
 
@@ -73,6 +74,7 @@ void INSData::initOP2() {
   }
   for(int i = 0; i < 2; i++) {
     N_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    exQ_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
 
   // Initialise OP2
@@ -128,5 +130,7 @@ void INSData::initOP2() {
   for(int i = 0; i < 2; i++) {
     string Nname = "N" + to_string(i);
     N[i] = op_decl_dat(cells, 15, "double", N_data[i], Nname.c_str());
+    string exQname = "exQ" + to_string(i);
+    exQ[i] = op_decl_dat(cells, 15, "double", exQ_data[i], exQname.c_str());
   }
 }

@@ -8,21 +8,29 @@
 #define op_par_loop_set_ic op_par_loop_set_ic_gpu
 #define op_par_loop_div op_par_loop_div_gpu
 #define op_par_loop_advection_flux op_par_loop_advection_flux_gpu
+#define op_par_loop_advection_faces op_par_loop_advection_faces_gpu
+#define op_par_loop_advection_bc op_par_loop_advection_bc_gpu
 #include "ins_kernels.cu"
 #undef op_par_loop_init_grid
 #undef op_par_loop_set_ic
 #undef op_par_loop_div
 #undef op_par_loop_advection_flux
+#undef op_par_loop_advection_faces
+#undef op_par_loop_advection_bc
 #else
 #define op_par_loop_init_grid op_par_loop_init_grid_cpu
 #define op_par_loop_set_ic op_par_loop_set_ic_cpu
 #define op_par_loop_div op_par_loop_div_cpu
 #define op_par_loop_advection_flux op_par_loop_advection_flux_cpu
+#define op_par_loop_advection_faces op_par_loop_advection_faces_cpu
+#define op_par_loop_advection_bc op_par_loop_advection_bc_cpu
 #include "../openmp/ins_kernels.cpp"
 #undef op_par_loop_init_grid
 #undef op_par_loop_set_ic
 #undef op_par_loop_div
 #undef op_par_loop_advection_flux
+#undef op_par_loop_advection_faces
+#undef op_par_loop_advection_bc
 
 //user kernel files
 
@@ -135,26 +143,34 @@ void op_par_loop_init_grid(char const *name, op_set set,
 void op_par_loop_set_ic_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2);
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
 void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2){
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
 
   if (OP_hybrid_gpu) {
     op_par_loop_set_ic_gpu(name, set,
       arg0,
       arg1,
-      arg2);
+      arg2,
+      arg3,
+      arg4);
 
     }else{
     op_par_loop_set_ic_cpu(name, set,
       arg0,
       arg1,
-      arg2);
+      arg2,
+      arg3,
+      arg4);
 
   }
 }
@@ -162,12 +178,16 @@ void op_par_loop_set_ic(char const *name, op_set set,
 void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2){
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
 
   op_par_loop_set_ic_gpu(name, set,
     arg0,
     arg1,
-    arg2);
+    arg2,
+    arg3,
+    arg4);
 
   }
 #endif //OP_HYBRID_GPU
@@ -302,6 +322,140 @@ void op_par_loop_advection_flux(char const *name, op_set set,
     arg3,
     arg4,
     arg5);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_advection_faces_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_advection_faces(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_advection_faces_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6);
+
+    }else{
+    op_par_loop_advection_faces_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6);
+
+  }
+}
+#else
+void op_par_loop_advection_faces(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6){
+
+  op_par_loop_advection_faces_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5,
+    arg6);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_advection_bc_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_advection_bc(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_advection_bc_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6,
+      arg7);
+
+    }else{
+    op_par_loop_advection_bc_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6,
+      arg7);
+
+  }
+}
+#else
+void op_par_loop_advection_bc(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7){
+
+  op_par_loop_advection_bc_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5,
+    arg6,
+    arg7);
 
   }
 #endif //OP_HYBRID_GPU

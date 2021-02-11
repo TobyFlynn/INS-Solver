@@ -3,11 +3,14 @@
 //
 
 //user function
-__device__ void set_ic_gpu( double *q0, double *q1, double *q2) {
+__device__ void set_ic_gpu( double *q0, double *q1, double *q2, double *exQ0,
+                   double *exQ1) {
   for(int i = 0; i < 15; i++) {
     q0[i] = bc_u_cuda;
     q1[i] = bc_v_cuda;
     q2[i] = bc_p_cuda;
+    exQ0[i] = 0.0;
+    exQ1[i] = 0.0;
   }
 
 }
@@ -17,6 +20,8 @@ __global__ void op_cuda_set_ic(
   double *arg0,
   double *arg1,
   double *arg2,
+  double *arg3,
+  double *arg4,
   int   set_size ) {
 
 
@@ -26,7 +31,9 @@ __global__ void op_cuda_set_ic(
     //user-supplied kernel call
     set_ic_gpu(arg0+n*15,
            arg1+n*15,
-           arg2+n*15);
+           arg2+n*15,
+           arg3+n*15,
+           arg4+n*15);
   }
 }
 
@@ -35,14 +42,18 @@ __global__ void op_cuda_set_ic(
 void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2){
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
 
-  int nargs = 3;
-  op_arg args[3];
+  int nargs = 5;
+  op_arg args[5];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
+  args[3] = arg3;
+  args[4] = arg4;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -72,6 +83,8 @@ void op_par_loop_set_ic(char const *name, op_set set,
       (double *) arg0.data_d,
       (double *) arg1.data_d,
       (double *) arg2.data_d,
+      (double *) arg3.data_d,
+      (double *) arg4.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
@@ -82,4 +95,6 @@ void op_par_loop_set_ic(char const *name, op_set set,
   OP_kernels[1].transfer += (float)set->size * arg0.size * 2.0f;
   OP_kernels[1].transfer += (float)set->size * arg1.size * 2.0f;
   OP_kernels[1].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[1].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[1].transfer += (float)set->size * arg4.size * 2.0f;
 }
