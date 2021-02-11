@@ -85,6 +85,24 @@ void op_par_loop_advection_numerical_flux(char const *, op_set,
   op_arg,
   op_arg,
   op_arg );
+
+void op_par_loop_advection_intermediate_vel(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -115,6 +133,7 @@ void op_par_loop_advection_numerical_flux(char const *, op_set,
 #include "kernels/advection_faces.h"
 #include "kernels/advection_bc.h"
 #include "kernels/advection_numerical_flux.h"
+#include "kernels/advection_intermediate_vel.h"
 
 using namespace std;
 
@@ -127,7 +146,7 @@ static struct option options[] = {
   {0,    0,                  0,  0}
 };
 
-void advection(INSData *data);
+void advection(INSData *data, int currentInd);
 
 int main(int argc, char **argv) {
   // Object that holds all sets, maps and dats
@@ -206,22 +225,25 @@ int main(int argc, char **argv) {
 
   // Set initial conditions
   op_par_loop_set_ic("set_ic",data->cells,
-              op_arg_dat(data->Q[0],-1,OP_ID,15,"double",OP_WRITE),
-              op_arg_dat(data->Q[1],-1,OP_ID,15,"double",OP_WRITE),
-              op_arg_dat(data->Q[2],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->Q[0][0],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->Q[0][1],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->Q[0][2],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->exQ[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->exQ[1],-1,OP_ID,15,"double",OP_WRITE));
 
   // TODO
-  advection(data);
+  int currentIter = 0;
+  advection(data, currentIter % 2);
+
+  // currentIter++;
 
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *sol_q2 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  op_fetch_data(data->Q[0], sol_q0);
-  op_fetch_data(data->Q[1], sol_q1);
-  op_fetch_data(data->Q[2], sol_q2);
+  op_fetch_data(data->Q[currentIter][0], sol_q0);
+  op_fetch_data(data->Q[currentIter][1], sol_q1);
+  op_fetch_data(data->Q[currentIter][2], sol_q2);
   save_solution("./naca0012.cgns", op_get_size(data->nodes), op_get_size(data->cells),
                 sol_q0, sol_q1, sol_q2, data->cgnsCells);
 
@@ -250,24 +272,24 @@ void div(INSData *data, op_dat u, op_dat v, op_dat res) {
               op_arg_dat(res,-1,OP_ID,15,"double",OP_WRITE));
 }
 
-void advection(INSData *data) {
+void advection(INSData *data, int currentInd) {
   op_par_loop_advection_flux("advection_flux",data->cells,
-              op_arg_dat(data->Q[0],-1,OP_ID,15,"double",OP_READ),
-              op_arg_dat(data->Q[1],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->Q[currentInd][0],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->Q[currentInd][1],-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->F[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->F[1],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->F[2],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->F[3],-1,OP_ID,15,"double",OP_WRITE));
 
-  div(data, data->F[0], data->F[1], data->N[0]);
-  div(data, data->F[2], data->F[3], data->N[1]);
+  div(data, data->F[0], data->F[1], data->N[currentInd][0]);
+  div(data, data->F[2], data->F[3], data->N[currentInd][1]);
 
   op_par_loop_advection_faces("advection_faces",data->edges,
               op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
               op_arg_dat(data->nodeX,-2,data->edge2cells,3,"double",OP_READ),
               op_arg_dat(data->nodeY,-2,data->edge2cells,3,"double",OP_READ),
-              op_arg_dat(data->Q[0],-2,data->edge2cells,15,"double",OP_READ),
-              op_arg_dat(data->Q[1],-2,data->edge2cells,15,"double",OP_READ),
+              op_arg_dat(data->Q[currentInd][0],-2,data->edge2cells,15,"double",OP_READ),
+              op_arg_dat(data->Q[currentInd][1],-2,data->edge2cells,15,"double",OP_READ),
               op_arg_dat(data->exQ[0],-2,data->edge2cells,15,"double",OP_INC),
               op_arg_dat(data->exQ[1],-2,data->edge2cells,15,"double",OP_INC));
 
@@ -276,8 +298,8 @@ void advection(INSData *data) {
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->nx,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->ny,0,data->bedge2cells,15,"double",OP_READ),
-              op_arg_dat(data->Q[0],0,data->bedge2cells,15,"double",OP_READ),
-              op_arg_dat(data->Q[1],0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->Q[currentInd][0],0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->Q[currentInd][1],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->exQ[0],0,data->bedge2cells,15,"double",OP_INC),
               op_arg_dat(data->exQ[1],0,data->bedge2cells,15,"double",OP_INC));
 
@@ -285,12 +307,36 @@ void advection(INSData *data) {
               op_arg_dat(data->fscale,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->nx,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->ny,-1,OP_ID,15,"double",OP_READ),
-              op_arg_dat(data->Q[0],-1,OP_ID,15,"double",OP_READ),
-              op_arg_dat(data->Q[1],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->Q[currentInd][0],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->Q[currentInd][1],-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->exQ[0],-1,OP_ID,15,"double",OP_RW),
               op_arg_dat(data->exQ[1],-1,OP_ID,15,"double",OP_RW),
               op_arg_dat(data->flux[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->flux[1],-1,OP_ID,15,"double",OP_WRITE));
 
-  advection_lift_blas(data);
+  advection_lift_blas(data, currentInd);
+
+  double a0 = 1.0;
+  double a1 = 1.0;
+  double b0 = 1.0;
+  double b1 = 1.0;
+  double g0 = 1.0;
+  double dt = 1.0;
+  op_par_loop_advection_intermediate_vel("advection_intermediate_vel",data->cells,
+              op_arg_gbl(&a0,1,"double",OP_READ),
+              op_arg_gbl(&a1,1,"double",OP_READ),
+              op_arg_gbl(&b0,1,"double",OP_READ),
+              op_arg_gbl(&b1,1,"double",OP_READ),
+              op_arg_gbl(&g0,1,"double",OP_READ),
+              op_arg_gbl(&dt,1,"double",OP_READ),
+              op_arg_dat(data->Q[currentInd][0],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->Q[currentInd][1],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->Q[(currentInd + 1) % 2][0],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->Q[(currentInd + 1) % 2][1],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->N[currentInd][0],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->N[currentInd][1],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->N[(currentInd + 1) % 2][0],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->N[(currentInd + 1) % 2][1],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->QT[0],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->QT[1],-1,OP_ID,15,"double",OP_WRITE));
 }

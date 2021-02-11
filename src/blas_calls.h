@@ -17,6 +17,6 @@ void init_grid_blas(INSData *nsData);
 
 void div_blas(INSData *nsData, op_dat u, op_dat v);
 
-void advection_lift_blas(INSData *nsData);
+void advection_lift_blas(INSData *nsData, int ind);
 
 #endif

@@ -18,7 +18,7 @@ inline void cublas_advection_lift(cublasHandle_t handle, const int numCells,
   cudaFree(LIFT_d);
 }
 
-void advection_lift_blas(INSData *nsData) {
+void advection_lift_blas(INSData *nsData, int ind) {
   // Initialise cuBLAS
   cublasHandle_t handle;
   cublasCreate(&handle);
@@ -27,14 +27,14 @@ void advection_lift_blas(INSData *nsData) {
   op_arg advec_lift_args[] = {
     op_arg_dat(nsData->flux[0], -1, OP_ID, 15, "double", OP_READ),
     op_arg_dat(nsData->flux[1], -1, OP_ID, 15, "double", OP_READ),
-    op_arg_dat(nsData->N[0], -1, OP_ID, 15, "double", OP_RW),
-    op_arg_dat(nsData->N[1], -1, OP_ID, 15, "double", OP_RW)
+    op_arg_dat(nsData->N[ind][0], -1, OP_ID, 15, "double", OP_RW),
+    op_arg_dat(nsData->N[ind][1], -1, OP_ID, 15, "double", OP_RW)
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 4, advec_lift_args);
 
   cublas_advection_lift(handle, nsData->numCells, (double *)nsData->flux[0]->data_d,
-                     (double *)nsData->flux[1]->data_d, (double *)nsData->N[0]->data_d,
-                     (double *)nsData->N[1]->data_d);
+                     (double *)nsData->flux[1]->data_d, (double *)nsData->N[ind][0]->data_d,
+                     (double *)nsData->N[ind][1]->data_d);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(4, advec_lift_args);

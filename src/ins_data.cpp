@@ -36,14 +36,17 @@ INSData::~INSData() {
   free(ny_data);
   free(fscale_data);
   for(int i = 0; i < 3; i++) {
-    free(Q_data[i]);
+    free(Q_data[0][i]);
+    free(Q_data[1][i]);
+    free(QT_data[i]);
   }
   for(int i = 0; i < 4; i++) {
     free(F_data[i]);
     free(div_data[i]);
   }
   for(int i = 0; i < 2; i++) {
-    free(N_data[i]);
+    free(N_data[0][i]);
+    free(N_data[1][i]);
     free(exQ_data[i]);
     free(flux_data[i]);
   }
@@ -67,14 +70,17 @@ void INSData::initOP2() {
   ny_data = (double *)malloc(3 * 5 * numCells * sizeof(double));
   fscale_data = (double *)malloc(3 * 5 * numCells * sizeof(double));
   for(int i = 0; i < 3; i++) {
-    Q_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    Q_data[0][i] = (double *)malloc(15 * numCells * sizeof(double));
+    Q_data[1][i] = (double *)malloc(15 * numCells * sizeof(double));
+    QT_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
   for(int i = 0; i < 4; i++) {
     F_data[i] = (double *)malloc(15 * numCells * sizeof(double));
     div_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
   for(int i = 0; i < 2; i++) {
-    N_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    N_data[0][i] = (double *)malloc(15 * numCells * sizeof(double));
+    N_data[1][i] = (double *)malloc(15 * numCells * sizeof(double));
     exQ_data[i] = (double *)malloc(15 * numCells * sizeof(double));
     flux_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
@@ -120,8 +126,12 @@ void INSData::initOP2() {
   edgeNum    = op_decl_dat(edges, 2, "int", edgeNum_data, "edgeNum");
   bedgeNum   = op_decl_dat(bedges, 1, "int", bedgeNum_data, "bedgeNum");
   for(int i = 0; i < 3; i++) {
-    string Qname = "Q" + to_string(i);
-    Q[i] = op_decl_dat(cells, 15, "double", Q_data[i], Qname.c_str());
+    string Qname = "Q0" + to_string(i);
+    Q[0][i] = op_decl_dat(cells, 15, "double", Q_data[0][i], Qname.c_str());
+    Qname = "Q1" + to_string(i);
+    Q[1][i] = op_decl_dat(cells, 15, "double", Q_data[1][i], Qname.c_str());
+    Qname = "QT" + to_string(i);
+    QT[i] = op_decl_dat(cells, 15, "double", QT_data[i], Qname.c_str());
   }
   for(int i = 0; i < 4; i++) {
     string Fname = "F" + to_string(i);
@@ -130,8 +140,10 @@ void INSData::initOP2() {
     div[i] = op_decl_dat(cells, 15, "double", div_data[i], divname.c_str());
   }
   for(int i = 0; i < 2; i++) {
-    string Nname = "N" + to_string(i);
-    N[i] = op_decl_dat(cells, 15, "double", N_data[i], Nname.c_str());
+    string Nname = "N0" + to_string(i);
+    N[0][i] = op_decl_dat(cells, 15, "double", N_data[0][i], Nname.c_str());
+    Nname = "N1" + to_string(i);
+    N[1][i] = op_decl_dat(cells, 15, "double", N_data[1][i], Nname.c_str());
     string exQname = "exQ" + to_string(i);
     exQ[i] = op_decl_dat(cells, 15, "double", exQ_data[i], exQname.c_str());
     string fluxname = "flux" + to_string(i);

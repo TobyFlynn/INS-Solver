@@ -24,3 +24,4 @@ extern int FMASK[15];
 #include "advection_faces_seqkernel.cpp"
 #include "advection_bc_seqkernel.cpp"
 #include "advection_numerical_flux_seqkernel.cpp"
+#include "advection_intermediate_vel_seqkernel.cpp"

@@ -55,3 +55,4 @@ void op_decl_const_char(int dim, char const *type,
 #include "advection_faces_omp4kernel_func.cpp"
 #include "advection_bc_omp4kernel_func.cpp"
 #include "advection_numerical_flux_omp4kernel_func.cpp"
+#include "advection_intermediate_vel_omp4kernel_func.cpp"
