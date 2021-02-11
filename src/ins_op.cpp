@@ -74,6 +74,17 @@ void op_par_loop_advection_bc(char const *, op_set,
   op_arg,
   op_arg,
   op_arg );
+
+void op_par_loop_advection_numerical_flux(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -103,6 +114,7 @@ void op_par_loop_advection_bc(char const *, op_set,
 #include "kernels/div.h"
 #include "kernels/advection_faces.h"
 #include "kernels/advection_bc.h"
+#include "kernels/advection_numerical_flux.h"
 
 using namespace std;
 
@@ -248,7 +260,7 @@ void advection(INSData *data) {
               op_arg_dat(data->F[3],-1,OP_ID,15,"double",OP_WRITE));
 
   div(data, data->F[0], data->F[1], data->N[0]);
-  div(data, data->F[2], data->F[3], data->N[0]);
+  div(data, data->F[2], data->F[3], data->N[1]);
 
   op_par_loop_advection_faces("advection_faces",data->edges,
               op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
@@ -268,4 +280,17 @@ void advection(INSData *data) {
               op_arg_dat(data->Q[1],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->exQ[0],0,data->bedge2cells,15,"double",OP_INC),
               op_arg_dat(data->exQ[1],0,data->bedge2cells,15,"double",OP_INC));
+
+  op_par_loop_advection_numerical_flux("advection_numerical_flux",data->cells,
+              op_arg_dat(data->fscale,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->nx,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->ny,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->Q[0],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->Q[1],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->exQ[0],-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(data->exQ[1],-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(data->flux[0],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->flux[1],-1,OP_ID,15,"double",OP_WRITE));
+
+  advection_lift_blas(data);
 }

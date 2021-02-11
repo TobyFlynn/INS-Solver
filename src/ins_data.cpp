@@ -45,6 +45,7 @@ INSData::~INSData() {
   for(int i = 0; i < 2; i++) {
     free(N_data[i]);
     free(exQ_data[i]);
+    free(flux_data[i]);
   }
 }
 
@@ -75,6 +76,7 @@ void INSData::initOP2() {
   for(int i = 0; i < 2; i++) {
     N_data[i] = (double *)malloc(15 * numCells * sizeof(double));
     exQ_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    flux_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
 
   // Initialise OP2
@@ -113,7 +115,7 @@ void INSData::initOP2() {
   nx = op_decl_dat(cells, 3 * 5, "double", nx_data, "nx");
   ny = op_decl_dat(cells, 3 * 5, "double", ny_data, "ny");
     // surface Jacobian / Jacobian (used when lifting the boundary fluxes)
-  fscale     = op_decl_dat(cells, 3 * 5, "double", fscale_data, "fscale");
+  fscale     = op_decl_dat(cells, 15, "double", fscale_data, "fscale");
   bedge_type = op_decl_dat(bedges, 1, "int", bedge_type_data, "bedge_type");
   edgeNum    = op_decl_dat(edges, 2, "int", edgeNum_data, "edgeNum");
   bedgeNum   = op_decl_dat(bedges, 1, "int", bedgeNum_data, "bedgeNum");
@@ -132,5 +134,7 @@ void INSData::initOP2() {
     N[i] = op_decl_dat(cells, 15, "double", N_data[i], Nname.c_str());
     string exQname = "exQ" + to_string(i);
     exQ[i] = op_decl_dat(cells, 15, "double", exQ_data[i], exQname.c_str());
+    string fluxname = "flux" + to_string(i);
+    flux[i] = op_decl_dat(cells, 15, "double", flux_data[i], fluxname.c_str());
   }
 }

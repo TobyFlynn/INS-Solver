@@ -25,3 +25,4 @@ int size, char *dat, char const *name){}
 #include "advection_flux_acckernel.c"
 #include "advection_faces_acckernel.c"
 #include "advection_bc_acckernel.c"
+#include "advection_numerical_flux_acckernel.c"

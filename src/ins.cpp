@@ -23,6 +23,7 @@
 #include "kernels/div.h"
 #include "kernels/advection_faces.h"
 #include "kernels/advection_bc.h"
+#include "kernels/advection_numerical_flux.h"
 
 using namespace std;
 
@@ -108,15 +109,15 @@ int main(int argc, char **argv) {
               op_arg_dat(data->ry, -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->sx, -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->sy, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->nx, -1, OP_ID, 3 * 5, "double", OP_WRITE),
-              op_arg_dat(data->ny, -1, OP_ID, 3 * 5, "double", OP_WRITE),
-              op_arg_dat(data->fscale, -1, OP_ID, 3 * 5, "double", OP_WRITE));
+              op_arg_dat(data->nx, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->ny, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->fscale, -1, OP_ID, 15, "double", OP_WRITE));
 
   // Set initial conditions
   op_par_loop(set_ic, "set_ic", data->cells,
-              op_arg_dat(data->Q[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->Q[1], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->Q[2], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->Q[0],   -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->Q[1],   -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->Q[2],   -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->exQ[0], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->exQ[1], -1, OP_ID, 15, "double", OP_WRITE));
 
@@ -168,24 +169,37 @@ void advection(INSData *data) {
               op_arg_dat(data->F[3], -1, OP_ID, 15, "double", OP_WRITE));
 
   div(data, data->F[0], data->F[1], data->N[0]);
-  div(data, data->F[2], data->F[3], data->N[0]);
+  div(data, data->F[2], data->F[3], data->N[1]);
 
   op_par_loop(advection_faces, "advection_faces", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(data->Q[0], -2, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->Q[1], -2, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->exQ[0], -2, data->edge2cells, 15, "double", OP_INC),
-              op_arg_dat(data->exQ[1], -2, data->edge2cells, 15, "double", OP_INC));
+              op_arg_dat(data->nodeX,   -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(data->nodeY,   -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(data->Q[0],    -2, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->Q[1],    -2, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->exQ[0],  -2, data->edge2cells, 15, "double", OP_INC),
+              op_arg_dat(data->exQ[1],  -2, data->edge2cells, 15, "double", OP_INC));
 
   op_par_loop(advection_bc, "advection_bc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->nx, 0, data->bedge2cells, 3 * 5, "double", OP_READ),
-              op_arg_dat(data->ny, 0, data->bedge2cells, 3 * 5, "double", OP_READ),
-              op_arg_dat(data->Q[0], 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->Q[1], 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->nx,     0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->ny,     0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->Q[0],   0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->Q[1],   0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->exQ[0], 0, data->bedge2cells, 15, "double", OP_INC),
               op_arg_dat(data->exQ[1], 0, data->bedge2cells, 15, "double", OP_INC));
+
+  op_par_loop(advection_numerical_flux, "advection_numerical_flux", data->cells,
+              op_arg_dat(data->fscale,  -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->nx,      -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->ny,      -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->Q[0],    -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->Q[1],    -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->exQ[0],  -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(data->exQ[1],  -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(data->flux[0], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->flux[1], -1, OP_ID, 15, "double", OP_WRITE));
+
+  advection_lift_blas(data);
 }
