@@ -8,6 +8,7 @@
 #define op_par_loop_set_ic op_par_loop_set_ic_gpu
 #define op_par_loop_div op_par_loop_div_gpu
 #define op_par_loop_curl op_par_loop_curl_gpu
+#define op_par_loop_grad op_par_loop_grad_gpu
 #define op_par_loop_advection_flux op_par_loop_advection_flux_gpu
 #define op_par_loop_advection_faces op_par_loop_advection_faces_gpu
 #define op_par_loop_advection_bc op_par_loop_advection_bc_gpu
@@ -18,6 +19,7 @@
 #undef op_par_loop_set_ic
 #undef op_par_loop_div
 #undef op_par_loop_curl
+#undef op_par_loop_grad
 #undef op_par_loop_advection_flux
 #undef op_par_loop_advection_faces
 #undef op_par_loop_advection_bc
@@ -28,6 +30,7 @@
 #define op_par_loop_set_ic op_par_loop_set_ic_cpu
 #define op_par_loop_div op_par_loop_div_cpu
 #define op_par_loop_curl op_par_loop_curl_cpu
+#define op_par_loop_grad op_par_loop_grad_cpu
 #define op_par_loop_advection_flux op_par_loop_advection_flux_cpu
 #define op_par_loop_advection_faces op_par_loop_advection_faces_cpu
 #define op_par_loop_advection_bc op_par_loop_advection_bc_cpu
@@ -38,6 +41,7 @@
 #undef op_par_loop_set_ic
 #undef op_par_loop_div
 #undef op_par_loop_curl
+#undef op_par_loop_grad
 #undef op_par_loop_advection_flux
 #undef op_par_loop_advection_faces
 #undef op_par_loop_advection_bc
@@ -352,6 +356,76 @@ void op_par_loop_curl(char const *name, op_set set,
     arg6,
     arg7,
     arg8);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_grad_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_grad(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_grad_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6,
+      arg7);
+
+    }else{
+    op_par_loop_grad_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6,
+      arg7);
+
+  }
+}
+#else
+void op_par_loop_grad(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7){
+
+  op_par_loop_grad_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5,
+    arg6,
+    arg7);
 
   }
 #endif //OP_HYBRID_GPU

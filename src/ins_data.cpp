@@ -49,6 +49,7 @@ INSData::~INSData() {
     free(N_data[1][i]);
     free(exQ_data[i]);
     free(flux_data[i]);
+    free(gradCurlVel_data[i]);
   }
   free(divVelT_data);
   free(curlVel_data);
@@ -85,6 +86,7 @@ void INSData::initOP2() {
     N_data[1][i] = (double *)malloc(15 * numCells * sizeof(double));
     exQ_data[i] = (double *)malloc(15 * numCells * sizeof(double));
     flux_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    gradCurlVel_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
   divVelT_data = (double *)malloc(15 * numCells * sizeof(double));
   curlVel_data = (double *)malloc(15 * numCells * sizeof(double));
@@ -152,6 +154,8 @@ void INSData::initOP2() {
     exQ[i] = op_decl_dat(cells, 15, "double", exQ_data[i], exQname.c_str());
     string fluxname = "flux" + to_string(i);
     flux[i] = op_decl_dat(cells, 15, "double", flux_data[i], fluxname.c_str());
+    string gradCurlVelname = "gradCurlVel" + to_string(i);
+    gradCurlVel[i] = op_decl_dat(cells, 15, "double", gradCurlVel_data[i], gradCurlVelname.c_str());
   }
   divVelT = op_decl_dat(cells, 15, "double", divVelT_data, "divVelT");
   curlVel = op_decl_dat(cells, 15, "double", curlVel_data, "curlVel");

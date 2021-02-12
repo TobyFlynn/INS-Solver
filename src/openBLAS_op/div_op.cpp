@@ -22,8 +22,8 @@ extern "C" {
 
 #include "../blas_calls.h"
 
-inline void openblas_div(const int numCells, double *u, double *v, double *div0,
-                         double *div1, double *div2, double *div3) {
+inline void openblas_div(const int numCells, const double *u, const double *v,
+                         double *div0, double *div1, double *div2, double *div3) {
   cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dr, 15, u, 15, 0.0, div0, 15);
   cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Ds, 15, u, 15, 0.0, div1, 15);
   cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dr, 15, v, 15, 0.0, div2, 15);
@@ -33,8 +33,8 @@ inline void openblas_div(const int numCells, double *u, double *v, double *div0,
 void div_blas(INSData *nsData, op_dat u, op_dat v) {
   // Make sure OP2 data is in the right place
   op_arg div_args[] = {
-    op_arg_dat(u, -1, OP_ID, 15, "double", OP_WRITE),
-    op_arg_dat(v, -1, OP_ID, 15, "double", OP_WRITE),
+    op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
+    op_arg_dat(v, -1, OP_ID, 15, "double", OP_READ),
     op_arg_dat(nsData->div[0], -1, OP_ID, 15, "double", OP_WRITE),
     op_arg_dat(nsData->div[1], -1, OP_ID, 15, "double", OP_WRITE),
     op_arg_dat(nsData->div[2], -1, OP_ID, 15, "double", OP_WRITE),
