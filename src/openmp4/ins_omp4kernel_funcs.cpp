@@ -5,6 +5,7 @@
 // global constants
 double gam_ompkernel;
 double mu_ompkernel;
+double nu_ompkernel;
 double bc_mach_ompkernel;
 double bc_alpha_ompkernel;
 double bc_p_ompkernel;
@@ -24,6 +25,9 @@ void op_decl_const_char(int dim, char const *type,
   } else if(!strcmp(name, "mu")) {
     memcpy(&mu_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:mu_ompkernel)
+  } else if(!strcmp(name, "nu")) {
+    memcpy(&nu_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:nu_ompkernel)
   } else if(!strcmp(name, "bc_mach")) {
     memcpy(&bc_mach_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:bc_mach_ompkernel)
@@ -58,3 +62,4 @@ void op_decl_const_char(int dim, char const *type,
 #include "advection_bc_omp4kernel_func.cpp"
 #include "advection_numerical_flux_omp4kernel_func.cpp"
 #include "advection_intermediate_vel_omp4kernel_func.cpp"
+#include "pressure_bc_omp4kernel_func.cpp"

@@ -5,6 +5,7 @@
 // global constants
 extern double gam;
 extern double mu;
+extern double nu;
 extern double bc_mach;
 extern double bc_alpha;
 extern double bc_p;
@@ -27,3 +28,4 @@ extern int FMASK[15];
 #include "advection_bc_seqkernel.cpp"
 #include "advection_numerical_flux_seqkernel.cpp"
 #include "advection_intermediate_vel_seqkernel.cpp"
+#include "pressure_bc_seqkernel.cpp"

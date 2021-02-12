@@ -2,7 +2,7 @@
 #define __CONSTANTS_UTIL_H
 
 // Physics constants
-double gam, mu, bc_mach, bc_alpha, bc_p, bc_r, bc_u, bc_v, bc_e, dt;
+double gam, mu, nu, bc_mach, bc_alpha, bc_p, bc_r, bc_u, bc_v, bc_e, dt;
 double vortex_x0 = 5.0;
 double vortex_y0 = 0.0;
 double vortex_beta = 5.0;

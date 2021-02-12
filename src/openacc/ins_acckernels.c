@@ -5,6 +5,7 @@
 // global constants
 extern double gam;
 extern double mu;
+extern double nu;
 extern double bc_mach;
 extern double bc_alpha;
 extern double bc_p;
@@ -29,3 +30,4 @@ int size, char *dat, char const *name){}
 #include "advection_bc_acckernel.c"
 #include "advection_numerical_flux_acckernel.c"
 #include "advection_intermediate_vel_acckernel.c"
+#include "pressure_bc_acckernel.c"

@@ -1,4 +1,4 @@
-set(KERNEL_HEADERS kernels/init_grid.h kernels/set_ic.h kernels/div.h kernels/curl.h kernels/grad.h kernels/advection_flux.h kernels/advection_faces.h kernels/advection_bc.h kernels/advection_numerical_flux.h kernels/advection_intermediate_vel.h)
+set(KERNEL_HEADERS kernels/init_grid.h kernels/set_ic.h kernels/div.h kernels/curl.h kernels/grad.h kernels/advection_flux.h kernels/advection_faces.h kernels/advection_bc.h kernels/advection_numerical_flux.h kernels/advection_intermediate_vel.h kernels/pressure_bc.h)
 set(OPENBLAS_SRC openBLAS_op/init_grid_op.cpp openBLAS_op/div_op.cpp openBLAS_op/grad_op.cpp openBLAS_op/advection_lift_op.cpp)
 set(CUBLAS_SRC cuBLAS_op/init_grid_op.cu cuBLAS_op/div_op.cu cuBLAS_op/grad_op.cu cuBLAS_op/advection_lift_op.cu)
 

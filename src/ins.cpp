@@ -27,6 +27,7 @@
 #include "kernels/advection_bc.h"
 #include "kernels/advection_numerical_flux.h"
 #include "kernels/advection_intermediate_vel.h"
+#include "kernels/pressure_bc.h"
 
 using namespace std;
 
@@ -69,6 +70,7 @@ int main(int argc, char **argv) {
 
   gam = 1.4;
   mu = 1e-2;
+  nu = 1e-3;
   bc_mach = 0.4;
   bc_p = 1.0;
   bc_r = 1.0;
@@ -91,6 +93,7 @@ int main(int argc, char **argv) {
   // Declare OP2 constants
   op_decl_const(1, "double", &gam);
   op_decl_const(1, "double", &mu);
+  op_decl_const(1, "double", &nu);
   op_decl_const(1, "double", &bc_mach);
   op_decl_const(1, "double", &bc_alpha);
   op_decl_const(1, "double", &bc_p);
@@ -124,7 +127,9 @@ int main(int argc, char **argv) {
               op_arg_dat(data->Q[0][1],   -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->Q[0][2],   -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->exQ[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->exQ[1], -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(data->exQ[1], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->dPdN[0], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->dPdN[1], -1, OP_ID, 15, "double", OP_WRITE));
 
   // TODO
   int currentIter = 0;
@@ -272,4 +277,17 @@ void pressure(INSData *data, int currentInd) {
   div(data, data->QT[0], data->QT[1], data->divVelT);
   curl(data, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
   grad(data, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
+
+  // Apply boundary conditions
+  // May need to change in future if non-constant boundary conditions used
+  op_par_loop(pressure_bc, "pressure_bc", data->bedges,
+              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->nx, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->ny, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->N[currentInd][0], 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->N[currentInd][1], 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->gradCurlVel[0], 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->gradCurlVel[1], 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->dPdN[currentInd], 0, data->bedge2cells, 15, "double", OP_INC));
 }
