@@ -34,6 +34,8 @@ INSData::~INSData() {
   free(sy_data);
   free(nx_data);
   free(ny_data);
+  free(J_data);
+  free(sJ_data);
   free(fscale_data);
   for(int i = 0; i < 3; i++) {
     free(Q_data[0][i]);
@@ -70,9 +72,11 @@ void INSData::initOP2() {
   ry_data = (double *)malloc(15 * numCells * sizeof(double));
   sx_data = (double *)malloc(15 * numCells * sizeof(double));
   sy_data = (double *)malloc(15 * numCells * sizeof(double));
-  nx_data = (double *)malloc(3 * 5 * numCells * sizeof(double));
-  ny_data = (double *)malloc(3 * 5 * numCells * sizeof(double));
-  fscale_data = (double *)malloc(3 * 5 * numCells * sizeof(double));
+  nx_data = (double *)malloc(15 * numCells * sizeof(double));
+  ny_data = (double *)malloc(15 * numCells * sizeof(double));
+  J_data  = (double *)malloc(15 * numCells * sizeof(double));
+  sJ_data = (double *)malloc(15 * numCells * sizeof(double));
+  fscale_data = (double *)malloc(15 * numCells * sizeof(double));
   for(int i = 0; i < 3; i++) {
     Q_data[0][i] = (double *)malloc(15 * numCells * sizeof(double));
     Q_data[1][i] = (double *)malloc(15 * numCells * sizeof(double));
@@ -126,9 +130,11 @@ void INSData::initOP2() {
   sx = op_decl_dat(cells, 15, "double", sx_data, "sx");
   sy = op_decl_dat(cells, 15, "double", sy_data, "sy");
     // Normals for each cell (calculated for each node on each edge, nodes can appear on multiple edges)
-  nx = op_decl_dat(cells, 3 * 5, "double", nx_data, "nx");
-  ny = op_decl_dat(cells, 3 * 5, "double", ny_data, "ny");
+  nx = op_decl_dat(cells, 15, "double", nx_data, "nx");
+  ny = op_decl_dat(cells, 15, "double", ny_data, "ny");
     // surface Jacobian / Jacobian (used when lifting the boundary fluxes)
+  J          = op_decl_dat(cells, 15, "double", J_data, "J");
+  sJ         = op_decl_dat(cells, 15, "double", sJ_data, "sJ");
   fscale     = op_decl_dat(cells, 15, "double", fscale_data, "fscale");
   bedge_type = op_decl_dat(bedges, 1, "int", bedge_type_data, "bedge_type");
   edgeNum    = op_decl_dat(edges, 2, "int", edgeNum_data, "edgeNum");

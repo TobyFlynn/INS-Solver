@@ -28,6 +28,8 @@ void op_par_loop_init_grid(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_set_ic(char const *, op_set,
@@ -137,6 +139,17 @@ void op_par_loop_pressure_bc(char const *, op_set,
   op_arg,
   op_arg,
   op_arg );
+
+void op_par_loop_pressure_rhs(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -171,6 +184,7 @@ void op_par_loop_pressure_bc(char const *, op_set,
 #include "kernels/advection_numerical_flux.h"
 #include "kernels/advection_intermediate_vel.h"
 #include "kernels/pressure_bc.h"
+#include "kernels/pressure_rhs.h"
 
 using namespace std;
 
@@ -183,9 +197,11 @@ static struct option options[] = {
   {0,    0,                  0,  0}
 };
 
-void advection(INSData *data, int currentInd);
+void advection(INSData *data, int currentInd, double a0, double a1, double b0,
+               double b1, double g0, double dt);
 
-void pressure(INSData *data, int currentInd);
+void pressure(INSData *data, int currentInd, double a0, double a1, double b0,
+              double b1, double g0, double dt);
 
 int main(int argc, char **argv) {
   // Object that holds all sets, maps and dats
@@ -262,6 +278,8 @@ int main(int argc, char **argv) {
               op_arg_dat(data->sy,-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->nx,-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->ny,-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->J,-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->sJ,-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->fscale,-1,OP_ID,15,"double",OP_WRITE));
 
   // Set initial conditions
@@ -275,9 +293,15 @@ int main(int argc, char **argv) {
               op_arg_dat(data->dPdN[1],-1,OP_ID,15,"double",OP_WRITE));
 
   // TODO
+  double a0 = 1.0;
+  double a1 = 1.0;
+  double b0 = 1.0;
+  double b1 = 1.0;
+  double g0 = 1.0;
+  double dt = 1.0;
   int currentIter = 0;
-  advection(data, currentIter % 2);
-  pressure(data, currentIter % 2);
+  advection(data, currentIter % 2, a0, a1, b0, b1, g0, dt);
+  pressure(data, currentIter % 2, a0, a1, b0, b1, g0, dt);
 
   // currentIter++;
 
@@ -347,7 +371,8 @@ void grad(INSData * data, op_dat u, op_dat ux, op_dat uy) {
               op_arg_dat(uy,-1,OP_ID,15,"double",OP_WRITE));
 }
 
-void advection(INSData *data, int currentInd) {
+void advection(INSData *data, int currentInd, double a0, double a1, double b0,
+               double b1, double g0, double dt) {
   op_par_loop_advection_flux("advection_flux",data->cells,
               op_arg_dat(data->Q[currentInd][0],-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][1],-1,OP_ID,15,"double",OP_READ),
@@ -391,12 +416,6 @@ void advection(INSData *data, int currentInd) {
 
   advection_lift_blas(data, currentInd);
 
-  double a0 = 1.0;
-  double a1 = 1.0;
-  double b0 = 1.0;
-  double b1 = 1.0;
-  double g0 = 1.0;
-  double dt = 1.0;
   op_par_loop_advection_intermediate_vel("advection_intermediate_vel",data->cells,
               op_arg_gbl(&a0,1,"double",OP_READ),
               op_arg_gbl(&a1,1,"double",OP_READ),
@@ -416,7 +435,8 @@ void advection(INSData *data, int currentInd) {
               op_arg_dat(data->QT[1],-1,OP_ID,15,"double",OP_WRITE));
 }
 
-void pressure(INSData *data, int currentInd) {
+void pressure(INSData *data, int currentInd, double a0, double a1, double b0,
+              double b1, double g0, double dt) {
   div(data, data->QT[0], data->QT[1], data->divVelT);
   curl(data, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
   grad(data, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
@@ -433,4 +453,15 @@ void pressure(INSData *data, int currentInd) {
               op_arg_dat(data->gradCurlVel[0],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->gradCurlVel[1],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->dPdN[currentInd],0,data->bedge2cells,15,"double",OP_INC));
+
+  op_par_loop_pressure_rhs("pressure_rhs",data->cells,
+              op_arg_gbl(&b0,1,"double",OP_READ),
+              op_arg_gbl(&b1,1,"double",OP_READ),
+              op_arg_gbl(&g0,1,"double",OP_READ),
+              op_arg_gbl(&dt,1,"double",OP_READ),
+              op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->sJ,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->dPdN[currentInd],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->dPdN[(currentInd + 1) % 2],-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(data->divVelT,-1,OP_ID,15,"double",OP_RW));
 }

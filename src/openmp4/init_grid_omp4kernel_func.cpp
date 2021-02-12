@@ -31,6 +31,10 @@ void init_grid_omp4_kernel(
   int dat14size,
   double *data15,
   int dat15size,
+  double *data16,
+  int dat16size,
+  double *data17,
+  int dat17size,
   double *data0,
   int dat0size,
   int *col_reord,
@@ -40,7 +44,7 @@ void init_grid_omp4_kernel(
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size],data15[0:dat15size]) \
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size],data15[0:dat15size],data16[0:dat16size],data17[0:dat17size]) \
     map(to: FMASK_ompkernel[:15])\
     map(to:col_reord[0:set_size1],map0[0:map0size],data0[0:dat0size])
   #pragma omp distribute parallel for schedule(static,1)
@@ -71,7 +75,9 @@ void init_grid_omp4_kernel(
     double *sy = &data12[15*n_op];
     double *nx = &data13[15*n_op];
     double *ny = &data14[15*n_op];
-    double *fscale = &data15[15*n_op];
+    double *J = &data15[15*n_op];
+    double *sJ = &data16[15*n_op];
+    double *fscale = &data17[15*n_op];
 
     //inline function
     
@@ -82,7 +88,6 @@ void init_grid_omp4_kernel(
     nodeY[1] = nc[1][1];
     nodeY[2] = nc[2][1];
 
-    double J[15];
     for(int i = 0; i < 15; i++) {
       J[i] = -xs[i] * yr[i] + xr[i] * ys[i];
     }
@@ -111,10 +116,10 @@ void init_grid_omp4_kernel(
     }
 
     for(int i = 0; i < 3 * 5; i++) {
-      double sJ = sqrt(nx[i] * nx[i] + ny[i] * ny[i]);
-      nx[i] = nx[i] / sJ;
-      ny[i] = ny[i] / sJ;
-      fscale[i] = sJ / J[FMASK_ompkernel[i]];
+      sJ[i] = sqrt(nx[i] * nx[i] + ny[i] * ny[i]);
+      nx[i] = nx[i] / sJ[i];
+      ny[i] = ny[i] / sJ[i];
+      fscale[i] = sJ[i] / J[FMASK_ompkernel[i]];
     }
     //end inline func
   }

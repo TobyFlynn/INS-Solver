@@ -31,3 +31,4 @@ int size, char *dat, char const *name){}
 #include "advection_numerical_flux_acckernel.c"
 #include "advection_intermediate_vel_acckernel.c"
 #include "pressure_bc_acckernel.c"
+#include "pressure_rhs_acckernel.c"

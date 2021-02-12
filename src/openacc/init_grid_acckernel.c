@@ -8,7 +8,8 @@
 inline void init_grid_openacc( const double **nc, double *nodeX, double *nodeY,
                       const double *xr, const double *yr, const double *xs,
                       const double *ys, double *rx, double *ry, double *sx,
-                      double *sy, double *nx, double *ny, double *fscale) {
+                      double *sy, double *nx, double *ny, double *J, double *sJ,
+                      double *fscale) {
   nodeX[0] = nc[0][0];
   nodeX[1] = nc[1][0];
   nodeX[2] = nc[2][0];
@@ -16,7 +17,6 @@ inline void init_grid_openacc( const double **nc, double *nodeX, double *nodeY,
   nodeY[1] = nc[1][1];
   nodeY[2] = nc[2][1];
 
-  double J[15];
   for(int i = 0; i < 15; i++) {
     J[i] = -xs[i] * yr[i] + xr[i] * ys[i];
   }
@@ -45,10 +45,10 @@ inline void init_grid_openacc( const double **nc, double *nodeX, double *nodeY,
   }
 
   for(int i = 0; i < 3 * 5; i++) {
-    double sJ = sqrt(nx[i] * nx[i] + ny[i] * ny[i]);
-    nx[i] = nx[i] / sJ;
-    ny[i] = ny[i] / sJ;
-    fscale[i] = sJ / J[FMASK[i]];
+    sJ[i] = sqrt(nx[i] * nx[i] + ny[i] * ny[i]);
+    nx[i] = nx[i] / sJ[i];
+    ny[i] = ny[i] / sJ[i];
+    fscale[i] = sJ[i] / J[FMASK[i]];
   }
 }
 
@@ -67,10 +67,12 @@ void op_par_loop_init_grid(char const *name, op_set set,
   op_arg arg12,
   op_arg arg13,
   op_arg arg14,
-  op_arg arg15){
+  op_arg arg15,
+  op_arg arg16,
+  op_arg arg17){
 
-  int nargs = 16;
-  op_arg args[16];
+  int nargs = 18;
+  op_arg args[18];
 
   arg0.idx = 0;
   args[0] = arg0;
@@ -91,6 +93,8 @@ void op_par_loop_init_grid(char const *name, op_set set,
   args[13] = arg13;
   args[14] = arg14;
   args[15] = arg15;
+  args[16] = arg16;
+  args[17] = arg17;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -100,7 +104,7 @@ void op_par_loop_init_grid(char const *name, op_set set,
   OP_kernels[0].count    += 1;
 
   int  ninds   = 1;
-  int  inds[16] = {0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+  int  inds[18] = {0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: init_grid\n");
@@ -137,6 +141,8 @@ void op_par_loop_init_grid(char const *name, op_set set,
     double* data13 = (double*)arg13.data_d;
     double* data14 = (double*)arg14.data_d;
     double* data15 = (double*)arg15.data_d;
+    double* data16 = (double*)arg16.data_d;
+    double* data17 = (double*)arg17.data_d;
     double *data0 = (double *)arg0.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
@@ -152,7 +158,7 @@ void op_par_loop_init_grid(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map0,data3,data4,data5,data6,data7,data8,data9,data10,data11,data12,data13,data14,data15,data0)
+      #pragma acc parallel loop independent deviceptr(col_reord,map0,data3,data4,data5,data6,data7,data8,data9,data10,data11,data12,data13,data14,data15,data16,data17,data0)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map0idx;
@@ -181,7 +187,9 @@ void op_par_loop_init_grid(char const *name, op_set set,
           &data12[15 * n],
           &data13[15 * n],
           &data14[15 * n],
-          &data15[15 * n]);
+          &data15[15 * n],
+          &data16[15 * n],
+          &data17[15 * n]);
       }
 
     }

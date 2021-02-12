@@ -33,3 +33,4 @@ extern int FMASK[15];
 #include "advection_numerical_flux_kernel.cpp"
 #include "advection_intermediate_vel_kernel.cpp"
 #include "pressure_bc_kernel.cpp"
+#include "pressure_rhs_kernel.cpp"

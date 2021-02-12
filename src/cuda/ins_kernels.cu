@@ -83,3 +83,4 @@ int size, char *dat, char const *name){
 #include "advection_numerical_flux_kernel.cu"
 #include "advection_intermediate_vel_kernel.cu"
 #include "pressure_bc_kernel.cu"
+#include "pressure_rhs_kernel.cu"

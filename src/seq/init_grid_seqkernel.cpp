@@ -20,10 +20,12 @@ void op_par_loop_init_grid(char const *name, op_set set,
   op_arg arg12,
   op_arg arg13,
   op_arg arg14,
-  op_arg arg15){
+  op_arg arg15,
+  op_arg arg16,
+  op_arg arg17){
 
-  int nargs = 16;
-  op_arg args[16];
+  int nargs = 18;
+  op_arg args[18];
 
   arg0.idx = 0;
   args[0] = arg0;
@@ -44,6 +46,8 @@ void op_par_loop_init_grid(char const *name, op_set set,
   args[13] = arg13;
   args[14] = arg14;
   args[15] = arg15;
+  args[16] = arg16;
+  args[17] = arg17;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -88,7 +92,9 @@ void op_par_loop_init_grid(char const *name, op_set set,
         &((double*)arg12.data)[15 * n],
         &((double*)arg13.data)[15 * n],
         &((double*)arg14.data)[15 * n],
-        &((double*)arg15.data)[15 * n]);
+        &((double*)arg15.data)[15 * n],
+        &((double*)arg16.data)[15 * n],
+        &((double*)arg17.data)[15 * n]);
     }
   }
 
@@ -117,5 +123,7 @@ void op_par_loop_init_grid(char const *name, op_set set,
   OP_kernels[0].transfer += (float)set->size * arg13.size;
   OP_kernels[0].transfer += (float)set->size * arg14.size;
   OP_kernels[0].transfer += (float)set->size * arg15.size;
+  OP_kernels[0].transfer += (float)set->size * arg16.size;
+  OP_kernels[0].transfer += (float)set->size * arg17.size;
   OP_kernels[0].transfer += (float)set->size * arg0.map->dim * 4.0f;
 }

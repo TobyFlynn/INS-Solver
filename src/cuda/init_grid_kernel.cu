@@ -6,7 +6,8 @@
 __device__ void init_grid_gpu( const double **nc, double *nodeX, double *nodeY,
                       const double *xr, const double *yr, const double *xs,
                       const double *ys, double *rx, double *ry, double *sx,
-                      double *sy, double *nx, double *ny, double *fscale) {
+                      double *sy, double *nx, double *ny, double *J, double *sJ,
+                      double *fscale) {
   nodeX[0] = nc[0][0];
   nodeX[1] = nc[1][0];
   nodeX[2] = nc[2][0];
@@ -14,7 +15,6 @@ __device__ void init_grid_gpu( const double **nc, double *nodeX, double *nodeY,
   nodeY[1] = nc[1][1];
   nodeY[2] = nc[2][1];
 
-  double J[15];
   for(int i = 0; i < 15; i++) {
     J[i] = -xs[i] * yr[i] + xr[i] * ys[i];
   }
@@ -43,10 +43,10 @@ __device__ void init_grid_gpu( const double **nc, double *nodeX, double *nodeY,
   }
 
   for(int i = 0; i < 3 * 5; i++) {
-    double sJ = sqrt(nx[i] * nx[i] + ny[i] * ny[i]);
-    nx[i] = nx[i] / sJ;
-    ny[i] = ny[i] / sJ;
-    fscale[i] = sJ / J[FMASK_cuda[i]];
+    sJ[i] = sqrt(nx[i] * nx[i] + ny[i] * ny[i]);
+    nx[i] = nx[i] / sJ[i];
+    ny[i] = ny[i] / sJ[i];
+    fscale[i] = sJ[i] / J[FMASK_cuda[i]];
   }
 
 }
@@ -68,6 +68,8 @@ __global__ void op_cuda_init_grid(
   double *arg13,
   double *arg14,
   double *arg15,
+  double *arg16,
+  double *arg17,
   int start,
   int end,
   int   set_size) {
@@ -100,7 +102,9 @@ __global__ void op_cuda_init_grid(
               arg12+n*15,
               arg13+n*15,
               arg14+n*15,
-              arg15+n*15);
+              arg15+n*15,
+              arg16+n*15,
+              arg17+n*15);
   }
 }
 
@@ -120,10 +124,12 @@ void op_par_loop_init_grid(char const *name, op_set set,
   op_arg arg12,
   op_arg arg13,
   op_arg arg14,
-  op_arg arg15){
+  op_arg arg15,
+  op_arg arg16,
+  op_arg arg17){
 
-  int nargs = 16;
-  op_arg args[16];
+  int nargs = 18;
+  op_arg args[18];
 
   arg0.idx = 0;
   args[0] = arg0;
@@ -144,6 +150,8 @@ void op_par_loop_init_grid(char const *name, op_set set,
   args[13] = arg13;
   args[14] = arg14;
   args[15] = arg15;
+  args[16] = arg16;
+  args[17] = arg17;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -154,7 +162,7 @@ void op_par_loop_init_grid(char const *name, op_set set,
 
 
   int    ninds   = 1;
-  int    inds[16] = {0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+  int    inds[18] = {0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: init_grid\n");
@@ -193,6 +201,8 @@ void op_par_loop_init_grid(char const *name, op_set set,
         (double*)arg13.data_d,
         (double*)arg14.data_d,
         (double*)arg15.data_d,
+        (double*)arg16.data_d,
+        (double*)arg17.data_d,
         start,end,set->size+set->exec_size);
       }
     }

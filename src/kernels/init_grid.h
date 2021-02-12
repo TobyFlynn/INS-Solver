@@ -1,7 +1,8 @@
 inline void init_grid(const double **nc, double *nodeX, double *nodeY,
                       const double *xr, const double *yr, const double *xs,
                       const double *ys, double *rx, double *ry, double *sx,
-                      double *sy, double *nx, double *ny, double *fscale) {
+                      double *sy, double *nx, double *ny, double *J, double *sJ,
+                      double *fscale) {
   nodeX[0] = nc[0][0];
   nodeX[1] = nc[1][0];
   nodeX[2] = nc[2][0];
@@ -10,7 +11,6 @@ inline void init_grid(const double **nc, double *nodeX, double *nodeY,
   nodeY[2] = nc[2][1];
 
   // J = -xs.*yr + xr.*ys
-  double J[15];
   for(int i = 0; i < 15; i++) {
     J[i] = -xs[i] * yr[i] + xr[i] * ys[i];
   }
@@ -43,9 +43,9 @@ inline void init_grid(const double **nc, double *nodeX, double *nodeY,
 
   // Normalise
   for(int i = 0; i < 3 * 5; i++) {
-    double sJ = sqrt(nx[i] * nx[i] + ny[i] * ny[i]);
-    nx[i] = nx[i] / sJ;
-    ny[i] = ny[i] / sJ;
-    fscale[i] = sJ / J[FMASK[i]];
+    sJ[i] = sqrt(nx[i] * nx[i] + ny[i] * ny[i]);
+    nx[i] = nx[i] / sJ[i];
+    ny[i] = ny[i] / sJ[i];
+    fscale[i] = sJ[i] / J[FMASK[i]];
   }
 }
