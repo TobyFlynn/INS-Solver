@@ -70,6 +70,7 @@ int size, char *dat, char const *name){
 #include "init_grid_kernel.cu"
 #include "set_ic_kernel.cu"
 #include "div_kernel.cu"
+#include "curl_kernel.cu"
 #include "advection_flux_kernel.cu"
 #include "advection_faces_kernel.cu"
 #include "advection_bc_kernel.cu"

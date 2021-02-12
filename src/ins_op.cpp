@@ -48,6 +48,17 @@ void op_par_loop_div(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_curl(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
 void op_par_loop_advection_flux(char const *, op_set,
   op_arg,
   op_arg,
@@ -130,6 +141,7 @@ void op_par_loop_advection_intermediate_vel(char const *, op_set,
 #include "kernels/set_ic.h"
 #include "kernels/advection_flux.h"
 #include "kernels/div.h"
+#include "kernels/curl.h"
 #include "kernels/advection_faces.h"
 #include "kernels/advection_bc.h"
 #include "kernels/advection_numerical_flux.h"
@@ -147,6 +159,8 @@ static struct option options[] = {
 };
 
 void advection(INSData *data, int currentInd);
+
+void pressure(INSData *data, int currentInd);
 
 int main(int argc, char **argv) {
   // Object that holds all sets, maps and dats
@@ -234,6 +248,7 @@ int main(int argc, char **argv) {
   // TODO
   int currentIter = 0;
   advection(data, currentIter % 2);
+  pressure(data, currentIter % 2);
 
   // currentIter++;
 
@@ -261,6 +276,23 @@ void div(INSData *data, op_dat u, op_dat v, op_dat res) {
   div_blas(data, u, v);
 
   op_par_loop_div("div",data->cells,
+              op_arg_dat(data->div[0],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->div[1],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->div[2],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->div[3],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->rx,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->sx,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->ry,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->sy,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(res,-1,OP_ID,15,"double",OP_WRITE));
+}
+
+void curl(INSData *data, op_dat u, op_dat v, op_dat res) {
+  // Same matrix multiplications as div
+  // Rename this later
+  div_blas(data, u, v);
+
+  op_par_loop_curl("curl",data->cells,
               op_arg_dat(data->div[0],-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->div[1],-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->div[2],-1,OP_ID,15,"double",OP_READ),
@@ -339,4 +371,9 @@ void advection(INSData *data, int currentInd) {
               op_arg_dat(data->N[(currentInd + 1) % 2][1],-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->QT[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->QT[1],-1,OP_ID,15,"double",OP_WRITE));
+}
+
+void pressure(INSData *data, int currentInd) {
+  div(data, data->QT[0], data->QT[1], data->divVelT);
+  curl(data, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
 }

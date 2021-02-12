@@ -5,15 +5,16 @@
 //user function
 //user function
 //#pragma acc routine
-inline void advection_numerical_flux_openacc( const double *fscale, const double *nx,
-                                     const double *ny, const double *q0,
-                                     const double *q1, double *exQ0,
-                                     double *exQ1, double *flux0, double *flux1) {
-
+inline void curl_openacc( const double *div0, const double *div1, const double *div2,
+                const double *div3, const double *rx, const double *sx,
+                const double *ry, const double *sy, double *res) {
+  for(int i = 0; i < 15; i++) {
+    res[i] = rx[i] * div2[i] + sx[i] * div3[i] - ry[i] * div0[i] - sy[i] * div1[i];
+  }
 }
 
 // host stub function
-void op_par_loop_advection_numerical_flux(char const *name, op_set set,
+void op_par_loop_curl(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
@@ -39,14 +40,14 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(7);
+  op_timing_realloc(3);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[7].name      = name;
-  OP_kernels[7].count    += 1;
+  OP_kernels[3].name      = name;
+  OP_kernels[3].count    += 1;
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  advection_numerical_flux");
+    printf(" kernel routine w/o indirection:  curl");
   }
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
@@ -68,7 +69,7 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
     double* data8 = (double*)arg8.data_d;
     #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7,data8)
     for ( int n=0; n<set->size; n++ ){
-      advection_numerical_flux_openacc(
+      curl_openacc(
         &data0[15*n],
         &data1[15*n],
         &data2[15*n],
@@ -86,14 +87,14 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[7].time     += wall_t2 - wall_t1;
-  OP_kernels[7].transfer += (float)set->size * arg0.size;
-  OP_kernels[7].transfer += (float)set->size * arg1.size;
-  OP_kernels[7].transfer += (float)set->size * arg2.size;
-  OP_kernels[7].transfer += (float)set->size * arg3.size;
-  OP_kernels[7].transfer += (float)set->size * arg4.size;
-  OP_kernels[7].transfer += (float)set->size * arg5.size * 2.0f;
-  OP_kernels[7].transfer += (float)set->size * arg6.size * 2.0f;
-  OP_kernels[7].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[7].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[3].time     += wall_t2 - wall_t1;
+  OP_kernels[3].transfer += (float)set->size * arg0.size;
+  OP_kernels[3].transfer += (float)set->size * arg1.size;
+  OP_kernels[3].transfer += (float)set->size * arg2.size;
+  OP_kernels[3].transfer += (float)set->size * arg3.size;
+  OP_kernels[3].transfer += (float)set->size * arg4.size;
+  OP_kernels[3].transfer += (float)set->size * arg5.size;
+  OP_kernels[3].transfer += (float)set->size * arg6.size;
+  OP_kernels[3].transfer += (float)set->size * arg7.size;
+  OP_kernels[3].transfer += (float)set->size * arg8.size * 2.0f;
 }

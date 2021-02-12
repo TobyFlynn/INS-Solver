@@ -50,6 +50,8 @@ INSData::~INSData() {
     free(exQ_data[i]);
     free(flux_data[i]);
   }
+  free(divVelT_data);
+  free(curlVel_data);
 }
 
 void INSData::initOP2() {
@@ -84,6 +86,8 @@ void INSData::initOP2() {
     exQ_data[i] = (double *)malloc(15 * numCells * sizeof(double));
     flux_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
+  divVelT_data = (double *)malloc(15 * numCells * sizeof(double));
+  curlVel_data = (double *)malloc(15 * numCells * sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -149,4 +153,6 @@ void INSData::initOP2() {
     string fluxname = "flux" + to_string(i);
     flux[i] = op_decl_dat(cells, 15, "double", flux_data[i], fluxname.c_str());
   }
+  divVelT = op_decl_dat(cells, 15, "double", divVelT_data, "divVelT");
+  curlVel = op_decl_dat(cells, 15, "double", curlVel_data, "curlVel");
 }

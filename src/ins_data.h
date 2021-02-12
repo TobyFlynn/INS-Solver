@@ -26,6 +26,7 @@ public:
          ny, fscale, bedge_type, edgeNum, bedgeNum;
   op_dat Q[2][3], exQ[2], F[4], N[2][2], flux[2], QT[3];
   op_dat div[4];
+  op_dat divVelT, curlVel;
 private:
   // Pointers to private memory
   double *nodeX_data;
@@ -50,6 +51,8 @@ private:
   double *flux_data[2];
   double *QT_data[3];
   double *div_data[4];
+  double *divVelT_data;
+  double *curlVel_data;
 };
 
 #endif
