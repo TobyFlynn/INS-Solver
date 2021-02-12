@@ -2,8 +2,8 @@ set(KERNEL_HEADERS kernels/init_grid.h kernels/set_ic.h)
 list(APPEND KERNEL_HEADERS kernels/div.h kernels/curl.h kernels/grad.h)
 list(APPEND KERNEL_HEADERS kernels/advection_flux.h kernels/advection_faces.h kernels/advection_bc.h kernels/advection_numerical_flux.h kernels/advection_intermediate_vel.h)
 list(APPEND KERNEL_HEADERS kernels/pressure_bc.h kernels/pressure_rhs.h)
-set(OPENBLAS_SRC openBLAS_op/init_grid_op.cpp openBLAS_op/div_op.cpp openBLAS_op/grad_op.cpp openBLAS_op/advection_lift_op.cpp)
-set(CUBLAS_SRC cuBLAS_op/init_grid_op.cu cuBLAS_op/div_op.cu cuBLAS_op/grad_op.cu cuBLAS_op/advection_lift_op.cu)
+set(OPENBLAS_SRC openBLAS_op/init_grid_op.cpp openBLAS_op/div_op.cpp openBLAS_op/grad_op.cpp openBLAS_op/advection_lift_op.cpp openBLAS_op/pressure_rhs_op.cpp)
+set(CUBLAS_SRC cuBLAS_op/init_grid_op.cu cuBLAS_op/div_op.cu cuBLAS_op/grad_op.cu cuBLAS_op/advection_lift_op.cu cuBLAS_op/pressure_rhs_op.cu)
 
 op2_application(ins_seq LIBS op2_seq op2_hdf5 SOURCES ins_op.cpp ins_data.cpp load_mesh.cpp save_solution.cpp ${OPENBLAS_SRC} seq/ins_seqkernels.cpp ${KERNEL_HEADERS})
 

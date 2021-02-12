@@ -8,6 +8,7 @@
 #include "constant_Drw.h"
 #include "constant_Dsw.h"
 #include "constant_LIFT.h"
+#include "constant_MASS.h"
 #include "constant_util.h"
 
 #endif

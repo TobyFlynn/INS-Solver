@@ -56,6 +56,7 @@ INSData::~INSData() {
   }
   free(divVelT_data);
   free(curlVel_data);
+  free(pRHS_data);
 }
 
 void INSData::initOP2() {
@@ -96,6 +97,7 @@ void INSData::initOP2() {
   }
   divVelT_data = (double *)malloc(15 * numCells * sizeof(double));
   curlVel_data = (double *)malloc(15 * numCells * sizeof(double));
+  pRHS_data    = (double *)malloc(15 * numCells * sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -169,4 +171,5 @@ void INSData::initOP2() {
   }
   divVelT = op_decl_dat(cells, 15, "double", divVelT_data, "divVelT");
   curlVel = op_decl_dat(cells, 15, "double", curlVel_data, "curlVel");
+  pRHS    = op_decl_dat(cells, 15, "double", pRHS_data, "pRHS");
 }

@@ -308,4 +308,6 @@ void pressure(INSData *data, int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->dPdN[currentInd], -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(data->divVelT, -1, OP_ID, 15, "double", OP_RW));
+
+  pressure_rhs_blas(data, currentInd);
 }
