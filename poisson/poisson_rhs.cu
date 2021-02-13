@@ -2,6 +2,8 @@
 
 #include "op_seq.h"
 
+#include "operators.h"
+
 #include "kernels/pRHS_faces.h"
 #include "kernels/pRHS_bc.h"
 #include "kernels/pRHS_du.h"
@@ -28,7 +30,14 @@ void poisson_rhs(const double *u, double *rhs) {
               op_arg_dat(data->pExU, 0, data->bedge2cells, 15, "double", OP_INC));
 
   op_par_loop(pRHS_du, "pRHS_du", data->cells,
+              op_arg_dat(data->nx, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->ny, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->fscale, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->pU, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->pExU, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->pDu, -1, OP_ID, 15, "double", OP_WRITE);
+              op_arg_dat(data->pDu, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->pFluxXu, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->pFluxYu, -1, OP_ID, 15, "double", OP_WRITE));
+
+  grad(data, data->pU, data->pDuDx, data->pDuDy);
 }

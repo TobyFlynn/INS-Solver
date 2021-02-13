@@ -85,7 +85,7 @@ void curl(INSData *data, op_dat u, op_dat v, op_dat res) {
               op_arg_dat(res,-1,OP_ID,15,"double",OP_WRITE));
 }
 
-void grad(INSData * data, op_dat u, op_dat ux, op_dat uy) {
+void grad(INSData *data, op_dat u, op_dat ux, op_dat uy) {
   grad_blas(data, u);
 
   op_par_loop_grad("grad",data->cells,

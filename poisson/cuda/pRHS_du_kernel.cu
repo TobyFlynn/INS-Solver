@@ -3,9 +3,13 @@
 //
 
 //user function
-__device__ void pRHS_du_gpu( const double *U, const double *exU, double *du) {
+__device__ void pRHS_du_gpu( const double *nx, const double *ny, const double *fscale,
+                    const double *U, const double *exU, double *du,
+                    double *fluxXu, double *fluxYu) {
   for(int i = 0; i < 15; i++) {
     du[i] = U[i] - exU[i];
+    fluxXu[i] = fscale[i] * (nx[i] * du[i] / 2.0);
+    fluxYu[i] = fscale[i] * (ny[i] * du[i] / 2.0);
   }
 
 }
@@ -14,7 +18,12 @@ __device__ void pRHS_du_gpu( const double *U, const double *exU, double *du) {
 __global__ void op_cuda_pRHS_du(
   const double *__restrict arg0,
   const double *__restrict arg1,
-  double *arg2,
+  const double *__restrict arg2,
+  const double *__restrict arg3,
+  const double *__restrict arg4,
+  double *arg5,
+  double *arg6,
+  double *arg7,
   int   set_size ) {
 
 
@@ -24,7 +33,12 @@ __global__ void op_cuda_pRHS_du(
     //user-supplied kernel call
     pRHS_du_gpu(arg0+n*15,
             arg1+n*15,
-            arg2+n*15);
+            arg2+n*15,
+            arg3+n*15,
+            arg4+n*15,
+            arg5+n*15,
+            arg6+n*15,
+            arg7+n*15);
   }
 }
 
@@ -33,14 +47,24 @@ __global__ void op_cuda_pRHS_du(
 void op_par_loop_pRHS_du(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2){
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7){
 
-  int nargs = 3;
-  op_arg args[3];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
+  args[3] = arg3;
+  args[4] = arg4;
+  args[5] = arg5;
+  args[6] = arg6;
+  args[7] = arg7;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -70,6 +94,11 @@ void op_par_loop_pRHS_du(char const *name, op_set set,
       (double *) arg0.data_d,
       (double *) arg1.data_d,
       (double *) arg2.data_d,
+      (double *) arg3.data_d,
+      (double *) arg4.data_d,
+      (double *) arg5.data_d,
+      (double *) arg6.data_d,
+      (double *) arg7.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
@@ -79,5 +108,10 @@ void op_par_loop_pRHS_du(char const *name, op_set set,
   OP_kernels[8].time     += wall_t2 - wall_t1;
   OP_kernels[8].transfer += (float)set->size * arg0.size;
   OP_kernels[8].transfer += (float)set->size * arg1.size;
-  OP_kernels[8].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[8].transfer += (float)set->size * arg2.size;
+  OP_kernels[8].transfer += (float)set->size * arg3.size;
+  OP_kernels[8].transfer += (float)set->size * arg4.size;
+  OP_kernels[8].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[8].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[8].transfer += (float)set->size * arg7.size * 2.0f;
 }

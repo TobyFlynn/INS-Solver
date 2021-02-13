@@ -49,6 +49,10 @@ INSData::~INSData() {
   free(pU_data);
   free(pExU_data);
   free(pDu_data);
+  free(pDuDx_data);
+  free(pDuDy_data);
+  free(pFluxXu_data);
+  free(pFluxYu_data);
 }
 
 void INSData::initOP2() {
@@ -82,6 +86,10 @@ void INSData::initOP2() {
   pU_data = (double *)malloc(15 * numCells * sizeof(double));
   pExU_data = (double *)malloc(15 * numCells * sizeof(double));
   pDu_data = (double *)malloc(15 * numCells * sizeof(double));
+  pDuDx_data = (double *)malloc(15 * numCells * sizeof(double));
+  pDuDy_data = (double *)malloc(15 * numCells * sizeof(double));
+  pFluxXu_data = (double *)malloc(15 * numCells * sizeof(double));
+  pFluxYu_data = (double *)malloc(15 * numCells * sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -139,4 +147,8 @@ void INSData::initOP2() {
   pU = op_decl_dat(cells, 15, "double", pU_data, "pU");
   pExU = op_decl_dat(cells, 15, "double", pExU_data, "pExU");
   pDu = op_decl_dat(cells, 15, "double", pDu_data, "pDu");
+  pDuDx = op_decl_dat(cells, 15, "double", pDuDx_data, "pDuDx");
+  pDuDy = op_decl_dat(cells, 15, "double", pDuDy_data, "pDuDy");
+  pFluxXu = op_decl_dat(cells, 15, "double", pFluxXu_data, "pFluxXu");
+  pFluxYu = op_decl_dat(cells, 15, "double", pFluxYu_data, "pFluxYu");
 }

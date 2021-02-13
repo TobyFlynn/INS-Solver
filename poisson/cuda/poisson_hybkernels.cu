@@ -573,26 +573,46 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
 void op_par_loop_pRHS_du_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2);
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
 void op_par_loop_pRHS_du(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2){
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7){
 
   if (OP_hybrid_gpu) {
     op_par_loop_pRHS_du_gpu(name, set,
       arg0,
       arg1,
-      arg2);
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6,
+      arg7);
 
     }else{
     op_par_loop_pRHS_du_cpu(name, set,
       arg0,
       arg1,
-      arg2);
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6,
+      arg7);
 
   }
 }
@@ -600,12 +620,22 @@ void op_par_loop_pRHS_du(char const *name, op_set set,
 void op_par_loop_pRHS_du(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2){
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7){
 
   op_par_loop_pRHS_du_gpu(name, set,
     arg0,
     arg1,
-    arg2);
+    arg2,
+    arg3,
+    arg4,
+    arg5,
+    arg6,
+    arg7);
 
   }
 #endif //OP_HYBRID_GPU
