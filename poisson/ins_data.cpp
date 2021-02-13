@@ -41,9 +41,14 @@ INSData::~INSData() {
   free(qN_data);
   free(Aqbc_data);
   free(rhs_data);
+  free(pRHS_data);
   for(int i = 0; i < 4; i++) {
+    free(poissonBC_data[i]);
     free(div_data[i]);
   }
+  free(pU_data);
+  free(pExU_data);
+  free(pDu_data);
 }
 
 void INSData::initOP2() {
@@ -69,9 +74,14 @@ void INSData::initOP2() {
   qN_data = (double *)malloc(15 * numCells * sizeof(double));
   Aqbc_data = (double *)malloc(15 * numCells * sizeof(double));
   rhs_data = (double *)malloc(15 * numCells * sizeof(double));
+  pRHS_data = (double *)malloc(15 * numCells * sizeof(double));
   for(int i = 0; i < 4; i++) {
+    poissonBC_data[i] = (double *)malloc(15 * numCells * sizeof(double));
     div_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
+  pU_data = (double *)malloc(15 * numCells * sizeof(double));
+  pExU_data = (double *)malloc(15 * numCells * sizeof(double));
+  pDu_data = (double *)malloc(15 * numCells * sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -119,8 +129,14 @@ void INSData::initOP2() {
   qN = op_decl_dat(cells, 15, "double", qN_data, "qN");
   Aqbc = op_decl_dat(cells, 15, "double", Aqbc_data, "Aqbc");
   rhs = op_decl_dat(cells, 15, "double", rhs_data, "rhs");
+  pRHS = op_decl_dat(cells, 15, "double", pRHS_data, "pRHS");
   for(int i = 0; i < 4; i++) {
+    string poissonBCname = "poissonBC" + to_string(i);
+    poissonBC[i] = op_decl_dat(cells, 15, "double", poissonBC_data[i], poissonBCname.c_str());
     string divname = "div" + to_string(i);
     div[i] = op_decl_dat(cells, 15, "double", div_data[i], divname.c_str());
   }
+  pU = op_decl_dat(cells, 15, "double", pU_data, "pU");
+  pExU = op_decl_dat(cells, 15, "double", pExU_data, "pExU");
+  pDu = op_decl_dat(cells, 15, "double", pDu_data, "pDu");
 }

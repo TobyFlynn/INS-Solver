@@ -11,4 +11,8 @@
 #include "constant_MASS.h"
 #include "constant_util.h"
 
+#include "../ins_data.h"
+
+INSData *data;
+
 #endif

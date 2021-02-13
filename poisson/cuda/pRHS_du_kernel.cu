@@ -3,19 +3,17 @@
 //
 
 //user function
-__device__ void set_ic1_gpu( double *uD, double *qN, double *rhs) {
+__device__ void pRHS_du_gpu( const double *U, const double *exU, double *du) {
   for(int i = 0; i < 15; i++) {
-    uD[i] = 0.0;
-    qN[i] = 0.0;
-    rhs[i] = 0.0;
+    du[i] = U[i] - exU[i];
   }
 
 }
 
 // CUDA kernel function
-__global__ void op_cuda_set_ic1(
-  double *arg0,
-  double *arg1,
+__global__ void op_cuda_pRHS_du(
+  const double *__restrict arg0,
+  const double *__restrict arg1,
   double *arg2,
   int   set_size ) {
 
@@ -24,7 +22,7 @@ __global__ void op_cuda_set_ic1(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    set_ic1_gpu(arg0+n*15,
+    pRHS_du_gpu(arg0+n*15,
             arg1+n*15,
             arg2+n*15);
   }
@@ -32,7 +30,7 @@ __global__ void op_cuda_set_ic1(
 
 
 //host stub function
-void op_par_loop_set_ic1(char const *name, op_set set,
+void op_par_loop_pRHS_du(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2){
@@ -46,29 +44,29 @@ void op_par_loop_set_ic1(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(1);
+  op_timing_realloc(8);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[1].name      = name;
-  OP_kernels[1].count    += 1;
+  OP_kernels[8].name      = name;
+  OP_kernels[8].count    += 1;
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  set_ic1");
+    printf(" kernel routine w/o indirection:  pRHS_du");
   }
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_1
-      int nthread = OP_BLOCK_SIZE_1;
+    #ifdef OP_BLOCK_SIZE_8
+      int nthread = OP_BLOCK_SIZE_8;
     #else
       int nthread = OP_block_size;
     #endif
 
     int nblocks = 200;
 
-    op_cuda_set_ic1<<<nblocks,nthread>>>(
+    op_cuda_pRHS_du<<<nblocks,nthread>>>(
       (double *) arg0.data_d,
       (double *) arg1.data_d,
       (double *) arg2.data_d,
@@ -78,8 +76,8 @@ void op_par_loop_set_ic1(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[1].time     += wall_t2 - wall_t1;
-  OP_kernels[1].transfer += (float)set->size * arg0.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg1.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[8].time     += wall_t2 - wall_t1;
+  OP_kernels[8].transfer += (float)set->size * arg0.size;
+  OP_kernels[8].transfer += (float)set->size * arg1.size;
+  OP_kernels[8].transfer += (float)set->size * arg2.size * 2.0f;
 }

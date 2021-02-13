@@ -17,3 +17,6 @@ int size, char *dat, char const *name){}
 #include "div_acckernel.c"
 #include "curl_acckernel.c"
 #include "grad_acckernel.c"
+#include "pRHS_faces_acckernel.c"
+#include "pRHS_bc_acckernel.c"
+#include "pRHS_du_acckernel.c"

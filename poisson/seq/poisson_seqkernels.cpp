@@ -15,3 +15,6 @@ extern int FMASK[15];
 #include "div_seqkernel.cpp"
 #include "curl_seqkernel.cpp"
 #include "grad_seqkernel.cpp"
+#include "pRHS_faces_seqkernel.cpp"
+#include "pRHS_bc_seqkernel.cpp"
+#include "pRHS_du_seqkernel.cpp"

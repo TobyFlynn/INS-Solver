@@ -33,3 +33,6 @@ int size, char *dat, char const *name){
 #include "div_kernel.cu"
 #include "curl_kernel.cu"
 #include "grad_kernel.cu"
+#include "pRHS_faces_kernel.cu"
+#include "pRHS_bc_kernel.cu"
+#include "pRHS_du_kernel.cu"

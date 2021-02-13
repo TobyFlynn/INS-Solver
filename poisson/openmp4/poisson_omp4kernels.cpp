@@ -12,3 +12,6 @@
 #include "div_omp4kernel.cpp"
 #include "curl_omp4kernel.cpp"
 #include "grad_omp4kernel.cpp"
+#include "pRHS_faces_omp4kernel.cpp"
+#include "pRHS_bc_omp4kernel.cpp"
+#include "pRHS_du_omp4kernel.cpp"

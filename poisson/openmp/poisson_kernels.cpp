@@ -19,3 +19,6 @@ extern int FMASK[15];
 #include "div_kernel.cpp"
 #include "curl_kernel.cpp"
 #include "grad_kernel.cpp"
+#include "pRHS_faces_kernel.cpp"
+#include "pRHS_bc_kernel.cpp"
+#include "pRHS_du_kernel.cpp"

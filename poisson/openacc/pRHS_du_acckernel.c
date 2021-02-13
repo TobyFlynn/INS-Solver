@@ -5,16 +5,14 @@
 //user function
 //user function
 //#pragma acc routine
-inline void set_ic1_openacc( double *uD, double *qN, double *rhs) {
+inline void pRHS_du_openacc( const double *U, const double *exU, double *du) {
   for(int i = 0; i < 15; i++) {
-    uD[i] = 0.0;
-    qN[i] = 0.0;
-    rhs[i] = 0.0;
+    du[i] = U[i] - exU[i];
   }
 }
 
 // host stub function
-void op_par_loop_set_ic1(char const *name, op_set set,
+void op_par_loop_pRHS_du(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2){
@@ -28,14 +26,14 @@ void op_par_loop_set_ic1(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(1);
+  op_timing_realloc(8);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[1].name      = name;
-  OP_kernels[1].count    += 1;
+  OP_kernels[8].name      = name;
+  OP_kernels[8].count    += 1;
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  set_ic1");
+    printf(" kernel routine w/o indirection:  pRHS_du");
   }
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
@@ -51,7 +49,7 @@ void op_par_loop_set_ic1(char const *name, op_set set,
     double* data2 = (double*)arg2.data_d;
     #pragma acc parallel loop independent deviceptr(data0,data1,data2)
     for ( int n=0; n<set->size; n++ ){
-      set_ic1_openacc(
+      pRHS_du_openacc(
         &data0[15*n],
         &data1[15*n],
         &data2[15*n]);
@@ -63,8 +61,8 @@ void op_par_loop_set_ic1(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[1].time     += wall_t2 - wall_t1;
-  OP_kernels[1].transfer += (float)set->size * arg0.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg1.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[8].time     += wall_t2 - wall_t1;
+  OP_kernels[8].transfer += (float)set->size * arg0.size;
+  OP_kernels[8].transfer += (float)set->size * arg1.size;
+  OP_kernels[8].transfer += (float)set->size * arg2.size * 2.0f;
 }

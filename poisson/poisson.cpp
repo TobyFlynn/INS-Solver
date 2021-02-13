@@ -15,6 +15,8 @@
 #include "ins_data.h"
 #include "blas_calls.h"
 #include "save_solution.h"
+#include "poisson_rhs.h"
+#include "operators.h"
 
 // Kernels
 #include "kernels/init_grid.h"
@@ -38,7 +40,7 @@ static struct option options[] = {
 int main(int argc, char **argv) {
   // Object that holds all sets, maps and dats
   // (along with memory associated with them)
-  INSData *data = new INSData();
+  data = new INSData();
 
   load_mesh("./grid.cgns", data);
 
@@ -85,13 +87,14 @@ int main(int argc, char **argv) {
   // Set initial conditions
   op_par_loop(set_ic1, "set_ic1", data->cells,
               op_arg_dat(data->uD,   -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->qN,   -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(data->qN,   -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->rhs,   -1, OP_ID, 15, "double", OP_WRITE));
 
   op_par_loop(set_ic2, "set_ic2", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->uD,   0, data->bedge2cells, 15, "double", OP_WRITE),
-              op_arg_dat(data->qN,   0, data->bedge2cells, 15, "double", OP_WRITE));
+              op_arg_dat(data->uD,   0, data->bedge2cells, 15, "double", OP_INC),
+              op_arg_dat(data->qN,   0, data->bedge2cells, 15, "double", OP_INC));
 
   // TODO
 
@@ -114,50 +117,4 @@ int main(int argc, char **argv) {
   op_exit();
 
   delete data;
-}
-
-void div(INSData *data, op_dat u, op_dat v, op_dat res) {
-  div_blas(data, u, v);
-
-  op_par_loop(div, "div", data->cells,
-              op_arg_dat(data->div[0], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->div[1], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->div[2], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->div[3], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->rx, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->sx, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->ry, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->sy, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(res, -1, OP_ID, 15, "double", OP_WRITE));
-}
-
-void curl(INSData *data, op_dat u, op_dat v, op_dat res) {
-  // Same matrix multiplications as div
-  // Rename this later
-  div_blas(data, u, v);
-
-  op_par_loop(curl, "curl", data->cells,
-              op_arg_dat(data->div[0], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->div[1], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->div[2], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->div[3], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->rx, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->sx, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->ry, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->sy, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(res, -1, OP_ID, 15, "double", OP_WRITE));
-}
-
-void grad(INSData * data, op_dat u, op_dat ux, op_dat uy) {
-  grad_blas(data, u);
-
-  op_par_loop(grad, "grad", data->cells,
-              op_arg_dat(data->div[0], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->div[1], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->rx, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->sx, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->ry, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->sy, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(ux, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(uy, -1, OP_ID, 15, "double", OP_WRITE));
 }

@@ -10,6 +10,9 @@
 #define op_par_loop_div op_par_loop_div_gpu
 #define op_par_loop_curl op_par_loop_curl_gpu
 #define op_par_loop_grad op_par_loop_grad_gpu
+#define op_par_loop_pRHS_faces op_par_loop_pRHS_faces_gpu
+#define op_par_loop_pRHS_bc op_par_loop_pRHS_bc_gpu
+#define op_par_loop_pRHS_du op_par_loop_pRHS_du_gpu
 #include "poisson_kernels.cu"
 #undef op_par_loop_init_grid
 #undef op_par_loop_set_ic1
@@ -17,6 +20,9 @@
 #undef op_par_loop_div
 #undef op_par_loop_curl
 #undef op_par_loop_grad
+#undef op_par_loop_pRHS_faces
+#undef op_par_loop_pRHS_bc
+#undef op_par_loop_pRHS_du
 #else
 #define op_par_loop_init_grid op_par_loop_init_grid_cpu
 #define op_par_loop_set_ic1 op_par_loop_set_ic1_cpu
@@ -24,6 +30,9 @@
 #define op_par_loop_div op_par_loop_div_cpu
 #define op_par_loop_curl op_par_loop_curl_cpu
 #define op_par_loop_grad op_par_loop_grad_cpu
+#define op_par_loop_pRHS_faces op_par_loop_pRHS_faces_cpu
+#define op_par_loop_pRHS_bc op_par_loop_pRHS_bc_cpu
+#define op_par_loop_pRHS_du op_par_loop_pRHS_du_cpu
 #include "../openmp/poisson_kernels.cpp"
 #undef op_par_loop_init_grid
 #undef op_par_loop_set_ic1
@@ -31,6 +40,9 @@
 #undef op_par_loop_div
 #undef op_par_loop_curl
 #undef op_par_loop_grad
+#undef op_par_loop_pRHS_faces
+#undef op_par_loop_pRHS_bc
+#undef op_par_loop_pRHS_du
 
 //user kernel files
 
@@ -154,34 +166,40 @@ void op_par_loop_init_grid(char const *name, op_set set,
 
 void op_par_loop_set_ic1_gpu(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1);
+  op_arg arg1,
+  op_arg arg2);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
 void op_par_loop_set_ic1(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1){
+  op_arg arg1,
+  op_arg arg2){
 
   if (OP_hybrid_gpu) {
     op_par_loop_set_ic1_gpu(name, set,
       arg0,
-      arg1);
+      arg1,
+      arg2);
 
     }else{
     op_par_loop_set_ic1_cpu(name, set,
       arg0,
-      arg1);
+      arg1,
+      arg2);
 
   }
 }
 #else
 void op_par_loop_set_ic1(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1){
+  op_arg arg1,
+  op_arg arg2){
 
   op_par_loop_set_ic1_gpu(name, set,
     arg0,
-    arg1);
+    arg1,
+    arg2);
 
   }
 #endif //OP_HYBRID_GPU
@@ -450,6 +468,144 @@ void op_par_loop_grad(char const *name, op_set set,
     arg5,
     arg6,
     arg7);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_pRHS_faces_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_pRHS_faces(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_pRHS_faces_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4);
+
+    }else{
+    op_par_loop_pRHS_faces_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4);
+
+  }
+}
+#else
+void op_par_loop_pRHS_faces(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
+
+  op_par_loop_pRHS_faces_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_pRHS_bc_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_pRHS_bc(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_pRHS_bc_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3);
+
+    }else{
+    op_par_loop_pRHS_bc_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3);
+
+  }
+}
+#else
+void op_par_loop_pRHS_bc(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3){
+
+  op_par_loop_pRHS_bc_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_pRHS_du_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_pRHS_du(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_pRHS_du_gpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+    }else{
+    op_par_loop_pRHS_du_cpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+  }
+}
+#else
+void op_par_loop_pRHS_du(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  op_par_loop_pRHS_du_gpu(name, set,
+    arg0,
+    arg1,
+    arg2);
 
   }
 #endif //OP_HYBRID_GPU

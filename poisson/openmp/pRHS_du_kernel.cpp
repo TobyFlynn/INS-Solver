@@ -3,10 +3,10 @@
 //
 
 //user function
-#include "../kernels/set_ic1.h"
+#include "../kernels/pRHS_du.h"
 
 // host stub function
-void op_par_loop_set_ic1(char const *name, op_set set,
+void op_par_loop_pRHS_du(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2){
@@ -20,14 +20,14 @@ void op_par_loop_set_ic1(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(1);
-  OP_kernels[1].name      = name;
-  OP_kernels[1].count    += 1;
+  op_timing_realloc(8);
+  OP_kernels[8].name      = name;
+  OP_kernels[8].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  set_ic1");
+    printf(" kernel routine w/o indirection:  pRHS_du");
   }
 
   int set_size = op_mpi_halo_exchanges(set, nargs, args);
@@ -46,7 +46,7 @@ void op_par_loop_set_ic1(char const *name, op_set set,
       int start  = (set->size* thr)/nthreads;
       int finish = (set->size*(thr+1))/nthreads;
       for ( int n=start; n<finish; n++ ){
-        set_ic1(
+        pRHS_du(
           &((double*)arg0.data)[15*n],
           &((double*)arg1.data)[15*n],
           &((double*)arg2.data)[15*n]);
@@ -59,8 +59,8 @@ void op_par_loop_set_ic1(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[1].time     += wall_t2 - wall_t1;
-  OP_kernels[1].transfer += (float)set->size * arg0.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg1.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[8].time     += wall_t2 - wall_t1;
+  OP_kernels[8].transfer += (float)set->size * arg0.size;
+  OP_kernels[8].transfer += (float)set->size * arg1.size;
+  OP_kernels[8].transfer += (float)set->size * arg2.size * 2.0f;
 }
