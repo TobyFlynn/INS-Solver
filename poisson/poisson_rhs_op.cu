@@ -45,6 +45,7 @@ void op_par_loop_pRHS_du(char const *, op_set,
 
 
 #include "operators.h"
+#include "blas_calls.h"
 
 #include "kernels/pRHS_faces.h"
 #include "kernels/pRHS_bc.h"
@@ -82,4 +83,7 @@ void poisson_rhs(const double *u, double *rhs) {
               op_arg_dat(data->pFluxYu,-1,OP_ID,15,"double",OP_WRITE));
 
   grad(data, data->pU, data->pDuDx, data->pDuDy);
+
+  // qx and qy stored in pDuDx and pDuDy
+  poisson_rhs_blas1(data);
 }
