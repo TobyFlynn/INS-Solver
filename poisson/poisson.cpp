@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
   }
 
   // Declare OP2 constants
-  op_decl_const(3 * 5, "int", FMASK);
+  op_decl_const(15, "int", FMASK);
 
   // Calculate geometric factors
   init_grid_blas(data);
@@ -129,27 +129,22 @@ int main(int argc, char **argv) {
               op_arg_dat(data->qN,   0, data->bedge2cells, 15, "double", OP_INC));
 
   op_par_loop(set_rhs, "set_rhs", data->cells,
-              op_arg_dat(data->uD,   -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->rhs,  -1, OP_ID, 15, "double", OP_RW));
+              op_arg_dat(data->J, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->uD, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->rhs, -1, OP_ID, 15, "double", OP_RW));
 
-  // Potentially need to multiply RHS by -MassMatrix*J
+  poisson_set_rhs_blas(data);
 
   poisson_rhs_solve();
 
 
   // Save solution to CGNS file
-  // double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  // double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  // double *sol_q2 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  // op_fetch_data(data->Q[currentIter][0], sol_q0);
-  // op_fetch_data(data->Q[currentIter][1], sol_q1);
-  // op_fetch_data(data->Q[currentIter][2], sol_q2);
-  // save_solution("./naca0012.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-  //               sol_q0, sol_q1, sol_q2, data->cgnsCells);
+  double *sol = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  op_fetch_data(data->rhs, sol);
+  save_solution("./grid.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+                sol, data->cgnsCells);
 
-  // free(sol_q0);
-  // free(sol_q1);
-  // free(sol_q2);
+  free(sol);
 
   // Clean up OP2
   op_exit();

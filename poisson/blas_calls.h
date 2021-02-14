@@ -24,6 +24,8 @@ void poisson_rhs_blas1(INSData *nsData);
 
 void poisson_rhs_blas2(INSData *nsData);
 
+void poisson_set_rhs_blas(INSData *nsData);
+
 // void poisson_bc_blas(INSData *nsData);
 
 #endif

@@ -150,11 +150,17 @@ void load_mesh(std::string filename, INSData *nsData) {
     double y2 = nsData->coords[2 * nsData->bedge2node_data[i * 2 + 1] + 1];
 
     if(y1 == y2 && y1 > 0.5) {
-      // Dirichlet BC = 1
-      nsData->bedge_type_data[i] = 1;
-    } else {
-      // Dirichlet BC = 0
+      // Dirichlet BC y = 1
       nsData->bedge_type_data[i] = 0;
+    } else if(y1 == y2 && y1 < 0.5) {
+      // Dirichlet BC y = 0
+      nsData->bedge_type_data[i] = 1;
+    } else if(x1 < 0.5){
+      // Dirichlet BC x = 0
+      nsData->bedge_type_data[i] = 2;
+    } else {
+      // Dirichlet BC x = 1
+      nsData->bedge_type_data[i] = 3;
     }
     // Neumann BC
     // nsData->bedge_type_data[i] = 2;
