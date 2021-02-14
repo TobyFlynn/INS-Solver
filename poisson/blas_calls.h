@@ -22,6 +22,8 @@ void grad_blas(INSData *nsData, op_dat u);
 
 void poisson_rhs_blas1(INSData *nsData);
 
+void poisson_rhs_blas2(INSData *nsData);
+
 // void poisson_bc_blas(INSData *nsData);
 
 #endif

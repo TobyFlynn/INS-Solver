@@ -47,6 +47,7 @@ void op_par_loop_pRHS_fluxq(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
@@ -128,11 +129,16 @@ void poisson_rhs(const double *u, double *rhs) {
   op_par_loop_pRHS_fluxq("pRHS_fluxq",data->cells,
               op_arg_dat(data->nx,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->ny,-1,OP_ID,15,"double",OP_READ),
-              op_arg_dat(data->pTau,-1,OP_ID,15,"double",OP_WRITE),
-              op_arg_dat(data->pDu,-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->fscale,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->pTau,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->pDu,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->pDuDx,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->pDuDy,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->pExRHS[0],-1,OP_ID,15,"double",OP_RW),
               op_arg_dat(data->pExRHS[1],-1,OP_ID,15,"double",OP_RW),
               op_arg_dat(data->pFluxQ,-1,OP_ID,15,"double",OP_WRITE));
+
+  div(data, data->pDuDx, data->pDuDy, data->pDivQ);
+
+  poisson_rhs_blas2(data);
 }

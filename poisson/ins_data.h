@@ -26,7 +26,7 @@ public:
          ny, J, sJ, fscale, bedge_type, edgeNum, bedgeNum;
   op_dat uD, qN, Aqbc, rhs, poissonBC[4], pRHS;
   op_dat div[4];
-  op_dat pU, pExRHS[2], pDu, pDuDx, pDuDy, pFluxXu, pFluxYu, pTau, pFluxQ;
+  op_dat pU, pExRHS[2], pDu, pDuDx, pDuDy, pFluxXu, pFluxYu, pTau, pFluxQ, pDivQ, pRHSU;
 private:
   // Pointers to private memory
   double *nodeX_data;
@@ -62,6 +62,8 @@ private:
   double *pFluxYu_data;
   double *pTau_data;
   double *pFluxQ_data;
+  double *pDivQ_data;
+  double *pRHSU_data;
 };
 
 #endif

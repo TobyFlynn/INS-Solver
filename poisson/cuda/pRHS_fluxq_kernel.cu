@@ -3,13 +3,13 @@
 //
 
 //user function
-__device__ void pRHS_fluxq_gpu( const double *nx, const double *ny, const double *tau,
-                       const double *du, const double *qx, const double *qy,
-                       double *exQx, double *exQy, double *fluxq) {
+__device__ void pRHS_fluxq_gpu( const double *nx, const double *ny, const double *fscale,
+                       const double *tau, const double *du, const double *qx,
+                       const double *qy, double *exQx, double *exQy, double *fluxq) {
   for(int i = 0; i < 15; i++) {
     double dqx = qx[FMASK_cuda[i]] - exQx[i];
     double dqy = qy[FMASK_cuda[i]] - exQy[i];
-    fluxq[i] = (nx[i] * dqx + ny[i] * dqy + tau[i] * du[i]) / 2.0;
+    fluxq[i] = fscale[i] * (nx[i] * dqx + ny[i] * dqy + tau[i] * du[i]) / 2.0;
     exQx[i] = 0.0;
     exQy[i] = 0.0;
   }
@@ -20,13 +20,14 @@ __device__ void pRHS_fluxq_gpu( const double *nx, const double *ny, const double
 __global__ void op_cuda_pRHS_fluxq(
   const double *__restrict arg0,
   const double *__restrict arg1,
-  double *arg2,
-  double *arg3,
+  const double *__restrict arg2,
+  const double *__restrict arg3,
   const double *__restrict arg4,
   const double *__restrict arg5,
-  double *arg6,
+  const double *__restrict arg6,
   double *arg7,
   double *arg8,
+  double *arg9,
   int   set_size ) {
 
 
@@ -42,7 +43,8 @@ __global__ void op_cuda_pRHS_fluxq(
                arg5+n*15,
                arg6+n*15,
                arg7+n*15,
-               arg8+n*15);
+               arg8+n*15,
+               arg9+n*15);
   }
 }
 
@@ -57,10 +59,11 @@ void op_par_loop_pRHS_fluxq(char const *name, op_set set,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8){
+  op_arg arg8,
+  op_arg arg9){
 
-  int nargs = 9;
-  op_arg args[9];
+  int nargs = 10;
+  op_arg args[10];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -71,6 +74,7 @@ void op_par_loop_pRHS_fluxq(char const *name, op_set set,
   args[6] = arg6;
   args[7] = arg7;
   args[8] = arg8;
+  args[9] = arg9;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -106,6 +110,7 @@ void op_par_loop_pRHS_fluxq(char const *name, op_set set,
       (double *) arg6.data_d,
       (double *) arg7.data_d,
       (double *) arg8.data_d,
+      (double *) arg9.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
@@ -115,11 +120,12 @@ void op_par_loop_pRHS_fluxq(char const *name, op_set set,
   OP_kernels[9].time     += wall_t2 - wall_t1;
   OP_kernels[9].transfer += (float)set->size * arg0.size;
   OP_kernels[9].transfer += (float)set->size * arg1.size;
-  OP_kernels[9].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[9].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg2.size;
+  OP_kernels[9].transfer += (float)set->size * arg3.size;
   OP_kernels[9].transfer += (float)set->size * arg4.size;
   OP_kernels[9].transfer += (float)set->size * arg5.size;
-  OP_kernels[9].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg6.size;
   OP_kernels[9].transfer += (float)set->size * arg7.size * 2.0f;
   OP_kernels[9].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg9.size * 2.0f;
 }
