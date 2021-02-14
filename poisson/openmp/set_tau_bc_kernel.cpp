@@ -3,10 +3,10 @@
 //
 
 //user function
-#include "../kernels/pRHS_bc.h"
+#include "../kernels/set_tau_bc.h"
 
 // host stub function
-void op_par_loop_pRHS_bc(char const *name, op_set set,
+void op_par_loop_set_tau_bc(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
@@ -22,21 +22,21 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(9);
-  OP_kernels[9].name      = name;
-  OP_kernels[9].count    += 1;
+  op_timing_realloc(3);
+  OP_kernels[3].name      = name;
+  OP_kernels[3].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 2;
-  int  inds[4] = {-1,-1,0,1};
+  int  ninds   = 3;
+  int  inds[4] = {-1,0,1,2};
 
   if (OP_diags>2) {
-    printf(" kernel routine with indirection: pRHS_bc\n");
+    printf(" kernel routine with indirection: set_tau_bc\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_9
-    int part_size = OP_PART_SIZE_9;
+  #ifdef OP_PART_SIZE_3
+    int part_size = OP_PART_SIZE_3;
   #else
     int part_size = OP_part_size;
   #endif
@@ -61,22 +61,22 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
         int nelem    = Plan->nelems[blockId];
         int offset_b = Plan->offset[blockId];
         for ( int n=offset_b; n<offset_b+nelem; n++ ){
-          int map2idx;
-          map2idx = arg2.map_data[n * arg2.map->dim + 0];
+          int map1idx;
+          map1idx = arg1.map_data[n * arg1.map->dim + 0];
 
 
-          pRHS_bc(
+          set_tau_bc(
             &((int*)arg0.data)[1 * n],
-            &((int*)arg1.data)[1 * n],
-            &((double*)arg2.data)[15 * map2idx],
-            &((double*)arg3.data)[15 * map2idx]);
+            &((double*)arg1.data)[15 * map1idx],
+            &((double*)arg2.data)[15 * map1idx],
+            &((double*)arg3.data)[15 * map1idx]);
         }
       }
 
       block_offset += nblocks;
     }
-    OP_kernels[9].transfer  += Plan->transfer;
-    OP_kernels[9].transfer2 += Plan->transfer2;
+    OP_kernels[3].transfer  += Plan->transfer;
+    OP_kernels[3].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -87,5 +87,5 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[9].time     += wall_t2 - wall_t1;
+  OP_kernels[3].time     += wall_t2 - wall_t1;
 }

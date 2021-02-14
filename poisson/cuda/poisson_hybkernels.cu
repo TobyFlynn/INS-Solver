@@ -6,6 +6,8 @@
 #ifdef GPUPASS
 #define op_par_loop_init_grid op_par_loop_init_grid_gpu
 #define op_par_loop_set_ic1 op_par_loop_set_ic1_gpu
+#define op_par_loop_set_tau op_par_loop_set_tau_gpu
+#define op_par_loop_set_tau_bc op_par_loop_set_tau_bc_gpu
 #define op_par_loop_set_ic2 op_par_loop_set_ic2_gpu
 #define op_par_loop_div op_par_loop_div_gpu
 #define op_par_loop_curl op_par_loop_curl_gpu
@@ -18,6 +20,8 @@
 #include "poisson_kernels.cu"
 #undef op_par_loop_init_grid
 #undef op_par_loop_set_ic1
+#undef op_par_loop_set_tau
+#undef op_par_loop_set_tau_bc
 #undef op_par_loop_set_ic2
 #undef op_par_loop_div
 #undef op_par_loop_curl
@@ -30,6 +34,8 @@
 #else
 #define op_par_loop_init_grid op_par_loop_init_grid_cpu
 #define op_par_loop_set_ic1 op_par_loop_set_ic1_cpu
+#define op_par_loop_set_tau op_par_loop_set_tau_cpu
+#define op_par_loop_set_tau_bc op_par_loop_set_tau_bc_cpu
 #define op_par_loop_set_ic2 op_par_loop_set_ic2_cpu
 #define op_par_loop_div op_par_loop_div_cpu
 #define op_par_loop_curl op_par_loop_curl_cpu
@@ -42,6 +48,8 @@
 #include "../openmp/poisson_kernels.cpp"
 #undef op_par_loop_init_grid
 #undef op_par_loop_set_ic1
+#undef op_par_loop_set_tau
+#undef op_par_loop_set_tau_bc
 #undef op_par_loop_set_ic2
 #undef op_par_loop_div
 #undef op_par_loop_curl
@@ -175,26 +183,38 @@ void op_par_loop_init_grid(char const *name, op_set set,
 void op_par_loop_set_ic1_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2);
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
 void op_par_loop_set_ic1(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2){
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
 
   if (OP_hybrid_gpu) {
     op_par_loop_set_ic1_gpu(name, set,
       arg0,
       arg1,
-      arg2);
+      arg2,
+      arg3,
+      arg4,
+      arg5);
 
     }else{
     op_par_loop_set_ic1_cpu(name, set,
       arg0,
       arg1,
-      arg2);
+      arg2,
+      arg3,
+      arg4,
+      arg5);
 
   }
 }
@@ -202,12 +222,122 @@ void op_par_loop_set_ic1(char const *name, op_set set,
 void op_par_loop_set_ic1(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2){
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
 
   op_par_loop_set_ic1_gpu(name, set,
     arg0,
     arg1,
-    arg2);
+    arg2,
+    arg3,
+    arg4,
+    arg5);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_set_tau_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_set_tau(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_set_tau_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+    }else{
+    op_par_loop_set_tau_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+  }
+}
+#else
+void op_par_loop_set_tau(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  op_par_loop_set_tau_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_set_tau_bc_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_set_tau_bc(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_set_tau_bc_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3);
+
+    }else{
+    op_par_loop_set_tau_bc_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3);
+
+  }
+}
+#else
+void op_par_loop_set_tau_bc(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3){
+
+  op_par_loop_set_tau_bc_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3);
 
   }
 #endif //OP_HYBRID_GPU

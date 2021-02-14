@@ -11,6 +11,8 @@ extern int FMASK[15];
 // user kernel files
 #include "init_grid_seqkernel.cpp"
 #include "set_ic1_seqkernel.cpp"
+#include "set_tau_seqkernel.cpp"
+#include "set_tau_bc_seqkernel.cpp"
 #include "set_ic2_seqkernel.cpp"
 #include "div_seqkernel.cpp"
 #include "curl_seqkernel.cpp"

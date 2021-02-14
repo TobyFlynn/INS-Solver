@@ -3,18 +3,19 @@
 //
 
 //user function
-#include "../kernels/pRHS_faces.h"
+#include "../kernels/set_tau.h"
 
 // host stub function
-void op_par_loop_pRHS_faces(char const *name, op_set set,
+void op_par_loop_set_tau(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg3,
   op_arg arg5,
-  op_arg arg7){
+  op_arg arg7,
+  op_arg arg9){
 
-  int nargs = 9;
-  op_arg args[9];
+  int nargs = 11;
+  op_arg args[11];
 
   args[0] = arg0;
   arg1.idx = 0;
@@ -38,17 +39,23 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
   arg7.idx = 0;
   args[7] = arg7;
   for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 15, "double", OP_INC);
+    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 15, "double", OP_READ);
+  }
+
+  arg9.idx = 0;
+  args[9] = arg9;
+  for ( int v=1; v<2; v++ ){
+    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 15, "double", OP_INC);
   }
 
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(8);
+  op_timing_realloc(2);
   op_timers_core(&cpu_t1, &wall_t1);
 
   if (OP_diags>2) {
-    printf(" kernel routine with indirection: pRHS_faces\n");
+    printf(" kernel routine with indirection: set_tau\n");
   }
 
   int set_size = op_mpi_halo_exchanges(set, nargs, args);
@@ -73,16 +80,20 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
       const double* arg5_vec[] = {
          &((double*)arg5.data)[15 * map1idx],
          &((double*)arg5.data)[15 * map2idx]};
-      double* arg7_vec[] = {
+      const double* arg7_vec[] = {
          &((double*)arg7.data)[15 * map1idx],
          &((double*)arg7.data)[15 * map2idx]};
+      double* arg9_vec[] = {
+         &((double*)arg9.data)[15 * map1idx],
+         &((double*)arg9.data)[15 * map2idx]};
 
-      pRHS_faces(
+      set_tau(
         &((int*)arg0.data)[2 * n],
         arg1_vec,
         arg3_vec,
         arg5_vec,
-        arg7_vec);
+        arg7_vec,
+        arg9_vec);
     }
   }
 
@@ -94,13 +105,14 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[8].name      = name;
-  OP_kernels[8].count    += 1;
-  OP_kernels[8].time     += wall_t2 - wall_t1;
-  OP_kernels[8].transfer += (float)set->size * arg1.size;
-  OP_kernels[8].transfer += (float)set->size * arg3.size;
-  OP_kernels[8].transfer += (float)set->size * arg5.size;
-  OP_kernels[8].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[8].transfer += (float)set->size * arg0.size;
-  OP_kernels[8].transfer += (float)set->size * arg1.map->dim * 4.0f;
+  OP_kernels[2].name      = name;
+  OP_kernels[2].count    += 1;
+  OP_kernels[2].time     += wall_t2 - wall_t1;
+  OP_kernels[2].transfer += (float)set->size * arg1.size;
+  OP_kernels[2].transfer += (float)set->size * arg3.size;
+  OP_kernels[2].transfer += (float)set->size * arg5.size;
+  OP_kernels[2].transfer += (float)set->size * arg7.size;
+  OP_kernels[2].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[2].transfer += (float)set->size * arg0.size;
+  OP_kernels[2].transfer += (float)set->size * arg1.map->dim * 4.0f;
 }

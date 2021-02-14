@@ -5,7 +5,7 @@
 //user function
 //user function
 
-void pRHS_faces_omp4_kernel(
+void set_tau_omp4_kernel(
   int *data0,
   int dat0size,
   int *map1,
@@ -18,6 +18,8 @@ void pRHS_faces_omp4_kernel(
   int dat5size,
   double *data7,
   int dat7size,
+  double *data9,
+  int dat9size,
   int *col_reord,
   int set_size1,
   int start,
@@ -26,15 +28,16 @@ void pRHS_faces_omp4_kernel(
   int nthread);
 
 // host stub function
-void op_par_loop_pRHS_faces(char const *name, op_set set,
+void op_par_loop_set_tau(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg3,
   op_arg arg5,
-  op_arg arg7){
+  op_arg arg7,
+  op_arg arg9){
 
-  int nargs = 9;
-  op_arg args[9];
+  int nargs = 11;
+  op_arg args[11];
 
   args[0] = arg0;
   arg1.idx = 0;
@@ -58,34 +61,40 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
   arg7.idx = 0;
   args[7] = arg7;
   for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 15, "double", OP_INC);
+    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 15, "double", OP_READ);
+  }
+
+  arg9.idx = 0;
+  args[9] = arg9;
+  for ( int v=1; v<2; v++ ){
+    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 15, "double", OP_INC);
   }
 
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(8);
+  op_timing_realloc(2);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[8].name      = name;
-  OP_kernels[8].count    += 1;
+  OP_kernels[2].name      = name;
+  OP_kernels[2].count    += 1;
 
-  int  ninds   = 4;
-  int  inds[9] = {-1,0,0,1,1,2,2,3,3};
+  int  ninds   = 5;
+  int  inds[11] = {-1,0,0,1,1,2,2,3,3,4,4};
 
   if (OP_diags>2) {
-    printf(" kernel routine with indirection: pRHS_faces\n");
+    printf(" kernel routine with indirection: set_tau\n");
   }
 
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_8
-    int part_size = OP_PART_SIZE_8;
+  #ifdef OP_PART_SIZE_2
+    int part_size = OP_PART_SIZE_2;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_8
-    int nthread = OP_BLOCK_SIZE_8;
+  #ifdef OP_BLOCK_SIZE_2
+    int nthread = OP_BLOCK_SIZE_2;
   #else
     int nthread = OP_block_size;
   #endif
@@ -110,6 +119,8 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
     int dat5size = getSetSizeFromOpArg(&arg5) * arg5.dat->dim;
     double *data7 = (double *)arg7.data_d;
     int dat7size = getSetSizeFromOpArg(&arg7) * arg7.dat->dim;
+    double *data9 = (double *)arg9.data_d;
+    int dat9size = getSetSizeFromOpArg(&arg9) * arg9.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -123,7 +134,7 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      pRHS_faces_omp4_kernel(
+      set_tau_omp4_kernel(
         data0,
         dat0size,
         map1,
@@ -136,6 +147,8 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
         dat5size,
         data7,
         dat7size,
+        data9,
+        dat9size,
         col_reord,
         set_size1,
         start,
@@ -144,8 +157,8 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
         nthread);
 
     }
-    OP_kernels[8].transfer  += Plan->transfer;
-    OP_kernels[8].transfer2 += Plan->transfer2;
+    OP_kernels[2].transfer  += Plan->transfer;
+    OP_kernels[2].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -157,5 +170,5 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[8].time     += wall_t2 - wall_t1;
+  OP_kernels[2].time     += wall_t2 - wall_t1;
 }

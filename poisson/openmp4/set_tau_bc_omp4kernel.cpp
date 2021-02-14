@@ -5,13 +5,13 @@
 //user function
 //user function
 
-void pRHS_bc_omp4_kernel(
+void set_tau_bc_omp4_kernel(
   int *data0,
   int dat0size,
-  int *data1,
+  int *map1,
+  int map1size,
+  double *data1,
   int dat1size,
-  int *map2,
-  int map2size,
   double *data2,
   int dat2size,
   double *data3,
@@ -24,7 +24,7 @@ void pRHS_bc_omp4_kernel(
   int nthread);
 
 // host stub function
-void op_par_loop_pRHS_bc(char const *name, op_set set,
+void op_par_loop_set_tau_bc(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
@@ -40,28 +40,28 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(9);
+  op_timing_realloc(3);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[9].name      = name;
-  OP_kernels[9].count    += 1;
+  OP_kernels[3].name      = name;
+  OP_kernels[3].count    += 1;
 
-  int  ninds   = 2;
-  int  inds[4] = {-1,-1,0,1};
+  int  ninds   = 3;
+  int  inds[4] = {-1,0,1,2};
 
   if (OP_diags>2) {
-    printf(" kernel routine with indirection: pRHS_bc\n");
+    printf(" kernel routine with indirection: set_tau_bc\n");
   }
 
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_9
-    int part_size = OP_PART_SIZE_9;
+  #ifdef OP_PART_SIZE_3
+    int part_size = OP_PART_SIZE_3;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_9
-    int nthread = OP_BLOCK_SIZE_9;
+  #ifdef OP_BLOCK_SIZE_3
+    int nthread = OP_BLOCK_SIZE_3;
   #else
     int nthread = OP_block_size;
   #endif
@@ -73,12 +73,12 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
   if (set_size >0) {
 
     //Set up typed device pointers for OpenMP
-    int *map2 = arg2.map_data_d;
-     int map2size = arg2.map->dim * set_size1;
+    int *map1 = arg1.map_data_d;
+     int map1size = arg1.map->dim * set_size1;
 
     int* data0 = (int*)arg0.data_d;
     int dat0size = getSetSizeFromOpArg(&arg0) * arg0.dat->dim;
-    int* data1 = (int*)arg1.data_d;
+    double *data1 = (double *)arg1.data_d;
     int dat1size = getSetSizeFromOpArg(&arg1) * arg1.dat->dim;
     double *data2 = (double *)arg2.data_d;
     int dat2size = getSetSizeFromOpArg(&arg2) * arg2.dat->dim;
@@ -97,13 +97,13 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      pRHS_bc_omp4_kernel(
+      set_tau_bc_omp4_kernel(
         data0,
         dat0size,
+        map1,
+        map1size,
         data1,
         dat1size,
-        map2,
-        map2size,
         data2,
         dat2size,
         data3,
@@ -116,8 +116,8 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
         nthread);
 
     }
-    OP_kernels[9].transfer  += Plan->transfer;
-    OP_kernels[9].transfer2 += Plan->transfer2;
+    OP_kernels[3].transfer  += Plan->transfer;
+    OP_kernels[3].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -129,5 +129,5 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[9].time     += wall_t2 - wall_t1;
+  OP_kernels[3].time     += wall_t2 - wall_t1;
 }

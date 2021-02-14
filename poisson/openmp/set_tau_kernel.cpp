@@ -3,18 +3,19 @@
 //
 
 //user function
-#include "../kernels/pRHS_faces.h"
+#include "../kernels/set_tau.h"
 
 // host stub function
-void op_par_loop_pRHS_faces(char const *name, op_set set,
+void op_par_loop_set_tau(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg3,
   op_arg arg5,
-  op_arg arg7){
+  op_arg arg7,
+  op_arg arg9){
 
-  int nargs = 9;
-  op_arg args[9];
+  int nargs = 11;
+  op_arg args[11];
 
   args[0] = arg0;
   arg1.idx = 0;
@@ -38,27 +39,33 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
   arg7.idx = 0;
   args[7] = arg7;
   for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 15, "double", OP_INC);
+    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 15, "double", OP_READ);
+  }
+
+  arg9.idx = 0;
+  args[9] = arg9;
+  for ( int v=1; v<2; v++ ){
+    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 15, "double", OP_INC);
   }
 
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(8);
-  OP_kernels[8].name      = name;
-  OP_kernels[8].count    += 1;
+  op_timing_realloc(2);
+  OP_kernels[2].name      = name;
+  OP_kernels[2].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 4;
-  int  inds[9] = {-1,0,0,1,1,2,2,3,3};
+  int  ninds   = 5;
+  int  inds[11] = {-1,0,0,1,1,2,2,3,3,4,4};
 
   if (OP_diags>2) {
-    printf(" kernel routine with indirection: pRHS_faces\n");
+    printf(" kernel routine with indirection: set_tau\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_8
-    int part_size = OP_PART_SIZE_8;
+  #ifdef OP_PART_SIZE_2
+    int part_size = OP_PART_SIZE_2;
   #else
     int part_size = OP_part_size;
   #endif
@@ -97,23 +104,27 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
           const double* arg5_vec[] = {
              &((double*)arg5.data)[15 * map1idx],
              &((double*)arg5.data)[15 * map2idx]};
-          double* arg7_vec[] = {
+          const double* arg7_vec[] = {
              &((double*)arg7.data)[15 * map1idx],
              &((double*)arg7.data)[15 * map2idx]};
+          double* arg9_vec[] = {
+             &((double*)arg9.data)[15 * map1idx],
+             &((double*)arg9.data)[15 * map2idx]};
 
-          pRHS_faces(
+          set_tau(
             &((int*)arg0.data)[2 * n],
             arg1_vec,
             arg3_vec,
             arg5_vec,
-            arg7_vec);
+            arg7_vec,
+            arg9_vec);
         }
       }
 
       block_offset += nblocks;
     }
-    OP_kernels[8].transfer  += Plan->transfer;
-    OP_kernels[8].transfer2 += Plan->transfer2;
+    OP_kernels[2].transfer  += Plan->transfer;
+    OP_kernels[2].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -124,5 +135,5 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[8].time     += wall_t2 - wall_t1;
+  OP_kernels[2].time     += wall_t2 - wall_t1;
 }

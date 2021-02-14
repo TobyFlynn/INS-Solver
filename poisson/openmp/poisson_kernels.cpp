@@ -15,6 +15,8 @@ extern int FMASK[15];
 // user kernel files
 #include "init_grid_kernel.cpp"
 #include "set_ic1_kernel.cpp"
+#include "set_tau_kernel.cpp"
+#include "set_tau_bc_kernel.cpp"
 #include "set_ic2_kernel.cpp"
 #include "div_kernel.cpp"
 #include "curl_kernel.cpp"

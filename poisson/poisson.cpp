@@ -22,6 +22,8 @@
 #include "kernels/init_grid.h"
 #include "kernels/set_ic1.h"
 #include "kernels/set_ic2.h"
+#include "kernels/set_tau.h"
+#include "kernels/set_tau_bc.h"
 #include "kernels/div.h"
 #include "kernels/curl.h"
 #include "kernels/grad.h"
@@ -84,13 +86,29 @@ int main(int argc, char **argv) {
               op_arg_dat(data->sJ, -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->fscale, -1, OP_ID, 15, "double", OP_WRITE));
 
-  // TODO compute tau
-
   // Set initial conditions
   op_par_loop(set_ic1, "set_ic1", data->cells,
               op_arg_dat(data->uD,   -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->qN,   -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->rhs,   -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(data->rhs,  -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->pTau, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->pExRHS[0], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->pExRHS[1], -1, OP_ID, 15, "double", OP_WRITE));
+
+  // Compute tau
+  op_par_loop(set_tau, "set_tau", data->edges,
+              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(data->J,  -2, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->sJ, -2, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->pTau, -2, data->edge2cells, 15, "double", OP_INC));
+
+  op_par_loop(set_tau_bc, "set_tau_bc", data->bedges,
+              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->J,  0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->sJ, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->pTau, 0, data->bedge2cells, 15, "double", OP_INC));
 
   op_par_loop(set_ic2, "set_ic2", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),

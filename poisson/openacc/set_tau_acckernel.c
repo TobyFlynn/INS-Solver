@@ -5,8 +5,8 @@
 //user function
 //user function
 //#pragma acc routine
-inline void pRHS_faces_openacc( const int *edgeNum, const double **x, const double **y,
-                       const double **U, double **exU) {
+inline void set_tau_openacc( const int *edgeNum, const double **x, const double **y,
+                    const double **J, const double **sJ, double **tau) {
 
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
@@ -38,63 +38,69 @@ inline void pRHS_faces_openacc( const int *edgeNum, const double **x, const doub
     }
   }
 
-  int exInd = 0;
-  if(edgeL == 1) exInd = 5;
-  else if(edgeL == 2) exInd = 2 * 5;
+  int exIndL = 0;
+  if(edgeL == 1) exIndL = 5;
+  else if(edgeL == 2) exIndL = 2 * 5;
 
-  int *fmask;
+  int exIndR = 0;
+  if(edgeR == 1) exIndR = 5;
+  else if(edgeR == 2) exIndR = 2 * 5;
+
+  int *fmaskR;
 
   if(edgeR == 0) {
-    fmask = FMASK;
+    fmaskR = FMASK;
   } else if(edgeR == 1) {
-    fmask = &FMASK[5];
+    fmaskR = &FMASK[5];
   } else {
-    fmask = &FMASK[2 * 5];
+    fmaskR = &FMASK[2 * 5];
   }
 
-  for(int i = 0; i < 5; i++) {
-    int rInd;
-    if(reverse) {
-      rInd = fmask[5 - i - 1];
-    } else {
-      rInd = fmask[i];
-    }
-    exU[0][exInd + i] += U[1][rInd];
-  }
-
-  exInd = 0;
-  if(edgeR == 1) exInd = 5;
-  else if(edgeR == 2) exInd = 2 * 5;
+  int *fmaskL;
 
   if(edgeL == 0) {
-    fmask = FMASK;
+    fmaskL = FMASK;
   } else if(edgeL == 1) {
-    fmask = &FMASK[5];
+    fmaskL = &FMASK[5];
   } else {
-    fmask = &FMASK[2 * 5];
+    fmaskL = &FMASK[2 * 5];
   }
 
   for(int i = 0; i < 5; i++) {
-    int lInd;
+    int rIndF, lIndF, rInd, lInd;
     if(reverse) {
-      lInd = fmask[5 - i - 1];
+      rIndF = fmaskR[5 - i - 1];
+      rInd = exIndR + 5 - i - 1;
     } else {
-      lInd = fmask[i];
+      rIndF = fmaskR[i];
+      rInd = exIndR + i;
     }
-    exU[1][exInd + i] += U[0][lInd];
+    lIndF = fmaskL[i];
+    lInd = exIndL + i;
+
+    double lH = 2.0 * J[0][lIndF] / sJ[0][lInd];
+    double rH = 2.0 * J[1][rIndF] / sJ[1][rInd];
+    if(lH < rH) {
+      tau[0][lInd] += 15.0 / lH;
+      tau[1][rInd] += 15.0 / lH;
+    } else {
+      tau[0][lInd] += 15.0 / rH;
+      tau[1][rInd] += 15.0 / rH;
+    }
   }
 }
 
 // host stub function
-void op_par_loop_pRHS_faces(char const *name, op_set set,
+void op_par_loop_set_tau(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg3,
   op_arg arg5,
-  op_arg arg7){
+  op_arg arg7,
+  op_arg arg9){
 
-  int nargs = 9;
-  op_arg args[9];
+  int nargs = 11;
+  op_arg args[11];
 
   args[0] = arg0;
   arg1.idx = 0;
@@ -118,27 +124,33 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
   arg7.idx = 0;
   args[7] = arg7;
   for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 15, "double", OP_INC);
+    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 15, "double", OP_READ);
+  }
+
+  arg9.idx = 0;
+  args[9] = arg9;
+  for ( int v=1; v<2; v++ ){
+    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 15, "double", OP_INC);
   }
 
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(8);
+  op_timing_realloc(2);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[8].name      = name;
-  OP_kernels[8].count    += 1;
+  OP_kernels[2].name      = name;
+  OP_kernels[2].count    += 1;
 
-  int  ninds   = 4;
-  int  inds[9] = {-1,0,0,1,1,2,2,3,3};
+  int  ninds   = 5;
+  int  inds[11] = {-1,0,0,1,1,2,2,3,3,4,4};
 
   if (OP_diags>2) {
-    printf(" kernel routine with indirection: pRHS_faces\n");
+    printf(" kernel routine with indirection: set_tau\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_8
-    int part_size = OP_PART_SIZE_8;
+  #ifdef OP_PART_SIZE_2
+    int part_size = OP_PART_SIZE_2;
   #else
     int part_size = OP_part_size;
   #endif
@@ -159,6 +171,7 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
     double *data3 = (double *)arg3.data_d;
     double *data5 = (double *)arg5.data_d;
     double *data7 = (double *)arg7.data_d;
+    double *data9 = (double *)arg9.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -173,7 +186,7 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map1,data0,data1,data3,data5,data7)
+      #pragma acc parallel loop independent deviceptr(col_reord,map1,data0,data1,data3,data5,data7,data9)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map1idx;
@@ -190,21 +203,25 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
         const double* arg5_vec[] = {
            &data5[15 * map1idx],
            &data5[15 * map2idx]};
-        double* arg7_vec[] = {
+        const double* arg7_vec[] = {
            &data7[15 * map1idx],
            &data7[15 * map2idx]};
+        double* arg9_vec[] = {
+           &data9[15 * map1idx],
+           &data9[15 * map2idx]};
 
-        pRHS_faces_openacc(
+        set_tau_openacc(
           &data0[2 * n],
           arg1_vec,
           arg3_vec,
           arg5_vec,
-          arg7_vec);
+          arg7_vec,
+          arg9_vec);
       }
 
     }
-    OP_kernels[8].transfer  += Plan->transfer;
-    OP_kernels[8].transfer2 += Plan->transfer2;
+    OP_kernels[2].transfer  += Plan->transfer;
+    OP_kernels[2].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -215,5 +232,5 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[8].time     += wall_t2 - wall_t1;
+  OP_kernels[2].time     += wall_t2 - wall_t1;
 }

@@ -13,6 +13,8 @@ int size, char *dat, char const *name){}
 // user kernel files
 #include "init_grid_acckernel.c"
 #include "set_ic1_acckernel.c"
+#include "set_tau_acckernel.c"
+#include "set_tau_bc_acckernel.c"
 #include "set_ic2_acckernel.c"
 #include "div_acckernel.c"
 #include "curl_acckernel.c"
