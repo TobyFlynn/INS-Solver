@@ -5,14 +5,14 @@
 //user function
 //user function
 //#pragma acc routine
-inline void pRHS_J_openacc( const double *J, double *rhs) {
+inline void set_rhs_openacc( const double *uD, double *rhs) {
   for(int i = 0; i < 15; i++) {
-    rhs[i] *= J[i];
+    rhs[FMASK[i]] += uD[i];
   }
 }
 
 // host stub function
-void op_par_loop_pRHS_J(char const *name, op_set set,
+void op_par_loop_set_rhs(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1){
 
@@ -24,14 +24,14 @@ void op_par_loop_pRHS_J(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(13);
+  op_timing_realloc(5);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[13].name      = name;
-  OP_kernels[13].count    += 1;
+  OP_kernels[5].name      = name;
+  OP_kernels[5].count    += 1;
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  pRHS_J");
+    printf(" kernel routine w/o indirection:  set_rhs");
   }
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
@@ -46,7 +46,7 @@ void op_par_loop_pRHS_J(char const *name, op_set set,
     double* data1 = (double*)arg1.data_d;
     #pragma acc parallel loop independent deviceptr(data0,data1)
     for ( int n=0; n<set->size; n++ ){
-      pRHS_J_openacc(
+      set_rhs_openacc(
         &data0[15*n],
         &data1[15*n]);
     }
@@ -57,7 +57,7 @@ void op_par_loop_pRHS_J(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[13].time     += wall_t2 - wall_t1;
-  OP_kernels[13].transfer += (float)set->size * arg0.size;
-  OP_kernels[13].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[5].time     += wall_t2 - wall_t1;
+  OP_kernels[5].transfer += (float)set->size * arg0.size;
+  OP_kernels[5].transfer += (float)set->size * arg1.size * 2.0f;
 }

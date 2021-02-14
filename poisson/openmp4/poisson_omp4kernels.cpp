@@ -11,6 +11,7 @@
 #include "set_tau_omp4kernel.cpp"
 #include "set_tau_bc_omp4kernel.cpp"
 #include "set_ic2_omp4kernel.cpp"
+#include "set_rhs_omp4kernel.cpp"
 #include "div_omp4kernel.cpp"
 #include "curl_omp4kernel.cpp"
 #include "grad_omp4kernel.cpp"

@@ -59,6 +59,10 @@ void op_par_loop_set_ic2(char const *, op_set,
   op_arg,
   op_arg,
   op_arg );
+
+void op_par_loop_set_rhs(char const *, op_set,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -75,6 +79,9 @@ void op_par_loop_set_ic2(char const *, op_set,
 #include <getopt.h>
 #include <limits>
 
+#include "petscksp.h"
+#include "petscvec.h"
+
 #include "constants/all_constants.h"
 #include "load_mesh.h"
 #include "ins_data.h"
@@ -82,6 +89,7 @@ void op_par_loop_set_ic2(char const *, op_set,
 #include "save_solution.h"
 #include "poisson_rhs.h"
 #include "operators.h"
+#include "poisson_rhs_solve.h"
 
 // Kernels
 #include "kernels/init_grid.h"
@@ -89,6 +97,7 @@ void op_par_loop_set_ic2(char const *, op_set,
 #include "kernels/set_ic2.h"
 #include "kernels/set_tau.h"
 #include "kernels/set_tau_bc.h"
+#include "kernels/set_rhs.h"
 #include "kernels/div.h"
 #include "kernels/curl.h"
 #include "kernels/grad.h"
@@ -110,6 +119,13 @@ int main(int argc, char **argv) {
   data = new INSData();
 
   load_mesh("./grid.cgns", data);
+
+  char help[] = "TODO";
+  int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
+  if(ierr) {
+    cout << "Error initialising PETSc" << endl;
+    return ierr;
+  }
 
   // Initialise OP2
   op_init(argc, argv, 2);
@@ -181,7 +197,13 @@ int main(int argc, char **argv) {
               op_arg_dat(data->uD,0,data->bedge2cells,15,"double",OP_INC),
               op_arg_dat(data->qN,0,data->bedge2cells,15,"double",OP_INC));
 
-  // TODO
+  op_par_loop_set_rhs("set_rhs",data->cells,
+              op_arg_dat(data->uD,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->rhs,-1,OP_ID,15,"double",OP_RW));
+
+  // Potentially need to multiply RHS by -MassMatrix*J
+
+  poisson_rhs_solve();
 
 
   // Save solution to CGNS file
@@ -202,4 +224,7 @@ int main(int argc, char **argv) {
   op_exit();
 
   delete data;
+
+  ierr = PetscFinalize();
+  return ierr;
 }

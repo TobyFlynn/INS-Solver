@@ -44,9 +44,9 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(8);
-  OP_kernels[8].name      = name;
-  OP_kernels[8].count    += 1;
+  op_timing_realloc(9);
+  OP_kernels[9].name      = name;
+  OP_kernels[9].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
   int  ninds   = 4;
@@ -57,8 +57,8 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_8
-    int part_size = OP_PART_SIZE_8;
+  #ifdef OP_PART_SIZE_9
+    int part_size = OP_PART_SIZE_9;
   #else
     int part_size = OP_part_size;
   #endif
@@ -112,8 +112,8 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
 
       block_offset += nblocks;
     }
-    OP_kernels[8].transfer  += Plan->transfer;
-    OP_kernels[8].transfer2 += Plan->transfer2;
+    OP_kernels[9].transfer  += Plan->transfer;
+    OP_kernels[9].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -124,5 +124,5 @@ void op_par_loop_pRHS_faces(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[8].time     += wall_t2 - wall_t1;
+  OP_kernels[9].time     += wall_t2 - wall_t1;
 }

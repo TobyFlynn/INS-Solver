@@ -3,15 +3,15 @@
 //
 
 //user function
-__device__ void pRHS_J_gpu( const double *J, double *rhs) {
+__device__ void set_rhs_gpu( const double *uD, double *rhs) {
   for(int i = 0; i < 15; i++) {
-    rhs[i] *= J[i];
+    rhs[FMASK_cuda[i]] += uD[i];
   }
 
 }
 
 // CUDA kernel function
-__global__ void op_cuda_pRHS_J(
+__global__ void op_cuda_set_rhs(
   const double *__restrict arg0,
   double *arg1,
   int   set_size ) {
@@ -21,14 +21,14 @@ __global__ void op_cuda_pRHS_J(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    pRHS_J_gpu(arg0+n*15,
-           arg1+n*15);
+    set_rhs_gpu(arg0+n*15,
+            arg1+n*15);
   }
 }
 
 
 //host stub function
-void op_par_loop_pRHS_J(char const *name, op_set set,
+void op_par_loop_set_rhs(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1){
 
@@ -40,29 +40,29 @@ void op_par_loop_pRHS_J(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(13);
+  op_timing_realloc(5);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[13].name      = name;
-  OP_kernels[13].count    += 1;
+  OP_kernels[5].name      = name;
+  OP_kernels[5].count    += 1;
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  pRHS_J");
+    printf(" kernel routine w/o indirection:  set_rhs");
   }
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_13
-      int nthread = OP_BLOCK_SIZE_13;
+    #ifdef OP_BLOCK_SIZE_5
+      int nthread = OP_BLOCK_SIZE_5;
     #else
       int nthread = OP_block_size;
     #endif
 
     int nblocks = 200;
 
-    op_cuda_pRHS_J<<<nblocks,nthread>>>(
+    op_cuda_set_rhs<<<nblocks,nthread>>>(
       (double *) arg0.data_d,
       (double *) arg1.data_d,
       set->size );
@@ -71,7 +71,7 @@ void op_par_loop_pRHS_J(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[13].time     += wall_t2 - wall_t1;
-  OP_kernels[13].transfer += (float)set->size * arg0.size;
-  OP_kernels[13].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[5].time     += wall_t2 - wall_t1;
+  OP_kernels[5].transfer += (float)set->size * arg0.size;
+  OP_kernels[5].transfer += (float)set->size * arg1.size * 2.0f;
 }

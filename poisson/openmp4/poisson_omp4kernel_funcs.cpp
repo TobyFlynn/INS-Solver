@@ -21,6 +21,7 @@ void op_decl_const_char(int dim, char const *type,
 #include "set_tau_omp4kernel_func.cpp"
 #include "set_tau_bc_omp4kernel_func.cpp"
 #include "set_ic2_omp4kernel_func.cpp"
+#include "set_rhs_omp4kernel_func.cpp"
 #include "div_omp4kernel_func.cpp"
 #include "curl_omp4kernel_func.cpp"
 #include "grad_omp4kernel_func.cpp"

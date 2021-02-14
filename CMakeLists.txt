@@ -34,6 +34,8 @@ if(NOT OPENBLAS_DIR)
   set(OPENBLAS_DIR "/opt/OpenBLAS")
 endif()
 
+set(PETSC_DIR $ENV{PETSC_DIR})
+
 enable_language(CUDA)
 find_package(CUDAToolkit)
 include_directories(${CUDAToolkit_INCLUDE_DIRS})
