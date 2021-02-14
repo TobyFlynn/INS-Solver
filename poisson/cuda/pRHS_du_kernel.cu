@@ -4,12 +4,13 @@
 
 //user function
 __device__ void pRHS_du_gpu( const double *nx, const double *ny, const double *fscale,
-                    const double *U, const double *exU, double *du,
+                    const double *U, double *exU, double *du,
                     double *fluxXu, double *fluxYu) {
   for(int i = 0; i < 15; i++) {
     du[i] = U[i] - exU[i];
     fluxXu[i] = fscale[i] * (nx[i] * du[i] / 2.0);
     fluxYu[i] = fscale[i] * (ny[i] * du[i] / 2.0);
+    exU[i] = 0.0;
   }
 
 }
@@ -20,7 +21,7 @@ __global__ void op_cuda_pRHS_du(
   const double *__restrict arg1,
   const double *__restrict arg2,
   const double *__restrict arg3,
-  const double *__restrict arg4,
+  double *arg4,
   double *arg5,
   double *arg6,
   double *arg7,
@@ -110,7 +111,7 @@ void op_par_loop_pRHS_du(char const *name, op_set set,
   OP_kernels[8].transfer += (float)set->size * arg1.size;
   OP_kernels[8].transfer += (float)set->size * arg2.size;
   OP_kernels[8].transfer += (float)set->size * arg3.size;
-  OP_kernels[8].transfer += (float)set->size * arg4.size;
+  OP_kernels[8].transfer += (float)set->size * arg4.size * 2.0f;
   OP_kernels[8].transfer += (float)set->size * arg5.size * 2.0f;
   OP_kernels[8].transfer += (float)set->size * arg6.size * 2.0f;
   OP_kernels[8].transfer += (float)set->size * arg7.size * 2.0f;

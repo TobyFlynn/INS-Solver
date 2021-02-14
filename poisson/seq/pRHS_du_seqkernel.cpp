@@ -67,7 +67,7 @@ void op_par_loop_pRHS_du(char const *name, op_set set,
   OP_kernels[8].transfer += (float)set->size * arg1.size;
   OP_kernels[8].transfer += (float)set->size * arg2.size;
   OP_kernels[8].transfer += (float)set->size * arg3.size;
-  OP_kernels[8].transfer += (float)set->size * arg4.size;
+  OP_kernels[8].transfer += (float)set->size * arg4.size * 2.0f;
   OP_kernels[8].transfer += (float)set->size * arg5.size * 2.0f;
   OP_kernels[8].transfer += (float)set->size * arg6.size * 2.0f;
   OP_kernels[8].transfer += (float)set->size * arg7.size * 2.0f;

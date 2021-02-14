@@ -15,3 +15,4 @@
 #include "pRHS_faces_omp4kernel.cpp"
 #include "pRHS_bc_omp4kernel.cpp"
 #include "pRHS_du_omp4kernel.cpp"
+#include "pRHS_fluxq_omp4kernel.cpp"

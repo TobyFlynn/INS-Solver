@@ -25,3 +25,4 @@ void op_decl_const_char(int dim, char const *type,
 #include "pRHS_faces_omp4kernel_func.cpp"
 #include "pRHS_bc_omp4kernel_func.cpp"
 #include "pRHS_du_omp4kernel_func.cpp"
+#include "pRHS_fluxq_omp4kernel_func.cpp"

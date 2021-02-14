@@ -5,7 +5,7 @@
 //user function
 //user function
 
-void pRHS_du_omp4_kernel(
+void pRHS_fluxq_omp4_kernel(
   double *data0,
   int dat0size,
   double *data1,
@@ -22,12 +22,14 @@ void pRHS_du_omp4_kernel(
   int dat6size,
   double *data7,
   int dat7size,
+  double *data8,
+  int dat8size,
   int count,
   int num_teams,
   int nthread);
 
 // host stub function
-void op_par_loop_pRHS_du(char const *name, op_set set,
+void op_par_loop_pRHS_fluxq(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
@@ -35,10 +37,11 @@ void op_par_loop_pRHS_du(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7){
+  op_arg arg7,
+  op_arg arg8){
 
-  int nargs = 8;
-  op_arg args[8];
+  int nargs = 9;
+  op_arg args[9];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -48,28 +51,29 @@ void op_par_loop_pRHS_du(char const *name, op_set set,
   args[5] = arg5;
   args[6] = arg6;
   args[7] = arg7;
+  args[8] = arg8;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(8);
+  op_timing_realloc(9);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[8].name      = name;
-  OP_kernels[8].count    += 1;
+  OP_kernels[9].name      = name;
+  OP_kernels[9].count    += 1;
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  pRHS_du");
+    printf(" kernel routine w/o indirection:  pRHS_fluxq");
   }
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_8
-    int part_size = OP_PART_SIZE_8;
+  #ifdef OP_PART_SIZE_9
+    int part_size = OP_PART_SIZE_9;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_8
-    int nthread = OP_BLOCK_SIZE_8;
+  #ifdef OP_BLOCK_SIZE_9
+    int nthread = OP_BLOCK_SIZE_9;
   #else
     int nthread = OP_block_size;
   #endif
@@ -95,7 +99,9 @@ void op_par_loop_pRHS_du(char const *name, op_set set,
     int dat6size = getSetSizeFromOpArg(&arg6) * arg6.dat->dim;
     double* data7 = (double*)arg7.data_d;
     int dat7size = getSetSizeFromOpArg(&arg7) * arg7.dat->dim;
-    pRHS_du_omp4_kernel(
+    double* data8 = (double*)arg8.data_d;
+    int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
+    pRHS_fluxq_omp4_kernel(
       data0,
       dat0size,
       data1,
@@ -112,6 +118,8 @@ void op_par_loop_pRHS_du(char const *name, op_set set,
       dat6size,
       data7,
       dat7size,
+      data8,
+      dat8size,
       set->size,
       part_size!=0?(set->size-1)/part_size+1:(set->size-1)/nthread,
       nthread);
@@ -124,13 +132,14 @@ void op_par_loop_pRHS_du(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[8].time     += wall_t2 - wall_t1;
-  OP_kernels[8].transfer += (float)set->size * arg0.size;
-  OP_kernels[8].transfer += (float)set->size * arg1.size;
-  OP_kernels[8].transfer += (float)set->size * arg2.size;
-  OP_kernels[8].transfer += (float)set->size * arg3.size;
-  OP_kernels[8].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[8].transfer += (float)set->size * arg5.size * 2.0f;
-  OP_kernels[8].transfer += (float)set->size * arg6.size * 2.0f;
-  OP_kernels[8].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[9].time     += wall_t2 - wall_t1;
+  OP_kernels[9].transfer += (float)set->size * arg0.size;
+  OP_kernels[9].transfer += (float)set->size * arg1.size;
+  OP_kernels[9].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg4.size;
+  OP_kernels[9].transfer += (float)set->size * arg5.size;
+  OP_kernels[9].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg8.size * 2.0f;
 }

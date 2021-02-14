@@ -84,6 +84,8 @@ int main(int argc, char **argv) {
               op_arg_dat(data->sJ, -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->fscale, -1, OP_ID, 15, "double", OP_WRITE));
 
+  // TODO compute tau
+
   // Set initial conditions
   op_par_loop(set_ic1, "set_ic1", data->cells,
               op_arg_dat(data->uD,   -1, OP_ID, 15, "double", OP_WRITE),

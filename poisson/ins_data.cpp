@@ -47,12 +47,16 @@ INSData::~INSData() {
     free(div_data[i]);
   }
   free(pU_data);
-  free(pExU_data);
+  for(int i = 0; i < 2; i++) {
+    free(pExRHS_data[i]);
+  }
   free(pDu_data);
   free(pDuDx_data);
   free(pDuDy_data);
   free(pFluxXu_data);
   free(pFluxYu_data);
+  free(pTau_data);
+  free(pFluxQ_data);
 }
 
 void INSData::initOP2() {
@@ -84,12 +88,16 @@ void INSData::initOP2() {
     div_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
   pU_data = (double *)malloc(15 * numCells * sizeof(double));
-  pExU_data = (double *)malloc(15 * numCells * sizeof(double));
+  for(int i = 0; i < 2; i++) {
+    pExRHS_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+  }
   pDu_data = (double *)malloc(15 * numCells * sizeof(double));
   pDuDx_data = (double *)malloc(15 * numCells * sizeof(double));
   pDuDy_data = (double *)malloc(15 * numCells * sizeof(double));
   pFluxXu_data = (double *)malloc(15 * numCells * sizeof(double));
   pFluxYu_data = (double *)malloc(15 * numCells * sizeof(double));
+  pTau_data = (double *)malloc(15 * numCells * sizeof(double));
+  pFluxQ_data = (double *)malloc(15 * numCells * sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -145,10 +153,15 @@ void INSData::initOP2() {
     div[i] = op_decl_dat(cells, 15, "double", div_data[i], divname.c_str());
   }
   pU = op_decl_dat(cells, 15, "double", pU_data, "pU");
-  pExU = op_decl_dat(cells, 15, "double", pExU_data, "pExU");
+  for(int i = 0; i < 2; i++) {
+    string pExRHSname = "pExRHS" + to_string(i);
+    pExRHS[i] = op_decl_dat(cells, 15, "double", pExRHS_data[i], pExRHSname.c_str());
+  }
   pDu = op_decl_dat(cells, 15, "double", pDu_data, "pDu");
   pDuDx = op_decl_dat(cells, 15, "double", pDuDx_data, "pDuDx");
   pDuDy = op_decl_dat(cells, 15, "double", pDuDy_data, "pDuDy");
   pFluxXu = op_decl_dat(cells, 15, "double", pFluxXu_data, "pFluxXu");
   pFluxYu = op_decl_dat(cells, 15, "double", pFluxYu_data, "pFluxYu");
+  pTau = op_decl_dat(cells, 15, "double", pTau_data, "pTau");
+  pFluxQ = op_decl_dat(cells, 15, "double", pFluxQ_data, "pFluxQ");
 }

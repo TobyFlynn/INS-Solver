@@ -31,7 +31,7 @@ void pRHS_du_omp4_kernel(
     const double *ny = &data1[15*n_op];
     const double *fscale = &data2[15*n_op];
     const double *U = &data3[15*n_op];
-    const double *exU = &data4[15*n_op];
+    double *exU = &data4[15*n_op];
     double *du = &data5[15*n_op];
     double *fluxXu = &data6[15*n_op];
     double *fluxYu = &data7[15*n_op];
@@ -42,6 +42,7 @@ void pRHS_du_omp4_kernel(
       du[i] = U[i] - exU[i];
       fluxXu[i] = fscale[i] * (nx[i] * du[i] / 2.0);
       fluxYu[i] = fscale[i] * (ny[i] * du[i] / 2.0);
+      exU[i] = 0.0;
     }
     //end inline func
   }

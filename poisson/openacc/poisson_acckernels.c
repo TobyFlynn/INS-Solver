@@ -20,3 +20,4 @@ int size, char *dat, char const *name){}
 #include "pRHS_faces_acckernel.c"
 #include "pRHS_bc_acckernel.c"
 #include "pRHS_du_acckernel.c"
+#include "pRHS_fluxq_acckernel.c"
