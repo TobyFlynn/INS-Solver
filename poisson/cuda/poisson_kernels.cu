@@ -37,3 +37,4 @@ int size, char *dat, char const *name){
 #include "pRHS_bc_kernel.cu"
 #include "pRHS_du_kernel.cu"
 #include "pRHS_fluxq_kernel.cu"
+#include "pRHS_J_kernel.cu"

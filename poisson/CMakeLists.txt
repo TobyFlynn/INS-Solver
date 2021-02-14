@@ -1,6 +1,6 @@
 set(KERNEL_HEADERS kernels/init_grid.h kernels/set_ic1.h kernels/set_ic2.h)
 list(APPEND KERNEL_HEADERS kernels/div.h kernels/curl.h kernels/grad.h)
-list(APPEND KERNEL_HEADERS kernels/pRHS_faces.h kernels/pRHS_bc.h kernels/pRHS_du.h kernels/pRHS_fluxq.h)
+list(APPEND KERNEL_HEADERS kernels/pRHS_faces.h kernels/pRHS_bc.h kernels/pRHS_du.h kernels/pRHS_fluxq.h kernels/pRHS_J.h)
 set(OPENBLAS_SRC openBLAS_op/init_grid_op.cpp openBLAS_op/div_op.cpp openBLAS_op/grad_op.cpp openBLAS_op/poisson_rhs1_op.cpp openBLAS_op/poisson_rhs2_op.cpp)
 set(CUBLAS_SRC cuBLAS_op/init_grid_op.cu cuBLAS_op/div_op.cu cuBLAS_op/grad_op.cu cuBLAS_op/poisson_rhs1_op.cu cuBLAS_op/poisson_rhs2_op.cu)
 

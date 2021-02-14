@@ -9,6 +9,7 @@
 #include "kernels/pRHS_bc.h"
 #include "kernels/pRHS_du.h"
 #include "kernels/pRHS_fluxq.h"
+#include "kernels/pRHS_J.h"
 
 void poisson_rhs(const double *u, double *rhs) {
   op_arg u_copy_args[] = {
@@ -87,4 +88,15 @@ void poisson_rhs(const double *u, double *rhs) {
   div(data, data->pDuDx, data->pDuDy, data->pDivQ);
 
   poisson_rhs_blas2(data);
+
+  op_par_loop(pRHS_J, "pRHS_J", data->cells,
+              op_arg_dat(data->J, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->pRHSU, -1, OP_ID, 15, "double", OP_RW));
+
+  op_arg rhs_copy_args[] = {
+    op_arg_dat(data->pRHSU, -1, OP_ID, 15, "double", OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(data->cells, 1, rhs_copy_args);
+  cudaMemcpy(rhs, data->pRHSU->data_d, data->numCells * 15 * sizeof(double), cudaMemcpyDeviceToDevice);
+  op_mpi_set_dirtybit_cuda(1, rhs_copy_args);
 }

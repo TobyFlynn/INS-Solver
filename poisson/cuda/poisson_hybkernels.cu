@@ -14,6 +14,7 @@
 #define op_par_loop_pRHS_bc op_par_loop_pRHS_bc_gpu
 #define op_par_loop_pRHS_du op_par_loop_pRHS_du_gpu
 #define op_par_loop_pRHS_fluxq op_par_loop_pRHS_fluxq_gpu
+#define op_par_loop_pRHS_J op_par_loop_pRHS_J_gpu
 #include "poisson_kernels.cu"
 #undef op_par_loop_init_grid
 #undef op_par_loop_set_ic1
@@ -25,6 +26,7 @@
 #undef op_par_loop_pRHS_bc
 #undef op_par_loop_pRHS_du
 #undef op_par_loop_pRHS_fluxq
+#undef op_par_loop_pRHS_J
 #else
 #define op_par_loop_init_grid op_par_loop_init_grid_cpu
 #define op_par_loop_set_ic1 op_par_loop_set_ic1_cpu
@@ -36,6 +38,7 @@
 #define op_par_loop_pRHS_bc op_par_loop_pRHS_bc_cpu
 #define op_par_loop_pRHS_du op_par_loop_pRHS_du_cpu
 #define op_par_loop_pRHS_fluxq op_par_loop_pRHS_fluxq_cpu
+#define op_par_loop_pRHS_J op_par_loop_pRHS_J_cpu
 #include "../openmp/poisson_kernels.cpp"
 #undef op_par_loop_init_grid
 #undef op_par_loop_set_ic1
@@ -47,6 +50,7 @@
 #undef op_par_loop_pRHS_bc
 #undef op_par_loop_pRHS_du
 #undef op_par_loop_pRHS_fluxq
+#undef op_par_loop_pRHS_J
 
 //user kernel files
 
@@ -722,6 +726,40 @@ void op_par_loop_pRHS_fluxq(char const *name, op_set set,
     arg7,
     arg8,
     arg9);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_pRHS_J_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_pRHS_J(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_pRHS_J_gpu(name, set,
+      arg0,
+      arg1);
+
+    }else{
+    op_par_loop_pRHS_J_cpu(name, set,
+      arg0,
+      arg1);
+
+  }
+}
+#else
+void op_par_loop_pRHS_J(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  op_par_loop_pRHS_J_gpu(name, set,
+    arg0,
+    arg1);
 
   }
 #endif //OP_HYBRID_GPU
