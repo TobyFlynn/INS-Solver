@@ -9,6 +9,11 @@
 
 using namespace std;
 
+PetscErrorCode monitor(KSP ksp, PetscInt it, PetscReal norm, void *mctx) {
+  cout << "Iter: " << it << " Norm: " << norm << endl;
+  return 0;
+}
+
 PetscErrorCode matAMult(Mat A, Vec x, Vec y);
 
 void poisson_rhs_solve() {
@@ -36,8 +41,10 @@ void poisson_rhs_solve() {
   // Create KSP
   KSP ksp;
   KSPCreate(PETSC_COMM_SELF, &ksp);
-  KSPSetType(ksp, KSPGMRES);
+  KSPSetType(ksp, KSPFGMRES);
+  // KSPSetType(ksp, KSPCG);
   KSPSetOperators(ksp, Amat, Amat);
+  KSPMonitorSet(ksp, monitor, NULL, NULL);
 
   // Solve
   KSPSolve(ksp, b, x);
@@ -51,6 +58,15 @@ void poisson_rhs_solve() {
   // Get solution
   Vec solution;
   KSPGetSolution(ksp, &solution);
+  const double *sol_d;
+  VecGetArrayRead(solution, &sol_d);
+  op_arg sol_petsc_args[] = {
+    op_arg_dat(data->sol, -1, OP_ID, 15, "double", OP_WRITE)
+  };
+  op_mpi_halo_exchanges(data->cells, 1, sol_petsc_args);
+  memcpy((double *)data->sol->data, sol_d, 15 * data->numCells * sizeof(double));
+  op_mpi_set_dirtybit(1, sol_petsc_args);
+  VecRestoreArrayRead(solution, &sol_d);
 }
 
 PetscErrorCode matAMult(Mat A, Vec x, Vec y) {

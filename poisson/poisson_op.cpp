@@ -79,6 +79,7 @@ void op_par_loop_set_rhs(char const *, op_set,
 #include <cmath>
 #include <getopt.h>
 #include <limits>
+#include <fstream>
 
 #include "petscksp.h"
 #include "petscvec.h"
@@ -205,12 +206,65 @@ int main(int argc, char **argv) {
 
   poisson_set_rhs_blas(data);
 
-  poisson_rhs_solve();
+  double *u = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  double *A = (double *)malloc(15 * op_get_size(data->cells) * 15 * op_get_size(data->cells) * sizeof(double));
+  for(int i = 0; i < 15 * op_get_size(data->cells); i++) {
+    u[i] = 0.0;
+  }
+  for(int i = 0; i < 15 * op_get_size(data->cells); i++) {
+    u[i] = 1.0;
+    poisson_rhs(u, &A[i * 15 * op_get_size(data->cells)]);
+    u[i] = 0.0;
+  }
+
+  ofstream file;
+  file.open("A.txt");
+  for(int i = 0; i < 15 * op_get_size(data->cells); i++) {
+    for(int j = 0; j < 15 * op_get_size(data->cells); j++) {
+      int ind = i * 15 * op_get_size(data->cells) + j;
+      file << A[ind] << "\t";
+    }
+    file << endl;
+  }
+  file.close();
+
+  double *rhs = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  op_fetch_data(data->rhs, rhs);
+  ofstream vfile;
+  vfile.open("rhs.txt");
+  for(int i = 0; i < 15 * op_get_size(data->cells); i++) {
+    vfile << rhs[i] << endl;
+  }
+  vfile.close();
+  free(rhs);
+
+  double *x = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  op_fetch_data(data->x, x);
+  ofstream xfile;
+  xfile.open("x.txt");
+  for(int i = 0; i < 15 * op_get_size(data->cells); i++) {
+    xfile << x[i] << endl;
+  }
+  xfile.close();
+  free(x);
+
+  double *y = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  op_fetch_data(data->y, y);
+  ofstream yfile;
+  yfile.open("y.txt");
+  for(int i = 0; i < 15 * op_get_size(data->cells); i++) {
+    yfile << y[i] << endl;
+  }
+  yfile.close();
+  free(y);
+
+
+  // poisson_rhs_solve();
 
 
   // Save solution to CGNS file
   double *sol = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  op_fetch_data(data->rhs, sol);
+  op_fetch_data(data->sol, sol);
   save_solution("./grid.cgns", op_get_size(data->nodes), op_get_size(data->cells),
                 sol, data->cgnsCells);
 

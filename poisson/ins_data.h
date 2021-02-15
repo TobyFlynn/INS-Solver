@@ -27,6 +27,7 @@ public:
   op_dat uD, qN, Aqbc, rhs, poissonBC[4], pRHS;
   op_dat div[4];
   op_dat pU, pExRHS[2], pDu, pDuDx, pDuDy, pFluxXu, pFluxYu, pTau, pFluxQ, pDivQ, pRHSU;
+  op_dat sol;
 private:
   // Pointers to private memory
   double *nodeX_data;
@@ -64,6 +65,7 @@ private:
   double *pFluxQ_data;
   double *pDivQ_data;
   double *pRHSU_data;
+  double *sol_data;
 };
 
 #endif

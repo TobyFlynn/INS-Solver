@@ -59,6 +59,7 @@ INSData::~INSData() {
   free(pFluxQ_data);
   free(pDivQ_data);
   free(pRHSU_data);
+  free(sol_data);
 }
 
 void INSData::initOP2() {
@@ -102,6 +103,7 @@ void INSData::initOP2() {
   pFluxQ_data = (double *)malloc(15 * numCells * sizeof(double));
   pDivQ_data = (double *)malloc(15 * numCells * sizeof(double));
   pRHSU_data = (double *)malloc(15 * numCells * sizeof(double));
+  sol_data = (double *)malloc(15 * numCells * sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -170,4 +172,5 @@ void INSData::initOP2() {
   pFluxQ = op_decl_dat(cells, 15, "double", pFluxQ_data, "pFluxQ");
   pDivQ = op_decl_dat(cells, 15, "double", pDivQ_data, "pDivQ");
   pRHSU = op_decl_dat(cells, 15, "double", pRHSU_data, "pRHSU");
+  sol = op_decl_dat(cells, 15, "double", sol_data, "sol");
 }

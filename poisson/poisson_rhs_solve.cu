@@ -36,7 +36,8 @@ void poisson_rhs_solve() {
   // Create KSP
   KSP ksp;
   KSPCreate(PETSC_COMM_SELF, &ksp);
-  KSPSetType(ksp, KSPGMRES);
+  KSPSetType(ksp, KSPFGMRES);
+  // KSPSetType(ksp, KSPCG);
   KSPSetOperators(ksp, Amat, Amat);
 
   // Solve
@@ -51,6 +52,15 @@ void poisson_rhs_solve() {
   // Get solution
   Vec solution;
   KSPGetSolution(ksp, &solution);
+  const double *sol_d;
+  VecCUDAGetArrayRead(solution, &sol_d);
+  op_arg sol_petsc_args[] = {
+    op_arg_dat(data->sol, -1, OP_ID, 15, "double", OP_WRITE)
+  };
+  op_mpi_halo_exchanges_cuda(data->cells, 1, sol_petsc_args);
+  cudaMemcpy((double *)data->sol->data_d, sol_d, 15 * data->numCells * sizeof(double), cudaMemcpyDeviceToDevice);
+  op_mpi_set_dirtybit_cuda(1, sol_petsc_args);
+  VecCUDARestoreArrayRead(solution, &sol_d);
 }
 
 PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
