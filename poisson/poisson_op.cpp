@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
               op_arg_dat(data->rhs,-1,OP_ID,15,"double",OP_RW));
 
   poisson_set_rhs_blas(data);
-
+  /*
   double *u = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *A = (double *)malloc(15 * op_get_size(data->cells) * 15 * op_get_size(data->cells) * sizeof(double));
   for(int i = 0; i < 15 * op_get_size(data->cells); i++) {
@@ -257,9 +257,9 @@ int main(int argc, char **argv) {
   }
   yfile.close();
   free(y);
+  */
 
-
-  // poisson_rhs_solve();
+  poisson_rhs_solve();
 
 
   // Save solution to CGNS file
