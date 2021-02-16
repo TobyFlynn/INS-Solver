@@ -12,6 +12,7 @@ using namespace std;
 
 void save_solution(std::string filename, int numPts, int numCells, double *q0, int *cellMap) {
   vector<double> p(numPts);
+  vector<double> num(numPts);
 
   int qNode0Ind = 0;
   int qNode1Ind = 4;
@@ -23,11 +24,18 @@ void save_solution(std::string filename, int numPts, int numCells, double *q0, i
     int node1 = cellMap[i * 3 + 1];
     int node2 = cellMap[i * 3 + 2];
 
-    p[node0]    = q0[qCellInd + qNode0Ind];
+    p[node0] += q0[qCellInd + qNode0Ind];
+    num[node0]++;
 
-    p[node1]    = q0[qCellInd + qNode1Ind];
+    p[node1] += q0[qCellInd + qNode1Ind];
+    num[node1]++;
 
-    p[node2]    = q0[qCellInd + qNode2Ind];
+    p[node2] += q0[qCellInd + qNode2Ind];
+    num[node2]++;
+  }
+
+  for(int i = 0; i < numPts; i++) {
+    p[i] = p[i] / num[i];
   }
 
   // Write out CGNS file
