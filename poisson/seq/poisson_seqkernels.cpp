@@ -22,5 +22,6 @@ extern int FMASK[15];
 #include "pRHS_faces_seqkernel.cpp"
 #include "pRHS_bc_seqkernel.cpp"
 #include "pRHS_du_seqkernel.cpp"
+#include "pRHS_qbc_seqkernel.cpp"
 #include "pRHS_fluxq_seqkernel.cpp"
 #include "pRHS_J_seqkernel.cpp"

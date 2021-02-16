@@ -196,6 +196,7 @@ int main(int argc, char **argv) {
   poisson_calc_sol_blas(data);
 
 
+
   // Save solution to CGNS file
   double *sol = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(data->sol, sol);

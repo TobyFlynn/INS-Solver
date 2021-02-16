@@ -3,8 +3,8 @@
 //
 
 //user function
-__device__ void pRHS_bc_gpu( const int *bedge_type, const int *bedgeNum, const double *U,
-                    double *exU) {
+__device__ void pRHS_qbc_gpu( const int *bedge_type, const int *bedgeNum, const double *q,
+                    double *exq) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 5;
@@ -22,16 +22,16 @@ __device__ void pRHS_bc_gpu( const int *bedge_type, const int *bedgeNum, const d
     fmask = &FMASK_cuda[2 * 5];
   }
 
-  if(*bedge_type == 0 || *bedge_type == 1 || *bedge_type == 2 || *bedge_type == 3) {
+  if(*bedge_type == 4) {
     for(int i = 0; i < 5; i++) {
-      exU[exInd + i] += -U[fmask[i]];
+      exq[exInd + i] += -q[fmask[i]];
     }
   }
 
 }
 
 // CUDA kernel function
-__global__ void op_cuda_pRHS_bc(
+__global__ void op_cuda_pRHS_qbc(
   const double *__restrict ind_arg0,
   double *__restrict ind_arg1,
   const int *__restrict opDat2Map,
@@ -53,10 +53,10 @@ __global__ void op_cuda_pRHS_bc(
     map2idx = opDat2Map[n + set_size * 0];
 
     //user-supplied kernel call
-    pRHS_bc_gpu(arg0+n*1,
-            arg1+n*1,
-            ind_arg0+map2idx*15,
-            arg3_l);
+    pRHS_qbc_gpu(arg0+n*1,
+             arg1+n*1,
+             ind_arg0+map2idx*15,
+             arg3_l);
     atomicAdd(&ind_arg1[0+map2idx*15],arg3_l[0]);
     atomicAdd(&ind_arg1[1+map2idx*15],arg3_l[1]);
     atomicAdd(&ind_arg1[2+map2idx*15],arg3_l[2]);
@@ -77,7 +77,7 @@ __global__ void op_cuda_pRHS_bc(
 
 
 //host stub function
-void op_par_loop_pRHS_bc(char const *name, op_set set,
+void op_par_loop_pRHS_qbc(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
@@ -93,24 +93,24 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(11);
+  op_timing_realloc(13);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[11].name      = name;
-  OP_kernels[11].count    += 1;
+  OP_kernels[13].name      = name;
+  OP_kernels[13].count    += 1;
 
 
   int    ninds   = 2;
   int    inds[4] = {-1,-1,0,1};
 
   if (OP_diags>2) {
-    printf(" kernel routine with indirection: pRHS_bc\n");
+    printf(" kernel routine with indirection: pRHS_qbc\n");
   }
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_11
-      int nthread = OP_BLOCK_SIZE_11;
+    #ifdef OP_BLOCK_SIZE_13
+      int nthread = OP_BLOCK_SIZE_13;
     #else
       int nthread = OP_block_size;
     #endif
@@ -123,7 +123,7 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
       int end = round==0 ? set->core_size : set->size + set->exec_size;
       if (end-start>0) {
         int nblocks = (end-start-1)/nthread+1;
-        op_cuda_pRHS_bc<<<nblocks,nthread>>>(
+        op_cuda_pRHS_qbc<<<nblocks,nthread>>>(
         (double *)arg2.data_d,
         (double *)arg3.data_d,
         arg2.map_data_d,
@@ -137,5 +137,5 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[11].time     += wall_t2 - wall_t1;
+  OP_kernels[13].time     += wall_t2 - wall_t1;
 }

@@ -1,5 +1,5 @@
-inline void pRHS_bc(const int *bedge_type, const int *bedgeNum, const double *U,
-                    double *exU) {
+inline void pRHS_qbc(const int *bedge_type, const int *bedgeNum, const double *q,
+                    double *exq) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 5;
@@ -17,9 +17,9 @@ inline void pRHS_bc(const int *bedge_type, const int *bedgeNum, const double *U,
     fmask = &FMASK[2 * 5];
   }
 
-  if(*bedge_type == 0 || *bedge_type == 1 || *bedge_type == 2 || *bedge_type == 3) {
+  if(*bedge_type == 4) {
     for(int i = 0; i < 5; i++) {
-      exU[exInd + i] += -U[fmask[i]];
+      exq[exInd + i] += -q[fmask[i]];
     }
   }
 }

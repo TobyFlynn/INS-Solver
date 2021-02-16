@@ -5,8 +5,8 @@
 //user function
 //user function
 //#pragma acc routine
-inline void pRHS_bc_openacc( const int *bedge_type, const int *bedgeNum, const double *U,
-                    double *exU) {
+inline void pRHS_qbc_openacc( const int *bedge_type, const int *bedgeNum, const double *q,
+                    double *exq) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 5;
@@ -24,15 +24,15 @@ inline void pRHS_bc_openacc( const int *bedge_type, const int *bedgeNum, const d
     fmask = &FMASK[2 * 5];
   }
 
-  if(*bedge_type == 0 || *bedge_type == 1 || *bedge_type == 2 || *bedge_type == 3) {
+  if(*bedge_type == 4) {
     for(int i = 0; i < 5; i++) {
-      exU[exInd + i] += -U[fmask[i]];
+      exq[exInd + i] += -q[fmask[i]];
     }
   }
 }
 
 // host stub function
-void op_par_loop_pRHS_bc(char const *name, op_set set,
+void op_par_loop_pRHS_qbc(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
@@ -48,21 +48,21 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(11);
+  op_timing_realloc(13);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[11].name      = name;
-  OP_kernels[11].count    += 1;
+  OP_kernels[13].name      = name;
+  OP_kernels[13].count    += 1;
 
   int  ninds   = 2;
   int  inds[4] = {-1,-1,0,1};
 
   if (OP_diags>2) {
-    printf(" kernel routine with indirection: pRHS_bc\n");
+    printf(" kernel routine with indirection: pRHS_qbc\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_11
-    int part_size = OP_PART_SIZE_11;
+  #ifdef OP_PART_SIZE_13
+    int part_size = OP_PART_SIZE_13;
   #else
     int part_size = OP_part_size;
   #endif
@@ -103,7 +103,7 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
         map2idx = map2[n + set_size1 * 0];
 
 
-        pRHS_bc_openacc(
+        pRHS_qbc_openacc(
           &data0[1 * n],
           &data1[1 * n],
           &data2[15 * map2idx],
@@ -111,8 +111,8 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
       }
 
     }
-    OP_kernels[11].transfer  += Plan->transfer;
-    OP_kernels[11].transfer2 += Plan->transfer2;
+    OP_kernels[13].transfer  += Plan->transfer;
+    OP_kernels[13].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -123,5 +123,5 @@ void op_par_loop_pRHS_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[11].time     += wall_t2 - wall_t1;
+  OP_kernels[13].time     += wall_t2 - wall_t1;
 }

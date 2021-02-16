@@ -10,6 +10,7 @@
 #include "kernels/pRHS_du.h"
 #include "kernels/pRHS_fluxq.h"
 #include "kernels/pRHS_J.h"
+#include "kernels/pRHS_qbc.h"
 
 void poisson_rhs(const double *u, double *rhs) {
   op_arg u_copy_args[] = {
@@ -61,13 +62,13 @@ void poisson_rhs(const double *u, double *rhs) {
               op_arg_dat(data->pDuDy, -2, data->edge2cells, 15, "double", OP_READ),
               op_arg_dat(data->pExRHS[1], -2, data->edge2cells, 15, "double", OP_INC));
 
-  op_par_loop(pRHS_bc, "pRHS_bc", data->bedges,
+  op_par_loop(pRHS_qbc, "pRHS_qbc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->pDuDx, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->pExRHS[0], 0, data->bedge2cells, 15, "double", OP_INC));
 
-  op_par_loop(pRHS_bc, "pRHS_bc", data->bedges,
+  op_par_loop(pRHS_qbc, "pRHS_qbc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->pDuDy, 0, data->bedge2cells, 15, "double", OP_READ),
