@@ -10,6 +10,7 @@
 #define op_par_loop_set_tau_bc op_par_loop_set_tau_bc_gpu
 #define op_par_loop_set_ic2 op_par_loop_set_ic2_gpu
 #define op_par_loop_set_rhs op_par_loop_set_rhs_gpu
+#define op_par_loop_calc_sol op_par_loop_calc_sol_gpu
 #define op_par_loop_div op_par_loop_div_gpu
 #define op_par_loop_curl op_par_loop_curl_gpu
 #define op_par_loop_grad op_par_loop_grad_gpu
@@ -25,6 +26,7 @@
 #undef op_par_loop_set_tau_bc
 #undef op_par_loop_set_ic2
 #undef op_par_loop_set_rhs
+#undef op_par_loop_calc_sol
 #undef op_par_loop_div
 #undef op_par_loop_curl
 #undef op_par_loop_grad
@@ -40,6 +42,7 @@
 #define op_par_loop_set_tau_bc op_par_loop_set_tau_bc_cpu
 #define op_par_loop_set_ic2 op_par_loop_set_ic2_cpu
 #define op_par_loop_set_rhs op_par_loop_set_rhs_cpu
+#define op_par_loop_calc_sol op_par_loop_calc_sol_cpu
 #define op_par_loop_div op_par_loop_div_cpu
 #define op_par_loop_curl op_par_loop_curl_cpu
 #define op_par_loop_grad op_par_loop_grad_cpu
@@ -55,6 +58,7 @@
 #undef op_par_loop_set_tau_bc
 #undef op_par_loop_set_ic2
 #undef op_par_loop_set_rhs
+#undef op_par_loop_calc_sol
 #undef op_par_loop_div
 #undef op_par_loop_curl
 #undef op_par_loop_grad
@@ -428,6 +432,40 @@ void op_par_loop_set_rhs(char const *name, op_set set,
     arg0,
     arg1,
     arg2);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_calc_sol_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_calc_sol(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_calc_sol_gpu(name, set,
+      arg0,
+      arg1);
+
+    }else{
+    op_par_loop_calc_sol_cpu(name, set,
+      arg0,
+      arg1);
+
+  }
+}
+#else
+void op_par_loop_calc_sol(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  op_par_loop_calc_sol_gpu(name, set,
+    arg0,
+    arg1);
 
   }
 #endif //OP_HYBRID_GPU

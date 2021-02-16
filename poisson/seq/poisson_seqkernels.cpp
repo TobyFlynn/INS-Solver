@@ -15,6 +15,7 @@ extern int FMASK[15];
 #include "set_tau_bc_seqkernel.cpp"
 #include "set_ic2_seqkernel.cpp"
 #include "set_rhs_seqkernel.cpp"
+#include "calc_sol_seqkernel.cpp"
 #include "div_seqkernel.cpp"
 #include "curl_seqkernel.cpp"
 #include "grad_seqkernel.cpp"

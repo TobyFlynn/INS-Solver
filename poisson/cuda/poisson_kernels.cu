@@ -33,6 +33,7 @@ int size, char *dat, char const *name){
 #include "set_tau_bc_kernel.cu"
 #include "set_ic2_kernel.cu"
 #include "set_rhs_kernel.cu"
+#include "calc_sol_kernel.cu"
 #include "div_kernel.cu"
 #include "curl_kernel.cu"
 #include "grad_kernel.cu"

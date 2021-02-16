@@ -56,23 +56,23 @@ void set_ic2_omp4_kernel(
 
     if(*bedge_type == 0) {
       for(int i = 0; i < 5; i++) {
+        uD[exInd + i] += -2.0;
 
-        uD[exInd + i] += 1.0;
       }
     } else if(*bedge_type == 1) {
       for(int i = 0; i < 5; i++) {
+        uD[exInd + i] += -1.0;
 
-        uD[exInd + i] += 1.0;
       }
     } else if(*bedge_type == 2) {
       for(int i = 0; i < 5; i++) {
+        uD[exInd + i] += 0.5;
 
-        uD[exInd + i] += 1.0;
       }
     } else {
       for(int i = 0; i < 5; i++) {
-
         uD[exInd + i] += 1.0;
+
       }
     }
     //end inline func

@@ -30,9 +30,7 @@
 #include "kernels/set_tau.h"
 #include "kernels/set_tau_bc.h"
 #include "kernels/set_rhs.h"
-#include "kernels/div.h"
-#include "kernels/curl.h"
-#include "kernels/grad.h"
+#include "kernels/calc_sol.h"
 
 using namespace std;
 
@@ -190,6 +188,12 @@ int main(int argc, char **argv) {
   */
 
   poisson_rhs_solve();
+
+  op_par_loop(calc_sol, "calc_sol", data->cells,
+              op_arg_dat(data->J, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->sol, -1, OP_ID, 15, "double", OP_RW));
+
+  poisson_calc_sol_blas(data);
 
 
   // Save solution to CGNS file

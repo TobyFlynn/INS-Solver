@@ -13,6 +13,7 @@ extern double Drw[15 * 15];
 extern double Dsw[15 * 15];
 extern double LIFT[15 * 15];
 extern double MASS[15 * 15];
+extern double invM[15 * 15];
 
 void init_grid_blas(INSData *nsData);
 
@@ -25,6 +26,8 @@ void poisson_rhs_blas1(INSData *nsData);
 void poisson_rhs_blas2(INSData *nsData);
 
 void poisson_set_rhs_blas(INSData *nsData);
+
+void poisson_calc_sol_blas(INSData *nsData);
 
 // void poisson_bc_blas(INSData *nsData);
 
