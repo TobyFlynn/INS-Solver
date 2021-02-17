@@ -17,14 +17,25 @@ extern int FMASK[15];
 
 class Poisson {
 public:
-  Poisson(INSData *data);
+  Poisson(INSData *nsData);
   ~Poisson();
 private:
+  void rhs(const double *u, double *rhs);
+  INSData *data;
   // OP2 Dats
-  op_dat pTau, pExRHS[2];
+  op_dat pTau, pExRHS[2], pU, pDu, pFluxXu, pFluxYu, pDuDx, pDuDy, pFluxQ, pDivQ, pRHS;
   // Pointers to private memory
   double *pTau_data;
   double *pExRHS_data[2];
+  double *pU_data;
+  double *pDu_data;
+  double *pFluxXu_data;
+  double *pFluxYu_data;
+  double *pDuDx_data;
+  double *pDuDy_data;
+  double *pFluxQ_data;
+  double *pDivQ_data;
+  double *pRHS_data;
 };
 
 #endif
