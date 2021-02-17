@@ -3,6 +3,7 @@
 
 #include "op_seq.h"
 #include "ins_data.h"
+#include "poisson.h"
 
 extern double ones[15];
 extern double r[15];
@@ -23,5 +24,9 @@ void grad_blas(INSData *nsData, op_dat u);
 void advection_lift_blas(INSData *nsData, int ind);
 
 void pressure_rhs_blas(INSData *nsData, int ind);
+
+void poisson_rhs_blas1(INSData *nsData, Poisson *pData);
+
+void poisson_rhs_blas2(INSData *nsData, Poisson *pData);
 
 #endif

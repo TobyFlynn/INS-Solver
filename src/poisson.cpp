@@ -1,5 +1,6 @@
 #include "poisson.h"
 
+#include "blas_calls.h"
 #include "operators.h"
 
 #include "kernels/setup_poisson.h"
@@ -107,7 +108,7 @@ void Poisson::rhs(const double *u, double *rhs) {
   grad(data, pU, pDuDx, pDuDy);
 
   // qx and qy stored in pDuDx and pDuDy
-  // poisson_rhs_blas1(data, this);
+  poisson_rhs_blas1(data, this);
 
   op_par_loop(poisson_rhs_faces, "poisson_rhs_faces", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
@@ -149,7 +150,7 @@ void Poisson::rhs(const double *u, double *rhs) {
 
   div(data, pDuDx, pDuDy, pDivQ);
 
-  // poisson_rhs_blas2(data);
+  poisson_rhs_blas2(data, this);
 
   op_par_loop(poisson_rhs_J, "poisson_rhs_J", data->cells,
               op_arg_dat(data->J, -1, OP_ID, 15, "double", OP_READ),

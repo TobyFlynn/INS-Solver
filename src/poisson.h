@@ -19,11 +19,11 @@ class Poisson {
 public:
   Poisson(INSData *nsData);
   ~Poisson();
+  // OP2 Dats
+  op_dat pTau, pExRHS[2], pU, pDu, pFluxXu, pFluxYu, pDuDx, pDuDy, pFluxQ, pDivQ, pRHS;
 private:
   void rhs(const double *u, double *rhs);
   INSData *data;
-  // OP2 Dats
-  op_dat pTau, pExRHS[2], pU, pDu, pFluxXu, pFluxYu, pDuDx, pDuDy, pFluxQ, pDivQ, pRHS;
   // Pointers to private memory
   double *pTau_data;
   double *pExRHS_data[2];
