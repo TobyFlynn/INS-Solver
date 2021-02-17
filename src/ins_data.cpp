@@ -41,6 +41,7 @@ INSData::~INSData() {
     free(Q_data[0][i]);
     free(Q_data[1][i]);
     free(QT_data[i]);
+    free(QTT_data[i]);
   }
   for(int i = 0; i < 4; i++) {
     free(F_data[i]);
@@ -58,6 +59,8 @@ INSData::~INSData() {
   free(curlVel_data);
   free(pRHS_data);
   free(p_data);
+  free(dpdx_data);
+  free(dpdy_data);
 }
 
 void INSData::initOP2() {
@@ -83,6 +86,7 @@ void INSData::initOP2() {
     Q_data[0][i] = (double *)malloc(15 * numCells * sizeof(double));
     Q_data[1][i] = (double *)malloc(15 * numCells * sizeof(double));
     QT_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    QTT_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
   for(int i = 0; i < 4; i++) {
     F_data[i] = (double *)malloc(15 * numCells * sizeof(double));
@@ -100,6 +104,8 @@ void INSData::initOP2() {
   curlVel_data = (double *)malloc(15 * numCells * sizeof(double));
   pRHS_data    = (double *)malloc(15 * numCells * sizeof(double));
   p_data       = (double *)malloc(15 * numCells * sizeof(double));
+  dpdx_data    = (double *)malloc(15 * numCells * sizeof(double));
+  dpdy_data    = (double *)malloc(15 * numCells * sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -150,6 +156,8 @@ void INSData::initOP2() {
     Q[1][i] = op_decl_dat(cells, 15, "double", Q_data[1][i], Qname.c_str());
     Qname = "QT" + to_string(i);
     QT[i] = op_decl_dat(cells, 15, "double", QT_data[i], Qname.c_str());
+    Qname = "QTT" + to_string(i);
+    QTT[i] = op_decl_dat(cells, 15, "double", QTT_data[i], Qname.c_str());
   }
   for(int i = 0; i < 4; i++) {
     string Fname = "F" + to_string(i);
@@ -175,4 +183,6 @@ void INSData::initOP2() {
   curlVel = op_decl_dat(cells, 15, "double", curlVel_data, "curlVel");
   pRHS    = op_decl_dat(cells, 15, "double", pRHS_data, "pRHS");
   p       = op_decl_dat(cells, 15, "double", p_data, "p");
+  dpdx    = op_decl_dat(cells, 15, "double", dpdx_data, "dpdx");
+  dpdy    = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
 }

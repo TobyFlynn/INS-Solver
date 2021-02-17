@@ -29,6 +29,7 @@ int size, char *dat, char const *name){}
 #include "advection_intermediate_vel_acckernel.c"
 #include "pressure_bc_acckernel.c"
 #include "pressure_rhs_acckernel.c"
+#include "pressure_update_vel_acckernel.c"
 #include "setup_poisson_acckernel.c"
 #include "set_tau_acckernel.c"
 #include "set_tau_bc_acckernel.c"

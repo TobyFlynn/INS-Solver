@@ -118,6 +118,15 @@ void op_par_loop_pressure_rhs(char const *, op_set,
   op_arg,
   op_arg,
   op_arg );
+
+void op_par_loop_pressure_update_vel(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -155,6 +164,7 @@ void op_par_loop_pressure_rhs(char const *, op_set,
 #include "kernels/advection_intermediate_vel.h"
 #include "kernels/pressure_bc.h"
 #include "kernels/pressure_rhs.h"
+#include "kernels/pressure_update_vel.h"
 
 using namespace std;
 
@@ -407,4 +417,16 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
   // Currently no Dirichlet BCs for our example but add them here if needed in the future
 
   poisson->solve(data->pRHS, data->p);
+
+  grad(data, data->p, data->dpdx, data->dpdy);
+
+  double factor = dt / g0;
+  op_par_loop_pressure_update_vel("pressure_update_vel",data->cells,
+              op_arg_gbl(&factor,1,"double",OP_READ),
+              op_arg_dat(data->dpdx,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->dpdy,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->QT[0],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->QT[1],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->QTT[0],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->QTT[1],-1,OP_ID,15,"double",OP_WRITE));
 }
