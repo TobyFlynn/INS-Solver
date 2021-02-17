@@ -54,7 +54,7 @@ void poisson_rhs_bc_omp4_kernel(
       fmask = &FMASK_ompkernel[2 * 5];
     }
 
-    if(*bedge_type == 0 || *bedge_type == 1 || *bedge_type == 2 || *bedge_type == 3) {
+    if(*bedge_type == 0 || *bedge_type == 1) {
       for(int i = 0; i < 5; i++) {
         exU[exInd + i] += -U[fmask[i]];
       }

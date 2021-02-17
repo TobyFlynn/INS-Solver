@@ -22,7 +22,7 @@ __device__ void poisson_rhs_bc_gpu( const int *bedge_type, const int *bedgeNum,
     fmask = &FMASK_cuda[2 * 5];
   }
 
-  if(*bedge_type == 0 || *bedge_type == 1 || *bedge_type == 2 || *bedge_type == 3) {
+  if(*bedge_type == 0 || *bedge_type == 1) {
     for(int i = 0; i < 5; i++) {
       exU[exInd + i] += -U[fmask[i]];
     }

@@ -54,7 +54,7 @@ void poisson_rhs_qbc_omp4_kernel(
       fmask = &FMASK_ompkernel[2 * 5];
     }
 
-    if(*bedge_type == 4) {
+    if(*bedge_type == 0 || *bedge_type == 2) {
       for(int i = 0; i < 5; i++) {
         exq[exInd + i] += -q[fmask[i]];
       }

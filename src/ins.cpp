@@ -46,10 +46,17 @@ static struct option options[] = {
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt);
 
-void pressure(INSData *data, int currentInd, double a0, double a1, double b0,
+void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
               double b1, double g0, double dt);
 
 int main(int argc, char **argv) {
+  char help[] = "TODO";
+  int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
+  if(ierr) {
+    cout << "Error initialising PETSc" << endl;
+    return ierr;
+  }
+
   // Object that holds all sets, maps and dats
   // (along with memory associated with them)
   INSData *data = new INSData();
@@ -149,7 +156,7 @@ int main(int argc, char **argv) {
   double dt = 1.0;
   int currentIter = 0;
   advection(data, currentIter % 2, a0, a1, b0, b1, g0, dt);
-  pressure(data, currentIter % 2, a0, a1, b0, b1, g0, dt);
+  pressure(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
 
   // currentIter++;
 
@@ -172,6 +179,9 @@ int main(int argc, char **argv) {
 
   delete poisson;
   delete data;
+
+  ierr = PetscFinalize();
+  return ierr;
 }
 
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
@@ -238,7 +248,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QT[1], -1, OP_ID, 15, "double", OP_WRITE));
 }
 
-void pressure(INSData *data, int currentInd, double a0, double a1, double b0,
+void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
               double b1, double g0, double dt) {
   div(data, data->QT[0], data->QT[1], data->divVelT);
   curl(data, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
@@ -272,5 +282,5 @@ void pressure(INSData *data, int currentInd, double a0, double a1, double b0,
 
   // Currently no Dirichlet BCs for our example but add them here if needed in the future
 
-
+  poisson->solve(data->pRHS, data->p);
 }

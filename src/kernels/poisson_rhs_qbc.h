@@ -17,8 +17,8 @@ inline void poisson_rhs_qbc(const int *bedge_type, const int *bedgeNum, const do
     fmask = &FMASK[2 * 5];
   }
 
-  // TODO change this to bc types that are Neumann in this app
-  if(*bedge_type == 4) {
+  // Inflow or Wall
+  if(*bedge_type == 0 || *bedge_type == 2) {
     for(int i = 0; i < 5; i++) {
       exq[exInd + i] += -q[fmask[i]];
     }

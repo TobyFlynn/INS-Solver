@@ -24,7 +24,7 @@ inline void poisson_rhs_qbc_openacc( const int *bedge_type, const int *bedgeNum,
     fmask = &FMASK[2 * 5];
   }
 
-  if(*bedge_type == 4) {
+  if(*bedge_type == 0 || *bedge_type == 2) {
     for(int i = 0; i < 5; i++) {
       exq[exInd + i] += -q[fmask[i]];
     }

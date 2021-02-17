@@ -4,6 +4,8 @@
 
 #include "poisson.h"
 
+#include <iostream>
+
 #include "blas_calls.h"
 #include "operators.h"
 
@@ -16,6 +18,8 @@
 #include "kernels/poisson_rhs_qbc.h"
 #include "kernels/poisson_rhs_fluxq.h"
 #include "kernels/poisson_rhs_J.h"
+
+using namespace std;
 
 PetscErrorCode matAMult(Mat A, Vec x, Vec y);
 
@@ -108,6 +112,8 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat) {
   KSPGetIterationNumber(ksp, &numIt);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp, &reason);
+  cout << "Number of iterations for linear solver: " << numIt << endl;
+  cout << "Converged reason: " << reason << endl;
 
   Vec solution;
   KSPGetSolution(ksp, &solution);
@@ -116,7 +122,6 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat) {
   MatDestroy(&Amat);
   destroy_vec(&b);
   destroy_vec(&x);
-  destroy_vec(&solution);
 }
 
 void Poisson::rhs(const double *u, double *rhs) {

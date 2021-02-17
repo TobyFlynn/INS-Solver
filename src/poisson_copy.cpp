@@ -52,7 +52,7 @@ void Poisson::store_vec(Vec *v, op_dat v_dat) {
 
 PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
   Poisson *poisson;
-  MatShellGetContext(A, poisson);
+  MatShellGetContext(A, &poisson);
   const double *x_ptr;
   double *y_ptr;
   VecGetArrayRead(x, &x_ptr);
