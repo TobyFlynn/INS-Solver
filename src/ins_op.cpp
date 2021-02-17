@@ -171,6 +171,7 @@ void op_par_loop_pressure_rhs(char const *, op_set,
 #include "ins_data.h"
 #include "blas_calls.h"
 #include "save_solution.h"
+#include "poisson.h"
 
 // Kernels
 #include "kernels/init_grid.h"
@@ -292,6 +293,8 @@ int main(int argc, char **argv) {
               op_arg_dat(data->dPdN[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->dPdN[1],-1,OP_ID,15,"double",OP_WRITE));
 
+  Poisson *poisson = new Poisson(data);
+
   // TODO
   double a0 = 1.0;
   double a1 = 1.0;
@@ -322,6 +325,7 @@ int main(int argc, char **argv) {
   // Clean up OP2
   op_exit();
 
+  delete poisson;
   delete data;
 }
 
@@ -466,4 +470,8 @@ void pressure(INSData *data, int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->divVelT,-1,OP_ID,15,"double",OP_RW));
 
   pressure_rhs_blas(data, currentInd);
+
+  // Currently no Dirichlet BCs for our example but add them here if needed in the future
+
+
 }

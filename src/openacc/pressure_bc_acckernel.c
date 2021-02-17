@@ -36,6 +36,15 @@ inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
       dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
     }
   }
+
+  if(*bedge_type == 0) {
+
+
+    double bcdUndt = -1.0;
+    for(int i = 0; i < 5; i++) {
+      dPdN[exInd + i] -= bcdUndt;
+    }
+  }
 }
 
 // host stub function

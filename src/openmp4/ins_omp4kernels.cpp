@@ -18,3 +18,6 @@
 #include "advection_intermediate_vel_omp4kernel.cpp"
 #include "pressure_bc_omp4kernel.cpp"
 #include "pressure_rhs_omp4kernel.cpp"
+#include "setup_poisson_omp4kernel.cpp"
+#include "set_tau_omp4kernel.cpp"
+#include "set_tau_bc_omp4kernel.cpp"

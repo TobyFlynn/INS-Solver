@@ -84,3 +84,6 @@ int size, char *dat, char const *name){
 #include "advection_intermediate_vel_kernel.cu"
 #include "pressure_bc_kernel.cu"
 #include "pressure_rhs_kernel.cu"
+#include "setup_poisson_kernel.cu"
+#include "set_tau_kernel.cu"
+#include "set_tau_bc_kernel.cu"

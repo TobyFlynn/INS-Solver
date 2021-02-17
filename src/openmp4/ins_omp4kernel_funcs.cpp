@@ -64,3 +64,6 @@ void op_decl_const_char(int dim, char const *type,
 #include "advection_intermediate_vel_omp4kernel_func.cpp"
 #include "pressure_bc_omp4kernel_func.cpp"
 #include "pressure_rhs_omp4kernel_func.cpp"
+#include "setup_poisson_omp4kernel_func.cpp"
+#include "set_tau_omp4kernel_func.cpp"
+#include "set_tau_bc_omp4kernel_func.cpp"
