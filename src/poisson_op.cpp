@@ -17,6 +17,8 @@
 #include "kernels/poisson_rhs_fluxq.h"
 #include "kernels/poisson_rhs_J.h"
 
+PetscErrorCode matAMult(Mat A, Vec x, Vec y);
+
 Poisson::Poisson(INSData *nsData) {
   data = nsData;
   // Allocate memory
@@ -80,6 +82,41 @@ Poisson::~Poisson() {
   free(pDuDy_data);
   free(pFluxQ_data);
   free(pDivQ_data);
+}
+
+void Poisson::solve(op_dat b_dat, op_dat x_dat) {
+  Vec b;
+  create_vec(&b);
+  load_vec(&b, b_dat);
+
+  Vec x;
+  create_vec(&x);
+
+  Mat Amat;
+  MatCreateShell(PETSC_COMM_SELF, 15 * data->numCells, 15 * data->numCells, PETSC_DETERMINE, PETSC_DETERMINE, this, &Amat);
+  MatShellSetOperation(Amat, MATOP_MULT, (void(*)(void))matAMult);
+
+  KSP ksp;
+  KSPCreate(PETSC_COMM_SELF, &ksp);
+  KSPSetType(ksp, KSPFGMRES);
+  // KSPSetType(ksp, KSPCG);
+  KSPSetOperators(ksp, Amat, Amat);
+
+  // Solve
+  KSPSolve(ksp, b, x);
+  int numIt;
+  KSPGetIterationNumber(ksp, &numIt);
+  KSPConvergedReason reason;
+  KSPGetConvergedReason(ksp, &reason);
+
+  Vec solution;
+  KSPGetSolution(ksp, &solution);
+  store_vec(&solution, x_dat);
+  KSPDestroy(&ksp);
+  MatDestroy(&Amat);
+  destroy_vec(&b);
+  destroy_vec(&x);
+  destroy_vec(&solution);
 }
 
 void Poisson::rhs(const double *u, double *rhs) {

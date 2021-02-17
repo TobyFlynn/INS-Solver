@@ -3,6 +3,8 @@
 
 #include "op_seq.h"
 #include "ins_data.h"
+#include "petscvec.h"
+#include "petscksp.h"
 
 extern double ones[15];
 extern double r[15];
@@ -19,12 +21,18 @@ class Poisson {
 public:
   Poisson(INSData *nsData);
   ~Poisson();
+
+  void rhs(const double *u, double *rhs);
+  void solve(op_dat b_dat, op_dat x_dat);
   // OP2 Dats
   op_dat pTau, pExRHS[2], pU, pDu, pFluxXu, pFluxYu, pDuDx, pDuDy, pFluxQ, pDivQ, pRHS;
 private:
-  void rhs(const double *u, double *rhs);
   void copy_u(const double *u);
   void copy_rhs(double *rhs);
+  void create_vec(Vec *v);
+  void destroy_vec(Vec *v);
+  void load_vec(Vec *v, op_dat v_dat);
+  void store_vec(Vec *v, op_dat v_dat);
   INSData *data;
   // Pointers to private memory
   double *pTau_data;
@@ -39,5 +47,7 @@ private:
   double *pDivQ_data;
   double *pRHS_data;
 };
+
+PetscErrorCode matAMult(Mat A, Vec x, Vec y);
 
 #endif
