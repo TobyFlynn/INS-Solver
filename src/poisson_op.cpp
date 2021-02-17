@@ -84,7 +84,7 @@ Poisson::~Poisson() {
 
 void Poisson::rhs(const double *u, double *rhs) {
   // Copy u to OP2 dat (different depending on whether CPU or GPU)
-  // poisson_copy_u(u);
+  copy_u(u);
 
   op_par_loop(poisson_rhs_faces,"poisson_rhs_faces",data->edges,
               op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
@@ -161,5 +161,5 @@ void Poisson::rhs(const double *u, double *rhs) {
               op_arg_dat(pRHS,-1,OP_ID,15,"double",OP_RW));
 
   // Different depending on whether CPU or GPU
-  // poisson_copy_rhs(rhs);
+  copy_rhs(rhs);
 }

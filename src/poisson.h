@@ -23,6 +23,8 @@ public:
   op_dat pTau, pExRHS[2], pU, pDu, pFluxXu, pFluxYu, pDuDx, pDuDy, pFluxQ, pDivQ, pRHS;
 private:
   void rhs(const double *u, double *rhs);
+  void copy_u(const double *u);
+  void copy_rhs(double *rhs);
   INSData *data;
   // Pointers to private memory
   double *pTau_data;
