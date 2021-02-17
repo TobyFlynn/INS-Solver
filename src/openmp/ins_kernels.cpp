@@ -24,9 +24,6 @@ extern int FMASK[15];
 // user kernel files
 #include "init_grid_kernel.cpp"
 #include "set_ic_kernel.cpp"
-#include "div_kernel.cpp"
-#include "curl_kernel.cpp"
-#include "grad_kernel.cpp"
 #include "advection_flux_kernel.cpp"
 #include "advection_faces_kernel.cpp"
 #include "advection_bc_kernel.cpp"
@@ -43,3 +40,6 @@ extern int FMASK[15];
 #include "poisson_rhs_qbc_kernel.cpp"
 #include "poisson_rhs_fluxq_kernel.cpp"
 #include "poisson_rhs_J_kernel.cpp"
+#include "div_kernel.cpp"
+#include "curl_kernel.cpp"
+#include "grad_kernel.cpp"

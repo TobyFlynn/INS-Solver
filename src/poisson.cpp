@@ -1,5 +1,7 @@
 #include "poisson.h"
 
+#include "operators.h"
+
 #include "kernels/setup_poisson.h"
 #include "kernels/set_tau.h"
 #include "kernels/set_tau_bc.h"
@@ -102,7 +104,7 @@ void Poisson::rhs(const double *u, double *rhs) {
               op_arg_dat(pFluxXu, -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(pFluxYu, -1, OP_ID, 15, "double", OP_WRITE));
 
-  // grad(data, pU, pDuDx, pDuDy);
+  grad(data, pU, pDuDx, pDuDy);
 
   // qx and qy stored in pDuDx and pDuDy
   // poisson_rhs_blas1(data, this);
@@ -145,7 +147,7 @@ void Poisson::rhs(const double *u, double *rhs) {
               op_arg_dat(pExRHS[1], -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(pFluxQ, -1, OP_ID, 15, "double", OP_WRITE));
 
-  // div(data, pDuDx, pDuDy, pDivQ);
+  div(data, pDuDx, pDuDy, pDivQ);
 
   // poisson_rhs_blas2(data);
 

@@ -22,9 +22,6 @@ int size, char *dat, char const *name){}
 // user kernel files
 #include "init_grid_acckernel.c"
 #include "set_ic_acckernel.c"
-#include "div_acckernel.c"
-#include "curl_acckernel.c"
-#include "grad_acckernel.c"
 #include "advection_flux_acckernel.c"
 #include "advection_faces_acckernel.c"
 #include "advection_bc_acckernel.c"
@@ -41,3 +38,6 @@ int size, char *dat, char const *name){}
 #include "poisson_rhs_qbc_acckernel.c"
 #include "poisson_rhs_fluxq_acckernel.c"
 #include "poisson_rhs_J_acckernel.c"
+#include "div_acckernel.c"
+#include "curl_acckernel.c"
+#include "grad_acckernel.c"

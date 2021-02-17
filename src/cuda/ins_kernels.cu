@@ -74,9 +74,6 @@ int size, char *dat, char const *name){
 //user kernel files
 #include "init_grid_kernel.cu"
 #include "set_ic_kernel.cu"
-#include "div_kernel.cu"
-#include "curl_kernel.cu"
-#include "grad_kernel.cu"
 #include "advection_flux_kernel.cu"
 #include "advection_faces_kernel.cu"
 #include "advection_bc_kernel.cu"
@@ -93,3 +90,6 @@ int size, char *dat, char const *name){
 #include "poisson_rhs_qbc_kernel.cu"
 #include "poisson_rhs_fluxq_kernel.cu"
 #include "poisson_rhs_J_kernel.cu"
+#include "div_kernel.cu"
+#include "curl_kernel.cu"
+#include "grad_kernel.cu"
