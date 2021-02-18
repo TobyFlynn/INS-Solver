@@ -74,10 +74,10 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(7);
+  op_timing_realloc(8);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[7].name      = name;
-  OP_kernels[7].count    += 1;
+  OP_kernels[8].name      = name;
+  OP_kernels[8].count    += 1;
 
   int  ninds   = 7;
   int  inds[9] = {-1,-1,0,1,2,3,4,5,6};
@@ -87,8 +87,8 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_7
-    int part_size = OP_PART_SIZE_7;
+  #ifdef OP_PART_SIZE_8
+    int part_size = OP_PART_SIZE_8;
   #else
     int part_size = OP_part_size;
   #endif
@@ -147,8 +147,8 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
       }
 
     }
-    OP_kernels[7].transfer  += Plan->transfer;
-    OP_kernels[7].transfer2 += Plan->transfer2;
+    OP_kernels[8].transfer  += Plan->transfer;
+    OP_kernels[8].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -159,5 +159,5 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[7].time     += wall_t2 - wall_t1;
+  OP_kernels[8].time     += wall_t2 - wall_t1;
 }

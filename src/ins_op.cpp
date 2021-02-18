@@ -41,6 +41,11 @@ void op_par_loop_set_ic(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_calc_dt(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg );
+
 void op_par_loop_advection_flux(char const *, op_set,
   op_arg,
   op_arg,
@@ -167,6 +172,7 @@ void op_par_loop_viscosity_bc(char const *, op_set,
 // Kernels
 #include "kernels/init_grid.h"
 #include "kernels/set_ic.h"
+#include "kernels/calc_dt.h"
 
 #include "kernels/advection_flux.h"
 #include "kernels/advection_faces.h"
@@ -299,19 +305,38 @@ int main(int argc, char **argv) {
 
   Poisson *poisson = new Poisson(data);
 
-  // TODO
-  double a0 = 1.0;
-  double a1 = 1.0;
-  double b0 = 1.0;
-  double b1 = 1.0;
-  double g0 = 1.0;
-  double dt = 1.0;
-  int currentIter = 0;
-  advection(data, currentIter % 2, a0, a1, b0, b1, g0, dt);
-  pressure(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
-  viscosity(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
+  double dt = numeric_limits<double>::max();
+  op_par_loop_calc_dt("calc_dt",data->cells,
+              op_arg_dat(data->nodeX,-1,OP_ID,3,"double",OP_READ),
+              op_arg_dat(data->nodeY,-1,OP_ID,3,"double",OP_READ),
+              op_arg_gbl(&dt,1,"double",OP_MIN));
+  dt = dt / 25.0;
+  cout << "dt: " << dt << endl;
 
-  currentIter++;
+  double a0 = 1.0;
+  double a1 = 0.0;
+  double b0 = 1.0;
+  double b1 = 0.0;
+  double g0 = 1.0;
+  int currentIter = 0;
+  double time = 0.0;
+  for(int i = 0; i < iter; i++) {
+    if(i == 1) {
+      g0 = 1.5;
+      a0 = 2.0;
+      a1 = -0.5;
+      b0 = 2.0;
+      b1 = -1.0;
+    }
+    advection(data, currentIter % 2, a0, a1, b0, b1, g0, dt);
+    pressure(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
+    viscosity(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
+
+    currentIter++;
+    time += dt;
+  }
+
+  cout << "Final time: " << time << endl;
 
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));

@@ -5,23 +5,23 @@
 //user function
 //user function
 
-void setup_poisson_omp4_kernel(
+void calc_dt_omp4_kernel(
   double *data0,
   int dat0size,
   double *data1,
   int dat1size,
-  double *data2,
-  int dat2size,
+  double *arg2,
   int count,
   int num_teams,
   int nthread);
 
 // host stub function
-void op_par_loop_setup_poisson(char const *name, op_set set,
+void op_par_loop_calc_dt(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2){
 
+  double*arg2h = (double *)arg2.data;
   int nargs = 3;
   op_arg args[3];
 
@@ -31,29 +31,30 @@ void op_par_loop_setup_poisson(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(13);
+  op_timing_realloc(2);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[13].name      = name;
-  OP_kernels[13].count    += 1;
+  OP_kernels[2].name      = name;
+  OP_kernels[2].count    += 1;
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  setup_poisson");
+    printf(" kernel routine w/o indirection:  calc_dt");
   }
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_13
-    int part_size = OP_PART_SIZE_13;
+  #ifdef OP_PART_SIZE_2
+    int part_size = OP_PART_SIZE_2;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_13
-    int nthread = OP_BLOCK_SIZE_13;
+  #ifdef OP_BLOCK_SIZE_2
+    int nthread = OP_BLOCK_SIZE_2;
   #else
     int nthread = OP_block_size;
   #endif
 
+  double arg2_l = arg2h[0];
 
   if (set_size >0) {
 
@@ -63,15 +64,12 @@ void op_par_loop_setup_poisson(char const *name, op_set set,
     int dat0size = getSetSizeFromOpArg(&arg0) * arg0.dat->dim;
     double* data1 = (double*)arg1.data_d;
     int dat1size = getSetSizeFromOpArg(&arg1) * arg1.dat->dim;
-    double* data2 = (double*)arg2.data_d;
-    int dat2size = getSetSizeFromOpArg(&arg2) * arg2.dat->dim;
-    setup_poisson_omp4_kernel(
+    calc_dt_omp4_kernel(
       data0,
       dat0size,
       data1,
       dat1size,
-      data2,
-      dat2size,
+      &arg2_l,
       set->size,
       part_size!=0?(set->size-1)/part_size+1:(set->size-1)/nthread,
       nthread);
@@ -79,13 +77,14 @@ void op_par_loop_setup_poisson(char const *name, op_set set,
   }
 
   // combine reduction data
+  arg2h[0]  = MIN(arg2h[0],arg2_l);
+  op_mpi_reduce_double(&arg2,arg2h);
   op_mpi_set_dirtybit_cuda(nargs, args);
 
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[13].time     += wall_t2 - wall_t1;
-  OP_kernels[13].transfer += (float)set->size * arg0.size * 2.0f;
-  OP_kernels[13].transfer += (float)set->size * arg1.size * 2.0f;
-  OP_kernels[13].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[2].time     += wall_t2 - wall_t1;
+  OP_kernels[2].transfer += (float)set->size * arg0.size;
+  OP_kernels[2].transfer += (float)set->size * arg1.size;
 }

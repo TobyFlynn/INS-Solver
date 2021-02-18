@@ -24,6 +24,7 @@ extern int FMASK[15];
 // user kernel files
 #include "init_grid_kernel.cpp"
 #include "set_ic_kernel.cpp"
+#include "calc_dt_kernel.cpp"
 #include "advection_flux_kernel.cpp"
 #include "advection_faces_kernel.cpp"
 #include "advection_bc_kernel.cpp"
