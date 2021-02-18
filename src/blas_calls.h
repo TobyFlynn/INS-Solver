@@ -14,6 +14,7 @@ extern double Drw[15 * 15];
 extern double Dsw[15 * 15];
 extern double LIFT[15 * 15];
 extern double MASS[15 * 15];
+extern double visMat[15 * 15];
 
 void init_grid_blas(INSData *nsData);
 
@@ -24,6 +25,8 @@ void grad_blas(INSData *nsData, op_dat u);
 void advection_lift_blas(INSData *nsData, int ind);
 
 void pressure_rhs_blas(INSData *nsData, int ind);
+
+void viscosity_rhs_blas(INSData *nsData);
 
 void poisson_rhs_blas1(INSData *nsData, Poisson *pData);
 

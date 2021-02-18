@@ -47,3 +47,7 @@ extern int FMASK[15];
 #include "div_kernel.cpp"
 #include "curl_kernel.cpp"
 #include "grad_kernel.cpp"
+#include "poisson_test_init_kernel.cpp"
+#include "poisson_test_bc_kernel.cpp"
+#include "poisson_test_set_rhs_kernel.cpp"
+#include "poisson_test_error_kernel.cpp"

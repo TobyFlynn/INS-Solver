@@ -43,3 +43,7 @@ extern int FMASK[15];
 #include "div_seqkernel.cpp"
 #include "curl_seqkernel.cpp"
 #include "grad_seqkernel.cpp"
+#include "poisson_test_init_seqkernel.cpp"
+#include "poisson_test_bc_seqkernel.cpp"
+#include "poisson_test_set_rhs_seqkernel.cpp"
+#include "poisson_test_error_seqkernel.cpp"

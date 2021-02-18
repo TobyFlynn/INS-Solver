@@ -1,13 +1,13 @@
 // Target element size of outer boundary
-lc2 = 1 / 8;
+lc2 = 3.141592653589793238463 / 8;
 
 // Bottom left coords
 xL = 0;
 yL = 0;
 
 // Top right coords
-xR = 1;
-yR = 1;
+xR = 3.141592653589793238463;
+yR = 3.141592653589793238463;
 
 // Outline points
 p1 = newp; Point(p1) = {xL, yL, 0, lc2};

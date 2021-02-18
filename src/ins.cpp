@@ -68,7 +68,30 @@ int main(int argc, char **argv) {
   // (along with memory associated with them)
   INSData *data = new INSData();
 
-  load_mesh("./naca0012.cgns", data);
+  auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+    if(x1 > -1.0 && x1 < 2.0 && y1 > -1.0 && y1 < 1.0 &&
+       x2 > -1.0 && x2 < 2.0 && y2 > -1.0 && y2 < 1.0) {
+      // Wall boundary
+      return 2;
+    } else if(y1 == y2) {
+      // The top and bottom boundaries (i.e. wall for this app)
+      return 2;
+    } else if(x1 == x2) {
+      if(x1 < 0.0) {
+        // Inflow
+        return 0;
+      } else {
+        // Outflow
+        return 1;
+      }
+    } else {
+      cout << "*** ERROR ***" << endl;
+      cout << "  Unclassified boundary edge" << endl;
+      return -1;
+    }
+  };
+
+  load_mesh("./naca0012.cgns", data, bcNum);
 
   // Initialise OP2
   op_init(argc, argv, 2);
@@ -360,6 +383,9 @@ void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, doubl
   int viscosity_neumann[] = {1, -1};
   poisson->setDirichletBCs(viscosity_dirichlet);
   poisson->setNeumannBCs(viscosity_neumann);
+
+  viscosity_rhs_blas(data);
+
   double factor = g0 / (nu * dt);
   op_par_loop(viscosity_rhs, "viscosity_rhs", data->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
