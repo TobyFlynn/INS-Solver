@@ -25,7 +25,8 @@ __device__ void viscosity_bc_gpu( const int *bedge_type, const int *bedgeNum,
   if(*bedge_type == 0) {
 
     for(int i = 0; i < 5; i++) {
-      vRHS0[exInd + i] += -1e-5;
+      vRHS0[exInd + i] += bc_u_cuda;
+      vRHS0[exInd + i] += bc_v_cuda;
 
 
     }

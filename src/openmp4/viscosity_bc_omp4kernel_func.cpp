@@ -21,7 +21,7 @@ void viscosity_bc_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: FMASK_ompkernel[:15])\
+    map(to: bc_u_ompkernel, bc_v_ompkernel, FMASK_ompkernel[:15])\
     map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data3[0:dat3size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -57,7 +57,8 @@ void viscosity_bc_omp4_kernel(
     if(*bedge_type == 0) {
 
       for(int i = 0; i < 5; i++) {
-        vRHS0[exInd + i] += -1e-5;
+        vRHS0[exInd + i] += bc_u_ompkernel;
+        vRHS0[exInd + i] += bc_v_ompkernel;
 
 
       }

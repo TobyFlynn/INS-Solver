@@ -100,7 +100,8 @@ int main(int argc, char **argv) {
   //   bc_u = sqrt(gam * bc_p / bc_r) * bc_mach;
   //   bc_v = 0.0;
   // }
-  bc_u = 0.0;
+  // bc_u = 0.0;
+  bc_u = 1e-6;
   bc_v = 0.0;
 
   cout << "gam: " << gam << endl;
@@ -218,8 +219,8 @@ int main(int argc, char **argv) {
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  op_fetch_data(data->Q[currentIter][0], sol_q0);
-  op_fetch_data(data->Q[currentIter][1], sol_q1);
+  op_fetch_data(data->Q[currentIter % 2][0], sol_q0);
+  op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
   save_solution("./naca0012.cgns", op_get_size(data->nodes), op_get_size(data->cells),
                 sol_q0, sol_q1, data->cgnsCells);
 
@@ -302,7 +303,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
 
 void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
               double b1, double g0, double dt) {
-  int pressure_dirichlet[] = {1, -1};
+  int pressure_dirichlet[] = {-1, -1};
   int pressure_neumann[] = {0, 2};
   poisson->setDirichletBCs(pressure_dirichlet);
   poisson->setNeumannBCs(pressure_neumann);
