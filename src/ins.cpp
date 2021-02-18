@@ -21,17 +21,19 @@
 // Kernels
 #include "kernels/init_grid.h"
 #include "kernels/set_ic.h"
+
 #include "kernels/advection_flux.h"
-#include "kernels/div.h"
-#include "kernels/curl.h"
-#include "kernels/grad.h"
 #include "kernels/advection_faces.h"
 #include "kernels/advection_bc.h"
 #include "kernels/advection_numerical_flux.h"
 #include "kernels/advection_intermediate_vel.h"
+
 #include "kernels/pressure_bc.h"
 #include "kernels/pressure_rhs.h"
 #include "kernels/pressure_update_vel.h"
+
+#include "kernels/viscosity_rhs.h"
+#include "kernels/viscosity_bc.h"
 
 using namespace std;
 
@@ -49,6 +51,9 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
 
 void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
               double b1, double g0, double dt);
+
+void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
+               double b1, double g0, double dt);
 
 int main(int argc, char **argv) {
   char help[] = "TODO";
@@ -158,6 +163,7 @@ int main(int argc, char **argv) {
   int currentIter = 0;
   advection(data, currentIter % 2, a0, a1, b0, b1, g0, dt);
   pressure(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
+  viscosity(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
 
   // currentIter++;
 
@@ -296,4 +302,24 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->QT[1], -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_WRITE));
+}
+
+void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
+               double b1, double g0, double dt) {
+  double factor = g0 / (nu * dt);
+  op_par_loop(viscosity_rhs, "viscosity_rhs", data->cells,
+              op_arg_gbl(&factor, 1, "double", OP_READ),
+              op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->visRHS[0], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->visRHS[1], -1, OP_ID, 15, "double", OP_WRITE));
+
+  op_par_loop(viscosity_bc, "viscosity_bc", data->bedges,
+              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->visRHS[0], 0, data->bedge2cells, 15, "double", OP_INC),
+              op_arg_dat(data->visRHS[1], 0, data->bedge2cells, 15, "double", OP_INC));
+
+  poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0]);
+  poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1]);
 }

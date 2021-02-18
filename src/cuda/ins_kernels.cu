@@ -82,6 +82,8 @@ int size, char *dat, char const *name){
 #include "pressure_bc_kernel.cu"
 #include "pressure_rhs_kernel.cu"
 #include "pressure_update_vel_kernel.cu"
+#include "viscosity_rhs_kernel.cu"
+#include "viscosity_bc_kernel.cu"
 #include "setup_poisson_kernel.cu"
 #include "set_tau_kernel.cu"
 #include "set_tau_bc_kernel.cu"

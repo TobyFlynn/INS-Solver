@@ -28,6 +28,8 @@ extern int FMASK[15];
 #include "pressure_bc_seqkernel.cpp"
 #include "pressure_rhs_seqkernel.cpp"
 #include "pressure_update_vel_seqkernel.cpp"
+#include "viscosity_rhs_seqkernel.cpp"
+#include "viscosity_bc_seqkernel.cpp"
 #include "setup_poisson_seqkernel.cpp"
 #include "set_tau_seqkernel.cpp"
 #include "set_tau_bc_seqkernel.cpp"

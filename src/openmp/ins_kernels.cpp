@@ -32,6 +32,8 @@ extern int FMASK[15];
 #include "pressure_bc_kernel.cpp"
 #include "pressure_rhs_kernel.cpp"
 #include "pressure_update_vel_kernel.cpp"
+#include "viscosity_rhs_kernel.cpp"
+#include "viscosity_bc_kernel.cpp"
 #include "setup_poisson_kernel.cpp"
 #include "set_tau_kernel.cpp"
 #include "set_tau_bc_kernel.cpp"
