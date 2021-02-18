@@ -311,7 +311,7 @@ int main(int argc, char **argv) {
   pressure(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
   viscosity(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
 
-  // currentIter++;
+  currentIter++;
 
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));

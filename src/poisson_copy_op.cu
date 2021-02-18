@@ -37,7 +37,7 @@ void Poisson::load_vec(Vec *v, op_dat v_dat) {
     op_arg_dat(v_dat, -1, OP_ID, 15, "double", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(data->cells, 1, vec_petsc_args);
-  cudaMemcpy(v_ptr, (double *)v_dat->data, 15 * data->numCells * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(v_ptr, (double *)v_dat->data_d, 15 * data->numCells * sizeof(double), cudaMemcpyDeviceToDevice);
   op_mpi_set_dirtybit_cuda(1, vec_petsc_args);
   VecCUDARestoreArray(*v, &v_ptr);
 }
@@ -49,7 +49,7 @@ void Poisson::store_vec(Vec *v, op_dat v_dat) {
     op_arg_dat(v_dat, -1, OP_ID, 15, "double", OP_WRITE)
   };
   op_mpi_halo_exchanges_cuda(data->cells, 1, vec_petsc_args);
-  cudaMemcpy((double *)v_dat->data, v_ptr, 15 * data->numCells * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy((double *)v_dat->data_d, v_ptr, 15 * data->numCells * sizeof(double), cudaMemcpyDeviceToDevice);
   op_mpi_set_dirtybit_cuda(1, vec_petsc_args);
   VecCUDARestoreArrayRead(*v, &v_ptr);
 }

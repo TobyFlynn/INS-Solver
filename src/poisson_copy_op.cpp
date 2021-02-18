@@ -15,7 +15,7 @@ void Poisson::copy_u(const double *u) {
 
 void Poisson::copy_rhs(double *rhs) {
   op_arg rhs_copy_args[] = {
-    op_arg_dat(data->pRHS, -1, OP_ID, 15, "double", OP_READ)
+    op_arg_dat(pRHS, -1, OP_ID, 15, "double", OP_READ)
   };
   op_mpi_halo_exchanges(data->cells, 1, rhs_copy_args);
   memcpy(rhs, pRHS->data, data->numCells * 15 * sizeof(double));
