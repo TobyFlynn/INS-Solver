@@ -27,7 +27,8 @@ inline void viscosity_bc_openacc( const int *bedge_type, const int *bedgeNum,
   if(*bedge_type == 0) {
 
     for(int i = 0; i < 5; i++) {
-      vRHS0[exInd + i] += 1.0;
+      vRHS0[exInd + i] += -1e-5;
+
 
     }
   }

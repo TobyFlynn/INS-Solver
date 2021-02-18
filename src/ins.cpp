@@ -171,6 +171,13 @@ int main(int argc, char **argv) {
   double g0 = 1.0;
   int currentIter = 0;
   double time = 0.0;
+
+  double cpu_1, wall_1, cpu_2, wall_2, cpu_loop_1, wall_loop_1, cpu_loop_2, wall_loop_2;
+  double a_time = 0.0;
+  double p_time = 0.0;
+  double v_time = 0.0;
+  op_timers(&cpu_1, &wall_1);
+
   for(int i = 0; i < iter; i++) {
     if(i == 1) {
       g0 = 1.5;
@@ -179,15 +186,34 @@ int main(int argc, char **argv) {
       b0 = 2.0;
       b1 = -1.0;
     }
+    op_timers(&cpu_loop_1, &wall_loop_1);
     advection(data, currentIter % 2, a0, a1, b0, b1, g0, dt);
+    op_timers(&cpu_loop_2, &wall_loop_2);
+    a_time += wall_loop_2 - wall_loop_1;
+
+    op_timers(&cpu_loop_1, &wall_loop_1);
     pressure(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
+    op_timers(&cpu_loop_2, &wall_loop_2);
+    p_time += wall_loop_2 - wall_loop_1;
+
+    op_timers(&cpu_loop_1, &wall_loop_1);
     viscosity(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
+    op_timers(&cpu_loop_2, &wall_loop_2);
+    v_time += wall_loop_2 - wall_loop_1;
 
     currentIter++;
     time += dt;
   }
+  op_timers(&cpu_2, &wall_2);
 
   cout << "Final time: " << time << endl;
+
+  cout << "Wall time: " << wall_2 - wall_1 << endl;
+  cout << "Time to simulate 1 second: " << (wall_2 - wall_1) / time << endl << endl;
+
+  cout << "Time in advection solve: " << a_time << endl;
+  cout << "Time in pressure solve: " << p_time << endl;
+  cout << "Time in viscosity solve: " << v_time << endl;
 
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));

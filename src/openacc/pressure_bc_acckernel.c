@@ -40,10 +40,11 @@ inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
   if(*bedge_type == 0) {
 
 
-    double bcdUndt = -1.0;
-    for(int i = 0; i < 5; i++) {
-      dPdN[exInd + i] -= bcdUndt;
-    }
+
+
+
+
+
   }
 }
 

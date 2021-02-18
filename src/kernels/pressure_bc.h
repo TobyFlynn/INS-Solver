@@ -33,9 +33,10 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
   if(*bedge_type == 0) {
     // Inflow
     // TODO: Workout what this value should be for our test app
-    double bcdUndt = -1.0;
-    for(int i = 0; i < 5; i++) {
-      dPdN[exInd + i] -= bcdUndt;
-    }
+    // double bcdUndt = -1.0;
+    // double bcdUndt = -1e-5;
+    // for(int i = 0; i < 5; i++) {
+    //   dPdN[exInd + i] -= bcdUndt;
+    // }
   }
 }
