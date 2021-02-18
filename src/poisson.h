@@ -24,6 +24,9 @@ public:
 
   void rhs(const double *u, double *rhs);
   void solve(op_dat b_dat, op_dat x_dat);
+
+  void setDirichletBCs(int *d);
+  void setNeumannBCs(int *n);
   // OP2 Dats
   op_dat pTau, pExRHS[2], pU, pDu, pFluxXu, pFluxYu, pDuDx, pDuDy, pFluxQ, pDivQ, pRHS;
 private:
@@ -46,6 +49,9 @@ private:
   double *pFluxQ_data;
   double *pDivQ_data;
   double *pRHS_data;
+
+  int *dirichlet;
+  int *neumann;
 };
 
 PetscErrorCode matAMult(Mat A, Vec x, Vec y);

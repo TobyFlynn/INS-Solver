@@ -138,6 +138,7 @@ void Poisson::rhs(const double *u, double *rhs) {
   op_par_loop(poisson_rhs_bc,"poisson_rhs_bc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
+              op_arg_gbl(dirichlet,2,"int",OP_READ),
               op_arg_dat(pU,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(pExRHS[0],0,data->bedge2cells,15,"double",OP_INC));
 
@@ -173,12 +174,14 @@ void Poisson::rhs(const double *u, double *rhs) {
   op_par_loop(poisson_rhs_qbc,"poisson_rhs_qbc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
+              op_arg_gbl(neumann,2,"int",OP_READ),
               op_arg_dat(pDuDx,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(pExRHS[0],0,data->bedge2cells,15,"double",OP_INC));
 
   op_par_loop(poisson_rhs_qbc,"poisson_rhs_qbc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
+              op_arg_gbl(neumann,2,"int",OP_READ),
               op_arg_dat(pDuDy,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(pExRHS[1],0,data->bedge2cells,15,"double",OP_INC));
 
@@ -204,4 +207,12 @@ void Poisson::rhs(const double *u, double *rhs) {
 
   // Different depending on whether CPU or GPU
   copy_rhs(rhs);
+}
+
+void Poisson::setDirichletBCs(int *d) {
+  dirichlet = d;
+}
+
+void Poisson::setNeumannBCs(int *n) {
+  neumann = n;
 }

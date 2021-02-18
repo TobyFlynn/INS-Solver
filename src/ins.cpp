@@ -257,6 +257,10 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
 
 void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
               double b1, double g0, double dt) {
+  int pressure_dirichlet[] = {1, -1};
+  int pressure_neumann[] = {0, 2};
+  poisson->setDirichletBCs(pressure_dirichlet);
+  poisson->setNeumannBCs(pressure_neumann);
   div(data, data->QT[0], data->QT[1], data->divVelT);
   curl(data, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
   grad(data, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
@@ -306,6 +310,10 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
 
 void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt) {
+  int viscosity_dirichlet[] = {0, 2};
+  int viscosity_neumann[] = {1, -1};
+  poisson->setDirichletBCs(viscosity_dirichlet);
+  poisson->setNeumannBCs(viscosity_neumann);
   double factor = g0 / (nu * dt);
   op_par_loop(viscosity_rhs, "viscosity_rhs", data->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
