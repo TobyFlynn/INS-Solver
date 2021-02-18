@@ -4,6 +4,6 @@
 #include <string>
 
 void save_solution(std::string filename, int numPts, int numCells, double *q0,
-                   double *q1, double *q2, int *cellMap);
+                   double *q1, int *cellMap);
 
 #endif

@@ -241,16 +241,18 @@ int main(int argc, char **argv) {
   gam = 1.4;
   mu = 1e-2;
   nu = 1e-3;
-  bc_mach = 0.4;
-  bc_p = 1.0;
-  bc_r = 1.0;
-  if(bc_alpha != 0.0) {
-    bc_u = sin((M_PI/2.0) - (bc_alpha * M_PI / 180.0)) * sqrt(gam * bc_p / bc_r) * bc_mach;
-    bc_v = cos((M_PI/2.0) - (bc_alpha * M_PI / 180.0)) * sqrt(gam * bc_p / bc_r) * bc_mach;
-  } else {
-    bc_u = sqrt(gam * bc_p / bc_r) * bc_mach;
-    bc_v = 0.0;
-  }
+  // bc_mach = 0.4;
+  // bc_p = 1.0;
+  // bc_r = 1.0;
+  // if(bc_alpha != 0.0) {
+  //   bc_u = sin((M_PI/2.0) - (bc_alpha * M_PI / 180.0)) * sqrt(gam * bc_p / bc_r) * bc_mach;
+  //   bc_v = cos((M_PI/2.0) - (bc_alpha * M_PI / 180.0)) * sqrt(gam * bc_p / bc_r) * bc_mach;
+  // } else {
+  //   bc_u = sqrt(gam * bc_p / bc_r) * bc_mach;
+  //   bc_v = 0.0;
+  // }
+  bc_u = 0.0;
+  bc_v = 0.0;
 
   cout << "gam: " << gam << endl;
   cout << "mu: " << mu << endl;
@@ -341,16 +343,13 @@ int main(int argc, char **argv) {
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *sol_q2 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(data->Q[currentIter][0], sol_q0);
   op_fetch_data(data->Q[currentIter][1], sol_q1);
-  op_fetch_data(data->Q[currentIter][2], sol_q2);
   save_solution("./naca0012.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-                sol_q0, sol_q1, sol_q2, data->cgnsCells);
+                sol_q0, sol_q1, data->cgnsCells);
 
   free(sol_q0);
   free(sol_q1);
-  free(sol_q2);
 
   // Clean up OP2
   op_exit();
