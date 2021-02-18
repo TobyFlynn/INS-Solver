@@ -7,6 +7,7 @@ Dependencies:
 - VTK
 - cuBLAS
 - OpenBLAS
+- PETSc
 
 Directory structure:
 - The 'src' directory contains the code for the Incompressible Navier-Stokes solver.
@@ -38,9 +39,9 @@ Running Airfoil:
 ```
 cd build/src
 cp ../tools/naca0012.cgns .
-./ins_cuda -iter 1000 -alpha 0.0
-./ins_openmp -iter 1000 -alpha 0.0
-./ins_seq -iter 1000 -alpha 0.0
+./ins_cuda -iter 10 -alpha 0.0
+./ins_openmp -iter 10 -alpha 0.0
+./ins_seq -iter 10 -alpha 0.0
 ```
 
 You can then use Paraview to view the result stored in `naca0012.cgns`.
