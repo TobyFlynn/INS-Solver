@@ -5,11 +5,11 @@ list(APPEND KERNEL_HEADERS kernels/pressure_bc.h kernels/pressure_rhs.h kernels/
 list(APPEND KERNEL_HEADERS kernels/viscosity_rhs.h kernels/viscosity_bc.h)
 list(APPEND KERNEL_HEADERS kernels/setup_poisson.h kernels/set_tau.h kernels/set_tau_bc.h kernels/poisson_rhs_faces.h kernels/poisson_rhs_bc.h kernels/poisson_rhs_du.h kernels/poisson_rhs_qbc.h kernels/poisson_rhs_fluxq.h kernels/poisson_rhs_J.h)
 list(APPEND KERNEL_HEADERS kernels/poisson_test_init.h kernels/poisson_test_bc.h kernels/poisson_test_set_rhs.h kernels/poisson_test_error.h)
-set(OPENBLAS_SRC openBLAS_op/init_grid_op.cpp openBLAS_op/div_op.cpp openBLAS_op/grad_op.cpp openBLAS_op/advection_lift_op.cpp openBLAS_op/pressure_rhs_op.cpp openBLAS_op/poisson_rhs1_op.cpp openBLAS_op/poisson_rhs2_op.cpp openBLAS_op/viscosity_rhs_op.cpp)
-set(CUBLAS_SRC cuBLAS_op/init_grid_op.cu cuBLAS_op/div_op.cu cuBLAS_op/grad_op.cu cuBLAS_op/advection_lift_op.cu cuBLAS_op/pressure_rhs_op.cu cuBLAS_op/poisson_rhs1_op.cu cuBLAS_op/poisson_rhs2_op.cu cuBLAS_op/viscosity_rhs_op.cu)
+set(OPENBLAS_SRC openBLAS_op/init_grid_op.cpp openBLAS_op/div_op.cpp openBLAS_op/grad_op.cpp openBLAS_op/advection_lift_op.cpp openBLAS_op/pressure_rhs_op.cpp openBLAS_op/poisson_rhs1_op.cpp openBLAS_op/poisson_rhs2_op.cpp openBLAS_op/viscosity_rhs_op.cpp openBLAS_op/poisson_test_rhs_op.cpp)
+set(CUBLAS_SRC cuBLAS_op/init_grid_op.cu cuBLAS_op/div_op.cu cuBLAS_op/grad_op.cu cuBLAS_op/advection_lift_op.cu cuBLAS_op/pressure_rhs_op.cu cuBLAS_op/poisson_rhs1_op.cu cuBLAS_op/poisson_rhs2_op.cu cuBLAS_op/viscosity_rhs_op.cu cuBLAS_op/poisson_test_rhs_op.cu)
 
-set(CPU_SRC operators_op.cpp poisson_op.cpp poisson_copy_op.cpp ins_data.cpp save_solution.cpp)
-set(GPU_SRC operators_op.cpp poisson_op.cpp poisson_copy_op.cu ins_data.cpp save_solution.cpp)
+set(CPU_SRC operators_op.cpp poisson_op.cpp poisson_copy_op.cpp ins_data_op.cpp save_solution.cpp)
+set(GPU_SRC operators_op.cpp poisson_op.cpp poisson_copy_op.cu ins_data_op.cpp save_solution.cpp)
 
 op2_application(ins_seq LIBS op2_seq op2_hdf5 SOURCES ins_op.cpp ${CPU_SRC} ${OPENBLAS_SRC} seq/ins_seqkernels.cpp ${KERNEL_HEADERS})
 

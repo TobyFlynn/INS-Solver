@@ -3,6 +3,16 @@
 
 #include "op_seq.h"
 
+extern double gam;
+extern double mu;
+extern double nu;
+extern double bc_mach;
+extern double bc_alpha;
+extern double bc_p;
+extern double bc_u;
+extern double bc_v;
+extern int FMASK[15];
+
 class INSData {
 public:
   INSData();

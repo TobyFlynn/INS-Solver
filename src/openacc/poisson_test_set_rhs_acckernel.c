@@ -5,23 +5,29 @@
 //user function
 //user function
 //#pragma acc routine
-inline void poisson_test_set_rhs_openacc( const double *ex, double *rhs) {
+inline void poisson_test_set_rhs_openacc( const double *J, const double *ex, double *rhs) {
   for(int i = 0; i < 15; i++) {
     if(ex[i] < 0.0)
       rhs[FMASK[i]] = 0.0;
+  }
+
+  for(int i = 0; i < 15; i++) {
+    rhs[i] *= J[i];
   }
 }
 
 // host stub function
 void op_par_loop_poisson_test_set_rhs(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1){
+  op_arg arg1,
+  op_arg arg2){
 
-  int nargs = 2;
-  op_arg args[2];
+  int nargs = 3;
+  op_arg args[3];
 
   args[0] = arg0;
   args[1] = arg1;
+  args[2] = arg2;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -45,11 +51,13 @@ void op_par_loop_poisson_test_set_rhs(char const *name, op_set set,
 
     double* data0 = (double*)arg0.data_d;
     double* data1 = (double*)arg1.data_d;
-    #pragma acc parallel loop independent deviceptr(data0,data1)
+    double* data2 = (double*)arg2.data_d;
+    #pragma acc parallel loop independent deviceptr(data0,data1,data2)
     for ( int n=0; n<set->size; n++ ){
       poisson_test_set_rhs_openacc(
         &data0[15*n],
-        &data1[15*n]);
+        &data1[15*n],
+        &data2[15*n]);
     }
   }
 
@@ -60,5 +68,6 @@ void op_par_loop_poisson_test_set_rhs(char const *name, op_set set,
   op_timers_core(&cpu_t2, &wall_t2);
   OP_kernels[27].time     += wall_t2 - wall_t1;
   OP_kernels[27].transfer += (float)set->size * arg0.size;
-  OP_kernels[27].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[27].transfer += (float)set->size * arg1.size;
+  OP_kernels[27].transfer += (float)set->size * arg2.size * 2.0f;
 }

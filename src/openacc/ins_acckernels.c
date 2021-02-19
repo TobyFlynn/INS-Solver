@@ -11,7 +11,6 @@ extern double bc_alpha;
 extern double bc_p;
 extern double bc_u;
 extern double bc_v;
-extern double ones[15];
 extern int FMASK[15];
 
 // header

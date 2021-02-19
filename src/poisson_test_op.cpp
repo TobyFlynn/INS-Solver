@@ -43,9 +43,11 @@ void op_par_loop_poisson_test_bc(char const *, op_set,
 
 void op_par_loop_poisson_test_set_rhs(char const *, op_set,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_poisson_test_error(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -161,8 +163,11 @@ int main(int argc, char **argv) {
               op_arg_dat(ex,0,data->bedge2cells,15,"double",OP_INC));
 
   op_par_loop_poisson_test_set_rhs("poisson_test_set_rhs",data->cells,
+              op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(ex,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(rhs,-1,OP_ID,15,"double",OP_RW));
+
+  poisson_test_rhs_blas(data, rhs);
 
   Poisson *poisson = new Poisson(data);
 
@@ -173,11 +178,15 @@ int main(int argc, char **argv) {
 
   poisson->solve(rhs, sol);
 
+  double l2 = 0.0;
   op_par_loop_poisson_test_error("poisson_test_error",data->cells,
               op_arg_dat(data->x,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->y,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(sol,-1,OP_ID,15,"double",OP_READ),
-              op_arg_dat(err,-1,OP_ID,15,"double",OP_WRITE));
+              op_arg_dat(err,-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_gbl(&l2,1,"double",OP_INC));
+
+  cout << "L^2 error: " << l2 << endl;
 
   // Save solution to CGNS file (get it twice just to avoid rewriting save_solution for this test)
   double *sol_ptr = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));

@@ -11,7 +11,6 @@ double bc_alpha_ompkernel;
 double bc_p_ompkernel;
 double bc_u_ompkernel;
 double bc_v_ompkernel;
-double ones_ompkernel[15];
 int FMASK_ompkernel[15];
 
 // header
@@ -43,9 +42,6 @@ void op_decl_const_char(int dim, char const *type,
   } else if(!strcmp(name, "bc_v")) {
     memcpy(&bc_v_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:bc_v_ompkernel)
-  } else if(!strcmp(name, "ones")) {
-    memcpy(ones_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:ones_ompkernel[:15])
   } else if(!strcmp(name, "FMASK")) {
     memcpy(FMASK_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:FMASK_ompkernel[:15])

@@ -14,6 +14,7 @@ void poisson_test_error_omp4_kernel(
   int dat2size,
   double *data3,
   int dat3size,
+  double *arg4,
   int count,
   int num_teams,
   int nthread);
@@ -23,15 +24,18 @@ void op_par_loop_poisson_test_error(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3){
+  op_arg arg3,
+  op_arg arg4){
 
-  int nargs = 4;
-  op_arg args[4];
+  double*arg4h = (double *)arg4.data;
+  int nargs = 5;
+  op_arg args[5];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
   args[3] = arg3;
+  args[4] = arg4;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -58,6 +62,7 @@ void op_par_loop_poisson_test_error(char const *name, op_set set,
     int nthread = OP_block_size;
   #endif
 
+  double arg4_l = arg4h[0];
 
   if (set_size >0) {
 
@@ -80,6 +85,7 @@ void op_par_loop_poisson_test_error(char const *name, op_set set,
       dat2size,
       data3,
       dat3size,
+      &arg4_l,
       set->size,
       part_size!=0?(set->size-1)/part_size+1:(set->size-1)/nthread,
       nthread);
@@ -87,6 +93,8 @@ void op_par_loop_poisson_test_error(char const *name, op_set set,
   }
 
   // combine reduction data
+  arg4h[0] = arg4_l;
+  op_mpi_reduce_double(&arg4,arg4h);
   op_mpi_set_dirtybit_cuda(nargs, args);
 
   if (OP_diags>1) deviceSync();

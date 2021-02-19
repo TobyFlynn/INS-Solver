@@ -18,7 +18,7 @@ inline void poisson_test_bc(const int *bedge_type, const int *bedgeNum, double *
 
   if(*bedge_type == 0) {
     for(int i = 0; i < 5; i++) {
-      ex[i] += -1.0;
+      ex[exInd + i] += -1.0;
     }
   }
 }

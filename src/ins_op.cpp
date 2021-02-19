@@ -285,19 +285,7 @@ int main(int argc, char **argv) {
   cout << "bc_p: " << bc_p << endl;
   cout << "bc_u: " << bc_u << endl;
   cout << "bc_v: " << bc_v << endl;
-
-  // Declare OP2 constants
-  op_decl_const2("gam",1,"double",&gam);
-  op_decl_const2("mu",1,"double",&mu);
-  op_decl_const2("nu",1,"double",&nu);
-  op_decl_const2("bc_mach",1,"double",&bc_mach);
-  op_decl_const2("bc_alpha",1,"double",&bc_alpha);
-  op_decl_const2("bc_p",1,"double",&bc_p);
-  op_decl_const2("bc_u",1,"double",&bc_u);
-  op_decl_const2("bc_v",1,"double",&bc_v);
-  op_decl_const2("ones",15,"double",ones);
-  op_decl_const2("FMASK",15,"int",FMASK);
-
+  
   // Calculate geometric factors
   init_grid_blas(data);
 

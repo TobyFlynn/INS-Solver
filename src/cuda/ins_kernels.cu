@@ -15,7 +15,6 @@ __constant__ double bc_alpha_cuda;
 __constant__ double bc_p_cuda;
 __constant__ double bc_u_cuda;
 __constant__ double bc_v_cuda;
-__constant__ double ones_cuda[15];
 __constant__ int FMASK_cuda[15];
 
 //header
@@ -56,10 +55,6 @@ int size, char *dat, char const *name){
   else
   if (!strcmp(name,"bc_v")) {
     cutilSafeCall(cudaMemcpyToSymbol(bc_v_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"ones")) {
-    cutilSafeCall(cudaMemcpyToSymbol(ones_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"FMASK")) {
