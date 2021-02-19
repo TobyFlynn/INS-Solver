@@ -189,6 +189,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat) {
   KSPSetType(ksp, KSPFGMRES);
   // KSPSetType(ksp, KSPCG);
   KSPSetOperators(ksp, Amat, Amat);
+  KSPSetTolerances(ksp, 1e-14, 1e-50, 1e5, 1e4);
 
   // Solve
   KSPSolve(ksp, b, x);
