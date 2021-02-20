@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
   cout << "bc_p: " << bc_p << endl;
   cout << "bc_u: " << bc_u << endl;
   cout << "bc_v: " << bc_v << endl;
-  
+
   // Calculate geometric factors
   init_grid_blas(data);
 
@@ -314,7 +314,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
 
 void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
               double b1, double g0, double dt) {
-  int pressure_dirichlet[] = {-1, -1};
+  int pressure_dirichlet[] = {1, -1};
   int pressure_neumann[] = {0, 2};
   poisson->setDirichletBCs(pressure_dirichlet);
   poisson->setNeumannBCs(pressure_neumann);
@@ -372,7 +372,7 @@ void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, doubl
   poisson->setDirichletBCs(viscosity_dirichlet);
   poisson->setNeumannBCs(viscosity_neumann);
 
-  viscosity_rhs_blas(data);
+  // viscosity_rhs_blas(data);
 
   double factor = g0 / (nu * dt);
   op_par_loop(viscosity_rhs, "viscosity_rhs", data->cells,
@@ -388,6 +388,6 @@ void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, doubl
               op_arg_dat(data->visRHS[0], 0, data->bedge2cells, 15, "double", OP_INC),
               op_arg_dat(data->visRHS[1], 0, data->bedge2cells, 15, "double", OP_INC));
 
-  poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0]);
-  poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1]);
+  poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
+  poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
 }

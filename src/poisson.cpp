@@ -85,7 +85,9 @@ Poisson::~Poisson() {
   free(pDivQ_data);
 }
 
-void Poisson::solve(op_dat b_dat, op_dat x_dat) {
+void Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
+  massMat = addMass;
+  massFactor = factor;
   Vec b;
   create_vec(&b);
   load_vec(&b, b_dat);
@@ -102,7 +104,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat) {
   KSPSetType(ksp, KSPFGMRES);
   // KSPSetType(ksp, KSPCG);
   KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-14, 1e-50, 1e5, 1e4);
+  // KSPSetTolerances(ksp, 1e-14, 1e-50, 1e5, 1e4);
 
   // Solve
   KSPSolve(ksp, b, x);
@@ -201,6 +203,10 @@ void Poisson::rhs(const double *u, double *rhs) {
   div(data, pDuDx, pDuDy, pDivQ);
 
   poisson_rhs_blas2(data, this);
+
+  if(massMat) {
+    poisson_mass_blas(data, this, massFactor);
+  }
 
   op_par_loop(poisson_rhs_J, "poisson_rhs_J", data->cells,
               op_arg_dat(data->J, -1, OP_ID, 15, "double", OP_READ),
