@@ -65,12 +65,22 @@ int main(int argc, char **argv) {
   map<int,unique_ptr<Edge>> outflowBoundaryEdgeMap;
   map<int,unique_ptr<Edge>> airfoilBoundaryEdgeMap;
 
+  // Copy VTK points
+  vector<double> x(grid->GetNumberOfPoints());
+  vector<double> y(grid->GetNumberOfPoints());
+  for(int i = 0; i < grid->GetNumberOfPoints(); i++) {
+    double coords[3];
+    grid->GetPoint(i, coords);
+    x[i] = coords[0];
+    y[i] = coords[1];
+  }
+
   // Iterate over cells
   vtkSmartPointer<vtkCellIterator> cellIterator = grid->NewCellIterator();
   while(!cellIterator->IsDoneWithTraversal()) {
     // Check that this is a cell (not a line or point)
     // only an issue due to how Gmsh generates the VTK file
-    if(cellIterator->GetNumberOfPoints() == 3) {
+    if(cellIterator->GetNumberOfPoints() == 3 && cellIterator->GetCellType() == VTK_TRIANGLE) {
       vtkSmartPointer<vtkIdList> ids = cellIterator->GetPointIds();
       // Add points to pointMap if it does not already contain the point
       for(int i = 0; i < 3; i++) {
@@ -85,9 +95,6 @@ int main(int argc, char **argv) {
       }
       // Add cell to map
       unique_ptr<Cell> cell = make_unique<Cell>();
-      // cell->points[0] = ids->GetId(0) + 1;
-      // cell->points[1] = ids->GetId(1) + 1;
-      // cell->points[2] = ids->GetId(2) + 1;
       // Convert from clockwise to anticlockwise
       cell->points[0] = ids->GetId(0) + 1;
       cell->points[1] = ids->GetId(2) + 1;
@@ -96,14 +103,6 @@ int main(int argc, char **argv) {
     }
     // Go to next cell
     cellIterator->GoToNextCell();
-  }
-
-  // Collate data
-  vector<double> x;
-  vector<double> y;
-  for(auto const &point : pointMap) {
-    x.push_back(point.second->x);
-    y.push_back(point.second->y);
   }
 
   vector<cgsize_t> elements;
@@ -247,7 +246,7 @@ int main(int argc, char **argv) {
   string zoneName = "Zone1";
   cgsize_t sizes[3];
   // Number of vertices
-  sizes[0] = pointMap.size();
+  sizes[0] = x.size();
   // Number of cells
   sizes[1] = cellMap.size();
   // Number of boundary vertices (zero if elements not sorted)
