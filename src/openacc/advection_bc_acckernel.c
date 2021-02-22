@@ -6,8 +6,8 @@
 //user function
 //#pragma acc routine
 inline void advection_bc_openacc( const int *bedge_type, const int *bedgeNum,
-                        const double *nx, const double *ny, const double *q0,
-                        const double *q1, double *exQ0, double *exQ1) {
+                         const double *t, const double *x, const double *y,
+                         const double *q0, const double *q1, double *exQ0, double *exQ1) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 5;
@@ -27,22 +27,25 @@ inline void advection_bc_openacc( const int *bedge_type, const int *bedgeNum,
 
   if(*bedge_type == 0) {
 
+    const double PI = 3.141592653589793238463;
     for(int i = 0; i < 5; i++) {
-      exQ0[exInd + i] += bc_u;
-      exQ1[exInd + i] += bc_v;
+      int qInd = fmask[i];
+      exQ0[exInd + i] += pow(0.41, -2.0) * sin((PI * *t) / 8.0) * 6.0 * (y[qInd] + 0.2) * (0.21 - y[qInd]);
+
     }
   } else if(*bedge_type == 1) {
 
     for(int i = 0; i < 5; i++) {
-      exQ0[exInd + i] += bc_u;
-      exQ1[exInd + i] += bc_v;
+      int qInd = fmask[i];
+      exQ0[exInd + i] += q0[qInd];
+      exQ1[exInd + i] += q1[qInd];
     }
   } else {
 
     for(int i = 0; i < 5; i++) {
-      int qInd = fmask[i];
-      exQ0[exInd + i] += q0[qInd] - 2 * (nx[exInd + i] * q0[qInd] + ny[exInd + i] * q1[qInd]) * nx[exInd + i];
-      exQ1[exInd + i] += q1[qInd] - 2 * (nx[exInd + i] * q0[qInd] + ny[exInd + i] * q1[qInd]) * ny[exInd + i];
+
+
+
     }
   }
 }
@@ -56,10 +59,12 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7){
+  op_arg arg7,
+  op_arg arg8){
 
-  int nargs = 8;
-  op_arg args[8];
+  double*arg2h = (double *)arg2.data;
+  int nargs = 9;
+  op_arg args[9];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -69,6 +74,7 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   args[5] = arg5;
   args[6] = arg6;
   args[7] = arg7;
+  args[8] = arg8;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -78,7 +84,7 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   OP_kernels[5].count    += 1;
 
   int  ninds   = 6;
-  int  inds[8] = {-1,-1,0,1,2,3,4,5};
+  int  inds[9] = {-1,-1,-1,0,1,2,3,4,5};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: advection_bc\n");
@@ -93,6 +99,7 @@ void op_par_loop_advection_bc(char const *name, op_set set,
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
+  double arg2_l = arg2h[0];
 
   int ncolors = 0;
 
@@ -100,16 +107,16 @@ void op_par_loop_advection_bc(char const *name, op_set set,
 
 
     //Set up typed device pointers for OpenACC
-    int *map2 = arg2.map_data_d;
+    int *map3 = arg3.map_data_d;
 
     int* data0 = (int*)arg0.data_d;
     int* data1 = (int*)arg1.data_d;
-    double *data2 = (double *)arg2.data_d;
     double *data3 = (double *)arg3.data_d;
     double *data4 = (double *)arg4.data_d;
     double *data5 = (double *)arg5.data_d;
     double *data6 = (double *)arg6.data_d;
     double *data7 = (double *)arg7.data_d;
+    double *data8 = (double *)arg8.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -124,22 +131,23 @@ void op_par_loop_advection_bc(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map2,data0,data1,data2,data3,data4,data5,data6,data7)
+      #pragma acc parallel loop independent deviceptr(col_reord,map3,data0,data1,data3,data4,data5,data6,data7,data8)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
-        int map2idx;
-        map2idx = map2[n + set_size1 * 0];
+        int map3idx;
+        map3idx = map3[n + set_size1 * 0];
 
 
         advection_bc_openacc(
           &data0[1 * n],
           &data1[1 * n],
-          &data2[15 * map2idx],
-          &data3[15 * map2idx],
-          &data4[15 * map2idx],
-          &data5[15 * map2idx],
-          &data6[15 * map2idx],
-          &data7[15 * map2idx]);
+          &arg2_l,
+          &data3[15 * map3idx],
+          &data4[15 * map3idx],
+          &data5[15 * map3idx],
+          &data6[15 * map3idx],
+          &data7[15 * map3idx],
+          &data8[15 * map3idx]);
       }
 
     }

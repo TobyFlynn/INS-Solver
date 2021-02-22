@@ -39,6 +39,7 @@ void op_par_loop_set_ic(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_calc_dt(char const *, op_set,
@@ -64,6 +65,7 @@ void op_par_loop_advection_faces(char const *, op_set,
   op_arg );
 
 void op_par_loop_advection_bc(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -111,6 +113,9 @@ void op_par_loop_pressure_bc(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_pressure_rhs(char const *, op_set,
@@ -124,6 +129,16 @@ void op_par_loop_pressure_rhs(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_pressure_bc2(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
+void op_par_loop_pressure_bc3(char const *, op_set,
+  op_arg,
+  op_arg );
+
 void op_par_loop_pressure_update_vel(char const *, op_set,
   op_arg,
   op_arg,
@@ -133,7 +148,21 @@ void op_par_loop_pressure_update_vel(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_viscosity_faces(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
+void op_par_loop_viscosity_set_bc(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
 void op_par_loop_viscosity_rhs(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -181,11 +210,15 @@ void op_par_loop_viscosity_bc(char const *, op_set,
 #include "kernels/advection_intermediate_vel.h"
 
 #include "kernels/pressure_bc.h"
+#include "kernels/pressure_bc2.h"
+#include "kernels/pressure_bc3.h"
 #include "kernels/pressure_rhs.h"
 #include "kernels/pressure_update_vel.h"
 
+#include "kernels/viscosity_faces.h"
 #include "kernels/viscosity_rhs.h"
 #include "kernels/viscosity_bc.h"
+#include "kernels/viscosity_set_bc.h"
 
 using namespace std;
 
@@ -199,15 +232,16 @@ static struct option options[] = {
 };
 
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
-               double b1, double g0, double dt);
+               double b1, double g0, double dt, double t);
 
 void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
-              double b1, double g0, double dt);
+              double b1, double g0, double dt, double t);
 
 void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
-               double b1, double g0, double dt);
+               double b1, double g0, double dt, double t);
 
 int main(int argc, char **argv) {
+  string filename = "./cylinder.cgns";
   char help[] = "TODO";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
   if(ierr) {
@@ -215,34 +249,36 @@ int main(int argc, char **argv) {
     return ierr;
   }
 
+  gam = 1.4;
+  mu = 1e-2;
+  nu = 1e-3;
+  bc_u = 1e-6;
+  bc_v = 0.0;
+  ic_u = 0.0;
+  ic_v = 0.0;
+
+  cout << "gam: " << gam << endl;
+  cout << "mu: " << mu << endl;
+  cout << "nu: " << nu << endl;
+
   // Object that holds all sets, maps and dats
   // (along with memory associated with them)
   INSData *data = new INSData();
 
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-    if(x1 > -1.0 && x1 < 2.0 && y1 > -1.0 && y1 < 1.0 &&
-       x2 > -1.0 && x2 < 2.0 && y2 > -1.0 && y2 < 1.0) {
-      // Wall boundary
-      return 2;
-    } else if(y1 == y2) {
-      // The top and bottom boundaries (i.e. wall for this app)
-      return 2;
-    } else if(x1 == x2) {
-      if(x1 < 0.0) {
-        // Inflow
-        return 0;
-      } else {
-        // Outflow
-        return 1;
-      }
+    if(x1 == 0.0 && x2 == 0.0) {
+      // Inflow
+      return 0;
+    } else if(x1 == 2.2 && x2 == 2.2) {
+      // Outflow
+      return 1;
     } else {
-      cout << "*** ERROR ***" << endl;
-      cout << "  Unclassified boundary edge" << endl;
-      return -1;
+      // Wall
+      return 2;
     }
   };
 
-  load_mesh("./naca0012.cgns", data, bcNum);
+  load_mesh(filename.c_str(), data, bcNum);
 
   // Initialise OP2
   op_init(argc, argv, 2);
@@ -259,32 +295,6 @@ int main(int argc, char **argv) {
     if(strcmp((char*)options[opt_index].name,"iter") == 0) iter = atoi(optarg);
     if(strcmp((char*)options[opt_index].name,"alpha") == 0) bc_alpha = stod(optarg);
   }
-
-
-  gam = 1.4;
-  mu = 1e-2;
-  nu = 1e-3;
-  // bc_mach = 0.4;
-  // bc_p = 1.0;
-  // bc_r = 1.0;
-  // if(bc_alpha != 0.0) {
-  //   bc_u = sin((M_PI/2.0) - (bc_alpha * M_PI / 180.0)) * sqrt(gam * bc_p / bc_r) * bc_mach;
-  //   bc_v = cos((M_PI/2.0) - (bc_alpha * M_PI / 180.0)) * sqrt(gam * bc_p / bc_r) * bc_mach;
-  // } else {
-  //   bc_u = sqrt(gam * bc_p / bc_r) * bc_mach;
-  //   bc_v = 0.0;
-  // }
-  // bc_u = 0.0;
-  bc_u = 1e-6;
-  bc_v = 0.0;
-
-  cout << "gam: " << gam << endl;
-  cout << "mu: " << mu << endl;
-  cout << "bc_mach: " << bc_mach << endl;
-  cout << "bc_alpha: " << bc_alpha << endl;
-  cout << "bc_p: " << bc_p << endl;
-  cout << "bc_u: " << bc_u << endl;
-  cout << "bc_v: " << bc_v << endl;
 
   // Calculate geometric factors
   init_grid_blas(data);
@@ -315,7 +325,8 @@ int main(int argc, char **argv) {
               op_arg_dat(data->exQ[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->exQ[1],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->dPdN[0],-1,OP_ID,15,"double",OP_WRITE),
-              op_arg_dat(data->dPdN[1],-1,OP_ID,15,"double",OP_WRITE));
+              op_arg_dat(data->dPdN[1],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->pRHSex,-1,OP_ID,15,"double",OP_WRITE));
 
   Poisson *poisson = new Poisson(data);
 
@@ -350,17 +361,17 @@ int main(int argc, char **argv) {
       b1 = -1.0;
     }
     op_timers(&cpu_loop_1, &wall_loop_1);
-    advection(data, currentIter % 2, a0, a1, b0, b1, g0, dt);
+    advection(data, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
     op_timers(&cpu_loop_2, &wall_loop_2);
     a_time += wall_loop_2 - wall_loop_1;
 
     op_timers(&cpu_loop_1, &wall_loop_1);
-    pressure(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
+    pressure(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
     op_timers(&cpu_loop_2, &wall_loop_2);
     p_time += wall_loop_2 - wall_loop_1;
 
     op_timers(&cpu_loop_1, &wall_loop_1);
-    viscosity(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt);
+    viscosity(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
     op_timers(&cpu_loop_2, &wall_loop_2);
     v_time += wall_loop_2 - wall_loop_1;
 
@@ -383,8 +394,18 @@ int main(int argc, char **argv) {
   double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(data->Q[currentIter % 2][0], sol_q0);
   op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
-  save_solution("./naca0012.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+  save_solution("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
                 sol_q0, sol_q1, data->cgnsCells);
+
+  // op_fetch_data(data->QT[0], sol_q0);
+  // op_fetch_data(data->QT[1], sol_q1);
+  // save_solution("cylinder1.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+  //               sol_q0, sol_q1, data->cgnsCells);
+  //
+  // op_fetch_data(data->QTT[0], sol_q0);
+  // op_fetch_data(data->QTT[1], sol_q1);
+  // save_solution("cylinder2.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+  //               sol_q0, sol_q1, data->cgnsCells);
 
   free(sol_q0);
   free(sol_q1);
@@ -400,7 +421,7 @@ int main(int argc, char **argv) {
 }
 
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
-               double b1, double g0, double dt) {
+               double b1, double g0, double dt, double t) {
   op_par_loop_advection_flux("advection_flux",data->cells,
               op_arg_dat(data->Q[currentInd][0],-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][1],-1,OP_ID,15,"double",OP_READ),
@@ -424,8 +445,9 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
   op_par_loop_advection_bc("advection_bc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
-              op_arg_dat(data->nx,0,data->bedge2cells,15,"double",OP_READ),
-              op_arg_dat(data->ny,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_gbl(&t,1,"double",OP_READ),
+              op_arg_dat(data->x,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->y,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][0],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][1],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->exQ[0],0,data->bedge2cells,15,"double",OP_INC),
@@ -464,7 +486,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
 }
 
 void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
-              double b1, double g0, double dt) {
+              double b1, double g0, double dt, double t) {
   int pressure_dirichlet[] = {1, -1};
   int pressure_neumann[] = {0, 2};
   poisson->setDirichletBCs(pressure_dirichlet);
@@ -478,6 +500,9 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
   op_par_loop_pressure_bc("pressure_bc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
+              op_arg_gbl(&t,1,"double",OP_READ),
+              op_arg_dat(data->x,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->y,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->nx,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->ny,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->N[currentInd][0],0,data->bedge2cells,15,"double",OP_READ),
@@ -499,7 +524,16 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
 
   pressure_rhs_blas(data, currentInd);
 
-  // Currently no Dirichlet BCs for our example but add them here if needed in the future
+  // Dirichlet BCs, p = 0 on outflow
+  op_par_loop_pressure_bc2("pressure_bc2",data->bedges,
+              op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
+              op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
+              op_arg_dat(data->pRHS,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->pRHSex,0,data->bedge2cells,15,"double",OP_INC));
+
+  op_par_loop_pressure_bc3("pressure_bc3",data->cells,
+              op_arg_dat(data->pRHSex,-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(data->pRHS,-1,OP_ID,15,"double",OP_RW));
 
   poisson->solve(data->pRHS, data->p);
 
@@ -517,28 +551,55 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
 }
 
 void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
-               double b1, double g0, double dt) {
+               double b1, double g0, double dt, double t) {
   int viscosity_dirichlet[] = {0, 2};
   int viscosity_neumann[] = {1, -1};
   poisson->setDirichletBCs(viscosity_dirichlet);
   poisson->setNeumannBCs(viscosity_neumann);
 
-  // viscosity_rhs_blas(data);
+  double time = t + dt;
+
+  op_par_loop_viscosity_faces("viscosity_faces",data->edges,
+              op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
+              op_arg_dat(data->QTT[0],-2,data->edge2cells,15,"double",OP_READ),
+              op_arg_dat(data->QTT[1],-2,data->edge2cells,15,"double",OP_READ),
+              op_arg_dat(data->exQ[0],-2,data->edge2cells,15,"double",OP_INC),
+              op_arg_dat(data->exQ[1],-2,data->edge2cells,15,"double",OP_INC));
+
+  op_par_loop_advection_bc("advection_bc",data->bedges,
+              op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
+              op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
+              op_arg_gbl(&time,1,"double",OP_READ),
+              op_arg_dat(data->x,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->y,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->QTT[0],0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->QTT[1],0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->exQ[0],0,data->bedge2cells,15,"double",OP_INC),
+              op_arg_dat(data->exQ[1],0,data->bedge2cells,15,"double",OP_INC));
+
+  op_par_loop_viscosity_set_bc("viscosity_set_bc",data->cells,
+              op_arg_dat(data->QTT[0],-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(data->QTT[1],-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(data->exQ[0],-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(data->exQ[1],-1,OP_ID,15,"double",OP_RW));
+
+  viscosity_rhs_blas(data);
 
   double factor = g0 / (nu * dt);
   op_par_loop_viscosity_rhs("viscosity_rhs",data->cells,
               op_arg_gbl(&factor,1,"double",OP_READ),
+              op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->QTT[0],-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->QTT[1],-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->visRHS[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->visRHS[1],-1,OP_ID,15,"double",OP_WRITE));
-
+/*
   op_par_loop_viscosity_bc("viscosity_bc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->visRHS[0],0,data->bedge2cells,15,"double",OP_INC),
               op_arg_dat(data->visRHS[1],0,data->bedge2cells,15,"double",OP_INC));
-
+*/
   poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
   poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
 }

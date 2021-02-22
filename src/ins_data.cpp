@@ -59,6 +59,7 @@ INSData::~INSData() {
   free(divVelT_data);
   free(curlVel_data);
   free(pRHS_data);
+  free(pRHSex_data);
   free(p_data);
   free(dpdx_data);
   free(dpdy_data);
@@ -105,6 +106,7 @@ void INSData::initOP2() {
   divVelT_data = (double *)malloc(15 * numCells * sizeof(double));
   curlVel_data = (double *)malloc(15 * numCells * sizeof(double));
   pRHS_data    = (double *)malloc(15 * numCells * sizeof(double));
+  pRHSex_data  = (double *)malloc(15 * numCells * sizeof(double));
   p_data       = (double *)malloc(15 * numCells * sizeof(double));
   dpdx_data    = (double *)malloc(15 * numCells * sizeof(double));
   dpdy_data    = (double *)malloc(15 * numCells * sizeof(double));
@@ -186,6 +188,7 @@ void INSData::initOP2() {
   divVelT = op_decl_dat(cells, 15, "double", divVelT_data, "divVelT");
   curlVel = op_decl_dat(cells, 15, "double", curlVel_data, "curlVel");
   pRHS    = op_decl_dat(cells, 15, "double", pRHS_data, "pRHS");
+  pRHSex  = op_decl_dat(cells, 15, "double", pRHSex_data, "pRHSex");
   p       = op_decl_dat(cells, 15, "double", p_data, "p");
   dpdx    = op_decl_dat(cells, 15, "double", dpdx_data, "dpdx");
   dpdy    = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
@@ -199,4 +202,6 @@ void INSData::initOP2() {
   op_decl_const(1, "double", &bc_u);
   op_decl_const(1, "double", &bc_v);
   op_decl_const(15, "int", FMASK);
+  op_decl_const(1, "double", &ic_u);
+  op_decl_const(1, "double", &ic_v);
 }

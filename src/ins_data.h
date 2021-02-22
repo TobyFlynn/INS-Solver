@@ -12,6 +12,8 @@ extern double bc_p;
 extern double bc_u;
 extern double bc_v;
 extern int FMASK[15];
+extern double ic_u;
+extern double ic_v;
 
 class INSData {
 public:
@@ -36,7 +38,7 @@ public:
          ny, J, sJ, fscale, bedge_type, edgeNum, bedgeNum;
   op_dat Q[2][3], exQ[2], F[4], N[2][2], flux[2], QT[3], QTT[3];
   op_dat div[4];
-  op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, p, dpdx, dpdy;
+  op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, pRHSex, p, dpdx, dpdy;
   op_dat visRHS[2];
 private:
   // Pointers to private memory
@@ -70,6 +72,7 @@ private:
   double *gradCurlVel_data[2];
   double *dPdN_data[2];
   double *pRHS_data;
+  double *pRHSex_data;
   double *p_data;
   double *dpdx_data;
   double *dpdy_data;

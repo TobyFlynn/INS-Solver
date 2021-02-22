@@ -24,9 +24,13 @@ extern "C" {
 
 inline void cublas_viscosity_rhs(cublasHandle_t handle, const int numCells,
                                  double *qtt0_d, double *qtt1_d) {
-  double *visMat_d;
-  cudaMalloc((void**)&visMat_d, 15 * 15 * sizeof(double));
-  cudaMemcpy(visMat_d, visMat, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *visMat_d;
+  // cudaMalloc((void**)&visMat_d, 15 * 15 * sizeof(double));
+  // cudaMemcpy(visMat_d, visMat, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+
+  double *MASS_d;
+  cudaMalloc((void**)&MASS_d, 15 * 15 * sizeof(double));
+  cudaMemcpy(MASS_d, MASS, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
 
   double *temp0_d;
   cudaMalloc((void**)&temp0_d, 15 * numCells * sizeof(double));
@@ -36,15 +40,19 @@ inline void cublas_viscosity_rhs(cublasHandle_t handle, const int numCells,
   // CUBLAS_OP_T because cublas is column major but constants are stored row major
   double alpha = 1.0;
   double beta = 0.0;
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, visMat_d, 15, qtt0_d, 15, &beta, temp0_d, 15);
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, visMat_d, 15, qtt1_d, 15, &beta, temp1_d, 15);
+  // cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, visMat_d, 15, qtt0_d, 15, &beta, temp0_d, 15);
+  // cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, visMat_d, 15, qtt1_d, 15, &beta, temp1_d, 15);
+
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, MASS_d, 15, qtt0_d, 15, &beta, temp0_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, MASS_d, 15, qtt1_d, 15, &beta, temp1_d, 15);
 
   cudaMemcpy(qtt0_d, temp0_d, 15 * numCells * sizeof(double), cudaMemcpyDeviceToDevice);
   cudaMemcpy(qtt1_d, temp1_d, 15 * numCells * sizeof(double), cudaMemcpyDeviceToDevice);
 
   cudaFree(temp0_d);
   cudaFree(temp1_d);
-  cudaFree(visMat_d);
+  // cudaFree(visMat_d);
+  cudaFree(MASS_d);
 }
 
 void viscosity_rhs_blas(INSData *nsData) {

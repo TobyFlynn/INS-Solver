@@ -25,7 +25,8 @@ void advection_numerical_flux_omp4_kernel(
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size]) \
+    map(to: FMASK_ompkernel[:15])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
@@ -41,6 +42,63 @@ void advection_numerical_flux_omp4_kernel(
 
     //inline function
     
+
+    double fM[4][15];
+    for(int i = 0; i < 15; i++) {
+      fM[0][i] = q0[FMASK_ompkernel[i]] * q0[FMASK_ompkernel[i]];
+      fM[1][i] = q0[FMASK_ompkernel[i]] * q1[FMASK_ompkernel[i]];
+      fM[2][i] = q0[FMASK_ompkernel[i]] * q1[FMASK_ompkernel[i]];
+      fM[3][i] = q1[FMASK_ompkernel[i]] * q1[FMASK_ompkernel[i]];
+    }
+    double fP[4][15];
+    for(int i = 0; i < 15; i++) {
+      fP[0][i] = exQ0[i] * exQ0[i];
+      fP[1][i] = exQ0[i] * exQ1[i];
+      fP[2][i] = exQ0[i] * exQ1[i];
+      fP[3][i] = exQ1[i] * exQ1[i];
+    }
+
+    double maxVel[15];
+    double max = 0.0;
+    for(int i = 0; i < 5; i++) {
+      double mVel = q0[FMASK_ompkernel[i]] * nx[i] + q1[FMASK_ompkernel[i]] * ny[i];
+      double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
+      double vel = fmax(fabs(mVel), fabs(pVel));
+      if(vel > max) max = vel;
+    }
+    for(int i = 0; i < 5; i++) {
+      maxVel[i] = max;
+    }
+    max = 0.0;
+    for(int i = 5; i < 10; i++) {
+      double mVel = q0[FMASK_ompkernel[i]] * nx[i] + q1[FMASK_ompkernel[i]] * ny[i];
+      double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
+      double vel = fmax(fabs(mVel), fabs(pVel));
+      if(vel > max) max = vel;
+    }
+    for(int i = 5; i < 10; i++) {
+      maxVel[i] = max;
+    }
+    max = 0.0;
+    for(int i = 10; i < 15; i++) {
+      double mVel = q0[FMASK_ompkernel[i]] * nx[i] + q1[FMASK_ompkernel[i]] * ny[i];
+      double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
+      double vel = fmax(fabs(mVel), fabs(pVel));
+      if(vel > max) max = vel;
+    }
+    for(int i = 10; i < 15; i++) {
+      maxVel[i] = max;
+    }
+
+    for(int i = 0; i < 15; i++) {
+      flux0[i] = 0.5 * fscale[i] * (-nx[i] * (fM[0][i] - fP[0][i]) - ny[i] * (fM[1][i] - fP[1][i]) - maxVel[i] * (exQ0[i] - q0[FMASK_ompkernel[i]]));
+      flux1[i] = 0.5 * fscale[i] * (-nx[i] * (fM[2][i] - fP[2][i]) - ny[i] * (fM[3][i] - fP[3][i]) - maxVel[i] * (exQ1[i] - q1[FMASK_ompkernel[i]]));
+    }
+
+    for(int i = 0; i < 15; i++) {
+      exQ0[i] = 0.0;
+      exQ1[i] = 0.0;
+    }
     //end inline func
   }
 

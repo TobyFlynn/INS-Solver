@@ -104,10 +104,10 @@ void op_par_loop_poisson_rhs_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(17);
+  op_timing_realloc(21);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[17].name      = name;
-  OP_kernels[17].count    += 1;
+  OP_kernels[21].name      = name;
+  OP_kernels[21].count    += 1;
 
 
   int    ninds   = 2;
@@ -140,8 +140,8 @@ void op_par_loop_poisson_rhs_bc(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_17
-      int nthread = OP_BLOCK_SIZE_17;
+    #ifdef OP_BLOCK_SIZE_21
+      int nthread = OP_BLOCK_SIZE_21;
     #else
       int nthread = OP_block_size;
     #endif
@@ -170,5 +170,5 @@ void op_par_loop_poisson_rhs_bc(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[17].time     += wall_t2 - wall_t1;
+  OP_kernels[21].time     += wall_t2 - wall_t1;
 }

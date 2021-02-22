@@ -2,7 +2,6 @@ inline void advection_numerical_flux(const double *fscale, const double *nx,
                                      const double *ny, const double *q0,
                                      const double *q1, double *exQ0,
                                      double *exQ1, double *flux0, double *flux1) {
-  /*
   // Compute fluxes for face nodes
   double fM[4][15];
   for(int i = 0; i < 15; i++) {
@@ -63,5 +62,4 @@ inline void advection_numerical_flux(const double *fscale, const double *nx,
     exQ0[i] = 0.0;
     exQ1[i] = 0.0;
   }
-  */
 }

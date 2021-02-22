@@ -16,6 +16,8 @@ __constant__ double bc_p_cuda;
 __constant__ double bc_u_cuda;
 __constant__ double bc_v_cuda;
 __constant__ int FMASK_cuda[15];
+__constant__ double ic_u_cuda;
+__constant__ double ic_v_cuda;
 
 //header
 #include "op_lib_cpp.h"
@@ -61,6 +63,14 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(FMASK_cuda, dat, dim*size));
   }
   else
+  if (!strcmp(name,"ic_u")) {
+    cutilSafeCall(cudaMemcpyToSymbol(ic_u_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"ic_v")) {
+    cutilSafeCall(cudaMemcpyToSymbol(ic_v_cuda, dat, dim*size));
+  }
+  else
   {
     printf("error: unknown const name\n"); exit(1);
   }
@@ -77,7 +87,11 @@ int size, char *dat, char const *name){
 #include "advection_intermediate_vel_kernel.cu"
 #include "pressure_bc_kernel.cu"
 #include "pressure_rhs_kernel.cu"
+#include "pressure_bc2_kernel.cu"
+#include "pressure_bc3_kernel.cu"
 #include "pressure_update_vel_kernel.cu"
+#include "viscosity_faces_kernel.cu"
+#include "viscosity_set_bc_kernel.cu"
 #include "viscosity_rhs_kernel.cu"
 #include "viscosity_bc_kernel.cu"
 #include "setup_poisson_kernel.cu"

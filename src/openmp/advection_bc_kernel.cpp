@@ -14,10 +14,11 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7){
+  op_arg arg7,
+  op_arg arg8){
 
-  int nargs = 8;
-  op_arg args[8];
+  int nargs = 9;
+  op_arg args[9];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -27,6 +28,7 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   args[5] = arg5;
   args[6] = arg6;
   args[7] = arg7;
+  args[8] = arg8;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -36,7 +38,7 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   op_timers_core(&cpu_t1, &wall_t1);
 
   int  ninds   = 6;
-  int  inds[8] = {-1,-1,0,1,2,3,4,5};
+  int  inds[9] = {-1,-1,-1,0,1,2,3,4,5};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: advection_bc\n");
@@ -69,19 +71,20 @@ void op_par_loop_advection_bc(char const *name, op_set set,
         int nelem    = Plan->nelems[blockId];
         int offset_b = Plan->offset[blockId];
         for ( int n=offset_b; n<offset_b+nelem; n++ ){
-          int map2idx;
-          map2idx = arg2.map_data[n * arg2.map->dim + 0];
+          int map3idx;
+          map3idx = arg3.map_data[n * arg3.map->dim + 0];
 
 
           advection_bc(
             &((int*)arg0.data)[1 * n],
             &((int*)arg1.data)[1 * n],
-            &((double*)arg2.data)[15 * map2idx],
-            &((double*)arg3.data)[15 * map2idx],
-            &((double*)arg4.data)[15 * map2idx],
-            &((double*)arg5.data)[15 * map2idx],
-            &((double*)arg6.data)[15 * map2idx],
-            &((double*)arg7.data)[15 * map2idx]);
+            (double*)arg2.data,
+            &((double*)arg3.data)[15 * map3idx],
+            &((double*)arg4.data)[15 * map3idx],
+            &((double*)arg5.data)[15 * map3idx],
+            &((double*)arg6.data)[15 * map3idx],
+            &((double*)arg7.data)[15 * map3idx],
+            &((double*)arg8.data)[15 * map3idx]);
         }
       }
 

@@ -8,6 +8,62 @@ __device__ void advection_numerical_flux_gpu( const double *fscale, const double
                                      const double *q1, double *exQ0,
                                      double *exQ1, double *flux0, double *flux1) {
 
+  double fM[4][15];
+  for(int i = 0; i < 15; i++) {
+    fM[0][i] = q0[FMASK_cuda[i]] * q0[FMASK_cuda[i]];
+    fM[1][i] = q0[FMASK_cuda[i]] * q1[FMASK_cuda[i]];
+    fM[2][i] = q0[FMASK_cuda[i]] * q1[FMASK_cuda[i]];
+    fM[3][i] = q1[FMASK_cuda[i]] * q1[FMASK_cuda[i]];
+  }
+  double fP[4][15];
+  for(int i = 0; i < 15; i++) {
+    fP[0][i] = exQ0[i] * exQ0[i];
+    fP[1][i] = exQ0[i] * exQ1[i];
+    fP[2][i] = exQ0[i] * exQ1[i];
+    fP[3][i] = exQ1[i] * exQ1[i];
+  }
+
+  double maxVel[15];
+  double max = 0.0;
+  for(int i = 0; i < 5; i++) {
+    double mVel = q0[FMASK_cuda[i]] * nx[i] + q1[FMASK_cuda[i]] * ny[i];
+    double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
+    double vel = fmax(fabs(mVel), fabs(pVel));
+    if(vel > max) max = vel;
+  }
+  for(int i = 0; i < 5; i++) {
+    maxVel[i] = max;
+  }
+  max = 0.0;
+  for(int i = 5; i < 10; i++) {
+    double mVel = q0[FMASK_cuda[i]] * nx[i] + q1[FMASK_cuda[i]] * ny[i];
+    double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
+    double vel = fmax(fabs(mVel), fabs(pVel));
+    if(vel > max) max = vel;
+  }
+  for(int i = 5; i < 10; i++) {
+    maxVel[i] = max;
+  }
+  max = 0.0;
+  for(int i = 10; i < 15; i++) {
+    double mVel = q0[FMASK_cuda[i]] * nx[i] + q1[FMASK_cuda[i]] * ny[i];
+    double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
+    double vel = fmax(fabs(mVel), fabs(pVel));
+    if(vel > max) max = vel;
+  }
+  for(int i = 10; i < 15; i++) {
+    maxVel[i] = max;
+  }
+
+  for(int i = 0; i < 15; i++) {
+    flux0[i] = 0.5 * fscale[i] * (-nx[i] * (fM[0][i] - fP[0][i]) - ny[i] * (fM[1][i] - fP[1][i]) - maxVel[i] * (exQ0[i] - q0[FMASK_cuda[i]]));
+    flux1[i] = 0.5 * fscale[i] * (-nx[i] * (fM[2][i] - fP[2][i]) - ny[i] * (fM[3][i] - fP[3][i]) - maxVel[i] * (exQ1[i] - q1[FMASK_cuda[i]]));
+  }
+
+  for(int i = 0; i < 15; i++) {
+    exQ0[i] = 0.0;
+    exQ1[i] = 0.0;
+  }
 
 }
 

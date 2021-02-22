@@ -12,6 +12,8 @@ extern double bc_p;
 extern double bc_u;
 extern double bc_v;
 extern int FMASK[15];
+extern double ic_u;
+extern double ic_v;
 
 // header
 #include "op_lib_c.h"
@@ -29,7 +31,11 @@ int size, char *dat, char const *name){}
 #include "advection_intermediate_vel_acckernel.c"
 #include "pressure_bc_acckernel.c"
 #include "pressure_rhs_acckernel.c"
+#include "pressure_bc2_acckernel.c"
+#include "pressure_bc3_acckernel.c"
 #include "pressure_update_vel_acckernel.c"
+#include "viscosity_faces_acckernel.c"
+#include "viscosity_set_bc_acckernel.c"
 #include "viscosity_rhs_acckernel.c"
 #include "viscosity_bc_acckernel.c"
 #include "setup_poisson_acckernel.c"

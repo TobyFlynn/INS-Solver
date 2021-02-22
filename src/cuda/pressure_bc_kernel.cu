@@ -3,7 +3,8 @@
 //
 
 //user function
-__device__ void pressure_bc_gpu( const int *bedge_type, const int *bedgeNum,
+__device__ void pressure_bc_gpu( const int *bedge_type, const int *bedgeNum, const double *t,
+                        const double *x, const double *y,
                         const double *nx, const double *ny,
                         const double *N0, const double *N1,
                         const double *gradCurlVel0, const double *gradCurlVel1,
@@ -55,50 +56,56 @@ __global__ void op_cuda_pressure_bc(
   const double *__restrict ind_arg3,
   const double *__restrict ind_arg4,
   const double *__restrict ind_arg5,
-  double *__restrict ind_arg6,
-  const int *__restrict opDat2Map,
+  const double *__restrict ind_arg6,
+  const double *__restrict ind_arg7,
+  double *__restrict ind_arg8,
+  const int *__restrict opDat3Map,
   const int *__restrict arg0,
   const int *__restrict arg1,
+  const double *arg2,
   int start,
   int end,
   int   set_size) {
-  double arg8_l[15];
+  double arg11_l[15];
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg8_l[15];
+    double arg11_l[15];
     for ( int d=0; d<15; d++ ){
-      arg8_l[d] = ZERO_double;
+      arg11_l[d] = ZERO_double;
     }
-    int map2idx;
-    map2idx = opDat2Map[n + set_size * 0];
+    int map3idx;
+    map3idx = opDat3Map[n + set_size * 0];
 
     //user-supplied kernel call
     pressure_bc_gpu(arg0+n*1,
                 arg1+n*1,
-                ind_arg0+map2idx*15,
-                ind_arg1+map2idx*15,
-                ind_arg2+map2idx*15,
-                ind_arg3+map2idx*15,
-                ind_arg4+map2idx*15,
-                ind_arg5+map2idx*15,
-                arg8_l);
-    atomicAdd(&ind_arg6[0+map2idx*15],arg8_l[0]);
-    atomicAdd(&ind_arg6[1+map2idx*15],arg8_l[1]);
-    atomicAdd(&ind_arg6[2+map2idx*15],arg8_l[2]);
-    atomicAdd(&ind_arg6[3+map2idx*15],arg8_l[3]);
-    atomicAdd(&ind_arg6[4+map2idx*15],arg8_l[4]);
-    atomicAdd(&ind_arg6[5+map2idx*15],arg8_l[5]);
-    atomicAdd(&ind_arg6[6+map2idx*15],arg8_l[6]);
-    atomicAdd(&ind_arg6[7+map2idx*15],arg8_l[7]);
-    atomicAdd(&ind_arg6[8+map2idx*15],arg8_l[8]);
-    atomicAdd(&ind_arg6[9+map2idx*15],arg8_l[9]);
-    atomicAdd(&ind_arg6[10+map2idx*15],arg8_l[10]);
-    atomicAdd(&ind_arg6[11+map2idx*15],arg8_l[11]);
-    atomicAdd(&ind_arg6[12+map2idx*15],arg8_l[12]);
-    atomicAdd(&ind_arg6[13+map2idx*15],arg8_l[13]);
-    atomicAdd(&ind_arg6[14+map2idx*15],arg8_l[14]);
+                arg2,
+                ind_arg0+map3idx*15,
+                ind_arg1+map3idx*15,
+                ind_arg2+map3idx*15,
+                ind_arg3+map3idx*15,
+                ind_arg4+map3idx*15,
+                ind_arg5+map3idx*15,
+                ind_arg6+map3idx*15,
+                ind_arg7+map3idx*15,
+                arg11_l);
+    atomicAdd(&ind_arg8[0+map3idx*15],arg11_l[0]);
+    atomicAdd(&ind_arg8[1+map3idx*15],arg11_l[1]);
+    atomicAdd(&ind_arg8[2+map3idx*15],arg11_l[2]);
+    atomicAdd(&ind_arg8[3+map3idx*15],arg11_l[3]);
+    atomicAdd(&ind_arg8[4+map3idx*15],arg11_l[4]);
+    atomicAdd(&ind_arg8[5+map3idx*15],arg11_l[5]);
+    atomicAdd(&ind_arg8[6+map3idx*15],arg11_l[6]);
+    atomicAdd(&ind_arg8[7+map3idx*15],arg11_l[7]);
+    atomicAdd(&ind_arg8[8+map3idx*15],arg11_l[8]);
+    atomicAdd(&ind_arg8[9+map3idx*15],arg11_l[9]);
+    atomicAdd(&ind_arg8[10+map3idx*15],arg11_l[10]);
+    atomicAdd(&ind_arg8[11+map3idx*15],arg11_l[11]);
+    atomicAdd(&ind_arg8[12+map3idx*15],arg11_l[12]);
+    atomicAdd(&ind_arg8[13+map3idx*15],arg11_l[13]);
+    atomicAdd(&ind_arg8[14+map3idx*15],arg11_l[14]);
   }
 }
 
@@ -113,10 +120,14 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8){
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10,
+  op_arg arg11){
 
-  int nargs = 9;
-  op_arg args[9];
+  double*arg2h = (double *)arg2.data;
+  int nargs = 12;
+  op_arg args[12];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -127,6 +138,9 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   args[6] = arg6;
   args[7] = arg7;
   args[8] = arg8;
+  args[9] = arg9;
+  args[10] = arg10;
+  args[11] = arg11;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -136,14 +150,27 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   OP_kernels[8].count    += 1;
 
 
-  int    ninds   = 7;
-  int    inds[9] = {-1,-1,0,1,2,3,4,5,6};
+  int    ninds   = 9;
+  int    inds[12] = {-1,-1,-1,0,1,2,3,4,5,6,7,8};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: pressure_bc\n");
   }
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
   if (set_size > 0) {
+
+    //transfer constants to GPU
+    int consts_bytes = 0;
+    consts_bytes += ROUND_UP(1*sizeof(double));
+    reallocConstArrays(consts_bytes);
+    consts_bytes = 0;
+    arg2.data   = OP_consts_h + consts_bytes;
+    arg2.data_d = OP_consts_d + consts_bytes;
+    for ( int d=0; d<1; d++ ){
+      ((double *)arg2.data)[d] = arg2h[d];
+    }
+    consts_bytes += ROUND_UP(1*sizeof(double));
+    mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
     #ifdef OP_BLOCK_SIZE_8
@@ -161,16 +188,19 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
       if (end-start>0) {
         int nblocks = (end-start-1)/nthread+1;
         op_cuda_pressure_bc<<<nblocks,nthread>>>(
-        (double *)arg2.data_d,
         (double *)arg3.data_d,
         (double *)arg4.data_d,
         (double *)arg5.data_d,
         (double *)arg6.data_d,
         (double *)arg7.data_d,
         (double *)arg8.data_d,
-        arg2.map_data_d,
+        (double *)arg9.data_d,
+        (double *)arg10.data_d,
+        (double *)arg11.data_d,
+        arg3.map_data_d,
         (int*)arg0.data_d,
         (int*)arg1.data_d,
+        (double*)arg2.data_d,
         start,end,set->size+set->exec_size);
       }
     }

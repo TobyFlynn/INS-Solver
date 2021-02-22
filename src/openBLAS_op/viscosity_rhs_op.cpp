@@ -26,8 +26,11 @@ inline void openblas_viscosity_rhs(const int numCells, double *qtt0, double *qtt
   double *temp0 = (double *)malloc(15 * numCells * sizeof(double));
   double *temp1 = (double *)malloc(15 * numCells * sizeof(double));
 
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, visMat, 15, qtt0, 15, 0.0, temp0, 15);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, visMat, 15, qtt1, 15, 0.0, temp1, 15);
+  // cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, visMat, 15, qtt0, 15, 0.0, temp0, 15);
+  // cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, visMat, 15, qtt1, 15, 0.0, temp1, 15);
+
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, MASS, 15, qtt0, 15, 0.0, temp0, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, MASS, 15, qtt1, 15, 0.0, temp1, 15);
 
   memcpy(qtt0, temp0, 15 * numCells * sizeof(double));
   memcpy(qtt1, temp1, 15 * numCells * sizeof(double));

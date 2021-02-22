@@ -15,6 +15,8 @@ void viscosity_rhs_omp4_kernel(
   int dat3size,
   double *data4,
   int dat4size,
+  double *data5,
+  int dat5size,
   int count,
   int num_teams,
   int nthread);
@@ -25,24 +27,26 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
   op_arg arg1,
   op_arg arg2,
   op_arg arg3,
-  op_arg arg4){
+  op_arg arg4,
+  op_arg arg5){
 
   double*arg0h = (double *)arg0.data;
-  int nargs = 5;
-  op_arg args[5];
+  int nargs = 6;
+  op_arg args[6];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
   args[3] = arg3;
   args[4] = arg4;
+  args[5] = arg5;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(11);
+  op_timing_realloc(15);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[11].name      = name;
-  OP_kernels[11].count    += 1;
+  OP_kernels[15].name      = name;
+  OP_kernels[15].count    += 1;
 
 
   if (OP_diags>2) {
@@ -51,13 +55,13 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_11
-    int part_size = OP_PART_SIZE_11;
+  #ifdef OP_PART_SIZE_15
+    int part_size = OP_PART_SIZE_15;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_11
-    int nthread = OP_BLOCK_SIZE_11;
+  #ifdef OP_BLOCK_SIZE_15
+    int nthread = OP_BLOCK_SIZE_15;
   #else
     int nthread = OP_block_size;
   #endif
@@ -76,6 +80,8 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
     int dat3size = getSetSizeFromOpArg(&arg3) * arg3.dat->dim;
     double* data4 = (double*)arg4.data_d;
     int dat4size = getSetSizeFromOpArg(&arg4) * arg4.dat->dim;
+    double* data5 = (double*)arg5.data_d;
+    int dat5size = getSetSizeFromOpArg(&arg5) * arg5.dat->dim;
     viscosity_rhs_omp4_kernel(
       &arg0_l,
       data1,
@@ -86,6 +92,8 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
       dat3size,
       data4,
       dat4size,
+      data5,
+      dat5size,
       set->size,
       part_size!=0?(set->size-1)/part_size+1:(set->size-1)/nthread,
       nthread);
@@ -98,9 +106,10 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[11].time     += wall_t2 - wall_t1;
-  OP_kernels[11].transfer += (float)set->size * arg1.size;
-  OP_kernels[11].transfer += (float)set->size * arg2.size;
-  OP_kernels[11].transfer += (float)set->size * arg3.size * 2.0f;
-  OP_kernels[11].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[15].time     += wall_t2 - wall_t1;
+  OP_kernels[15].transfer += (float)set->size * arg1.size;
+  OP_kernels[15].transfer += (float)set->size * arg2.size;
+  OP_kernels[15].transfer += (float)set->size * arg3.size;
+  OP_kernels[15].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[15].transfer += (float)set->size * arg5.size * 2.0f;
 }

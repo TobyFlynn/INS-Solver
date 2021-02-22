@@ -44,7 +44,7 @@ void op_par_loop_poisson_rhs_faces(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(16);
+  op_timing_realloc(20);
   op_timers_core(&cpu_t1, &wall_t1);
 
   if (OP_diags>2) {
@@ -94,13 +94,13 @@ void op_par_loop_poisson_rhs_faces(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[16].name      = name;
-  OP_kernels[16].count    += 1;
-  OP_kernels[16].time     += wall_t2 - wall_t1;
-  OP_kernels[16].transfer += (float)set->size * arg1.size;
-  OP_kernels[16].transfer += (float)set->size * arg3.size;
-  OP_kernels[16].transfer += (float)set->size * arg5.size;
-  OP_kernels[16].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[16].transfer += (float)set->size * arg0.size;
-  OP_kernels[16].transfer += (float)set->size * arg1.map->dim * 4.0f;
+  OP_kernels[20].name      = name;
+  OP_kernels[20].count    += 1;
+  OP_kernels[20].time     += wall_t2 - wall_t1;
+  OP_kernels[20].transfer += (float)set->size * arg1.size;
+  OP_kernels[20].transfer += (float)set->size * arg3.size;
+  OP_kernels[20].transfer += (float)set->size * arg5.size;
+  OP_kernels[20].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[20].transfer += (float)set->size * arg0.size;
+  OP_kernels[20].transfer += (float)set->size * arg1.map->dim * 4.0f;
 }

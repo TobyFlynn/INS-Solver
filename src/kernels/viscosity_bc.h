@@ -21,7 +21,7 @@ inline void viscosity_bc(const int *bedge_type, const int *bedgeNum,
     // Inflow
     for(int i = 0; i < 5; i++) {
       vRHS0[exInd + i] += bc_u;
-      vRHS0[exInd + i] += bc_v;
+      vRHS1[exInd + i] += bc_v;
       // vRHS0[exInd + i] += 1.0;
       // vRHS1[exInd + i] += 1.0;
     }

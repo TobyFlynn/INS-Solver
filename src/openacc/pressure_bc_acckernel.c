@@ -5,7 +5,8 @@
 //user function
 //user function
 //#pragma acc routine
-inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
+inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum, const double *t,
+                        const double *x, const double *y,
                         const double *nx, const double *ny,
                         const double *N0, const double *N1,
                         const double *gradCurlVel0, const double *gradCurlVel1,
@@ -58,10 +59,14 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8){
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10,
+  op_arg arg11){
 
-  int nargs = 9;
-  op_arg args[9];
+  double*arg2h = (double *)arg2.data;
+  int nargs = 12;
+  op_arg args[12];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -72,6 +77,9 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   args[6] = arg6;
   args[7] = arg7;
   args[8] = arg8;
+  args[9] = arg9;
+  args[10] = arg10;
+  args[11] = arg11;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -80,8 +88,8 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   OP_kernels[8].name      = name;
   OP_kernels[8].count    += 1;
 
-  int  ninds   = 7;
-  int  inds[9] = {-1,-1,0,1,2,3,4,5,6};
+  int  ninds   = 9;
+  int  inds[12] = {-1,-1,-1,0,1,2,3,4,5,6,7,8};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: pressure_bc\n");
@@ -96,6 +104,7 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
+  double arg2_l = arg2h[0];
 
   int ncolors = 0;
 
@@ -103,17 +112,19 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
 
 
     //Set up typed device pointers for OpenACC
-    int *map2 = arg2.map_data_d;
+    int *map3 = arg3.map_data_d;
 
     int* data0 = (int*)arg0.data_d;
     int* data1 = (int*)arg1.data_d;
-    double *data2 = (double *)arg2.data_d;
     double *data3 = (double *)arg3.data_d;
     double *data4 = (double *)arg4.data_d;
     double *data5 = (double *)arg5.data_d;
     double *data6 = (double *)arg6.data_d;
     double *data7 = (double *)arg7.data_d;
     double *data8 = (double *)arg8.data_d;
+    double *data9 = (double *)arg9.data_d;
+    double *data10 = (double *)arg10.data_d;
+    double *data11 = (double *)arg11.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -128,23 +139,26 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map2,data0,data1,data2,data3,data4,data5,data6,data7,data8)
+      #pragma acc parallel loop independent deviceptr(col_reord,map3,data0,data1,data3,data4,data5,data6,data7,data8,data9,data10,data11)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
-        int map2idx;
-        map2idx = map2[n + set_size1 * 0];
+        int map3idx;
+        map3idx = map3[n + set_size1 * 0];
 
 
         pressure_bc_openacc(
           &data0[1 * n],
           &data1[1 * n],
-          &data2[15 * map2idx],
-          &data3[15 * map2idx],
-          &data4[15 * map2idx],
-          &data5[15 * map2idx],
-          &data6[15 * map2idx],
-          &data7[15 * map2idx],
-          &data8[15 * map2idx]);
+          &arg2_l,
+          &data3[15 * map3idx],
+          &data4[15 * map3idx],
+          &data5[15 * map3idx],
+          &data6[15 * map3idx],
+          &data7[15 * map3idx],
+          &data8[15 * map3idx],
+          &data9[15 * map3idx],
+          &data10[15 * map3idx],
+          &data11[15 * map3idx]);
       }
 
     }

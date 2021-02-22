@@ -12,6 +12,8 @@ double bc_p_ompkernel;
 double bc_u_ompkernel;
 double bc_v_ompkernel;
 int FMASK_ompkernel[15];
+double ic_u_ompkernel;
+double ic_v_ompkernel;
 
 // header
 #include "op_lib_cpp.h"
@@ -45,6 +47,12 @@ void op_decl_const_char(int dim, char const *type,
   } else if(!strcmp(name, "FMASK")) {
     memcpy(FMASK_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:FMASK_ompkernel[:15])
+  } else if(!strcmp(name, "ic_u")) {
+    memcpy(&ic_u_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:ic_u_ompkernel)
+  } else if(!strcmp(name, "ic_v")) {
+    memcpy(&ic_v_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:ic_v_ompkernel)
   }
 }
 // user kernel files
@@ -58,7 +66,11 @@ void op_decl_const_char(int dim, char const *type,
 #include "advection_intermediate_vel_omp4kernel_func.cpp"
 #include "pressure_bc_omp4kernel_func.cpp"
 #include "pressure_rhs_omp4kernel_func.cpp"
+#include "pressure_bc2_omp4kernel_func.cpp"
+#include "pressure_bc3_omp4kernel_func.cpp"
 #include "pressure_update_vel_omp4kernel_func.cpp"
+#include "viscosity_faces_omp4kernel_func.cpp"
+#include "viscosity_set_bc_omp4kernel_func.cpp"
 #include "viscosity_rhs_omp4kernel_func.cpp"
 #include "viscosity_bc_omp4kernel_func.cpp"
 #include "setup_poisson_omp4kernel_func.cpp"

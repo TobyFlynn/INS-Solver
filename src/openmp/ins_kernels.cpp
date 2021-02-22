@@ -16,6 +16,8 @@ extern double bc_p;
 extern double bc_u;
 extern double bc_v;
 extern int FMASK[15];
+extern double ic_u;
+extern double ic_v;
 
 // header
 #include "op_lib_cpp.h"
@@ -31,7 +33,11 @@ extern int FMASK[15];
 #include "advection_intermediate_vel_kernel.cpp"
 #include "pressure_bc_kernel.cpp"
 #include "pressure_rhs_kernel.cpp"
+#include "pressure_bc2_kernel.cpp"
+#include "pressure_bc3_kernel.cpp"
 #include "pressure_update_vel_kernel.cpp"
+#include "viscosity_faces_kernel.cpp"
+#include "viscosity_set_bc_kernel.cpp"
 #include "viscosity_rhs_kernel.cpp"
 #include "viscosity_bc_kernel.cpp"
 #include "setup_poisson_kernel.cpp"

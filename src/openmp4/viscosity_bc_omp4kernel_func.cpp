@@ -58,7 +58,7 @@ void viscosity_bc_omp4_kernel(
 
       for(int i = 0; i < 5; i++) {
         vRHS0[exInd + i] += bc_u_ompkernel;
-        vRHS0[exInd + i] += bc_v_ompkernel;
+        vRHS1[exInd + i] += bc_v_ompkernel;
 
 
       }
