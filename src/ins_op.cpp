@@ -39,7 +39,6 @@ void op_par_loop_set_ic(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
-  op_arg,
   op_arg );
 
 void op_par_loop_calc_dt(char const *, op_set,
@@ -321,7 +320,6 @@ int main(int argc, char **argv) {
   op_par_loop_set_ic("set_ic",data->cells,
               op_arg_dat(data->Q[0][0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->Q[0][1],-1,OP_ID,15,"double",OP_WRITE),
-              op_arg_dat(data->Q[0][2],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->exQ[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->exQ[1],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->dPdN[0],-1,OP_ID,15,"double",OP_WRITE),
@@ -394,6 +392,8 @@ int main(int argc, char **argv) {
   double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(data->Q[currentIter % 2][0], sol_q0);
   op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
+  // op_fetch_data(data->p, sol_q0);
+  // op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
   save_solution("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
                 sol_q0, sol_q1, data->cgnsCells);
 

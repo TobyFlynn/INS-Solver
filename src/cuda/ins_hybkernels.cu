@@ -267,8 +267,7 @@ void op_par_loop_set_ic_gpu(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6,
-  op_arg arg7);
+  op_arg arg6);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -279,8 +278,7 @@ void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6,
-  op_arg arg7){
+  op_arg arg6){
 
   if (OP_hybrid_gpu) {
     op_par_loop_set_ic_gpu(name, set,
@@ -290,8 +288,7 @@ void op_par_loop_set_ic(char const *name, op_set set,
       arg3,
       arg4,
       arg5,
-      arg6,
-      arg7);
+      arg6);
 
     }else{
     op_par_loop_set_ic_cpu(name, set,
@@ -301,8 +298,7 @@ void op_par_loop_set_ic(char const *name, op_set set,
       arg3,
       arg4,
       arg5,
-      arg6,
-      arg7);
+      arg6);
 
   }
 }
@@ -314,8 +310,7 @@ void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6,
-  op_arg arg7){
+  op_arg arg6){
 
   op_par_loop_set_ic_gpu(name, set,
     arg0,
@@ -324,8 +319,7 @@ void op_par_loop_set_ic(char const *name, op_set set,
     arg3,
     arg4,
     arg5,
-    arg6,
-    arg7);
+    arg6);
 
   }
 #endif //OP_HYBRID_GPU
