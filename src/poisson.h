@@ -25,10 +25,11 @@ public:
   void rhs(const double *u, double *rhs);
   void solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
 
-  void setDirichletBCs(int *d);
-  void setNeumannBCs(int *n);
+  void setDirichletBCs(int *d, op_dat d_dat);
+  void setNeumannBCs(int *n, op_dat nx_dat, op_dat ny_dat);
   // OP2 Dats
   op_dat pTau, pExRHS[2], pU, pDu, pFluxXu, pFluxYu, pDuDx, pDuDy, pFluxQ, pDivQ, pRHS;
+  op_dat dBC, nBCx, nBCy;
 private:
   void copy_u(const double *u);
   void copy_rhs(double *rhs);

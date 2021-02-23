@@ -40,6 +40,7 @@ public:
   op_dat div[4];
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, pRHSex, p, dpdx, dpdy;
   op_dat visRHS[2];
+  op_dat dirichletBC, neumannBCx, neumannBCy;
 private:
   // Pointers to private memory
   double *nodeX_data;
@@ -77,6 +78,9 @@ private:
   double *dpdx_data;
   double *dpdy_data;
   double *visRHS_data[2];
+  double *dirichletBC_data;
+  double *neumannBCx_data;
+  double *neumannBCy_data;
 };
 
 #endif

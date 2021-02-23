@@ -86,6 +86,7 @@ Poisson::~Poisson() {
 }
 
 void Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
+  // op_fetch_data_hdf5_file(dBC, "p.h5");
   massMat = addMass;
   massFactor = factor;
   Vec b;
@@ -104,7 +105,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   KSPSetType(ksp, KSPFGMRES);
   // KSPSetType(ksp, KSPCG);
   KSPSetOperators(ksp, Amat, Amat);
-  // KSPSetTolerances(ksp, 1e-14, 1e-50, 1e5, 1e4);
+  KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 1e5);
 
   // Solve
   KSPSolve(ksp, b, x);
@@ -140,6 +141,7 @@ void Poisson::rhs(const double *u, double *rhs) {
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),
               op_arg_gbl(&dirichlet[1], 1, "int", OP_READ),
+              op_arg_dat(dBC, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(pU, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(pExRHS[0], 0, data->bedge2cells, 15, "double", OP_INC));
 
@@ -177,6 +179,7 @@ void Poisson::rhs(const double *u, double *rhs) {
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&neumann[0], 1, "int", OP_READ),
               op_arg_gbl(&neumann[1], 1, "int", OP_READ),
+              op_arg_dat(nBCx, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(pDuDx, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(pExRHS[0], 0, data->bedge2cells, 15, "double", OP_INC));
 
@@ -185,6 +188,7 @@ void Poisson::rhs(const double *u, double *rhs) {
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&neumann[0], 1, "int", OP_READ),
               op_arg_gbl(&neumann[1], 1, "int", OP_READ),
+              op_arg_dat(nBCy, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(pDuDy, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(pExRHS[1], 0, data->bedge2cells, 15, "double", OP_INC));
 
@@ -216,10 +220,13 @@ void Poisson::rhs(const double *u, double *rhs) {
   copy_rhs(rhs);
 }
 
-void Poisson::setDirichletBCs(int *d) {
+void Poisson::setDirichletBCs(int *d, op_dat d_dat) {
   dirichlet = d;
+  dBC = d_dat;
 }
 
-void Poisson::setNeumannBCs(int *n) {
+void Poisson::setNeumannBCs(int *n, op_dat nx_dat, op_dat ny_dat) {
   neumann = n;
+  nBCx = nx_dat;
+  nBCy = ny_dat;
 }

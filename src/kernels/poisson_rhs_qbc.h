@@ -1,5 +1,6 @@
 inline void poisson_rhs_qbc(const int *bedge_type, const int *bedgeNum,
-                            const int *neumann0, const int *neumann1, const double *q, double *exq) {
+                            const int *neumann0, const int *neumann1,
+                            const double *bc, const double *q, double *exq) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 5;
@@ -19,12 +20,14 @@ inline void poisson_rhs_qbc(const int *bedge_type, const int *bedgeNum,
 
   if(*bedge_type == *neumann0 || *bedge_type == *neumann1) {
     for(int i = 0; i < 5; i++) {
-      exq[exInd + i] += -q[fmask[i]];
+      // exq[exInd + i] += -q[fmask[i]] + 2.0 * bc[exInd + i];
+      exq[exInd + i] += bc[exInd + i];
+      // exq[exInd + i] += -q[fmask[i]];
     }
   } else {
     // So dq is 0 if no neumann BCs on this edge
-    // for(int i = 0; i < 5; i++) {
-    //   exq[exInd + i] += q[fmask[i]];
-    // }
+    for(int i = 0; i < 5; i++) {
+      exq[exInd + i] += q[fmask[i]];
+    }
   }
 }

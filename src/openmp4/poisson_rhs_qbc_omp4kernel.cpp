@@ -18,6 +18,8 @@ void poisson_rhs_qbc_omp4_kernel(
   int dat4size,
   double *data5,
   int dat5size,
+  double *data6,
+  int dat6size,
   int *col_reord,
   int set_size1,
   int start,
@@ -32,12 +34,13 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5){
+  op_arg arg5,
+  op_arg arg6){
 
   int*arg2h = (int *)arg2.data;
   int*arg3h = (int *)arg3.data;
-  int nargs = 6;
-  op_arg args[6];
+  int nargs = 7;
+  op_arg args[7];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -45,6 +48,7 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   args[3] = arg3;
   args[4] = arg4;
   args[5] = arg5;
+  args[6] = arg6;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -53,8 +57,8 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   OP_kernels[23].name      = name;
   OP_kernels[23].count    += 1;
 
-  int  ninds   = 2;
-  int  inds[6] = {-1,-1,-1,-1,0,1};
+  int  ninds   = 3;
+  int  inds[7] = {-1,-1,-1,-1,0,1,2};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_rhs_qbc\n");
@@ -94,6 +98,8 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
     int dat4size = getSetSizeFromOpArg(&arg4) * arg4.dat->dim;
     double *data5 = (double *)arg5.data_d;
     int dat5size = getSetSizeFromOpArg(&arg5) * arg5.dat->dim;
+    double *data6 = (double *)arg6.data_d;
+    int dat6size = getSetSizeFromOpArg(&arg6) * arg6.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -120,6 +126,8 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
         dat4size,
         data5,
         dat5size,
+        data6,
+        dat6size,
         col_reord,
         set_size1,
         start,

@@ -1,4 +1,7 @@
-inline void poisson_test_bc(const int *bedge_type, const int *bedgeNum, double *ex) {
+#include <iostream>
+
+inline void poisson_test_bc(const int *bedge_type, const int *bedgeNum,
+                            const double *x, const double *y, double *dBC) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 5;
@@ -16,9 +19,10 @@ inline void poisson_test_bc(const int *bedge_type, const int *bedgeNum, double *
     fmask = &FMASK[2 * 5];
   }
 
-  if(*bedge_type == 0) {
+  if(*bedge_type == 1) {
     for(int i = 0; i < 5; i++) {
-      ex[exInd + i] += -1.0;
+      double y1 = y[fmask[i]];
+      dBC[exInd + i] += y1 * (1.0 - y1);
     }
   }
 }

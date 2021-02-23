@@ -39,6 +39,9 @@ void op_par_loop_set_ic(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_calc_dt(char const *, op_set,
@@ -324,7 +327,10 @@ int main(int argc, char **argv) {
               op_arg_dat(data->exQ[1],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->dPdN[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->dPdN[1],-1,OP_ID,15,"double",OP_WRITE),
-              op_arg_dat(data->pRHSex,-1,OP_ID,15,"double",OP_WRITE));
+              op_arg_dat(data->pRHSex,-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->dirichletBC,-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->neumannBCx,-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->neumannBCy,-1,OP_ID,15,"double",OP_WRITE));
 
   Poisson *poisson = new Poisson(data);
 

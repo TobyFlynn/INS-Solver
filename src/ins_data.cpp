@@ -62,6 +62,9 @@ INSData::~INSData() {
   free(p_data);
   free(dpdx_data);
   free(dpdy_data);
+  free(dirichletBC_data);
+  free(neumannBCx_data);
+  free(neumannBCy_data);
 }
 
 void INSData::initOP2() {
@@ -108,6 +111,9 @@ void INSData::initOP2() {
   p_data       = (double *)malloc(15 * numCells * sizeof(double));
   dpdx_data    = (double *)malloc(15 * numCells * sizeof(double));
   dpdy_data    = (double *)malloc(15 * numCells * sizeof(double));
+  dirichletBC_data = (double *)malloc(15 * numCells * sizeof(double));
+  neumannBCx_data   = (double *)malloc(15 * numCells * sizeof(double));
+  neumannBCy_data   = (double *)malloc(15 * numCells * sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -189,6 +195,9 @@ void INSData::initOP2() {
   p       = op_decl_dat(cells, 15, "double", p_data, "p");
   dpdx    = op_decl_dat(cells, 15, "double", dpdx_data, "dpdx");
   dpdy    = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
+  dirichletBC = op_decl_dat(cells, 15, "double", dirichletBC_data, "dirichletBC");
+  neumannBCx  = op_decl_dat(cells, 15, "double", neumannBCx_data, "neumannBCx");
+  neumannBCy  = op_decl_dat(cells, 15, "double", neumannBCy_data, "neumannBCy");
 
   op_decl_const(1, "double", &gam);
   op_decl_const(1, "double", &mu);

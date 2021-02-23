@@ -37,23 +37,24 @@ int main(int argc, char **argv) {
   // (along with memory associated with them)
   INSData *data = new INSData();
 
-  auto bcNum = [](double x0, double x1, double y0, double y1) -> int {
-    /*
+  auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
     if(y1 == y2 && y1 > 0.5) {
-      // Dirichlet BC y = 1
+      // Neumann BC y = 1
+      // cout << "0" << endl;
       return 0;
     } else if(y1 == y2 && y1 < 0.5) {
-      // Dirichlet BC y = 0
-      return 1;
+      // Neumann BC y = 0
+      // cout << "1" << endl;
+      return 0;
     } else if(x1 < 0.5){
       // Dirichlet BC x = 0
-      return 2;
+      // cout << "2" << endl;
+      return 0;
     } else {
       // Dirichlet BC x = 1
-      return 3;
+      // cout << "3" << endl;
+      return 1;
     }
-    */
-    return 0;
   };
 
   load_mesh("./grid.cgns", data, bcNum);
@@ -96,13 +97,20 @@ int main(int argc, char **argv) {
               op_arg_dat(data->fscale, -1, OP_ID, 15, "double", OP_WRITE));
 
   op_par_loop(poisson_test_init, "poisson_test_init", data->cells,
+              op_arg_dat(data->x, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->y, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(ex,  -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->dirichletBC, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->neumannBCx, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->neumannBCy, -1, OP_ID, 15, "double", OP_WRITE));
 
   op_par_loop(poisson_test_bc, "poisson_test_bc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(ex, 0, data->bedge2cells, 15, "double", OP_INC));
+              op_arg_dat(data->x, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->y, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->dirichletBC, 0, data->bedge2cells, 15, "double", OP_INC));
 
   op_par_loop(poisson_test_set_rhs, "poisson_test_set_rhs", data->cells,
               op_arg_dat(data->J,  -1, OP_ID, 15, "double", OP_READ),
@@ -113,10 +121,12 @@ int main(int argc, char **argv) {
 
   Poisson *poisson = new Poisson(data);
 
-  int dBCs[] = {0, -1};
+  // op_fetch_data_hdf5_file(data->dirichletBC, "t.h5");
+
+  int dBCs[] = {0, 1};
   int nBCs[] = {-1, -1};
-  poisson->setDirichletBCs(dBCs);
-  poisson->setNeumannBCs(nBCs);
+  poisson->setDirichletBCs(dBCs, data->dirichletBC);
+  poisson->setNeumannBCs(nBCs, data->neumannBCx, data->neumannBCy);
 
   poisson->solve(rhs, sol);
 
@@ -139,9 +149,12 @@ int main(int argc, char **argv) {
   op_fetch_data(err, err_ptr);
   op_fetch_data(data->x, x_ptr);
   op_fetch_data(data->y, y_ptr);
-  save_solution_all("./sol.cgns", op_get_size(data->cells), sol_ptr, err_ptr, x_ptr, y_ptr);
+  // save_solution_all("./sol.cgns", op_get_size(data->cells), sol_ptr, err_ptr, x_ptr, y_ptr);
 
-  // save_solution("./grid.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+  save_solution("./grid.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+                sol_ptr, err_ptr, data->cgnsCells);
+
+  // save_solution_cell("./grid.cgns", op_get_size(data->nodes), op_get_size(data->cells),
   //               sol_ptr, err_ptr, data->cgnsCells);
 
   free(sol_ptr);
