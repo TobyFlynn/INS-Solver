@@ -19,10 +19,11 @@ inline void poisson_test_bc(const int *bedge_type, const int *bedgeNum,
     fmask = &FMASK[2 * 5];
   }
 
-  if(*bedge_type == 1) {
+  if(*bedge_type == 0) {
     for(int i = 0; i < 5; i++) {
       double y1 = y[fmask[i]];
-      dBC[exInd + i] += y1 * (1.0 - y1);
+      // dBC[exInd + i] += y1 * (1.0 - y1);
+      dBC[exInd + i] += 2.0 * y1 * y1 * y1  - 3.0 * y1 * y1 + 1.0;
     }
   }
 }

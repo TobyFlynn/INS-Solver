@@ -41,11 +41,11 @@ int main(int argc, char **argv) {
     if(y1 == y2 && y1 > 0.5) {
       // Neumann BC y = 1
       // cout << "0" << endl;
-      return 0;
+      return 2;
     } else if(y1 == y2 && y1 < 0.5) {
       // Neumann BC y = 0
       // cout << "1" << endl;
-      return 0;
+      return 3;
     } else if(x1 < 0.5){
       // Dirichlet BC x = 0
       // cout << "2" << endl;
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
   // op_fetch_data_hdf5_file(data->dirichletBC, "t.h5");
 
   int dBCs[] = {0, 1};
-  int nBCs[] = {-1, -1};
+  int nBCs[] = {2, 3};
   poisson->setDirichletBCs(dBCs, data->dirichletBC);
   poisson->setNeumannBCs(nBCs, data->neumannBCx, data->neumannBCy);
 
