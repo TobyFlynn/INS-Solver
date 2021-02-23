@@ -74,7 +74,9 @@ void advection_bc_omp4_kernel(
       const double PI = 3.141592653589793238463;
       for(int i = 0; i < 5; i++) {
         int qInd = fmask[i];
-        exQ0[exInd + i] += pow(0.41, -2.0) * sin((PI * *t) / 8.0) * 6.0 * (y[qInd] + 0.2) * (0.21 - y[qInd]);
+
+        exQ0[exInd + i] += pow(0.41, -2.0) * cos((PI * *t) / 8.0);
+
 
       }
     } else if(*bedge_type == 1) {

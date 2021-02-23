@@ -64,6 +64,11 @@ void poisson_rhs_bc_omp4_kernel(
       for(int i = 0; i < 5; i++) {
         exU[exInd + i] += -U[fmask[i]];
       }
+    } else {
+
+
+
+
     }
     //end inline func
   }

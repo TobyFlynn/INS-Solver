@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
               op_arg_dat(data->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(data->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_gbl(&dt, 1, "double", OP_MIN));
-  dt = dt / 25.0;
+  dt = dt * 1e-2;
   cout << "dt: " << dt << endl;
 
   double a0 = 1.0;
@@ -208,29 +208,66 @@ int main(int argc, char **argv) {
   cout << "Time in pressure solve: " << p_time << endl;
   cout << "Time in viscosity solve: " << v_time << endl;
 
+
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(data->Q[currentIter % 2][0], sol_q0);
   op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
   // op_fetch_data(data->p, sol_q0);
+  // op_fetch_data(data->pRHS, sol_q1);
+  // save_solution_cell("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+  //               sol_q0, sol_q1, data->cgnsCells);
+
+  // op_fetch_data(data->p, sol_q0);
   // op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
   save_solution("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
                 sol_q0, sol_q1, data->cgnsCells);
+/*
+  op_fetch_data(data->QT[0], sol_q0);
+  op_fetch_data(data->QT[1], sol_q1);
+  save_solution("cylinder1.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+                sol_q0, sol_q1, data->cgnsCells);
 
-  // op_fetch_data(data->QT[0], sol_q0);
-  // op_fetch_data(data->QT[1], sol_q1);
-  // save_solution("cylinder1.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-  //               sol_q0, sol_q1, data->cgnsCells);
-  //
-  // op_fetch_data(data->QTT[0], sol_q0);
-  // op_fetch_data(data->QTT[1], sol_q1);
-  // save_solution("cylinder2.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-  //               sol_q0, sol_q1, data->cgnsCells);
+  op_fetch_data(data->QTT[0], sol_q0);
+  op_fetch_data(data->QTT[1], sol_q1);
+  save_solution("cylinder2.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+                sol_q0, sol_q1, data->cgnsCells);
+
+  op_fetch_data(data->dpdx, sol_q0);
+  op_fetch_data(data->dpdy, sol_q1);
+  save_solution("cylinder3.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+                sol_q0, sol_q1, data->cgnsCells);
+
+  op_fetch_data(data->visRHS[0], sol_q0);
+  op_fetch_data(data->visRHS[1], sol_q1);
+  save_solution("cylinder4.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+                sol_q0, sol_q1, data->cgnsCells);
+  */
 
   free(sol_q0);
   free(sol_q1);
 
+/*
+  double *u_ptr = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  double *v_ptr = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  double *x_ptr = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  double *y_ptr = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+
+  // op_fetch_data(data->Q[currentIter % 2][0], u_ptr);
+  // op_fetch_data(data->Q[currentIter % 2][1], v_ptr);
+  op_fetch_data(data->dpdx, u_ptr);
+  op_fetch_data(data->dpdy, v_ptr);
+  op_fetch_data(data->x, x_ptr);
+  op_fetch_data(data->y, y_ptr);
+
+  save_solution_all("solution.cgns", op_get_size(data->cells), u_ptr, v_ptr, x_ptr, y_ptr);
+
+  free(u_ptr);
+  free(v_ptr);
+  free(x_ptr);
+  free(y_ptr);
+*/
   // Clean up OP2
   op_exit();
 
@@ -310,6 +347,7 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               double b1, double g0, double dt, double t) {
   int pressure_dirichlet[] = {1, -1};
   int pressure_neumann[] = {0, 2};
+  // int pressure_neumann[] = {-1, -1};
   poisson->setDirichletBCs(pressure_dirichlet);
   poisson->setNeumannBCs(pressure_neumann);
   div(data, data->QT[0], data->QT[1], data->divVelT);

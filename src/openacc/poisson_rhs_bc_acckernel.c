@@ -29,6 +29,11 @@ inline void poisson_rhs_bc_openacc( const int *bedge_type, const int *bedgeNum,
     for(int i = 0; i < 5; i++) {
       exU[exInd + i] += -U[fmask[i]];
     }
+  } else {
+
+
+
+
   }
 }
 

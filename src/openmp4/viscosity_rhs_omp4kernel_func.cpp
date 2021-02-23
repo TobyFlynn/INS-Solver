@@ -36,6 +36,8 @@ void viscosity_rhs_omp4_kernel(
     for(int i = 0; i < 15; i++) {
       vRHS0[i] = *factor * J[i] * qtt0[i];
       vRHS1[i] = *factor * J[i] * qtt1[i];
+
+
     }
     //end inline func
   }

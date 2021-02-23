@@ -64,6 +64,11 @@ void poisson_rhs_qbc_omp4_kernel(
       for(int i = 0; i < 5; i++) {
         exq[exInd + i] += -q[fmask[i]];
       }
+    } else {
+
+
+
+
     }
     //end inline func
   }

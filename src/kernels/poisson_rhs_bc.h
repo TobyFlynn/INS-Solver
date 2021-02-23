@@ -22,5 +22,10 @@ inline void poisson_rhs_bc(const int *bedge_type, const int *bedgeNum,
     for(int i = 0; i < 5; i++) {
       exU[exInd + i] += -U[fmask[i]];
     }
+  } else {
+    // So du is 0 if no dirichlet BCs on this edge
+    // for(int i = 0; i < 5; i++) {
+    //   exU[exInd + i] += U[fmask[i]];
+    // }
   }
 }
