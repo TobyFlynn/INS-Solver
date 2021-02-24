@@ -35,7 +35,7 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum, const double
     // Inflow
     const double PI = 3.141592653589793238463;
     for(int i = 0; i < 5; i++) {
-      double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * (y[fmask[i]] + 0.2) * (0.21 - y[fmask[i]]);
+      double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y[fmask[i]] * (0.41 - y[fmask[i]]);
       // double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0);
       dPdN[exInd + i] -= bcdUndt;
     }

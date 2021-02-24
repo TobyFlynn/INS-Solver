@@ -1,6 +1,6 @@
 inline void poisson_rhs_qbc(const int *bedge_type, const int *bedgeNum,
                             const int *neumann0, const int *neumann1,
-                            const double *bc, const double *q, double *exq) {
+                            const double *q, double *exq) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 5;

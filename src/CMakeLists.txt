@@ -31,16 +31,16 @@ target_link_libraries(ins_cuda ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linu
 set_property(TARGET ins_cuda PROPERTY CUDA_ARCHITECTURES OFF)
 
 # Poisson Test
-op2_application(poisson_seq LIBS op2_seq op2_hdf5 SOURCES poisson_test_op.cpp ${CPU_SRC} ${OPENBLAS_SRC} seq/ins_seqkernels.cpp ${KERNEL_HEADERS})
-target_include_directories(poisson_seq PUBLIC ${CGNS_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${OPENBLAS_DIR}/include)
-target_link_libraries(poisson_seq ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so -L${OPENBLAS_DIR}/lib -lopenblas)
+#op2_application(poisson_seq LIBS op2_seq op2_hdf5 SOURCES poisson_test_op.cpp ${CPU_SRC} ${OPENBLAS_SRC} seq/ins_seqkernels.cpp ${KERNEL_HEADERS})
+#target_include_directories(poisson_seq PUBLIC ${CGNS_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${OPENBLAS_DIR}/include)
+#target_link_libraries(poisson_seq ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so -L${OPENBLAS_DIR}/lib -lopenblas)
 
-op2_application(poisson_openmp LIBS op2_openmp op2_hdf5 SOURCES poisson_test_op.cpp ${CPU_SRC} ${OPENBLAS_SRC} openmp/ins_kernels.cpp ${KERNEL_HEADERS})
-target_include_directories(poisson_openmp PUBLIC ${CGNS_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${OPENBLAS_DIR}/include)
-target_link_libraries(poisson_openmp ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so -L${OPENBLAS_DIR}/lib -lopenblas)
+#op2_application(poisson_openmp LIBS op2_openmp op2_hdf5 SOURCES poisson_test_op.cpp ${CPU_SRC} ${OPENBLAS_SRC} openmp/ins_kernels.cpp ${KERNEL_HEADERS})
+#target_include_directories(poisson_openmp PUBLIC ${CGNS_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${OPENBLAS_DIR}/include)
+#target_link_libraries(poisson_openmp ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so -L${OPENBLAS_DIR}/lib -lopenblas)
 
-op2_application(poisson_cuda LIBS op2_cuda op2_hdf5 SOURCES poisson_test_op.cpp ${GPU_SRC} ${CUBLAS_SRC} cuda/ins_kernels.cu ${KERNEL_HEADERS})
-target_compile_definitions(poisson_cuda PUBLIC -DBUILD_CUDA)
-target_include_directories(poisson_cuda PUBLIC ${CGNS_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${CUDAToolkit_INCLUDE_DIRS})
-target_link_libraries(poisson_cuda ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so CUDA::cudart_static CUDA::cublas)
-set_property(TARGET poisson_cuda PROPERTY CUDA_ARCHITECTURES OFF)
+#op2_application(poisson_cuda LIBS op2_cuda op2_hdf5 SOURCES poisson_test_op.cpp ${GPU_SRC} ${CUBLAS_SRC} cuda/ins_kernels.cu ${KERNEL_HEADERS})
+#target_compile_definitions(poisson_cuda PUBLIC -DBUILD_CUDA)
+#target_include_directories(poisson_cuda PUBLIC ${CGNS_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${CUDAToolkit_INCLUDE_DIRS})
+#target_link_libraries(poisson_cuda ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so CUDA::cudart_static CUDA::cublas)
+#set_property(TARGET poisson_cuda PROPERTY CUDA_ARCHITECTURES OFF)

@@ -7,7 +7,7 @@
 //#pragma acc routine
 inline void poisson_rhs_qbc_openacc( const int *bedge_type, const int *bedgeNum,
                             const int *neumann0, const int *neumann1,
-                            const double *bc, const double *q, double *exq) {
+                            const double *q, double *exq) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 5;
@@ -46,13 +46,12 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5,
-  op_arg arg6){
+  op_arg arg5){
 
   int*arg2h = (int *)arg2.data;
   int*arg3h = (int *)arg3.data;
-  int nargs = 7;
-  op_arg args[7];
+  int nargs = 6;
+  op_arg args[6];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -60,7 +59,6 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   args[3] = arg3;
   args[4] = arg4;
   args[5] = arg5;
-  args[6] = arg6;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -69,8 +67,8 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   OP_kernels[23].name      = name;
   OP_kernels[23].count    += 1;
 
-  int  ninds   = 3;
-  int  inds[7] = {-1,-1,-1,-1,0,1,2};
+  int  ninds   = 2;
+  int  inds[6] = {-1,-1,-1,-1,0,1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_rhs_qbc\n");
@@ -100,7 +98,6 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
     int* data1 = (int*)arg1.data_d;
     double *data4 = (double *)arg4.data_d;
     double *data5 = (double *)arg5.data_d;
-    double *data6 = (double *)arg6.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -115,7 +112,7 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map4,data0,data1,data4,data5,data6)
+      #pragma acc parallel loop independent deviceptr(col_reord,map4,data0,data1,data4,data5)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map4idx;
@@ -128,8 +125,7 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
           &arg2_l,
           &arg3_l,
           &data4[15 * map4idx],
-          &data5[15 * map4idx],
-          &data6[15 * map4idx]);
+          &data5[15 * map4idx]);
       }
 
     }

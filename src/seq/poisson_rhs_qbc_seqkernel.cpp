@@ -12,11 +12,10 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5,
-  op_arg arg6){
+  op_arg arg5){
 
-  int nargs = 7;
-  op_arg args[7];
+  int nargs = 6;
+  op_arg args[6];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -24,7 +23,6 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   args[3] = arg3;
   args[4] = arg4;
   args[5] = arg5;
-  args[6] = arg6;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -53,8 +51,7 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
         (int*)arg2.data,
         (int*)arg3.data,
         &((double*)arg4.data)[15 * map4idx],
-        &((double*)arg5.data)[15 * map4idx],
-        &((double*)arg6.data)[15 * map4idx]);
+        &((double*)arg5.data)[15 * map4idx]);
     }
   }
 
@@ -70,8 +67,7 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   OP_kernels[23].count    += 1;
   OP_kernels[23].time     += wall_t2 - wall_t1;
   OP_kernels[23].transfer += (float)set->size * arg4.size;
-  OP_kernels[23].transfer += (float)set->size * arg5.size;
-  OP_kernels[23].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[23].transfer += (float)set->size * arg5.size * 2.0f;
   OP_kernels[23].transfer += (float)set->size * arg0.size;
   OP_kernels[23].transfer += (float)set->size * arg1.size;
   OP_kernels[23].transfer += (float)set->size * arg2.size;

@@ -54,6 +54,8 @@ INSData::~INSData() {
     free(gradCurlVel_data[i]);
     free(dPdN_data[i]);
     free(visRHS_data[i]);
+    free(neumannBCx_data[i]);
+    free(neumannBCy_data[i]);
   }
   free(divVelT_data);
   free(curlVel_data);
@@ -63,8 +65,6 @@ INSData::~INSData() {
   free(dpdx_data);
   free(dpdy_data);
   free(dirichletBC_data);
-  free(neumannBCx_data);
-  free(neumannBCy_data);
 }
 
 void INSData::initOP2() {
@@ -103,6 +103,8 @@ void INSData::initOP2() {
     gradCurlVel_data[i] = (double *)malloc(15 * numCells * sizeof(double));
     dPdN_data[i] = (double *)malloc(15 * numCells * sizeof(double));
     visRHS_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    neumannBCx_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    neumannBCy_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
   divVelT_data = (double *)malloc(15 * numCells * sizeof(double));
   curlVel_data = (double *)malloc(15 * numCells * sizeof(double));
@@ -112,8 +114,6 @@ void INSData::initOP2() {
   dpdx_data    = (double *)malloc(15 * numCells * sizeof(double));
   dpdy_data    = (double *)malloc(15 * numCells * sizeof(double));
   dirichletBC_data = (double *)malloc(15 * numCells * sizeof(double));
-  neumannBCx_data   = (double *)malloc(15 * numCells * sizeof(double));
-  neumannBCy_data   = (double *)malloc(15 * numCells * sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -187,6 +187,8 @@ void INSData::initOP2() {
     dPdN[i] = op_decl_dat(cells, 15, "double", dPdN_data[i], dPdNname.c_str());
     string visRHSname = "visRHS" + to_string(i);
     visRHS[i] = op_decl_dat(cells, 15, "double", visRHS_data[i], visRHSname.c_str());
+    neumannBCx[i] = op_decl_dat(cells, 15, "double", neumannBCx_data[i], "neumannBCx");
+    neumannBCy[i] = op_decl_dat(cells, 15, "double", neumannBCy_data[i], "neumannBCy");
   }
   divVelT = op_decl_dat(cells, 15, "double", divVelT_data, "divVelT");
   curlVel = op_decl_dat(cells, 15, "double", curlVel_data, "curlVel");
@@ -196,8 +198,6 @@ void INSData::initOP2() {
   dpdx    = op_decl_dat(cells, 15, "double", dpdx_data, "dpdx");
   dpdy    = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
   dirichletBC = op_decl_dat(cells, 15, "double", dirichletBC_data, "dirichletBC");
-  neumannBCx  = op_decl_dat(cells, 15, "double", neumannBCx_data, "neumannBCx");
-  neumannBCy  = op_decl_dat(cells, 15, "double", neumannBCy_data, "neumannBCy");
 
   op_decl_const(1, "double", &gam);
   op_decl_const(1, "double", &mu);

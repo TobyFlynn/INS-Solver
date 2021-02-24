@@ -257,8 +257,8 @@ int main(int argc, char **argv) {
   nu = 1e-3;
   bc_u = 1e-6;
   bc_v = 0.0;
-  // ic_u = 1e-5;
-  ic_u = 0.0;
+  ic_u = 1e-5;
+  // ic_u = 0.0;
   ic_v = 0.0;
 
   cout << "gam: " << gam << endl;
@@ -331,8 +331,8 @@ int main(int argc, char **argv) {
               op_arg_dat(data->dPdN[1],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->pRHSex,-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->dirichletBC,-1,OP_ID,15,"double",OP_WRITE),
-              op_arg_dat(data->neumannBCx,-1,OP_ID,15,"double",OP_WRITE),
-              op_arg_dat(data->neumannBCy,-1,OP_ID,15,"double",OP_WRITE));
+              op_arg_dat(data->neumannBCx[0],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->neumannBCy[0],-1,OP_ID,15,"double",OP_WRITE));
 
   Poisson *poisson = new Poisson(data);
 
@@ -399,10 +399,10 @@ int main(int argc, char **argv) {
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  op_fetch_data(data->Q[currentIter % 2][0], sol_q0);
-  op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
-  // op_fetch_data(data->QT[0], sol_q0);
-  // op_fetch_data(data->QT[1], sol_q1);
+  // op_fetch_data(data->Q[currentIter % 2][0], sol_q0);
+  // op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
+  op_fetch_data(data->dpdx, sol_q0);
+  op_fetch_data(data->dpdy, sol_q1);
   // save_solution_cell("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
   //               sol_q0, sol_q1, data->cgnsCells);
 
@@ -576,15 +576,16 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->pRHSex,-1,OP_ID,15,"double",OP_RW),
               op_arg_dat(data->pRHS,-1,OP_ID,15,"double",OP_RW));
 */
-  int pressure_dirichlet[] = {-1, -1};
+  int pressure_dirichlet[] = {1, -1};
   int pressure_neumann[] = {0, 2};
   poisson->setDirichletBCs(pressure_dirichlet, data->dirichletBC);
-  poisson->setNeumannBCs(pressure_neumann, data->neumannBCx, data->neumannBCy);
+  poisson->setNeumannBCs(pressure_neumann);
   poisson->solve(data->pRHS, data->p);
 
   grad(data, data->p, data->dpdx, data->dpdy);
 
   double factor = dt / g0;
+
   op_par_loop_pressure_update_vel("pressure_update_vel",data->cells,
               op_arg_gbl(&factor,1,"double",OP_READ),
               op_arg_dat(data->dpdx,-1,OP_ID,15,"double",OP_READ),
@@ -638,11 +639,11 @@ void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, doubl
   int viscosity_dirichlet[] = {0, 2};
   int viscosity_neumann[] = {1, -1};
   poisson->setDirichletBCs(viscosity_dirichlet, data->exQ[0]);
-  poisson->setNeumannBCs(viscosity_neumann, data->neumannBCx, data->neumannBCy);
+  poisson->setNeumannBCs(viscosity_neumann);
   poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
 
   poisson->setDirichletBCs(viscosity_dirichlet, data->exQ[1]);
-  poisson->setNeumannBCs(viscosity_neumann, data->neumannBCx, data->neumannBCy);
+  poisson->setNeumannBCs(viscosity_neumann);
   poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
 
   op_par_loop_viscosity_set_bc("viscosity_set_bc",data->cells,

@@ -1632,8 +1632,7 @@ void op_par_loop_poisson_rhs_qbc_gpu(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5,
-  op_arg arg6);
+  op_arg arg5);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -1643,8 +1642,7 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5,
-  op_arg arg6){
+  op_arg arg5){
 
   if (OP_hybrid_gpu) {
     op_par_loop_poisson_rhs_qbc_gpu(name, set,
@@ -1653,8 +1651,7 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
       arg2,
       arg3,
       arg4,
-      arg5,
-      arg6);
+      arg5);
 
     }else{
     op_par_loop_poisson_rhs_qbc_cpu(name, set,
@@ -1663,8 +1660,7 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
       arg2,
       arg3,
       arg4,
-      arg5,
-      arg6);
+      arg5);
 
   }
 }
@@ -1675,8 +1671,7 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5,
-  op_arg arg6){
+  op_arg arg5){
 
   op_par_loop_poisson_rhs_qbc_gpu(name, set,
     arg0,
@@ -1684,8 +1679,7 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
     arg2,
     arg3,
     arg4,
-    arg5,
-    arg6);
+    arg5);
 
   }
 #endif //OP_HYBRID_GPU
