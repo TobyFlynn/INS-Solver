@@ -1,5 +1,3 @@
-#include <iostream>
-
 inline void poisson_rhs_bc(const int *bedge_type, const int *bedgeNum,
                            const int *dirichlet0, const int *dirichlet1,
                            const double *dBC, const double *U, double *exU) {
@@ -22,8 +20,8 @@ inline void poisson_rhs_bc(const int *bedge_type, const int *bedgeNum,
 
   if(*bedge_type == *dirichlet0 || *bedge_type == *dirichlet1) {
     for(int i = 0; i < 5; i++) {
-      // exU[exInd + i] += -U[fmask[i]] + 2.0 * dBC[exInd + i];
-      exU[exInd + i] += dBC[exInd + i];
+      exU[exInd + i] += -U[fmask[i]] + 2.0 * dBC[exInd + i];
+      // exU[exInd + i] += dBC[exInd + i];
       // exU[exInd + i] += -U[fmask[i]];
     }
   } else {

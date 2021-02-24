@@ -15,8 +15,7 @@ void viscosity_set_bc_omp4_kernel(
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size]) \
-    map(to: FMASK_ompkernel[:15])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
@@ -28,8 +27,8 @@ void viscosity_set_bc_omp4_kernel(
     //inline function
     
     for(int i = 0; i < 15; i++) {
-      qtt0[FMASK_ompkernel[i]] = exQ0[i];
-      qtt1[FMASK_ompkernel[i]] = exQ1[i];
+
+
       exQ0[i] = 0.0;
       exQ1[i] = 0.0;
     }

@@ -18,9 +18,9 @@
 #define op_par_loop_pressure_bc3 op_par_loop_pressure_bc3_gpu
 #define op_par_loop_pressure_update_vel op_par_loop_pressure_update_vel_gpu
 #define op_par_loop_viscosity_faces op_par_loop_viscosity_faces_gpu
-#define op_par_loop_viscosity_set_bc op_par_loop_viscosity_set_bc_gpu
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_gpu
 #define op_par_loop_viscosity_bc op_par_loop_viscosity_bc_gpu
+#define op_par_loop_viscosity_set_bc op_par_loop_viscosity_set_bc_gpu
 #define op_par_loop_setup_poisson op_par_loop_setup_poisson_gpu
 #define op_par_loop_set_tau op_par_loop_set_tau_gpu
 #define op_par_loop_set_tau_bc op_par_loop_set_tau_bc_gpu
@@ -52,9 +52,9 @@
 #undef op_par_loop_pressure_bc3
 #undef op_par_loop_pressure_update_vel
 #undef op_par_loop_viscosity_faces
-#undef op_par_loop_viscosity_set_bc
 #undef op_par_loop_viscosity_rhs
 #undef op_par_loop_viscosity_bc
+#undef op_par_loop_viscosity_set_bc
 #undef op_par_loop_setup_poisson
 #undef op_par_loop_set_tau
 #undef op_par_loop_set_tau_bc
@@ -86,9 +86,9 @@
 #define op_par_loop_pressure_bc3 op_par_loop_pressure_bc3_cpu
 #define op_par_loop_pressure_update_vel op_par_loop_pressure_update_vel_cpu
 #define op_par_loop_viscosity_faces op_par_loop_viscosity_faces_cpu
-#define op_par_loop_viscosity_set_bc op_par_loop_viscosity_set_bc_cpu
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_cpu
 #define op_par_loop_viscosity_bc op_par_loop_viscosity_bc_cpu
+#define op_par_loop_viscosity_set_bc op_par_loop_viscosity_set_bc_cpu
 #define op_par_loop_setup_poisson op_par_loop_setup_poisson_cpu
 #define op_par_loop_set_tau op_par_loop_set_tau_cpu
 #define op_par_loop_set_tau_bc op_par_loop_set_tau_bc_cpu
@@ -120,9 +120,9 @@
 #undef op_par_loop_pressure_bc3
 #undef op_par_loop_pressure_update_vel
 #undef op_par_loop_viscosity_faces
-#undef op_par_loop_viscosity_set_bc
 #undef op_par_loop_viscosity_rhs
 #undef op_par_loop_viscosity_bc
+#undef op_par_loop_viscosity_set_bc
 #undef op_par_loop_setup_poisson
 #undef op_par_loop_set_tau
 #undef op_par_loop_set_tau_bc
@@ -1031,7 +1031,8 @@ void op_par_loop_pressure_update_vel_gpu(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6);
+  op_arg arg6,
+  op_arg arg7);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -1042,7 +1043,8 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6){
+  op_arg arg6,
+  op_arg arg7){
 
   if (OP_hybrid_gpu) {
     op_par_loop_pressure_update_vel_gpu(name, set,
@@ -1052,7 +1054,8 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
       arg3,
       arg4,
       arg5,
-      arg6);
+      arg6,
+      arg7);
 
     }else{
     op_par_loop_pressure_update_vel_cpu(name, set,
@@ -1062,7 +1065,8 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
       arg3,
       arg4,
       arg5,
-      arg6);
+      arg6,
+      arg7);
 
   }
 }
@@ -1074,7 +1078,8 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6){
+  op_arg arg6,
+  op_arg arg7){
 
   op_par_loop_pressure_update_vel_gpu(name, set,
     arg0,
@@ -1083,7 +1088,8 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
     arg3,
     arg4,
     arg5,
-    arg6);
+    arg6,
+    arg7);
 
   }
 #endif //OP_HYBRID_GPU
@@ -1136,52 +1142,6 @@ void op_par_loop_viscosity_faces(char const *name, op_set set,
     arg2,
     arg3,
     arg4);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_viscosity_set_bc_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_viscosity_set_bc(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_viscosity_set_bc_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3);
-
-    }else{
-    op_par_loop_viscosity_set_bc_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3);
-
-  }
-}
-#else
-void op_par_loop_viscosity_set_bc(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3){
-
-  op_par_loop_viscosity_set_bc_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3);
 
   }
 #endif //OP_HYBRID_GPU
@@ -1282,6 +1242,52 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   op_arg arg3){
 
   op_par_loop_viscosity_bc_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_viscosity_set_bc_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_viscosity_set_bc(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_viscosity_set_bc_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3);
+
+    }else{
+    op_par_loop_viscosity_set_bc_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3);
+
+  }
+}
+#else
+void op_par_loop_viscosity_set_bc(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3){
+
+  op_par_loop_viscosity_set_bc_gpu(name, set,
     arg0,
     arg1,
     arg2,

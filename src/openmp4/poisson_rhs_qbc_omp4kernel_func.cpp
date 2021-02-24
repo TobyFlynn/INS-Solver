@@ -66,8 +66,8 @@ void poisson_rhs_qbc_omp4_kernel(
     if(*bedge_type == *neumann0 || *bedge_type == *neumann1) {
       for(int i = 0; i < 5; i++) {
 
-        exq[exInd + i] += bc[exInd + i];
 
+        exq[exInd + i] += -q[fmask[i]];
       }
     } else {
 

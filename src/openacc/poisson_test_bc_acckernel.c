@@ -3,8 +3,6 @@
 //
 
 //user function
-#include <iostream>
-
 //user function
 //#pragma acc routine
 inline void poisson_test_bc_openacc( const int *bedge_type, const int *bedgeNum,

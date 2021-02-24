@@ -1,5 +1,3 @@
-#include <iostream>
-
 inline void poisson_test_bc(const int *bedge_type, const int *bedgeNum,
                             const double *x, const double *y, double *dBC) {
   int exInd = 0;
