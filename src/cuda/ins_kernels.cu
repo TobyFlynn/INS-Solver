@@ -93,7 +93,7 @@ int size, char *dat, char const *name){
 #include "viscosity_faces_kernel.cu"
 #include "viscosity_rhs_kernel.cu"
 #include "viscosity_bc_kernel.cu"
-#include "viscosity_set_bc_kernel.cu"
+#include "viscosity_reset_bc_kernel.cu"
 #include "setup_poisson_kernel.cu"
 #include "set_tau_kernel.cu"
 #include "set_tau_bc_kernel.cu"

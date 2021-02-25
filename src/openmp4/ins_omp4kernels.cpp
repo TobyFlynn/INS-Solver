@@ -22,7 +22,7 @@
 #include "viscosity_faces_omp4kernel.cpp"
 #include "viscosity_rhs_omp4kernel.cpp"
 #include "viscosity_bc_omp4kernel.cpp"
-#include "viscosity_set_bc_omp4kernel.cpp"
+#include "viscosity_reset_bc_omp4kernel.cpp"
 #include "setup_poisson_omp4kernel.cpp"
 #include "set_tau_omp4kernel.cpp"
 #include "set_tau_bc_omp4kernel.cpp"

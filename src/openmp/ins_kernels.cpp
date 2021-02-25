@@ -39,7 +39,7 @@ extern double ic_v;
 #include "viscosity_faces_kernel.cpp"
 #include "viscosity_rhs_kernel.cpp"
 #include "viscosity_bc_kernel.cpp"
-#include "viscosity_set_bc_kernel.cpp"
+#include "viscosity_reset_bc_kernel.cpp"
 #include "setup_poisson_kernel.cpp"
 #include "set_tau_kernel.cpp"
 #include "set_tau_bc_kernel.cpp"

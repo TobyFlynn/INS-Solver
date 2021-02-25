@@ -72,7 +72,7 @@ void op_decl_const_char(int dim, char const *type,
 #include "viscosity_faces_omp4kernel_func.cpp"
 #include "viscosity_rhs_omp4kernel_func.cpp"
 #include "viscosity_bc_omp4kernel_func.cpp"
-#include "viscosity_set_bc_omp4kernel_func.cpp"
+#include "viscosity_reset_bc_omp4kernel_func.cpp"
 #include "setup_poisson_omp4kernel_func.cpp"
 #include "set_tau_omp4kernel_func.cpp"
 #include "set_tau_bc_omp4kernel_func.cpp"

@@ -37,7 +37,7 @@ int size, char *dat, char const *name){}
 #include "viscosity_faces_acckernel.c"
 #include "viscosity_rhs_acckernel.c"
 #include "viscosity_bc_acckernel.c"
-#include "viscosity_set_bc_acckernel.c"
+#include "viscosity_reset_bc_acckernel.c"
 #include "setup_poisson_acckernel.c"
 #include "set_tau_acckernel.c"
 #include "set_tau_bc_acckernel.c"

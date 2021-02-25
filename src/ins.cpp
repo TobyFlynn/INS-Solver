@@ -38,7 +38,7 @@
 #include "kernels/viscosity_faces.h"
 #include "kernels/viscosity_rhs.h"
 #include "kernels/viscosity_bc.h"
-#include "kernels/viscosity_set_bc.h"
+#include "kernels/viscosity_reset_bc.h"
 
 using namespace std;
 
@@ -217,6 +217,7 @@ int main(int argc, char **argv) {
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *p_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  double *pRHS_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *px_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *py_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *utx_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
@@ -228,6 +229,7 @@ int main(int argc, char **argv) {
   op_fetch_data(data->dpdx, px_ptr);
   op_fetch_data(data->dpdy, py_ptr);
   op_fetch_data(data->p, p_ptr);
+  op_fetch_data(data->pRHS, pRHS_ptr);
   op_fetch_data(data->QT[0], utx_ptr);
   op_fetch_data(data->QT[1], uty_ptr);
   op_fetch_data(data->QTT[0], uttx_ptr);
@@ -241,11 +243,12 @@ int main(int argc, char **argv) {
   //               sol_q0, sol_q1, p_ptr, data->cgnsCells);
 
   save_solution_t("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-                  sol_q0, sol_q1, p_ptr, px_ptr, py_ptr, utx_ptr, uty_ptr, uttx_ptr, utty_ptr, data->cgnsCells);
+                  sol_q0, sol_q1, p_ptr, pRHS_ptr, px_ptr, py_ptr, utx_ptr, uty_ptr, uttx_ptr, utty_ptr, data->cgnsCells);
 
   free(sol_q0);
   free(sol_q1);
   free(p_ptr);
+  free(pRHS_ptr);
   free(px_ptr);
   free(py_ptr);
   free(utx_ptr);
@@ -423,10 +426,8 @@ void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, doubl
   op_par_loop(viscosity_rhs, "viscosity_rhs", data->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
               op_arg_dat(data->J, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->visRHS[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->visRHS[1], -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(data->visRHS[0], -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(data->visRHS[1], -1, OP_ID, 15, "double", OP_RW));
 /*
   op_par_loop(viscosity_bc, "viscosity_bc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
@@ -444,9 +445,7 @@ void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, doubl
   poisson->setNeumannBCs(viscosity_neumann);
   poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
 
-  op_par_loop(viscosity_set_bc, "viscosity_set_bc", data->cells,
-              op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(data->exQ[0], -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(data->exQ[1], -1, OP_ID, 15, "double", OP_RW));
+  op_par_loop(viscosity_reset_bc, "viscosity_reset_bc", data->cells,
+              op_arg_dat(data->exQ[0], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->exQ[1], -1, OP_ID, 15, "double", OP_WRITE));
 }

@@ -35,7 +35,7 @@ extern double ic_v;
 #include "viscosity_faces_seqkernel.cpp"
 #include "viscosity_rhs_seqkernel.cpp"
 #include "viscosity_bc_seqkernel.cpp"
-#include "viscosity_set_bc_seqkernel.cpp"
+#include "viscosity_reset_bc_seqkernel.cpp"
 #include "setup_poisson_seqkernel.cpp"
 #include "set_tau_seqkernel.cpp"
 #include "set_tau_bc_seqkernel.cpp"
