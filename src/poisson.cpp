@@ -105,7 +105,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   // KSPSetType(ksp, KSPFGMRES);
   KSPSetType(ksp, KSPCG);
   KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 1e4);
+  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
 
   // Solve
   KSPSolve(ksp, b, x);

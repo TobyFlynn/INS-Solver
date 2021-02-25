@@ -4,7 +4,7 @@
 #include <string>
 
 void save_solution(std::string filename, int numPts, int numCells, double *q0,
-                   double *q1, int *cellMap);
+                   double *q1, double *p, int *cellMap);
 
 void save_solution_cell(std::string filename, int numPts, int numCells, double *q0,
                         double *q1, int *cellMap);

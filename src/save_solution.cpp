@@ -11,14 +11,16 @@
 using namespace std;
 
 void save_solution(std::string filename, int numPts, int numCells, double *q0,
-                   double *q1, int *cellMap) {
+                   double *q1, double *p, int *cellMap) {
   vector<double> velX(numPts);
   vector<double> velY(numPts);
+  vector<double> pr(numPts);
   vector<int> num(numPts);
 
   for(int i = 0; i < numPts; i++) {
     velX[i] = 0.0;
     velY[i] = 0.0;
+    pr[i] = 0.0;
     num[i] = 0;
   }
 
@@ -34,20 +36,24 @@ void save_solution(std::string filename, int numPts, int numCells, double *q0,
 
     velX[node0] += q0[qCellInd + qNode0Ind];
     velY[node0] += q1[qCellInd + qNode0Ind];
+    pr[node0] += p[qCellInd + qNode0Ind];
     num[node0]++;
 
     velX[node1] += q0[qCellInd + qNode1Ind];
     velY[node1] += q1[qCellInd + qNode1Ind];
+    pr[node1] += p[qCellInd + qNode1Ind];
     num[node1]++;
 
     velX[node2] += q0[qCellInd + qNode2Ind];
     velY[node2] += q1[qCellInd + qNode2Ind];
+    pr[node2] += p[qCellInd + qNode2Ind];
     num[node2]++;
   }
 
   for(int i = 0; i < numPts; i++) {
     velX[i] = velX[i] / (double)num[i];
     velY[i] = velY[i] / (double)num[i];
+    pr[i] = pr[i] / (double)num[i];
   }
 
   // Write out CGNS file
@@ -62,6 +68,10 @@ void save_solution(std::string filename, int numPts, int numCells, double *q0,
   // Create flow solution node
   cg_sol_write(file, baseIndex, zoneIndex, "FlowSolution", CGNS_ENUMV(Vertex), &flowIndex);
 
+  // Write pressure
+  int pIndex;
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Pressure", pr.data(), &pIndex);
+
   // Write velocity x
   int velXIndex;
   cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityX", velX.data(), &velXIndex);
@@ -74,6 +84,10 @@ void save_solution(std::string filename, int numPts, int numCells, double *q0,
   cg_goto(file, baseIndex, "end");
   cg_dataclass_write(CGNS_ENUMV(Dimensional));
   cg_units_write(CGNS_ENUMV(Kilogram), CGNS_ENUMV(Meter), CGNS_ENUMV(Second), CGNS_ENUMV(Kelvin), CGNS_ENUMV(Degree));
+
+  exp[0] = 1.0f; exp[1] = -1.0f; exp[2] = -2.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", pIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
   exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
   cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", velXIndex, "end");
@@ -101,8 +115,16 @@ void save_solution_cell(std::string filename, int numPts, int numCells, double *
     int node1 = cellMap[i * 3 + 1];
     int node2 = cellMap[i * 3 + 2];
 
-    velX[i] = (q0[qCellInd + qNode0Ind] + q0[qCellInd + qNode1Ind] + q0[qCellInd + qNode2Ind]) / 3.0;
-    velY[i] = (q1[qCellInd + qNode0Ind] + q1[qCellInd + qNode1Ind] + q1[qCellInd + qNode2Ind]) / 3.0;
+    velX[i] = 0.0;
+    velY[i] = 0.0;
+
+    for(int j = 0; j < 15; j++) {
+      velX[i] += q0[qCellInd + j];
+      velY[i] += q1[qCellInd + j];
+    }
+
+    velX[i] = velX[i] / 15.0;
+    velY[i] = velY[i] / 15.0;
   }
 
   // Write out CGNS file

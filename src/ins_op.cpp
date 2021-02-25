@@ -399,17 +399,19 @@ int main(int argc, char **argv) {
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  double *p_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   // op_fetch_data(data->Q[currentIter % 2][0], sol_q0);
   // op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
   op_fetch_data(data->dpdx, sol_q0);
   op_fetch_data(data->dpdy, sol_q1);
-  // save_solution_cell("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-  //               sol_q0, sol_q1, data->cgnsCells);
+  op_fetch_data(data->p, p_ptr);
+  save_solution_cell("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+                sol_q0, p_ptr, data->cgnsCells);
 
   // op_fetch_data(data->p, sol_q0);
   // op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
-  save_solution("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-                sol_q0, sol_q1, data->cgnsCells);
+  // save_solution("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
+  //               sol_q0, sol_q1, p_ptr, data->cgnsCells);
 /*
   op_fetch_data(data->QT[0], sol_q0);
   op_fetch_data(data->QT[1], sol_q1);
@@ -434,6 +436,7 @@ int main(int argc, char **argv) {
 
   free(sol_q0);
   free(sol_q1);
+  free(p_ptr);
 
 /*
   double *u_ptr = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));

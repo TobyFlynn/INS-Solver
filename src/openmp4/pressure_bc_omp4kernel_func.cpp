@@ -82,8 +82,8 @@ void pressure_bc_omp4_kernel(
 
       for(int i = 0; i < 5; i++) {
         int fInd = fmask[i];
-        double res1 = -N0[fInd] - nu_ompkernel * gradCurlVel1[fInd];
-        double res2 = -N1[fInd] + nu_ompkernel * gradCurlVel0[fInd];
+        double res1 = N0[fInd] + nu_ompkernel * gradCurlVel1[fInd];
+        double res2 = N1[fInd] - nu_ompkernel * gradCurlVel0[fInd];
         dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
       }
     }
@@ -92,9 +92,11 @@ void pressure_bc_omp4_kernel(
 
       const double PI = 3.141592653589793238463;
       for(int i = 0; i < 5; i++) {
-        double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y[fmask[i]] * (0.41 - y[fmask[i]]);
+        double y1 = y[fmask[i]];
+        double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
 
-        dPdN[exInd + i] -= bcdUndt;
+
+        dPdN[exInd + i] += bcdUndt;
       }
     }
     //end inline func
