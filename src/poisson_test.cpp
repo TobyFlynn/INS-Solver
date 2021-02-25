@@ -101,9 +101,7 @@ int main(int argc, char **argv) {
               op_arg_dat(data->y, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(ex,  -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->dirichletBC, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->neumannBCx, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->neumannBCy, -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(data->dirichletBC, -1, OP_ID, 15, "double", OP_WRITE));
 
   op_par_loop(poisson_test_bc, "poisson_test_bc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
@@ -126,9 +124,9 @@ int main(int argc, char **argv) {
   int dBCs[] = {0, 1};
   int nBCs[] = {2, 3};
   poisson->setDirichletBCs(dBCs, data->dirichletBC);
-  poisson->setNeumannBCs(nBCs, data->neumannBCx, data->neumannBCy);
+  poisson->setNeumannBCs(nBCs);
 
-  poisson->solve(rhs, sol);
+  poisson->solve(rhs, sol, true);
 
   double l2 = 0.0;
   op_par_loop(poisson_test_error, "poisson_test_error", data->cells,
@@ -152,7 +150,7 @@ int main(int argc, char **argv) {
   // save_solution_all("./sol.cgns", op_get_size(data->cells), sol_ptr, err_ptr, x_ptr, y_ptr);
 
   save_solution("./grid.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-                sol_ptr, err_ptr, data->cgnsCells);
+                sol_ptr, err_ptr, x_ptr, data->cgnsCells);
 
   // save_solution_cell("./grid.cgns", op_get_size(data->nodes), op_get_size(data->cells),
   //               sol_ptr, err_ptr, data->cgnsCells);

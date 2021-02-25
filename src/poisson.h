@@ -23,7 +23,7 @@ public:
   ~Poisson();
 
   void rhs(const double *u, double *rhs);
-  void solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
+  void solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass = false, double factor = 0.0);
 
   void setDirichletBCs(int *d, op_dat d_dat);
   void setNeumannBCs(int *n);

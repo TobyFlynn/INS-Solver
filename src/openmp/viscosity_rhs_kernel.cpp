@@ -10,15 +10,19 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3){
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
 
-  int nargs = 4;
-  op_arg args[4];
+  int nargs = 6;
+  op_arg args[6];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
   args[3] = arg3;
+  args[4] = arg4;
+  args[5] = arg5;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -52,7 +56,9 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
           (double*)arg0.data,
           &((double*)arg1.data)[15*n],
           &((double*)arg2.data)[15*n],
-          &((double*)arg3.data)[15*n]);
+          &((double*)arg3.data)[15*n],
+          &((double*)arg4.data)[15*n],
+          &((double*)arg5.data)[15*n]);
       }
     }
   }
@@ -66,4 +72,6 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
   OP_kernels[14].transfer += (float)set->size * arg1.size;
   OP_kernels[14].transfer += (float)set->size * arg2.size * 2.0f;
   OP_kernels[14].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[14].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[14].transfer += (float)set->size * arg5.size * 2.0f;
 }

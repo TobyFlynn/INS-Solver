@@ -1,5 +1,5 @@
 inline void poisson_test_init(const double *x, const double *y, double *ex,
-                              double *rhs, double *d, double *nx, double *ny) {
+                              double *rhs, double *d) {
   for(int i = 0; i < 15; i++) {
     ex[i] = 0.0;
     double x1 = x[i];
@@ -7,7 +7,5 @@ inline void poisson_test_init(const double *x, const double *y, double *ex,
     rhs[i] = -2.0 * (2.0 * (y1 * y1 * y1) - 3 * (y1 * y1) + 1) + 6.0 * (1 - (x1 * x1)) * (2.0 * y1 - 1.0);
     // rhs[i] = 6 * x1 * y1 * (1.0 - y1) - 2.0 * x1 * x1 * x1;
     d[i] = 0.0;
-    nx[i] = 0.0;
-    ny[i] = 0.0;
   }
 }

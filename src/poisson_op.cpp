@@ -173,7 +173,7 @@ Poisson::~Poisson() {
   free(pDivQ_data);
 }
 
-void Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
+void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, double factor) {
   // op_fetch_data_hdf5_file(dBC, "p.h5");
   massMat = addMass;
   massFactor = factor;
@@ -190,8 +190,11 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
 
   KSP ksp;
   KSPCreate(PETSC_COMM_SELF, &ksp);
-  // KSPSetType(ksp, KSPFGMRES);
-  KSPSetType(ksp, KSPCG);
+  if(method) {
+    KSPSetType(ksp, KSPFGMRES);
+  } else {
+    KSPSetType(ksp, KSPCG);
+  }
   KSPSetOperators(ksp, Amat, Amat);
   KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
 

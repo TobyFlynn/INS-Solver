@@ -13,15 +13,11 @@ void poisson_test_init_omp4_kernel(
   int dat3size,
   double *data4,
   int dat4size,
-  double *data5,
-  int dat5size,
-  double *data6,
-  int dat6size,
   int count,
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
@@ -30,8 +26,6 @@ void poisson_test_init_omp4_kernel(
     double *ex = &data2[15*n_op];
     double *rhs = &data3[15*n_op];
     double *d = &data4[15*n_op];
-    double *nx = &data5[15*n_op];
-    double *ny = &data6[15*n_op];
 
     //inline function
     
@@ -42,8 +36,6 @@ void poisson_test_init_omp4_kernel(
       rhs[i] = -2.0 * (2.0 * (y1 * y1 * y1) - 3 * (y1 * y1) + 1) + 6.0 * (1 - (x1 * x1)) * (2.0 * y1 - 1.0);
 
       d[i] = 0.0;
-      nx[i] = 0.0;
-      ny[i] = 0.0;
     }
     //end inline func
   }

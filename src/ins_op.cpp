@@ -162,6 +162,8 @@ void op_par_loop_viscosity_rhs(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_viscosity_bc(char const *, op_set,
@@ -560,7 +562,7 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
   int pressure_neumann[] = {0, 2};
   poisson->setDirichletBCs(pressure_dirichlet, data->dirichletBC);
   poisson->setNeumannBCs(pressure_neumann);
-  poisson->solve(data->pRHS, data->p);
+  poisson->solve(data->pRHS, data->p, false);
 
   grad(data, data->p, data->dpdx, data->dpdy);
 
@@ -606,7 +608,9 @@ void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, doubl
               op_arg_gbl(&factor,1,"double",OP_READ),
               op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->visRHS[0],-1,OP_ID,15,"double",OP_RW),
-              op_arg_dat(data->visRHS[1],-1,OP_ID,15,"double",OP_RW));
+              op_arg_dat(data->visRHS[1],-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(data->exQ[0],-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(data->exQ[1],-1,OP_ID,15,"double",OP_RW));
 /*
   op_par_loop_viscosity_bc("viscosity_bc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
@@ -618,11 +622,11 @@ void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, doubl
   int viscosity_neumann[] = {1, -1};
   poisson->setDirichletBCs(viscosity_dirichlet, data->exQ[0]);
   poisson->setNeumannBCs(viscosity_neumann);
-  poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
+  poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, true, factor);
 
   poisson->setDirichletBCs(viscosity_dirichlet, data->exQ[1]);
   poisson->setNeumannBCs(viscosity_neumann);
-  poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
+  poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, true, factor);
 
   op_par_loop_viscosity_reset_bc("viscosity_reset_bc",data->cells,
               op_arg_dat(data->exQ[0],-1,OP_ID,15,"double",OP_WRITE),
