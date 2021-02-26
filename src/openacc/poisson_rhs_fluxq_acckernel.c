@@ -6,12 +6,12 @@
 //user function
 //#pragma acc routine
 inline void poisson_rhs_fluxq_openacc( const double *nx, const double *ny, const double *fscale,
-                       const double *tau, const double *du, const double *qx,
+                       const double *tau, const double *u, const double *du, const double *qx,
                        const double *qy, double *exQx, double *exQy, double *fluxq) {
   for(int i = 0; i < 15; i++) {
-    double dqx = qx[FMASK[i]] + exQx[i];
-    double dqy = qy[FMASK[i]] + exQy[i];
-    fluxq[i] = fscale[i] * (nx[i] * dqx + ny[i] * dqy - tau[i] * du[i]) / 2.0;
+    double dqx = (qx[FMASK[i]] + exQx[i]) / 2.0;
+    double dqy = (qy[FMASK[i]] + exQy[i]) / 2.0;
+    fluxq[i] = fscale[i] * (nx[i] * dqx + ny[i] * dqy + tau[i] * (u[FMASK[i]] - du[i]));
     exQx[i] = 0.0;
     exQy[i] = 0.0;
   }
@@ -28,10 +28,11 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9){
+  op_arg arg9,
+  op_arg arg10){
 
-  int nargs = 10;
-  op_arg args[10];
+  int nargs = 11;
+  op_arg args[11];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -43,6 +44,7 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
   args[7] = arg7;
   args[8] = arg8;
   args[9] = arg9;
+  args[10] = arg10;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -74,7 +76,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
     double* data7 = (double*)arg7.data_d;
     double* data8 = (double*)arg8.data_d;
     double* data9 = (double*)arg9.data_d;
-    #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7,data8,data9)
+    double* data10 = (double*)arg10.data_d;
+    #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7,data8,data9,data10)
     for ( int n=0; n<set->size; n++ ){
       poisson_rhs_fluxq_openacc(
         &data0[15*n],
@@ -86,7 +89,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
         &data6[15*n],
         &data7[15*n],
         &data8[15*n],
-        &data9[15*n]);
+        &data9[15*n],
+        &data10[15*n]);
     }
   }
 
@@ -103,7 +107,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
   OP_kernels[24].transfer += (float)set->size * arg4.size;
   OP_kernels[24].transfer += (float)set->size * arg5.size;
   OP_kernels[24].transfer += (float)set->size * arg6.size;
-  OP_kernels[24].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[24].transfer += (float)set->size * arg7.size;
   OP_kernels[24].transfer += (float)set->size * arg8.size * 2.0f;
   OP_kernels[24].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[24].transfer += (float)set->size * arg10.size * 2.0f;
 }

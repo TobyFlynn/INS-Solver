@@ -9,9 +9,9 @@ inline void poisson_rhs_du_openacc( const double *nx, const double *ny, const do
                     const double *U, double *exU, double *du,
                     double *fluxXu, double *fluxYu) {
   for(int i = 0; i < 15; i++) {
-    du[i] = U[FMASK[i]] + exU[i];
-    fluxXu[i] = fscale[i] * (nx[i] * du[i] / 2.0);
-    fluxYu[i] = fscale[i] * (ny[i] * du[i] / 2.0);
+    du[i] = (U[FMASK[i]] + exU[i]) / 2.0;
+    fluxXu[i] = fscale[i] * (nx[i] * du[i]);
+    fluxYu[i] = fscale[i] * (ny[i] * du[i]);
     exU[i] = 0.0;
   }
 }

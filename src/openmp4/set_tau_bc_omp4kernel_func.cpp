@@ -55,7 +55,7 @@ void set_tau_bc_omp4_kernel(
     }
 
     for(int i = 0; i < 5; i++) {
-      tau[exInd + i] += 15.0 / (2.0 * J[fmask[i]] / sJ[exInd + i]);
+      tau[exInd + i] += 100.0*2.0*25.0*25.0 / (J[fmask[i]] / sJ[exInd + i]);
     }
     //end inline func
   }

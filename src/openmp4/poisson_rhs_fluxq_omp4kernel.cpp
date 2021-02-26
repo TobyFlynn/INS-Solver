@@ -26,6 +26,8 @@ void poisson_rhs_fluxq_omp4_kernel(
   int dat8size,
   double *data9,
   int dat9size,
+  double *data10,
+  int dat10size,
   int count,
   int num_teams,
   int nthread);
@@ -41,10 +43,11 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9){
+  op_arg arg9,
+  op_arg arg10){
 
-  int nargs = 10;
-  op_arg args[10];
+  int nargs = 11;
+  op_arg args[11];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -56,6 +59,7 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
   args[7] = arg7;
   args[8] = arg8;
   args[9] = arg9;
+  args[10] = arg10;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -107,6 +111,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
     int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
     double* data9 = (double*)arg9.data_d;
     int dat9size = getSetSizeFromOpArg(&arg9) * arg9.dat->dim;
+    double* data10 = (double*)arg10.data_d;
+    int dat10size = getSetSizeFromOpArg(&arg10) * arg10.dat->dim;
     poisson_rhs_fluxq_omp4_kernel(
       data0,
       dat0size,
@@ -128,6 +134,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
       dat8size,
       data9,
       dat9size,
+      data10,
+      dat10size,
       set->size,
       part_size!=0?(set->size-1)/part_size+1:(set->size-1)/nthread,
       nthread);
@@ -148,7 +156,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
   OP_kernels[24].transfer += (float)set->size * arg4.size;
   OP_kernels[24].transfer += (float)set->size * arg5.size;
   OP_kernels[24].transfer += (float)set->size * arg6.size;
-  OP_kernels[24].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[24].transfer += (float)set->size * arg7.size;
   OP_kernels[24].transfer += (float)set->size * arg8.size * 2.0f;
   OP_kernels[24].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[24].transfer += (float)set->size * arg10.size * 2.0f;
 }

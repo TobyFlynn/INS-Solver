@@ -4,14 +4,10 @@
 #include "op_seq.h"
 #include "ins_data.h"
 
-void div(INSData *data, op_dat u, op_dat v, op_dat res);
+void div(INSData *data, op_dat u, op_dat v, op_dat res, bool weak = false);
 
 void curl(INSData *data, op_dat u, op_dat v, op_dat res);
 
-void grad(INSData *data, op_dat u, op_dat ux, op_dat uy);
-
-void divT(INSData *data, op_dat u, op_dat v, op_dat res);
-
-void gradT(INSData *data, op_dat u, op_dat ux, op_dat uy);
+void grad(INSData *data, op_dat u, op_dat ux, op_dat uy, bool weak = false);
 
 #endif

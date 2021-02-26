@@ -108,7 +108,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
     KSPSetType(ksp, KSPCG);
   }
   KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
+  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e5);
 
   // Solve
   KSPSolve(ksp, b, x);
@@ -160,7 +160,7 @@ void Poisson::rhs(const double *u, double *rhs) {
               op_arg_dat(pFluxXu, -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(pFluxYu, -1, OP_ID, 15, "double", OP_WRITE));
 
-  gradT(data, pU, pDuDx, pDuDy);
+  grad(data, pU, pDuDx, pDuDy, true);
 
   // qx and qy stored in pDuDx and pDuDy
   poisson_rhs_blas1(data, this);
@@ -200,6 +200,7 @@ void Poisson::rhs(const double *u, double *rhs) {
               op_arg_dat(data->ny, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->fscale, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(pTau, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(pU, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(pDu, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(pDuDx, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(pDuDy, -1, OP_ID, 15, "double", OP_READ),
@@ -207,7 +208,7 @@ void Poisson::rhs(const double *u, double *rhs) {
               op_arg_dat(pExRHS[1], -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(pFluxQ, -1, OP_ID, 15, "double", OP_WRITE));
 
-  divT(data, pDuDx, pDuDy, pDivQ);
+  div(data, pDuDx, pDuDy, pDivQ, true);
 
   poisson_rhs_blas2(data, this);
 

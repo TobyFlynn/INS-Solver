@@ -22,13 +22,13 @@ inline void poisson_rhs_qbc(const int *bedge_type, const int *bedgeNum,
     for(int i = 0; i < 5; i++) {
       // exq[exInd + i] += -q[fmask[i]] + 2.0 * bc[exInd + i];
       // exq[exInd + i] += bc[exInd + i];
-      exq[exInd + i] += q[fmask[i]];
+      exq[exInd + i] += -q[fmask[i]];
     }
   } else {
     // So dq is 0 if no neumann BCs on this edge
     // TODO check
     for(int i = 0; i < 5; i++) {
-      exq[exInd + i] += -q[fmask[i]];
+      exq[exInd + i] += q[fmask[i]];
     }
   }
 }

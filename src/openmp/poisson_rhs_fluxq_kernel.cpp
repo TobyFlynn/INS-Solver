@@ -16,10 +16,11 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9){
+  op_arg arg9,
+  op_arg arg10){
 
-  int nargs = 10;
-  op_arg args[10];
+  int nargs = 11;
+  op_arg args[11];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -31,6 +32,7 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
   args[7] = arg7;
   args[8] = arg8;
   args[9] = arg9;
+  args[10] = arg10;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -70,7 +72,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
           &((double*)arg6.data)[15*n],
           &((double*)arg7.data)[15*n],
           &((double*)arg8.data)[15*n],
-          &((double*)arg9.data)[15*n]);
+          &((double*)arg9.data)[15*n],
+          &((double*)arg10.data)[15*n]);
       }
     }
   }
@@ -88,7 +91,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
   OP_kernels[24].transfer += (float)set->size * arg4.size;
   OP_kernels[24].transfer += (float)set->size * arg5.size;
   OP_kernels[24].transfer += (float)set->size * arg6.size;
-  OP_kernels[24].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[24].transfer += (float)set->size * arg7.size;
   OP_kernels[24].transfer += (float)set->size * arg8.size * 2.0f;
   OP_kernels[24].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[24].transfer += (float)set->size * arg10.size * 2.0f;
 }

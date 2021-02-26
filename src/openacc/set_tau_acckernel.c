@@ -78,14 +78,14 @@ inline void set_tau_openacc( const int *edgeNum, const double **x, const double 
     lIndF = fmaskL[i];
     lInd = exIndL + i;
 
-    double lH = 2.0 * J[0][lIndF] / sJ[0][lInd];
-    double rH = 2.0 * J[1][rIndF] / sJ[1][rInd];
+    double lH = J[0][lIndF] / sJ[0][lInd];
+    double rH = J[1][rIndF] / sJ[1][rInd];
     if(lH < rH) {
-      tau[0][lInd] += 15.0 / lH;
-      tau[1][rInd] += 15.0 / lH;
+      tau[0][lInd] += 100.0*2.0*25.0*25.0 / lH;
+      tau[1][rInd] += 100.0*2.0*25.0*25.0 / lH;
     } else {
-      tau[0][lInd] += 15.0 / rH;
-      tau[1][rInd] += 15.0 / rH;
+      tau[0][lInd] += 100.0*2.0*25.0*25.0 / rH;
+      tau[1][rInd] += 100.0*2.0*25.0*25.0 / rH;
     }
   }
 }

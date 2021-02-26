@@ -23,11 +23,13 @@ void poisson_rhs_fluxq_omp4_kernel(
   int dat8size,
   double *data9,
   int dat9size,
+  double *data10,
+  int dat10size,
   int count,
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size]) \
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size]) \
     map(to: FMASK_ompkernel[:15])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
@@ -36,19 +38,20 @@ void poisson_rhs_fluxq_omp4_kernel(
     const double *ny = &data1[15*n_op];
     const double *fscale = &data2[15*n_op];
     const double *tau = &data3[15*n_op];
-    const double *du = &data4[15*n_op];
-    const double *qx = &data5[15*n_op];
-    const double *qy = &data6[15*n_op];
-    double *exQx = &data7[15*n_op];
-    double *exQy = &data8[15*n_op];
-    double *fluxq = &data9[15*n_op];
+    const double *u = &data4[15*n_op];
+    const double *du = &data5[15*n_op];
+    const double *qx = &data6[15*n_op];
+    const double *qy = &data7[15*n_op];
+    double *exQx = &data8[15*n_op];
+    double *exQy = &data9[15*n_op];
+    double *fluxq = &data10[15*n_op];
 
     //inline function
     
     for(int i = 0; i < 15; i++) {
-      double dqx = qx[FMASK_ompkernel[i]] + exQx[i];
-      double dqy = qy[FMASK_ompkernel[i]] + exQy[i];
-      fluxq[i] = fscale[i] * (nx[i] * dqx + ny[i] * dqy - tau[i] * du[i]) / 2.0;
+      double dqx = (qx[FMASK_ompkernel[i]] + exQx[i]) / 2.0;
+      double dqy = (qy[FMASK_ompkernel[i]] + exQy[i]) / 2.0;
+      fluxq[i] = fscale[i] * (nx[i] * dqx + ny[i] * dqy + tau[i] * (u[FMASK_ompkernel[i]] - du[i]));
       exQx[i] = 0.0;
       exQy[i] = 0.0;
     }

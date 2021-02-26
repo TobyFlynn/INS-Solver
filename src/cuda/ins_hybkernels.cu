@@ -1682,7 +1682,8 @@ void op_par_loop_poisson_rhs_fluxq_gpu(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9);
+  op_arg arg9,
+  op_arg arg10);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -1696,7 +1697,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9){
+  op_arg arg9,
+  op_arg arg10){
 
   if (OP_hybrid_gpu) {
     op_par_loop_poisson_rhs_fluxq_gpu(name, set,
@@ -1709,7 +1711,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
       arg6,
       arg7,
       arg8,
-      arg9);
+      arg9,
+      arg10);
 
     }else{
     op_par_loop_poisson_rhs_fluxq_cpu(name, set,
@@ -1722,7 +1725,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
       arg6,
       arg7,
       arg8,
-      arg9);
+      arg9,
+      arg10);
 
   }
 }
@@ -1737,7 +1741,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9){
+  op_arg arg9,
+  op_arg arg10){
 
   op_par_loop_poisson_rhs_fluxq_gpu(name, set,
     arg0,
@@ -1749,7 +1754,8 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
     arg6,
     arg7,
     arg8,
-    arg9);
+    arg9,
+    arg10);
 
   }
 #endif //OP_HYBRID_GPU

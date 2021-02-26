@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
   op_fetch_data(err, err_ptr);
   op_fetch_data(data->x, x_ptr);
   op_fetch_data(data->y, y_ptr);
-  // save_solution_all("./sol.cgns", op_get_size(data->cells), sol_ptr, err_ptr, x_ptr, y_ptr);
+  save_solution_all("./sol.cgns", op_get_size(data->cells), sol_ptr, err_ptr, x_ptr, y_ptr);
 
   save_solution("./grid.cgns", op_get_size(data->nodes), op_get_size(data->cells),
                 sol_ptr, err_ptr, x_ptr, data->cgnsCells);
