@@ -65,14 +65,15 @@ void poisson_rhs_bc_omp4_kernel(
 
     if(*bedge_type == *dirichlet0 || *bedge_type == *dirichlet1) {
       for(int i = 0; i < 5; i++) {
-        exU[exInd + i] += -U[fmask[i]] + 2.0 * dBC[exInd + i];
 
 
+        exU[exInd + i] += U[fmask[i]];
       }
     } else {
 
+
       for(int i = 0; i < 5; i++) {
-        exU[exInd + i] += U[fmask[i]];
+        exU[exInd + i] += -U[fmask[i]];
       }
     }
     //end inline func

@@ -24,7 +24,7 @@ extern "C" {
 
 inline void openblas_poisson_rhs2(const int numCells, const double *fluxQ,
                                   double *divQ, double *rhs) {
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, -1.0, LIFT, 15, fluxQ, 15, 1.0, divQ, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, LIFT, 15, fluxQ, 15, -1.0, divQ, 15);
   cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, MASS, 15, divQ, 15, 0.0, rhs, 15);
 }
 

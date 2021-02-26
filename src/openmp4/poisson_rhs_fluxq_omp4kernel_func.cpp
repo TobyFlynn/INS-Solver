@@ -46,9 +46,9 @@ void poisson_rhs_fluxq_omp4_kernel(
     //inline function
     
     for(int i = 0; i < 15; i++) {
-      double dqx = qx[FMASK_ompkernel[i]] - exQx[i];
-      double dqy = qy[FMASK_ompkernel[i]] - exQy[i];
-      fluxq[i] = fscale[i] * (nx[i] * dqx + ny[i] * dqy + tau[i] * du[i]) / 2.0;
+      double dqx = qx[FMASK_ompkernel[i]] + exQx[i];
+      double dqy = qy[FMASK_ompkernel[i]] + exQy[i];
+      fluxq[i] = fscale[i] * (nx[i] * dqx + ny[i] * dqy - tau[i] * du[i]) / 2.0;
       exQx[i] = 0.0;
       exQy[i] = 0.0;
     }

@@ -101,6 +101,7 @@ int main(int argc, char **argv) {
   INSData *data = new INSData();
 
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+    return 0;
     if(y1 == y2 && y1 > 0.5) {
       // Neumann BC y = 1
       // cout << "0" << endl;
@@ -165,14 +166,14 @@ int main(int argc, char **argv) {
               op_arg_dat(ex,-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(rhs,-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->dirichletBC,-1,OP_ID,15,"double",OP_WRITE));
-
+/*
   op_par_loop_poisson_test_bc("poisson_test_bc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->x,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->y,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->dirichletBC,0,data->bedge2cells,15,"double",OP_INC));
-
+*/
   op_par_loop_poisson_test_set_rhs("poisson_test_set_rhs",data->cells,
               op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(ex,-1,OP_ID,15,"double",OP_READ),
@@ -184,8 +185,8 @@ int main(int argc, char **argv) {
 
   // op_fetch_data_hdf5_file(data->dirichletBC, "t.h5");
 
-  int dBCs[] = {0, 1};
-  int nBCs[] = {2, 3};
+  int dBCs[] = {0, -1};
+  int nBCs[] = {-2, -3};
   poisson->setDirichletBCs(dBCs, data->dirichletBC);
   poisson->setNeumannBCs(nBCs);
 

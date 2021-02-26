@@ -24,12 +24,12 @@ extern "C" {
 
 inline void openblas_div(const int numCells, const double *u, const double *v,
                          double *div0, double *div1, double *div2, double *div3,
-                         bool transpose) {
-  if(transpose) {
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dr, 15, u, 15, 0.0, div0, 15);
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 15, numCells, 15, 1.0, Ds, 15, u, 15, 0.0, div1, 15);
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dr, 15, v, 15, 0.0, div2, 15);
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 15, numCells, 15, 1.0, Ds, 15, v, 15, 0.0, div3, 15);
+                         bool weak) {
+  if(weak) {
+    cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Drw, 15, u, 15, 0.0, div0, 15);
+    cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dsw, 15, u, 15, 0.0, div1, 15);
+    cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Drw, 15, v, 15, 0.0, div2, 15);
+    cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dsw, 15, v, 15, 0.0, div3, 15);
   } else {
     cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dr, 15, u, 15, 0.0, div0, 15);
     cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Ds, 15, u, 15, 0.0, div1, 15);
@@ -38,7 +38,7 @@ inline void openblas_div(const int numCells, const double *u, const double *v,
   }
 }
 
-void div_blas(INSData *nsData, op_dat u, op_dat v, bool transpose) {
+void div_blas(INSData *nsData, op_dat u, op_dat v, bool weak) {
   // Make sure OP2 data is in the right place
   op_arg div_args[] = {
     op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
@@ -53,7 +53,7 @@ void div_blas(INSData *nsData, op_dat u, op_dat v, bool transpose) {
   openblas_div(nsData->numCells, (double *)u->data, (double *)v->data,
                (double *)nsData->div[0]->data, (double *)nsData->div[1]->data,
                (double *)nsData->div[2]->data, (double *)nsData->div[3]->data,
-               transpose);
+               weak);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit(6, div_args);

@@ -27,12 +27,13 @@ __device__ void poisson_rhs_qbc_gpu( const int *bedge_type, const int *bedgeNum,
     for(int i = 0; i < 5; i++) {
 
 
-      exq[exInd + i] += -q[fmask[i]];
+      exq[exInd + i] += q[fmask[i]];
     }
   } else {
 
+
     for(int i = 0; i < 5; i++) {
-      exq[exInd + i] += q[fmask[i]];
+      exq[exInd + i] += -q[fmask[i]];
     }
   }
 

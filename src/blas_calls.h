@@ -18,9 +18,9 @@ extern double visMat[15 * 15];
 
 void init_grid_blas(INSData *nsData);
 
-void div_blas(INSData *nsData, op_dat u, op_dat v, bool transpose = false);
+void div_blas(INSData *nsData, op_dat u, op_dat v, bool weak = false);
 
-void grad_blas(INSData *nsData, op_dat u, bool transpose = false);
+void grad_blas(INSData *nsData, op_dat u, bool weak = false);
 
 void advection_lift_blas(INSData *nsData, int ind);
 

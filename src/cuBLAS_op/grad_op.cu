@@ -23,7 +23,7 @@ extern "C" {
 #include "../blas_calls.h"
 
 inline void cublas_grad(cublasHandle_t handle, const int numCells, const double *u_d,
-                        double *div0_d, double *div1_d, bool transpose) {
+                        double *div0_d, double *div1_d, bool weak) {
   double *Dr_d;
   cudaMalloc((void**)&Dr_d, 15 * 15 * sizeof(double));
   cudaMemcpy(Dr_d, Dr, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
@@ -32,22 +32,26 @@ inline void cublas_grad(cublasHandle_t handle, const int numCells, const double 
   cudaMalloc((void**)&Ds_d, 15 * 15 * sizeof(double));
   cudaMemcpy(Ds_d, Ds, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
 
+  if(weak) {
+    cudaMemcpy(Dr_d, Drw, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(Ds_d, Dsw, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  } else {
+    cudaMemcpy(Dr_d, Dr, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(Ds_d, Ds, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  }
+
   double alpha = 1.0;
   double beta = 0.0;
-  if(transpose) {
-    cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 15, &alpha, Dr_d, 15, u_d, 15, &beta, div0_d, 15);
-    cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 15, &alpha, Ds_d, 15, u_d, 15, &beta, div1_d, 15);
-  } else {
-    // CUBLAS_OP_T because cublas is column major but constants are stored row major
-    cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, Dr_d, 15, u_d, 15, &beta, div0_d, 15);
-    cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, Ds_d, 15, u_d, 15, &beta, div1_d, 15);
-  }
+
+  // CUBLAS_OP_T because cublas is column major but constants are stored row major
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, Dr_d, 15, u_d, 15, &beta, div0_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, Ds_d, 15, u_d, 15, &beta, div1_d, 15);
 
   cudaFree(Dr_d);
   cudaFree(Ds_d);
 }
 
-void grad_blas(INSData *nsData, op_dat u, bool transpose) {
+void grad_blas(INSData *nsData, op_dat u, bool weak) {
   // Initialise cuBLAS
   cublasHandle_t handle;
   cublasCreate(&handle);
@@ -62,7 +66,7 @@ void grad_blas(INSData *nsData, op_dat u, bool transpose) {
 
   cublas_grad(handle, nsData->numCells, (double *)u->data_d,
               (double *)nsData->div[0]->data_d, (double *)nsData->div[1]->data_d,
-              transpose);
+              weak);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(3, grad_args);

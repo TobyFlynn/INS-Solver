@@ -11,8 +11,8 @@ inline void cublas_poisson_rhs1(cublasHandle_t handle, const int numCells,
   cudaMemcpy(LIFT_d, LIFT, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
 
   // CUBLAS_OP_T because cublas is column major but constants are stored row major
-  double alpha = -1.0;
-  double beta = 1.0;
+  double alpha = 1.0;
+  double beta = -1.0;
   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, LIFT_d, 15, fluxXu_d, 15, &beta, qx_d, 15);
   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, LIFT_d, 15, fluxYu_d, 15, &beta, qy_d, 15);
 

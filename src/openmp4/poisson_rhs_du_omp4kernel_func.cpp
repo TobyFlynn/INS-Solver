@@ -40,7 +40,7 @@ void poisson_rhs_du_omp4_kernel(
     //inline function
     
     for(int i = 0; i < 15; i++) {
-      du[i] = U[FMASK_ompkernel[i]] - exU[i];
+      du[i] = U[FMASK_ompkernel[i]] + exU[i];
       fluxXu[i] = fscale[i] * (nx[i] * du[i] / 2.0);
       fluxYu[i] = fscale[i] * (ny[i] * du[i] / 2.0);
       exU[i] = 0.0;

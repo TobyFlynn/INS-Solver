@@ -4,17 +4,17 @@
 #include "../blas_calls.h"
 
 inline void openblas_grad(const int numCells, const double *u, double *div0,
-                          double *div1, bool transpose) {
-  if(transpose) {
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dr, 15, u, 15, 0.0, div0, 15);
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 15, numCells, 15, 1.0, Ds, 15, u, 15, 0.0, div1, 15);
+                          double *div1, bool weak) {
+  if(weak) {
+    cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Drw, 15, u, 15, 0.0, div0, 15);
+    cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dsw, 15, u, 15, 0.0, div1, 15);
   } else {
     cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dr, 15, u, 15, 0.0, div0, 15);
     cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Ds, 15, u, 15, 0.0, div1, 15);
   }
 }
 
-void grad_blas(INSData *nsData, op_dat u, bool transpose) {
+void grad_blas(INSData *nsData, op_dat u, bool weak) {
   // Make sure OP2 data is in the right place
   op_arg grad_args[] = {
     op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
@@ -25,7 +25,7 @@ void grad_blas(INSData *nsData, op_dat u, bool transpose) {
 
   openblas_grad(nsData->numCells, (double *)u->data,
                (double *)nsData->div[0]->data, (double *)nsData->div[1]->data,
-               transpose);
+               weak);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit(3, grad_args);
