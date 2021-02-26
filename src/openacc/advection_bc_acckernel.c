@@ -31,9 +31,9 @@ inline void advection_bc_openacc( const int *bedge_type, const int *bedgeNum,
     for(int i = 0; i < 5; i++) {
       int qInd = fmask[i];
       double y1 = y[qInd];
+      exQ0[exInd + i] += pow(0.41, -2.0) * sin((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
 
 
-      exQ0[exInd + i] += 1e-5;
 
     }
   } else if(*bedge_type == 1) {
