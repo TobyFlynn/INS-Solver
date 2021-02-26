@@ -10,7 +10,7 @@ __device__ void poisson_test_init_gpu( const double *x, const double *y, double 
     double x1 = x[i];
     double y1 = y[i];
     rhs[i] = 1.0;
-
+    rhs[i] = -2.0 * (2.0 * (y1 * y1 * y1) - 3 * (y1 * y1) + 1) + 6.0 * (1 - (x1 * x1)) * (2.0 * y1 - 1.0);
 
     d[i] = 0.0;
   }

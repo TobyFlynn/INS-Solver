@@ -25,15 +25,15 @@ __device__ void poisson_rhs_bc_gpu( const int *bedge_type, const int *bedgeNum,
 
   if(*bedge_type == *dirichlet0 || *bedge_type == *dirichlet1) {
     for(int i = 0; i < 5; i++) {
+      exU[exInd + i] += -U[fmask[i]] + 2.0 * dBC[exInd + i];
 
-      exU[exInd + i] += dBC[exInd + i];
 
     }
   } else {
 
 
     for(int i = 0; i < 5; i++) {
-      exU[exInd + i] += -U[fmask[i]];
+      exU[exInd + i] += U[fmask[i]];
     }
   }
 
