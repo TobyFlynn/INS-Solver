@@ -18,8 +18,8 @@ inline void cublas_pressure_rhs(cublasHandle_t handle, const int numCells,
   double alpha = 1.0;
   double beta1 = 0.0;
   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, MASS_d, 15, div_d, 15, &beta1, rhs_d, 15);
-  double alpha2 = 1.0;
-  double beta2 = 1.0;
+  double alpha2 = -1.0;
+  double beta2 = -1.0;
   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha2, LIFT_d, 15, dPdN_d, 15, &beta2, rhs_d, 15);
 
   cudaFree(LIFT_d);
