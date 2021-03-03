@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
   poisson->setDirichletBCs(dBCs, data->dirichletBC);
   poisson->setNeumannBCs(nBCs);
 
-  poisson->solve(rhs, sol, true);
+  poisson->solve(rhs, sol, false);
 
   double l2 = 0.0;
   op_par_loop_poisson_test_error("poisson_test_error",data->cells,
@@ -203,22 +203,25 @@ int main(int argc, char **argv) {
 
   // Save solution to CGNS file (get it twice just to avoid rewriting save_solution for this test)
   double *sol_ptr = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  double *rhs_ptr = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *err_ptr = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *x_ptr = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *y_ptr = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(sol, sol_ptr);
+  op_fetch_data(rhs, rhs_ptr);
   op_fetch_data(err, err_ptr);
   op_fetch_data(data->x, x_ptr);
   op_fetch_data(data->y, y_ptr);
   save_solution_all("./sol.cgns", op_get_size(data->cells), sol_ptr, err_ptr, x_ptr, y_ptr);
 
   save_solution("./grid.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-                sol_ptr, err_ptr, x_ptr, data->cgnsCells);
+                sol_ptr, err_ptr, rhs_ptr, data->cgnsCells);
 
   // save_solution_cell("./grid.cgns", op_get_size(data->nodes), op_get_size(data->cells),
   //               sol_ptr, err_ptr, data->cgnsCells);
 
   free(sol_ptr);
+  free(rhs_ptr);
   free(err_ptr);
   free(x_ptr);
   free(y_ptr);

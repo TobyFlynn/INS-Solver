@@ -15,6 +15,9 @@
 #include "kernels/poisson_rhs_qbc.h"
 #include "kernels/poisson_rhs_fluxq.h"
 #include "kernels/poisson_rhs_J.h"
+#include "kernels/poisson_set_rhs1.h"
+#include "kernels/poisson_set_rhs2.h"
+#include "kernels/poisson_set_rhs_bc.h"
 
 using namespace std;
 
@@ -35,6 +38,8 @@ Poisson::Poisson(INSData *nsData) {
   pFluxQ_data    = (double *)malloc(15 * data->numCells * sizeof(double));
   pDivQ_data     = (double *)malloc(15 * data->numCells * sizeof(double));
   pRHS_data      = (double *)malloc(15 * data->numCells * sizeof(double));
+  setBC_data     = (double *)malloc(15 * data->numCells * sizeof(double));
+  bcTau_data     = (double *)malloc(15 * data->numCells * sizeof(double));
   // Declare OP2 dats
   pTau      = op_decl_dat(data->cells, 15, "double", pTau_data, "pTau");
   pExRHS[0] = op_decl_dat(data->cells, 15, "double", pExRHS_data[0], "pExRHS0");
@@ -48,10 +53,13 @@ Poisson::Poisson(INSData *nsData) {
   pFluxQ    = op_decl_dat(data->cells, 15, "double", pFluxQ_data, "pFluxQ");
   pDivQ     = op_decl_dat(data->cells, 15, "double", pDivQ_data, "pDivQ");
   pRHS      = op_decl_dat(data->cells, 15, "double", pRHS_data, "pRHS");
+  setBC     = op_decl_dat(data->cells, 15, "double", setBC_data, "setBC");
+  bcTau     = op_decl_dat(data->cells, 15, "double", bcTau_data, "bcTau");
 
   // Initialisation kernels
   op_par_loop(setup_poisson, "setup_poisson", data->cells,
               op_arg_dat(pTau, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(bcTau, -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(pExRHS[0], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(pExRHS[1], -1, OP_ID, 15, "double", OP_WRITE));
 
@@ -83,10 +91,15 @@ Poisson::~Poisson() {
   free(pDuDy_data);
   free(pFluxQ_data);
   free(pDivQ_data);
+  free(pRHS_data);
+  free(setBC_data);
+  free(bcTau_data);
 }
 
 void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, double factor) {
   // op_fetch_data_hdf5_file(dBC, "p.h5");
+  // set_rhs(b_dat);
+
   massMat = addMass;
   massFactor = factor;
   Vec b;
@@ -102,13 +115,15 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
 
   KSP ksp;
   KSPCreate(PETSC_COMM_SELF, &ksp);
-  if(method) {
-    KSPSetType(ksp, KSPFGMRES);
-  } else {
-    KSPSetType(ksp, KSPCG);
-  }
+  // if(method) {
+  //   KSPSetType(ksp, KSPFGMRES);
+  // } else {
+  //   KSPSetType(ksp, KSPCG);
+  // }
+  KSPSetType(ksp, KSPFGMRES);
+  // KSPGMRESSetRestart(ksp, 100);
   KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e5);
+  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e7, 1e6);
 
   // Solve
   KSPSolve(ksp, b, x);
@@ -128,6 +143,36 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   MatDestroy(&Amat);
   destroy_vec(&b);
   destroy_vec(&x);
+}
+
+void Poisson::set_rhs(op_dat b) {
+  op_par_loop(poisson_set_rhs_bc, "poisson_set_rhs_bc", data->bedges,
+              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),
+              op_arg_gbl(&dirichlet[1], 1, "int", OP_READ),
+              op_arg_dat(pTau, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(bcTau, 0, data->bedge2cells, 15, "double", OP_INC));
+
+  op_par_loop(poisson_set_rhs1, "poisson_set_rhs1", data->cells,
+              op_arg_dat(data->nx, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->ny, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->fscale, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(dBC, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(pExRHS[0], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(pExRHS[1], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(bcTau, -1, OP_ID, 15, "double", OP_RW));
+
+  poisson_set_rhs_blas(data, this);
+
+  div(data, pExRHS[0], pExRHS[1], setBC, true);
+
+  op_par_loop(poisson_set_rhs2, "poisson_set_rhs2", data->cells,
+              op_arg_dat(setBC, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(b, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(bcTau, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(pExRHS[0], -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(pExRHS[1], -1, OP_ID, 15, "double", OP_RW));
 }
 
 void Poisson::rhs(const double *u, double *rhs) {

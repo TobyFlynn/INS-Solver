@@ -3,9 +3,10 @@
 //
 
 //user function
-__device__ void setup_poisson_gpu( double *tau, double *ex1, double *ex2) {
+__device__ void setup_poisson_gpu( double *tau, double *bcTau, double *ex1, double *ex2) {
   for(int i = 0; i < 15; i++) {
     tau[i] = 0.0;
+    bcTau[i] = 0.0;
     ex1[i] = 0.0;
     ex2[i] = 0.0;
   }
@@ -17,6 +18,7 @@ __global__ void op_cuda_setup_poisson(
   double *arg0,
   double *arg1,
   double *arg2,
+  double *arg3,
   int   set_size ) {
 
 
@@ -26,7 +28,8 @@ __global__ void op_cuda_setup_poisson(
     //user-supplied kernel call
     setup_poisson_gpu(arg0+n*15,
                   arg1+n*15,
-                  arg2+n*15);
+                  arg2+n*15,
+                  arg3+n*15);
   }
 }
 
@@ -35,14 +38,16 @@ __global__ void op_cuda_setup_poisson(
 void op_par_loop_setup_poisson(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2){
+  op_arg arg2,
+  op_arg arg3){
 
-  int nargs = 3;
-  op_arg args[3];
+  int nargs = 4;
+  op_arg args[4];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
+  args[3] = arg3;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -72,6 +77,7 @@ void op_par_loop_setup_poisson(char const *name, op_set set,
       (double *) arg0.data_d,
       (double *) arg1.data_d,
       (double *) arg2.data_d,
+      (double *) arg3.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
@@ -82,4 +88,5 @@ void op_par_loop_setup_poisson(char const *name, op_set set,
   OP_kernels[17].transfer += (float)set->size * arg0.size * 2.0f;
   OP_kernels[17].transfer += (float)set->size * arg1.size * 2.0f;
   OP_kernels[17].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[17].transfer += (float)set->size * arg3.size * 2.0f;
 }

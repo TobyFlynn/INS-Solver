@@ -29,7 +29,7 @@ public:
   void setNeumannBCs(int *n);
   // OP2 Dats
   op_dat pTau, pExRHS[2], pU, pDu, pFluxXu, pFluxYu, pDuDx, pDuDy, pFluxQ, pDivQ, pRHS;
-  op_dat dBC;
+  op_dat dBC, setBC, bcTau;
 private:
   void copy_u(const double *u);
   void copy_rhs(double *rhs);
@@ -37,6 +37,7 @@ private:
   void destroy_vec(Vec *v);
   void load_vec(Vec *v, op_dat v_dat);
   void store_vec(Vec *v, op_dat v_dat);
+  void set_rhs(op_dat b);
   INSData *data;
   // Pointers to private memory
   double *pTau_data;
@@ -50,6 +51,8 @@ private:
   double *pFluxQ_data;
   double *pDivQ_data;
   double *pRHS_data;
+  double *setBC_data;
+  double *bcTau_data;
 
   int *dirichlet;
   int *neumann;

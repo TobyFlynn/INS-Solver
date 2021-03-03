@@ -9,22 +9,26 @@ void setup_poisson_omp4_kernel(
   int dat1size,
   double *data2,
   int dat2size,
+  double *data3,
+  int dat3size,
   int count,
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     double *tau = &data0[15*n_op];
-    double *ex1 = &data1[15*n_op];
-    double *ex2 = &data2[15*n_op];
+    double *bcTau = &data1[15*n_op];
+    double *ex1 = &data2[15*n_op];
+    double *ex2 = &data3[15*n_op];
 
     //inline function
     
     for(int i = 0; i < 15; i++) {
       tau[i] = 0.0;
+      bcTau[i] = 0.0;
       ex1[i] = 0.0;
       ex2[i] = 0.0;
     }

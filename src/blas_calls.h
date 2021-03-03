@@ -32,6 +32,8 @@ void poisson_rhs_blas1(INSData *nsData, Poisson *pData);
 
 void poisson_rhs_blas2(INSData *nsData, Poisson *pData);
 
+void poisson_set_rhs_blas(INSData *nsData, Poisson *pData);
+
 void poisson_test_rhs_blas(INSData *nsData, op_dat rhs);
 
 void poisson_mass_blas(INSData *nsData, Poisson *pData, double factor);

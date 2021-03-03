@@ -11,7 +11,7 @@ inline void poisson_rhs_fluxq_openacc( const double *nx, const double *ny, const
   for(int i = 0; i < 15; i++) {
     double dqx = (qx[FMASK[i]] + exQx[i]) / 2.0;
     double dqy = (qy[FMASK[i]] + exQy[i]) / 2.0;
-    fluxq[i] = fscale[i] * (nx[i] * dqx + ny[i] * dqy + tau[i] * (u[FMASK[i]] - du[i]));
+    fluxq[i] = fscale[i] * (nx[i] * dqx + ny[i] * dqy - tau[i] * (u[FMASK[i]] - du[i]));
     exQx[i] = 0.0;
     exQy[i] = 0.0;
   }
@@ -48,10 +48,10 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(24);
+  op_timing_realloc(27);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[24].name      = name;
-  OP_kernels[24].count    += 1;
+  OP_kernels[27].name      = name;
+  OP_kernels[27].count    += 1;
 
 
   if (OP_diags>2) {
@@ -99,16 +99,16 @@ void op_par_loop_poisson_rhs_fluxq(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[24].time     += wall_t2 - wall_t1;
-  OP_kernels[24].transfer += (float)set->size * arg0.size;
-  OP_kernels[24].transfer += (float)set->size * arg1.size;
-  OP_kernels[24].transfer += (float)set->size * arg2.size;
-  OP_kernels[24].transfer += (float)set->size * arg3.size;
-  OP_kernels[24].transfer += (float)set->size * arg4.size;
-  OP_kernels[24].transfer += (float)set->size * arg5.size;
-  OP_kernels[24].transfer += (float)set->size * arg6.size;
-  OP_kernels[24].transfer += (float)set->size * arg7.size;
-  OP_kernels[24].transfer += (float)set->size * arg8.size * 2.0f;
-  OP_kernels[24].transfer += (float)set->size * arg9.size * 2.0f;
-  OP_kernels[24].transfer += (float)set->size * arg10.size * 2.0f;
+  OP_kernels[27].time     += wall_t2 - wall_t1;
+  OP_kernels[27].transfer += (float)set->size * arg0.size;
+  OP_kernels[27].transfer += (float)set->size * arg1.size;
+  OP_kernels[27].transfer += (float)set->size * arg2.size;
+  OP_kernels[27].transfer += (float)set->size * arg3.size;
+  OP_kernels[27].transfer += (float)set->size * arg4.size;
+  OP_kernels[27].transfer += (float)set->size * arg5.size;
+  OP_kernels[27].transfer += (float)set->size * arg6.size;
+  OP_kernels[27].transfer += (float)set->size * arg7.size;
+  OP_kernels[27].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[27].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[27].transfer += (float)set->size * arg10.size * 2.0f;
 }
