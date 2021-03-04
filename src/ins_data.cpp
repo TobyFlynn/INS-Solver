@@ -1,7 +1,15 @@
 #include "ins_data.h"
 
+#include "op_seq.h"
+
 #include <string>
 #include <memory>
+
+#include "blas_calls.h"
+
+#include "kernels/init_cubature_grad.h"
+#include "kernels/init_cubature.h"
+#include "kernels/init_cubature_OP.h"
 
 using namespace std;
 
@@ -204,4 +212,89 @@ void INSData::initOP2() {
   op_decl_const(15, "int", FMASK);
   op_decl_const(1, "double", &ic_u);
   op_decl_const(1, "double", &ic_v);
+  op_decl_const(46, "double", cubW);
+  op_decl_const(46*15, "double", cubV);
+  op_decl_const(46*15, "double", cubVDr);
+  op_decl_const(46*15, "double", cubVDs);
+}
+
+CubatureData::CubatureData(INSData *dat) {
+  data = dat;
+
+  rx_data    = (double *)malloc(46 * data->numCells * sizeof(double));
+  sx_data    = (double *)malloc(46 * data->numCells * sizeof(double));
+  ry_data    = (double *)malloc(46 * data->numCells * sizeof(double));
+  sy_data    = (double *)malloc(46 * data->numCells * sizeof(double));
+  J_data     = (double *)malloc(46 * data->numCells * sizeof(double));
+  mm_data    = (double *)malloc(15 * 15 * data->numCells * sizeof(double));
+  Dx_data    = (double *)malloc(46 * 15 * data->numCells * sizeof(double));
+  Dy_data    = (double *)malloc(46 * 15 * data->numCells * sizeof(double));
+  OP_data    = (double *)malloc(15 * 15 * data->numCells * sizeof(double));
+  temp_data  = (double *)malloc(46 * 15 * data->numCells * sizeof(double));
+  temp2_data = (double *)malloc(46 * 15 * data->numCells * sizeof(double));
+
+  rx    = op_decl_dat(data->cells, 46, "double", rx_data, "cub-rx");
+  sx    = op_decl_dat(data->cells, 46, "double", sx_data, "cub-sx");
+  ry    = op_decl_dat(data->cells, 46, "double", ry_data, "cub-ry");
+  sy    = op_decl_dat(data->cells, 46, "double", sy_data, "cub-sy");
+  J     = op_decl_dat(data->cells, 46, "double", J_data, "cub-J");
+  mm    = op_decl_dat(data->cells, 15 * 15, "double", mm_data, "cub-mm");
+  Dx    = op_decl_dat(data->cells, 46 * 15, "double", Dx_data, "cub-Dx");
+  Dy    = op_decl_dat(data->cells, 46 * 15, "double", Dy_data, "cub-Dy");
+  OP    = op_decl_dat(data->cells, 15 * 15, "double", OP_data, "cub-OP");
+  temp  = op_decl_dat(data->cells, 46 * 15, "double", temp_data, "cub-temp");
+  temp2 = op_decl_dat(data->cells, 46 * 15, "double", temp2_data, "cub-temp2");
+
+  // Initialise these values
+  init_cubature_grad_blas(data, this);
+
+  op_par_loop(init_cubature_grad, "init_cubature_grad", data->cells,
+              op_arg_dat(rx, -1, OP_ID, 46, "double", OP_RW),
+              op_arg_dat(sx, -1, OP_ID, 46, "double", OP_RW),
+              op_arg_dat(ry, -1, OP_ID, 46, "double", OP_RW),
+              op_arg_dat(sy, -1, OP_ID, 46, "double", OP_RW),
+              op_arg_dat(Dx, -1, OP_ID, 46 * 15, "double", OP_WRITE),
+              op_arg_dat(Dy, -1, OP_ID, 46 * 15, "double", OP_WRITE));
+
+  init_cubature_blas(data, this);
+
+  op_par_loop(init_cubature, "init_cubature", data->cells,
+              op_arg_dat(rx,   -1, OP_ID, 46, "double", OP_RW),
+              op_arg_dat(sx,   -1, OP_ID, 46, "double", OP_RW),
+              op_arg_dat(ry,   -1, OP_ID, 46, "double", OP_RW),
+              op_arg_dat(sy,   -1, OP_ID, 46, "double", OP_RW),
+              op_arg_dat(J,    -1, OP_ID, 46, "double", OP_WRITE),
+              op_arg_dat(temp, -1, OP_ID, 46 * 15, "double", OP_WRITE));
+
+  cubature_mm_blas(data, this);
+
+  op_par_loop(init_cubature_OP, "init_cubature_OP", data->cells,
+              op_arg_dat(J,     -1, OP_ID, 46, "double", OP_READ),
+              op_arg_dat(Dx,    -1, OP_ID, 46 * 15, "double", OP_READ),
+              op_arg_dat(Dy,    -1, OP_ID, 46 * 15, "double", OP_READ),
+              op_arg_dat(temp,  -1, OP_ID, 46 * 15, "double", OP_WRITE),
+              op_arg_dat(temp2, -1, OP_ID, 46 * 15, "double", OP_WRITE));
+
+  cubature_op_blas(data, this);
+}
+
+CubatureData::~CubatureData() {
+  free(rx_data);
+  free(sx_data);
+  free(ry_data);
+  free(sy_data);
+  free(J_data);
+  free(mm_data);
+  free(Dx_data);
+  free(Dy_data);
+  free(OP_data);
+  free(temp_data);
+}
+
+GaussData::GaussData() {
+
+}
+
+GaussData::~GaussData() {
+
 }

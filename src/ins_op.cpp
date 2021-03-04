@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
   nu = 1e-3;
   bc_u = 1e-6;
   bc_v = 0.0;
-  // ic_u = 1e-5;
+  ic_u = 1e-5;
   // ic_u = 1.0;
   ic_v = 0.0;
 
@@ -290,6 +290,8 @@ int main(int argc, char **argv) {
               op_arg_dat(data->sJ,-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->fscale,-1,OP_ID,15,"double",OP_WRITE));
 
+  CubatureData *cubData = new CubatureData(data);
+
   // Set initial conditions
   op_par_loop_set_ic("set_ic",data->cells,
               op_arg_dat(data->Q[0][0],-1,OP_ID,15,"double",OP_WRITE),
@@ -339,12 +341,12 @@ int main(int argc, char **argv) {
     a_time += wall_loop_2 - wall_loop_1;
 
     op_timers(&cpu_loop_1, &wall_loop_1);
-    pressure(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
+    // pressure(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
     op_timers(&cpu_loop_2, &wall_loop_2);
     p_time += wall_loop_2 - wall_loop_1;
 
     op_timers(&cpu_loop_1, &wall_loop_1);
-    viscosity(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
+    // viscosity(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
     op_timers(&cpu_loop_2, &wall_loop_2);
     v_time += wall_loop_2 - wall_loop_1;
 
@@ -362,6 +364,7 @@ int main(int argc, char **argv) {
   cout << "Time in pressure solve: " << p_time << endl;
   cout << "Time in viscosity solve: " << v_time << endl;
 
+  op_fetch_data_hdf5_file(cubData->OP, "cub.h5");
 
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
@@ -410,6 +413,7 @@ int main(int argc, char **argv) {
   op_exit();
 
   delete poisson;
+  delete cubData;
   delete data;
 
   ierr = PetscFinalize();

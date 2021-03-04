@@ -40,7 +40,7 @@ private:
   void store_vec(Vec *v, op_dat v_dat);
   INSData *data;
 
-  Mat pMat;
+  Mat pMat, pBCMat;
 
   // Pointers to private memory
   double *pTau_data;

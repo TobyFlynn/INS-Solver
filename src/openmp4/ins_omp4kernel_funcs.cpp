@@ -14,6 +14,10 @@ double bc_v_ompkernel;
 int FMASK_ompkernel[15];
 double ic_u_ompkernel;
 double ic_v_ompkernel;
+double cubW_ompkernel[46];
+double cubV_ompkernel[690];
+double cubVDr_ompkernel[690];
+double cubVDs_ompkernel[690];
 
 // header
 #include "op_lib_cpp.h"
@@ -53,6 +57,18 @@ void op_decl_const_char(int dim, char const *type,
   } else if(!strcmp(name, "ic_v")) {
     memcpy(&ic_v_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:ic_v_ompkernel)
+  } else if(!strcmp(name, "cubW")) {
+    memcpy(cubW_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:cubW_ompkernel[:46])
+  } else if(!strcmp(name, "cubV")) {
+    memcpy(cubV_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:cubV_ompkernel[:690])
+  } else if(!strcmp(name, "cubVDr")) {
+    memcpy(cubVDr_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:cubVDr_ompkernel[:690])
+  } else if(!strcmp(name, "cubVDs")) {
+    memcpy(cubVDs_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:cubVDs_ompkernel[:690])
   }
 }
 // user kernel files
@@ -69,6 +85,9 @@ void op_decl_const_char(int dim, char const *type,
 #include "pressure_update_vel_omp4kernel_func.cpp"
 #include "viscosity_rhs_omp4kernel_func.cpp"
 #include "viscosity_reset_bc_omp4kernel_func.cpp"
+#include "init_cubature_grad_omp4kernel_func.cpp"
+#include "init_cubature_omp4kernel_func.cpp"
+#include "init_cubature_OP_omp4kernel_func.cpp"
 #include "setup_poisson_omp4kernel_func.cpp"
 #include "set_tau_omp4kernel_func.cpp"
 #include "set_tau_bc_omp4kernel_func.cpp"

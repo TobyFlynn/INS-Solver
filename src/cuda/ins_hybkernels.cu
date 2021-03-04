@@ -17,6 +17,9 @@
 #define op_par_loop_pressure_update_vel op_par_loop_pressure_update_vel_gpu
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_gpu
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_gpu
+#define op_par_loop_init_cubature_grad op_par_loop_init_cubature_grad_gpu
+#define op_par_loop_init_cubature op_par_loop_init_cubature_gpu
+#define op_par_loop_init_cubature_OP op_par_loop_init_cubature_OP_gpu
 #define op_par_loop_setup_poisson op_par_loop_setup_poisson_gpu
 #define op_par_loop_set_tau op_par_loop_set_tau_gpu
 #define op_par_loop_set_tau_bc op_par_loop_set_tau_bc_gpu
@@ -41,6 +44,9 @@
 #undef op_par_loop_pressure_update_vel
 #undef op_par_loop_viscosity_rhs
 #undef op_par_loop_viscosity_reset_bc
+#undef op_par_loop_init_cubature_grad
+#undef op_par_loop_init_cubature
+#undef op_par_loop_init_cubature_OP
 #undef op_par_loop_setup_poisson
 #undef op_par_loop_set_tau
 #undef op_par_loop_set_tau_bc
@@ -65,6 +71,9 @@
 #define op_par_loop_pressure_update_vel op_par_loop_pressure_update_vel_cpu
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_cpu
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_cpu
+#define op_par_loop_init_cubature_grad op_par_loop_init_cubature_grad_cpu
+#define op_par_loop_init_cubature op_par_loop_init_cubature_cpu
+#define op_par_loop_init_cubature_OP op_par_loop_init_cubature_OP_cpu
 #define op_par_loop_setup_poisson op_par_loop_setup_poisson_cpu
 #define op_par_loop_set_tau op_par_loop_set_tau_cpu
 #define op_par_loop_set_tau_bc op_par_loop_set_tau_bc_cpu
@@ -89,6 +98,9 @@
 #undef op_par_loop_pressure_update_vel
 #undef op_par_loop_viscosity_rhs
 #undef op_par_loop_viscosity_reset_bc
+#undef op_par_loop_init_cubature_grad
+#undef op_par_loop_init_cubature
+#undef op_par_loop_init_cubature_OP
 #undef op_par_loop_setup_poisson
 #undef op_par_loop_set_tau
 #undef op_par_loop_set_tau_bc
@@ -1050,6 +1062,174 @@ void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
   op_par_loop_viscosity_reset_bc_gpu(name, set,
     arg0,
     arg1);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_init_cubature_grad_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_init_cubature_grad(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_init_cubature_grad_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+    }else{
+    op_par_loop_init_cubature_grad_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+  }
+}
+#else
+void op_par_loop_init_cubature_grad(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  op_par_loop_init_cubature_grad_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_init_cubature_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_init_cubature(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_init_cubature_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+    }else{
+    op_par_loop_init_cubature_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+  }
+}
+#else
+void op_par_loop_init_cubature(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  op_par_loop_init_cubature_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_init_cubature_OP_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_init_cubature_OP(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_init_cubature_OP_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4);
+
+    }else{
+    op_par_loop_init_cubature_OP_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4);
+
+  }
+}
+#else
+void op_par_loop_init_cubature_OP(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
+
+  op_par_loop_init_cubature_OP_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4);
 
   }
 #endif //OP_HYBRID_GPU

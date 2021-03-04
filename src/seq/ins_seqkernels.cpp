@@ -14,6 +14,10 @@ extern double bc_v;
 extern int FMASK[15];
 extern double ic_u;
 extern double ic_v;
+extern double cubW[46];
+extern double cubV[690];
+extern double cubVDr[690];
+extern double cubVDs[690];
 
 // header
 #include "op_lib_cpp.h"
@@ -32,6 +36,9 @@ extern double ic_v;
 #include "pressure_update_vel_seqkernel.cpp"
 #include "viscosity_rhs_seqkernel.cpp"
 #include "viscosity_reset_bc_seqkernel.cpp"
+#include "init_cubature_grad_seqkernel.cpp"
+#include "init_cubature_seqkernel.cpp"
+#include "init_cubature_OP_seqkernel.cpp"
 #include "setup_poisson_seqkernel.cpp"
 #include "set_tau_seqkernel.cpp"
 #include "set_tau_bc_seqkernel.cpp"

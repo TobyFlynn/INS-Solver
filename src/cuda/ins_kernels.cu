@@ -18,6 +18,10 @@ __constant__ double bc_v_cuda;
 __constant__ int FMASK_cuda[15];
 __constant__ double ic_u_cuda;
 __constant__ double ic_v_cuda;
+__constant__ double cubW_cuda[46];
+__constant__ double cubV_cuda[690];
+__constant__ double cubVDr_cuda[690];
+__constant__ double cubVDs_cuda[690];
 
 //header
 #include "op_lib_cpp.h"
@@ -71,6 +75,22 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(ic_v_cuda, dat, dim*size));
   }
   else
+  if (!strcmp(name,"cubW")) {
+    cutilSafeCall(cudaMemcpyToSymbol(cubW_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"cubV")) {
+    cutilSafeCall(cudaMemcpyToSymbol(cubV_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"cubVDr")) {
+    cutilSafeCall(cudaMemcpyToSymbol(cubVDr_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"cubVDs")) {
+    cutilSafeCall(cudaMemcpyToSymbol(cubVDs_cuda, dat, dim*size));
+  }
+  else
   {
     printf("error: unknown const name\n"); exit(1);
   }
@@ -90,6 +110,9 @@ int size, char *dat, char const *name){
 #include "pressure_update_vel_kernel.cu"
 #include "viscosity_rhs_kernel.cu"
 #include "viscosity_reset_bc_kernel.cu"
+#include "init_cubature_grad_kernel.cu"
+#include "init_cubature_kernel.cu"
+#include "init_cubature_OP_kernel.cu"
 #include "setup_poisson_kernel.cu"
 #include "set_tau_kernel.cu"
 #include "set_tau_bc_kernel.cu"

@@ -175,9 +175,23 @@ void Poisson::setDirichletBCs(int *d, op_dat d_dat) {
 }
 
 void Poisson::createMatrix() {
+  MatCreate(PETSC_COMM_SELF, &pMat);
+  MatSetSizes(pMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 15 * data->numCells);
+  MatSetUp(pMat);
 
+  // TODO: Insert elements
+
+  MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
 }
 
 void Poisson::createBCMatrix() {
+  MatCreate(PETSC_COMM_SELF, &pBCMat);
+  MatSetSizes(pBCMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 15 * data->numCells);
+  MatSetUp(pBCMat);
 
+  // TODO: Insert elements
+
+  MatAssemblyBegin(pBCMat, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(pBCMat, MAT_FINAL_ASSEMBLY);
 }

@@ -14,6 +14,8 @@ extern double bc_v;
 extern int FMASK[15];
 extern double ic_u;
 extern double ic_v;
+extern double cubV[46 * 15];
+extern double cubW[46];
 
 class INSData {
 public:
@@ -79,6 +81,38 @@ private:
   double *dpdy_data;
   double *visRHS_data[2];
   double *dirichletBC_data;
+};
+
+class CubatureData {
+public:
+  CubatureData(INSData *dat);
+  ~CubatureData();
+
+  // mm is stored in column major format
+  // OP is the local stiffness matrix used by the Poisson solver
+  op_dat rx, sx, ry, sy, J, mm, Dx, Dy, OP;
+  op_dat temp, temp2;
+
+private:
+  INSData *data;
+
+  double *rx_data;
+  double *sx_data;
+  double *ry_data;
+  double *sy_data;
+  double *J_data;
+  double *mm_data;
+  double *Dx_data;
+  double *Dy_data;
+  double *OP_data;
+  double *temp_data;
+  double *temp2_data;
+};
+
+class GaussData {
+public:
+  GaussData();
+  ~GaussData();
 };
 
 #endif

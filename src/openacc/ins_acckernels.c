@@ -14,6 +14,10 @@ extern double bc_v;
 extern int FMASK[15];
 extern double ic_u;
 extern double ic_v;
+extern double cubW[46];
+extern double cubV[690];
+extern double cubVDr[690];
+extern double cubVDs[690];
 
 // header
 #include "op_lib_c.h"
@@ -34,6 +38,9 @@ int size, char *dat, char const *name){}
 #include "pressure_update_vel_acckernel.c"
 #include "viscosity_rhs_acckernel.c"
 #include "viscosity_reset_bc_acckernel.c"
+#include "init_cubature_grad_acckernel.c"
+#include "init_cubature_acckernel.c"
+#include "init_cubature_OP_acckernel.c"
 #include "setup_poisson_acckernel.c"
 #include "set_tau_acckernel.c"
 #include "set_tau_bc_acckernel.c"

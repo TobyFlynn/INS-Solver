@@ -11,5 +11,11 @@
 #include "constant_MASS.h"
 #include "constant_visMat.h"
 #include "constant_util.h"
+#include "constant_cubDr.h"
+#include "constant_cubDs.h"
+#include "constant_cubV.h"
+#include "constant_cubW.h"
+#include "constant_cubVDr.h"
+#include "constant_cubVDs.h"
 
 #endif
