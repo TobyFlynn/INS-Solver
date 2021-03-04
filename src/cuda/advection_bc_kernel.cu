@@ -31,7 +31,7 @@ __device__ void advection_bc_gpu( const int *bedge_type, const int *bedgeNum,
       double y1 = y[qInd];
 
 
-      exQ0[exInd + i] += 1e-5;
+      exQ0[exInd + i] += 0.1;
 
     }
   } else if(*bedge_type == 1) {

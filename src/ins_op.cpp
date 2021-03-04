@@ -131,6 +131,17 @@ void op_par_loop_pressure_rhs(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_pressure_nBC(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
 void op_par_loop_pressure_bc2(char const *, op_set,
   op_arg,
   op_arg,
@@ -148,6 +159,10 @@ void op_par_loop_pressure_update_vel(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
+  op_arg );
+
+void op_par_loop_reset_nBC(char const *, op_set,
   op_arg,
   op_arg );
 
@@ -215,6 +230,8 @@ void op_par_loop_viscosity_reset_bc(char const *, op_set,
 #include "kernels/pressure_bc3.h"
 #include "kernels/pressure_rhs.h"
 #include "kernels/pressure_update_vel.h"
+#include "kernels/pressure_nBC.h"
+#include "kernels/reset_nBC.h"
 
 #include "kernels/viscosity_faces.h"
 #include "kernels/viscosity_rhs.h"
@@ -256,7 +273,7 @@ int main(int argc, char **argv) {
   bc_u = 1e-6;
   bc_v = 0.0;
   // ic_u = 1e-5;
-  ic_u = 0.0;
+  // ic_u = 1.0;
   ic_v = 0.0;
 
   cout << "gam: " << gam << endl;
@@ -545,6 +562,17 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->dPdN[(currentInd + 1) % 2],-1,OP_ID,15,"double",OP_RW),
               op_arg_dat(data->divVelT,-1,OP_ID,15,"double",OP_RW));
 
+  op_par_loop_pressure_nBC("pressure_nBC",data->cells,
+              op_arg_dat(data->nx,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->ny,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->dPdN[(currentInd + 1) % 2],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->neumannBCx[0],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->neumannBCy[0],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->N[currentInd][0],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->N[currentInd][1],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->gradCurlVel[0],-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->gradCurlVel[1],-1,OP_ID,15,"double",OP_READ));
+
   pressure_rhs_blas(data, currentInd);
 /*
   // Dirichlet BCs, p = 0 on outflow
@@ -561,7 +589,7 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
   int pressure_dirichlet[] = {1, -1};
   int pressure_neumann[] = {0, 2};
   poisson->setDirichletBCs(pressure_dirichlet, data->dirichletBC);
-  poisson->setNeumannBCs(pressure_neumann);
+  poisson->setNeumannBCs(pressure_neumann, data->neumannBCx[0], data->neumannBCy[0]);
   poisson->solve(data->pRHS, data->p, false);
 
   grad(data, data->p, data->dpdx, data->dpdy);
@@ -577,6 +605,10 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->QTT[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->QTT[1],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->dPdN[(currentInd + 1) % 2],-1,OP_ID,15,"double",OP_WRITE));
+
+  op_par_loop_reset_nBC("reset_nBC",data->cells,
+              op_arg_dat(data->neumannBCx[0],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->neumannBCy[0],-1,OP_ID,15,"double",OP_WRITE));
 }
 
 void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
@@ -621,11 +653,11 @@ void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, doubl
   int viscosity_dirichlet[] = {0, 2};
   int viscosity_neumann[] = {1, -1};
   poisson->setDirichletBCs(viscosity_dirichlet, data->exQ[0]);
-  poisson->setNeumannBCs(viscosity_neumann);
+  poisson->setNeumannBCs(viscosity_neumann, data->neumannBCx[0], data->neumannBCy[0]);
   poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, true, factor);
 
   poisson->setDirichletBCs(viscosity_dirichlet, data->exQ[1]);
-  poisson->setNeumannBCs(viscosity_neumann);
+  poisson->setNeumannBCs(viscosity_neumann, data->neumannBCx[0], data->neumannBCy[0]);
   poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, true, factor);
 
   op_par_loop_viscosity_reset_bc("viscosity_reset_bc",data->cells,

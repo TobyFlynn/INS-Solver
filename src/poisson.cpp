@@ -102,13 +102,19 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
 
   KSP ksp;
   KSPCreate(PETSC_COMM_SELF, &ksp);
-  if(method) {
+  // if(method) {
     KSPSetType(ksp, KSPFGMRES);
-  } else {
-    KSPSetType(ksp, KSPCG);
-  }
+  // } else {
+  //   KSPSetType(ksp, KSPCG);
+  // }
+  // KSPSetType(ksp, KSPCG);
+  // PC pc;
+  // KSPGetPC(ksp, &pc);
+  // PCSetType(pc, PCICC);
+  // KSPSetPC(ksp, pc);
+  KSPSetPCSide(ksp, PC_RIGHT);
   KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
+  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 5e4);
 
   // Solve
   KSPSolve(ksp, b, x);
@@ -184,6 +190,7 @@ void Poisson::rhs(const double *u, double *rhs) {
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&neumann[0], 1, "int", OP_READ),
               op_arg_gbl(&neumann[1], 1, "int", OP_READ),
+              op_arg_dat(nBCx, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(pDuDx, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(pExRHS[0], 0, data->bedge2cells, 15, "double", OP_INC));
 
@@ -192,6 +199,7 @@ void Poisson::rhs(const double *u, double *rhs) {
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&neumann[0], 1, "int", OP_READ),
               op_arg_gbl(&neumann[1], 1, "int", OP_READ),
+              op_arg_dat(nBCy, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(pDuDy, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(pExRHS[1], 0, data->bedge2cells, 15, "double", OP_INC));
 
@@ -228,6 +236,8 @@ void Poisson::setDirichletBCs(int *d, op_dat d_dat) {
   dBC = d_dat;
 }
 
-void Poisson::setNeumannBCs(int *n) {
+void Poisson::setNeumannBCs(int *n, op_dat nx_dat, op_dat ny_dat) {
   neumann = n;
+  nBCx = nx_dat;
+  nBCy = ny_dat;
 }

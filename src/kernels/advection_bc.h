@@ -27,7 +27,7 @@ inline void advection_bc(const int *bedge_type, const int *bedgeNum,
       double y1 = y[qInd];
       // exQ0[exInd + i] += pow(0.41, -2.0) * sin((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
       // exQ0[exInd + i] += pow(0.41, -2.0) * cos((PI * *t) / 8.0);
-      exQ0[exInd + i] += 1e-5;
+      exQ0[exInd + i] += 0.1;
       // exQ1[exInd + i] += bc_v;
     }
   } else if(*bedge_type == 1) {

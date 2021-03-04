@@ -5,7 +5,7 @@
 //user function
 __device__ void poisson_rhs_qbc_gpu( const int *bedge_type, const int *bedgeNum,
                             const int *neumann0, const int *neumann1,
-                            const double *q, double *exq) {
+                            const double *bc, const double *q, double *exq) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 5;
@@ -25,9 +25,9 @@ __device__ void poisson_rhs_qbc_gpu( const int *bedge_type, const int *bedgeNum,
 
   if(*bedge_type == *neumann0 || *bedge_type == *neumann1) {
     for(int i = 0; i < 5; i++) {
+      exq[exInd + i] += -q[fmask[i]] + 2.0 * bc[exInd + i];
 
 
-      exq[exInd + i] += -q[fmask[i]];
     }
   } else {
 
@@ -41,7 +41,8 @@ __device__ void poisson_rhs_qbc_gpu( const int *bedge_type, const int *bedgeNum,
 // CUDA kernel function
 __global__ void op_cuda_poisson_rhs_qbc(
   const double *__restrict ind_arg0,
-  double *__restrict ind_arg1,
+  const double *__restrict ind_arg1,
+  double *__restrict ind_arg2,
   const int *__restrict opDat4Map,
   const int *__restrict arg0,
   const int *__restrict arg1,
@@ -50,14 +51,14 @@ __global__ void op_cuda_poisson_rhs_qbc(
   int start,
   int end,
   int   set_size) {
-  double arg5_l[15];
+  double arg6_l[15];
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg5_l[15];
+    double arg6_l[15];
     for ( int d=0; d<15; d++ ){
-      arg5_l[d] = ZERO_double;
+      arg6_l[d] = ZERO_double;
     }
     int map4idx;
     map4idx = opDat4Map[n + set_size * 0];
@@ -68,22 +69,23 @@ __global__ void op_cuda_poisson_rhs_qbc(
                     arg2,
                     arg3,
                     ind_arg0+map4idx*15,
-                    arg5_l);
-    atomicAdd(&ind_arg1[0+map4idx*15],arg5_l[0]);
-    atomicAdd(&ind_arg1[1+map4idx*15],arg5_l[1]);
-    atomicAdd(&ind_arg1[2+map4idx*15],arg5_l[2]);
-    atomicAdd(&ind_arg1[3+map4idx*15],arg5_l[3]);
-    atomicAdd(&ind_arg1[4+map4idx*15],arg5_l[4]);
-    atomicAdd(&ind_arg1[5+map4idx*15],arg5_l[5]);
-    atomicAdd(&ind_arg1[6+map4idx*15],arg5_l[6]);
-    atomicAdd(&ind_arg1[7+map4idx*15],arg5_l[7]);
-    atomicAdd(&ind_arg1[8+map4idx*15],arg5_l[8]);
-    atomicAdd(&ind_arg1[9+map4idx*15],arg5_l[9]);
-    atomicAdd(&ind_arg1[10+map4idx*15],arg5_l[10]);
-    atomicAdd(&ind_arg1[11+map4idx*15],arg5_l[11]);
-    atomicAdd(&ind_arg1[12+map4idx*15],arg5_l[12]);
-    atomicAdd(&ind_arg1[13+map4idx*15],arg5_l[13]);
-    atomicAdd(&ind_arg1[14+map4idx*15],arg5_l[14]);
+                    ind_arg1+map4idx*15,
+                    arg6_l);
+    atomicAdd(&ind_arg2[0+map4idx*15],arg6_l[0]);
+    atomicAdd(&ind_arg2[1+map4idx*15],arg6_l[1]);
+    atomicAdd(&ind_arg2[2+map4idx*15],arg6_l[2]);
+    atomicAdd(&ind_arg2[3+map4idx*15],arg6_l[3]);
+    atomicAdd(&ind_arg2[4+map4idx*15],arg6_l[4]);
+    atomicAdd(&ind_arg2[5+map4idx*15],arg6_l[5]);
+    atomicAdd(&ind_arg2[6+map4idx*15],arg6_l[6]);
+    atomicAdd(&ind_arg2[7+map4idx*15],arg6_l[7]);
+    atomicAdd(&ind_arg2[8+map4idx*15],arg6_l[8]);
+    atomicAdd(&ind_arg2[9+map4idx*15],arg6_l[9]);
+    atomicAdd(&ind_arg2[10+map4idx*15],arg6_l[10]);
+    atomicAdd(&ind_arg2[11+map4idx*15],arg6_l[11]);
+    atomicAdd(&ind_arg2[12+map4idx*15],arg6_l[12]);
+    atomicAdd(&ind_arg2[13+map4idx*15],arg6_l[13]);
+    atomicAdd(&ind_arg2[14+map4idx*15],arg6_l[14]);
   }
 }
 
@@ -95,12 +97,13 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5){
+  op_arg arg5,
+  op_arg arg6){
 
   int*arg2h = (int *)arg2.data;
   int*arg3h = (int *)arg3.data;
-  int nargs = 6;
-  op_arg args[6];
+  int nargs = 7;
+  op_arg args[7];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -108,17 +111,18 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   args[3] = arg3;
   args[4] = arg4;
   args[5] = arg5;
+  args[6] = arg6;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(23);
+  op_timing_realloc(25);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[23].name      = name;
-  OP_kernels[23].count    += 1;
+  OP_kernels[25].name      = name;
+  OP_kernels[25].count    += 1;
 
 
-  int    ninds   = 2;
-  int    inds[6] = {-1,-1,-1,-1,0,1};
+  int    ninds   = 3;
+  int    inds[7] = {-1,-1,-1,-1,0,1,2};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_rhs_qbc\n");
@@ -147,8 +151,8 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_23
-      int nthread = OP_BLOCK_SIZE_23;
+    #ifdef OP_BLOCK_SIZE_25
+      int nthread = OP_BLOCK_SIZE_25;
     #else
       int nthread = OP_block_size;
     #endif
@@ -164,6 +168,7 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
         op_cuda_poisson_rhs_qbc<<<nblocks,nthread>>>(
         (double *)arg4.data_d,
         (double *)arg5.data_d,
+        (double *)arg6.data_d,
         arg4.map_data_d,
         (int*)arg0.data_d,
         (int*)arg1.data_d,
@@ -177,5 +182,5 @@ void op_par_loop_poisson_rhs_qbc(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[23].time     += wall_t2 - wall_t1;
+  OP_kernels[25].time     += wall_t2 - wall_t1;
 }
