@@ -22,11 +22,12 @@ public:
   Poisson(INSData *nsData);
   ~Poisson();
 
-  void rhs(const double *u, double *rhs);
   void solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass = false, double factor = 0.0);
 
   void setDirichletBCs(int *d, op_dat d_dat);
-  void setNeumannBCs(int *n, op_dat nx_dat, op_dat ny_dat);
+  void createMatrix();
+  void createBCMatrix();
+
   // OP2 Dats
   op_dat pTau, pExRHS[2], pU, pDu, pFluxXu, pFluxYu, pDuDx, pDuDy, pFluxQ, pDivQ, pRHS;
   op_dat dBC, nBCx, nBCy;
@@ -38,6 +39,9 @@ private:
   void load_vec(Vec *v, op_dat v_dat);
   void store_vec(Vec *v, op_dat v_dat);
   INSData *data;
+
+  Mat pMat;
+
   // Pointers to private memory
   double *pTau_data;
   double *pExRHS_data[2];

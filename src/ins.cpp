@@ -30,16 +30,10 @@
 #include "kernels/advection_intermediate_vel.h"
 
 #include "kernels/pressure_bc.h"
-#include "kernels/pressure_bc2.h"
-#include "kernels/pressure_bc3.h"
 #include "kernels/pressure_rhs.h"
 #include "kernels/pressure_update_vel.h"
-#include "kernels/pressure_nBC.h"
-#include "kernels/reset_nBC.h"
 
-#include "kernels/viscosity_faces.h"
 #include "kernels/viscosity_rhs.h"
-#include "kernels/viscosity_bc.h"
 #include "kernels/viscosity_reset_bc.h"
 
 using namespace std;
@@ -149,9 +143,7 @@ int main(int argc, char **argv) {
               op_arg_dat(data->dPdN[0], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->dPdN[1], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->pRHSex, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->dirichletBC, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->neumannBCx[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->neumannBCy[0], -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(data->dirichletBC, -1, OP_ID, 15, "double", OP_WRITE));
 
   Poisson *poisson = new Poisson(data);
 
@@ -366,34 +358,11 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(data->divVelT, -1, OP_ID, 15, "double", OP_RW));
 
-  op_par_loop(pressure_nBC, "pressure_nBC", data->cells,
-              op_arg_dat(data->nx, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->ny, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->neumannBCx[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->neumannBCy[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->N[currentInd][0], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->N[currentInd][1], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->gradCurlVel[0], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->gradCurlVel[1], -1, OP_ID, 15, "double", OP_READ));
-
   pressure_rhs_blas(data, currentInd);
-/*
-  // Dirichlet BCs, p = 0 on outflow
-  op_par_loop(pressure_bc2, "pressure_bc2", data->bedges,
-              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->pRHS, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->pRHSex, 0, data->bedge2cells, 15, "double", OP_INC));
 
-  op_par_loop(pressure_bc3, "pressure_bc3", data->cells,
-              op_arg_dat(data->pRHSex, -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(data->pRHS, -1, OP_ID, 15, "double", OP_RW));
-*/
   int pressure_dirichlet[] = {1, -1};
   int pressure_neumann[] = {0, 2};
   poisson->setDirichletBCs(pressure_dirichlet, data->dirichletBC);
-  poisson->setNeumannBCs(pressure_neumann, data->neumannBCx[0], data->neumannBCy[0]);
   poisson->solve(data->pRHS, data->p, false);
 
   grad(data, data->p, data->dpdx, data->dpdy);
@@ -409,23 +378,12 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 15, "double", OP_WRITE));
-
-  op_par_loop(reset_nBC, "reset_nBC", data->cells,
-              op_arg_dat(data->neumannBCx[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->neumannBCy[0], -1, OP_ID, 15, "double", OP_WRITE));
 }
 
 void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t) {
   double time = t + dt;
-/*
-  op_par_loop(viscosity_faces, "viscosity_faces", data->edges,
-              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(data->QTT[0], -2, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->QTT[1], -2, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->exQ[0], -2, data->edge2cells, 15, "double", OP_INC),
-              op_arg_dat(data->exQ[1], -2, data->edge2cells, 15, "double", OP_INC));
-*/
+
   op_par_loop(advection_bc, "advection_bc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
@@ -447,21 +405,13 @@ void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, doubl
               op_arg_dat(data->visRHS[1], -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(data->exQ[0], -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(data->exQ[1], -1, OP_ID, 15, "double", OP_RW));
-/*
-  op_par_loop(viscosity_bc, "viscosity_bc", data->bedges,
-              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->visRHS[0], 0, data->bedge2cells, 15, "double", OP_INC),
-              op_arg_dat(data->visRHS[1], 0, data->bedge2cells, 15, "double", OP_INC));
-*/
+
   int viscosity_dirichlet[] = {0, 2};
   int viscosity_neumann[] = {1, -1};
   poisson->setDirichletBCs(viscosity_dirichlet, data->exQ[0]);
-  poisson->setNeumannBCs(viscosity_neumann, data->neumannBCx[0], data->neumannBCy[0]);
   poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, true, factor);
 
   poisson->setDirichletBCs(viscosity_dirichlet, data->exQ[1]);
-  poisson->setNeumannBCs(viscosity_neumann, data->neumannBCx[0], data->neumannBCy[0]);
   poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, true, factor);
 
   op_par_loop(viscosity_reset_bc, "viscosity_reset_bc", data->cells,

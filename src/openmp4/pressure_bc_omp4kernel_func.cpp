@@ -82,8 +82,8 @@ void pressure_bc_omp4_kernel(
 
       for(int i = 0; i < 5; i++) {
         int fInd = fmask[i];
-        double res1 = N0[fInd] + nu_ompkernel * gradCurlVel1[fInd];
-        double res2 = N1[fInd] - nu_ompkernel * gradCurlVel0[fInd];
+        double res1 = -N0[fInd] - nu_ompkernel * gradCurlVel1[fInd];
+        double res2 = -N1[fInd] + nu_ompkernel * gradCurlVel0[fInd];
         dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
       }
     }

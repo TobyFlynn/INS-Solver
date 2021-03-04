@@ -25,8 +25,8 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum, const double
     // Inflow or Wall
     for(int i = 0; i < 5; i++) {
       int fInd = fmask[i];
-      double res1 = N0[fInd] + nu * gradCurlVel1[fInd];
-      double res2 = N1[fInd] - nu * gradCurlVel0[fInd];
+      double res1 = -N0[fInd] - nu * gradCurlVel1[fInd];
+      double res2 = -N1[fInd] + nu * gradCurlVel0[fInd];
       dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
     }
   }

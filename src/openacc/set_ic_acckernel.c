@@ -6,7 +6,7 @@
 //user function
 //#pragma acc routine
 inline void set_ic_openacc( double *q0, double *q1, double *exQ0,
-                   double *exQ1, double *dPdN0, double *dPdN1, double *pRHSex, double *d, double *n0, double *n1) {
+                   double *exQ1, double *dPdN0, double *dPdN1, double *pRHSex, double *d) {
   for(int i = 0; i < 15; i++) {
     q0[i] = ic_u;
     q1[i] = ic_v;
@@ -16,8 +16,6 @@ inline void set_ic_openacc( double *q0, double *q1, double *exQ0,
     dPdN1[i] = 0.0;
     pRHSex[i] = 0.0;
     d[i] = 0.0;
-    n0[i] = 0.0;
-    n1[i] = 0.0;
   }
 }
 
@@ -30,12 +28,10 @@ void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9){
+  op_arg arg7){
 
-  int nargs = 10;
-  op_arg args[10];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -45,8 +41,6 @@ void op_par_loop_set_ic(char const *name, op_set set,
   args[5] = arg5;
   args[6] = arg6;
   args[7] = arg7;
-  args[8] = arg8;
-  args[9] = arg9;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -76,9 +70,7 @@ void op_par_loop_set_ic(char const *name, op_set set,
     double* data5 = (double*)arg5.data_d;
     double* data6 = (double*)arg6.data_d;
     double* data7 = (double*)arg7.data_d;
-    double* data8 = (double*)arg8.data_d;
-    double* data9 = (double*)arg9.data_d;
-    #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7,data8,data9)
+    #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7)
     for ( int n=0; n<set->size; n++ ){
       set_ic_openacc(
         &data0[15*n],
@@ -88,9 +80,7 @@ void op_par_loop_set_ic(char const *name, op_set set,
         &data4[15*n],
         &data5[15*n],
         &data6[15*n],
-        &data7[15*n],
-        &data8[15*n],
-        &data9[15*n]);
+        &data7[15*n]);
     }
   }
 
@@ -108,6 +98,4 @@ void op_par_loop_set_ic(char const *name, op_set set,
   OP_kernels[1].transfer += (float)set->size * arg5.size * 2.0f;
   OP_kernels[1].transfer += (float)set->size * arg6.size * 2.0f;
   OP_kernels[1].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg8.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg9.size * 2.0f;
 }

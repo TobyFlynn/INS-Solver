@@ -4,7 +4,7 @@
 
 //user function
 __device__ void set_ic_gpu( double *q0, double *q1, double *exQ0,
-                   double *exQ1, double *dPdN0, double *dPdN1, double *pRHSex, double *d, double *n0, double *n1) {
+                   double *exQ1, double *dPdN0, double *dPdN1, double *pRHSex, double *d) {
   for(int i = 0; i < 15; i++) {
     q0[i] = ic_u_cuda;
     q1[i] = ic_v_cuda;
@@ -14,8 +14,6 @@ __device__ void set_ic_gpu( double *q0, double *q1, double *exQ0,
     dPdN1[i] = 0.0;
     pRHSex[i] = 0.0;
     d[i] = 0.0;
-    n0[i] = 0.0;
-    n1[i] = 0.0;
   }
 
 }
@@ -30,8 +28,6 @@ __global__ void op_cuda_set_ic(
   double *arg5,
   double *arg6,
   double *arg7,
-  double *arg8,
-  double *arg9,
   int   set_size ) {
 
 
@@ -46,9 +42,7 @@ __global__ void op_cuda_set_ic(
            arg4+n*15,
            arg5+n*15,
            arg6+n*15,
-           arg7+n*15,
-           arg8+n*15,
-           arg9+n*15);
+           arg7+n*15);
   }
 }
 
@@ -62,12 +56,10 @@ void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9){
+  op_arg arg7){
 
-  int nargs = 10;
-  op_arg args[10];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -77,8 +69,6 @@ void op_par_loop_set_ic(char const *name, op_set set,
   args[5] = arg5;
   args[6] = arg6;
   args[7] = arg7;
-  args[8] = arg8;
-  args[9] = arg9;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -113,8 +103,6 @@ void op_par_loop_set_ic(char const *name, op_set set,
       (double *) arg5.data_d,
       (double *) arg6.data_d,
       (double *) arg7.data_d,
-      (double *) arg8.data_d,
-      (double *) arg9.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
@@ -130,6 +118,4 @@ void op_par_loop_set_ic(char const *name, op_set set,
   OP_kernels[1].transfer += (float)set->size * arg5.size * 2.0f;
   OP_kernels[1].transfer += (float)set->size * arg6.size * 2.0f;
   OP_kernels[1].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg8.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg9.size * 2.0f;
 }

@@ -96,10 +96,6 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   Vec x;
   create_vec(&x);
 
-  Mat Amat;
-  MatCreateShell(PETSC_COMM_SELF, 15 * data->numCells, 15 * data->numCells, PETSC_DETERMINE, PETSC_DETERMINE, this, &Amat);
-  MatShellSetOperation(Amat, MATOP_MULT, (void(*)(void))matAMult);
-
   KSP ksp;
   KSPCreate(PETSC_COMM_SELF, &ksp);
   // if(method) {
@@ -112,9 +108,9 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   // KSPGetPC(ksp, &pc);
   // PCSetType(pc, PCICC);
   // KSPSetPC(ksp, pc);
-  KSPSetPCSide(ksp, PC_RIGHT);
-  KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 5e4);
+  // KSPSetPCSide(ksp, PC_RIGHT);
+  KSPSetOperators(ksp, pMat, pMat);
+  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
 
   // Solve
   KSPSolve(ksp, b, x);
@@ -131,104 +127,8 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   KSPGetSolution(ksp, &solution);
   store_vec(&solution, x_dat);
   KSPDestroy(&ksp);
-  MatDestroy(&Amat);
   destroy_vec(&b);
   destroy_vec(&x);
-}
-
-void Poisson::rhs(const double *u, double *rhs) {
-  // Copy u to OP2 dat (different depending on whether CPU or GPU)
-  copy_u(u);
-
-  op_par_loop(poisson_rhs_faces, "poisson_rhs_faces", data->edges,
-              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(pU, -2, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(pExRHS[0], -2, data->edge2cells, 15, "double", OP_INC));
-
-  op_par_loop(poisson_rhs_bc, "poisson_rhs_bc", data->bedges,
-              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),
-              op_arg_gbl(&dirichlet[1], 1, "int", OP_READ),
-              op_arg_dat(dBC, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(pU, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(pExRHS[0], 0, data->bedge2cells, 15, "double", OP_INC));
-
-  op_par_loop(poisson_rhs_du, "poisson_rhs_du", data->cells,
-              op_arg_dat(data->nx, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->ny, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->fscale, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(pU, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(pExRHS[0], -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(pDu, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(pFluxXu, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(pFluxYu, -1, OP_ID, 15, "double", OP_WRITE));
-
-  grad(data, pU, pDuDx, pDuDy);
-
-  // qx and qy stored in pDuDx and pDuDy
-  poisson_rhs_blas1(data, this);
-
-  op_par_loop(poisson_rhs_faces, "poisson_rhs_faces", data->edges,
-              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(pDuDx, -2, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(pExRHS[0], -2, data->edge2cells, 15, "double", OP_INC));
-
-  op_par_loop(poisson_rhs_faces, "poisson_rhs_faces", data->edges,
-              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(pDuDy, -2, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(pExRHS[1], -2, data->edge2cells, 15, "double", OP_INC));
-
-  op_par_loop(poisson_rhs_qbc, "poisson_rhs_qbc", data->bedges,
-              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&neumann[0], 1, "int", OP_READ),
-              op_arg_gbl(&neumann[1], 1, "int", OP_READ),
-              op_arg_dat(nBCx, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(pDuDx, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(pExRHS[0], 0, data->bedge2cells, 15, "double", OP_INC));
-
-  op_par_loop(poisson_rhs_qbc, "poisson_rhs_qbc", data->bedges,
-              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&neumann[0], 1, "int", OP_READ),
-              op_arg_gbl(&neumann[1], 1, "int", OP_READ),
-              op_arg_dat(nBCy, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(pDuDy, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(pExRHS[1], 0, data->bedge2cells, 15, "double", OP_INC));
-
-  op_par_loop(poisson_rhs_fluxq, "poisson_rhs_fluxq", data->cells,
-              op_arg_dat(data->nx, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->ny, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->fscale, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(pTau, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(pDu, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(pDuDx, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(pDuDy, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(pExRHS[0], -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(pExRHS[1], -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(pFluxQ, -1, OP_ID, 15, "double", OP_WRITE));
-
-  div(data, pDuDx, pDuDy, pDivQ);
-
-  poisson_rhs_blas2(data, this);
-
-  if(massMat) {
-    poisson_mass_blas(data, this, massFactor);
-  }
-
-  op_par_loop(poisson_rhs_J, "poisson_rhs_J", data->cells,
-              op_arg_dat(data->J, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(pRHS, -1, OP_ID, 15, "double", OP_RW));
-
-  // Different depending on whether CPU or GPU
-  copy_rhs(rhs);
 }
 
 void Poisson::setDirichletBCs(int *d, op_dat d_dat) {
@@ -236,8 +136,10 @@ void Poisson::setDirichletBCs(int *d, op_dat d_dat) {
   dBC = d_dat;
 }
 
-void Poisson::setNeumannBCs(int *n, op_dat nx_dat, op_dat ny_dat) {
-  neumann = n;
-  nBCx = nx_dat;
-  nBCy = ny_dat;
+void Poisson::createMatrix() {
+
+}
+
+void Poisson::createBCMatrix() {
+
 }

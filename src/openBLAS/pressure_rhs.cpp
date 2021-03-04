@@ -5,8 +5,8 @@
 
 inline void openblas_pressure_rhs(const int numCells, const double *div,
                                   const double *dPdN, double *rhs) {
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, -1.0, MASS, 15, div, 15, 0.0, rhs, 15);
-  // cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, -1.0, LIFT, 15, dPdN, 15, 1.0, rhs, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, MASS, 15, div, 15, 0.0, rhs, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, LIFT, 15, dPdN, 15, 1.0, rhs, 15);
 }
 
 void pressure_rhs_blas(INSData *nsData, int ind) {

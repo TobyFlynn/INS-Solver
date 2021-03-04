@@ -62,7 +62,7 @@ PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
   VecGetArrayRead(x, &x_ptr);
   VecGetArray(y, &y_ptr);
 
-  poisson->rhs(x_ptr, y_ptr);
+  // poisson->rhs(x_ptr, y_ptr);
 
   VecRestoreArrayRead(x, &x_ptr);
   VecRestoreArray(y, &y_ptr);

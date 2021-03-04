@@ -19,15 +19,11 @@ void set_ic_omp4_kernel(
   int dat6size,
   double *data7,
   int dat7size,
-  double *data8,
-  int dat8size,
-  double *data9,
-  int dat9size,
   int count,
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size]) \
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size]) \
     map(to: ic_u_ompkernel, ic_v_ompkernel)
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
@@ -40,8 +36,6 @@ void set_ic_omp4_kernel(
     double *dPdN1 = &data5[15*n_op];
     double *pRHSex = &data6[15*n_op];
     double *d = &data7[15*n_op];
-    double *n0 = &data8[15*n_op];
-    double *n1 = &data9[15*n_op];
 
     //inline function
     
@@ -54,8 +48,6 @@ void set_ic_omp4_kernel(
       dPdN1[i] = 0.0;
       pRHSex[i] = 0.0;
       d[i] = 0.0;
-      n0[i] = 0.0;
-      n1[i] = 0.0;
     }
     //end inline func
   }

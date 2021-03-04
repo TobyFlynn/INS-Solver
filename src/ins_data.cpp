@@ -54,8 +54,6 @@ INSData::~INSData() {
     free(gradCurlVel_data[i]);
     free(dPdN_data[i]);
     free(visRHS_data[i]);
-    free(neumannBCx_data[i]);
-    free(neumannBCy_data[i]);
   }
   free(divVelT_data);
   free(curlVel_data);
@@ -103,8 +101,6 @@ void INSData::initOP2() {
     gradCurlVel_data[i] = (double *)malloc(15 * numCells * sizeof(double));
     dPdN_data[i] = (double *)malloc(15 * numCells * sizeof(double));
     visRHS_data[i] = (double *)malloc(15 * numCells * sizeof(double));
-    neumannBCx_data[i] = (double *)malloc(15 * numCells * sizeof(double));
-    neumannBCy_data[i] = (double *)malloc(15 * numCells * sizeof(double));
   }
   divVelT_data = (double *)malloc(15 * numCells * sizeof(double));
   curlVel_data = (double *)malloc(15 * numCells * sizeof(double));
@@ -187,8 +183,6 @@ void INSData::initOP2() {
     dPdN[i] = op_decl_dat(cells, 15, "double", dPdN_data[i], dPdNname.c_str());
     string visRHSname = "visRHS" + to_string(i);
     visRHS[i] = op_decl_dat(cells, 15, "double", visRHS_data[i], visRHSname.c_str());
-    neumannBCx[i] = op_decl_dat(cells, 15, "double", neumannBCx_data[i], "neumannBCx");
-    neumannBCy[i] = op_decl_dat(cells, 15, "double", neumannBCy_data[i], "neumannBCy");
   }
   divVelT = op_decl_dat(cells, 15, "double", divVelT_data, "divVelT");
   curlVel = op_decl_dat(cells, 15, "double", curlVel_data, "curlVel");

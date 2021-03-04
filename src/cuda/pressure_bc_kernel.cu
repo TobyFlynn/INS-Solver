@@ -30,8 +30,8 @@ __device__ void pressure_bc_gpu( const int *bedge_type, const int *bedgeNum, con
 
     for(int i = 0; i < 5; i++) {
       int fInd = fmask[i];
-      double res1 = N0[fInd] + nu_cuda * gradCurlVel1[fInd];
-      double res2 = N1[fInd] - nu_cuda * gradCurlVel0[fInd];
+      double res1 = -N0[fInd] - nu_cuda * gradCurlVel1[fInd];
+      double res2 = -N1[fInd] + nu_cuda * gradCurlVel0[fInd];
       dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
     }
   }
