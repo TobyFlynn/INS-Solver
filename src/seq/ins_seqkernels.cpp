@@ -39,6 +39,7 @@ extern double cubVDs[690];
 #include "init_cubature_grad_seqkernel.cpp"
 #include "init_cubature_seqkernel.cpp"
 #include "init_cubature_OP_seqkernel.cpp"
+#include "init_gauss_seqkernel.cpp"
 #include "setup_poisson_seqkernel.cpp"
 #include "set_tau_seqkernel.cpp"
 #include "set_tau_bc_seqkernel.cpp"

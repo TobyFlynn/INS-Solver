@@ -10,6 +10,7 @@
 #include "kernels/init_cubature_grad.h"
 #include "kernels/init_cubature.h"
 #include "kernels/init_cubature_OP.h"
+#include "kernels/init_gauss.h"
 
 using namespace std;
 
@@ -291,10 +292,43 @@ CubatureData::~CubatureData() {
   free(temp_data);
 }
 
-GaussData::GaussData() {
+GaussData::GaussData(INSData *dat) {
+  data = dat;
 
+  rx_data = (double *)malloc(21 * data->numCells * sizeof(double));
+  sx_data = (double *)malloc(21 * data->numCells * sizeof(double));
+  ry_data = (double *)malloc(21 * data->numCells * sizeof(double));
+  sy_data = (double *)malloc(21 * data->numCells * sizeof(double));
+  sJ_data = (double *)malloc(21 * data->numCells * sizeof(double));
+  nx_data = (double *)malloc(21 * data->numCells * sizeof(double));
+  ny_data = (double *)malloc(21 * data->numCells * sizeof(double));
+
+  rx = op_decl_dat(data->cells, 21, "double", rx_data, "gauss-rx");
+  sx = op_decl_dat(data->cells, 21, "double", sx_data, "gauss-sx");
+  ry = op_decl_dat(data->cells, 21, "double", ry_data, "gauss-ry");
+  sy = op_decl_dat(data->cells, 21, "double", sy_data, "gauss-sy");
+  sJ = op_decl_dat(data->cells, 21, "double", sJ_data, "gauss-sJ");
+  nx = op_decl_dat(data->cells, 21, "double", nx_data, "gauss-nx");
+  ny = op_decl_dat(data->cells, 21, "double", ny_data, "gauss-ny");
+
+  init_gauss_blas(data, this);
+
+  op_par_loop(init_gauss, "init_gauss", data->cells,
+              op_arg_dat(rx, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(sx, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(ry, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(sy, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(nx, -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(ny, -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(sJ, -1, OP_ID, 21, "double", OP_WRITE));
 }
 
 GaussData::~GaussData() {
-
+  free(rx_data);
+  free(sx_data);
+  free(ry_data);
+  free(sy_data);
+  free(sJ_data);
+  free(nx_data);
+  free(ny_data);
 }

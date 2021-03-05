@@ -41,6 +41,7 @@ int size, char *dat, char const *name){}
 #include "init_cubature_grad_acckernel.c"
 #include "init_cubature_acckernel.c"
 #include "init_cubature_OP_acckernel.c"
+#include "init_gauss_acckernel.c"
 #include "setup_poisson_acckernel.c"
 #include "set_tau_acckernel.c"
 #include "set_tau_bc_acckernel.c"

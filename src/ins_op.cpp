@@ -291,6 +291,7 @@ int main(int argc, char **argv) {
               op_arg_dat(data->fscale,-1,OP_ID,15,"double",OP_WRITE));
 
   CubatureData *cubData = new CubatureData(data);
+  GaussData *gaussData = new GaussData(data);
 
   // Set initial conditions
   op_par_loop_set_ic("set_ic",data->cells,
@@ -364,7 +365,7 @@ int main(int argc, char **argv) {
   cout << "Time in pressure solve: " << p_time << endl;
   cout << "Time in viscosity solve: " << v_time << endl;
 
-  op_fetch_data_hdf5_file(cubData->OP, "cub.h5");
+  op_fetch_data_hdf5_file(gaussData->sJ, "gauss.h5");
 
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
@@ -413,6 +414,7 @@ int main(int argc, char **argv) {
   op_exit();
 
   delete poisson;
+  delete gaussData;
   delete cubData;
   delete data;
 

@@ -43,6 +43,7 @@ extern double cubVDs[690];
 #include "init_cubature_grad_kernel.cpp"
 #include "init_cubature_kernel.cpp"
 #include "init_cubature_OP_kernel.cpp"
+#include "init_gauss_kernel.cpp"
 #include "setup_poisson_kernel.cpp"
 #include "set_tau_kernel.cpp"
 #include "set_tau_bc_kernel.cpp"

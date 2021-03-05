@@ -111,8 +111,20 @@ private:
 
 class GaussData {
 public:
-  GaussData();
+  GaussData(INSData *dat);
   ~GaussData();
+
+  op_dat rx, sx, ry, sy, sJ, nx, ny;
+private:
+  INSData *data;
+
+  double *rx_data;
+  double *sx_data;
+  double *ry_data;
+  double *sy_data;
+  double *sJ_data;
+  double *nx_data;
+  double *ny_data;
 };
 
 #endif

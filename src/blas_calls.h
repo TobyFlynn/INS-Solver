@@ -21,6 +21,9 @@ extern double cubV[46 * 15];
 extern double cubW[46];
 extern double cubVDr[46 * 15];
 extern double cubVDs[46 * 15];
+extern double gFInterp0[7 * 15];
+extern double gFInterp1[7 * 15];
+extern double gFInterp2[7 * 15];
 
 void init_cubature_grad_blas(INSData *nsData, CubatureData *cubData);
 
@@ -29,6 +32,8 @@ void init_cubature_blas(INSData *nsData, CubatureData *cubData);
 void cubature_op_blas(INSData *nsData, CubatureData *cubData);
 
 void cubature_mm_blas(INSData *nsData, CubatureData *cubData);
+
+void init_gauss_blas(INSData *nsData, GaussData *gaussData);
 
 void init_grid_blas(INSData *nsData);
 
