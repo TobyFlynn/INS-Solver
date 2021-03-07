@@ -115,6 +115,7 @@ public:
   ~GaussData();
 
   op_dat rx, sx, ry, sy, sJ, nx, ny;
+  op_dat mDx[3], mDy[3];
 private:
   INSData *data;
 
@@ -125,6 +126,8 @@ private:
   double *sJ_data;
   double *nx_data;
   double *ny_data;
+  double *mDx_data[3];
+  double *mDy_data[3];
 };
 
 #endif

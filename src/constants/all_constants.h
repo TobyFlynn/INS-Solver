@@ -20,5 +20,11 @@
 #include "constant_gFInterp0.h"
 #include "constant_gFInterp1.h"
 #include "constant_gFInterp2.h"
+#include "constant_gF0Dr.h"
+#include "constant_gF0Ds.h"
+#include "constant_gF1Dr.h"
+#include "constant_gF1Ds.h"
+#include "constant_gF2Dr.h"
+#include "constant_gF2Ds.h"
 
 #endif

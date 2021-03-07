@@ -22,6 +22,7 @@
 #include "init_cubature_grad_omp4kernel.cpp"
 #include "init_cubature_omp4kernel.cpp"
 #include "init_cubature_OP_omp4kernel.cpp"
+#include "init_gauss_grad_omp4kernel.cpp"
 #include "init_gauss_omp4kernel.cpp"
 #include "setup_poisson_omp4kernel.cpp"
 #include "set_tau_omp4kernel.cpp"

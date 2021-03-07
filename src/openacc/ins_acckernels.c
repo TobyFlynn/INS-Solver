@@ -18,6 +18,12 @@ extern double cubW[46];
 extern double cubV[690];
 extern double cubVDr[690];
 extern double cubVDs[690];
+extern double gF0Dr[105];
+extern double gF0Ds[105];
+extern double gF1Dr[105];
+extern double gF1Ds[105];
+extern double gF2Dr[105];
+extern double gF2Ds[105];
 
 // header
 #include "op_lib_c.h"
@@ -41,6 +47,7 @@ int size, char *dat, char const *name){}
 #include "init_cubature_grad_acckernel.c"
 #include "init_cubature_acckernel.c"
 #include "init_cubature_OP_acckernel.c"
+#include "init_gauss_grad_acckernel.c"
 #include "init_gauss_acckernel.c"
 #include "setup_poisson_acckernel.c"
 #include "set_tau_acckernel.c"

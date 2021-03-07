@@ -18,6 +18,12 @@ extern double cubW[46];
 extern double cubV[690];
 extern double cubVDr[690];
 extern double cubVDs[690];
+extern double gF0Dr[105];
+extern double gF0Ds[105];
+extern double gF1Dr[105];
+extern double gF1Ds[105];
+extern double gF2Dr[105];
+extern double gF2Ds[105];
 
 // header
 #include "op_lib_cpp.h"
@@ -39,6 +45,7 @@ extern double cubVDs[690];
 #include "init_cubature_grad_seqkernel.cpp"
 #include "init_cubature_seqkernel.cpp"
 #include "init_cubature_OP_seqkernel.cpp"
+#include "init_gauss_grad_seqkernel.cpp"
 #include "init_gauss_seqkernel.cpp"
 #include "setup_poisson_seqkernel.cpp"
 #include "set_tau_seqkernel.cpp"

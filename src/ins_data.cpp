@@ -10,6 +10,7 @@
 #include "kernels/init_cubature_grad.h"
 #include "kernels/init_cubature.h"
 #include "kernels/init_cubature_OP.h"
+#include "kernels/init_gauss_grad.h"
 #include "kernels/init_gauss.h"
 
 using namespace std;
@@ -217,6 +218,12 @@ void INSData::initOP2() {
   op_decl_const(46*15, "double", cubV);
   op_decl_const(46*15, "double", cubVDr);
   op_decl_const(46*15, "double", cubVDs);
+  op_decl_const(7*15, "double", gF0Dr);
+  op_decl_const(7*15, "double", gF0Ds);
+  op_decl_const(7*15, "double", gF1Dr);
+  op_decl_const(7*15, "double", gF1Ds);
+  op_decl_const(7*15, "double", gF2Dr);
+  op_decl_const(7*15, "double", gF2Ds);
 }
 
 CubatureData::CubatureData(INSData *dat) {
@@ -302,6 +309,10 @@ GaussData::GaussData(INSData *dat) {
   sJ_data = (double *)malloc(21 * data->numCells * sizeof(double));
   nx_data = (double *)malloc(21 * data->numCells * sizeof(double));
   ny_data = (double *)malloc(21 * data->numCells * sizeof(double));
+  for(int i = 0; i < 3; i++) {
+    mDx_data[i] = (double *)malloc(7 * 15 * data->numCells * sizeof(double));
+    mDy_data[i] = (double *)malloc(7 * 15 * data->numCells * sizeof(double));
+  }
 
   rx = op_decl_dat(data->cells, 21, "double", rx_data, "gauss-rx");
   sx = op_decl_dat(data->cells, 21, "double", sx_data, "gauss-sx");
@@ -310,6 +321,26 @@ GaussData::GaussData(INSData *dat) {
   sJ = op_decl_dat(data->cells, 21, "double", sJ_data, "gauss-sJ");
   nx = op_decl_dat(data->cells, 21, "double", nx_data, "gauss-nx");
   ny = op_decl_dat(data->cells, 21, "double", ny_data, "gauss-ny");
+  for(int i = 0; i < 3; i++) {
+    string name = "mDx" + to_string(i);
+    mDx[i] = op_decl_dat(data->cells, 7 * 15, "double", mDx_data[i], name.c_str());
+    name = "mDy" + to_string(i);
+    mDy[i] = op_decl_dat(data->cells, 7 * 15, "double", mDy_data[i], name.c_str());
+  }
+
+  init_gauss_grad_blas(data, this);
+
+  op_par_loop(init_gauss_grad, "init_gauss_grad", data->cells,
+              op_arg_dat(rx, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(sx, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(ry, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(sy, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(mDx[0], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              op_arg_dat(mDy[0], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              op_arg_dat(mDx[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              op_arg_dat(mDy[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              op_arg_dat(mDx[2], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              op_arg_dat(mDy[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
 
   init_gauss_blas(data, this);
 
@@ -331,4 +362,8 @@ GaussData::~GaussData() {
   free(sJ_data);
   free(nx_data);
   free(ny_data);
+  for(int i = 0; i < 3; i++) {
+    free(mDx_data[i]);
+    free(mDy_data[i]);
+  }
 }

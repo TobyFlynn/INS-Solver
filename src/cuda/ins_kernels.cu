@@ -22,6 +22,12 @@ __constant__ double cubW_cuda[46];
 __constant__ double cubV_cuda[690];
 __constant__ double cubVDr_cuda[690];
 __constant__ double cubVDs_cuda[690];
+__constant__ double gF0Dr_cuda[105];
+__constant__ double gF0Ds_cuda[105];
+__constant__ double gF1Dr_cuda[105];
+__constant__ double gF1Ds_cuda[105];
+__constant__ double gF2Dr_cuda[105];
+__constant__ double gF2Ds_cuda[105];
 
 //header
 #include "op_lib_cpp.h"
@@ -91,6 +97,30 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(cubVDs_cuda, dat, dim*size));
   }
   else
+  if (!strcmp(name,"gF0Dr")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF0Dr_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF0Ds")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF0Ds_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF1Dr")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF1Dr_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF1Ds")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF1Ds_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF2Dr")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF2Dr_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF2Ds")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF2Ds_cuda, dat, dim*size));
+  }
+  else
   {
     printf("error: unknown const name\n"); exit(1);
   }
@@ -113,6 +143,7 @@ int size, char *dat, char const *name){
 #include "init_cubature_grad_kernel.cu"
 #include "init_cubature_kernel.cu"
 #include "init_cubature_OP_kernel.cu"
+#include "init_gauss_grad_kernel.cu"
 #include "init_gauss_kernel.cu"
 #include "setup_poisson_kernel.cu"
 #include "set_tau_kernel.cu"

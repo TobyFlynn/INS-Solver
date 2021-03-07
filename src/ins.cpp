@@ -209,7 +209,12 @@ int main(int argc, char **argv) {
   cout << "Time in pressure solve: " << p_time << endl;
   cout << "Time in viscosity solve: " << v_time << endl;
 
-  op_fetch_data_hdf5_file(gaussData->sJ, "gauss.h5");
+  op_fetch_data_hdf5_file(gaussData->mDx[0], "gauss.h5");
+  op_fetch_data_hdf5_file(gaussData->mDy[0], "gauss.h5");
+  op_fetch_data_hdf5_file(gaussData->mDx[1], "gauss.h5");
+  op_fetch_data_hdf5_file(gaussData->mDy[1], "gauss.h5");
+  op_fetch_data_hdf5_file(gaussData->mDx[2], "gauss.h5");
+  op_fetch_data_hdf5_file(gaussData->mDy[2], "gauss.h5");
 
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));

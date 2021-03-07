@@ -18,6 +18,12 @@ double cubW_ompkernel[46];
 double cubV_ompkernel[690];
 double cubVDr_ompkernel[690];
 double cubVDs_ompkernel[690];
+double gF0Dr_ompkernel[105];
+double gF0Ds_ompkernel[105];
+double gF1Dr_ompkernel[105];
+double gF1Ds_ompkernel[105];
+double gF2Dr_ompkernel[105];
+double gF2Ds_ompkernel[105];
 
 // header
 #include "op_lib_cpp.h"
@@ -69,6 +75,24 @@ void op_decl_const_char(int dim, char const *type,
   } else if(!strcmp(name, "cubVDs")) {
     memcpy(cubVDs_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:cubVDs_ompkernel[:690])
+  } else if(!strcmp(name, "gF0Dr")) {
+    memcpy(gF0Dr_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF0Dr_ompkernel[:105])
+  } else if(!strcmp(name, "gF0Ds")) {
+    memcpy(gF0Ds_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF0Ds_ompkernel[:105])
+  } else if(!strcmp(name, "gF1Dr")) {
+    memcpy(gF1Dr_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF1Dr_ompkernel[:105])
+  } else if(!strcmp(name, "gF1Ds")) {
+    memcpy(gF1Ds_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF1Ds_ompkernel[:105])
+  } else if(!strcmp(name, "gF2Dr")) {
+    memcpy(gF2Dr_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF2Dr_ompkernel[:105])
+  } else if(!strcmp(name, "gF2Ds")) {
+    memcpy(gF2Ds_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF2Ds_ompkernel[:105])
   }
 }
 // user kernel files
@@ -88,6 +112,7 @@ void op_decl_const_char(int dim, char const *type,
 #include "init_cubature_grad_omp4kernel_func.cpp"
 #include "init_cubature_omp4kernel_func.cpp"
 #include "init_cubature_OP_omp4kernel_func.cpp"
+#include "init_gauss_grad_omp4kernel_func.cpp"
 #include "init_gauss_omp4kernel_func.cpp"
 #include "setup_poisson_omp4kernel_func.cpp"
 #include "set_tau_omp4kernel_func.cpp"
