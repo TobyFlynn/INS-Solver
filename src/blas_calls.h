@@ -45,6 +45,8 @@ void init_gauss_blas(INSData *nsData, GaussData *gaussData);
 
 void init_grid_blas(INSData *nsData);
 
+void gauss_op_blas(INSData *nsData, GaussData *gaussData);
+
 void div_blas(INSData *nsData, op_dat u, op_dat v);
 
 void grad_blas(INSData *nsData, op_dat u);

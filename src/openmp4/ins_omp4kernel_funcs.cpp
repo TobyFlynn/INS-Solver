@@ -24,6 +24,10 @@ double gF1Dr_ompkernel[105];
 double gF1Ds_ompkernel[105];
 double gF2Dr_ompkernel[105];
 double gF2Ds_ompkernel[105];
+double gaussW_ompkernel[7];
+double gFInterp0_ompkernel[105];
+double gFInterp1_ompkernel[105];
+double gFInterp2_ompkernel[105];
 
 // header
 #include "op_lib_cpp.h"
@@ -93,6 +97,18 @@ void op_decl_const_char(int dim, char const *type,
   } else if(!strcmp(name, "gF2Ds")) {
     memcpy(gF2Ds_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:gF2Ds_ompkernel[:105])
+  } else if(!strcmp(name, "gaussW")) {
+    memcpy(gaussW_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gaussW_ompkernel[:7])
+  } else if(!strcmp(name, "gFInterp0")) {
+    memcpy(gFInterp0_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp0_ompkernel[:105])
+  } else if(!strcmp(name, "gFInterp1")) {
+    memcpy(gFInterp1_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp1_ompkernel[:105])
+  } else if(!strcmp(name, "gFInterp2")) {
+    memcpy(gFInterp2_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp2_ompkernel[:105])
   }
 }
 // user kernel files
@@ -112,9 +128,13 @@ void op_decl_const_char(int dim, char const *type,
 #include "init_cubature_grad_omp4kernel_func.cpp"
 #include "init_cubature_omp4kernel_func.cpp"
 #include "init_cubature_OP_omp4kernel_func.cpp"
+#include "gauss_tau_omp4kernel_func.cpp"
+#include "gauss_tau_bc_omp4kernel_func.cpp"
 #include "init_gauss_grad_omp4kernel_func.cpp"
 #include "gauss_grad_faces_omp4kernel_func.cpp"
+#include "init_gauss_grad2_omp4kernel_func.cpp"
 #include "init_gauss_omp4kernel_func.cpp"
+#include "gauss_op_omp4kernel_func.cpp"
 #include "setup_poisson_omp4kernel_func.cpp"
 #include "set_tau_omp4kernel_func.cpp"
 #include "set_tau_bc_omp4kernel_func.cpp"

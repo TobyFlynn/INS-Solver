@@ -28,6 +28,10 @@ __constant__ double gF1Dr_cuda[105];
 __constant__ double gF1Ds_cuda[105];
 __constant__ double gF2Dr_cuda[105];
 __constant__ double gF2Ds_cuda[105];
+__constant__ double gaussW_cuda[7];
+__constant__ double gFInterp0_cuda[105];
+__constant__ double gFInterp1_cuda[105];
+__constant__ double gFInterp2_cuda[105];
 
 //header
 #include "op_lib_cpp.h"
@@ -121,6 +125,22 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(gF2Ds_cuda, dat, dim*size));
   }
   else
+  if (!strcmp(name,"gaussW")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gaussW_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gFInterp0")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp0_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gFInterp1")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp1_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gFInterp2")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp2_cuda, dat, dim*size));
+  }
+  else
   {
     printf("error: unknown const name\n"); exit(1);
   }
@@ -143,9 +163,13 @@ int size, char *dat, char const *name){
 #include "init_cubature_grad_kernel.cu"
 #include "init_cubature_kernel.cu"
 #include "init_cubature_OP_kernel.cu"
+#include "gauss_tau_kernel.cu"
+#include "gauss_tau_bc_kernel.cu"
 #include "init_gauss_grad_kernel.cu"
 #include "gauss_grad_faces_kernel.cu"
+#include "init_gauss_grad2_kernel.cu"
 #include "init_gauss_kernel.cu"
+#include "gauss_op_kernel.cu"
 #include "setup_poisson_kernel.cu"
 #include "set_tau_kernel.cu"
 #include "set_tau_bc_kernel.cu"

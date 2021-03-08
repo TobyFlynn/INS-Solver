@@ -26,5 +26,6 @@
 #include "constant_gF1Ds.h"
 #include "constant_gF2Dr.h"
 #include "constant_gF2Ds.h"
+#include "constant_gaussW.h"
 
 #endif

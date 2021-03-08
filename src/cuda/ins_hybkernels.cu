@@ -20,9 +20,13 @@
 #define op_par_loop_init_cubature_grad op_par_loop_init_cubature_grad_gpu
 #define op_par_loop_init_cubature op_par_loop_init_cubature_gpu
 #define op_par_loop_init_cubature_OP op_par_loop_init_cubature_OP_gpu
+#define op_par_loop_gauss_tau op_par_loop_gauss_tau_gpu
+#define op_par_loop_gauss_tau_bc op_par_loop_gauss_tau_bc_gpu
 #define op_par_loop_init_gauss_grad op_par_loop_init_gauss_grad_gpu
 #define op_par_loop_gauss_grad_faces op_par_loop_gauss_grad_faces_gpu
+#define op_par_loop_init_gauss_grad2 op_par_loop_init_gauss_grad2_gpu
 #define op_par_loop_init_gauss op_par_loop_init_gauss_gpu
+#define op_par_loop_gauss_op op_par_loop_gauss_op_gpu
 #define op_par_loop_setup_poisson op_par_loop_setup_poisson_gpu
 #define op_par_loop_set_tau op_par_loop_set_tau_gpu
 #define op_par_loop_set_tau_bc op_par_loop_set_tau_bc_gpu
@@ -50,9 +54,13 @@
 #undef op_par_loop_init_cubature_grad
 #undef op_par_loop_init_cubature
 #undef op_par_loop_init_cubature_OP
+#undef op_par_loop_gauss_tau
+#undef op_par_loop_gauss_tau_bc
 #undef op_par_loop_init_gauss_grad
 #undef op_par_loop_gauss_grad_faces
+#undef op_par_loop_init_gauss_grad2
 #undef op_par_loop_init_gauss
+#undef op_par_loop_gauss_op
 #undef op_par_loop_setup_poisson
 #undef op_par_loop_set_tau
 #undef op_par_loop_set_tau_bc
@@ -80,9 +88,13 @@
 #define op_par_loop_init_cubature_grad op_par_loop_init_cubature_grad_cpu
 #define op_par_loop_init_cubature op_par_loop_init_cubature_cpu
 #define op_par_loop_init_cubature_OP op_par_loop_init_cubature_OP_cpu
+#define op_par_loop_gauss_tau op_par_loop_gauss_tau_cpu
+#define op_par_loop_gauss_tau_bc op_par_loop_gauss_tau_bc_cpu
 #define op_par_loop_init_gauss_grad op_par_loop_init_gauss_grad_cpu
 #define op_par_loop_gauss_grad_faces op_par_loop_gauss_grad_faces_cpu
+#define op_par_loop_init_gauss_grad2 op_par_loop_init_gauss_grad2_cpu
 #define op_par_loop_init_gauss op_par_loop_init_gauss_cpu
+#define op_par_loop_gauss_op op_par_loop_gauss_op_cpu
 #define op_par_loop_setup_poisson op_par_loop_setup_poisson_cpu
 #define op_par_loop_set_tau op_par_loop_set_tau_cpu
 #define op_par_loop_set_tau_bc op_par_loop_set_tau_bc_cpu
@@ -110,9 +122,13 @@
 #undef op_par_loop_init_cubature_grad
 #undef op_par_loop_init_cubature
 #undef op_par_loop_init_cubature_OP
+#undef op_par_loop_gauss_tau
+#undef op_par_loop_gauss_tau_bc
 #undef op_par_loop_init_gauss_grad
 #undef op_par_loop_gauss_grad_faces
+#undef op_par_loop_init_gauss_grad2
 #undef op_par_loop_init_gauss
+#undef op_par_loop_gauss_op
 #undef op_par_loop_setup_poisson
 #undef op_par_loop_set_tau
 #undef op_par_loop_set_tau_bc
@@ -1246,6 +1262,86 @@ void op_par_loop_init_cubature_OP(char const *name, op_set set,
   }
 #endif //OP_HYBRID_GPU
 
+void op_par_loop_gauss_tau_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_gauss_tau(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_gauss_tau_gpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+    }else{
+    op_par_loop_gauss_tau_cpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+  }
+}
+#else
+void op_par_loop_gauss_tau(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  op_par_loop_gauss_tau_gpu(name, set,
+    arg0,
+    arg1,
+    arg2);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_gauss_tau_bc_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_gauss_tau_bc(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_gauss_tau_bc_gpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+    }else{
+    op_par_loop_gauss_tau_bc_cpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+  }
+}
+#else
+void op_par_loop_gauss_tau_bc(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  op_par_loop_gauss_tau_bc_gpu(name, set,
+    arg0,
+    arg1,
+    arg2);
+
+  }
+#endif //OP_HYBRID_GPU
+
 void op_par_loop_init_gauss_grad_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
@@ -1440,6 +1536,94 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
   }
 #endif //OP_HYBRID_GPU
 
+void op_par_loop_init_gauss_grad2_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_init_gauss_grad2(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_init_gauss_grad2_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6,
+      arg7,
+      arg8,
+      arg9,
+      arg10);
+
+    }else{
+    op_par_loop_init_gauss_grad2_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6,
+      arg7,
+      arg8,
+      arg9,
+      arg10);
+
+  }
+}
+#else
+void op_par_loop_init_gauss_grad2(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10){
+
+  op_par_loop_init_gauss_grad2_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5,
+    arg6,
+    arg7,
+    arg8,
+    arg9,
+    arg10);
+
+  }
+#endif //OP_HYBRID_GPU
+
 void op_par_loop_init_gauss_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
@@ -1500,6 +1684,112 @@ void op_par_loop_init_gauss(char const *name, op_set set,
     arg4,
     arg5,
     arg6);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_gauss_op_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10,
+  op_arg arg11,
+  op_arg arg12,
+  op_arg arg13);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_gauss_op(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10,
+  op_arg arg11,
+  op_arg arg12,
+  op_arg arg13){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_gauss_op_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6,
+      arg7,
+      arg8,
+      arg9,
+      arg10,
+      arg11,
+      arg12,
+      arg13);
+
+    }else{
+    op_par_loop_gauss_op_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6,
+      arg7,
+      arg8,
+      arg9,
+      arg10,
+      arg11,
+      arg12,
+      arg13);
+
+  }
+}
+#else
+void op_par_loop_gauss_op(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10,
+  op_arg arg11,
+  op_arg arg12,
+  op_arg arg13){
+
+  op_par_loop_gauss_op_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5,
+    arg6,
+    arg7,
+    arg8,
+    arg9,
+    arg10,
+    arg11,
+    arg12,
+    arg13);
 
   }
 #endif //OP_HYBRID_GPU

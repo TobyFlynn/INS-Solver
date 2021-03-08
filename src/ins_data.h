@@ -16,6 +16,18 @@ extern double ic_u;
 extern double ic_v;
 extern double cubV[46 * 15];
 extern double cubW[46];
+extern double cubVDr[46 * 15];
+extern double cubVDs[46 * 15];
+extern double gaussW[7];
+extern double gFInterp0[7 * 15];
+extern double gFInterp1[7 * 15];
+extern double gFInterp2[7 * 15];
+extern double gF0Dr[7 * 15];
+extern double gF0Ds[7 * 15];
+extern double gF1Dr[7 * 15];
+extern double gF1Ds[7 * 15];
+extern double gF2Dr[7 * 15];
+extern double gF2Ds[7 * 15];
 
 class INSData {
 public:
@@ -114,8 +126,10 @@ public:
   GaussData(INSData *dat);
   ~GaussData();
 
-  op_dat rx, sx, ry, sy, sJ, nx, ny;
-  op_dat mDx[3], mDy[3], pDx[3], pDy[3];
+  op_dat rx, sx, ry, sy, sJ, nx, ny, tau;
+  op_dat mDx[3], mDy[3], pDx[3], pDy[3], mD[3], pD[3];
+  // OP is in column major format
+  op_dat OP[3], OPf[3];
 private:
   INSData *data;
 
@@ -126,10 +140,15 @@ private:
   double *sJ_data;
   double *nx_data;
   double *ny_data;
+  double *tau_data;
   double *mDx_data[3];
   double *mDy_data[3];
   double *pDx_data[3];
   double *pDy_data[3];
+  double *mD_data[3];
+  double *pD_data[3];
+  double *OP_data[3];
+  double *OPf_data[3];
 };
 
 #endif

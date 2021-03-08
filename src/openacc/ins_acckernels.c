@@ -24,6 +24,10 @@ extern double gF1Dr[105];
 extern double gF1Ds[105];
 extern double gF2Dr[105];
 extern double gF2Ds[105];
+extern double gaussW[7];
+extern double gFInterp0[105];
+extern double gFInterp1[105];
+extern double gFInterp2[105];
 
 // header
 #include "op_lib_c.h"
@@ -47,9 +51,13 @@ int size, char *dat, char const *name){}
 #include "init_cubature_grad_acckernel.c"
 #include "init_cubature_acckernel.c"
 #include "init_cubature_OP_acckernel.c"
+#include "gauss_tau_acckernel.c"
+#include "gauss_tau_bc_acckernel.c"
 #include "init_gauss_grad_acckernel.c"
 #include "gauss_grad_faces_acckernel.c"
+#include "init_gauss_grad2_acckernel.c"
 #include "init_gauss_acckernel.c"
+#include "gauss_op_acckernel.c"
 #include "setup_poisson_acckernel.c"
 #include "set_tau_acckernel.c"
 #include "set_tau_bc_acckernel.c"
