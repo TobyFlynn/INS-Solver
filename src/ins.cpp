@@ -148,7 +148,10 @@ int main(int argc, char **argv) {
               op_arg_dat(data->pRHSex, -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->dirichletBC, -1, OP_ID, 15, "double", OP_WRITE));
 
-  Poisson *poisson = new Poisson(data);
+  Poisson *poisson = new Poisson(data, cubData, gaussData);
+  int pressure_dirichlet[] = {1, -1};
+  poisson->setDirichletBCs(pressure_dirichlet, data->dirichletBC);
+  poisson->createMatrix();
 
   double dt = numeric_limits<double>::max();
   op_par_loop(calc_dt, "calc_dt", data->cells,

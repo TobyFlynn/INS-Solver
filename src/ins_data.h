@@ -100,7 +100,7 @@ public:
   CubatureData(INSData *dat);
   ~CubatureData();
 
-  // mm is stored in column major format
+  // mm and OP is stored in column major format
   // OP is the local stiffness matrix used by the Poisson solver
   op_dat rx, sx, ry, sy, J, mm, Dx, Dy, OP;
   op_dat temp, temp2;

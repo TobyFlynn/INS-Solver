@@ -19,13 +19,14 @@ extern int FMASK[15];
 
 class Poisson {
 public:
-  Poisson(INSData *nsData);
+  Poisson(INSData *nsData, CubatureData *cubData, GaussData *gaussData);
   ~Poisson();
 
   void solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass = false, double factor = 0.0);
 
   void setDirichletBCs(int *d, op_dat d_dat);
   void createMatrix();
+  void createMassMatrix();
   void createBCMatrix();
 
   // OP2 Dats
@@ -39,8 +40,10 @@ private:
   void load_vec(Vec *v, op_dat v_dat);
   void store_vec(Vec *v, op_dat v_dat);
   INSData *data;
+  CubatureData *cData;
+  GaussData *gData;
 
-  Mat pMat, pBCMat;
+  Mat pMat, pBCMat, pMMat;
 
   // Pointers to private memory
   double *pTau_data;
