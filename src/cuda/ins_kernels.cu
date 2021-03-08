@@ -170,6 +170,7 @@ int size, char *dat, char const *name){
 #include "init_gauss_grad2_kernel.cu"
 #include "init_gauss_kernel.cu"
 #include "gauss_op_kernel.cu"
+#include "gauss_gfi_faces_kernel.cu"
 #include "setup_poisson_kernel.cu"
 #include "set_tau_kernel.cu"
 #include "set_tau_bc_kernel.cu"

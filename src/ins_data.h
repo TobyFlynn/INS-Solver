@@ -126,8 +126,9 @@ public:
   GaussData(INSData *dat);
   ~GaussData();
 
-  op_dat rx, sx, ry, sy, sJ, nx, ny, tau;
+  op_dat rx, sx, ry, sy, sJ, nx, ny, tau, factor;
   op_dat mDx[3], mDy[3], pDx[3], pDy[3], mD[3], pD[3];
+  op_dat pGF[3];
   // OP is in column major format
   op_dat OP[3], OPf[3];
 private:
@@ -147,8 +148,10 @@ private:
   double *pDy_data[3];
   double *mD_data[3];
   double *pD_data[3];
+  double *pGF_data[3];
   double *OP_data[3];
   double *OPf_data[3];
+  double *factor_data;
 };
 
 #endif

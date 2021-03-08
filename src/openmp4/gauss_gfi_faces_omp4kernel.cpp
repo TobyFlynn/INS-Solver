@@ -5,17 +5,21 @@
 //user function
 //user function
 
-void set_tau_bc_omp4_kernel(
+void gauss_gfi_faces_omp4_kernel(
   int *data0,
   int dat0size,
   int *map1,
   int map1size,
   double *data1,
   int dat1size,
-  double *data2,
-  int dat2size,
   double *data3,
   int dat3size,
+  double *data5,
+  int dat5size,
+  double *data7,
+  int dat7size,
+  double *data9,
+  int dat9size,
   int *col_reord,
   int set_size1,
   int start,
@@ -24,44 +28,73 @@ void set_tau_bc_omp4_kernel(
   int nthread);
 
 // host stub function
-void op_par_loop_set_tau_bc(char const *name, op_set set,
+void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2,
-  op_arg arg3){
+  op_arg arg3,
+  op_arg arg5,
+  op_arg arg7,
+  op_arg arg9){
 
-  int nargs = 4;
-  op_arg args[4];
+  int nargs = 11;
+  op_arg args[11];
 
   args[0] = arg0;
+  arg1.idx = 0;
   args[1] = arg1;
-  args[2] = arg2;
+  for ( int v=1; v<2; v++ ){
+    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 3, "double", OP_READ);
+  }
+
+  arg3.idx = 0;
   args[3] = arg3;
+  for ( int v=1; v<2; v++ ){
+    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 3, "double", OP_READ);
+  }
+
+  arg5.idx = 0;
+  args[5] = arg5;
+  for ( int v=1; v<2; v++ ){
+    args[5 + v] = op_arg_dat(arg5.dat, v, arg5.map, 105, "double", OP_INC);
+  }
+
+  arg7.idx = 0;
+  args[7] = arg7;
+  for ( int v=1; v<2; v++ ){
+    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 105, "double", OP_INC);
+  }
+
+  arg9.idx = 0;
+  args[9] = arg9;
+  for ( int v=1; v<2; v++ ){
+    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 105, "double", OP_INC);
+  }
+
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(26);
+  op_timing_realloc(23);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[26].name      = name;
-  OP_kernels[26].count    += 1;
+  OP_kernels[23].name      = name;
+  OP_kernels[23].count    += 1;
 
-  int  ninds   = 3;
-  int  inds[4] = {-1,0,1,2};
+  int  ninds   = 5;
+  int  inds[11] = {-1,0,0,1,1,2,2,3,3,4,4};
 
   if (OP_diags>2) {
-    printf(" kernel routine with indirection: set_tau_bc\n");
+    printf(" kernel routine with indirection: gauss_gfi_faces\n");
   }
 
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_26
-    int part_size = OP_PART_SIZE_26;
+  #ifdef OP_PART_SIZE_23
+    int part_size = OP_PART_SIZE_23;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_26
-    int nthread = OP_BLOCK_SIZE_26;
+  #ifdef OP_BLOCK_SIZE_23
+    int nthread = OP_BLOCK_SIZE_23;
   #else
     int nthread = OP_block_size;
   #endif
@@ -80,10 +113,14 @@ void op_par_loop_set_tau_bc(char const *name, op_set set,
     int dat0size = getSetSizeFromOpArg(&arg0) * arg0.dat->dim;
     double *data1 = (double *)arg1.data_d;
     int dat1size = getSetSizeFromOpArg(&arg1) * arg1.dat->dim;
-    double *data2 = (double *)arg2.data_d;
-    int dat2size = getSetSizeFromOpArg(&arg2) * arg2.dat->dim;
     double *data3 = (double *)arg3.data_d;
     int dat3size = getSetSizeFromOpArg(&arg3) * arg3.dat->dim;
+    double *data5 = (double *)arg5.data_d;
+    int dat5size = getSetSizeFromOpArg(&arg5) * arg5.dat->dim;
+    double *data7 = (double *)arg7.data_d;
+    int dat7size = getSetSizeFromOpArg(&arg7) * arg7.dat->dim;
+    double *data9 = (double *)arg9.data_d;
+    int dat9size = getSetSizeFromOpArg(&arg9) * arg9.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -97,17 +134,21 @@ void op_par_loop_set_tau_bc(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      set_tau_bc_omp4_kernel(
+      gauss_gfi_faces_omp4_kernel(
         data0,
         dat0size,
         map1,
         map1size,
         data1,
         dat1size,
-        data2,
-        dat2size,
         data3,
         dat3size,
+        data5,
+        dat5size,
+        data7,
+        dat7size,
+        data9,
+        dat9size,
         col_reord,
         set_size1,
         start,
@@ -116,8 +157,8 @@ void op_par_loop_set_tau_bc(char const *name, op_set set,
         nthread);
 
     }
-    OP_kernels[26].transfer  += Plan->transfer;
-    OP_kernels[26].transfer2 += Plan->transfer2;
+    OP_kernels[23].transfer  += Plan->transfer;
+    OP_kernels[23].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -129,5 +170,5 @@ void op_par_loop_set_tau_bc(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[26].time     += wall_t2 - wall_t1;
+  OP_kernels[23].time     += wall_t2 - wall_t1;
 }

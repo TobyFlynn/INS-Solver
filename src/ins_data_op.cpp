@@ -114,6 +114,14 @@ void op_par_loop_gauss_op(char const *, op_set,
   op_arg,
   op_arg,
   op_arg );
+
+void op_par_loop_gauss_gfi_faces(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -137,6 +145,7 @@ void op_par_loop_gauss_op(char const *, op_set,
 #include "kernels/init_gauss_grad2.h"
 #include "kernels/init_gauss.h"
 #include "kernels/gauss_op.h"
+#include "kernels/gauss_gfi_faces.h"
 
 using namespace std;
 
@@ -431,14 +440,15 @@ CubatureData::~CubatureData() {
 GaussData::GaussData(INSData *dat) {
   data = dat;
 
-  rx_data  = (double *)malloc(21 * data->numCells * sizeof(double));
-  sx_data  = (double *)malloc(21 * data->numCells * sizeof(double));
-  ry_data  = (double *)malloc(21 * data->numCells * sizeof(double));
-  sy_data  = (double *)malloc(21 * data->numCells * sizeof(double));
-  sJ_data  = (double *)malloc(21 * data->numCells * sizeof(double));
-  nx_data  = (double *)malloc(21 * data->numCells * sizeof(double));
-  ny_data  = (double *)malloc(21 * data->numCells * sizeof(double));
-  tau_data = (double *)calloc(3 * data->numCells, sizeof(double));
+  rx_data     = (double *)malloc(21 * data->numCells * sizeof(double));
+  sx_data     = (double *)malloc(21 * data->numCells * sizeof(double));
+  ry_data     = (double *)malloc(21 * data->numCells * sizeof(double));
+  sy_data     = (double *)malloc(21 * data->numCells * sizeof(double));
+  sJ_data     = (double *)malloc(21 * data->numCells * sizeof(double));
+  nx_data     = (double *)malloc(21 * data->numCells * sizeof(double));
+  ny_data     = (double *)malloc(21 * data->numCells * sizeof(double));
+  tau_data    = (double *)calloc(3 * data->numCells, sizeof(double));
+  factor_data = (double *)calloc(3 * data->numCells, sizeof(double));
   for(int i = 0; i < 3; i++) {
     mDx_data[i] = (double *)malloc(7 * 15 * data->numCells * sizeof(double));
     mDy_data[i] = (double *)malloc(7 * 15 * data->numCells * sizeof(double));
@@ -446,18 +456,20 @@ GaussData::GaussData(INSData *dat) {
     pDy_data[i] = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
     mD_data[i]  = (double *)malloc(7 * 15 * data->numCells * sizeof(double));
     pD_data[i]  = (double *)malloc(7 * 15 * data->numCells * sizeof(double));
+    pGF_data[i] = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
     OP_data[i]  = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
-    OPf_data[i]  = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
+    OPf_data[i] = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
   }
 
-  rx  = op_decl_dat(data->cells, 21, "double", rx_data, "gauss-rx");
-  sx  = op_decl_dat(data->cells, 21, "double", sx_data, "gauss-sx");
-  ry  = op_decl_dat(data->cells, 21, "double", ry_data, "gauss-ry");
-  sy  = op_decl_dat(data->cells, 21, "double", sy_data, "gauss-sy");
-  sJ  = op_decl_dat(data->cells, 21, "double", sJ_data, "gauss-sJ");
-  nx  = op_decl_dat(data->cells, 21, "double", nx_data, "gauss-nx");
-  ny  = op_decl_dat(data->cells, 21, "double", ny_data, "gauss-ny");
-  tau = op_decl_dat(data->cells, 3, "double", tau_data, "gauss-tau");
+  rx     = op_decl_dat(data->cells, 21, "double", rx_data, "gauss-rx");
+  sx     = op_decl_dat(data->cells, 21, "double", sx_data, "gauss-sx");
+  ry     = op_decl_dat(data->cells, 21, "double", ry_data, "gauss-ry");
+  sy     = op_decl_dat(data->cells, 21, "double", sy_data, "gauss-sy");
+  sJ     = op_decl_dat(data->cells, 21, "double", sJ_data, "gauss-sJ");
+  nx     = op_decl_dat(data->cells, 21, "double", nx_data, "gauss-nx");
+  ny     = op_decl_dat(data->cells, 21, "double", ny_data, "gauss-ny");
+  tau    = op_decl_dat(data->cells, 3, "double", tau_data, "gauss-tau");
+  factor = op_decl_dat(data->cells, 3, "double", factor_data, "gauss-factor");
   for(int i = 0; i < 3; i++) {
     string name = "mDx" + to_string(i);
     mDx[i] = op_decl_dat(data->cells, 7 * 15, "double", mDx_data[i], name.c_str());
@@ -471,6 +483,8 @@ GaussData::GaussData(INSData *dat) {
     mD[i] = op_decl_dat(data->cells, 7 * 15, "double", mD_data[i], name.c_str());
     name = "pD" + to_string(i);
     pD[i] = op_decl_dat(data->cells, 7 * 15, "double", pD_data[i], name.c_str());
+    name = "pGF" + to_string(i);
+    pGF[i] = op_decl_dat(data->cells, 7 * 15, "double", pGF_data[i], name.c_str());
     name = "OP" + to_string(i);
     OP[i] = op_decl_dat(data->cells, 15 * 15, "double", OP_data[i], name.c_str());
     name = "OPf" + to_string(i);
@@ -574,11 +588,18 @@ GaussData::GaussData(INSData *dat) {
 
   gauss_op_blas(data, this);
 
-  // TODO apply right factor for OP depending on edge type
+  // OPf
+  op_par_loop_gauss_gfi_faces("gauss_gfi_faces",data->edges,
+              op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
+              op_arg_dat(data->nodeX,-2,data->edge2cells,3,"double",OP_READ),
+              op_arg_dat(data->nodeY,-2,data->edge2cells,3,"double",OP_READ),
+              op_arg_dat(pGF[0],-2,data->edge2cells,105,"double",OP_INC),
+              op_arg_dat(pGF[1],-2,data->edge2cells,105,"double",OP_INC),
+              op_arg_dat(pGF[2],-2,data->edge2cells,105,"double",OP_INC));
 
-  // TODO make sure OP is zero for Neumann BCs
+  gauss_opf_blas(data, this);
 
-  // TODO OPf
+  // Applying the correct factors to OP and OPf will be done when constructing the Poisson matrix
 }
 
 GaussData::~GaussData() {
@@ -590,6 +611,7 @@ GaussData::~GaussData() {
   free(nx_data);
   free(ny_data);
   free(tau_data);
+  free(factor_data);
   for(int i = 0; i < 3; i++) {
     free(mDx_data[i]);
     free(mDy_data[i]);
@@ -597,6 +619,7 @@ GaussData::~GaussData() {
     free(pDy_data[i]);
     free(mD_data[i]);
     free(pD_data[i]);
+    free(pGF_data[i]);
     free(OP_data[i]);
     free(OPf_data[i]);
   }

@@ -29,6 +29,7 @@
 #include "init_gauss_grad2_omp4kernel.cpp"
 #include "init_gauss_omp4kernel.cpp"
 #include "gauss_op_omp4kernel.cpp"
+#include "gauss_gfi_faces_omp4kernel.cpp"
 #include "setup_poisson_omp4kernel.cpp"
 #include "set_tau_omp4kernel.cpp"
 #include "set_tau_bc_omp4kernel.cpp"

@@ -58,6 +58,7 @@ int size, char *dat, char const *name){}
 #include "init_gauss_grad2_acckernel.c"
 #include "init_gauss_acckernel.c"
 #include "gauss_op_acckernel.c"
+#include "gauss_gfi_faces_acckernel.c"
 #include "setup_poisson_acckernel.c"
 #include "set_tau_acckernel.c"
 #include "set_tau_bc_acckernel.c"

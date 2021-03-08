@@ -60,6 +60,7 @@ extern double gFInterp2[105];
 #include "init_gauss_grad2_kernel.cpp"
 #include "init_gauss_kernel.cpp"
 #include "gauss_op_kernel.cpp"
+#include "gauss_gfi_faces_kernel.cpp"
 #include "setup_poisson_kernel.cpp"
 #include "set_tau_kernel.cpp"
 #include "set_tau_bc_kernel.cpp"

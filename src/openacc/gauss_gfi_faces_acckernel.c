@@ -5,8 +5,9 @@
 //user function
 //user function
 //#pragma acc routine
-inline void set_tau_openacc( const int *edgeNum, const double **x, const double **y,
-                    const double **J, const double **sJ, double **tau) {
+inline void gauss_gfi_faces_openacc( const int *edgeNum, const double **x,
+                            const double **y, double **gf0, double **gf1,
+                            double **gf2) {
 
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
@@ -38,60 +39,57 @@ inline void set_tau_openacc( const int *edgeNum, const double **x, const double 
     }
   }
 
-  int exIndL = 0;
-  if(edgeL == 1) exIndL = 5;
-  else if(edgeL == 2) exIndL = 2 * 5;
+  for(int m = 0; m < 7; m++) {
+    for(int n = 0; n < 15; n++) {
+      int indL, indR;
+      if(reverse) {
+        indL = m * 15 + n;
+        indR = m * 15 + n;
+      } else {
+        indL = m * 15 + n;
+        indR = (6 - m) * 15 + n;
+      }
 
-  int exIndR = 0;
-  if(edgeR == 1) exIndR = 5;
-  else if(edgeR == 2) exIndR = 2 * 5;
-
-  int *fmaskR;
-
-  if(edgeR == 0) {
-    fmaskR = FMASK;
-  } else if(edgeR == 1) {
-    fmaskR = &FMASK[5];
-  } else {
-    fmaskR = &FMASK[2 * 5];
-  }
-
-  int *fmaskL;
-
-  if(edgeL == 0) {
-    fmaskL = FMASK;
-  } else if(edgeL == 1) {
-    fmaskL = &FMASK[5];
-  } else {
-    fmaskL = &FMASK[2 * 5];
-  }
-
-  for(int i = 0; i < 5; i++) {
-    int rIndF, lIndF, rInd, lInd;
-    if(reverse) {
-      rIndF = fmaskR[5 - i - 1];
-      rInd = exIndR + 5 - i - 1;
-    } else {
-      rIndF = fmaskR[i];
-      rInd = exIndR + i;
-    }
-    lIndF = fmaskL[i];
-    lInd = exIndL + i;
-
-    double lH = 2.0 * J[0][lIndF] / sJ[0][lInd];
-    double rH = 2.0 * J[1][rIndF] / sJ[1][rInd];
-    if(lH < rH) {
-      tau[0][lInd] += 15.0 / lH;
-      tau[1][rInd] += 15.0 / lH;
-    } else {
-      tau[0][lInd] += 15.0 / rH;
-      tau[1][rInd] += 15.0 / rH;
+      if(edgeL == 0) {
+        if(edgeR == 0) {
+          gf0[0][indL] += gFInterp0[indR];
+          gf0[1][indR] += gFInterp0[indL];
+        } else if(edgeR == 1) {
+          gf0[0][indL] += gFInterp1[indR];
+          gf1[1][indR] += gFInterp0[indL];
+        } else {
+          gf0[0][indL] += gFInterp2[indR];
+          gf2[1][indR] += gFInterp0[indL];
+        }
+      } else if(edgeL == 1) {
+        if(edgeR == 0) {
+          gf1[0][indL] += gFInterp0[indR];
+          gf0[1][indR] += gFInterp1[indL];
+        } else if(edgeR == 1) {
+          gf1[0][indL] += gFInterp1[indR];
+          gf1[1][indR] += gFInterp1[indL];
+        } else {
+          gf1[0][indL] += gFInterp2[indR];
+          gf2[1][indR] += gFInterp1[indL];
+        }
+      } else {
+        if(edgeR == 0) {
+          gf2[0][indL] += gFInterp0[indR];
+          gf0[1][indR] += gFInterp2[indL];
+        } else if(edgeR == 1) {
+          gf2[0][indL] += gFInterp1[indR];
+          gf1[1][indR] += gFInterp2[indL];
+        } else {
+          gf2[0][indL] += gFInterp2[indR];
+          gf2[1][indR] += gFInterp2[indL];
+        }
+      }
     }
   }
 }
 
 // host stub function
-void op_par_loop_set_tau(char const *name, op_set set,
+void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg3,
@@ -118,39 +116,39 @@ void op_par_loop_set_tau(char const *name, op_set set,
   arg5.idx = 0;
   args[5] = arg5;
   for ( int v=1; v<2; v++ ){
-    args[5 + v] = op_arg_dat(arg5.dat, v, arg5.map, 15, "double", OP_READ);
+    args[5 + v] = op_arg_dat(arg5.dat, v, arg5.map, 105, "double", OP_INC);
   }
 
   arg7.idx = 0;
   args[7] = arg7;
   for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 15, "double", OP_READ);
+    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 105, "double", OP_INC);
   }
 
   arg9.idx = 0;
   args[9] = arg9;
   for ( int v=1; v<2; v++ ){
-    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 15, "double", OP_INC);
+    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 105, "double", OP_INC);
   }
 
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(25);
+  op_timing_realloc(23);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[25].name      = name;
-  OP_kernels[25].count    += 1;
+  OP_kernels[23].name      = name;
+  OP_kernels[23].count    += 1;
 
   int  ninds   = 5;
   int  inds[11] = {-1,0,0,1,1,2,2,3,3,4,4};
 
   if (OP_diags>2) {
-    printf(" kernel routine with indirection: set_tau\n");
+    printf(" kernel routine with indirection: gauss_gfi_faces\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_25
-    int part_size = OP_PART_SIZE_25;
+  #ifdef OP_PART_SIZE_23
+    int part_size = OP_PART_SIZE_23;
   #else
     int part_size = OP_part_size;
   #endif
@@ -200,17 +198,17 @@ void op_par_loop_set_tau(char const *name, op_set set,
         const double* arg3_vec[] = {
            &data3[3 * map1idx],
            &data3[3 * map2idx]};
-        const double* arg5_vec[] = {
-           &data5[15 * map1idx],
-           &data5[15 * map2idx]};
-        const double* arg7_vec[] = {
-           &data7[15 * map1idx],
-           &data7[15 * map2idx]};
+        double* arg5_vec[] = {
+           &data5[105 * map1idx],
+           &data5[105 * map2idx]};
+        double* arg7_vec[] = {
+           &data7[105 * map1idx],
+           &data7[105 * map2idx]};
         double* arg9_vec[] = {
-           &data9[15 * map1idx],
-           &data9[15 * map2idx]};
+           &data9[105 * map1idx],
+           &data9[105 * map2idx]};
 
-        set_tau_openacc(
+        gauss_gfi_faces_openacc(
           &data0[2 * n],
           arg1_vec,
           arg3_vec,
@@ -220,8 +218,8 @@ void op_par_loop_set_tau(char const *name, op_set set,
       }
 
     }
-    OP_kernels[25].transfer  += Plan->transfer;
-    OP_kernels[25].transfer2 += Plan->transfer2;
+    OP_kernels[23].transfer  += Plan->transfer;
+    OP_kernels[23].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -232,5 +230,5 @@ void op_par_loop_set_tau(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[25].time     += wall_t2 - wall_t1;
+  OP_kernels[23].time     += wall_t2 - wall_t1;
 }

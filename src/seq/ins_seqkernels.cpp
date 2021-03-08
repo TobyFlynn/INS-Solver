@@ -56,6 +56,7 @@ extern double gFInterp2[105];
 #include "init_gauss_grad2_seqkernel.cpp"
 #include "init_gauss_seqkernel.cpp"
 #include "gauss_op_seqkernel.cpp"
+#include "gauss_gfi_faces_seqkernel.cpp"
 #include "setup_poisson_seqkernel.cpp"
 #include "set_tau_seqkernel.cpp"
 #include "set_tau_bc_seqkernel.cpp"
