@@ -113,6 +113,7 @@ void op_decl_const_char(int dim, char const *type,
 #include "init_cubature_omp4kernel_func.cpp"
 #include "init_cubature_OP_omp4kernel_func.cpp"
 #include "init_gauss_grad_omp4kernel_func.cpp"
+#include "gauss_grad_faces_omp4kernel_func.cpp"
 #include "init_gauss_omp4kernel_func.cpp"
 #include "setup_poisson_omp4kernel_func.cpp"
 #include "set_tau_omp4kernel_func.cpp"

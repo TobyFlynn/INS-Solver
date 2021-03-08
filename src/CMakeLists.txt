@@ -1,6 +1,6 @@
 set(KERNEL_HEADERS kernels/init_grid.h kernels/set_ic.h kernels/calc_dt.h)
 list(APPEND KERNEL_HEADERS kernels/init_cubature.h kernels/init_cubature_grad.h kernels/init_cubature_OP.h)
-list(APPEND KERNEL_HEADERS kernels/init_gauss.h kernels/init_gauss_grad.h)
+list(APPEND KERNEL_HEADERS kernels/init_gauss.h kernels/init_gauss_grad.h kernels/gauss_grad_faces.h)
 list(APPEND KERNEL_HEADERS kernels/div.h kernels/curl.h kernels/grad.h)
 list(APPEND KERNEL_HEADERS kernels/advection_flux.h kernels/advection_faces.h kernels/advection_bc.h kernels/advection_numerical_flux.h kernels/advection_intermediate_vel.h)
 list(APPEND KERNEL_HEADERS kernels/pressure_bc.h kernels/pressure_rhs.h kernels/pressure_update_vel.h)

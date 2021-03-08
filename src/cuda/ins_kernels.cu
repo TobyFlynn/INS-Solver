@@ -144,6 +144,7 @@ int size, char *dat, char const *name){
 #include "init_cubature_kernel.cu"
 #include "init_cubature_OP_kernel.cu"
 #include "init_gauss_grad_kernel.cu"
+#include "gauss_grad_faces_kernel.cu"
 #include "init_gauss_kernel.cu"
 #include "setup_poisson_kernel.cu"
 #include "set_tau_kernel.cu"

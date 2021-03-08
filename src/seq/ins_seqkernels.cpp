@@ -46,6 +46,7 @@ extern double gF2Ds[105];
 #include "init_cubature_seqkernel.cpp"
 #include "init_cubature_OP_seqkernel.cpp"
 #include "init_gauss_grad_seqkernel.cpp"
+#include "gauss_grad_faces_seqkernel.cpp"
 #include "init_gauss_seqkernel.cpp"
 #include "setup_poisson_seqkernel.cpp"
 #include "set_tau_seqkernel.cpp"
