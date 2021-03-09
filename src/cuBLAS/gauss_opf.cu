@@ -16,11 +16,11 @@ inline void cublas_gauss_opf(cublasHandle_t handle, const int numCells,
 
     double alpha = 1.0;
     double beta = 0.0;
-    cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_T, 15, 15, 7, &alpha, term0, 15, gf, 15, &beta, op, 15);
+    cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 15, 15, 7, &alpha, term0, 7, gf, 15, &beta, op, 15);
     double alpha2 = -1.0;
     double beta2 = 1.0;
-    cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_T, 15, 15, 7, &alpha, term1, 15, pD, 15, &beta2, op, 15);
-    cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_T, 15, 15, 7, &alpha2, term2, 15, gf, 15, &beta2, op, 15);
+    cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 15, 15, 7, &alpha, term1, 7, pD, 15, &beta2, op, 15);
+    cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 15, 15, 7, &alpha2, term2, 7, gf, 15, &beta2, op, 15);
   }
 }
 

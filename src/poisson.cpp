@@ -109,10 +109,11 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   KSP ksp;
   KSPCreate(PETSC_COMM_SELF, &ksp);
   // if(method) {
-    KSPSetType(ksp, KSPFGMRES);
+    // KSPSetType(ksp, KSPFGMRES);
   // } else {
     // KSPSetType(ksp, KSPCG);
   // }
+  KSPSetType(ksp, KSPGMRES);
   // KSPSetType(ksp, KSPCG);
   // PC pc;
   // KSPGetPC(ksp, &pc);
@@ -281,7 +282,7 @@ void Poisson::createMatrix() {
     int bedgeType = data->bedge_type_data[i];
     int edge = data->bedgeNum_data[i];
     if(dirichlet[0] == bedgeType || dirichlet[1] == bedgeType) {
-      cout << element << " " << edge << endl;
+      // cout << element << " " << edge << endl;
       // int row[15]; int col[15]; double vals[15 * 15];
       // for(int j = 0; j < 15; j++) {
       //   row[j] = element * 15 + j;

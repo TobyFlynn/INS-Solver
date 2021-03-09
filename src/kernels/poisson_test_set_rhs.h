@@ -6,6 +6,6 @@ inline void poisson_test_set_rhs(const double *J, const double *ex, double *rhs)
   }
 */
   for(int i = 0; i < 15; i++) {
-    rhs[i] *= J[i];
+    rhs[i] *= -J[i];
   }
 }

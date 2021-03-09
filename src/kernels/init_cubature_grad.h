@@ -1,5 +1,5 @@
 inline void init_cubature_grad(double *rx, double *sx, double *ry,  double *sy,
-                          double *Dx, double *Dy) {
+                               double *Dx, double *Dy) {
   // J = -xs.*yr + xr.*ys
   double J[46];
   for(int i = 0; i < 46; i++) {

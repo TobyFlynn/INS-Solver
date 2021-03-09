@@ -25,7 +25,7 @@ void poisson_test_set_rhs_omp4_kernel(
     
 
     for(int i = 0; i < 15; i++) {
-      rhs[i] *= J[i];
+      rhs[i] *= -J[i];
     }
     //end inline func
   }

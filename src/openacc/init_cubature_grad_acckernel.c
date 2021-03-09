@@ -6,7 +6,7 @@
 //user function
 //#pragma acc routine
 inline void init_cubature_grad_openacc( double *rx, double *sx, double *ry,  double *sy,
-                          double *Dx, double *Dy) {
+                               double *Dx, double *Dy) {
 
   double J[46];
   for(int i = 0; i < 46; i++) {

@@ -22,9 +22,9 @@ inline void openblas_gauss_op(const int numCells, double *op, const double *mD,
     const double *term1_c = term1 + c * 7 * 15;
     const double *term2_c = term2 + c * 7 * 15;
 
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, 15, 15, 7, 1.0, term0_c, 15, gFInterp, 15, 0.0, op_c, 15);
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, 15, 15, 7, -1.0, term1_c, 15, mD_c, 15, 1.0, op_c, 15);
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, 15, 15, 7, -1.0, term2_c, 15, gFInterp, 15, 1.0, op_c, 15);
+    cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 15, 15, 7, 1.0, term0_c, 7, gFInterp, 15, 0.0, op_c, 15);
+    cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 15, 15, 7, -1.0, term1_c, 7, mD_c, 15, 1.0, op_c, 15);
+    cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 15, 15, 7, -1.0, term2_c, 7, gFInterp, 15, 1.0, op_c, 15);
   }
 
   free(gFInterp);
