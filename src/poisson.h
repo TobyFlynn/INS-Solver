@@ -28,9 +28,10 @@ public:
 
   void solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass = false, double factor = 0.0);
 
-  void setDirichletBCs(int *d, op_dat d_dat);
+  void setDirichletBCs(int *d);
   void setNeumannBCs(int *n);
-  
+  void setBCValues(op_dat d_dat);
+
   void createMatrix();
   void createMassMatrix();
   void createBCMatrix();
@@ -41,9 +42,9 @@ public:
 private:
   void copy_u(const double *u);
   void copy_rhs(double *rhs);
-  void create_vec(Vec *v);
+  void create_vec(Vec *v, int size = 15);
   void destroy_vec(Vec *v);
-  void load_vec(Vec *v, op_dat v_dat);
+  void load_vec(Vec *v, op_dat v_dat, int size = 15);
   void store_vec(Vec *v, op_dat v_dat);
   INSData *data;
   CubatureData *cData;

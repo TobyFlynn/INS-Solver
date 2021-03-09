@@ -274,7 +274,7 @@ CubatureData::CubatureData(INSData *dat) {
               op_arg_dat(sy, -1, OP_ID, 46, "double", OP_RW),
               op_arg_dat(Dx, -1, OP_ID, 46 * 15, "double", OP_WRITE),
               op_arg_dat(Dy, -1, OP_ID, 46 * 15, "double", OP_WRITE));
-
+  // Dx and Dy are row-major at this point
   init_cubature_blas(data, this);
 
   op_par_loop(init_cubature, "init_cubature", data->cells,
@@ -284,17 +284,18 @@ CubatureData::CubatureData(INSData *dat) {
               op_arg_dat(sy,   -1, OP_ID, 46, "double", OP_RW),
               op_arg_dat(J,    -1, OP_ID, 46, "double", OP_WRITE),
               op_arg_dat(temp, -1, OP_ID, 46 * 15, "double", OP_WRITE));
-
+  // Temp is in row-major at this point
   cubature_mm_blas(data, this);
-
+  // mm is in col-major at this point
   op_par_loop(init_cubature_OP, "init_cubature_OP", data->cells,
               op_arg_dat(J,     -1, OP_ID, 46, "double", OP_READ),
               op_arg_dat(Dx,    -1, OP_ID, 46 * 15, "double", OP_READ),
               op_arg_dat(Dy,    -1, OP_ID, 46 * 15, "double", OP_READ),
               op_arg_dat(temp,  -1, OP_ID, 46 * 15, "double", OP_WRITE),
               op_arg_dat(temp2, -1, OP_ID, 46 * 15, "double", OP_WRITE));
-
+  // Temp and temp2 are in row-major at this point
   cubature_op_blas(data, this);
+  // OP is in col-major at this point
 }
 
 CubatureData::~CubatureData() {
@@ -313,6 +314,8 @@ CubatureData::~CubatureData() {
 GaussData::GaussData(INSData *dat) {
   data = dat;
 
+  x_data      = (double *)malloc(21 * data->numCells * sizeof(double));
+  y_data      = (double *)malloc(21 * data->numCells * sizeof(double));
   rx_data     = (double *)malloc(21 * data->numCells * sizeof(double));
   sx_data     = (double *)malloc(21 * data->numCells * sizeof(double));
   ry_data     = (double *)malloc(21 * data->numCells * sizeof(double));
@@ -334,6 +337,8 @@ GaussData::GaussData(INSData *dat) {
     OPf_data[i] = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
   }
 
+  x      = op_decl_dat(data->cells, 21, "double", x_data, "gauss-x");
+  y      = op_decl_dat(data->cells, 21, "double", y_data, "gauss-y");
   rx     = op_decl_dat(data->cells, 21, "double", rx_data, "gauss-rx");
   sx     = op_decl_dat(data->cells, 21, "double", sx_data, "gauss-sx");
   ry     = op_decl_dat(data->cells, 21, "double", ry_data, "gauss-ry");
@@ -364,6 +369,8 @@ GaussData::GaussData(INSData *dat) {
     OPf[i] = op_decl_dat(data->cells, 15 * 15, "double", OPf_data[i], name.c_str());
   }
 
+  init_gauss_coords_blas(data, this);
+
   op_par_loop(gauss_tau, "gauss_tau", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(data->fscale, -2, data->edge2cells, 15, "double", OP_READ),
@@ -387,7 +394,7 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(mDy[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(mDx[2], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(mDy[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
-
+  // mDx[i] and mDy[i] are in row-major at this point
   op_par_loop(gauss_grad_faces, "gauss_grad_faces", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
@@ -405,6 +412,18 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(pDx[2], -2, data->edge2cells, 7 * 15, "double", OP_INC),
               op_arg_dat(pDy[2], -2, data->edge2cells, 7 * 15, "double", OP_INC));
 
+  init_gauss_blas(data, this);
+
+  op_par_loop(init_gauss, "init_gauss", data->cells,
+              op_arg_dat(rx, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(sx, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(ry, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(sy, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(nx, -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(ny, -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(sJ, -1, OP_ID, 21, "double", OP_WRITE));
+
+  // Everything still in row-major at this point
   op_par_loop(init_gauss_grad2, "init_gauss_grad2", data->cells,
               op_arg_dat(nx, -1, OP_ID, 21, "double", OP_READ),
               op_arg_dat(ny, -1, OP_ID, 21, "double", OP_READ),
@@ -430,17 +449,6 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(pD[0], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(pD[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(pD[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
-
-  init_gauss_blas(data, this);
-
-  op_par_loop(init_gauss, "init_gauss", data->cells,
-              op_arg_dat(rx, -1, OP_ID, 21, "double", OP_RW),
-              op_arg_dat(sx, -1, OP_ID, 21, "double", OP_RW),
-              op_arg_dat(ry, -1, OP_ID, 21, "double", OP_RW),
-              op_arg_dat(sy, -1, OP_ID, 21, "double", OP_RW),
-              op_arg_dat(nx, -1, OP_ID, 21, "double", OP_WRITE),
-              op_arg_dat(ny, -1, OP_ID, 21, "double", OP_WRITE),
-              op_arg_dat(sJ, -1, OP_ID, 21, "double", OP_WRITE));
 
   // Face 0 temps: mDx, Face 1 temps: mDy, Face 2 temps: pDx
   op_par_loop(gauss_op, "gauss_op", data->cells,
@@ -479,6 +487,8 @@ GaussData::GaussData(INSData *dat) {
 }
 
 GaussData::~GaussData() {
+  free(x_data);
+  free(y_data);
   free(rx_data);
   free(sx_data);
   free(ry_data);

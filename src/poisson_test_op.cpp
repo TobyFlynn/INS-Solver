@@ -101,6 +101,7 @@ int main(int argc, char **argv) {
   INSData *data = new INSData();
 
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+    return 0;
     if(y1 == y2 && y1 > 0.5) {
       // Neumann BC y = 1
       // cout << "0" << endl;
@@ -132,11 +133,13 @@ int main(int argc, char **argv) {
   double *sol_data = (double *)malloc(15 * data->numCells * sizeof(double));
   double *ex_data  = (double *)malloc(15 * data->numCells * sizeof(double));
   double *err_data = (double *)malloc(15 * data->numCells * sizeof(double));
+  double *bc_data  = (double *)calloc(21 * data->numCells, sizeof(double));
 
   op_dat rhs = op_decl_dat(data->cells, 15, "double", rhs_data, "rhs");
   op_dat sol = op_decl_dat(data->cells, 15, "double", sol_data, "sol");
   op_dat ex  = op_decl_dat(data->cells, 15, "double", ex_data, "ex");
   op_dat err = op_decl_dat(data->cells, 15, "double", err_data, "err");
+  op_dat bc  = op_decl_dat(data->cells, 21, "double", bc_data, "bc");
 
   // Calculate geometric factors
   init_grid_blas(data);
@@ -159,6 +162,9 @@ int main(int argc, char **argv) {
               op_arg_dat(data->sJ,-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->fscale,-1,OP_ID,15,"double",OP_WRITE));
 
+  CubatureData *cubData = new CubatureData(data);
+  GaussData *gaussData = new GaussData(data);
+
   op_par_loop_poisson_test_init("poisson_test_init",data->cells,
               op_arg_dat(data->x,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->y,-1,OP_ID,15,"double",OP_READ),
@@ -169,9 +175,9 @@ int main(int argc, char **argv) {
   op_par_loop_poisson_test_bc("poisson_test_bc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
-              op_arg_dat(data->x,0,data->bedge2cells,15,"double",OP_READ),
-              op_arg_dat(data->y,0,data->bedge2cells,15,"double",OP_READ),
-              op_arg_dat(data->dirichletBC,0,data->bedge2cells,15,"double",OP_INC));
+              op_arg_dat(gaussData->x,0,data->bedge2cells,21,"double",OP_READ),
+              op_arg_dat(gaussData->y,0,data->bedge2cells,21,"double",OP_READ),
+              op_arg_dat(bc,0,data->bedge2cells,21,"double",OP_INC));
 
   op_par_loop_poisson_test_set_rhs("poisson_test_set_rhs",data->cells,
               op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),
@@ -180,14 +186,17 @@ int main(int argc, char **argv) {
 
   poisson_test_rhs_blas(data, rhs);
 
-  Poisson *poisson = new Poisson(data);
+  Poisson *poisson = new Poisson(data, cubData, gaussData);
 
   // op_fetch_data_hdf5_file(data->dirichletBC, "t.h5");
 
   int dBCs[] = {0, 1};
   int nBCs[] = {2, 3};
-  poisson->setDirichletBCs(dBCs, data->dirichletBC);
+  poisson->setDirichletBCs(dBCs);
   poisson->setNeumannBCs(nBCs);
+  poisson->setBCValues(bc);
+  poisson->createMatrix();
+  poisson->createBCMatrix();
 
   poisson->solve(rhs, sol, true);
 

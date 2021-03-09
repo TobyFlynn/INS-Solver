@@ -70,9 +70,9 @@ void op_par_loop_poisson_test_bc(char const *name, op_set set,
           poisson_test_bc(
             &((int*)arg0.data)[1 * n],
             &((int*)arg1.data)[1 * n],
-            &((double*)arg2.data)[15 * map2idx],
-            &((double*)arg3.data)[15 * map2idx],
-            &((double*)arg4.data)[15 * map2idx]);
+            &((double*)arg2.data)[21 * map2idx],
+            &((double*)arg3.data)[21 * map2idx],
+            &((double*)arg4.data)[21 * map2idx]);
         }
       }
 

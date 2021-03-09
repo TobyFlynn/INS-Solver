@@ -9,26 +9,16 @@ inline void poisson_test_bc_openacc( const int *bedge_type, const int *bedgeNum,
                             const double *x, const double *y, double *dBC) {
   int exInd = 0;
   if(*bedgeNum == 1) {
-    exInd = 5;
+    exInd = 7;
   } else if(*bedgeNum == 2) {
-    exInd = 2 * 5;
-  }
-
-  int *fmask;
-
-  if(*bedgeNum == 0) {
-    fmask = FMASK;
-  } else if(*bedgeNum == 1) {
-    fmask = &FMASK[5];
-  } else {
-    fmask = &FMASK[2 * 5];
+    exInd = 2 * 7;
   }
 
   if(*bedge_type == 0) {
-    for(int i = 0; i < 5; i++) {
-      double y1 = y[fmask[i]];
+    for(int i = 0; i < 7; i++) {
+      double y1 = y[exInd + i];
 
-      dBC[exInd + i] += 2.0 * y1 * y1 * y1  - 3.0 * y1 * y1 + 1.0;
+
     }
   }
 }
@@ -111,9 +101,9 @@ void op_par_loop_poisson_test_bc(char const *name, op_set set,
         poisson_test_bc_openacc(
           &data0[1 * n],
           &data1[1 * n],
-          &data2[15 * map2idx],
-          &data3[15 * map2idx],
-          &data4[15 * map2idx]);
+          &data2[21 * map2idx],
+          &data3[21 * map2idx],
+          &data4[21 * map2idx]);
       }
 
     }

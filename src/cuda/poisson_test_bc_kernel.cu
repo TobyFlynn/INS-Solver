@@ -7,26 +7,16 @@ __device__ void poisson_test_bc_gpu( const int *bedge_type, const int *bedgeNum,
                             const double *x, const double *y, double *dBC) {
   int exInd = 0;
   if(*bedgeNum == 1) {
-    exInd = 5;
+    exInd = 7;
   } else if(*bedgeNum == 2) {
-    exInd = 2 * 5;
-  }
-
-  int *fmask;
-
-  if(*bedgeNum == 0) {
-    fmask = FMASK_cuda;
-  } else if(*bedgeNum == 1) {
-    fmask = &FMASK_cuda[5];
-  } else {
-    fmask = &FMASK_cuda[2 * 5];
+    exInd = 2 * 7;
   }
 
   if(*bedge_type == 0) {
-    for(int i = 0; i < 5; i++) {
-      double y1 = y[fmask[i]];
+    for(int i = 0; i < 7; i++) {
+      double y1 = y[exInd + i];
 
-      dBC[exInd + i] += 2.0 * y1 * y1 * y1  - 3.0 * y1 * y1 + 1.0;
+
     }
   }
 
@@ -43,13 +33,13 @@ __global__ void op_cuda_poisson_test_bc(
   int start,
   int end,
   int   set_size) {
-  double arg4_l[15];
+  double arg4_l[21];
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg4_l[15];
-    for ( int d=0; d<15; d++ ){
+    double arg4_l[21];
+    for ( int d=0; d<21; d++ ){
       arg4_l[d] = ZERO_double;
     }
     int map2idx;
@@ -58,24 +48,30 @@ __global__ void op_cuda_poisson_test_bc(
     //user-supplied kernel call
     poisson_test_bc_gpu(arg0+n*1,
                     arg1+n*1,
-                    ind_arg0+map2idx*15,
-                    ind_arg1+map2idx*15,
+                    ind_arg0+map2idx*21,
+                    ind_arg1+map2idx*21,
                     arg4_l);
-    atomicAdd(&ind_arg2[0+map2idx*15],arg4_l[0]);
-    atomicAdd(&ind_arg2[1+map2idx*15],arg4_l[1]);
-    atomicAdd(&ind_arg2[2+map2idx*15],arg4_l[2]);
-    atomicAdd(&ind_arg2[3+map2idx*15],arg4_l[3]);
-    atomicAdd(&ind_arg2[4+map2idx*15],arg4_l[4]);
-    atomicAdd(&ind_arg2[5+map2idx*15],arg4_l[5]);
-    atomicAdd(&ind_arg2[6+map2idx*15],arg4_l[6]);
-    atomicAdd(&ind_arg2[7+map2idx*15],arg4_l[7]);
-    atomicAdd(&ind_arg2[8+map2idx*15],arg4_l[8]);
-    atomicAdd(&ind_arg2[9+map2idx*15],arg4_l[9]);
-    atomicAdd(&ind_arg2[10+map2idx*15],arg4_l[10]);
-    atomicAdd(&ind_arg2[11+map2idx*15],arg4_l[11]);
-    atomicAdd(&ind_arg2[12+map2idx*15],arg4_l[12]);
-    atomicAdd(&ind_arg2[13+map2idx*15],arg4_l[13]);
-    atomicAdd(&ind_arg2[14+map2idx*15],arg4_l[14]);
+    atomicAdd(&ind_arg2[0+map2idx*21],arg4_l[0]);
+    atomicAdd(&ind_arg2[1+map2idx*21],arg4_l[1]);
+    atomicAdd(&ind_arg2[2+map2idx*21],arg4_l[2]);
+    atomicAdd(&ind_arg2[3+map2idx*21],arg4_l[3]);
+    atomicAdd(&ind_arg2[4+map2idx*21],arg4_l[4]);
+    atomicAdd(&ind_arg2[5+map2idx*21],arg4_l[5]);
+    atomicAdd(&ind_arg2[6+map2idx*21],arg4_l[6]);
+    atomicAdd(&ind_arg2[7+map2idx*21],arg4_l[7]);
+    atomicAdd(&ind_arg2[8+map2idx*21],arg4_l[8]);
+    atomicAdd(&ind_arg2[9+map2idx*21],arg4_l[9]);
+    atomicAdd(&ind_arg2[10+map2idx*21],arg4_l[10]);
+    atomicAdd(&ind_arg2[11+map2idx*21],arg4_l[11]);
+    atomicAdd(&ind_arg2[12+map2idx*21],arg4_l[12]);
+    atomicAdd(&ind_arg2[13+map2idx*21],arg4_l[13]);
+    atomicAdd(&ind_arg2[14+map2idx*21],arg4_l[14]);
+    atomicAdd(&ind_arg2[15+map2idx*21],arg4_l[15]);
+    atomicAdd(&ind_arg2[16+map2idx*21],arg4_l[16]);
+    atomicAdd(&ind_arg2[17+map2idx*21],arg4_l[17]);
+    atomicAdd(&ind_arg2[18+map2idx*21],arg4_l[18]);
+    atomicAdd(&ind_arg2[19+map2idx*21],arg4_l[19]);
+    atomicAdd(&ind_arg2[20+map2idx*21],arg4_l[20]);
   }
 }
 

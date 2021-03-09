@@ -133,6 +133,14 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   create_vec(&b);
   load_vec(&b, b_dat);
 
+  Vec bc;
+  create_vec(&bc, 21);
+  load_vec(&bc, dBC, 21);
+
+  Vec rhs;
+  create_vec(&rhs);
+  MatMultAdd(pBCMat, bc, b, rhs);
+
   Vec x;
   create_vec(&x);
 
@@ -141,7 +149,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   // if(method) {
     KSPSetType(ksp, KSPFGMRES);
   // } else {
-  //   KSPSetType(ksp, KSPCG);
+    // KSPSetType(ksp, KSPCG);
   // }
   // KSPSetType(ksp, KSPCG);
   // PC pc;
@@ -150,7 +158,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   // KSPSetPC(ksp, pc);
   // KSPSetPCSide(ksp, PC_RIGHT);
   KSPSetOperators(ksp, pMat, pMat);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
+  KSPSetTolerances(ksp, 1e-15, 1e-50, 1e5, 1e4);
 
   // Solve
   KSPSolve(ksp, b, x);
@@ -171,39 +179,47 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   destroy_vec(&x);
 }
 
-void Poisson::setDirichletBCs(int *d, op_dat d_dat) {
+void Poisson::setDirichletBCs(int *d) {
   dirichlet = d;
-  dBC = d_dat;
 }
 
 void Poisson::setNeumannBCs(int *n) {
   neumann = n;
 }
 
+void Poisson::setBCValues(op_dat d_dat) {
+  dBC = d_dat;
+}
+
 void Poisson::createMatrix() {
   MatCreate(PETSC_COMM_SELF, &pMat);
   MatSetSizes(pMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 15 * data->numCells);
-  MatSetUp(pMat);
+  MatSetType(pMat, MATSEQAIJ);
+  MatSeqAIJSetPreallocation(pMat, 15 * 4, NULL);
+  double tol = 1e-15;
   cout << "Starting cubature" << endl;
   // Add cubature OP
   double *cub_OP = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(cData->OP, cub_OP);
   for(int i = 0; i < data->numCells; i++) {
-    int row[15]; int col[15]; double vals[15 * 15];
+    // int row[15]; int col[15]; double vals[15 * 15];
     // Set row and col indices
-    for(int j = 0; j < 15; j++) {
-      row[j] = i * 15 + j;
-      col[j] = i * 15 + j;
-    }
+    // for(int j = 0; j < 15; j++) {
+    //   row[j] = i * 15 + j;
+    //   col[j] = i * 15 + j;
+    // }
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
-        int vInd = m * 15 + n;
+        int row = i * 15 + m;
+        int col = i * 15 + n;
         int colInd = n * 15 + m;
-        vals[vInd] = cub_OP[i * 15 * 15 + colInd];
+        double val = cub_OP[i * 15 * 15 + colInd];
+        if(abs(val) > tol)
+          MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     }
-    MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
+    // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
   }
   free(cub_OP);
   cout << "Starting internal Gauss" << endl;
@@ -223,64 +239,78 @@ void Poisson::createMatrix() {
     int rightElement = data->edge2cell_data[i * 2 + 1];
     int leftEdge = data->edgeNum_data[i * 2];
     int rightEdge = data->edgeNum_data[i * 2 + 1];
-    int row[15]; int col[15]; double vals[15 * 15];
+    // int row[15]; int col[15]; double vals[15 * 15];
     // Left Element OP
-    for(int j = 0; j < 15; j++) {
-      row[j] = leftElement * 15 + j;
-      col[j] = leftElement * 15 + j;
-    }
+    // for(int j = 0; j < 15; j++) {
+    //   row[j] = leftElement * 15 + j;
+    //   col[j] = leftElement * 15 + j;
+    // }
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
-        int vInd = m * 15 + n;
+        int row = leftElement * 15 + m;
+        int col = leftElement * 15 + n;
         int colInd = n * 15 + m;
-        vals[vInd] = 0.5 * gauss_OP[leftEdge][leftElement * 15 * 15 + colInd];
+        double val = 0.5 * gauss_OP[leftEdge][leftElement * 15 * 15 + colInd];
+        if(abs(val) > tol)
+          MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     }
-    MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
+    // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
     // Right Element OP
-    for(int j = 0; j < 15; j++) {
-      row[j] = rightElement * 15 + j;
-      col[j] = rightElement * 15 + j;
-    }
+    // for(int j = 0; j < 15; j++) {
+    //   row[j] = rightElement * 15 + j;
+    //   col[j] = rightElement * 15 + j;
+    // }
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
-        int vInd = m * 15 + n;
+        int row = rightElement * 15 + m;
+        int col = rightElement * 15 + n;
         int colInd = n * 15 + m;
-        vals[vInd] = 0.5 * gauss_OP[rightEdge][rightElement * 15 * 15 + colInd];
+        double val = 0.5 * gauss_OP[rightEdge][rightElement * 15 * 15 + colInd];
+        if(abs(val) > tol)
+          MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     }
-    MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
+    // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
 
     // Left Element OPf
-    for(int j = 0; j < 15; j++) {
-      row[j] = leftElement * 15 + j;
-      col[j] = rightElement * 15 + j;
-    }
+    // for(int j = 0; j < 15; j++) {
+    //   row[j] = leftElement * 15 + j;
+    //   col[j] = rightElement * 15 + j;
+    // }
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
-        int vInd = m * 15 + n;
+        int row = leftElement * 15 + m;
+        int col = rightElement * 15 + n;
+        // int vInd = m * 15 + n;
         int colInd = n * 15 + m;
-        vals[vInd] = -0.5 * gauss_OPf[leftEdge][leftElement * 15 * 15 + colInd];
+        double val = -0.5 * gauss_OPf[leftEdge][leftElement * 15 * 15 + colInd];
+        if(abs(val) > tol)
+          MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     }
-    MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
+    // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
     // Right Element OPf
-    for(int j = 0; j < 15; j++) {
-      row[j] = rightElement * 15 + j;
-      col[j] = leftElement * 15 + j;
-    }
+    // for(int j = 0; j < 15; j++) {
+    //   row[j] = rightElement * 15 + j;
+    //   col[j] = leftElement * 15 + j;
+    // }
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
-        int vInd = m * 15 + n;
+        int row = rightElement * 15 + m;
+        int col = leftElement * 15 + n;
+        // int vInd = m * 15 + n;
         int colInd = n * 15 + m;
-        vals[vInd] = -0.5 * gauss_OPf[rightEdge][rightElement * 15 * 15 + colInd];
+        double val = -0.5 * gauss_OPf[rightEdge][rightElement * 15 * 15 + colInd];
+        if(abs(val) > tol)
+          MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     }
-    MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
+    // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
   }
   cout << "Starting boundary Gauss" << endl;
   // Gauss on boundary OP
@@ -290,20 +320,24 @@ void Poisson::createMatrix() {
     int edge = data->bedgeNum_data[i];
     if(dirichlet[0] == bedgeType || dirichlet[1] == bedgeType) {
       cout << element << " " << edge << endl;
-      int row[15]; int col[15]; double vals[15 * 15];
-      for(int j = 0; j < 15; j++) {
-        row[j] = element * 15 + j;
-        col[j] = element * 15 + j;
-      }
+      // int row[15]; int col[15]; double vals[15 * 15];
+      // for(int j = 0; j < 15; j++) {
+      //   row[j] = element * 15 + j;
+      //   col[j] = element * 15 + j;
+      // }
       // Convert data to row major format
       for(int m = 0; m < 15; m++) {
         for(int n = 0; n < 15; n++) {
-          int vInd = m * 15 + n;
+          int row = element * 15 + m;
+          int col = element * 15 + n;
+          // int vInd = m * 15 + n;
           int colInd = n * 15 + m;
-          vals[vInd] = gauss_OP[edge][element * 15 * 15 + colInd];
+          double val = gauss_OP[edge][element * 15 * 15 + colInd];
+          if(abs(val) > tol)
+            MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
         }
       }
-      MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
+      // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
     }
   }
 
@@ -316,6 +350,7 @@ void Poisson::createMatrix() {
 
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
+  // MatView(pMat,PETSC_VIEWER_STDOUT_WORLD);
 }
 
 void Poisson::createMassMatrix() {
