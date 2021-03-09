@@ -176,6 +176,10 @@ void Poisson::setDirichletBCs(int *d, op_dat d_dat) {
   dBC = d_dat;
 }
 
+void Poisson::setNeumannBCs(int *n) {
+  neumann = n;
+}
+
 void Poisson::createMatrix() {
   MatCreate(PETSC_COMM_SELF, &pMat);
   MatSetSizes(pMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 15 * data->numCells);
@@ -347,10 +351,76 @@ void Poisson::createMassMatrix() {
 
 void Poisson::createBCMatrix() {
   MatCreate(PETSC_COMM_SELF, &pBCMat);
-  MatSetSizes(pBCMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 15 * data->numCells);
+  MatSetSizes(pBCMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 21 * data->numCells);
   MatSetUp(pBCMat);
 
-  // TODO: Insert elements
+  double *gauss_sJ  = (double *)malloc(21 * op_get_size(data->cells) * sizeof(double));
+  double *gauss_tau = (double *)malloc(3 * op_get_size(data->cells) * sizeof(double));
+  double *gauss_mD[3];
+  for(int i = 0; i < 3; i++) {
+    gauss_mD[i]  = (double *)malloc(7 * 15 * op_get_size(data->cells) * sizeof(double));
+    op_fetch_data(gData->mD[i], gauss_mD[i]);
+  }
+  op_fetch_data(gData->sJ, gauss_sJ);
+  op_fetch_data(gData->tau, gauss_tau);
+
+  for(int i = 0; i < data->numBoundaryEdges; i++) {
+    int element = data->bedge2cell_data[i];
+    int bedgeType = data->bedge_type_data[i];
+    int edge = data->bedgeNum_data[i];
+    if(dirichlet[0] == bedgeType || dirichlet[1] == bedgeType) {
+      int row[15]; int col[7]; double vals[15 * 7];
+      // Set row and col indices
+      for(int j = 0; j < 15; j++) {
+        row[j] = element * 15 + j;
+      }
+      for(int j = 0; j < 7; j++) {
+        col[j] = element * 21 + edge * 7 + j;
+      }
+      // Get data
+      for(int j = 0; j < 7 * 15; j++) {
+        int ind = j;
+        int indT = (j % 15) * 7 + (j / 15);
+        if(edge == 0) {
+          vals[indT] = gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gauss_tau[edge] * gFInterp0[ind];
+        } else if(edge == 1) {
+          vals[indT] = gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gauss_tau[edge] * gFInterp1[ind];
+        } else {
+          vals[indT] = gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gauss_tau[edge] * gFInterp2[ind];
+        }
+        vals[indT] -= gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gauss_mD[edge][element * 7 * 15 + ind];
+      }
+      MatSetValues(pBCMat, 15, row, 7, col, vals, ADD_VALUES);
+    } else if(neumann[0] == bedgeType || neumann[1] == bedgeType) {
+      int row[15]; int col[7]; double vals[15 * 7];
+      // Set row and col indices
+      for(int j = 0; j < 15; j++) {
+        row[j] = element * 15 + j;
+      }
+      for(int j = 0; j < 7; j++) {
+        col[j] = element * 21 + edge * 7 + j;
+      }
+      // Get data
+      for(int j = 0; j < 7 * 15; j++) {
+        int ind = j;
+        int indT = (j % 15) * 7 + (j / 15);
+        if(edge == 0) {
+          vals[indT] = gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gFInterp0[ind];
+        } else if(edge == 1) {
+          vals[indT] = gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gFInterp1[ind];
+        } else {
+          vals[indT] = gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gFInterp2[ind];
+        }
+      }
+      MatSetValues(pBCMat, 15, row, 7, col, vals, ADD_VALUES);
+    }
+  }
+
+  free(gauss_sJ);
+  free(gauss_tau);
+  for(int i = 0; i < 3; i++) {
+    free(gauss_mD[i]);
+  }
 
   MatAssemblyBegin(pBCMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pBCMat, MAT_FINAL_ASSEMBLY);

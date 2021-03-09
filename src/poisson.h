@@ -16,6 +16,10 @@ extern double Dsw[15 * 15];
 extern double LIFT[15 * 15];
 extern double MASS[15 * 15];
 extern int FMASK[15];
+extern double gFInterp0[7 * 15];
+extern double gFInterp1[7 * 15];
+extern double gFInterp2[7 * 15];
+extern double gaussW[7];
 
 class Poisson {
 public:
@@ -25,6 +29,8 @@ public:
   void solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass = false, double factor = 0.0);
 
   void setDirichletBCs(int *d, op_dat d_dat);
+  void setNeumannBCs(int *n);
+  
   void createMatrix();
   void createMassMatrix();
   void createBCMatrix();

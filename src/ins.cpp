@@ -150,8 +150,14 @@ int main(int argc, char **argv) {
 
   Poisson *poisson = new Poisson(data, cubData, gaussData);
   int pressure_dirichlet[] = {1, -1};
+  int pressure_neumann[] = {0, 2};
   poisson->setDirichletBCs(pressure_dirichlet, data->dirichletBC);
+  poisson->setNeumannBCs(pressure_neumann);
   poisson->createMatrix();
+  cout << "Creating Mass Matrix" << endl;
+  poisson->createMassMatrix();
+  cout << "Creating BC Matrix" << endl;
+  poisson->createBCMatrix();
 
   double dt = numeric_limits<double>::max();
   op_par_loop(calc_dt, "calc_dt", data->cells,
