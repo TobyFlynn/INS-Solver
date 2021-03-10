@@ -110,11 +110,11 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   KSP ksp;
   KSPCreate(PETSC_COMM_SELF, &ksp);
   // if(method) {
-    // KSPSetType(ksp, KSPFGMRES);
+    KSPSetType(ksp, KSPFGMRES);
   // } else {
     // KSPSetType(ksp, KSPCG);
   // }
-  KSPSetType(ksp, KSPGMRES);
+  // KSPSetType(ksp, KSPGMRES);
   // KSPSetType(ksp, KSPCG);
   // PC pc;
   // KSPGetPC(ksp, &pc);
@@ -125,7 +125,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   KSPSetTolerances(ksp, 1e-15, 1e-50, 1e5, 1e4);
 
   // Solve
-  KSPSolve(ksp, b, x);
+  KSPSolve(ksp, rhs, x);
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
   KSPConvergedReason reason;
@@ -161,7 +161,7 @@ void Poisson::createMatrix() {
   MatSetType(pMat, MATSEQAIJ);
   MatSeqAIJSetPreallocation(pMat, 15 * 4, NULL);
   double tol = 1e-15;
-  
+
   // Add cubature OP
   double *cub_OP = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(cData->OP, cub_OP);
@@ -312,10 +312,9 @@ void Poisson::createMatrix() {
 
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
-  PetscViewer pv;
-  PetscViewerDrawOpen(PETSC_COMM_SELF, NULL, NULL, PETSC_DECIDE, PETSC_DECIDE, 500, 500, &pv);
-  MatView(pMat, pv);
-  sleep(10);
+  // PetscViewer pv;
+  // PetscViewerDrawOpen(PETSC_COMM_SELF, NULL, NULL, PETSC_DECIDE, PETSC_DECIDE, 500, 500, &pv);
+  // MatView(pMat, pv);
 }
 
 void Poisson::createMassMatrix() {
