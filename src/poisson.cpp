@@ -1,6 +1,7 @@
 #include "poisson.h"
 
 #include <iostream>
+#include <unistd.h>
 
 #include "op_seq.h"
 #include "blas_calls.h"
@@ -160,7 +161,7 @@ void Poisson::createMatrix() {
   MatSetType(pMat, MATSEQAIJ);
   MatSeqAIJSetPreallocation(pMat, 15 * 4, NULL);
   double tol = 1e-15;
-  cout << "Starting cubature" << endl;
+  
   // Add cubature OP
   double *cub_OP = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(cData->OP, cub_OP);
@@ -185,7 +186,7 @@ void Poisson::createMatrix() {
     // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
   }
   free(cub_OP);
-  cout << "Starting internal Gauss" << endl;
+
   double *gauss_OP[3];
   double *gauss_OPf[3];
 
@@ -193,7 +194,7 @@ void Poisson::createMatrix() {
     gauss_OP[i] = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
     gauss_OPf[i] = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
     op_fetch_data(gData->OP[i], gauss_OP[i]);
-    op_fetch_data(gData->OPf[i], gauss_OP[i]);
+    op_fetch_data(gData->OPf[i], gauss_OPf[i]);
   }
 
   // Gauss OP and OPf
@@ -275,7 +276,7 @@ void Poisson::createMatrix() {
     }
     // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
   }
-  cout << "Starting boundary Gauss" << endl;
+
   // Gauss on boundary OP
   for(int i = 0; i < data->numBoundaryEdges; i++) {
     int element = data->bedge2cell_data[i];
@@ -309,11 +310,12 @@ void Poisson::createMatrix() {
     free(gauss_OPf[i]);
   }
 
-  cout << "Beginning Assembly" << endl;
-
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
-  // MatView(pMat,PETSC_VIEWER_STDOUT_WORLD);
+  PetscViewer pv;
+  PetscViewerDrawOpen(PETSC_COMM_SELF, NULL, NULL, PETSC_DECIDE, PETSC_DECIDE, 500, 500, &pv);
+  MatView(pMat, pv);
+  sleep(10);
 }
 
 void Poisson::createMassMatrix() {

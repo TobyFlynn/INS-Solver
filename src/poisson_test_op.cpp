@@ -188,7 +188,9 @@ int main(int argc, char **argv) {
 
   Poisson *poisson = new Poisson(data, cubData, gaussData);
 
-  // op_fetch_data_hdf5_file(data->dirichletBC, "t.h5");
+  op_fetch_data_hdf5_file(gaussData->OPf[0], "gauss.h5");
+  op_fetch_data_hdf5_file(gaussData->OPf[1], "gauss.h5");
+  op_fetch_data_hdf5_file(gaussData->OPf[2], "gauss.h5");
 
   int dBCs[] = {0, 1};
   int nBCs[] = {2, 3};
