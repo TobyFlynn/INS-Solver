@@ -101,6 +101,7 @@ int main(int argc, char **argv) {
   INSData *data = new INSData();
 
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+    return 0;
     if(y1 == y2 && y1 > 0.5) {
       // Neumann BC y = 1
       // cout << "0" << endl;
@@ -187,7 +188,7 @@ int main(int argc, char **argv) {
   int dBCs[] = {0, 1};
   int nBCs[] = {2, 3};
   poisson->setDirichletBCs(dBCs, data->dirichletBC);
-  poisson->setNeumannBCs(nBCs);
+  poisson->setNeumannBCs(nBCs, data->dirichletBC, data->dirichletBC);
 
   poisson->solve(rhs, sol, true);
 
