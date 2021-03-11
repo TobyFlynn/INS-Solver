@@ -44,6 +44,7 @@ extern double gFInterp2[105];
 #include "pressure_bc_seqkernel.cpp"
 #include "pressure_rhs_seqkernel.cpp"
 #include "pressure_update_vel_seqkernel.cpp"
+#include "viscosity_bc_seqkernel.cpp"
 #include "viscosity_rhs_seqkernel.cpp"
 #include "viscosity_reset_bc_seqkernel.cpp"
 #include "init_cubature_grad_seqkernel.cpp"

@@ -8,6 +8,9 @@ inline void set_ic(double *q0, double *q1, double *exQ0,
     dPdN0[i] = 0.0;
     dPdN1[i] = 0.0;
     pRHSex[i] = 0.0;
+  }
+  
+  for(int i = 0; i < 21; i++) {
     d[i] = 0.0;
   }
 }

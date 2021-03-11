@@ -16,7 +16,7 @@ __device__ void poisson_test_bc_gpu( const int *bedge_type, const int *bedgeNum,
     for(int i = 0; i < 7; i++) {
       double y1 = y[exInd + i];
 
-      dBC[exInd + i] += 2.0 * y1 * y1 * y1  - 3.0 * y1 * y1 + 1.0;
+
     }
   }
 
@@ -95,10 +95,10 @@ void op_par_loop_poisson_test_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(31);
+  op_timing_realloc(32);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[31].name      = name;
-  OP_kernels[31].count    += 1;
+  OP_kernels[32].name      = name;
+  OP_kernels[32].count    += 1;
 
 
   int    ninds   = 3;
@@ -111,8 +111,8 @@ void op_par_loop_poisson_test_bc(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_31
-      int nthread = OP_BLOCK_SIZE_31;
+    #ifdef OP_BLOCK_SIZE_32
+      int nthread = OP_BLOCK_SIZE_32;
     #else
       int nthread = OP_block_size;
     #endif
@@ -140,5 +140,5 @@ void op_par_loop_poisson_test_bc(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[31].time     += wall_t2 - wall_t1;
+  OP_kernels[32].time     += wall_t2 - wall_t1;
 }

@@ -27,17 +27,17 @@ void viscosity_rhs_omp4_kernel(
     const double *J = &data1[15*n_op];
     double *vRHS0 = &data2[15*n_op];
     double *vRHS1 = &data3[15*n_op];
-    double *bcx = &data4[15*n_op];
-    double *bcy = &data5[15*n_op];
+    double *bcx = &data4[21*n_op];
+    double *bcy = &data5[21*n_op];
 
     //inline function
     
 
     for(int i = 0; i < 15; i++) {
-      vRHS0[i] = *factor * J[i] * vRHS0[i];
-      vRHS1[i] = *factor * J[i] * vRHS1[i];
-      bcx[i] *= -1.0;
-      bcy[i] *= -1.0;
+
+
+      vRHS0[i] = *factor * vRHS0[i];
+      vRHS1[i] = *factor * vRHS1[i];
     }
     //end inline func
   }

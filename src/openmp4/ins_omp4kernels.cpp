@@ -17,6 +17,7 @@
 #include "pressure_bc_omp4kernel.cpp"
 #include "pressure_rhs_omp4kernel.cpp"
 #include "pressure_update_vel_omp4kernel.cpp"
+#include "viscosity_bc_omp4kernel.cpp"
 #include "viscosity_rhs_omp4kernel.cpp"
 #include "viscosity_reset_bc_omp4kernel.cpp"
 #include "init_cubature_grad_omp4kernel.cpp"

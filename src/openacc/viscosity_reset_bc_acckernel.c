@@ -6,7 +6,7 @@
 //user function
 //#pragma acc routine
 inline void viscosity_reset_bc_openacc( double *exQ0, double *exQ1) {
-  for(int i = 0; i < 15; i++) {
+  for(int i = 0; i < 21; i++) {
     exQ0[i] = 0.0;
     exQ1[i] = 0.0;
   }
@@ -25,10 +25,10 @@ void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(12);
+  op_timing_realloc(13);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[12].name      = name;
-  OP_kernels[12].count    += 1;
+  OP_kernels[13].name      = name;
+  OP_kernels[13].count    += 1;
 
 
   if (OP_diags>2) {
@@ -48,8 +48,8 @@ void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1)
     for ( int n=0; n<set->size; n++ ){
       viscosity_reset_bc_openacc(
-        &data0[15*n],
-        &data1[15*n]);
+        &data0[21*n],
+        &data1[21*n]);
     }
   }
 
@@ -58,7 +58,7 @@ void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[12].time     += wall_t2 - wall_t1;
-  OP_kernels[12].transfer += (float)set->size * arg0.size * 2.0f;
-  OP_kernels[12].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[13].time     += wall_t2 - wall_t1;
+  OP_kernels[13].transfer += (float)set->size * arg0.size * 2.0f;
+  OP_kernels[13].transfer += (float)set->size * arg1.size * 2.0f;
 }

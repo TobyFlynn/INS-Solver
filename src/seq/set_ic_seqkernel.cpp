@@ -51,7 +51,7 @@ void op_par_loop_set_ic(char const *name, op_set set,
         &((double*)arg4.data)[15*n],
         &((double*)arg5.data)[15*n],
         &((double*)arg6.data)[15*n],
-        &((double*)arg7.data)[15*n]);
+        &((double*)arg7.data)[21*n]);
     }
   }
 

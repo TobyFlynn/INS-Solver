@@ -60,7 +60,7 @@ void advection_lift_blas(INSData *nsData, int ind);
 
 void pressure_rhs_blas(INSData *nsData, int ind);
 
-void viscosity_rhs_blas(INSData *nsData);
+void viscosity_rhs_blas(INSData *nsData, CubatureData *cubatureData);
 
 void poisson_rhs_blas1(INSData *nsData, Poisson *pData);
 

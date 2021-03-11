@@ -38,22 +38,23 @@ int main(int argc, char **argv) {
   INSData *data = new INSData();
 
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+    // return 0;
     if(y1 == y2 && y1 > 0.5) {
       // Neumann BC y = 1
-      // cout << "0" << endl;
-      return 2;
+      // return 2;
+      return 1;
     } else if(y1 == y2 && y1 < 0.5) {
       // Neumann BC y = 0
-      // cout << "1" << endl;
-      return 3;
+      // return 3;
+      return 1;
     } else if(x1 < 0.5){
       // Dirichlet BC x = 0
-      // cout << "2" << endl;
-      return 0;
+      // return 0;
+      return 1;
     } else {
       // Dirichlet BC x = 1
-      // cout << "3" << endl;
-      return 1;
+      // return 1;
+      return 0;
     }
   };
 

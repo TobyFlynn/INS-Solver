@@ -71,6 +71,7 @@ INSData::~INSData() {
     free(gradCurlVel_data[i]);
     free(dPdN_data[i]);
     free(visRHS_data[i]);
+    free(visBC_data[i]);
   }
   free(divVelT_data);
   free(curlVel_data);
@@ -118,6 +119,7 @@ void INSData::initOP2() {
     gradCurlVel_data[i] = (double *)malloc(15 * numCells * sizeof(double));
     dPdN_data[i] = (double *)malloc(15 * numCells * sizeof(double));
     visRHS_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    visBC_data[i] = (double *)calloc(21 * numCells, sizeof(double));
   }
   divVelT_data = (double *)malloc(15 * numCells * sizeof(double));
   curlVel_data = (double *)malloc(15 * numCells * sizeof(double));
@@ -126,7 +128,7 @@ void INSData::initOP2() {
   p_data       = (double *)malloc(15 * numCells * sizeof(double));
   dpdx_data    = (double *)malloc(15 * numCells * sizeof(double));
   dpdy_data    = (double *)malloc(15 * numCells * sizeof(double));
-  dirichletBC_data = (double *)malloc(15 * numCells * sizeof(double));
+  dirichletBC_data = (double *)malloc(21 * numCells * sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -200,6 +202,8 @@ void INSData::initOP2() {
     dPdN[i] = op_decl_dat(cells, 15, "double", dPdN_data[i], dPdNname.c_str());
     string visRHSname = "visRHS" + to_string(i);
     visRHS[i] = op_decl_dat(cells, 15, "double", visRHS_data[i], visRHSname.c_str());
+    string visBCname = "visBC" + to_string(i);
+    visBC[i] = op_decl_dat(cells, 21, "double", visBC_data[i], visBCname.c_str());
   }
   divVelT = op_decl_dat(cells, 15, "double", divVelT_data, "divVelT");
   curlVel = op_decl_dat(cells, 15, "double", curlVel_data, "curlVel");
@@ -208,7 +212,7 @@ void INSData::initOP2() {
   p       = op_decl_dat(cells, 15, "double", p_data, "p");
   dpdx    = op_decl_dat(cells, 15, "double", dpdx_data, "dpdx");
   dpdy    = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
-  dirichletBC = op_decl_dat(cells, 15, "double", dirichletBC_data, "dirichletBC");
+  dirichletBC = op_decl_dat(cells, 21, "double", dirichletBC_data, "dirichletBC");
 
   op_decl_const(1, "double", &gam);
   op_decl_const(1, "double", &mu);

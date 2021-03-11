@@ -54,7 +54,7 @@ public:
   op_dat div[4];
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, pRHSex, p, dpdx, dpdy;
   op_dat visRHS[2];
-  op_dat dirichletBC;
+  op_dat dirichletBC, visBC[2];
 private:
   // Pointers to private memory
   double *nodeX_data;
@@ -93,6 +93,7 @@ private:
   double *dpdy_data;
   double *visRHS_data[2];
   double *dirichletBC_data;
+  double *visBC_data[2];
 };
 
 class CubatureData {

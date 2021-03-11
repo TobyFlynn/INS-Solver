@@ -15,6 +15,9 @@ inline void set_ic_openacc( double *q0, double *q1, double *exQ0,
     dPdN0[i] = 0.0;
     dPdN1[i] = 0.0;
     pRHSex[i] = 0.0;
+  }
+
+  for(int i = 0; i < 21; i++) {
     d[i] = 0.0;
   }
 }
@@ -80,7 +83,7 @@ void op_par_loop_set_ic(char const *name, op_set set,
         &data4[15*n],
         &data5[15*n],
         &data6[15*n],
-        &data7[15*n]);
+        &data7[21*n]);
     }
   }
 

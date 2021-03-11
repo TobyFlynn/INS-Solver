@@ -91,10 +91,10 @@ void op_par_loop_set_tau_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(26);
+  op_timing_realloc(27);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[26].name      = name;
-  OP_kernels[26].count    += 1;
+  OP_kernels[27].name      = name;
+  OP_kernels[27].count    += 1;
 
 
   int    ninds   = 3;
@@ -107,8 +107,8 @@ void op_par_loop_set_tau_bc(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_26
-      int nthread = OP_BLOCK_SIZE_26;
+    #ifdef OP_BLOCK_SIZE_27
+      int nthread = OP_BLOCK_SIZE_27;
     #else
       int nthread = OP_block_size;
     #endif
@@ -135,5 +135,5 @@ void op_par_loop_set_tau_bc(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[26].time     += wall_t2 - wall_t1;
+  OP_kernels[27].time     += wall_t2 - wall_t1;
 }

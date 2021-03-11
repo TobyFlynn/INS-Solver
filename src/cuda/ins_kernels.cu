@@ -158,6 +158,7 @@ int size, char *dat, char const *name){
 #include "pressure_bc_kernel.cu"
 #include "pressure_rhs_kernel.cu"
 #include "pressure_update_vel_kernel.cu"
+#include "viscosity_bc_kernel.cu"
 #include "viscosity_rhs_kernel.cu"
 #include "viscosity_reset_bc_kernel.cu"
 #include "init_cubature_grad_kernel.cu"

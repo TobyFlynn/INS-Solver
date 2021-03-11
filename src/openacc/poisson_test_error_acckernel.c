@@ -11,9 +11,9 @@ inline void poisson_test_error_openacc( const double *x, const double *y,
   for(int i = 0; i < 15; i++) {
     double x1 = x[i];
     double y1 = y[i];
+    double exact = - (8.0/(PI*PI)) * (sin(x[i])*sin(y[i]) + (1.0/15.0)*sin(x[i])*sin(3.0*y[i]) + (1.0/15.0)*sin(3.0*x[i])*sin(y[i]) + (1.0/81.0)*sin(3.0*x[i])*sin(3.0*y[i]));
+    exact += - (8.0/(PI*PI)) * ((1.0/65.0)*sin(5.0*x[i])*sin(y[i]) + (1.0/65.0)*sin(x[i])*sin(5.0*y[i]) + (1.0/255.0)*sin(5.0*x[i])*sin(3.0*y[i]) + (1.0/255.0)*sin(3.0*x[i])*sin(5.0*y[i]) + (1.0/625.0)*sin(5.0*x[i])*sin(5.0*y[i]));
 
-
-    double exact = (1.0 - (x[i] * x[i])) * (2.0 * (y[i] * y[i] * y[i]) - 3.0 * (y[i] * y[i]) + 1.0);
 
     err[i] = fabs(sol[i] - exact);
     *l2 += err[i] * err[i];
@@ -40,10 +40,10 @@ void op_par_loop_poisson_test_error(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(33);
+  op_timing_realloc(34);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[33].name      = name;
-  OP_kernels[33].count    += 1;
+  OP_kernels[34].name      = name;
+  OP_kernels[34].count    += 1;
 
 
   if (OP_diags>2) {
@@ -81,9 +81,9 @@ void op_par_loop_poisson_test_error(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[33].time     += wall_t2 - wall_t1;
-  OP_kernels[33].transfer += (float)set->size * arg0.size;
-  OP_kernels[33].transfer += (float)set->size * arg1.size;
-  OP_kernels[33].transfer += (float)set->size * arg2.size;
-  OP_kernels[33].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[34].time     += wall_t2 - wall_t1;
+  OP_kernels[34].transfer += (float)set->size * arg0.size;
+  OP_kernels[34].transfer += (float)set->size * arg1.size;
+  OP_kernels[34].transfer += (float)set->size * arg2.size;
+  OP_kernels[34].transfer += (float)set->size * arg3.size * 2.0f;
 }

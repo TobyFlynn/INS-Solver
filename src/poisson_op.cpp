@@ -159,7 +159,22 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   // PCSetType(pc, PCICC);
   // KSPSetPC(ksp, pc);
   // KSPSetPCSide(ksp, PC_RIGHT);
-  KSPSetOperators(ksp, pMat, pMat);
+
+  Mat op;
+  MatCreate(PETSC_COMM_SELF, &op);
+  MatSetSizes(op, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 15 * data->numCells);
+  MatSetType(op, MATSEQAIJ);
+  MatSeqAIJSetPreallocation(op, 15 * 4, NULL);
+  MatAssemblyBegin(op, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(op, MAT_FINAL_ASSEMBLY);
+  if(addMass) {
+    MatCopy(pMat, op, DIFFERENT_NONZERO_PATTERN);
+    MatAXPY(op, factor, pMMat, DIFFERENT_NONZERO_PATTERN);
+  } else {
+    MatCopy(pMat, op, DIFFERENT_NONZERO_PATTERN);
+  }
+
+  KSPSetOperators(ksp, op, op);
   KSPSetTolerances(ksp, 1e-15, 1e-50, 1e5, 1e4);
 
   // Solve
@@ -179,6 +194,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   KSPDestroy(&ksp);
   destroy_vec(&b);
   destroy_vec(&x);
+  MatDestroy(&op);
 }
 
 void Poisson::setDirichletBCs(int *d) {
@@ -198,18 +214,12 @@ void Poisson::createMatrix() {
   MatSetSizes(pMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 15 * data->numCells);
   MatSetType(pMat, MATSEQAIJ);
   MatSeqAIJSetPreallocation(pMat, 15 * 4, NULL);
-  double tol = 1e-15;
-
+  // double tol = 1e-15;
+  double tol = 0.0;
   // Add cubature OP
   double *cub_OP = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(cData->OP, cub_OP);
   for(int i = 0; i < data->numCells; i++) {
-    // int row[15]; int col[15]; double vals[15 * 15];
-    // Set row and col indices
-    // for(int j = 0; j < 15; j++) {
-    //   row[j] = i * 15 + j;
-    //   col[j] = i * 15 + j;
-    // }
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
@@ -221,7 +231,6 @@ void Poisson::createMatrix() {
           MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     }
-    // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
   }
   free(cub_OP);
 
@@ -241,12 +250,6 @@ void Poisson::createMatrix() {
     int rightElement = data->edge2cell_data[i * 2 + 1];
     int leftEdge = data->edgeNum_data[i * 2];
     int rightEdge = data->edgeNum_data[i * 2 + 1];
-    // int row[15]; int col[15]; double vals[15 * 15];
-    // Left Element OP
-    // for(int j = 0; j < 15; j++) {
-    //   row[j] = leftElement * 15 + j;
-    //   col[j] = leftElement * 15 + j;
-    // }
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
@@ -258,12 +261,6 @@ void Poisson::createMatrix() {
           MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     }
-    // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
-    // Right Element OP
-    // for(int j = 0; j < 15; j++) {
-    //   row[j] = rightElement * 15 + j;
-    //   col[j] = rightElement * 15 + j;
-    // }
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
@@ -275,44 +272,30 @@ void Poisson::createMatrix() {
           MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     }
-    // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
 
-    // Left Element OPf
-    // for(int j = 0; j < 15; j++) {
-    //   row[j] = leftElement * 15 + j;
-    //   col[j] = rightElement * 15 + j;
-    // }
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
         int row = leftElement * 15 + m;
         int col = rightElement * 15 + n;
-        // int vInd = m * 15 + n;
         int colInd = n * 15 + m;
         double val = -0.5 * gauss_OPf[leftEdge][leftElement * 15 * 15 + colInd];
         if(abs(val) > tol)
           MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     }
-    // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
-    // Right Element OPf
-    // for(int j = 0; j < 15; j++) {
-    //   row[j] = rightElement * 15 + j;
-    //   col[j] = leftElement * 15 + j;
-    // }
+
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
         int row = rightElement * 15 + m;
         int col = leftElement * 15 + n;
-        // int vInd = m * 15 + n;
         int colInd = n * 15 + m;
         double val = -0.5 * gauss_OPf[rightEdge][rightElement * 15 * 15 + colInd];
         if(abs(val) > tol)
           MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     }
-    // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
   }
 
   // Gauss on boundary OP
@@ -321,25 +304,17 @@ void Poisson::createMatrix() {
     int bedgeType = data->bedge_type_data[i];
     int edge = data->bedgeNum_data[i];
     if(dirichlet[0] == bedgeType || dirichlet[1] == bedgeType) {
-      // cout << element << " " << edge << endl;
-      // int row[15]; int col[15]; double vals[15 * 15];
-      // for(int j = 0; j < 15; j++) {
-      //   row[j] = element * 15 + j;
-      //   col[j] = element * 15 + j;
-      // }
       // Convert data to row major format
       for(int m = 0; m < 15; m++) {
         for(int n = 0; n < 15; n++) {
           int row = element * 15 + m;
           int col = element * 15 + n;
-          // int vInd = m * 15 + n;
           int colInd = n * 15 + m;
           double val = gauss_OP[edge][element * 15 * 15 + colInd];
           if(abs(val) > tol)
             MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
         }
       }
-      // MatSetValues(pMat, 15, row, 15, col, vals, ADD_VALUES);
     }
   }
 
@@ -358,27 +333,23 @@ void Poisson::createMatrix() {
 void Poisson::createMassMatrix() {
   MatCreate(PETSC_COMM_SELF, &pMMat);
   MatSetSizes(pMMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 15 * data->numCells);
-  MatSetUp(pMMat);
+  MatSetType(pMMat, MATSEQAIJ);
+  MatSeqAIJSetPreallocation(pMMat, 15, NULL);
 
   // Add cubature OP
   double *cub_MM = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(cData->mm, cub_MM);
   for(int i = 0; i < data->numCells; i++) {
-    int row[15]; int col[15]; double vals[15 * 15];
-    // Set row and col indices
-    for(int j = 0; j < 15; j++) {
-      row[j] = i * 15 + j;
-      col[j] = i * 15 + j;
-    }
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
-        int vInd = m * 15 + n;
+        int row = i * 15 + m;
+        int col = i * 15 + n;
         int colInd = n * 15 + m;
-        vals[vInd] = cub_MM[i * 15 * 15 + colInd];
+        double val = cub_MM[i * 15 * 15 + colInd];
+        MatSetValues(pMMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     }
-    MatSetValues(pMMat, 15, row, 15, col, vals, ADD_VALUES);
   }
   free(cub_MM);
 
@@ -406,50 +377,38 @@ void Poisson::createBCMatrix() {
     int bedgeType = data->bedge_type_data[i];
     int edge = data->bedgeNum_data[i];
     if(dirichlet[0] == bedgeType || dirichlet[1] == bedgeType) {
-      int row[15]; int col[7]; double vals[15 * 7];
-      // Set row and col indices
-      for(int j = 0; j < 15; j++) {
-        row[j] = element * 15 + j;
-      }
-      for(int j = 0; j < 7; j++) {
-        col[j] = element * 21 + edge * 7 + j;
-      }
       // Get data
       for(int j = 0; j < 7 * 15; j++) {
-        int ind = j;
-        int indT = (j % 15) * 7 + (j / 15);
+        int indT = (j % 7) * 15 + (j / 7);
+        int col = element * 21 + edge * 7 + (j % 7);
+        int row = element * 15 + (j / 7);
+        double val;
         if(edge == 0) {
-          vals[indT] = gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gauss_tau[edge] * gFInterp0[ind];
+          val = gFInterp0[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[edge];
         } else if(edge == 1) {
-          vals[indT] = gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gauss_tau[edge] * gFInterp1[ind];
+          val = gFInterp1[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[edge];
         } else {
-          vals[indT] = gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gauss_tau[edge] * gFInterp2[ind];
+          val = gFInterp2[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[edge];
         }
-        vals[indT] -= gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gauss_mD[edge][element * 7 * 15 + ind];
+        val -= gauss_mD[edge][element * 7 * 15 + indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
+        MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
-      MatSetValues(pBCMat, 15, row, 7, col, vals, ADD_VALUES);
     } else if(neumann[0] == bedgeType || neumann[1] == bedgeType) {
-      int row[15]; int col[7]; double vals[15 * 7];
-      // Set row and col indices
-      for(int j = 0; j < 15; j++) {
-        row[j] = element * 15 + j;
-      }
-      for(int j = 0; j < 7; j++) {
-        col[j] = element * 21 + edge * 7 + j;
-      }
       // Get data
       for(int j = 0; j < 7 * 15; j++) {
-        int ind = j;
-        int indT = (j % 15) * 7 + (j / 15);
+        int indT = (j % 7) * 15 + (j / 7);
+        int col = element * 21 + edge * 7 + (j % 7);
+        int row = element * 15 + (j / 7);
+        double val;
         if(edge == 0) {
-          vals[indT] = gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gFInterp0[ind];
+          val = gFInterp0[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         } else if(edge == 1) {
-          vals[indT] = gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gFInterp1[ind];
+          val = gFInterp1[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         } else {
-          vals[indT] = gaussW[j / 15] * gauss_sJ[element * 21 + edge * 7 + j / 15] * gFInterp2[ind];
+          val = gFInterp2[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         }
+        MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
-      MatSetValues(pBCMat, 15, row, 7, col, vals, ADD_VALUES);
     }
   }
 

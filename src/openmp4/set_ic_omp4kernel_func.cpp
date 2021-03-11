@@ -35,7 +35,7 @@ void set_ic_omp4_kernel(
     double *dPdN0 = &data4[15*n_op];
     double *dPdN1 = &data5[15*n_op];
     double *pRHSex = &data6[15*n_op];
-    double *d = &data7[15*n_op];
+    double *d = &data7[21*n_op];
 
     //inline function
     
@@ -47,6 +47,9 @@ void set_ic_omp4_kernel(
       dPdN0[i] = 0.0;
       dPdN1[i] = 0.0;
       pRHSex[i] = 0.0;
+    }
+
+    for(int i = 0; i < 21; i++) {
       d[i] = 0.0;
     }
     //end inline func

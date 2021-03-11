@@ -46,6 +46,7 @@ int size, char *dat, char const *name){}
 #include "pressure_bc_acckernel.c"
 #include "pressure_rhs_acckernel.c"
 #include "pressure_update_vel_acckernel.c"
+#include "viscosity_bc_acckernel.c"
 #include "viscosity_rhs_acckernel.c"
 #include "viscosity_reset_bc_acckernel.c"
 #include "init_cubature_grad_acckernel.c"

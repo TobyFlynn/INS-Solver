@@ -13,6 +13,9 @@ __device__ void set_ic_gpu( double *q0, double *q1, double *exQ0,
     dPdN0[i] = 0.0;
     dPdN1[i] = 0.0;
     pRHSex[i] = 0.0;
+  }
+
+  for(int i = 0; i < 21; i++) {
     d[i] = 0.0;
   }
 
@@ -42,7 +45,7 @@ __global__ void op_cuda_set_ic(
            arg4+n*15,
            arg5+n*15,
            arg6+n*15,
-           arg7+n*15);
+           arg7+n*21);
   }
 }
 
