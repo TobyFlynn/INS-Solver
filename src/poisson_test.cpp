@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
   INSData *data = new INSData();
 
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-    // return 0;
+    return 0;
     if(y1 == y2 && y1 > 0.5) {
       // Neumann BC y = 1
       // return 2;
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
   op_fetch_data(rhs, rhs_ptr);
   op_fetch_data(data->x, x_ptr);
   op_fetch_data(data->y, y_ptr);
-  // save_solution_all("./sol.cgns", op_get_size(data->cells), sol_ptr, err_ptr, x_ptr, y_ptr);
+  save_solution_all("./sol.cgns", op_get_size(data->cells), sol_ptr, err_ptr, x_ptr, y_ptr);
 
   save_solution("./grid.cgns", op_get_size(data->nodes), op_get_size(data->cells),
                 sol_ptr, err_ptr, rhs_ptr, data->cgnsCells);
