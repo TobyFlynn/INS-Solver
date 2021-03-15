@@ -40,7 +40,7 @@ inline void gauss_op_openacc( const double *tau, const double *sJ,
 
 
   for(int ind = 0; ind < 7 * 15; ind++) {
-    int indT = (ind * 15) % (15 * 7) + (ind / 7);
+    int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
     f0_0[ind] = gFInterp0[indT];
     f0_1[ind] = gFInterp0[indT];
     f0_2[ind] = mD0[indT];
@@ -56,7 +56,7 @@ inline void gauss_op_openacc( const double *tau, const double *sJ,
   }
 
   for(int ind = 0; ind < 7 * 15; ind++) {
-    int indT = (ind * 15) % (15 * 7) + (ind / 7);
+    int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
     f1_0[ind] = gFInterp1[indT];
     f1_1[ind] = gFInterp1[indT];
     f1_2[ind] = mD1[indT];
@@ -72,7 +72,7 @@ inline void gauss_op_openacc( const double *tau, const double *sJ,
   }
 
   for(int ind = 0; ind < 7 * 15; ind++) {
-    int indT = (ind * 15) % (15 * 7) + (ind / 7);
+    int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
     f2_0[ind] = gFInterp2[indT];
     f2_1[ind] = gFInterp2[indT];
     f2_2[ind] = mD2[indT];
@@ -125,10 +125,10 @@ void op_par_loop_gauss_op(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(23);
+  op_timing_realloc(25);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[23].name      = name;
-  OP_kernels[23].count    += 1;
+  OP_kernels[25].name      = name;
+  OP_kernels[25].count    += 1;
 
 
   if (OP_diags>2) {
@@ -182,19 +182,19 @@ void op_par_loop_gauss_op(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[23].time     += wall_t2 - wall_t1;
-  OP_kernels[23].transfer += (float)set->size * arg0.size;
-  OP_kernels[23].transfer += (float)set->size * arg1.size;
-  OP_kernels[23].transfer += (float)set->size * arg2.size;
-  OP_kernels[23].transfer += (float)set->size * arg3.size * 2.0f;
-  OP_kernels[23].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[23].transfer += (float)set->size * arg5.size * 2.0f;
-  OP_kernels[23].transfer += (float)set->size * arg6.size;
-  OP_kernels[23].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[23].transfer += (float)set->size * arg8.size * 2.0f;
-  OP_kernels[23].transfer += (float)set->size * arg9.size * 2.0f;
-  OP_kernels[23].transfer += (float)set->size * arg10.size;
-  OP_kernels[23].transfer += (float)set->size * arg11.size * 2.0f;
-  OP_kernels[23].transfer += (float)set->size * arg12.size * 2.0f;
-  OP_kernels[23].transfer += (float)set->size * arg13.size * 2.0f;
+  OP_kernels[25].time     += wall_t2 - wall_t1;
+  OP_kernels[25].transfer += (float)set->size * arg0.size;
+  OP_kernels[25].transfer += (float)set->size * arg1.size;
+  OP_kernels[25].transfer += (float)set->size * arg2.size;
+  OP_kernels[25].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[25].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[25].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[25].transfer += (float)set->size * arg6.size;
+  OP_kernels[25].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[25].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[25].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[25].transfer += (float)set->size * arg10.size;
+  OP_kernels[25].transfer += (float)set->size * arg11.size * 2.0f;
+  OP_kernels[25].transfer += (float)set->size * arg12.size * 2.0f;
+  OP_kernels[25].transfer += (float)set->size * arg13.size * 2.0f;
 }

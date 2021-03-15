@@ -118,9 +118,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   // KSPSetType(ksp, KSPCG);
   // PC pc;
   // KSPGetPC(ksp, &pc);
-  // PCSetType(pc, PCICC);
-  // KSPSetPC(ksp, pc);
-  // KSPSetPCSide(ksp, PC_RIGHT);
+  // PCSetType(pc, PCGAMG);
 
   Mat op;
   MatCreate(PETSC_COMM_SELF, &op);
@@ -137,8 +135,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   }
 
   KSPSetOperators(ksp, op, op);
-  KSPSetTolerances(ksp, 1e-15, 1e-50, 1e5, 1e4);
-
+  // KSPSetTolerances(ksp, 1e-15, 1e-50, 1e5, 1e4);
   // Solve
   KSPSolve(ksp, rhs, x);
   int numIt;

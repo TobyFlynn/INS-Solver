@@ -31,10 +31,6 @@ void gauss_grad_faces_omp4_kernel(
   int dat21size,
   double *data23,
   int dat23size,
-  double *data25,
-  int dat25size,
-  double *data27,
-  int dat27size,
   int *col_reord,
   int set_size1,
   int start,
@@ -43,7 +39,7 @@ void gauss_grad_faces_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size])\
-    map(to:col_reord[0:set_size1],map1[0:map1size],data1[0:dat1size],data3[0:dat3size],data5[0:dat5size],data7[0:dat7size],data9[0:dat9size],data11[0:dat11size],data13[0:dat13size],data15[0:dat15size],data17[0:dat17size],data19[0:dat19size],data21[0:dat21size],data23[0:dat23size],data25[0:dat25size],data27[0:dat27size])
+    map(to:col_reord[0:set_size1],map1[0:map1size],data1[0:dat1size],data3[0:dat3size],data5[0:dat5size],data7[0:dat7size],data9[0:dat9size],data11[0:dat11size],data13[0:dat13size],data15[0:dat15size],data17[0:dat17size],data19[0:dat19size],data21[0:dat21size],data23[0:dat23size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
@@ -53,11 +49,11 @@ void gauss_grad_faces_omp4_kernel(
     map2idx = map1[n_op + set_size1 * 1];
 
     const double* arg1_vec[] = {
-       &data1[3 * map1idx],
-       &data1[3 * map2idx]};
+       &data1[105 * map1idx],
+       &data1[105 * map2idx]};
     const double* arg3_vec[] = {
-       &data3[3 * map1idx],
-       &data3[3 * map2idx]};
+       &data3[105 * map1idx],
+       &data3[105 * map2idx]};
     const double* arg5_vec[] = {
        &data5[105 * map1idx],
        &data5[105 * map2idx]};
@@ -70,10 +66,10 @@ void gauss_grad_faces_omp4_kernel(
     const double* arg11_vec[] = {
        &data11[105 * map1idx],
        &data11[105 * map2idx]};
-    const double* arg13_vec[] = {
+    double* arg13_vec[] = {
        &data13[105 * map1idx],
        &data13[105 * map2idx]};
-    const double* arg15_vec[] = {
+    double* arg15_vec[] = {
        &data15[105 * map1idx],
        &data15[105 * map2idx]};
     double* arg17_vec[] = {
@@ -88,123 +84,82 @@ void gauss_grad_faces_omp4_kernel(
     double* arg23_vec[] = {
        &data23[105 * map1idx],
        &data23[105 * map2idx]};
-    double* arg25_vec[] = {
-       &data25[105 * map1idx],
-       &data25[105 * map2idx]};
-    double* arg27_vec[] = {
-       &data27[105 * map1idx],
-       &data27[105 * map2idx]};
     //variable mapping
     const int *edgeNum = &data0[2*n_op];
-    const double **x = arg1_vec;
-    const double **y = arg3_vec;
-    const double **mDx0 = arg5_vec;
-    const double **mDy0 = arg7_vec;
-    const double **mDx1 = arg9_vec;
-    const double **mDy1 = arg11_vec;
-    const double **mDx2 = arg13_vec;
-    const double **mDy2 = arg15_vec;
-    double **pDx0 = arg17_vec;
-    double **pDy0 = arg19_vec;
-    double **pDx1 = arg21_vec;
-    double **pDy1 = arg23_vec;
-    double **pDx2 = arg25_vec;
-    double **pDy2 = arg27_vec;
+    const double **mDx0 = arg1_vec;
+    const double **mDy0 = arg3_vec;
+    const double **mDx1 = arg5_vec;
+    const double **mDy1 = arg7_vec;
+    const double **mDx2 = arg9_vec;
+    const double **mDy2 = arg11_vec;
+    double **pDx0 = arg13_vec;
+    double **pDy0 = arg15_vec;
+    double **pDx1 = arg17_vec;
+    double **pDy1 = arg19_vec;
+    double **pDx2 = arg21_vec;
+    double **pDy2 = arg23_vec;
 
     //inline function
     
 
     int edgeL = edgeNum[0];
     int edgeR = edgeNum[1];
-    bool reverse;
-
-    if(edgeR == 0) {
-      if(edgeL == 0) {
-        reverse = !(x[0][0] == x[1][0] && y[0][0] == y[1][0]);
-      } else if(edgeL == 1) {
-        reverse = !(x[0][1] == x[1][0] && y[0][1] == y[1][0]);
-      } else {
-        reverse = !(x[0][2] == x[1][0] && y[0][2] == y[1][0]);
-      }
-    } else if(edgeR == 1) {
-      if(edgeL == 0) {
-        reverse = !(x[0][0] == x[1][1] && y[0][0] == y[1][1]);
-      } else if(edgeL == 1) {
-        reverse = !(x[0][1] == x[1][1] && y[0][1] == y[1][1]);
-      } else {
-        reverse = !(x[0][2] == x[1][1] && y[0][2] == y[1][1]);
-      }
-    } else {
-      if(edgeL == 0) {
-        reverse = !(x[0][0] == x[1][2] && y[0][0] == y[1][2]);
-      } else if(edgeL == 1) {
-        reverse = !(x[0][1] == x[1][2] && y[0][1] == y[1][2]);
-      } else {
-        reverse = !(x[0][2] == x[1][2] && y[0][2] == y[1][2]);
-      }
-    }
 
     for(int m = 0; m < 7; m++) {
       for(int n = 0; n < 15; n++) {
-        int indL, indR;
-        if(reverse) {
-          indL = m * 15 + n;
-          indR = m * 15 + n;
-        } else {
-          indL = m * 15 + n;
-          indR = (6 - m) * 15 + n;
-        }
+        int indL = m * 15 + n;
+        int indR = m * 15 + n;
 
         if(edgeL == 0) {
           if(edgeR == 0) {
             pDx0[0][indL] += mDx0[1][indR];
             pDy0[0][indL] += mDy0[1][indR];
             pDx0[1][indR] += mDx0[0][indL];
-            pDx0[1][indR] += mDx0[0][indL];
+            pDy0[1][indR] += mDy0[0][indL];
           } else if(edgeR == 1) {
             pDx0[0][indL] += mDx1[1][indR];
             pDy0[0][indL] += mDy1[1][indR];
             pDx1[1][indR] += mDx0[0][indL];
-            pDx1[1][indR] += mDx0[0][indL];
+            pDy1[1][indR] += mDy0[0][indL];
           } else {
             pDx0[0][indL] += mDx2[1][indR];
             pDy0[0][indL] += mDy2[1][indR];
             pDx2[1][indR] += mDx0[0][indL];
-            pDx2[1][indR] += mDx0[0][indL];
+            pDy2[1][indR] += mDy0[0][indL];
           }
         } else if(edgeL == 1) {
           if(edgeR == 0) {
             pDx1[0][indL] += mDx0[1][indR];
             pDy1[0][indL] += mDy0[1][indR];
             pDx0[1][indR] += mDx1[0][indL];
-            pDx0[1][indR] += mDx1[0][indL];
+            pDy0[1][indR] += mDy1[0][indL];
           } else if(edgeR == 1) {
             pDx1[0][indL] += mDx1[1][indR];
             pDy1[0][indL] += mDy1[1][indR];
             pDx1[1][indR] += mDx1[0][indL];
-            pDx1[1][indR] += mDx1[0][indL];
+            pDy1[1][indR] += mDy1[0][indL];
           } else {
             pDx1[0][indL] += mDx2[1][indR];
             pDy1[0][indL] += mDy2[1][indR];
             pDx2[1][indR] += mDx1[0][indL];
-            pDx2[1][indR] += mDx1[0][indL];
+            pDy2[1][indR] += mDy1[0][indL];
           }
         } else {
           if(edgeR == 0) {
             pDx2[0][indL] += mDx0[1][indR];
             pDy2[0][indL] += mDy0[1][indR];
             pDx0[1][indR] += mDx2[0][indL];
-            pDx0[1][indR] += mDx2[0][indL];
+            pDy0[1][indR] += mDy2[0][indL];
           } else if(edgeR == 1) {
             pDx2[0][indL] += mDx1[1][indR];
             pDy2[0][indL] += mDy1[1][indR];
             pDx1[1][indR] += mDx2[0][indL];
-            pDx1[1][indR] += mDx2[0][indL];
+            pDy1[1][indR] += mDy2[0][indL];
           } else {
             pDx2[0][indL] += mDx2[1][indR];
             pDy2[0][indL] += mDy2[1][indR];
             pDx2[1][indR] += mDx2[0][indL];
-            pDx2[1][indR] += mDx2[0][indL];
+            pDy2[1][indR] += mDy2[0][indL];
           }
         }
       }

@@ -28,6 +28,15 @@ extern double gF1Dr[7 * 15];
 extern double gF1Ds[7 * 15];
 extern double gF2Dr[7 * 15];
 extern double gF2Ds[7 * 15];
+extern double gFInterp0R[7 * 15];
+extern double gFInterp1R[7 * 15];
+extern double gFInterp2R[7 * 15];
+extern double gF0DrR[7 * 15];
+extern double gF0DsR[7 * 15];
+extern double gF1DrR[7 * 15];
+extern double gF1DsR[7 * 15];
+extern double gF2DrR[7 * 15];
+extern double gF2DsR[7 * 15];
 
 class INSData {
 public:
@@ -128,7 +137,7 @@ public:
   ~GaussData();
 
   op_dat x, y;
-  op_dat rx, sx, ry, sy, sJ, nx, ny, tau, factor;
+  op_dat rx, sx, ry, sy, sJ, nx, ny, tau, factor, reverse;
   op_dat mDx[3], mDy[3], pDx[3], pDy[3], mD[3], pD[3];
   op_dat pGF[3];
   // OP is in column major format
@@ -156,6 +165,8 @@ private:
   double *OP_data[3];
   double *OPf_data[3];
   double *factor_data;
+
+  int *reverse_data;
 };
 
 #endif

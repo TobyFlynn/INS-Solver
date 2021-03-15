@@ -19,24 +19,22 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
   op_arg arg17,
   op_arg arg19,
   op_arg arg21,
-  op_arg arg23,
-  op_arg arg25,
-  op_arg arg27){
+  op_arg arg23){
 
-  int nargs = 29;
-  op_arg args[29];
+  int nargs = 25;
+  op_arg args[25];
 
   args[0] = arg0;
   arg1.idx = 0;
   args[1] = arg1;
   for ( int v=1; v<2; v++ ){
-    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 3, "double", OP_READ);
+    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 105, "double", OP_READ);
   }
 
   arg3.idx = 0;
   args[3] = arg3;
   for ( int v=1; v<2; v++ ){
-    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 3, "double", OP_READ);
+    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 105, "double", OP_READ);
   }
 
   arg5.idx = 0;
@@ -66,13 +64,13 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
   arg13.idx = 0;
   args[13] = arg13;
   for ( int v=1; v<2; v++ ){
-    args[13 + v] = op_arg_dat(arg13.dat, v, arg13.map, 105, "double", OP_READ);
+    args[13 + v] = op_arg_dat(arg13.dat, v, arg13.map, 105, "double", OP_INC);
   }
 
   arg15.idx = 0;
   args[15] = arg15;
   for ( int v=1; v<2; v++ ){
-    args[15 + v] = op_arg_dat(arg15.dat, v, arg15.map, 105, "double", OP_READ);
+    args[15 + v] = op_arg_dat(arg15.dat, v, arg15.map, 105, "double", OP_INC);
   }
 
   arg17.idx = 0;
@@ -99,36 +97,24 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
     args[23 + v] = op_arg_dat(arg23.dat, v, arg23.map, 105, "double", OP_INC);
   }
 
-  arg25.idx = 0;
-  args[25] = arg25;
-  for ( int v=1; v<2; v++ ){
-    args[25 + v] = op_arg_dat(arg25.dat, v, arg25.map, 105, "double", OP_INC);
-  }
-
-  arg27.idx = 0;
-  args[27] = arg27;
-  for ( int v=1; v<2; v++ ){
-    args[27 + v] = op_arg_dat(arg27.dat, v, arg27.map, 105, "double", OP_INC);
-  }
-
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(20);
-  OP_kernels[20].name      = name;
-  OP_kernels[20].count    += 1;
+  op_timing_realloc(24);
+  OP_kernels[24].name      = name;
+  OP_kernels[24].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 14;
-  int  inds[29] = {-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13};
+  int  ninds   = 12;
+  int  inds[25] = {-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: gauss_grad_faces\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_20
-    int part_size = OP_PART_SIZE_20;
+  #ifdef OP_PART_SIZE_24
+    int part_size = OP_PART_SIZE_24;
   #else
     int part_size = OP_part_size;
   #endif
@@ -159,11 +145,11 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
           map2idx = arg1.map_data[n * arg1.map->dim + 1];
 
           const double* arg1_vec[] = {
-             &((double*)arg1.data)[3 * map1idx],
-             &((double*)arg1.data)[3 * map2idx]};
+             &((double*)arg1.data)[105 * map1idx],
+             &((double*)arg1.data)[105 * map2idx]};
           const double* arg3_vec[] = {
-             &((double*)arg3.data)[3 * map1idx],
-             &((double*)arg3.data)[3 * map2idx]};
+             &((double*)arg3.data)[105 * map1idx],
+             &((double*)arg3.data)[105 * map2idx]};
           const double* arg5_vec[] = {
              &((double*)arg5.data)[105 * map1idx],
              &((double*)arg5.data)[105 * map2idx]};
@@ -176,10 +162,10 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
           const double* arg11_vec[] = {
              &((double*)arg11.data)[105 * map1idx],
              &((double*)arg11.data)[105 * map2idx]};
-          const double* arg13_vec[] = {
+          double* arg13_vec[] = {
              &((double*)arg13.data)[105 * map1idx],
              &((double*)arg13.data)[105 * map2idx]};
-          const double* arg15_vec[] = {
+          double* arg15_vec[] = {
              &((double*)arg15.data)[105 * map1idx],
              &((double*)arg15.data)[105 * map2idx]};
           double* arg17_vec[] = {
@@ -194,12 +180,6 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
           double* arg23_vec[] = {
              &((double*)arg23.data)[105 * map1idx],
              &((double*)arg23.data)[105 * map2idx]};
-          double* arg25_vec[] = {
-             &((double*)arg25.data)[105 * map1idx],
-             &((double*)arg25.data)[105 * map2idx]};
-          double* arg27_vec[] = {
-             &((double*)arg27.data)[105 * map1idx],
-             &((double*)arg27.data)[105 * map2idx]};
 
           gauss_grad_faces(
             &((int*)arg0.data)[2 * n],
@@ -214,16 +194,14 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
             arg17_vec,
             arg19_vec,
             arg21_vec,
-            arg23_vec,
-            arg25_vec,
-            arg27_vec);
+            arg23_vec);
         }
       }
 
       block_offset += nblocks;
     }
-    OP_kernels[20].transfer  += Plan->transfer;
-    OP_kernels[20].transfer2 += Plan->transfer2;
+    OP_kernels[24].transfer  += Plan->transfer;
+    OP_kernels[24].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -234,5 +212,5 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[20].time     += wall_t2 - wall_t1;
+  OP_kernels[24].time     += wall_t2 - wall_t1;
 }

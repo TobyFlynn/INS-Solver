@@ -11,6 +11,7 @@
 #include "kernels/init_cubature.h"
 #include "kernels/init_cubature_OP.h"
 
+#include "kernels/gauss_reverse.h"
 #include "kernels/gauss_tau.h"
 #include "kernels/gauss_tau_bc.h"
 #include "kernels/init_gauss_grad.h"
@@ -19,6 +20,7 @@
 #include "kernels/init_gauss.h"
 #include "kernels/gauss_op.h"
 #include "kernels/gauss_gfi_faces.h"
+#include "kernels/init_gauss_grad_neighbour.h"
 
 using namespace std;
 
@@ -239,6 +241,15 @@ void INSData::initOP2() {
   op_decl_const(7*15, "double", gFInterp0);
   op_decl_const(7*15, "double", gFInterp1);
   op_decl_const(7*15, "double", gFInterp2);
+  op_decl_const(7*15, "double", gF0DrR);
+  op_decl_const(7*15, "double", gF0DsR);
+  op_decl_const(7*15, "double", gF1DrR);
+  op_decl_const(7*15, "double", gF1DsR);
+  op_decl_const(7*15, "double", gF2DrR);
+  op_decl_const(7*15, "double", gF2DsR);
+  op_decl_const(7*15, "double", gFInterp0R);
+  op_decl_const(7*15, "double", gFInterp1R);
+  op_decl_const(7*15, "double", gFInterp2R);
 }
 
 CubatureData::CubatureData(INSData *dat) {
@@ -313,22 +324,24 @@ CubatureData::~CubatureData() {
   free(Dy_data);
   free(OP_data);
   free(temp_data);
+  free(temp2_data);
 }
 
 GaussData::GaussData(INSData *dat) {
   data = dat;
 
-  x_data      = (double *)malloc(21 * data->numCells * sizeof(double));
-  y_data      = (double *)malloc(21 * data->numCells * sizeof(double));
-  rx_data     = (double *)malloc(21 * data->numCells * sizeof(double));
-  sx_data     = (double *)malloc(21 * data->numCells * sizeof(double));
-  ry_data     = (double *)malloc(21 * data->numCells * sizeof(double));
-  sy_data     = (double *)malloc(21 * data->numCells * sizeof(double));
-  sJ_data     = (double *)malloc(21 * data->numCells * sizeof(double));
-  nx_data     = (double *)malloc(21 * data->numCells * sizeof(double));
-  ny_data     = (double *)malloc(21 * data->numCells * sizeof(double));
-  tau_data    = (double *)calloc(3 * data->numCells, sizeof(double));
-  factor_data = (double *)calloc(3 * data->numCells, sizeof(double));
+  x_data       = (double *)malloc(21 * data->numCells * sizeof(double));
+  y_data       = (double *)malloc(21 * data->numCells * sizeof(double));
+  rx_data      = (double *)malloc(21 * data->numCells * sizeof(double));
+  sx_data      = (double *)malloc(21 * data->numCells * sizeof(double));
+  ry_data      = (double *)malloc(21 * data->numCells * sizeof(double));
+  sy_data      = (double *)malloc(21 * data->numCells * sizeof(double));
+  sJ_data      = (double *)malloc(21 * data->numCells * sizeof(double));
+  nx_data      = (double *)malloc(21 * data->numCells * sizeof(double));
+  ny_data      = (double *)malloc(21 * data->numCells * sizeof(double));
+  tau_data     = (double *)calloc(3 * data->numCells, sizeof(double));
+  factor_data  = (double *)calloc(3 * data->numCells, sizeof(double));
+  reverse_data = (int *)calloc(3 * data->numCells, sizeof(int));
   for(int i = 0; i < 3; i++) {
     mDx_data[i] = (double *)malloc(7 * 15 * data->numCells * sizeof(double));
     mDy_data[i] = (double *)malloc(7 * 15 * data->numCells * sizeof(double));
@@ -341,17 +354,18 @@ GaussData::GaussData(INSData *dat) {
     OPf_data[i] = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
   }
 
-  x      = op_decl_dat(data->cells, 21, "double", x_data, "gauss-x");
-  y      = op_decl_dat(data->cells, 21, "double", y_data, "gauss-y");
-  rx     = op_decl_dat(data->cells, 21, "double", rx_data, "gauss-rx");
-  sx     = op_decl_dat(data->cells, 21, "double", sx_data, "gauss-sx");
-  ry     = op_decl_dat(data->cells, 21, "double", ry_data, "gauss-ry");
-  sy     = op_decl_dat(data->cells, 21, "double", sy_data, "gauss-sy");
-  sJ     = op_decl_dat(data->cells, 21, "double", sJ_data, "gauss-sJ");
-  nx     = op_decl_dat(data->cells, 21, "double", nx_data, "gauss-nx");
-  ny     = op_decl_dat(data->cells, 21, "double", ny_data, "gauss-ny");
-  tau    = op_decl_dat(data->cells, 3, "double", tau_data, "gauss-tau");
-  factor = op_decl_dat(data->cells, 3, "double", factor_data, "gauss-factor");
+  x       = op_decl_dat(data->cells, 21, "double", x_data, "gauss-x");
+  y       = op_decl_dat(data->cells, 21, "double", y_data, "gauss-y");
+  rx      = op_decl_dat(data->cells, 21, "double", rx_data, "gauss-rx");
+  sx      = op_decl_dat(data->cells, 21, "double", sx_data, "gauss-sx");
+  ry      = op_decl_dat(data->cells, 21, "double", ry_data, "gauss-ry");
+  sy      = op_decl_dat(data->cells, 21, "double", sy_data, "gauss-sy");
+  sJ      = op_decl_dat(data->cells, 21, "double", sJ_data, "gauss-sJ");
+  nx      = op_decl_dat(data->cells, 21, "double", nx_data, "gauss-nx");
+  ny      = op_decl_dat(data->cells, 21, "double", ny_data, "gauss-ny");
+  tau     = op_decl_dat(data->cells, 3, "double", tau_data, "gauss-tau");
+  factor  = op_decl_dat(data->cells, 3, "double", factor_data, "gauss-factor");
+  reverse = op_decl_dat(data->cells, 3, "int", reverse_data, "gauss-reverse");
   for(int i = 0; i < 3; i++) {
     string name = "mDx" + to_string(i);
     mDx[i] = op_decl_dat(data->cells, 7 * 15, "double", mDx_data[i], name.c_str());
@@ -372,6 +386,23 @@ GaussData::GaussData(INSData *dat) {
     name = "OPf" + to_string(i);
     OPf[i] = op_decl_dat(data->cells, 15 * 15, "double", OPf_data[i], name.c_str());
   }
+
+  op_par_loop(gauss_reverse, "gauss_reverse", data->edges,
+              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(reverse, -2, data->edge2cells, 3, "int", OP_INC));
+
+  init_gauss_blas(data, this);
+
+  op_par_loop(init_gauss, "init_gauss", data->cells,
+              op_arg_dat(rx, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(sx, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(ry, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(sy, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(nx, -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(ny, -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(sJ, -1, OP_ID, 21, "double", OP_WRITE));
 
   init_gauss_coords_blas(data, this);
 
@@ -398,36 +429,7 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(mDy[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(mDx[2], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(mDy[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
-  // mDx[i] and mDy[i] are in row-major at this point
-  op_par_loop(gauss_grad_faces, "gauss_grad_faces", data->edges,
-              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(mDx[0], -2, data->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(mDy[0], -2, data->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(mDx[1], -2, data->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(mDy[1], -2, data->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(mDx[2], -2, data->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(mDy[2], -2, data->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(pDx[0], -2, data->edge2cells, 7 * 15, "double", OP_INC),
-              op_arg_dat(pDy[0], -2, data->edge2cells, 7 * 15, "double", OP_INC),
-              op_arg_dat(pDx[1], -2, data->edge2cells, 7 * 15, "double", OP_INC),
-              op_arg_dat(pDy[1], -2, data->edge2cells, 7 * 15, "double", OP_INC),
-              op_arg_dat(pDx[2], -2, data->edge2cells, 7 * 15, "double", OP_INC),
-              op_arg_dat(pDy[2], -2, data->edge2cells, 7 * 15, "double", OP_INC));
 
-  init_gauss_blas(data, this);
-
-  op_par_loop(init_gauss, "init_gauss", data->cells,
-              op_arg_dat(rx, -1, OP_ID, 21, "double", OP_RW),
-              op_arg_dat(sx, -1, OP_ID, 21, "double", OP_RW),
-              op_arg_dat(ry, -1, OP_ID, 21, "double", OP_RW),
-              op_arg_dat(sy, -1, OP_ID, 21, "double", OP_RW),
-              op_arg_dat(nx, -1, OP_ID, 21, "double", OP_WRITE),
-              op_arg_dat(ny, -1, OP_ID, 21, "double", OP_WRITE),
-              op_arg_dat(sJ, -1, OP_ID, 21, "double", OP_WRITE));
-
-  // Everything still in row-major at this point
   op_par_loop(init_gauss_grad2, "init_gauss_grad2", data->cells,
               op_arg_dat(nx, -1, OP_ID, 21, "double", OP_READ),
               op_arg_dat(ny, -1, OP_ID, 21, "double", OP_READ),
@@ -440,6 +442,36 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(mD[0], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(mD[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(mD[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
+
+  init_gauss_grad_neighbour_blas(data, this);
+
+  op_par_loop(init_gauss_grad_neighbour, "init_gauss_grad_neighbour", data->cells,
+              op_arg_dat(reverse, -1, OP_ID, 3, "int", OP_READ),
+              op_arg_dat(rx, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(sx, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(ry, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(sy, -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(mDx[0], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              op_arg_dat(mDy[0], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              op_arg_dat(mDx[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              op_arg_dat(mDy[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              op_arg_dat(mDx[2], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              op_arg_dat(mDy[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
+
+  op_par_loop(gauss_grad_faces, "gauss_grad_faces", data->edges,
+              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mDx[0], -2, data->edge2cells, 7 * 15, "double", OP_READ),
+              op_arg_dat(mDy[0], -2, data->edge2cells, 7 * 15, "double", OP_READ),
+              op_arg_dat(mDx[1], -2, data->edge2cells, 7 * 15, "double", OP_READ),
+              op_arg_dat(mDy[1], -2, data->edge2cells, 7 * 15, "double", OP_READ),
+              op_arg_dat(mDx[2], -2, data->edge2cells, 7 * 15, "double", OP_READ),
+              op_arg_dat(mDy[2], -2, data->edge2cells, 7 * 15, "double", OP_READ),
+              op_arg_dat(pDx[0], -2, data->edge2cells, 7 * 15, "double", OP_INC),
+              op_arg_dat(pDy[0], -2, data->edge2cells, 7 * 15, "double", OP_INC),
+              op_arg_dat(pDx[1], -2, data->edge2cells, 7 * 15, "double", OP_INC),
+              op_arg_dat(pDy[1], -2, data->edge2cells, 7 * 15, "double", OP_INC),
+              op_arg_dat(pDx[2], -2, data->edge2cells, 7 * 15, "double", OP_INC),
+              op_arg_dat(pDy[2], -2, data->edge2cells, 7 * 15, "double", OP_INC));
 
   op_par_loop(init_gauss_grad2, "init_gauss_grad2", data->cells,
               op_arg_dat(nx, -1, OP_ID, 21, "double", OP_READ),
@@ -502,6 +534,7 @@ GaussData::~GaussData() {
   free(ny_data);
   free(tau_data);
   free(factor_data);
+  free(reverse_data);
   for(int i = 0; i < 3; i++) {
     free(mDx_data[i]);
     free(mDy_data[i]);

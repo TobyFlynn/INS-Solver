@@ -32,6 +32,15 @@ __constant__ double gaussW_cuda[7];
 __constant__ double gFInterp0_cuda[105];
 __constant__ double gFInterp1_cuda[105];
 __constant__ double gFInterp2_cuda[105];
+__constant__ double gF0DrR_cuda[105];
+__constant__ double gF0DsR_cuda[105];
+__constant__ double gF1DrR_cuda[105];
+__constant__ double gF1DsR_cuda[105];
+__constant__ double gF2DrR_cuda[105];
+__constant__ double gF2DsR_cuda[105];
+__constant__ double gFInterp0R_cuda[105];
+__constant__ double gFInterp1R_cuda[105];
+__constant__ double gFInterp2R_cuda[105];
 
 //header
 #include "op_lib_cpp.h"
@@ -141,6 +150,42 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(gFInterp2_cuda, dat, dim*size));
   }
   else
+  if (!strcmp(name,"gF0DrR")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF0DrR_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF0DsR")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF0DsR_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF1DrR")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF1DrR_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF1DsR")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF1DsR_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF2DrR")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF2DrR_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF2DsR")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF2DsR_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gFInterp0R")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp0R_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gFInterp1R")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp1R_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gFInterp2R")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp2R_cuda, dat, dim*size));
+  }
+  else
   {
     printf("error: unknown const name\n"); exit(1);
   }
@@ -164,12 +209,14 @@ int size, char *dat, char const *name){
 #include "init_cubature_grad_kernel.cu"
 #include "init_cubature_kernel.cu"
 #include "init_cubature_OP_kernel.cu"
+#include "gauss_reverse_kernel.cu"
+#include "init_gauss_kernel.cu"
 #include "gauss_tau_kernel.cu"
 #include "gauss_tau_bc_kernel.cu"
 #include "init_gauss_grad_kernel.cu"
-#include "gauss_grad_faces_kernel.cu"
-#include "init_gauss_kernel.cu"
 #include "init_gauss_grad2_kernel.cu"
+#include "init_gauss_grad_neighbour_kernel.cu"
+#include "gauss_grad_faces_kernel.cu"
 #include "gauss_op_kernel.cu"
 #include "gauss_gfi_faces_kernel.cu"
 #include "setup_poisson_kernel.cu"

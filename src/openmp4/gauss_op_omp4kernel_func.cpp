@@ -88,7 +88,7 @@ void gauss_op_omp4_kernel(
 
 
     for(int ind = 0; ind < 7 * 15; ind++) {
-      int indT = (ind * 15) % (15 * 7) + (ind / 7);
+      int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
       f0_0[ind] = gFInterp0_ompkernel[indT];
       f0_1[ind] = gFInterp0_ompkernel[indT];
       f0_2[ind] = mD0[indT];
@@ -104,7 +104,7 @@ void gauss_op_omp4_kernel(
     }
 
     for(int ind = 0; ind < 7 * 15; ind++) {
-      int indT = (ind * 15) % (15 * 7) + (ind / 7);
+      int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
       f1_0[ind] = gFInterp1_ompkernel[indT];
       f1_1[ind] = gFInterp1_ompkernel[indT];
       f1_2[ind] = mD1[indT];
@@ -120,7 +120,7 @@ void gauss_op_omp4_kernel(
     }
 
     for(int ind = 0; ind < 7 * 15; ind++) {
-      int indT = (ind * 15) % (15 * 7) + (ind / 7);
+      int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
       f2_0[ind] = gFInterp2_ompkernel[indT];
       f2_1[ind] = gFInterp2_ompkernel[indT];
       f2_2[ind] = mD2[indT];

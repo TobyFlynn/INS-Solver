@@ -337,7 +337,7 @@ int main(int argc, char **argv) {
               op_arg_dat(data->nodeX,-1,OP_ID,3,"double",OP_READ),
               op_arg_dat(data->nodeY,-1,OP_ID,3,"double",OP_READ),
               op_arg_gbl(&dt,1,"double",OP_MIN));
-  dt = dt * 1e-2;
+  dt = dt * 1e-1;
   cout << "dt: " << dt << endl;
 
   double a0 = 1.0;

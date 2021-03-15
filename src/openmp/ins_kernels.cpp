@@ -32,6 +32,15 @@ extern double gaussW[7];
 extern double gFInterp0[105];
 extern double gFInterp1[105];
 extern double gFInterp2[105];
+extern double gF0DrR[105];
+extern double gF0DsR[105];
+extern double gF1DrR[105];
+extern double gF1DsR[105];
+extern double gF2DrR[105];
+extern double gF2DsR[105];
+extern double gFInterp0R[105];
+extern double gFInterp1R[105];
+extern double gFInterp2R[105];
 
 // header
 #include "op_lib_cpp.h"
@@ -54,12 +63,14 @@ extern double gFInterp2[105];
 #include "init_cubature_grad_kernel.cpp"
 #include "init_cubature_kernel.cpp"
 #include "init_cubature_OP_kernel.cpp"
+#include "gauss_reverse_kernel.cpp"
+#include "init_gauss_kernel.cpp"
 #include "gauss_tau_kernel.cpp"
 #include "gauss_tau_bc_kernel.cpp"
 #include "init_gauss_grad_kernel.cpp"
-#include "gauss_grad_faces_kernel.cpp"
-#include "init_gauss_kernel.cpp"
 #include "init_gauss_grad2_kernel.cpp"
+#include "init_gauss_grad_neighbour_kernel.cpp"
+#include "gauss_grad_faces_kernel.cpp"
 #include "gauss_op_kernel.cpp"
 #include "gauss_gfi_faces_kernel.cpp"
 #include "setup_poisson_kernel.cpp"

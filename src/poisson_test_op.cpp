@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
   INSData *data = new INSData();
 
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-    // return 0;
+    return 0;
     if(y1 == y2 && y1 > 0.5) {
       // Neumann BC y = 1
       // return 2;
@@ -194,7 +194,9 @@ int main(int argc, char **argv) {
   poisson->setNeumannBCs(nBCs);
   poisson->setBCValues(bc);
   poisson->createMatrix();
+  poisson->createMassMatrix();
   poisson->createBCMatrix();
+  cout << "Finished Initialising" << endl;
 
   poisson->solve(rhs, sol, true);
 
@@ -227,11 +229,21 @@ int main(int argc, char **argv) {
   // save_solution_cell("./grid.cgns", op_get_size(data->nodes), op_get_size(data->cells),
   //               sol_ptr, err_ptr, data->cgnsCells);
 
+  free(x_ptr);
+  free(y_ptr);
   free(sol_ptr);
   free(err_ptr);
   free(rhs_ptr);
-  free(x_ptr);
-  free(y_ptr);
+
+  // op_fetch_data_hdf5_file(cubData->OP, "OP.h5");
+  // op_fetch_data_hdf5_file(gaussData->OP[0], "OP.h5");
+  // op_fetch_data_hdf5_file(gaussData->OP[1], "OP.h5");
+  // op_fetch_data_hdf5_file(gaussData->OP[2], "OP.h5");
+  // op_fetch_data_hdf5_file(gaussData->OPf[0], "OP.h5");
+  // op_fetch_data_hdf5_file(gaussData->OPf[1], "OP.h5");
+  // op_fetch_data_hdf5_file(gaussData->OPf[2], "OP.h5");
+
+  // op_fetch_data_hdf5_file(gaussData->tau, "OP.h5");
 
   // Clean up OP2
   op_exit();

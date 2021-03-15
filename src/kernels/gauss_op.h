@@ -34,7 +34,7 @@ inline void gauss_op(const double *tau, const double *sJ,
 
   // Face 0 - Transpose
   for(int ind = 0; ind < 7 * 15; ind++) {
-    int indT = (ind * 15) % (15 * 7) + (ind / 7);
+    int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
     f0_0[ind] = gFInterp0[indT];
     f0_1[ind] = gFInterp0[indT];
     f0_2[ind] = mD0[indT];
@@ -52,7 +52,7 @@ inline void gauss_op(const double *tau, const double *sJ,
 
   // Face 1 - Transpose
   for(int ind = 0; ind < 7 * 15; ind++) {
-    int indT = (ind * 15) % (15 * 7) + (ind / 7);
+    int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
     f1_0[ind] = gFInterp1[indT];
     f1_1[ind] = gFInterp1[indT];
     f1_2[ind] = mD1[indT];
@@ -70,7 +70,7 @@ inline void gauss_op(const double *tau, const double *sJ,
 
   // Face 2 - Transpose
   for(int ind = 0; ind < 7 * 15; ind++) {
-    int indT = (ind * 15) % (15 * 7) + (ind / 7);
+    int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
     f2_0[ind] = gFInterp2[indT];
     f2_1[ind] = gFInterp2[indT];
     f2_2[ind] = mD2[indT];

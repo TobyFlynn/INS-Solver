@@ -39,10 +39,11 @@ inline void gauss_gfi_faces_openacc( const int *edgeNum, const double **x,
     }
   }
 
+
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
       int indL, indR;
-      if(reverse) {
+      if(!reverse) {
         indL = m * 15 + n;
         indR = m * 15 + n;
       } else {
@@ -134,10 +135,10 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(24);
+  op_timing_realloc(26);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[24].name      = name;
-  OP_kernels[24].count    += 1;
+  OP_kernels[26].name      = name;
+  OP_kernels[26].count    += 1;
 
   int  ninds   = 5;
   int  inds[11] = {-1,0,0,1,1,2,2,3,3,4,4};
@@ -147,8 +148,8 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_24
-    int part_size = OP_PART_SIZE_24;
+  #ifdef OP_PART_SIZE_26
+    int part_size = OP_PART_SIZE_26;
   #else
     int part_size = OP_part_size;
   #endif
@@ -218,8 +219,8 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
       }
 
     }
-    OP_kernels[24].transfer  += Plan->transfer;
-    OP_kernels[24].transfer2 += Plan->transfer2;
+    OP_kernels[26].transfer  += Plan->transfer;
+    OP_kernels[26].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -230,5 +231,5 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[24].time     += wall_t2 - wall_t1;
+  OP_kernels[26].time     += wall_t2 - wall_t1;
 }

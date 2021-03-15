@@ -34,10 +34,6 @@ void gauss_grad_faces_omp4_kernel(
   int dat21size,
   double *data23,
   int dat23size,
-  double *data25,
-  int dat25size,
-  double *data27,
-  int dat27size,
   int *col_reord,
   int set_size1,
   int start,
@@ -59,24 +55,22 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
   op_arg arg17,
   op_arg arg19,
   op_arg arg21,
-  op_arg arg23,
-  op_arg arg25,
-  op_arg arg27){
+  op_arg arg23){
 
-  int nargs = 29;
-  op_arg args[29];
+  int nargs = 25;
+  op_arg args[25];
 
   args[0] = arg0;
   arg1.idx = 0;
   args[1] = arg1;
   for ( int v=1; v<2; v++ ){
-    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 3, "double", OP_READ);
+    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 105, "double", OP_READ);
   }
 
   arg3.idx = 0;
   args[3] = arg3;
   for ( int v=1; v<2; v++ ){
-    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 3, "double", OP_READ);
+    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 105, "double", OP_READ);
   }
 
   arg5.idx = 0;
@@ -106,13 +100,13 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
   arg13.idx = 0;
   args[13] = arg13;
   for ( int v=1; v<2; v++ ){
-    args[13 + v] = op_arg_dat(arg13.dat, v, arg13.map, 105, "double", OP_READ);
+    args[13 + v] = op_arg_dat(arg13.dat, v, arg13.map, 105, "double", OP_INC);
   }
 
   arg15.idx = 0;
   args[15] = arg15;
   for ( int v=1; v<2; v++ ){
-    args[15 + v] = op_arg_dat(arg15.dat, v, arg15.map, 105, "double", OP_READ);
+    args[15 + v] = op_arg_dat(arg15.dat, v, arg15.map, 105, "double", OP_INC);
   }
 
   arg17.idx = 0;
@@ -139,28 +133,16 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
     args[23 + v] = op_arg_dat(arg23.dat, v, arg23.map, 105, "double", OP_INC);
   }
 
-  arg25.idx = 0;
-  args[25] = arg25;
-  for ( int v=1; v<2; v++ ){
-    args[25 + v] = op_arg_dat(arg25.dat, v, arg25.map, 105, "double", OP_INC);
-  }
-
-  arg27.idx = 0;
-  args[27] = arg27;
-  for ( int v=1; v<2; v++ ){
-    args[27 + v] = op_arg_dat(arg27.dat, v, arg27.map, 105, "double", OP_INC);
-  }
-
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(20);
+  op_timing_realloc(24);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[20].name      = name;
-  OP_kernels[20].count    += 1;
+  OP_kernels[24].name      = name;
+  OP_kernels[24].count    += 1;
 
-  int  ninds   = 14;
-  int  inds[29] = {-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13};
+  int  ninds   = 12;
+  int  inds[25] = {-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: gauss_grad_faces\n");
@@ -169,13 +151,13 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_20
-    int part_size = OP_PART_SIZE_20;
+  #ifdef OP_PART_SIZE_24
+    int part_size = OP_PART_SIZE_24;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_20
-    int nthread = OP_BLOCK_SIZE_20;
+  #ifdef OP_BLOCK_SIZE_24
+    int nthread = OP_BLOCK_SIZE_24;
   #else
     int nthread = OP_block_size;
   #endif
@@ -216,10 +198,6 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
     int dat21size = getSetSizeFromOpArg(&arg21) * arg21.dat->dim;
     double *data23 = (double *)arg23.data_d;
     int dat23size = getSetSizeFromOpArg(&arg23) * arg23.dat->dim;
-    double *data25 = (double *)arg25.data_d;
-    int dat25size = getSetSizeFromOpArg(&arg25) * arg25.dat->dim;
-    double *data27 = (double *)arg27.data_d;
-    int dat27size = getSetSizeFromOpArg(&arg27) * arg27.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -262,10 +240,6 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
         dat21size,
         data23,
         dat23size,
-        data25,
-        dat25size,
-        data27,
-        dat27size,
         col_reord,
         set_size1,
         start,
@@ -274,8 +248,8 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
         nthread);
 
     }
-    OP_kernels[20].transfer  += Plan->transfer;
-    OP_kernels[20].transfer2 += Plan->transfer2;
+    OP_kernels[24].transfer  += Plan->transfer;
+    OP_kernels[24].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -287,5 +261,5 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[20].time     += wall_t2 - wall_t1;
+  OP_kernels[24].time     += wall_t2 - wall_t1;
 }

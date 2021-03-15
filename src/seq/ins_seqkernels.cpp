@@ -28,6 +28,15 @@ extern double gaussW[7];
 extern double gFInterp0[105];
 extern double gFInterp1[105];
 extern double gFInterp2[105];
+extern double gF0DrR[105];
+extern double gF0DsR[105];
+extern double gF1DrR[105];
+extern double gF1DsR[105];
+extern double gF2DrR[105];
+extern double gF2DsR[105];
+extern double gFInterp0R[105];
+extern double gFInterp1R[105];
+extern double gFInterp2R[105];
 
 // header
 #include "op_lib_cpp.h"
@@ -50,12 +59,14 @@ extern double gFInterp2[105];
 #include "init_cubature_grad_seqkernel.cpp"
 #include "init_cubature_seqkernel.cpp"
 #include "init_cubature_OP_seqkernel.cpp"
+#include "gauss_reverse_seqkernel.cpp"
+#include "init_gauss_seqkernel.cpp"
 #include "gauss_tau_seqkernel.cpp"
 #include "gauss_tau_bc_seqkernel.cpp"
 #include "init_gauss_grad_seqkernel.cpp"
-#include "gauss_grad_faces_seqkernel.cpp"
-#include "init_gauss_seqkernel.cpp"
 #include "init_gauss_grad2_seqkernel.cpp"
+#include "init_gauss_grad_neighbour_seqkernel.cpp"
+#include "gauss_grad_faces_seqkernel.cpp"
 #include "gauss_op_seqkernel.cpp"
 #include "gauss_gfi_faces_seqkernel.cpp"
 #include "setup_poisson_seqkernel.cpp"
