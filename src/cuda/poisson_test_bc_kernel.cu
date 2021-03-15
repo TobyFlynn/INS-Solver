@@ -15,7 +15,7 @@ __device__ void poisson_test_bc_gpu( const int *bedge_type, const int *bedgeNum,
   if(*bedge_type == 0) {
     for(int i = 0; i < 7; i++) {
       double y1 = y[exInd + i];
-
+      dBC[exInd + i] += y1 * (1.0 - y1);
 
     }
   }

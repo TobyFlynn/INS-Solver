@@ -110,9 +110,9 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   KSP ksp;
   KSPCreate(PETSC_COMM_SELF, &ksp);
   // if(method) {
-    KSPSetType(ksp, KSPFGMRES);
+    // KSPSetType(ksp, KSPFGMRES);
   // } else {
-    // KSPSetType(ksp, KSPCG);
+    KSPSetType(ksp, KSPCG);
   // }
   // KSPSetType(ksp, KSPGMRES);
   // KSPSetType(ksp, KSPCG);
@@ -135,7 +135,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   }
 
   KSPSetOperators(ksp, op, op);
-  // KSPSetTolerances(ksp, 1e-15, 1e-50, 1e5, 1e4);
+  KSPSetTolerances(ksp, 1e-12, 1e-50, 1e5, 1e4);
   // Solve
   KSPSolve(ksp, rhs, x);
   int numIt;
@@ -173,8 +173,8 @@ void Poisson::createMatrix() {
   MatSetSizes(pMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 15 * data->numCells);
   MatSetType(pMat, MATSEQAIJ);
   MatSeqAIJSetPreallocation(pMat, 15 * 4, NULL);
-  // double tol = 1e-15;
-  double tol = 0.0;
+  double tol = 1e-15;
+  // double tol = 0.0;
   // Add cubature OP
   double *cub_OP = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(cData->OP, cub_OP);
@@ -321,6 +321,8 @@ void Poisson::createBCMatrix() {
   MatSetSizes(pBCMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 21 * data->numCells);
   MatSetUp(pBCMat);
 
+  double tol = 1e-15;
+
   double *gauss_sJ  = (double *)malloc(21 * op_get_size(data->cells) * sizeof(double));
   double *gauss_tau = (double *)malloc(3 * op_get_size(data->cells) * sizeof(double));
   double *gauss_mD[3];
@@ -343,14 +345,15 @@ void Poisson::createBCMatrix() {
         int row = element * 15 + (j / 7);
         double val;
         if(edge == 0) {
-          val = gFInterp0[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[edge];
+          val = gFInterp0[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
         } else if(edge == 1) {
-          val = gFInterp1[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[edge];
+          val = gFInterp1[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
         } else {
-          val = gFInterp2[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[edge];
+          val = gFInterp2[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
         }
         val -= gauss_mD[edge][element * 7 * 15 + indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
-        MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
+        if(abs(val) > tol)
+          MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     } else if(neumann[0] == bedgeType || neumann[1] == bedgeType) {
       // Get data
@@ -366,8 +369,11 @@ void Poisson::createBCMatrix() {
         } else {
           val = gFInterp2[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         }
-        MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
+        if(abs(val) > tol)
+          MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
+    } else {
+      cout << "UNDEFINED BOUNDARY EDGE" << endl;
     }
   }
 

@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
   INSData *data = new INSData();
 
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-    return 0;
+    // return 0;
     if(y1 == y2 && y1 > 0.5) {
       // Neumann BC y = 1
       // return 2;

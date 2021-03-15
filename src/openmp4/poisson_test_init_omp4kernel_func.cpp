@@ -34,8 +34,8 @@ void poisson_test_init_omp4_kernel(
       double x1 = x[i];
       double y1 = y[i];
 
+      rhs[i] = 6 * x1 * y1 * (1.0 - y1) - 2.0 * x1 * x1 * x1;
 
-      rhs[i] = 1.0;
       d[i] = 0.0;
     }
     //end inline func

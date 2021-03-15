@@ -49,7 +49,7 @@ void poisson_test_bc_omp4_kernel(
     if(*bedge_type == 0) {
       for(int i = 0; i < 7; i++) {
         double y1 = y[exInd + i];
-
+        dBC[exInd + i] += y1 * (1.0 - y1);
 
       }
     }
