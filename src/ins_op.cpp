@@ -327,7 +327,7 @@ int main(int argc, char **argv) {
   int viscosity_dirichlet[] = {0, 2};
   int viscosity_neumann[] = {1, -1};
   viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
-  viscosityPoisson->setNeumannBCs(viscosity_dirichlet);
+  viscosityPoisson->setNeumannBCs(viscosity_neumann);
   viscosityPoisson->createMatrix();
   viscosityPoisson->createMassMatrix();
   viscosityPoisson->createBCMatrix();
@@ -539,6 +539,8 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->gradCurlVel[0],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->gradCurlVel[1],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->dPdN[currentInd],0,data->bedge2cells,15,"double",OP_INC));
+
+  op_fetch_data_hdf5_file(data->dPdN[currentInd], "dpdn.h5");
 
   op_par_loop_pressure_rhs("pressure_rhs",data->cells,
               op_arg_gbl(&b0,1,"double",OP_READ),

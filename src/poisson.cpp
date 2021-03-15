@@ -374,6 +374,9 @@ void Poisson::createBCMatrix() {
       }
     } else {
       cout << "UNDEFINED BOUNDARY EDGE" << endl;
+      cout << "Element " << element << " Edge " << edge << " Type " << bedgeType << endl;
+      cout << "D: " << dirichlet[0] << " " << dirichlet[1] << endl;
+      cout << "N: " << neumann[0] << " " << neumann[1] << endl;
     }
   }
 
