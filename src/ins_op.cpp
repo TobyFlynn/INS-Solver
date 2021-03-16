@@ -248,15 +248,31 @@ int main(int argc, char **argv) {
   // (along with memory associated with them)
   INSData *data = new INSData();
 
+  // auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+  //   if(x1 == 0.0 && x2 == 0.0) {
+  //     // Inflow
+  //     return 0;
+  //   } else if(x1 == 2.2 && x2 == 2.2) {
+  //     // Outflow
+  //     return 1;
+  //   } else {
+  //     // Wall
+  //     return 2;
+  //   }
+  // };
+
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-    if(x1 == 0.0 && x2 == 0.0) {
+    if(x1 == x2 && x1 < -0.15) {
       // Inflow
+      // cout << "Inflow (" << x1 << "," << y1 << ") and (" << x2 << "," << y2 << ")" << endl;
       return 0;
-    } else if(x1 == 2.2 && x2 == 2.2) {
+    } else if(x1 == x2 && x2 > 1.5) {
       // Outflow
+      // cout << "Outflow (" << x1 << "," << y1 << ") and (" << x2 << "," << y2 << ")" << endl;
       return 1;
     } else {
       // Wall
+      // cout << "Wall (" << x1 << "," << y1 << ") and (" << x2 << "," << y2 << ")" << endl;
       return 2;
     }
   };
@@ -392,7 +408,8 @@ int main(int argc, char **argv) {
   cout << "Time in pressure solve: " << p_time << endl;
   cout << "Time in viscosity solve: " << v_time << endl;
 
-  // op_fetch_data_hdf5_file(gaussData->OP[0], "gauss.h5");
+  // op_fetch_data_hdf5_file(data->pRHS, "pRHS.h5");
+  // op_fetch_data_hdf5_file(data->sJ, "sJ.h5");
   // op_fetch_data_hdf5_file(gaussData->OP[1], "gauss.h5");
   // op_fetch_data_hdf5_file(gaussData->OP[2], "gauss.h5");
   // op_fetch_data_hdf5_file(gaussData->OPf[0], "gauss.h5");
@@ -552,7 +569,8 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->dPdN[currentInd],0,data->bedge2cells,15,"double",OP_INC));
 
   // op_fetch_data_hdf5_file(data->dPdN[currentInd], "dpdn.h5");
-  op_fetch_data_hdf5_file(data->divVelT, "div.h5");
+  // op_fetch_data_hdf5_file(data->divVelT, "div.h5");
+
   op_par_loop_pressure_rhs("pressure_rhs",data->cells,
               op_arg_gbl(&b0,1,"double",OP_READ),
               op_arg_gbl(&b1,1,"double",OP_READ),
@@ -563,6 +581,8 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->dPdN[currentInd],-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->dPdN[(currentInd + 1) % 2],-1,OP_ID,15,"double",OP_RW),
               op_arg_dat(data->divVelT,-1,OP_ID,15,"double",OP_RW));
+
+  // op_fetch_data_hdf5_file(data->dPdN[(currentInd + 1) % 2], "dpdn2.h5");
 
   pressure_rhs_blas(data, currentInd);
 

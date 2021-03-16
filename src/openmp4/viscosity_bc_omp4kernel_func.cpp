@@ -56,7 +56,7 @@ void viscosity_bc_omp4_kernel(
 
       const double PI = 3.141592653589793238463;
       for(int i = 0; i < 7; i++) {
-        double y1 = y[exInd + i];
+        double y1 = y[exInd + i] + 0.2;
         exQ0[exInd + i] += pow(0.41, -2.0) * sin((PI * (*t)) / 8.0) * 6.0 * y1 * (0.41 - y1);
 
 

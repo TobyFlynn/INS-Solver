@@ -173,7 +173,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   }
 
   KSPSetOperators(ksp, op, op);
-  KSPSetTolerances(ksp, 1e-12, 1e-50, 1e5, 1e4);
+  KSPSetTolerances(ksp, 1e-12, 1e-50, 1e5, 1e5);
   // Solve
   KSPSolve(ksp, rhs, x);
   int numIt;
