@@ -11,8 +11,8 @@ inline void viscosity_rhs_openacc( const double *factor, const double *J, double
   for(int i = 0; i < 15; i++) {
 
 
-    vRHS0[i] = *factor * vRHS0[i];
-    vRHS1[i] = *factor * vRHS1[i];
+    vRHS0[i] = (*factor) * vRHS0[i];
+    vRHS1[i] = (*factor) * vRHS1[i];
   }
 
 

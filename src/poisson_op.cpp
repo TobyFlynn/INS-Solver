@@ -154,9 +154,9 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   // }
   // KSPSetType(ksp, KSPGMRES);
   // KSPSetType(ksp, KSPCG);
-  // PC pc;
-  // KSPGetPC(ksp, &pc);
-  // PCSetType(pc, PCGAMG);
+  PC pc;
+  KSPGetPC(ksp, &pc);
+  PCSetType(pc, PCICC);
 
   Mat op;
   MatCreate(PETSC_COMM_SELF, &op);
@@ -412,6 +412,9 @@ void Poisson::createBCMatrix() {
       }
     } else {
       cout << "UNDEFINED BOUNDARY EDGE" << endl;
+      cout << "Element " << element << " Edge " << edge << " Type " << bedgeType << endl;
+      cout << "D: " << dirichlet[0] << " " << dirichlet[1] << endl;
+      cout << "N: " << neumann[0] << " " << neumann[1] << endl;
     }
   }
 

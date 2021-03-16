@@ -327,7 +327,7 @@ int main(int argc, char **argv) {
   int viscosity_dirichlet[] = {0, 2};
   int viscosity_neumann[] = {1, -1};
   viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
-  viscosityPoisson->setNeumannBCs(viscosity_dirichlet);
+  viscosityPoisson->setNeumannBCs(viscosity_neumann);
   viscosityPoisson->createMatrix();
   viscosityPoisson->createMassMatrix();
   viscosityPoisson->createBCMatrix();
@@ -337,7 +337,8 @@ int main(int argc, char **argv) {
               op_arg_dat(data->nodeX,-1,OP_ID,3,"double",OP_READ),
               op_arg_dat(data->nodeY,-1,OP_ID,3,"double",OP_READ),
               op_arg_gbl(&dt,1,"double",OP_MIN));
-  dt = dt * 1e-1;
+  // dt = dt * 1e-1;
+  dt = 0.000863006;
   cout << "dt: " << dt << endl;
 
   double a0 = 1.0;
@@ -409,6 +410,8 @@ int main(int argc, char **argv) {
   double *uty_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *uttx_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *utty_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  double *visx_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
+  double *visy_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(data->Q[currentIter % 2][0], sol_q0);
   op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
   op_fetch_data(data->dpdx, px_ptr);
@@ -419,6 +422,8 @@ int main(int argc, char **argv) {
   op_fetch_data(data->QT[1], uty_ptr);
   op_fetch_data(data->QTT[0], uttx_ptr);
   op_fetch_data(data->QTT[1], utty_ptr);
+  op_fetch_data(data->visRHS[0], visx_ptr);
+  op_fetch_data(data->visRHS[1], visy_ptr);
   // save_solution_cell("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
   //               sol_q0, p_ptr, data->cgnsCells);
 
@@ -428,7 +433,7 @@ int main(int argc, char **argv) {
   //               sol_q0, sol_q1, p_ptr, data->cgnsCells);
 
   save_solution_t("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-                  sol_q0, sol_q1, p_ptr, pRHS_ptr, px_ptr, py_ptr, utx_ptr, uty_ptr, uttx_ptr, utty_ptr, data->cgnsCells);
+                  sol_q0, sol_q1, p_ptr, pRHS_ptr, px_ptr, py_ptr, utx_ptr, uty_ptr, uttx_ptr, utty_ptr, visx_ptr, visy_ptr, data->cgnsCells);
 
   free(sol_q0);
   free(sol_q1);
@@ -440,11 +445,17 @@ int main(int argc, char **argv) {
   free(uty_ptr);
   free(uttx_ptr);
   free(utty_ptr);
+  free(visx_ptr);
+  free(visy_ptr);
+
+  // op_fetch_data_hdf5_file(data->Q[currentIter % 2][0], "sol.h5");
+  // op_fetch_data_hdf5_file(data->Q[currentIter % 2][1], "sol.h5");
 
   // Clean up OP2
   op_exit();
 
   delete pressurePoisson;
+  delete viscosityPoisson;
   delete gaussData;
   delete cubData;
   delete data;
@@ -540,6 +551,8 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->gradCurlVel[1],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->dPdN[currentInd],0,data->bedge2cells,15,"double",OP_INC));
 
+  // op_fetch_data_hdf5_file(data->dPdN[currentInd], "dpdn.h5");
+  op_fetch_data_hdf5_file(data->divVelT, "div.h5");
   op_par_loop_pressure_rhs("pressure_rhs",data->cells,
               op_arg_gbl(&b0,1,"double",OP_READ),
               op_arg_gbl(&b1,1,"double",OP_READ),

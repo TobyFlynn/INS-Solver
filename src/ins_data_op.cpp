@@ -231,50 +231,50 @@ INSData::~INSData() {
 
 void INSData::initOP2() {
   // Initialise memory
-  nodeX_data = (double*)malloc(3 * numCells * sizeof(double));
-  nodeY_data = (double*)malloc(3 * numCells * sizeof(double));
-  x_data  = (double *)malloc(15 * numCells * sizeof(double));
-  y_data  = (double *)malloc(15 * numCells * sizeof(double));
-  xr_data = (double *)malloc(15 * numCells * sizeof(double));
-  yr_data = (double *)malloc(15 * numCells * sizeof(double));
-  xs_data = (double *)malloc(15 * numCells * sizeof(double));
-  ys_data = (double *)malloc(15 * numCells * sizeof(double));
-  rx_data = (double *)malloc(15 * numCells * sizeof(double));
-  ry_data = (double *)malloc(15 * numCells * sizeof(double));
-  sx_data = (double *)malloc(15 * numCells * sizeof(double));
-  sy_data = (double *)malloc(15 * numCells * sizeof(double));
-  nx_data = (double *)malloc(15 * numCells * sizeof(double));
-  ny_data = (double *)malloc(15 * numCells * sizeof(double));
-  J_data  = (double *)malloc(15 * numCells * sizeof(double));
-  sJ_data = (double *)malloc(15 * numCells * sizeof(double));
-  fscale_data = (double *)malloc(15 * numCells * sizeof(double));
+  nodeX_data = (double*)calloc(3 * numCells, sizeof(double));
+  nodeY_data = (double*)calloc(3 * numCells, sizeof(double));
+  x_data  = (double *)calloc(15 * numCells, sizeof(double));
+  y_data  = (double *)calloc(15 * numCells, sizeof(double));
+  xr_data = (double *)calloc(15 * numCells, sizeof(double));
+  yr_data = (double *)calloc(15 * numCells, sizeof(double));
+  xs_data = (double *)calloc(15 * numCells, sizeof(double));
+  ys_data = (double *)calloc(15 * numCells, sizeof(double));
+  rx_data = (double *)calloc(15 * numCells, sizeof(double));
+  ry_data = (double *)calloc(15 * numCells, sizeof(double));
+  sx_data = (double *)calloc(15 * numCells, sizeof(double));
+  sy_data = (double *)calloc(15 * numCells, sizeof(double));
+  nx_data = (double *)calloc(15 * numCells, sizeof(double));
+  ny_data = (double *)calloc(15 * numCells, sizeof(double));
+  J_data  = (double *)calloc(15 * numCells, sizeof(double));
+  sJ_data = (double *)calloc(15 * numCells, sizeof(double));
+  fscale_data = (double *)calloc(15 * numCells, sizeof(double));
   for(int i = 0; i < 4; i++) {
-    F_data[i] = (double *)malloc(15 * numCells * sizeof(double));
-    div_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    F_data[i] = (double *)calloc(15 * numCells, sizeof(double));
+    div_data[i] = (double *)calloc(15 * numCells, sizeof(double));
   }
   for(int i = 0; i < 2; i++) {
-    Q_data[0][i] = (double *)malloc(15 * numCells * sizeof(double));
-    Q_data[1][i] = (double *)malloc(15 * numCells * sizeof(double));
-    QT_data[i] = (double *)malloc(15 * numCells * sizeof(double));
-    QTT_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    Q_data[0][i] = (double *)calloc(15 * numCells, sizeof(double));
+    Q_data[1][i] = (double *)calloc(15 * numCells, sizeof(double));
+    QT_data[i] = (double *)calloc(15 * numCells, sizeof(double));
+    QTT_data[i] = (double *)calloc(15 * numCells, sizeof(double));
 
-    N_data[0][i] = (double *)malloc(15 * numCells * sizeof(double));
-    N_data[1][i] = (double *)malloc(15 * numCells * sizeof(double));
-    exQ_data[i] = (double *)malloc(15 * numCells * sizeof(double));
-    flux_data[i] = (double *)malloc(15 * numCells * sizeof(double));
-    gradCurlVel_data[i] = (double *)malloc(15 * numCells * sizeof(double));
-    dPdN_data[i] = (double *)malloc(15 * numCells * sizeof(double));
-    visRHS_data[i] = (double *)malloc(15 * numCells * sizeof(double));
+    N_data[0][i] = (double *)calloc(15 * numCells, sizeof(double));
+    N_data[1][i] = (double *)calloc(15 * numCells, sizeof(double));
+    exQ_data[i] = (double *)calloc(15 * numCells, sizeof(double));
+    flux_data[i] = (double *)calloc(15 * numCells, sizeof(double));
+    gradCurlVel_data[i] = (double *)calloc(15 * numCells, sizeof(double));
+    dPdN_data[i] = (double *)calloc(15 * numCells, sizeof(double));
+    visRHS_data[i] = (double *)calloc(15 * numCells, sizeof(double));
     visBC_data[i] = (double *)calloc(21 * numCells, sizeof(double));
   }
-  divVelT_data = (double *)malloc(15 * numCells * sizeof(double));
-  curlVel_data = (double *)malloc(15 * numCells * sizeof(double));
-  pRHS_data    = (double *)malloc(15 * numCells * sizeof(double));
-  pRHSex_data  = (double *)malloc(15 * numCells * sizeof(double));
-  p_data       = (double *)malloc(15 * numCells * sizeof(double));
-  dpdx_data    = (double *)malloc(15 * numCells * sizeof(double));
-  dpdy_data    = (double *)malloc(15 * numCells * sizeof(double));
-  dirichletBC_data = (double *)malloc(21 * numCells * sizeof(double));
+  divVelT_data = (double *)calloc(15 * numCells, sizeof(double));
+  curlVel_data = (double *)calloc(15 * numCells, sizeof(double));
+  pRHS_data    = (double *)calloc(15 * numCells, sizeof(double));
+  pRHSex_data  = (double *)calloc(15 * numCells, sizeof(double));
+  p_data       = (double *)calloc(15 * numCells, sizeof(double));
+  dpdx_data    = (double *)calloc(15 * numCells, sizeof(double));
+  dpdy_data    = (double *)calloc(15 * numCells, sizeof(double));
+  dirichletBC_data = (double *)calloc(21 * numCells, sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -399,17 +399,17 @@ void INSData::initOP2() {
 CubatureData::CubatureData(INSData *dat) {
   data = dat;
 
-  rx_data    = (double *)malloc(46 * data->numCells * sizeof(double));
-  sx_data    = (double *)malloc(46 * data->numCells * sizeof(double));
-  ry_data    = (double *)malloc(46 * data->numCells * sizeof(double));
-  sy_data    = (double *)malloc(46 * data->numCells * sizeof(double));
-  J_data     = (double *)malloc(46 * data->numCells * sizeof(double));
-  mm_data    = (double *)malloc(15 * 15 * data->numCells * sizeof(double));
-  Dx_data    = (double *)malloc(46 * 15 * data->numCells * sizeof(double));
-  Dy_data    = (double *)malloc(46 * 15 * data->numCells * sizeof(double));
-  OP_data    = (double *)malloc(15 * 15 * data->numCells * sizeof(double));
-  temp_data  = (double *)malloc(46 * 15 * data->numCells * sizeof(double));
-  temp2_data = (double *)malloc(46 * 15 * data->numCells * sizeof(double));
+  rx_data    = (double *)calloc(46 * data->numCells, sizeof(double));
+  sx_data    = (double *)calloc(46 * data->numCells, sizeof(double));
+  ry_data    = (double *)calloc(46 * data->numCells, sizeof(double));
+  sy_data    = (double *)calloc(46 * data->numCells, sizeof(double));
+  J_data     = (double *)calloc(46 * data->numCells, sizeof(double));
+  mm_data    = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
+  Dx_data    = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
+  Dy_data    = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
+  OP_data    = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
+  temp_data  = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
+  temp2_data = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
 
   rx    = op_decl_dat(data->cells, 46, "double", rx_data, "cub-rx");
   sx    = op_decl_dat(data->cells, 46, "double", sx_data, "cub-sx");
@@ -474,25 +474,25 @@ CubatureData::~CubatureData() {
 GaussData::GaussData(INSData *dat) {
   data = dat;
 
-  x_data       = (double *)malloc(21 * data->numCells * sizeof(double));
-  y_data       = (double *)malloc(21 * data->numCells * sizeof(double));
-  rx_data      = (double *)malloc(21 * data->numCells * sizeof(double));
-  sx_data      = (double *)malloc(21 * data->numCells * sizeof(double));
-  ry_data      = (double *)malloc(21 * data->numCells * sizeof(double));
-  sy_data      = (double *)malloc(21 * data->numCells * sizeof(double));
-  sJ_data      = (double *)malloc(21 * data->numCells * sizeof(double));
-  nx_data      = (double *)malloc(21 * data->numCells * sizeof(double));
-  ny_data      = (double *)malloc(21 * data->numCells * sizeof(double));
+  x_data       = (double *)calloc(21 * data->numCells, sizeof(double));
+  y_data       = (double *)calloc(21 * data->numCells, sizeof(double));
+  rx_data      = (double *)calloc(21 * data->numCells, sizeof(double));
+  sx_data      = (double *)calloc(21 * data->numCells, sizeof(double));
+  ry_data      = (double *)calloc(21 * data->numCells, sizeof(double));
+  sy_data      = (double *)calloc(21 * data->numCells, sizeof(double));
+  sJ_data      = (double *)calloc(21 * data->numCells, sizeof(double));
+  nx_data      = (double *)calloc(21 * data->numCells, sizeof(double));
+  ny_data      = (double *)calloc(21 * data->numCells, sizeof(double));
   tau_data     = (double *)calloc(3 * data->numCells, sizeof(double));
   factor_data  = (double *)calloc(3 * data->numCells, sizeof(double));
   reverse_data = (int *)calloc(3 * data->numCells, sizeof(int));
   for(int i = 0; i < 3; i++) {
-    mDx_data[i] = (double *)malloc(7 * 15 * data->numCells * sizeof(double));
-    mDy_data[i] = (double *)malloc(7 * 15 * data->numCells * sizeof(double));
+    mDx_data[i] = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
+    mDy_data[i] = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
     pDx_data[i] = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
     pDy_data[i] = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
-    mD_data[i]  = (double *)malloc(7 * 15 * data->numCells * sizeof(double));
-    pD_data[i]  = (double *)malloc(7 * 15 * data->numCells * sizeof(double));
+    mD_data[i]  = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
+    pD_data[i]  = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
     pGF_data[i] = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
     OP_data[i]  = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
     OPf_data[i] = (double *)calloc(15 * 15 * data->numCells, sizeof(double));

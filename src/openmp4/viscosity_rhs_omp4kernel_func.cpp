@@ -36,8 +36,8 @@ void viscosity_rhs_omp4_kernel(
     for(int i = 0; i < 15; i++) {
 
 
-      vRHS0[i] = *factor * vRHS0[i];
-      vRHS1[i] = *factor * vRHS1[i];
+      vRHS0[i] = (*factor) * vRHS0[i];
+      vRHS1[i] = (*factor) * vRHS1[i];
     }
     //end inline func
   }

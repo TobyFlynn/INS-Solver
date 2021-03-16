@@ -165,7 +165,7 @@ void save_solution_cell(std::string filename, int numPts, int numCells, double *
 
 void save_solution_t(std::string filename, int numPts, int numCells, double *q0, double *q1,
                      double *p, double *pRHS, double *px, double *py, double *utx, double *uty,
-                     double *uttx, double *utty, int *cellMap) {
+                     double *uttx, double *utty, double *visx, double *visy, int *cellMap) {
   vector<double> velX(numPts);
   vector<double> velY(numPts);
   vector<double> pr(numPts);
@@ -176,6 +176,8 @@ void save_solution_t(std::string filename, int numPts, int numCells, double *q0,
   vector<double> utY(numPts);
   vector<double> uttX(numPts);
   vector<double> uttY(numPts);
+  vector<double> visX(numPts);
+  vector<double> visY(numPts);
   vector<int> num(numPts);
 
   for(int i = 0; i < numPts; i++) {
@@ -189,6 +191,8 @@ void save_solution_t(std::string filename, int numPts, int numCells, double *q0,
     utY[i] = 0.0;
     uttX[i] = 0.0;
     uttY[i] = 0.0;
+    visX[i] = 0.0;
+    visY[i] = 0.0;
     num[i] = 0;
   }
 
@@ -212,6 +216,8 @@ void save_solution_t(std::string filename, int numPts, int numCells, double *q0,
     utY[node0] += uty[qCellInd + qNode0Ind];
     uttX[node0] += uttx[qCellInd + qNode0Ind];
     uttY[node0] += utty[qCellInd + qNode0Ind];
+    visX[node0] += visx[qCellInd + qNode0Ind];
+    visY[node0] += visy[qCellInd + qNode0Ind];
     num[node0]++;
 
     velX[node1] += q0[qCellInd + qNode1Ind];
@@ -224,6 +230,8 @@ void save_solution_t(std::string filename, int numPts, int numCells, double *q0,
     utY[node1] += uty[qCellInd + qNode1Ind];
     uttX[node1] += uttx[qCellInd + qNode1Ind];
     uttY[node1] += utty[qCellInd + qNode1Ind];
+    visX[node1] += visx[qCellInd + qNode1Ind];
+    visY[node1] += visy[qCellInd + qNode1Ind];
     num[node1]++;
 
     velX[node2] += q0[qCellInd + qNode2Ind];
@@ -236,6 +244,8 @@ void save_solution_t(std::string filename, int numPts, int numCells, double *q0,
     utY[node2] += uty[qCellInd + qNode2Ind];
     uttX[node2] += uttx[qCellInd + qNode2Ind];
     uttY[node2] += utty[qCellInd + qNode2Ind];
+    visX[node2] += visx[qCellInd + qNode2Ind];
+    visY[node2] += visy[qCellInd + qNode2Ind];
     num[node2]++;
   }
 
@@ -250,6 +260,8 @@ void save_solution_t(std::string filename, int numPts, int numCells, double *q0,
     utY[i] = utY[i] / (double)num[i];
     uttX[i] = uttX[i] / (double)num[i];
     uttY[i] = uttY[i] / (double)num[i];
+    visX[i] = visX[i] / (double)num[i];
+    visY[i] = visY[i] / (double)num[i];
   }
 
   // Write out CGNS file
@@ -284,6 +296,8 @@ void save_solution_t(std::string filename, int numPts, int numCells, double *q0,
   cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "utY", utY.data(), &tIndex);
   cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "uttX", uttX.data(), &tIndex);
   cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "uttY", uttY.data(), &tIndex);
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "visX", visX.data(), &tIndex);
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "visY", visY.data(), &tIndex);
 
   cg_close(file);
 }

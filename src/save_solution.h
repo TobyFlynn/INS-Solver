@@ -13,6 +13,6 @@ void save_solution_all(std::string filename, int numCells, double *q0, double *q
 
 void save_solution_t(std::string filename, int numPts, int numCells, double *q0, double *q1,
                      double *p, double *pRHS, double *px, double *py, double *utx, double *uty,
-                     double *uttx, double *utty, int *cellMap);
+                     double *uttx, double *utty, double *visx, double *visy, int *cellMap);
 
 #endif

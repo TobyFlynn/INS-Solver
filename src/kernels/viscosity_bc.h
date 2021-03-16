@@ -14,7 +14,7 @@ inline void viscosity_bc(const int *bedge_type, const int *bedgeNum,
     const double PI = 3.141592653589793238463;
     for(int i = 0; i < 7; i++) {
       double y1 = y[exInd + i];
-      exQ0[exInd + i] += pow(0.41, -2.0) * sin((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
+      exQ0[exInd + i] += pow(0.41, -2.0) * sin((PI * (*t)) / 8.0) * 6.0 * y1 * (0.41 - y1);
       // exQ0[exInd + i] += pow(0.41, -2.0) * cos((PI * *t) / 8.0);
       // exQ0[exInd + i] += 0.1;
       // exQ1[exInd + i] += bc_v;
