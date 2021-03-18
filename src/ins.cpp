@@ -37,6 +37,8 @@
 #include "kernels/viscosity_reset_bc.h"
 #include "kernels/viscosity_bc.h"
 
+#include "kernels/min_max.h"
+
 using namespace std;
 
 // Stuff for parsing command line arguments
@@ -51,11 +53,17 @@ static struct option options[] = {
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t);
 
-void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
-              double b1, double g0, double dt, double t);
+void pressure(INSData *data, Poisson *poisson, int currentInd, double a0,
+              double a1, double b0, double b1, double g0, double dt, double t);
 
-void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData, Poisson *poisson, int currentInd, double a0, double a1, double b0,
+void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
+               Poisson *poisson, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t);
+
+void get_min_max(INSData *data, double *minQT0, double *minQT1, double *minQTT0,
+                 double *minQTT1, double *minQ0, double *minQ1, double *maxQT0,
+                 double *maxQT1, double *maxQTT0, double *maxQTT1,
+                 double *maxQ0, double *maxQ1, int ind);
 
 int main(int argc, char **argv) {
   string filename = "./cylinder.cgns";
@@ -189,7 +197,8 @@ int main(int argc, char **argv) {
               op_arg_dat(data->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_gbl(&dt, 1, "double", OP_MIN));
   // dt = dt * 1e-1;
-  dt = 0.000863006;
+  // dt = 0.000863006;
+  dt = dt / 25.0;
   cout << "dt: " << dt << endl;
 
   double a0 = 1.0;
@@ -228,6 +237,27 @@ int main(int argc, char **argv) {
     viscosity(data, cubData, gaussData, viscosityPoisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
     op_timers(&cpu_loop_2, &wall_loop_2);
     v_time += wall_loop_2 - wall_loop_1;
+
+    double minQT0 = numeric_limits<double>::max();
+    double minQT1 = numeric_limits<double>::max();
+    double minQTT0 = numeric_limits<double>::max();
+    double minQTT1 = numeric_limits<double>::max();
+    double minQ0 = numeric_limits<double>::max();
+    double minQ1 = numeric_limits<double>::max();
+    double maxQT0 = 0.0;
+    double maxQT1 = 0.0;
+    double maxQTT0 = 0.0;
+    double maxQTT1 = 0.0;
+    double maxQ0 = 0.0;
+    double maxQ1 = 0.0;
+
+    get_min_max(data, &minQT0, &minQT1, &minQTT0, &minQTT1, &minQ0, &minQ1, &maxQT0,
+                &maxQT1, &maxQTT0, &maxQTT1, &maxQ0, &maxQ1, currentIter % 2);
+
+    cout << "Iter: " << i << endl;
+    cout << "QT0: " << minQT0 << " " << maxQT0 << " QT1: " << minQT1 << " " << maxQT1 << endl;
+    cout << "QTT0: " << minQTT0 << " " << maxQTT0 << " QTT1: " << minQTT1 << " " << maxQTT1 << endl;
+    cout << "Q0: " << minQ0 << " " << maxQ0 << " Q1: " << minQ1 << " " << maxQ1 << endl;
 
     currentIter++;
     time += dt;
@@ -484,4 +514,39 @@ void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
   op_par_loop(viscosity_reset_bc, "viscosity_reset_bc", data->cells,
               op_arg_dat(data->visBC[0], -1, OP_ID, 21, "double", OP_WRITE),
               op_arg_dat(data->visBC[1], -1, OP_ID, 21, "double", OP_WRITE));
+}
+
+void get_min_max(INSData *data, double *minQT0, double *minQT1, double *minQTT0,
+                 double *minQTT1, double *minQ0, double *minQ1, double *maxQT0,
+                 double *maxQT1, double *maxQTT0, double *maxQTT1,
+                 double *maxQ0, double *maxQ1, int ind) {
+  op_par_loop(min_max, "min_max", data->cells,
+              op_arg_gbl(minQT0, 1, "double", OP_MIN),
+              op_arg_gbl(maxQT0, 1, "double", OP_MAX),
+              op_arg_dat(data->QT[0], -1, OP_ID, 15, "double", OP_READ));
+
+  op_par_loop(min_max, "min_max", data->cells,
+              op_arg_gbl(minQT1, 1, "double", OP_MIN),
+              op_arg_gbl(maxQT1, 1, "double", OP_MAX),
+              op_arg_dat(data->QT[1], -1, OP_ID, 15, "double", OP_READ));
+
+  op_par_loop(min_max, "min_max", data->cells,
+              op_arg_gbl(minQTT0, 1, "double", OP_MIN),
+              op_arg_gbl(maxQTT0, 1, "double", OP_MAX),
+              op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_READ));
+
+  op_par_loop(min_max, "min_max", data->cells,
+              op_arg_gbl(minQTT1, 1, "double", OP_MIN),
+              op_arg_gbl(maxQTT1, 1, "double", OP_MAX),
+              op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_READ));
+
+  op_par_loop(min_max, "min_max", data->cells,
+              op_arg_gbl(minQ0, 1, "double", OP_MIN),
+              op_arg_gbl(maxQ0, 1, "double", OP_MAX),
+              op_arg_dat(data->Q[(ind + 1) % 2][0], -1, OP_ID, 15, "double", OP_READ));
+
+  op_par_loop(min_max, "min_max", data->cells,
+              op_arg_gbl(minQ1, 1, "double", OP_MIN),
+              op_arg_gbl(maxQ1, 1, "double", OP_MAX),
+              op_arg_dat(data->Q[(ind + 1) % 2][1], -1, OP_ID, 15, "double", OP_READ));
 }

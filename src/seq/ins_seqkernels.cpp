@@ -56,6 +56,7 @@ extern double gFInterp2R[105];
 #include "viscosity_bc_seqkernel.cpp"
 #include "viscosity_rhs_seqkernel.cpp"
 #include "viscosity_reset_bc_seqkernel.cpp"
+#include "min_max_seqkernel.cpp"
 #include "init_cubature_grad_seqkernel.cpp"
 #include "init_cubature_seqkernel.cpp"
 #include "init_cubature_OP_seqkernel.cpp"

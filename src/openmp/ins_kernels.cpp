@@ -60,6 +60,7 @@ extern double gFInterp2R[105];
 #include "viscosity_bc_kernel.cpp"
 #include "viscosity_rhs_kernel.cpp"
 #include "viscosity_reset_bc_kernel.cpp"
+#include "min_max_kernel.cpp"
 #include "init_cubature_grad_kernel.cpp"
 #include "init_cubature_kernel.cpp"
 #include "init_cubature_OP_kernel.cpp"

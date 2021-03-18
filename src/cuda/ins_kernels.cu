@@ -206,6 +206,7 @@ int size, char *dat, char const *name){
 #include "viscosity_bc_kernel.cu"
 #include "viscosity_rhs_kernel.cu"
 #include "viscosity_reset_bc_kernel.cu"
+#include "min_max_kernel.cu"
 #include "init_cubature_grad_kernel.cu"
 #include "init_cubature_kernel.cu"
 #include "init_cubature_OP_kernel.cu"

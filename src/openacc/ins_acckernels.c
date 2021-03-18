@@ -58,6 +58,7 @@ int size, char *dat, char const *name){}
 #include "viscosity_bc_acckernel.c"
 #include "viscosity_rhs_acckernel.c"
 #include "viscosity_reset_bc_acckernel.c"
+#include "min_max_acckernel.c"
 #include "init_cubature_grad_acckernel.c"
 #include "init_cubature_acckernel.c"
 #include "init_cubature_OP_acckernel.c"

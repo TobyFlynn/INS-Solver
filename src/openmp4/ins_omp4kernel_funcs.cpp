@@ -162,6 +162,7 @@ void op_decl_const_char(int dim, char const *type,
 #include "viscosity_bc_omp4kernel_func.cpp"
 #include "viscosity_rhs_omp4kernel_func.cpp"
 #include "viscosity_reset_bc_omp4kernel_func.cpp"
+#include "min_max_omp4kernel_func.cpp"
 #include "init_cubature_grad_omp4kernel_func.cpp"
 #include "init_cubature_omp4kernel_func.cpp"
 #include "init_cubature_OP_omp4kernel_func.cpp"
