@@ -192,7 +192,6 @@ int size, char *dat, char const *name){
 }
 
 //user kernel files
-#include "init_grid_kernel.cu"
 #include "set_ic_kernel.cu"
 #include "calc_dt_kernel.cu"
 #include "advection_flux_kernel.cu"
@@ -207,6 +206,7 @@ int size, char *dat, char const *name){
 #include "viscosity_rhs_kernel.cu"
 #include "viscosity_reset_bc_kernel.cu"
 #include "min_max_kernel.cu"
+#include "init_grid_kernel.cu"
 #include "init_cubature_grad_kernel.cu"
 #include "init_cubature_kernel.cu"
 #include "init_cubature_OP_kernel.cu"

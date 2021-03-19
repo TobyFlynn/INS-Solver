@@ -3,20 +3,10 @@
 //
 
 //user function
-__device__ void set_ic_gpu( double *q0, double *q1, double *exQ0,
-                   double *exQ1, double *dPdN0, double *dPdN1, double *pRHSex, double *d) {
+__device__ void set_ic_gpu( double *q0, double *q1) {
   for(int i = 0; i < 15; i++) {
     q0[i] = ic_u_cuda;
     q1[i] = ic_v_cuda;
-    exQ0[i] = 0.0;
-    exQ1[i] = 0.0;
-    dPdN0[i] = 0.0;
-    dPdN1[i] = 0.0;
-    pRHSex[i] = 0.0;
-  }
-
-  for(int i = 0; i < 21; i++) {
-    d[i] = 0.0;
   }
 
 }
@@ -25,12 +15,6 @@ __device__ void set_ic_gpu( double *q0, double *q1, double *exQ0,
 __global__ void op_cuda_set_ic(
   double *arg0,
   double *arg1,
-  double *arg2,
-  double *arg3,
-  double *arg4,
-  double *arg5,
-  double *arg6,
-  double *arg7,
   int   set_size ) {
 
 
@@ -39,13 +23,7 @@ __global__ void op_cuda_set_ic(
 
     //user-supplied kernel call
     set_ic_gpu(arg0+n*15,
-           arg1+n*15,
-           arg2+n*15,
-           arg3+n*15,
-           arg4+n*15,
-           arg5+n*15,
-           arg6+n*15,
-           arg7+n*21);
+           arg1+n*15);
   }
 }
 
@@ -53,32 +31,20 @@ __global__ void op_cuda_set_ic(
 //host stub function
 void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7){
+  op_arg arg1){
 
-  int nargs = 8;
-  op_arg args[8];
+  int nargs = 2;
+  op_arg args[2];
 
   args[0] = arg0;
   args[1] = arg1;
-  args[2] = arg2;
-  args[3] = arg3;
-  args[4] = arg4;
-  args[5] = arg5;
-  args[6] = arg6;
-  args[7] = arg7;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(1);
+  op_timing_realloc(0);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[1].name      = name;
-  OP_kernels[1].count    += 1;
+  OP_kernels[0].name      = name;
+  OP_kernels[0].count    += 1;
 
 
   if (OP_diags>2) {
@@ -89,8 +55,8 @@ void op_par_loop_set_ic(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_1
-      int nthread = OP_BLOCK_SIZE_1;
+    #ifdef OP_BLOCK_SIZE_0
+      int nthread = OP_BLOCK_SIZE_0;
     #else
       int nthread = OP_block_size;
     #endif
@@ -100,25 +66,13 @@ void op_par_loop_set_ic(char const *name, op_set set,
     op_cuda_set_ic<<<nblocks,nthread>>>(
       (double *) arg0.data_d,
       (double *) arg1.data_d,
-      (double *) arg2.data_d,
-      (double *) arg3.data_d,
-      (double *) arg4.data_d,
-      (double *) arg5.data_d,
-      (double *) arg6.data_d,
-      (double *) arg7.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[1].time     += wall_t2 - wall_t1;
-  OP_kernels[1].transfer += (float)set->size * arg0.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg1.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg3.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg5.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg6.size * 2.0f;
-  OP_kernels[1].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[0].time     += wall_t2 - wall_t1;
+  OP_kernels[0].transfer += (float)set->size * arg0.size * 2.0f;
+  OP_kernels[0].transfer += (float)set->size * arg1.size * 2.0f;
 }

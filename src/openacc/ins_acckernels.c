@@ -44,7 +44,6 @@ extern double gFInterp2R[105];
 void op_decl_const_char(int dim, char const *type,
 int size, char *dat, char const *name){}
 // user kernel files
-#include "init_grid_acckernel.c"
 #include "set_ic_acckernel.c"
 #include "calc_dt_acckernel.c"
 #include "advection_flux_acckernel.c"
@@ -59,6 +58,7 @@ int size, char *dat, char const *name){}
 #include "viscosity_rhs_acckernel.c"
 #include "viscosity_reset_bc_acckernel.c"
 #include "min_max_acckernel.c"
+#include "init_grid_acckernel.c"
 #include "init_cubature_grad_acckernel.c"
 #include "init_cubature_acckernel.c"
 #include "init_cubature_OP_acckernel.c"

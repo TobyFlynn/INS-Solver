@@ -6,7 +6,6 @@
 #include "op_lib_cpp.h"
 
 // user kernel files
-#include "init_grid_omp4kernel.cpp"
 #include "set_ic_omp4kernel.cpp"
 #include "calc_dt_omp4kernel.cpp"
 #include "advection_flux_omp4kernel.cpp"
@@ -21,6 +20,7 @@
 #include "viscosity_rhs_omp4kernel.cpp"
 #include "viscosity_reset_bc_omp4kernel.cpp"
 #include "min_max_omp4kernel.cpp"
+#include "init_grid_omp4kernel.cpp"
 #include "init_cubature_grad_omp4kernel.cpp"
 #include "init_cubature_omp4kernel.cpp"
 #include "init_cubature_OP_omp4kernel.cpp"

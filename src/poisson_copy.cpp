@@ -50,18 +50,9 @@ void Poisson::store_vec(Vec *v, op_dat v_dat) {
   VecRestoreArrayRead(*v, &v_ptr);
 }
 
-PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
-  Poisson *poisson;
-  MatShellGetContext(A, &poisson);
-  const double *x_ptr;
-  double *y_ptr;
-  VecGetArrayRead(x, &x_ptr);
-  VecGetArray(y, &y_ptr);
-
-  // poisson->rhs(x_ptr, y_ptr);
-
-  VecRestoreArrayRead(x, &x_ptr);
-  VecRestoreArray(y, &y_ptr);
-
-  return 0;
+void Poisson::create_mat(Mat *m, int row, int col, int prealloc) {
+  MatCreate(PETSC_COMM_SELF, m);
+  MatSetSizes(*m, PETSC_DECIDE, PETSC_DECIDE, row, col);
+  MatSetType(*m, MATSEQAIJ);
+  MatSeqAIJSetPreallocation(*m, prealloc, NULL);
 }

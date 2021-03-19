@@ -46,7 +46,6 @@ extern double gFInterp2R[105];
 #include "op_lib_cpp.h"
 
 // user kernel files
-#include "init_grid_kernel.cpp"
 #include "set_ic_kernel.cpp"
 #include "calc_dt_kernel.cpp"
 #include "advection_flux_kernel.cpp"
@@ -61,6 +60,7 @@ extern double gFInterp2R[105];
 #include "viscosity_rhs_kernel.cpp"
 #include "viscosity_reset_bc_kernel.cpp"
 #include "min_max_kernel.cpp"
+#include "init_grid_kernel.cpp"
 #include "init_cubature_grad_kernel.cpp"
 #include "init_cubature_kernel.cpp"
 #include "init_cubature_OP_kernel.cpp"

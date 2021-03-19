@@ -78,27 +78,6 @@ int main(int argc, char **argv) {
   op_dat err = op_decl_dat(data->cells, 15, "double", err_data, "err");
   op_dat bc  = op_decl_dat(data->cells, 21, "double", bc_data, "bc");
 
-  // Calculate geometric factors
-  init_grid_blas(data);
-
-  op_par_loop(init_grid, "init_grid", data->cells,
-              op_arg_dat(data->node_coords, -3, data->cell2nodes, 2, "double", OP_READ),
-              op_arg_dat(data->nodeX, -1, OP_ID, 3, "double", OP_WRITE),
-              op_arg_dat(data->nodeY, -1, OP_ID, 3, "double", OP_WRITE),
-              op_arg_dat(data->xr, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->yr, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->xs, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->ys, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->rx, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->ry, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->sx, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->sy, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->nx, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->ny, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->J,  -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->sJ, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->fscale, -1, OP_ID, 15, "double", OP_WRITE));
-
   CubatureData *cubData = new CubatureData(data);
   GaussData *gaussData = new GaussData(data);
 

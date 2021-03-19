@@ -7,6 +7,8 @@
 
 #include "blas_calls.h"
 
+#include "kernels/init_grid.h"
+
 #include "kernels/init_cubature_grad.h"
 #include "kernels/init_cubature.h"
 #include "kernels/init_cubature_OP.h"
@@ -43,10 +45,6 @@ INSData::~INSData() {
   free(nodeY_data);
   free(x_data);
   free(y_data);
-  free(xr_data);
-  free(yr_data);
-  free(xs_data);
-  free(ys_data);
   free(rx_data);
   free(ry_data);
   free(sx_data);
@@ -91,10 +89,6 @@ void INSData::initOP2() {
   nodeY_data = (double*)calloc(3 * numCells, sizeof(double));
   x_data  = (double *)calloc(15 * numCells, sizeof(double));
   y_data  = (double *)calloc(15 * numCells, sizeof(double));
-  xr_data = (double *)calloc(15 * numCells, sizeof(double));
-  yr_data = (double *)calloc(15 * numCells, sizeof(double));
-  xs_data = (double *)calloc(15 * numCells, sizeof(double));
-  ys_data = (double *)calloc(15 * numCells, sizeof(double));
   rx_data = (double *)calloc(15 * numCells, sizeof(double));
   ry_data = (double *)calloc(15 * numCells, sizeof(double));
   sx_data = (double *)calloc(15 * numCells, sizeof(double));
@@ -156,10 +150,6 @@ void INSData::initOP2() {
   x = op_decl_dat(cells, 15, "double", x_data, "x");
   y = op_decl_dat(cells, 15, "double", y_data, "y");
     // Geometric factors that relate to mapping between global and local (cell) coordinates
-  xr = op_decl_dat(cells, 15, "double", xr_data, "xr");
-  yr = op_decl_dat(cells, 15, "double", yr_data, "yr");
-  xs = op_decl_dat(cells, 15, "double", xs_data, "xs");
-  ys = op_decl_dat(cells, 15, "double", ys_data, "ys");
   rx = op_decl_dat(cells, 15, "double", rx_data, "rx");
   ry = op_decl_dat(cells, 15, "double", ry_data, "ry");
   sx = op_decl_dat(cells, 15, "double", sx_data, "sx");
@@ -250,6 +240,23 @@ void INSData::initOP2() {
   op_decl_const(7*15, "double", gFInterp0R);
   op_decl_const(7*15, "double", gFInterp1R);
   op_decl_const(7*15, "double", gFInterp2R);
+
+  // Calculate geometric factors
+  init_grid_blas(this);
+
+  op_par_loop(init_grid, "init_grid", cells,
+              op_arg_dat(node_coords, -3, cell2nodes, 2, "double", OP_READ),
+              op_arg_dat(nodeX, -1, OP_ID, 3, "double", OP_WRITE),
+              op_arg_dat(nodeY, -1, OP_ID, 3, "double", OP_WRITE),
+              op_arg_dat(rx, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(ry, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(sx, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(sy, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(nx, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(ny, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(J,  -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(sJ, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(fscale, -1, OP_ID, 15, "double", OP_WRITE));
 }
 
 CubatureData::CubatureData(INSData *dat) {

@@ -121,10 +121,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   PCSetType(pc, PCICC);
 
   Mat op;
-  MatCreate(PETSC_COMM_SELF, &op);
-  MatSetSizes(op, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 15 * data->numCells);
-  MatSetType(op, MATSEQAIJ);
-  MatSeqAIJSetPreallocation(op, 15 * 4, NULL);
+  create_mat(&op, 15 * data->numCells, 15 * data->numCells, 15 * 4);
   MatAssemblyBegin(op, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(op, MAT_FINAL_ASSEMBLY);
   if(addMass) {
@@ -171,10 +168,7 @@ void Poisson::setBCValues(op_dat d_dat) {
 }
 
 void Poisson::createMatrix() {
-  MatCreate(PETSC_COMM_SELF, &pMat);
-  MatSetSizes(pMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 15 * data->numCells);
-  MatSetType(pMat, MATSEQAIJ);
-  MatSeqAIJSetPreallocation(pMat, 15 * 4, NULL);
+  create_mat(&pMat, 15 * data->numCells, 15 * data->numCells, 15 * 4);
   double tol = 1e-15;
   // double tol = 0.0;
   // Add cubature OP
@@ -292,10 +286,7 @@ void Poisson::createMatrix() {
 }
 
 void Poisson::createMassMatrix() {
-  MatCreate(PETSC_COMM_SELF, &pMMat);
-  MatSetSizes(pMMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 15 * data->numCells);
-  MatSetType(pMMat, MATSEQAIJ);
-  MatSeqAIJSetPreallocation(pMMat, 15, NULL);
+  create_mat(&pMMat, 15 * data->numCells, 15 * data->numCells, 15);
 
   // Add cubature OP
   double *cub_MM = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
@@ -319,9 +310,7 @@ void Poisson::createMassMatrix() {
 }
 
 void Poisson::createBCMatrix() {
-  MatCreate(PETSC_COMM_SELF, &pBCMat);
-  MatSetSizes(pBCMat, PETSC_DECIDE, PETSC_DECIDE, 15 * data->numCells, 21 * data->numCells);
-  MatSetUp(pBCMat);
+  create_mat(&pBCMat, 15 * data->numCells, 21 * data->numCells, 15);
 
   double tol = 1e-15;
 

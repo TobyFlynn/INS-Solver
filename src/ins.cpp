@@ -19,7 +19,6 @@
 #include "poisson.h"
 
 // Kernels
-#include "kernels/init_grid.h"
 #include "kernels/set_ic.h"
 #include "kernels/calc_dt.h"
 
@@ -138,40 +137,13 @@ int main(int argc, char **argv) {
     if(strcmp((char*)options[opt_index].name,"alpha") == 0) bc_alpha = stod(optarg);
   }
 
-  // Calculate geometric factors
-  init_grid_blas(data);
-
-  op_par_loop(init_grid, "init_grid", data->cells,
-              op_arg_dat(data->node_coords, -3, data->cell2nodes, 2, "double", OP_READ),
-              op_arg_dat(data->nodeX, -1, OP_ID, 3, "double", OP_WRITE),
-              op_arg_dat(data->nodeY, -1, OP_ID, 3, "double", OP_WRITE),
-              op_arg_dat(data->xr, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->yr, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->xs, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->ys, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->rx, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->ry, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->sx, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->sy, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->nx, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->ny, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->J,  -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->sJ, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->fscale, -1, OP_ID, 15, "double", OP_WRITE));
-
   CubatureData *cubData = new CubatureData(data);
   GaussData *gaussData = new GaussData(data);
 
   // Set initial conditions
   op_par_loop(set_ic, "set_ic", data->cells,
               op_arg_dat(data->Q[0][0],   -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->Q[0][1],   -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->exQ[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->exQ[1], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->dPdN[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->dPdN[1], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->pRHSex, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->dirichletBC, -1, OP_ID, 21, "double", OP_WRITE));
+              op_arg_dat(data->Q[0][1],   -1, OP_ID, 15, "double", OP_WRITE));
 
   cout << "Starting initialisation of pressure Poisson matrix" << endl;
   Poisson *pressurePoisson = new Poisson(data, cubData, gaussData);
@@ -474,18 +446,7 @@ void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
                Poisson *poisson, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t) {
   double time = t + dt;
-/*
-  op_par_loop(advection_bc, "advection_bc", data->bedges,
-              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&time, 1, "double", OP_READ),
-              op_arg_dat(data->x, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->y, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->QTT[0], 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->QTT[1], 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->exQ[0], 0, data->bedge2cells, 15, "double", OP_INC),
-              op_arg_dat(data->exQ[1], 0, data->bedge2cells, 15, "double", OP_INC));
-*/
+
   op_par_loop(viscosity_bc, "viscosity_bc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),

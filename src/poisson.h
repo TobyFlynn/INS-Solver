@@ -46,6 +46,7 @@ private:
   void destroy_vec(Vec *v);
   void load_vec(Vec *v, op_dat v_dat, int size = 15);
   void store_vec(Vec *v, op_dat v_dat);
+  void create_mat(Mat *m, int row, int col, int prealloc);
   INSData *data;
   CubatureData *cData;
   GaussData *gData;
@@ -71,7 +72,5 @@ private:
   bool massMat;
   double massFactor;
 };
-
-PetscErrorCode matAMult(Mat A, Vec x, Vec y);
 
 #endif

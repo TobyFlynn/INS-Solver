@@ -30,14 +30,6 @@ void init_grid_omp4_kernel(
   int dat12size,
   double *data13,
   int dat13size,
-  double *data14,
-  int dat14size,
-  double *data15,
-  int dat15size,
-  double *data16,
-  int dat16size,
-  double *data17,
-  int dat17size,
   double *data0,
   int dat0size,
   int *col_reord,
@@ -60,14 +52,10 @@ void op_par_loop_init_grid(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13,
-  op_arg arg14,
-  op_arg arg15,
-  op_arg arg16,
-  op_arg arg17){
+  op_arg arg13){
 
-  int nargs = 18;
-  op_arg args[18];
+  int nargs = 14;
+  op_arg args[14];
 
   arg0.idx = 0;
   args[0] = arg0;
@@ -86,20 +74,16 @@ void op_par_loop_init_grid(char const *name, op_set set,
   args[11] = arg11;
   args[12] = arg12;
   args[13] = arg13;
-  args[14] = arg14;
-  args[15] = arg15;
-  args[16] = arg16;
-  args[17] = arg17;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(0);
+  op_timing_realloc(14);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[0].name      = name;
-  OP_kernels[0].count    += 1;
+  OP_kernels[14].name      = name;
+  OP_kernels[14].count    += 1;
 
   int  ninds   = 1;
-  int  inds[18] = {0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+  int  inds[14] = {0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: init_grid\n");
@@ -108,13 +92,13 @@ void op_par_loop_init_grid(char const *name, op_set set,
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_0
-    int part_size = OP_PART_SIZE_0;
+  #ifdef OP_PART_SIZE_14
+    int part_size = OP_PART_SIZE_14;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_0
-    int nthread = OP_BLOCK_SIZE_0;
+  #ifdef OP_BLOCK_SIZE_14
+    int nthread = OP_BLOCK_SIZE_14;
   #else
     int nthread = OP_block_size;
   #endif
@@ -151,14 +135,6 @@ void op_par_loop_init_grid(char const *name, op_set set,
     int dat12size = getSetSizeFromOpArg(&arg12) * arg12.dat->dim;
     double* data13 = (double*)arg13.data_d;
     int dat13size = getSetSizeFromOpArg(&arg13) * arg13.dat->dim;
-    double* data14 = (double*)arg14.data_d;
-    int dat14size = getSetSizeFromOpArg(&arg14) * arg14.dat->dim;
-    double* data15 = (double*)arg15.data_d;
-    int dat15size = getSetSizeFromOpArg(&arg15) * arg15.dat->dim;
-    double* data16 = (double*)arg16.data_d;
-    int dat16size = getSetSizeFromOpArg(&arg16) * arg16.dat->dim;
-    double* data17 = (double*)arg17.data_d;
-    int dat17size = getSetSizeFromOpArg(&arg17) * arg17.dat->dim;
     double *data0 = (double *)arg0.data_d;
     int dat0size = getSetSizeFromOpArg(&arg0) * arg0.dat->dim;
 
@@ -199,14 +175,6 @@ void op_par_loop_init_grid(char const *name, op_set set,
         dat12size,
         data13,
         dat13size,
-        data14,
-        dat14size,
-        data15,
-        dat15size,
-        data16,
-        dat16size,
-        data17,
-        dat17size,
         data0,
         dat0size,
         col_reord,
@@ -217,8 +185,8 @@ void op_par_loop_init_grid(char const *name, op_set set,
         nthread);
 
     }
-    OP_kernels[0].transfer  += Plan->transfer;
-    OP_kernels[0].transfer2 += Plan->transfer2;
+    OP_kernels[14].transfer  += Plan->transfer;
+    OP_kernels[14].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -230,5 +198,5 @@ void op_par_loop_init_grid(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[0].time     += wall_t2 - wall_t1;
+  OP_kernels[14].time     += wall_t2 - wall_t1;
 }

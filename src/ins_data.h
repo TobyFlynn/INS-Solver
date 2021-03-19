@@ -57,7 +57,7 @@ public:
   // OP2 stuff
   op_set nodes, cells, edges, bedges;
   op_map cell2nodes, edge2nodes, edge2cells, bedge2nodes, bedge2cells;
-  op_dat node_coords, nodeX, nodeY, x, y, xr, yr, xs, ys, rx, ry, sx, sy, nx,
+  op_dat node_coords, nodeX, nodeY, x, y, rx, ry, sx, sy, nx,
          ny, J, sJ, fscale, bedge_type, edgeNum, bedgeNum;
   op_dat Q[2][2], exQ[2], F[4], N[2][2], flux[2], QT[2], QTT[2];
   op_dat div[4];
@@ -70,10 +70,6 @@ private:
   double *nodeY_data;
   double *x_data;
   double *y_data;
-  double *xr_data;
-  double *yr_data;
-  double *xs_data;
-  double *ys_data;
   double *rx_data;
   double *ry_data;
   double *sx_data;

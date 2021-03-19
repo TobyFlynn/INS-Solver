@@ -116,18 +116,18 @@ void init_grid_blas(INSData *nsData) {
   op_arg init_grid_args[] = {
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_WRITE),
     op_arg_dat(nsData->y, -1, OP_ID, 15, "double", OP_WRITE),
-    op_arg_dat(nsData->xr, -1, OP_ID, 15, "double", OP_WRITE),
-    op_arg_dat(nsData->xs, -1, OP_ID, 15, "double", OP_WRITE),
-    op_arg_dat(nsData->yr, -1, OP_ID, 15, "double", OP_WRITE),
-    op_arg_dat(nsData->ys, -1, OP_ID, 15, "double", OP_WRITE)
+    op_arg_dat(nsData->rx, -1, OP_ID, 15, "double", OP_WRITE),
+    op_arg_dat(nsData->sx, -1, OP_ID, 15, "double", OP_WRITE),
+    op_arg_dat(nsData->ry, -1, OP_ID, 15, "double", OP_WRITE),
+    op_arg_dat(nsData->sy, -1, OP_ID, 15, "double", OP_WRITE)
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 6, init_grid_args);
 
   cublas_init_grid(handle, nsData->numCells, (double *)nsData->node_coords->data,
                    (int *)nsData->cell2nodes->map, (double *)nsData->x->data_d,
-                   (double *)nsData->y->data_d, (double *)nsData->xr->data_d,
-                   (double *)nsData->xs->data_d, (double *)nsData->yr->data_d,
-                   (double *)nsData->ys->data_d);
+                   (double *)nsData->y->data_d, (double *)nsData->rx->data_d,
+                   (double *)nsData->sx->data_d, (double *)nsData->ry->data_d,
+                   (double *)nsData->sy->data_d);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(6, init_grid_args);
