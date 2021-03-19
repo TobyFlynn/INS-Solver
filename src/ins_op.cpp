@@ -153,7 +153,6 @@ void op_par_loop_min_max(char const *, op_set,
 #include <vector>
 #include <algorithm>
 #include <cmath>
-#include <getopt.h>
 #include <limits>
 
 #include "constants/all_constants.h"
@@ -186,15 +185,6 @@ void op_par_loop_min_max(char const *, op_set,
 
 using namespace std;
 
-// Stuff for parsing command line arguments
-extern char *optarg;
-extern int  optind, opterr, optopt;
-static struct option options[] = {
-  {"iter", required_argument, 0, 0},
-  {"alpha", required_argument, 0, 0},
-  {0,    0,                  0,  0}
-};
-
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t);
 
@@ -212,7 +202,7 @@ void get_min_max(INSData *data, double *minQT0, double *minQT1, double *minQTT0,
 
 int main(int argc, char **argv) {
   string filename = "./cylinder.cgns";
-  char help[] = "TODO";
+  char help[] = "The number of iterations to run is specified with \"-iter [number of iterations]\"";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
   if(ierr) {
     cout << "Error initialising PETSc" << endl;
@@ -225,17 +215,16 @@ int main(int argc, char **argv) {
   bc_u = 1e-6;
   bc_v = 0.0;
   ic_u = 0.0;
-  // ic_u = 1.0;
   ic_v = 0.0;
 
   cout << "gam: " << gam << endl;
   cout << "mu: " << mu << endl;
   cout << "nu: " << nu << endl;
 
-  // Object that holds all sets, maps and dats
-  // (along with memory associated with them)
+  // Object that holds all sets, maps and dats (along with memory associated with them)
   INSData *data = new INSData();
 
+  // Lamda used to identify the type of boundary edges
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
     if(x1 == 0.0 && x2 == 0.0) {
       // Inflow
@@ -275,13 +264,10 @@ int main(int argc, char **argv) {
 
   // Get input from args
   int iter = 1;
-  bc_alpha = 0.0;
+  PetscBool found;
+  PetscOptionsGetInt(NULL, NULL, "-iter", &iter, &found);
 
-  int opt_index = 0;
-  while(getopt_long_only(argc, argv, "", options, &opt_index) != -1) {
-    if(strcmp((char*)options[opt_index].name,"iter") == 0) iter = atoi(optarg);
-    if(strcmp((char*)options[opt_index].name,"alpha") == 0) bc_alpha = stod(optarg);
-  }
+  bc_alpha = 0.0;
 
   CubatureData *cubData = new CubatureData(data);
   GaussData *gaussData = new GaussData(data);
@@ -291,7 +277,7 @@ int main(int argc, char **argv) {
               op_arg_dat(data->Q[0][0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->Q[0][1],-1,OP_ID,15,"double",OP_WRITE));
 
-  cout << "Starting initialisation of pressure Poisson matrix" << endl;
+  // Initialise Poisson solvers
   Poisson *pressurePoisson = new Poisson(data, cubData, gaussData);
   int pressure_dirichlet[] = {1, -1};
   int pressure_neumann[] = {0, 2};
@@ -299,7 +285,6 @@ int main(int argc, char **argv) {
   pressurePoisson->setNeumannBCs(pressure_neumann);
   pressurePoisson->createMatrix();
   pressurePoisson->createBCMatrix();
-  cout << "Finished initialisation" << endl;
   Poisson *viscosityPoisson = new Poisson(data, cubData, gaussData);
   int viscosity_dirichlet[] = {0, 2};
   int viscosity_neumann[] = {1, -1};
@@ -314,8 +299,6 @@ int main(int argc, char **argv) {
               op_arg_dat(data->nodeX,-1,OP_ID,3,"double",OP_READ),
               op_arg_dat(data->nodeY,-1,OP_ID,3,"double",OP_READ),
               op_arg_gbl(&dt,1,"double",OP_MIN));
-  // dt = dt * 1e-1;
-  // dt = 0.000863006;
   dt = dt / 25.0;
   cout << "dt: " << dt << endl;
 
@@ -334,6 +317,7 @@ int main(int argc, char **argv) {
   op_timers(&cpu_1, &wall_1);
 
   for(int i = 0; i < iter; i++) {
+    // Switch from forwards Euler time integration to second-order Adams-Bashford after first iteration
     if(i == 1) {
       g0 = 1.5;
       a0 = 2.0;
@@ -356,6 +340,7 @@ int main(int argc, char **argv) {
     op_timers(&cpu_loop_2, &wall_loop_2);
     v_time += wall_loop_2 - wall_loop_1;
 
+    // Print the min and max values of intermediate velocities and final velocity of this iteration
     if(i % 100 == 0) {
       double minQT0 = numeric_limits<double>::max();
       double minQT1 = numeric_limits<double>::max();
@@ -459,6 +444,7 @@ int main(int argc, char **argv) {
 
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t) {
+  // Calculate flux values
   op_par_loop_advection_flux("advection_flux",data->cells,
               op_arg_dat(data->Q[currentInd][0],-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][1],-1,OP_ID,15,"double",OP_READ),
@@ -470,6 +456,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
   div(data, data->F[0], data->F[1], data->N[currentInd][0]);
   div(data, data->F[2], data->F[3], data->N[currentInd][1]);
 
+  // Exchange values on edges between elements
   op_par_loop_advection_faces("advection_faces",data->edges,
               op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
               op_arg_dat(data->nodeX,-2,data->edge2cells,3,"double",OP_READ),
@@ -479,6 +466,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->exQ[0],-2,data->edge2cells,15,"double",OP_INC),
               op_arg_dat(data->exQ[1],-2,data->edge2cells,15,"double",OP_INC));
 
+  // Enforce BCs
   op_par_loop_advection_bc("advection_bc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
@@ -490,6 +478,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->exQ[0],0,data->bedge2cells,15,"double",OP_INC),
               op_arg_dat(data->exQ[1],0,data->bedge2cells,15,"double",OP_INC));
 
+  // Calculate numberical flux across edges
   op_par_loop_advection_numerical_flux("advection_numerical_flux",data->cells,
               op_arg_dat(data->fscale,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->nx,-1,OP_ID,15,"double",OP_READ),
@@ -503,6 +492,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
 
   advection_lift_blas(data, currentInd);
 
+  // Calculate the intermediate velocity values
   op_par_loop_advection_intermediate_vel("advection_intermediate_vel",data->cells,
               op_arg_gbl(&a0,1,"double",OP_READ),
               op_arg_gbl(&a1,1,"double",OP_READ),
@@ -528,8 +518,7 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
   curl(data, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
   grad(data, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
 
-  // Apply boundary conditions
-  // May need to change in future if non-constant boundary conditions used
+  // Apply pressure boundary conditions
   op_par_loop_pressure_bc("pressure_bc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
@@ -544,9 +533,7 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->gradCurlVel[1],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->dPdN[currentInd],0,data->bedge2cells,15,"double",OP_INC));
 
-  // op_fetch_data_hdf5_file(data->dPdN[currentInd], "dpdn.h5");
-  // op_fetch_data_hdf5_file(data->divVelT, "div.h5");
-
+  // Calculate RHS of pressure solve
   op_par_loop_pressure_rhs("pressure_rhs",data->cells,
               op_arg_gbl(&b0,1,"double",OP_READ),
               op_arg_gbl(&b1,1,"double",OP_READ),
@@ -558,17 +545,17 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->dPdN[(currentInd + 1) % 2],-1,OP_ID,15,"double",OP_RW),
               op_arg_dat(data->divVelT,-1,OP_ID,15,"double",OP_RW));
 
-  // op_fetch_data_hdf5_file(data->dPdN[(currentInd + 1) % 2], "dpdn2.h5");
-
   pressure_rhs_blas(data, currentInd);
 
-  poisson->setBCValues(data->dirichletBC);
+  // Call PETSc linear solver
+  poisson->setBCValues(data->zeroBC);
   poisson->solve(data->pRHS, data->p);
 
+  // Calculate gradient of pressure
   grad(data, data->p, data->dpdx, data->dpdy);
 
+  // Calculate new velocity intermediate values
   double factor = dt / g0;
-
   op_par_loop_pressure_update_vel("pressure_update_vel",data->cells,
               op_arg_gbl(&factor,1,"double",OP_READ),
               op_arg_dat(data->dpdx,-1,OP_ID,15,"double",OP_READ),
@@ -584,7 +571,7 @@ void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
                Poisson *poisson, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t) {
   double time = t + dt;
-
+  // Get BCs for viscosity solve
   op_par_loop_viscosity_bc("viscosity_bc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
@@ -594,6 +581,7 @@ void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
               op_arg_dat(data->visBC[0],0,data->bedge2cells,21,"double",OP_INC),
               op_arg_dat(data->visBC[1],0,data->bedge2cells,21,"double",OP_INC));
 
+  // Set up RHS for viscosity solve
   viscosity_rhs_blas(data, cubatureData);
 
   double factor = g0 / (nu * dt);
@@ -605,17 +593,20 @@ void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
               op_arg_dat(data->visBC[0],-1,OP_ID,21,"double",OP_RW),
               op_arg_dat(data->visBC[1],-1,OP_ID,21,"double",OP_RW));
 
+  // Call PETSc linear solver
   poisson->setBCValues(data->visBC[0]);
   poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
 
   poisson->setBCValues(data->visBC[1]);
   poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
 
+  // Reset BC dats ready for next iteration
   op_par_loop_viscosity_reset_bc("viscosity_reset_bc",data->cells,
               op_arg_dat(data->visBC[0],-1,OP_ID,21,"double",OP_WRITE),
               op_arg_dat(data->visBC[1],-1,OP_ID,21,"double",OP_WRITE));
 }
 
+// Function for getting the min and max values of various OP2 dats
 void get_min_max(INSData *data, double *minQT0, double *minQT1, double *minQTT0,
                  double *minQTT1, double *minQ0, double *minQ1, double *maxQT0,
                  double *maxQT1, double *maxQTT0, double *maxQTT1,

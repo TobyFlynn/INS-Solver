@@ -6,16 +6,6 @@
 #include "petscvec.h"
 #include "petscksp.h"
 
-extern double ones[15];
-extern double r[15];
-extern double s[15];
-extern double Dr[15 * 15];
-extern double Ds[15 * 15];
-extern double Drw[15 * 15];
-extern double Dsw[15 * 15];
-extern double LIFT[15 * 15];
-extern double MASS[15 * 15];
-extern int FMASK[15];
 extern double gFInterp0[7 * 15];
 extern double gFInterp1[7 * 15];
 extern double gFInterp2[7 * 15];
@@ -30,14 +20,14 @@ public:
 
   void setDirichletBCs(int *d);
   void setNeumannBCs(int *n);
-  void setBCValues(op_dat d_dat);
+  void setBCValues(op_dat bc);
 
   void createMatrix();
   void createMassMatrix();
   void createBCMatrix();
 
   // OP2 Dats
-  op_dat dBC, nBCx, nBCy;
+  op_dat bc_dat;
 private:
   void create_vec(Vec *v, int size = 15);
   void destroy_vec(Vec *v);

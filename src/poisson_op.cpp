@@ -50,8 +50,9 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
 
   Vec bc;
   create_vec(&bc, 21);
-  load_vec(&bc, dBC, 21);
+  load_vec(&bc, bc_dat, 21);
 
+  // Calculate RHS for linear solve by applying the BCs
   Vec rhs;
   create_vec(&rhs);
   MatMultAdd(pBCMat, bc, b, rhs);
@@ -59,13 +60,16 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   Vec x;
   create_vec(&x);
 
+  // Create PETSc Preconditioned Conjugate Gradient linear solver
   KSP ksp;
   KSPCreate(PETSC_COMM_SELF, &ksp);
   KSPSetType(ksp, KSPCG);
+  // Set preconditioner to Incomplete Cholesky
   PC pc;
   KSPGetPC(ksp, &pc);
   PCSetType(pc, PCICC);
 
+  // Create matrix for linear solve, adding mass matrix scaled by a factor if required
   Mat op;
   create_mat(&op, 15 * data->numCells, 15 * data->numCells, 15 * 4);
   MatAssemblyBegin(op, MAT_FINAL_ASSEMBLY);
@@ -87,11 +91,13 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   KSPGetConvergedReason(ksp, &reason);
   double residual;
   KSPGetResidualNorm(ksp, &residual);
+  // Check that the solver converged
   if(reason < 0) {
     cout << "Number of iterations for linear solver: " << numIt << endl;
     cout << "Converged reason: " << reason << " Residual: " << residual << endl;
   }
 
+  // Get solution and free PETSc vectors and matrix
   Vec solution;
   KSPGetSolution(ksp, &solution);
   store_vec(&solution, x_dat);
@@ -109,16 +115,16 @@ void Poisson::setNeumannBCs(int *n) {
   neumann = n;
 }
 
-void Poisson::setBCValues(op_dat d_dat) {
-  dBC = d_dat;
+void Poisson::setBCValues(op_dat bc) {
+  bc_dat = bc;
 }
 
 void Poisson::createMatrix() {
   create_mat(&pMat, 15 * data->numCells, 15 * data->numCells, 15 * 4);
   pMatInit = true;
   double tol = 1e-15;
-  // double tol = 0.0;
-  // Add cubature OP
+
+  // Add cubature OP to Poisson matrix
   double *cub_OP = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(cData->OP, cub_OP);
   for(int i = 0; i < data->numCells; i++) {
@@ -138,7 +144,6 @@ void Poisson::createMatrix() {
 
   double *gauss_OP[3];
   double *gauss_OPf[3];
-
   for(int i = 0; i < 3; i++) {
     gauss_OP[i] = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
     gauss_OPf[i] = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
@@ -146,12 +151,13 @@ void Poisson::createMatrix() {
     op_fetch_data(gData->OPf[i], gauss_OPf[i]);
   }
 
-  // Gauss OP and OPf
+  // Add Gauss OP and OPf to Poisson matrix
   for(int i = 0; i < data->numEdges; i++) {
     int leftElement = data->edge2cell_data[i * 2];
     int rightElement = data->edge2cell_data[i * 2 + 1];
     int leftEdge = data->edgeNum_data[i * 2];
     int rightEdge = data->edgeNum_data[i * 2 + 1];
+    // Gauss OP
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
@@ -175,6 +181,7 @@ void Poisson::createMatrix() {
       }
     }
 
+    // Gauss OPf
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
@@ -186,7 +193,6 @@ void Poisson::createMatrix() {
           MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
     }
-
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
@@ -200,7 +206,7 @@ void Poisson::createMatrix() {
     }
   }
 
-  // Gauss on boundary OP
+  // Add Gauss OP for boundary edges
   for(int i = 0; i < data->numBoundaryEdges; i++) {
     int element = data->bedge2cell_data[i];
     int bedgeType = data->bedge_type_data[i];
@@ -235,7 +241,7 @@ void Poisson::createMatrix() {
 void Poisson::createMassMatrix() {
   create_mat(&pMMat, 15 * data->numCells, 15 * data->numCells, 15);
   pMMatInit = true;
-  // Add cubature OP
+  // Add Cubature OP to mass matrix
   double *cub_MM = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
   op_fetch_data(cData->mm, cub_MM);
   for(int i = 0; i < data->numCells; i++) {
@@ -271,6 +277,7 @@ void Poisson::createBCMatrix() {
   op_fetch_data(gData->sJ, gauss_sJ);
   op_fetch_data(gData->tau, gauss_tau);
 
+  // Create BCs matrix using Gauss data on boundary edges
   for(int i = 0; i < data->numBoundaryEdges; i++) {
     int element = data->bedge2cell_data[i];
     int bedgeType = data->bedge_type_data[i];

@@ -63,7 +63,7 @@ public:
   op_dat div[4];
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, pRHSex, p, dpdx, dpdy;
   op_dat visRHS[2];
-  op_dat dirichletBC, visBC[2];
+  op_dat zeroBC, visBC[2];
 private:
   // Pointers to private memory
   double *nodeX_data;
@@ -97,7 +97,7 @@ private:
   double *dpdx_data;
   double *dpdy_data;
   double *visRHS_data[2];
-  double *dirichletBC_data;
+  double *zeroBC_data;
   double *visBC_data[2];
 };
 
@@ -133,9 +133,8 @@ public:
   ~GaussData();
 
   op_dat x, y;
-  op_dat rx, sx, ry, sy, sJ, nx, ny, tau, factor, reverse;
+  op_dat rx, sx, ry, sy, sJ, nx, ny, tau, reverse;
   op_dat mDx[3], mDy[3], pDx[3], pDy[3], mD[3], pD[3];
-  op_dat pGF[3];
   // OP is in column major format
   op_dat OP[3], OPf[3];
 private:
@@ -157,10 +156,8 @@ private:
   double *pDy_data[3];
   double *mD_data[3];
   double *pD_data[3];
-  double *pGF_data[3];
   double *OP_data[3];
   double *OPf_data[3];
-  double *factor_data;
 
   int *reverse_data;
 };

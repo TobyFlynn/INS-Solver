@@ -13,7 +13,6 @@ extern double Drw[15 * 15];
 extern double Dsw[15 * 15];
 extern double LIFT[15 * 15];
 extern double MASS[15 * 15];
-extern double visMat[15 * 15];
 extern double cubDr[46 * 15];
 extern double cubDs[46 * 15];
 extern double cubV[46 * 15];

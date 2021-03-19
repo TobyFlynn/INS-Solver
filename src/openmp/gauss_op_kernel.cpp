@@ -20,10 +20,13 @@ void op_par_loop_gauss_op(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13){
+  op_arg arg13,
+  op_arg arg14,
+  op_arg arg15,
+  op_arg arg16){
 
-  int nargs = 14;
-  op_arg args[14];
+  int nargs = 17;
+  op_arg args[17];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -39,6 +42,9 @@ void op_par_loop_gauss_op(char const *name, op_set set,
   args[11] = arg11;
   args[12] = arg12;
   args[13] = arg13;
+  args[14] = arg14;
+  args[15] = arg15;
+  args[16] = arg16;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -82,7 +88,10 @@ void op_par_loop_gauss_op(char const *name, op_set set,
           &((double*)arg10.data)[105*n],
           &((double*)arg11.data)[105*n],
           &((double*)arg12.data)[105*n],
-          &((double*)arg13.data)[105*n]);
+          &((double*)arg13.data)[105*n],
+          &((double*)arg14.data)[105*n],
+          &((double*)arg15.data)[105*n],
+          &((double*)arg16.data)[105*n]);
       }
     }
   }
@@ -107,4 +116,7 @@ void op_par_loop_gauss_op(char const *name, op_set set,
   OP_kernels[26].transfer += (float)set->size * arg11.size * 2.0f;
   OP_kernels[26].transfer += (float)set->size * arg12.size * 2.0f;
   OP_kernels[26].transfer += (float)set->size * arg13.size * 2.0f;
+  OP_kernels[26].transfer += (float)set->size * arg14.size * 2.0f;
+  OP_kernels[26].transfer += (float)set->size * arg15.size * 2.0f;
+  OP_kernels[26].transfer += (float)set->size * arg16.size * 2.0f;
 }

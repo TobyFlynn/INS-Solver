@@ -8,36 +8,8 @@
 inline void gauss_op_openacc( const double *tau, const double *sJ,
                      const double *mD0, double *f0_0, double *f0_1, double *f0_2,
                      const double *mD1, double *f1_0, double *f1_1, double *f1_2,
-                     const double *mD2, double *f2_0, double *f2_1, double *f2_2) {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                     const double *mD2, double *f2_0, double *f2_1, double *f2_2,
+                     double *pDy0, double *pDy1, double *pDy2) {
 
   for(int ind = 0; ind < 7 * 15; ind++) {
     int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
@@ -86,6 +58,12 @@ inline void gauss_op_openacc( const double *tau, const double *sJ,
       f2_2[ind] = gaussW[n] * sJ[n + 14] * f2_2[ind];
     }
   }
+
+  for(int i = 0; i < 7 * 15; i++) {
+    pDy0[i] = 0.0;
+    pDy1[i] = 0.0;
+    pDy2[i] = 0.0;
+  }
 }
 
 // host stub function
@@ -103,10 +81,13 @@ void op_par_loop_gauss_op(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13){
+  op_arg arg13,
+  op_arg arg14,
+  op_arg arg15,
+  op_arg arg16){
 
-  int nargs = 14;
-  op_arg args[14];
+  int nargs = 17;
+  op_arg args[17];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -122,6 +103,9 @@ void op_par_loop_gauss_op(char const *name, op_set set,
   args[11] = arg11;
   args[12] = arg12;
   args[13] = arg13;
+  args[14] = arg14;
+  args[15] = arg15;
+  args[16] = arg16;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -157,7 +141,10 @@ void op_par_loop_gauss_op(char const *name, op_set set,
     double* data11 = (double*)arg11.data_d;
     double* data12 = (double*)arg12.data_d;
     double* data13 = (double*)arg13.data_d;
-    #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7,data8,data9,data10,data11,data12,data13)
+    double* data14 = (double*)arg14.data_d;
+    double* data15 = (double*)arg15.data_d;
+    double* data16 = (double*)arg16.data_d;
+    #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7,data8,data9,data10,data11,data12,data13,data14,data15,data16)
     for ( int n=0; n<set->size; n++ ){
       gauss_op_openacc(
         &data0[3*n],
@@ -173,7 +160,10 @@ void op_par_loop_gauss_op(char const *name, op_set set,
         &data10[105*n],
         &data11[105*n],
         &data12[105*n],
-        &data13[105*n]);
+        &data13[105*n],
+        &data14[105*n],
+        &data15[105*n],
+        &data16[105*n]);
     }
   }
 
@@ -197,4 +187,7 @@ void op_par_loop_gauss_op(char const *name, op_set set,
   OP_kernels[26].transfer += (float)set->size * arg11.size * 2.0f;
   OP_kernels[26].transfer += (float)set->size * arg12.size * 2.0f;
   OP_kernels[26].transfer += (float)set->size * arg13.size * 2.0f;
+  OP_kernels[26].transfer += (float)set->size * arg14.size * 2.0f;
+  OP_kernels[26].transfer += (float)set->size * arg15.size * 2.0f;
+  OP_kernels[26].transfer += (float)set->size * arg16.size * 2.0f;
 }

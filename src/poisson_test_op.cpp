@@ -18,7 +18,6 @@ void op_par_loop_poisson_test_init(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
-  op_arg,
   op_arg );
 
 void op_par_loop_poisson_test_bc(char const *, op_set,
@@ -130,8 +129,7 @@ int main(int argc, char **argv) {
               op_arg_dat(data->x,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->y,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(ex,-1,OP_ID,15,"double",OP_WRITE),
-              op_arg_dat(rhs,-1,OP_ID,15,"double",OP_WRITE),
-              op_arg_dat(data->dirichletBC,-1,OP_ID,15,"double",OP_WRITE));
+              op_arg_dat(rhs,-1,OP_ID,15,"double",OP_WRITE));
 
   op_par_loop_poisson_test_bc("poisson_test_bc",data->bedges,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),

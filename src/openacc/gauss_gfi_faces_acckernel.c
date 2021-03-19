@@ -39,7 +39,6 @@ inline void gauss_gfi_faces_openacc( const int *edgeNum, const double **x,
     }
   }
 
-
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
       int indL, indR;

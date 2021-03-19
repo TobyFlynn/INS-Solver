@@ -80,42 +80,41 @@ INSData::~INSData() {
   free(p_data);
   free(dpdx_data);
   free(dpdy_data);
-  free(dirichletBC_data);
+  free(zeroBC_data);
 }
 
 void INSData::initOP2() {
   // Initialise memory
-  nodeX_data = (double*)calloc(3 * numCells, sizeof(double));
-  nodeY_data = (double*)calloc(3 * numCells, sizeof(double));
-  x_data  = (double *)calloc(15 * numCells, sizeof(double));
-  y_data  = (double *)calloc(15 * numCells, sizeof(double));
-  rx_data = (double *)calloc(15 * numCells, sizeof(double));
-  ry_data = (double *)calloc(15 * numCells, sizeof(double));
-  sx_data = (double *)calloc(15 * numCells, sizeof(double));
-  sy_data = (double *)calloc(15 * numCells, sizeof(double));
-  nx_data = (double *)calloc(15 * numCells, sizeof(double));
-  ny_data = (double *)calloc(15 * numCells, sizeof(double));
-  J_data  = (double *)calloc(15 * numCells, sizeof(double));
-  sJ_data = (double *)calloc(15 * numCells, sizeof(double));
+  nodeX_data  = (double*)calloc(3 * numCells, sizeof(double));
+  nodeY_data  = (double*)calloc(3 * numCells, sizeof(double));
+  x_data      = (double *)calloc(15 * numCells, sizeof(double));
+  y_data      = (double *)calloc(15 * numCells, sizeof(double));
+  rx_data     = (double *)calloc(15 * numCells, sizeof(double));
+  ry_data     = (double *)calloc(15 * numCells, sizeof(double));
+  sx_data     = (double *)calloc(15 * numCells, sizeof(double));
+  sy_data     = (double *)calloc(15 * numCells, sizeof(double));
+  nx_data     = (double *)calloc(15 * numCells, sizeof(double));
+  ny_data     = (double *)calloc(15 * numCells, sizeof(double));
+  J_data      = (double *)calloc(15 * numCells, sizeof(double));
+  sJ_data     = (double *)calloc(15 * numCells, sizeof(double));
   fscale_data = (double *)calloc(15 * numCells, sizeof(double));
   for(int i = 0; i < 4; i++) {
-    F_data[i] = (double *)calloc(15 * numCells, sizeof(double));
+    F_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
     div_data[i] = (double *)calloc(15 * numCells, sizeof(double));
   }
   for(int i = 0; i < 2; i++) {
-    Q_data[0][i] = (double *)calloc(15 * numCells, sizeof(double));
-    Q_data[1][i] = (double *)calloc(15 * numCells, sizeof(double));
-    QT_data[i] = (double *)calloc(15 * numCells, sizeof(double));
-    QTT_data[i] = (double *)calloc(15 * numCells, sizeof(double));
-
-    N_data[0][i] = (double *)calloc(15 * numCells, sizeof(double));
-    N_data[1][i] = (double *)calloc(15 * numCells, sizeof(double));
-    exQ_data[i] = (double *)calloc(15 * numCells, sizeof(double));
-    flux_data[i] = (double *)calloc(15 * numCells, sizeof(double));
-    gradCurlVel_data[i] = (double *)calloc(15 * numCells, sizeof(double));
-    dPdN_data[i] = (double *)calloc(15 * numCells, sizeof(double));
+    Q_data[0][i]   = (double *)calloc(15 * numCells, sizeof(double));
+    Q_data[1][i]   = (double *)calloc(15 * numCells, sizeof(double));
+    QT_data[i]     = (double *)calloc(15 * numCells, sizeof(double));
+    QTT_data[i]    = (double *)calloc(15 * numCells, sizeof(double));
+    N_data[0][i]   = (double *)calloc(15 * numCells, sizeof(double));
+    N_data[1][i]   = (double *)calloc(15 * numCells, sizeof(double));
+    exQ_data[i]    = (double *)calloc(15 * numCells, sizeof(double));
+    flux_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
+    dPdN_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
     visRHS_data[i] = (double *)calloc(15 * numCells, sizeof(double));
-    visBC_data[i] = (double *)calloc(21 * numCells, sizeof(double));
+    visBC_data[i]  = (double *)calloc(21 * numCells, sizeof(double));
+    gradCurlVel_data[i] = (double *)calloc(15 * numCells, sizeof(double));
   }
   divVelT_data = (double *)calloc(15 * numCells, sizeof(double));
   curlVel_data = (double *)calloc(15 * numCells, sizeof(double));
@@ -124,7 +123,7 @@ void INSData::initOP2() {
   p_data       = (double *)calloc(15 * numCells, sizeof(double));
   dpdx_data    = (double *)calloc(15 * numCells, sizeof(double));
   dpdy_data    = (double *)calloc(15 * numCells, sizeof(double));
-  dirichletBC_data = (double *)calloc(21 * numCells, sizeof(double));
+  zeroBC_data  = (double *)calloc(21 * numCells, sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -179,7 +178,6 @@ void INSData::initOP2() {
     QT[i] = op_decl_dat(cells, 15, "double", QT_data[i], Qname.c_str());
     Qname = "QTT" + to_string(i);
     QTT[i] = op_decl_dat(cells, 15, "double", QTT_data[i], Qname.c_str());
-
     string Nname = "N0" + to_string(i);
     N[0][i] = op_decl_dat(cells, 15, "double", N_data[0][i], Nname.c_str());
     Nname = "N1" + to_string(i);
@@ -204,7 +202,7 @@ void INSData::initOP2() {
   p       = op_decl_dat(cells, 15, "double", p_data, "p");
   dpdx    = op_decl_dat(cells, 15, "double", dpdx_data, "dpdx");
   dpdy    = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
-  dirichletBC = op_decl_dat(cells, 21, "double", dirichletBC_data, "dirichletBC");
+  zeroBC  = op_decl_dat(cells, 21, "double", zeroBC_data, "zeroBC");
 
   op_decl_const(1, "double", &gam);
   op_decl_const(1, "double", &mu);
@@ -286,7 +284,7 @@ CubatureData::CubatureData(INSData *dat) {
   temp  = op_decl_dat(data->cells, 46 * 15, "double", temp_data, "cub-temp");
   temp2 = op_decl_dat(data->cells, 46 * 15, "double", temp2_data, "cub-temp2");
 
-  // Initialise these values
+  // Initialise geometric factors for calcuating grad matrix
   init_cubature_grad_blas(data, this);
 
   op_par_loop(init_cubature_grad, "init_cubature_grad", data->cells,
@@ -297,6 +295,8 @@ CubatureData::CubatureData(INSData *dat) {
               op_arg_dat(Dx, -1, OP_ID, 46 * 15, "double", OP_WRITE),
               op_arg_dat(Dy, -1, OP_ID, 46 * 15, "double", OP_WRITE));
   // Dx and Dy are row-major at this point
+
+  // Calculate geometric factors for cubature volume nodes
   init_cubature_blas(data, this);
 
   op_par_loop(init_cubature, "init_cubature", data->cells,
@@ -309,6 +309,8 @@ CubatureData::CubatureData(INSData *dat) {
   // Temp is in row-major at this point
   cubature_mm_blas(data, this);
   // mm is in col-major at this point
+
+  // Calculate Cubature OP (contribution of Cubature points to Poisson matrix)
   op_par_loop(init_cubature_OP, "init_cubature_OP", data->cells,
               op_arg_dat(J,     -1, OP_ID, 46, "double", OP_READ),
               op_arg_dat(Dx,    -1, OP_ID, 46 * 15, "double", OP_READ),
@@ -347,7 +349,6 @@ GaussData::GaussData(INSData *dat) {
   nx_data      = (double *)calloc(21 * data->numCells, sizeof(double));
   ny_data      = (double *)calloc(21 * data->numCells, sizeof(double));
   tau_data     = (double *)calloc(3 * data->numCells, sizeof(double));
-  factor_data  = (double *)calloc(3 * data->numCells, sizeof(double));
   reverse_data = (int *)calloc(3 * data->numCells, sizeof(int));
   for(int i = 0; i < 3; i++) {
     mDx_data[i] = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
@@ -356,7 +357,6 @@ GaussData::GaussData(INSData *dat) {
     pDy_data[i] = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
     mD_data[i]  = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
     pD_data[i]  = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
-    pGF_data[i] = (double *)calloc(7 * 15 * data->numCells, sizeof(double));
     OP_data[i]  = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
     OPf_data[i] = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
   }
@@ -371,7 +371,6 @@ GaussData::GaussData(INSData *dat) {
   nx      = op_decl_dat(data->cells, 21, "double", nx_data, "gauss-nx");
   ny      = op_decl_dat(data->cells, 21, "double", ny_data, "gauss-ny");
   tau     = op_decl_dat(data->cells, 3, "double", tau_data, "gauss-tau");
-  factor  = op_decl_dat(data->cells, 3, "double", factor_data, "gauss-factor");
   reverse = op_decl_dat(data->cells, 3, "int", reverse_data, "gauss-reverse");
   for(int i = 0; i < 3; i++) {
     string name = "mDx" + to_string(i);
@@ -386,20 +385,20 @@ GaussData::GaussData(INSData *dat) {
     mD[i] = op_decl_dat(data->cells, 7 * 15, "double", mD_data[i], name.c_str());
     name = "pD" + to_string(i);
     pD[i] = op_decl_dat(data->cells, 7 * 15, "double", pD_data[i], name.c_str());
-    name = "pGF" + to_string(i);
-    pGF[i] = op_decl_dat(data->cells, 7 * 15, "double", pGF_data[i], name.c_str());
     name = "OP" + to_string(i);
     OP[i] = op_decl_dat(data->cells, 15 * 15, "double", OP_data[i], name.c_str());
     name = "OPf" + to_string(i);
     OPf[i] = op_decl_dat(data->cells, 15 * 15, "double", OPf_data[i], name.c_str());
   }
 
+  // Check which edges will require matrices to be 'reverse'
   op_par_loop(gauss_reverse, "gauss_reverse", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
               op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
               op_arg_dat(reverse, -2, data->edge2cells, 3, "int", OP_INC));
 
+  // Initialise geometric factors for Gauss nodes
   init_gauss_blas(data, this);
 
   op_par_loop(init_gauss, "init_gauss", data->cells,
@@ -411,8 +410,10 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(ny, -1, OP_ID, 21, "double", OP_WRITE),
               op_arg_dat(sJ, -1, OP_ID, 21, "double", OP_WRITE));
 
+  // Calculate x and y coords of Gauss nodes
   init_gauss_coords_blas(data, this);
 
+  // Calculate tau (used when constructing the Poisson matrix)
   op_par_loop(gauss_tau, "gauss_tau", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(data->fscale, -2, data->edge2cells, 15, "double", OP_READ),
@@ -423,6 +424,7 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(data->fscale, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(tau, 0, data->bedge2cells, 3, "double", OP_INC));
 
+  // Calculate geometric factors used when constructing gradient matrices
   init_gauss_grad_blas(data, this);
 
   op_par_loop(init_gauss_grad, "init_gauss_grad", data->cells,
@@ -437,6 +439,7 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(mDx[2], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(mDy[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
 
+  // Construct gradient matrices (1 for each face)
   op_par_loop(init_gauss_grad2, "init_gauss_grad2", data->cells,
               op_arg_dat(nx, -1, OP_ID, 21, "double", OP_READ),
               op_arg_dat(ny, -1, OP_ID, 21, "double", OP_READ),
@@ -450,6 +453,8 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(mD[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(mD[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
 
+  // Calculate geometric factors for grad matrices used by neighbours
+  // Matrices are calculated locally, then copied to neighbour elements
   init_gauss_grad_neighbour_blas(data, this);
 
   op_par_loop(init_gauss_grad_neighbour, "init_gauss_grad_neighbour", data->cells,
@@ -465,6 +470,7 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(mDx[2], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(mDy[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
 
+  // Copy x and y grad matrices to neighbours
   op_par_loop(gauss_grad_faces, "gauss_grad_faces", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mDx[0], -2, data->edge2cells, 7 * 15, "double", OP_READ),
@@ -480,6 +486,7 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(pDx[2], -2, data->edge2cells, 7 * 15, "double", OP_INC),
               op_arg_dat(pDy[2], -2, data->edge2cells, 7 * 15, "double", OP_INC));
 
+  // Calculate final neighbour grad matrix
   op_par_loop(init_gauss_grad2, "init_gauss_grad2", data->cells,
               op_arg_dat(nx, -1, OP_ID, 21, "double", OP_READ),
               op_arg_dat(ny, -1, OP_ID, 21, "double", OP_READ),
@@ -493,6 +500,7 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(pD[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(pD[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
 
+  // Calculate Gauss OP for each face (local contribution of face in Poisson matrix)
   // Face 0 temps: mDx, Face 1 temps: mDy, Face 2 temps: pDx
   op_par_loop(gauss_op, "gauss_op", data->cells,
               op_arg_dat(tau, -1, OP_ID, 3, "double", OP_READ),
@@ -511,22 +519,26 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(mD[2], -1, OP_ID, 7 * 15, "double", OP_READ),
               op_arg_dat(pDx[0], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(pDx[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
-              op_arg_dat(pDx[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
+              op_arg_dat(pDx[2], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              // Reset dats for OPf
+              op_arg_dat(pDy[0], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              op_arg_dat(pDy[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
+              op_arg_dat(pDy[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
 
   gauss_op_blas(data, this);
 
-  // OPf
+  // Calculate Gauss OPf for each face (contribution to neighbouring element in Poisson matrix)
   op_par_loop(gauss_gfi_faces, "gauss_gfi_faces", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
               op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(pGF[0], -2, data->edge2cells, 7 * 15, "double", OP_INC),
-              op_arg_dat(pGF[1], -2, data->edge2cells, 7 * 15, "double", OP_INC),
-              op_arg_dat(pGF[2], -2, data->edge2cells, 7 * 15, "double", OP_INC));
+              op_arg_dat(pDy[0], -2, data->edge2cells, 7 * 15, "double", OP_INC),
+              op_arg_dat(pDy[1], -2, data->edge2cells, 7 * 15, "double", OP_INC),
+              op_arg_dat(pDy[2], -2, data->edge2cells, 7 * 15, "double", OP_INC));
 
   gauss_opf_blas(data, this);
 
-  // Applying the correct factors to OP and OPf will be done when constructing the Poisson matrix
+  // Applying the correct factors to OP and OPf is done when constructing the Poisson matrix
 }
 
 GaussData::~GaussData() {
@@ -540,7 +552,6 @@ GaussData::~GaussData() {
   free(nx_data);
   free(ny_data);
   free(tau_data);
-  free(factor_data);
   free(reverse_data);
   for(int i = 0; i < 3; i++) {
     free(mDx_data[i]);
@@ -549,7 +560,6 @@ GaussData::~GaussData() {
     free(pDy_data[i]);
     free(mD_data[i]);
     free(pD_data[i]);
-    free(pGF_data[i]);
     free(OP_data[i]);
     free(OPf_data[i]);
   }

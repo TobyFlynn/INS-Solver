@@ -1876,7 +1876,10 @@ void op_par_loop_gauss_op_gpu(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13);
+  op_arg arg13,
+  op_arg arg14,
+  op_arg arg15,
+  op_arg arg16);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -1894,7 +1897,10 @@ void op_par_loop_gauss_op(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13){
+  op_arg arg13,
+  op_arg arg14,
+  op_arg arg15,
+  op_arg arg16){
 
   if (OP_hybrid_gpu) {
     op_par_loop_gauss_op_gpu(name, set,
@@ -1911,7 +1917,10 @@ void op_par_loop_gauss_op(char const *name, op_set set,
       arg10,
       arg11,
       arg12,
-      arg13);
+      arg13,
+      arg14,
+      arg15,
+      arg16);
 
     }else{
     op_par_loop_gauss_op_cpu(name, set,
@@ -1928,7 +1937,10 @@ void op_par_loop_gauss_op(char const *name, op_set set,
       arg10,
       arg11,
       arg12,
-      arg13);
+      arg13,
+      arg14,
+      arg15,
+      arg16);
 
   }
 }
@@ -1947,7 +1959,10 @@ void op_par_loop_gauss_op(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13){
+  op_arg arg13,
+  op_arg arg14,
+  op_arg arg15,
+  op_arg arg16){
 
   op_par_loop_gauss_op_gpu(name, set,
     arg0,
@@ -1963,7 +1978,10 @@ void op_par_loop_gauss_op(char const *name, op_set set,
     arg10,
     arg11,
     arg12,
-    arg13);
+    arg13,
+    arg14,
+    arg15,
+    arg16);
 
   }
 #endif //OP_HYBRID_GPU
@@ -2252,8 +2270,7 @@ void op_par_loop_poisson_test_init_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3,
-  op_arg arg4);
+  op_arg arg3);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -2261,24 +2278,21 @@ void op_par_loop_poisson_test_init(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3,
-  op_arg arg4){
+  op_arg arg3){
 
   if (OP_hybrid_gpu) {
     op_par_loop_poisson_test_init_gpu(name, set,
       arg0,
       arg1,
       arg2,
-      arg3,
-      arg4);
+      arg3);
 
     }else{
     op_par_loop_poisson_test_init_cpu(name, set,
       arg0,
       arg1,
       arg2,
-      arg3,
-      arg4);
+      arg3);
 
   }
 }
@@ -2287,15 +2301,13 @@ void op_par_loop_poisson_test_init(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3,
-  op_arg arg4){
+  op_arg arg3){
 
   op_par_loop_poisson_test_init_gpu(name, set,
     arg0,
     arg1,
     arg2,
-    arg3,
-    arg4);
+    arg3);
 
   }
 #endif //OP_HYBRID_GPU
