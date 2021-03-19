@@ -135,7 +135,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   }
 
   KSPSetOperators(ksp, op, op);
-  KSPSetTolerances(ksp, 1e-14, 1e-50, 1e5, 1e5);
+  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
   // Solve
   KSPSolve(ksp, rhs, x);
   int numIt;
@@ -144,8 +144,10 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   KSPGetConvergedReason(ksp, &reason);
   double residual;
   KSPGetResidualNorm(ksp, &residual);
-  cout << "Number of iterations for linear solver: " << numIt << endl;
-  cout << "Converged reason: " << reason << " Residual: " << residual << endl;
+  if(reason < 0) {
+    cout << "Number of iterations for linear solver: " << numIt << endl;
+    cout << "Converged reason: " << reason << " Residual: " << residual << endl;
+  }
 
   Vec solution;
   KSPGetSolution(ksp, &solution);

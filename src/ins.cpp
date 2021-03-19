@@ -91,34 +91,34 @@ int main(int argc, char **argv) {
   // (along with memory associated with them)
   INSData *data = new INSData();
 
-  // auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-  //   if(x1 == 0.0 && x2 == 0.0) {
-  //     // Inflow
-  //     return 0;
-  //   } else if(x1 == 2.2 && x2 == 2.2) {
-  //     // Outflow
-  //     return 1;
-  //   } else {
-  //     // Wall
-  //     return 2;
-  //   }
-  // };
-
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-    if(x1 == x2 && x1 < -0.15) {
+    if(x1 == 0.0 && x2 == 0.0) {
       // Inflow
-      // cout << "Inflow (" << x1 << "," << y1 << ") and (" << x2 << "," << y2 << ")" << endl;
       return 0;
-    } else if(x1 == x2 && x2 > 1.5) {
+    } else if(x1 == 2.2 && x2 == 2.2) {
       // Outflow
-      // cout << "Outflow (" << x1 << "," << y1 << ") and (" << x2 << "," << y2 << ")" << endl;
       return 1;
     } else {
       // Wall
-      // cout << "Wall (" << x1 << "," << y1 << ") and (" << x2 << "," << y2 << ")" << endl;
       return 2;
     }
   };
+
+  // auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+  //   if(x1 == x2 && x1 < -0.15) {
+  //     // Inflow
+  //     // cout << "Inflow (" << x1 << "," << y1 << ") and (" << x2 << "," << y2 << ")" << endl;
+  //     return 0;
+  //   } else if(x1 == x2 && x2 > 1.5) {
+  //     // Outflow
+  //     // cout << "Outflow (" << x1 << "," << y1 << ") and (" << x2 << "," << y2 << ")" << endl;
+  //     return 1;
+  //   } else {
+  //     // Wall
+  //     // cout << "Wall (" << x1 << "," << y1 << ") and (" << x2 << "," << y2 << ")" << endl;
+  //     return 2;
+  //   }
+  // };
 
   load_mesh(filename.c_str(), data, bcNum);
 
@@ -238,27 +238,28 @@ int main(int argc, char **argv) {
     op_timers(&cpu_loop_2, &wall_loop_2);
     v_time += wall_loop_2 - wall_loop_1;
 
-    double minQT0 = numeric_limits<double>::max();
-    double minQT1 = numeric_limits<double>::max();
-    double minQTT0 = numeric_limits<double>::max();
-    double minQTT1 = numeric_limits<double>::max();
-    double minQ0 = numeric_limits<double>::max();
-    double minQ1 = numeric_limits<double>::max();
-    double maxQT0 = 0.0;
-    double maxQT1 = 0.0;
-    double maxQTT0 = 0.0;
-    double maxQTT1 = 0.0;
-    double maxQ0 = 0.0;
-    double maxQ1 = 0.0;
+    if(i % 100 == 0) {
+      double minQT0 = numeric_limits<double>::max();
+      double minQT1 = numeric_limits<double>::max();
+      double minQTT0 = numeric_limits<double>::max();
+      double minQTT1 = numeric_limits<double>::max();
+      double minQ0 = numeric_limits<double>::max();
+      double minQ1 = numeric_limits<double>::max();
+      double maxQT0 = 0.0;
+      double maxQT1 = 0.0;
+      double maxQTT0 = 0.0;
+      double maxQTT1 = 0.0;
+      double maxQ0 = 0.0;
+      double maxQ1 = 0.0;
 
-    get_min_max(data, &minQT0, &minQT1, &minQTT0, &minQTT1, &minQ0, &minQ1, &maxQT0,
-                &maxQT1, &maxQTT0, &maxQTT1, &maxQ0, &maxQ1, currentIter % 2);
+      get_min_max(data, &minQT0, &minQT1, &minQTT0, &minQTT1, &minQ0, &minQ1, &maxQT0,
+                  &maxQT1, &maxQTT0, &maxQTT1, &maxQ0, &maxQ1, currentIter % 2);
 
-    cout << "Iter: " << i << endl;
-    cout << "QT0: " << minQT0 << " " << maxQT0 << " QT1: " << minQT1 << " " << maxQT1 << endl;
-    cout << "QTT0: " << minQTT0 << " " << maxQTT0 << " QTT1: " << minQTT1 << " " << maxQTT1 << endl;
-    cout << "Q0: " << minQ0 << " " << maxQ0 << " Q1: " << minQ1 << " " << maxQ1 << endl;
-
+      cout << "Iter: " << i << endl;
+      cout << "QT0: " << minQT0 << " " << maxQT0 << " QT1: " << minQT1 << " " << maxQT1 << endl;
+      cout << "QTT0: " << minQTT0 << " " << maxQTT0 << " QTT1: " << minQTT1 << " " << maxQTT1 << endl;
+      cout << "Q0: " << minQ0 << " " << maxQ0 << " Q1: " << minQ1 << " " << maxQ1 << endl;
+    }
     currentIter++;
     time += dt;
   }
