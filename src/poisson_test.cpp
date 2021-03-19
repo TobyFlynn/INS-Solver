@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
   poisson->createBCMatrix();
   cout << "Finished Initialising" << endl;
 
-  poisson->solve(rhs, sol, true);
+  poisson->solve(rhs, sol);
 
   double l2 = 0.0;
   op_par_loop(poisson_test_error, "poisson_test_error", data->cells,

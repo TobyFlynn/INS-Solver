@@ -26,7 +26,7 @@ public:
   Poisson(INSData *nsData, CubatureData *cubData, GaussData *gaussData);
   ~Poisson();
 
-  void solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass = false, double factor = 0.0);
+  void solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
 
   void setDirichletBCs(int *d);
   void setNeumannBCs(int *n);
@@ -37,11 +37,8 @@ public:
   void createBCMatrix();
 
   // OP2 Dats
-  op_dat pTau, pExRHS[2], pU, pDu, pFluxXu, pFluxYu, pDuDx, pDuDy, pFluxQ, pDivQ, pRHS;
   op_dat dBC, nBCx, nBCy;
 private:
-  void copy_u(const double *u);
-  void copy_rhs(double *rhs);
   void create_vec(Vec *v, int size = 15);
   void destroy_vec(Vec *v);
   void load_vec(Vec *v, op_dat v_dat, int size = 15);
@@ -53,24 +50,15 @@ private:
 
   Mat pMat, pBCMat, pMMat;
 
-  // Pointers to private memory
-  double *pTau_data;
-  double *pExRHS_data[2];
-  double *pU_data;
-  double *pDu_data;
-  double *pFluxXu_data;
-  double *pFluxYu_data;
-  double *pDuDx_data;
-  double *pDuDy_data;
-  double *pFluxQ_data;
-  double *pDivQ_data;
-  double *pRHS_data;
-
   int *dirichlet;
   int *neumann;
 
   bool massMat;
   double massFactor;
+
+  bool pMatInit = false;
+  bool pMMatInit = false;
+  bool pBCMatInit = false;
 };
 
 #endif

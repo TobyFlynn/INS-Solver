@@ -3,7 +3,6 @@
 
 #include "op_seq.h"
 #include "ins_data.h"
-#include "poisson.h"
 
 extern double ones[15];
 extern double r[15];
@@ -73,12 +72,6 @@ void pressure_rhs_blas(INSData *nsData, int ind);
 
 void viscosity_rhs_blas(INSData *nsData, CubatureData *cubatureData);
 
-void poisson_rhs_blas1(INSData *nsData, Poisson *pData);
-
-void poisson_rhs_blas2(INSData *nsData, Poisson *pData);
-
 void poisson_test_rhs_blas(INSData *nsData, op_dat rhs);
-
-void poisson_mass_blas(INSData *nsData, Poisson *pData, double factor);
 
 #endif

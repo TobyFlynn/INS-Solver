@@ -392,14 +392,6 @@ int main(int argc, char **argv) {
   cout << "Time in pressure solve: " << p_time << endl;
   cout << "Time in viscosity solve: " << v_time << endl;
 
-  // op_fetch_data_hdf5_file(data->pRHS, "pRHS.h5");
-  // op_fetch_data_hdf5_file(data->sJ, "sJ.h5");
-  // op_fetch_data_hdf5_file(gaussData->OP[1], "gauss.h5");
-  // op_fetch_data_hdf5_file(gaussData->OP[2], "gauss.h5");
-  // op_fetch_data_hdf5_file(gaussData->OPf[0], "gauss.h5");
-  // op_fetch_data_hdf5_file(gaussData->OPf[1], "gauss.h5");
-  // op_fetch_data_hdf5_file(gaussData->OPf[2], "gauss.h5");
-
   // Save solution to CGNS file
   double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
   double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
@@ -571,7 +563,7 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
   pressure_rhs_blas(data, currentInd);
 
   poisson->setBCValues(data->dirichletBC);
-  poisson->solve(data->pRHS, data->p, false);
+  poisson->solve(data->pRHS, data->p);
 
   grad(data, data->p, data->dpdx, data->dpdy);
 
@@ -614,10 +606,10 @@ void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
               op_arg_dat(data->visBC[1],-1,OP_ID,21,"double",OP_RW));
 
   poisson->setBCValues(data->visBC[0]);
-  poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, true, factor);
+  poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
 
   poisson->setBCValues(data->visBC[1]);
-  poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, true, factor);
+  poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
 
   op_par_loop_viscosity_reset_bc("viscosity_reset_bc",data->cells,
               op_arg_dat(data->visBC[0],-1,OP_ID,21,"double",OP_WRITE),
