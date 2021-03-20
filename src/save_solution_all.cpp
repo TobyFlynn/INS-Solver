@@ -23,8 +23,8 @@ struct Point {
 
 struct cmpCoords {
     bool operator()(const pair<double,double>& a, const pair<double,double>& b) const {
-        bool xCmp = abs(a.first - b.first) < 1e-12;
-        bool yCmp = abs(a.second - b.second) < 1e-12;
+        bool xCmp = abs(a.first - b.first) < 1e-10;
+        bool yCmp = abs(a.second - b.second) < 1e-10;
         if(xCmp && yCmp) {
           return false;
         }
@@ -64,15 +64,22 @@ void save_solution_all(std::string filename, int numCells, double *q0, double *q
   vector<double> u_v;
   vector<double> v_v;
   vector<cgsize_t> cells(15 * numCells);
+  vector<cgsize_t> cells3(3 * numCells);
   int index = 0;
 
   for(auto const &p : pointMap) {
     x_v.push_back(p.second->x);
     y_v.push_back(p.second->y);
-    u_v.push_back(p.second->u / cells.size());
-    v_v.push_back(p.second->v / cells.size());
+    u_v.push_back(p.second->u / p.second->cells.size());
+    v_v.push_back(p.second->v / p.second->cells.size());
     for(int i = 0; i < p.second->cells.size(); i++) {
       cells[p.second->cells[i] * 15 + p.second->pointNum[i]] = index + 1;
+      if(p.second->pointNum[i] == 0)
+        cells3[p.second->cells[i] * 3] = index + 1;
+      if(p.second->pointNum[i] == 1)
+        cells3[p.second->cells[i] * 3 + 1] = index + 1;
+      if(p.second->pointNum[i] == 2)
+        cells3[p.second->cells[i] * 3 + 2] = index + 1;
     }
     index++;
   }
@@ -109,8 +116,11 @@ void save_solution_all(std::string filename, int numCells, double *q0, double *q
   int sectionIndex;
   int start = 1;
   int end = sizes[1];
-  cg_section_write(file, baseIndex, zoneIndex, "GridElements", CGNS_ENUMV(TRI_15),
-                   start, end, 0, cells.data(), &sectionIndex);
+  // cg_section_write(file, baseIndex, zoneIndex, "GridElements", CGNS_ENUMV(TRI_15),
+  //                  start, end, 0, cells.data(), &sectionIndex);
+
+  cg_section_write(file, baseIndex, zoneIndex, "GridElements", CGNS_ENUMV(TRI_3),
+                   start, end, 0, cells3.data(), &sectionIndex);
 
   int flowIndex;
   // Create flow solution node
