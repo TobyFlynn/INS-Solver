@@ -203,10 +203,10 @@ using namespace std;
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t);
 
-void pressure(INSData *data, Poisson *poisson, int currentInd, double a0,
+bool pressure(INSData *data, Poisson *poisson, int currentInd, double a0,
               double a1, double b0, double b1, double g0, double dt, double t);
 
-void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
+bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
                Poisson *poisson, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t);
 
@@ -352,12 +352,24 @@ int main(int argc, char **argv) {
     a_time += wall_loop_2 - wall_loop_1;
 
     op_timers(&cpu_loop_1, &wall_loop_1);
-    pressure(data, pressurePoisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
+    bool converged = pressure(data, pressurePoisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
+    if(!converged) {
+      cout << "******** ERROR ********" << endl;
+      cout << "Pressure solve failed to converge, exiting..." << endl;
+      cout << "Iteration: " << i << " Time: " << time << endl;
+      break;
+    }
     op_timers(&cpu_loop_2, &wall_loop_2);
     p_time += wall_loop_2 - wall_loop_1;
 
     op_timers(&cpu_loop_1, &wall_loop_1);
-    viscosity(data, cubData, gaussData, viscosityPoisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
+    converged = viscosity(data, cubData, gaussData, viscosityPoisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
+    if(!converged) {
+      cout << "******** ERROR ********" << endl;
+      cout << "Viscosity solve failed to converge, exiting..." << endl;
+      cout << "Iteration: " << i << " Time: " << time << endl;
+      break;
+    }
     op_timers(&cpu_loop_2, &wall_loop_2);
     v_time += wall_loop_2 - wall_loop_1;
 
@@ -537,7 +549,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QT[1],-1,OP_ID,15,"double",OP_WRITE));
 }
 
-void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
+bool pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
               double b1, double g0, double dt, double t) {
   div(data, data->QT[0], data->QT[1], data->divVelT);
   curl(data, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
@@ -574,7 +586,7 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
 
   // Call PETSc linear solver
   poisson->setBCValues(data->zeroBC);
-  poisson->solve(data->pRHS, data->p);
+  bool converged = poisson->solve(data->pRHS, data->p);
 
   // Calculate gradient of pressure
   grad(data, data->p, data->dpdx, data->dpdy);
@@ -590,9 +602,11 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->QTT[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->QTT[1],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->dPdN[(currentInd + 1) % 2],-1,OP_ID,15,"double",OP_WRITE));
+
+  return converged;
 }
 
-void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
+bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
                Poisson *poisson, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t) {
   double time = t + dt;
@@ -620,15 +634,17 @@ void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
 
   // Call PETSc linear solver
   poisson->setBCValues(data->visBC[0]);
-  poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
+  bool convergedX = poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
 
   poisson->setBCValues(data->visBC[1]);
-  poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
+  bool convergedY = poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
 
   // Reset BC dats ready for next iteration
   op_par_loop_viscosity_reset_bc("viscosity_reset_bc",data->cells,
               op_arg_dat(data->visBC[0],-1,OP_ID,21,"double",OP_WRITE),
               op_arg_dat(data->visBC[1],-1,OP_ID,21,"double",OP_WRITE));
+
+  return convergedX && convergedY;
 }
 
 // Function to calculate lift and drag coefficients of the cylinder

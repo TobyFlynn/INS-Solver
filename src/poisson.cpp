@@ -22,7 +22,7 @@ Poisson::~Poisson() {
     MatDestroy(&pBCMat);
 }
 
-void Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
+bool Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   massMat = addMass;
   massFactor = factor;
   Vec b;
@@ -73,7 +73,9 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   double residual;
   KSPGetResidualNorm(ksp, &residual);
   // Check that the solver converged
+  bool converged = true;
   if(reason < 0) {
+    converged = false;
     cout << "Number of iterations for linear solver: " << numIt << endl;
     cout << "Converged reason: " << reason << " Residual: " << residual << endl;
   }
@@ -86,6 +88,8 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   destroy_vec(&b);
   destroy_vec(&x);
   MatDestroy(&op);
+
+  return converged;
 }
 
 void Poisson::setDirichletBCs(int *d) {
