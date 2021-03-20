@@ -147,8 +147,8 @@ int main(int argc, char **argv) {
 
   Poisson *poisson = new Poisson(data, cubData, gaussData);
 
-  int dBCs[] = {0, 1};
-  int nBCs[] = {2, 3};
+  int dBCs[] = {0, 1, -1};
+  int nBCs[] = {2, 3, -1};
   poisson->setDirichletBCs(dBCs);
   poisson->setNeumannBCs(nBCs);
   poisson->setBCValues(bc);

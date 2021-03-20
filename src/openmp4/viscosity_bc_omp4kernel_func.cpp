@@ -71,11 +71,11 @@ void viscosity_bc_omp4_kernel(
 
     } else {
 
-      for(int i = 0; i < 7; i++) {
 
 
 
-      }
+
+
     }
     //end inline func
   }

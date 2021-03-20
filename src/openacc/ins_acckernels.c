@@ -37,6 +37,7 @@ extern double gF2DsR[105];
 extern double gFInterp0R[105];
 extern double gFInterp1R[105];
 extern double gFInterp2R[105];
+extern double lift_drag_vec[5];
 
 // header
 #include "op_lib_c.h"
@@ -57,6 +58,7 @@ int size, char *dat, char const *name){}
 #include "viscosity_bc_acckernel.c"
 #include "viscosity_rhs_acckernel.c"
 #include "viscosity_reset_bc_acckernel.c"
+#include "lift_drag_acckernel.c"
 #include "min_max_acckernel.c"
 #include "init_grid_acckernel.c"
 #include "init_cubature_grad_acckernel.c"

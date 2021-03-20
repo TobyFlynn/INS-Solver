@@ -39,10 +39,10 @@ inline void advection_bc(const int *bedge_type, const int *bedgeNum,
     }
   } else {
     // Wall - No slip
-    for(int i = 0; i < 5; i++) {
-      // int qInd = fmask[i];
-      // exQ0[exInd + i] += q0[qInd] - 2 * (nx[exInd + i] * q0[qInd] + ny[exInd + i] * q1[qInd]) * nx[exInd + i];
-      // exQ1[exInd + i] += q1[qInd] - 2 * (nx[exInd + i] * q0[qInd] + ny[exInd + i] * q1[qInd]) * ny[exInd + i];
-    }
+    // for(int i = 0; i < 5; i++) {
+    //   int qInd = fmask[i];
+    //   exQ0[exInd + i] += q0[qInd] - 2 * (nx[exInd + i] * q0[qInd] + ny[exInd + i] * q1[qInd]) * nx[exInd + i];
+    //   exQ1[exInd + i] += q1[qInd] - 2 * (nx[exInd + i] * q0[qInd] + ny[exInd + i] * q1[qInd]) * ny[exInd + i];
+    // }
   }
 }

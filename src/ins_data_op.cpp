@@ -233,6 +233,8 @@ INSData::~INSData() {
     free(dPdN_data[i]);
     free(visRHS_data[i]);
     free(visBC_data[i]);
+    free(dQdx_data[i]);
+    free(dQdy_data[i]);
   }
   free(divVelT_data);
   free(curlVel_data);
@@ -275,6 +277,8 @@ void INSData::initOP2() {
     dPdN_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
     visRHS_data[i] = (double *)calloc(15 * numCells, sizeof(double));
     visBC_data[i]  = (double *)calloc(21 * numCells, sizeof(double));
+    dQdx_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
+    dQdy_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
     gradCurlVel_data[i] = (double *)calloc(15 * numCells, sizeof(double));
   }
   divVelT_data = (double *)calloc(15 * numCells, sizeof(double));
@@ -353,6 +357,10 @@ void INSData::initOP2() {
     dPdN[i] = op_decl_dat(cells, 15, "double", dPdN_data[i], dPdNname.c_str());
     string visRHSname = "visRHS" + to_string(i);
     visRHS[i] = op_decl_dat(cells, 15, "double", visRHS_data[i], visRHSname.c_str());
+    string dQdxname = "dQdx" + to_string(i);
+    dQdx[i] = op_decl_dat(cells, 15, "double", dQdx_data[i], dQdxname.c_str());
+    string dQdyname = "dQdy" + to_string(i);
+    dQdy[i] = op_decl_dat(cells, 15, "double", dQdy_data[i], dQdyname.c_str());
     string visBCname = "visBC" + to_string(i);
     visBC[i] = op_decl_dat(cells, 21, "double", visBC_data[i], visBCname.c_str());
   }
@@ -399,6 +407,7 @@ void INSData::initOP2() {
   op_decl_const2("gFInterp0R",105,"double",gFInterp0R);
   op_decl_const2("gFInterp1R",105,"double",gFInterp1R);
   op_decl_const2("gFInterp2R",105,"double",gFInterp2R);
+  op_decl_const2("lift_drag_vec",5,"double",lift_drag_vec);
 
   // Calculate geometric factors
   init_grid_blas(this);

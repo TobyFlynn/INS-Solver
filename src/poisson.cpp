@@ -192,7 +192,7 @@ void Poisson::createMatrix() {
     int element = data->bedge2cell_data[i];
     int bedgeType = data->bedge_type_data[i];
     int edge = data->bedgeNum_data[i];
-    if(dirichlet[0] == bedgeType || dirichlet[1] == bedgeType) {
+    if(dirichlet[0] == bedgeType || dirichlet[1] == bedgeType || dirichlet[2] == bedgeType) {
       // Convert data to row major format
       for(int m = 0; m < 15; m++) {
         for(int n = 0; n < 15; n++) {
@@ -263,7 +263,7 @@ void Poisson::createBCMatrix() {
     int element = data->bedge2cell_data[i];
     int bedgeType = data->bedge_type_data[i];
     int edge = data->bedgeNum_data[i];
-    if(dirichlet[0] == bedgeType || dirichlet[1] == bedgeType) {
+    if(dirichlet[0] == bedgeType || dirichlet[1] == bedgeType || dirichlet[2] == bedgeType) {
       // Get data
       for(int j = 0; j < 7 * 15; j++) {
         int indT = (j % 7) * 15 + (j / 7);
@@ -281,7 +281,7 @@ void Poisson::createBCMatrix() {
         if(abs(val) > tol)
           MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
-    } else if(neumann[0] == bedgeType || neumann[1] == bedgeType) {
+    } else if(neumann[0] == bedgeType || neumann[1] == bedgeType || neumann[2] == bedgeType) {
       // Get data
       for(int j = 0; j < 7 * 15; j++) {
         int indT = (j % 7) * 15 + (j / 7);

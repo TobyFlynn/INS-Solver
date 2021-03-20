@@ -21,7 +21,7 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum, const double
     fmask = &FMASK[2 * 5];
   }
 
-  if(*bedge_type == 0 || *bedge_type == 2) {
+  if(*bedge_type == 0 || *bedge_type == 2 || *bedge_type == 3) {
     // Inflow or Wall
     for(int i = 0; i < 5; i++) {
       int fInd = fmask[i];

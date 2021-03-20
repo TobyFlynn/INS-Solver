@@ -37,6 +37,7 @@ extern double gF1DrR[7 * 15];
 extern double gF1DsR[7 * 15];
 extern double gF2DrR[7 * 15];
 extern double gF2DsR[7 * 15];
+extern double lift_drag_vec[5];
 
 class INSData {
 public:
@@ -64,6 +65,7 @@ public:
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, pRHSex, p, dpdx, dpdy;
   op_dat visRHS[2];
   op_dat zeroBC, visBC[2];
+  op_dat dQdx[2], dQdy[2];
 private:
   // Pointers to private memory
   double *nodeX_data;
@@ -99,6 +101,8 @@ private:
   double *visRHS_data[2];
   double *zeroBC_data;
   double *visBC_data[2];
+  double *dQdx_data[2];
+  double *dQdy_data[2];
 };
 
 class CubatureData {

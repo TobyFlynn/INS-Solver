@@ -89,11 +89,11 @@ void advection_bc_omp4_kernel(
       }
     } else {
 
-      for(int i = 0; i < 5; i++) {
 
 
 
-      }
+
+
     }
     //end inline func
   }

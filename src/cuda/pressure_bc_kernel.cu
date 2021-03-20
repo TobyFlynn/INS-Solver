@@ -26,7 +26,7 @@ __device__ void pressure_bc_gpu( const int *bedge_type, const int *bedgeNum, con
     fmask = &FMASK_cuda[2 * 5];
   }
 
-  if(*bedge_type == 0 || *bedge_type == 2) {
+  if(*bedge_type == 0 || *bedge_type == 2 || *bedge_type == 3) {
 
     for(int i = 0; i < 5; i++) {
       int fInd = fmask[i];

@@ -136,6 +136,20 @@ void op_par_loop_viscosity_reset_bc(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_lift_drag(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
 void op_par_loop_min_max(char const *, op_set,
   op_arg,
   op_arg,
@@ -181,6 +195,7 @@ void op_par_loop_min_max(char const *, op_set,
 #include "kernels/viscosity_reset_bc.h"
 #include "kernels/viscosity_bc.h"
 
+#include "kernels/lift_drag.h"
 #include "kernels/min_max.h"
 
 using namespace std;
@@ -194,6 +209,8 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0,
 void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
                Poisson *poisson, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t);
+
+void lift_drag_coeff(INSData *data, double *lift, double *drag, int ind);
 
 void get_min_max(INSData *data, double *minQT0, double *minQT1, double *minQTT0,
                  double *minQTT1, double *minQ0, double *minQ1, double *maxQT0,
@@ -232,9 +249,13 @@ int main(int argc, char **argv) {
     } else if(x1 == 2.2 && x2 == 2.2) {
       // Outflow
       return 1;
-    } else {
-      // Wall
+    } else if(x1 > 0.1 && x2 > 0.1 && x1 < 0.3 && x2 < 0.3
+              && y1 > 0.1 && y2 > 0.1 && y1 < 0.3 && y2 < 0.3) {
+      // Cylinder Wall
       return 2;
+    } else {
+      // Top/Bottom Wall
+      return 3;
     }
   };
 
@@ -279,15 +300,15 @@ int main(int argc, char **argv) {
 
   // Initialise Poisson solvers
   Poisson *pressurePoisson = new Poisson(data, cubData, gaussData);
-  int pressure_dirichlet[] = {1, -1};
-  int pressure_neumann[] = {0, 2};
+  int pressure_dirichlet[] = {1, -1, -1};
+  int pressure_neumann[] = {0, 2, 3};
   pressurePoisson->setDirichletBCs(pressure_dirichlet);
   pressurePoisson->setNeumannBCs(pressure_neumann);
   pressurePoisson->createMatrix();
   pressurePoisson->createBCMatrix();
   Poisson *viscosityPoisson = new Poisson(data, cubData, gaussData);
-  int viscosity_dirichlet[] = {0, 2};
-  int viscosity_neumann[] = {1, -1};
+  int viscosity_dirichlet[] = {0, 2, 3};
+  int viscosity_neumann[] = {1, -1, -1};
   viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
   viscosityPoisson->setNeumannBCs(viscosity_neumann);
   viscosityPoisson->createMatrix();
@@ -362,6 +383,10 @@ int main(int argc, char **argv) {
       cout << "QT0: " << minQT0 << " " << maxQT0 << " QT1: " << minQT1 << " " << maxQT1 << endl;
       cout << "QTT0: " << minQTT0 << " " << maxQTT0 << " QTT1: " << minQTT1 << " " << maxQTT1 << endl;
       cout << "Q0: " << minQ0 << " " << maxQ0 << " Q1: " << minQ1 << " " << maxQ1 << endl;
+
+      double lift, drag;
+      lift_drag_coeff(data, &lift, &drag, currentIter % 2);
+      cout << "Cd: " << drag << " Cl: " << lift << endl;
     }
     currentIter++;
     time += dt;
@@ -604,6 +629,33 @@ void viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
   op_par_loop_viscosity_reset_bc("viscosity_reset_bc",data->cells,
               op_arg_dat(data->visBC[0],-1,OP_ID,21,"double",OP_WRITE),
               op_arg_dat(data->visBC[1],-1,OP_ID,21,"double",OP_WRITE));
+}
+
+// Function to calculate lift and drag coefficients of the cylinder
+void lift_drag_coeff(INSData *data, double *lift, double *drag, int ind) {
+  *lift = 0.0;
+  *drag = 0.0;
+
+  grad(data, data->Q[(ind + 1) % 2][0], data->dQdx[0], data->dQdy[0]);
+  grad(data, data->Q[(ind + 1) % 2][1], data->dQdx[1], data->dQdy[1]);
+
+  op_par_loop_lift_drag("lift_drag",data->bedges,
+              op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
+              op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
+              op_arg_dat(data->p,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->dQdx[0],0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->dQdy[0],0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->dQdx[1],0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->dQdy[1],0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->nx,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->ny,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->sJ,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_gbl(drag,1,"double",OP_INC),
+              op_arg_gbl(lift,1,"double",OP_INC));
+
+  // Divide by radius of cylinder
+  *lift = *lift / 0.05;
+  *drag = *drag / 0.05;
 }
 
 // Function for getting the min and max values of various OP2 dats

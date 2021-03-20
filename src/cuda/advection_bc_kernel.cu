@@ -43,11 +43,11 @@ __device__ void advection_bc_gpu( const int *bedge_type, const int *bedgeNum,
     }
   } else {
 
-    for(int i = 0; i < 5; i++) {
 
 
 
-    }
+
+
   }
 
 }
