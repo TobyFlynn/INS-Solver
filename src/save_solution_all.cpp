@@ -19,12 +19,13 @@ struct Point {
   double v;
   vector<int> cells;
   vector<int> pointNum;
+  int counter;
 };
 
 struct cmpCoords {
     bool operator()(const pair<double,double>& a, const pair<double,double>& b) const {
-        bool xCmp = abs(a.first - b.first) < 1e-10;
-        bool yCmp = abs(a.second - b.second) < 1e-10;
+        bool xCmp = abs(a.first - b.first) < 1e-8;
+        bool yCmp = abs(a.second - b.second) < 1e-8;
         if(xCmp && yCmp) {
           return false;
         }
@@ -33,28 +34,79 @@ struct cmpCoords {
 };
 
 void save_solution_all(std::string filename, int numCells, double *q0, double *q1, double *x, double *y) {
+  // Maps points to sub elements that they are part of.
+  // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
+  // -1 is just padding to get each line to 6
+  int cellMask[15][6] = {
+    {0, -1, -1, -1, -1, -1}, // Point 0 is part of sub element 0
+    {0, 1, 2, -1, -1, -1},    // 1
+    {2, 3, 4, -1, -1, -1},    // 2
+    {4, 5, 6, -1, -1, -1},    // 3
+    {6, -1, -1, -1, -1, -1}, // End of first point row
+    {0, 1, 7, -1, -1, -1},    // 5
+    {1, 2, 3, 9, 8, 7},       // 6
+    {3, 4, 5, 11, 10, 9},     // 7
+    {6, 5, 11, -1, -1, -1}, // End of second point row
+    {7, 8, 12, -1, -1, -1},   // 9
+    {8, 9, 10, 14, 13, 12},   // 10
+    {11, 10, 14, -1, -1, -1}, // End of third point row
+    {12, 13, 15, -1, -1, -1}, // 12
+    {14, 13, 15, -1, -1, -1}, // End of fourth point row
+    {15, -1, -1, -1, -1, -1}  // 14
+  };
 
-  int mask[] = {0, 3, 4, 5, 1, 11, 12, 13, 6, 10, 14, 7, 9, 8, 2};
+  int pointNum[15][6] = {
+    {0, -1, -1, -1, -1, -1}, // Point 0 is the first point of sub element 0
+    {1, 0, 0, -1, -1, -1},  // 1
+    {1, 0, 0, -1, -1, -1},  // 2
+    {1, 0, 0, -1, -1, -1},  // 3
+    {1, -1, -1, -1, -1, -1}, // End of first point row
+    {2, 2, 0, -1, -1, -1},  // 5
+    {1, 2, 2, 0, 0, 1},     // 6
+    {1, 2, 2, 0, 0, 1},     // 7
+    {2, 1, 1, -1, -1, -1}, // End of second point row
+    {2, 2, 0, -1, -1, -1},  // 9
+    {1, 2, 2, 0, 0, 1},     // 10
+    {2, 1, 1, -1, -1, -1}, // End of third point row
+    {2, 2, 0, -1, -1, -1},  // 12
+    {2, 1, 1, -1, -1, -1}, // End of fourth point row
+    {2, -1, -1, -1, -1, -1} // 14
+  };
 
+  // 16 sub elements per original element
   map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
-  for(int i = 0; i < numCells; i++) {
-    int ind = i * 15;
-    for(int j = 0; j < 15; j++) {
-      pair<double,double> coords = make_pair(x[ind + j], y[ind + j]);
-      if(pointMap.count(coords) == 0) {
-        unique_ptr<Point> p = make_unique<Point>();
-        p->x = x[ind + j];
-        p->y = y[ind + j];
-        p->u = q0[ind + j];
-        p->v = q1[ind + j];
-        p->cells.push_back(i);
-        p->pointNum.push_back(mask[j]);
-        pointMap.insert(make_pair(coords, move(p)));
+  for(int c = 0; c < numCells; c++) {
+    int ind = c * 15;
+    for(int p = 0; p < 15; p++) {
+      pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
+      unique_ptr<Point> point = make_unique<Point>();
+      auto res = pointMap.insert(make_pair(coords, move(point)));
+      if(res.second) {
+        res.first->second->x = x[ind + p];
+        res.first->second->y = y[ind + p];
+        res.first->second->u = q0[ind + p];
+        res.first->second->v = q1[ind + p];
+        for(int m = 0; m < 6; m++) {
+          if(cellMask[p][m] >= 0) {
+            res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
+            res.first->second->pointNum.push_back(pointNum[p][m]);
+          } else {
+            break;
+          }
+        }
+        res.first->second->counter = 1;
       } else {
-        pointMap.at(coords)->u += q0[ind + j];
-        pointMap.at(coords)->v += q1[ind + j];
-        pointMap.at(coords)->cells.push_back(i);
-        pointMap.at(coords)->pointNum.push_back(mask[j]);
+        res.first->second->u += q0[ind + p];
+        res.first->second->v += q1[ind + p];
+        for(int m = 0; m < 6; m++) {
+          if(cellMask[p][m] >= 0) {
+            res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
+            res.first->second->pointNum.push_back(pointNum[p][m]);
+          } else {
+            break;
+          }
+        }
+        res.first->second->counter++;
       }
     }
   }
@@ -63,23 +115,16 @@ void save_solution_all(std::string filename, int numCells, double *q0, double *q
   vector<double> y_v;
   vector<double> u_v;
   vector<double> v_v;
-  vector<cgsize_t> cells(15 * numCells);
-  vector<cgsize_t> cells3(3 * numCells);
+  vector<cgsize_t> cells(3 * numCells * 16);
   int index = 0;
 
   for(auto const &p : pointMap) {
     x_v.push_back(p.second->x);
     y_v.push_back(p.second->y);
-    u_v.push_back(p.second->u / p.second->cells.size());
-    v_v.push_back(p.second->v / p.second->cells.size());
+    u_v.push_back(p.second->u / p.second->counter);
+    v_v.push_back(p.second->v / p.second->counter);
     for(int i = 0; i < p.second->cells.size(); i++) {
-      cells[p.second->cells[i] * 15 + p.second->pointNum[i]] = index + 1;
-      if(p.second->pointNum[i] == 0)
-        cells3[p.second->cells[i] * 3] = index + 1;
-      if(p.second->pointNum[i] == 1)
-        cells3[p.second->cells[i] * 3 + 1] = index + 1;
-      if(p.second->pointNum[i] == 2)
-        cells3[p.second->cells[i] * 3 + 2] = index + 1;
+      cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
     }
     index++;
   }
@@ -100,7 +145,7 @@ void save_solution_all(std::string filename, int numCells, double *q0, double *q
   // Number of vertices
   sizes[0] = x_v.size();
   // Number of cells
-  sizes[1] = numCells;
+  sizes[1] = numCells * 16;
   // Number of boundary vertices (zero if elements not sorted)
   sizes[2] = 0;
   cg_zone_write(file, baseIndex, zoneName.c_str(), sizes,
@@ -116,11 +161,9 @@ void save_solution_all(std::string filename, int numCells, double *q0, double *q
   int sectionIndex;
   int start = 1;
   int end = sizes[1];
-  // cg_section_write(file, baseIndex, zoneIndex, "GridElements", CGNS_ENUMV(TRI_15),
-  //                  start, end, 0, cells.data(), &sectionIndex);
 
   cg_section_write(file, baseIndex, zoneIndex, "GridElements", CGNS_ENUMV(TRI_3),
-                   start, end, 0, cells3.data(), &sectionIndex);
+                   start, end, 0, cells.data(), &sectionIndex);
 
   int flowIndex;
   // Create flow solution node
