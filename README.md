@@ -17,6 +17,7 @@ Directory structure:
   - The 'kernels' directory contains all the OP2 kernels.
   - All other directories are created by the OP2 code generation.
 - The 'tools' directory contains an unstructured VTK to CGNS mesh conversion code.
+- The 'grids' directory contains some sample grids. The code is currently set up to deal with `cylinder.vtk` and `cylinder2.vtk`. Currently identifying the type of boundary edge (e.g. inflow/outflow/wall) is hard coded when loading in the mesh. 
 
 Build instructions:
 ```
@@ -31,17 +32,17 @@ CMakeLists.txt sets the locations of libraries to what I have on my system but y
 Creating CGNS grid:
 ```
 cd build/tools
-cp ../../naca0012.vtk .
+cp ../../grids/cylinder.vtk .
 ./vtk2CGNS
 ```
 
-Running Airfoil:
+Running INS:
 ```
 cd build/src
-cp ../tools/naca0012.cgns .
-./ins_cuda -iter 10 -alpha 0.0
-./ins_openmp -iter 10 -alpha 0.0
-./ins_seq -iter 10 -alpha 0.0
+cp ../tools/cylinder.cgns .
+./ins_cuda -iter 1000 -save 100
+./ins_openmp -iter 1000 -save 100
+./ins_seq -iter 1000 -save 100
 ```
 
-You can then use Paraview to view the result stored in `naca0012.cgns`.
+You can then use Paraview to view the end result which is stored in `end.cgns`. The flow solution will also be saved every 100 iterations in `sol.cgns`. Paraview can then be used to view an animation of the flow using `sol.cgns`.
