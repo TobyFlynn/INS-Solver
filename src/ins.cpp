@@ -255,60 +255,8 @@ int main(int argc, char **argv) {
   cout << "Time in viscosity solve: " << v_time << endl;
 
   // Save solution to CGNS file
-  double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *p_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *pRHS_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *px_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *py_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *utx_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *uty_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *uttx_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *utty_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *visx_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *visy_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *x_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *y_ptr  = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  op_fetch_data(data->Q[currentIter % 2][0], sol_q0);
-  op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
-  op_fetch_data(data->dpdx, px_ptr);
-  op_fetch_data(data->dpdy, py_ptr);
-  op_fetch_data(data->p, p_ptr);
-  op_fetch_data(data->pRHS, pRHS_ptr);
-  op_fetch_data(data->QT[0], utx_ptr);
-  op_fetch_data(data->QT[1], uty_ptr);
-  op_fetch_data(data->QTT[0], uttx_ptr);
-  op_fetch_data(data->QTT[1], utty_ptr);
-  op_fetch_data(data->visRHS[0], visx_ptr);
-  op_fetch_data(data->visRHS[1], visy_ptr);
-  op_fetch_data(data->x, x_ptr);
-  op_fetch_data(data->y, y_ptr);
-  // save_solution_cell("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-  //               sol_q0, p_ptr, data->cgnsCells);
-
-  // op_fetch_data(data->p, sol_q0);
-  // op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
-  // save_solution("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-  //               sol_q0, sol_q1, p_ptr, data->cgnsCells);
-
-  save_solution_t("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-                  sol_q0, sol_q1, p_ptr, pRHS_ptr, px_ptr, py_ptr, utx_ptr, uty_ptr, uttx_ptr, utty_ptr, visx_ptr, visy_ptr, data->cgnsCells);
-
-  save_solution_all("sol.cgns", op_get_size(data->cells), sol_q0, sol_q1, x_ptr, y_ptr);
-
-  free(sol_q0);
-  free(sol_q1);
-  free(p_ptr);
-  free(pRHS_ptr);
-  free(px_ptr);
-  free(py_ptr);
-  free(utx_ptr);
-  free(uty_ptr);
-  free(uttx_ptr);
-  free(utty_ptr);
-  free(visx_ptr);
-  free(visy_ptr);
-
+  save_solution_all("sol.cgns", data, currentIter % 2);
+  
   // op_fetch_data_hdf5_file(data->Q[currentIter % 2][0], "sol.h5");
   // op_fetch_data_hdf5_file(data->Q[currentIter % 2][1], "sol.h5");
 

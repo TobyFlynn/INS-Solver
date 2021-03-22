@@ -17,8 +17,8 @@ list(APPEND CUBLAS_SRC cuBLAS_op/init_gauss_op.cu cuBLAS_op/init_gauss_grad_op.c
 list(APPEND CUBLAS_SRC cuBLAS_op/advection_lift_op.cu cuBLAS_op/pressure_rhs_op.cu cuBLAS_op/viscosity_rhs_op.cu)
 list(APPEND CUBLAS_SRC cuBLAS_op/poisson_test_rhs_op.cu)
 
-set(CPU_SRC operators_op.cpp poisson_op.cpp poisson_copy_op.cpp ins_data_op.cpp save_solution.cpp save_solution_all.cpp)
-set(GPU_SRC operators_op.cpp poisson_op.cpp poisson_copy_op.cu ins_data_op.cpp save_solution.cpp save_solution_all.cpp)
+set(CPU_SRC operators_op.cpp poisson_op.cpp poisson_copy_op.cpp ins_data_op.cpp save_solution.cpp save_solution_all_op.cpp)
+set(GPU_SRC operators_op.cpp poisson_op.cpp poisson_copy_op.cu ins_data_op.cpp save_solution.cpp save_solution_all_op.cpp)
 
 op2_application(ins_seq LIBS op2_seq op2_hdf5 SOURCES ins_op.cpp ${CPU_SRC} ${OPENBLAS_SRC} seq/ins_seqkernels.cpp ${KERNEL_HEADERS})
 

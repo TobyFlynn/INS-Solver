@@ -83,6 +83,7 @@ INSData::~INSData() {
   free(dpdx_data);
   free(dpdy_data);
   free(zeroBC_data);
+  free(vorticity_data);
 }
 
 void INSData::initOP2() {
@@ -120,14 +121,15 @@ void INSData::initOP2() {
     dQdy_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
     gradCurlVel_data[i] = (double *)calloc(15 * numCells, sizeof(double));
   }
-  divVelT_data = (double *)calloc(15 * numCells, sizeof(double));
-  curlVel_data = (double *)calloc(15 * numCells, sizeof(double));
-  pRHS_data    = (double *)calloc(15 * numCells, sizeof(double));
-  pRHSex_data  = (double *)calloc(15 * numCells, sizeof(double));
-  p_data       = (double *)calloc(15 * numCells, sizeof(double));
-  dpdx_data    = (double *)calloc(15 * numCells, sizeof(double));
-  dpdy_data    = (double *)calloc(15 * numCells, sizeof(double));
-  zeroBC_data  = (double *)calloc(21 * numCells, sizeof(double));
+  divVelT_data   = (double *)calloc(15 * numCells, sizeof(double));
+  curlVel_data   = (double *)calloc(15 * numCells, sizeof(double));
+  pRHS_data      = (double *)calloc(15 * numCells, sizeof(double));
+  pRHSex_data    = (double *)calloc(15 * numCells, sizeof(double));
+  p_data         = (double *)calloc(15 * numCells, sizeof(double));
+  dpdx_data      = (double *)calloc(15 * numCells, sizeof(double));
+  dpdy_data      = (double *)calloc(15 * numCells, sizeof(double));
+  zeroBC_data    = (double *)calloc(21 * numCells, sizeof(double));
+  vorticity_data = (double *)calloc(15 * numCells, sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -203,14 +205,15 @@ void INSData::initOP2() {
     string visBCname = "visBC" + to_string(i);
     visBC[i] = op_decl_dat(cells, 21, "double", visBC_data[i], visBCname.c_str());
   }
-  divVelT = op_decl_dat(cells, 15, "double", divVelT_data, "divVelT");
-  curlVel = op_decl_dat(cells, 15, "double", curlVel_data, "curlVel");
-  pRHS    = op_decl_dat(cells, 15, "double", pRHS_data, "pRHS");
-  pRHSex  = op_decl_dat(cells, 15, "double", pRHSex_data, "pRHSex");
-  p       = op_decl_dat(cells, 15, "double", p_data, "p");
-  dpdx    = op_decl_dat(cells, 15, "double", dpdx_data, "dpdx");
-  dpdy    = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
-  zeroBC  = op_decl_dat(cells, 21, "double", zeroBC_data, "zeroBC");
+  divVelT   = op_decl_dat(cells, 15, "double", divVelT_data, "divVelT");
+  curlVel   = op_decl_dat(cells, 15, "double", curlVel_data, "curlVel");
+  pRHS      = op_decl_dat(cells, 15, "double", pRHS_data, "pRHS");
+  pRHSex    = op_decl_dat(cells, 15, "double", pRHSex_data, "pRHSex");
+  p         = op_decl_dat(cells, 15, "double", p_data, "p");
+  dpdx      = op_decl_dat(cells, 15, "double", dpdx_data, "dpdx");
+  dpdy      = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
+  zeroBC    = op_decl_dat(cells, 21, "double", zeroBC_data, "zeroBC");
+  vorticity = op_decl_dat(cells, 15, "double", vorticity_data, "vorticity");
 
   op_decl_const(1, "double", &gam);
   op_decl_const(1, "double", &mu);

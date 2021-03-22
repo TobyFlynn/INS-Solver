@@ -66,6 +66,7 @@ public:
   op_dat visRHS[2];
   op_dat zeroBC, visBC[2];
   op_dat dQdx[2], dQdy[2];
+  op_dat vorticity;
 private:
   // Pointers to private memory
   double *nodeX_data;
@@ -103,6 +104,7 @@ private:
   double *visBC_data[2];
   double *dQdx_data[2];
   double *dQdy_data[2];
+  double *vorticity_data;
 };
 
 class CubatureData {
