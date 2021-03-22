@@ -5,13 +5,19 @@
 //user function
 //user function
 //#pragma acc routine
-inline void viscosity_rhs_openacc( const double *factor, const double *J, const double *qtt0,
-                          const double *qtt1, double *vRHS0, double *vRHS1) {
+inline void viscosity_rhs_openacc( const double *factor, const double *J, double *vRHS0,
+                          double *vRHS1, double *bcx, double *bcy) {
 
   for(int i = 0; i < 15; i++) {
-    vRHS0[i] = *factor * J[i] * qtt0[i];
-    vRHS1[i] = *factor * J[i] * qtt1[i];
+
+
+    vRHS0[i] = (*factor) * vRHS0[i];
+    vRHS1[i] = (*factor) * vRHS1[i];
   }
+
+
+
+
 }
 
 // host stub function
@@ -36,10 +42,10 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(15);
+  op_timing_realloc(11);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[15].name      = name;
-  OP_kernels[15].count    += 1;
+  OP_kernels[11].name      = name;
+  OP_kernels[11].count    += 1;
 
 
   if (OP_diags>2) {
@@ -67,8 +73,8 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
         &data1[15*n],
         &data2[15*n],
         &data3[15*n],
-        &data4[15*n],
-        &data5[15*n]);
+        &data4[21*n],
+        &data5[21*n]);
     }
   }
 
@@ -77,10 +83,10 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[15].time     += wall_t2 - wall_t1;
-  OP_kernels[15].transfer += (float)set->size * arg1.size;
-  OP_kernels[15].transfer += (float)set->size * arg2.size;
-  OP_kernels[15].transfer += (float)set->size * arg3.size;
-  OP_kernels[15].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[15].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[11].time     += wall_t2 - wall_t1;
+  OP_kernels[11].transfer += (float)set->size * arg1.size;
+  OP_kernels[11].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[11].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[11].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[11].transfer += (float)set->size * arg5.size * 2.0f;
 }

@@ -14,6 +14,30 @@ extern double bc_v;
 extern int FMASK[15];
 extern double ic_u;
 extern double ic_v;
+extern double cubV[46 * 15];
+extern double cubW[46];
+extern double cubVDr[46 * 15];
+extern double cubVDs[46 * 15];
+extern double gaussW[7];
+extern double gFInterp0[7 * 15];
+extern double gFInterp1[7 * 15];
+extern double gFInterp2[7 * 15];
+extern double gF0Dr[7 * 15];
+extern double gF0Ds[7 * 15];
+extern double gF1Dr[7 * 15];
+extern double gF1Ds[7 * 15];
+extern double gF2Dr[7 * 15];
+extern double gF2Ds[7 * 15];
+extern double gFInterp0R[7 * 15];
+extern double gFInterp1R[7 * 15];
+extern double gFInterp2R[7 * 15];
+extern double gF0DrR[7 * 15];
+extern double gF0DsR[7 * 15];
+extern double gF1DrR[7 * 15];
+extern double gF1DsR[7 * 15];
+extern double gF2DrR[7 * 15];
+extern double gF2DsR[7 * 15];
+extern double lift_drag_vec[5];
 
 class INSData {
 public:
@@ -34,22 +58,21 @@ public:
   // OP2 stuff
   op_set nodes, cells, edges, bedges;
   op_map cell2nodes, edge2nodes, edge2cells, bedge2nodes, bedge2cells;
-  op_dat node_coords, nodeX, nodeY, x, y, xr, yr, xs, ys, rx, ry, sx, sy, nx,
+  op_dat node_coords, nodeX, nodeY, x, y, rx, ry, sx, sy, nx,
          ny, J, sJ, fscale, bedge_type, edgeNum, bedgeNum;
-  op_dat Q[2][3], exQ[2], F[4], N[2][2], flux[2], QT[3], QTT[3];
+  op_dat Q[2][2], exQ[2], F[4], N[2][2], flux[2], QT[2], QTT[2];
   op_dat div[4];
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, pRHSex, p, dpdx, dpdy;
   op_dat visRHS[2];
+  op_dat zeroBC, visBC[2];
+  op_dat dQdx[2], dQdy[2];
+  op_dat vorticity;
 private:
   // Pointers to private memory
   double *nodeX_data;
   double *nodeY_data;
   double *x_data;
   double *y_data;
-  double *xr_data;
-  double *yr_data;
-  double *xs_data;
-  double *ys_data;
   double *rx_data;
   double *ry_data;
   double *sx_data;
@@ -59,13 +82,13 @@ private:
   double *J_data;
   double *sJ_data;
   double *fscale_data;
-  double *Q_data[2][3];
+  double *Q_data[2][2];
   double *exQ_data[2];
   double *F_data[4];
   double *N_data[2][2];
   double *flux_data[2];
-  double *QT_data[3];
-  double *QTT_data[3];
+  double *QT_data[2];
+  double *QTT_data[2];
   double *div_data[4];
   double *divVelT_data;
   double *curlVel_data;
@@ -77,6 +100,72 @@ private:
   double *dpdx_data;
   double *dpdy_data;
   double *visRHS_data[2];
+  double *zeroBC_data;
+  double *visBC_data[2];
+  double *dQdx_data[2];
+  double *dQdy_data[2];
+  double *vorticity_data;
+};
+
+class CubatureData {
+public:
+  CubatureData(INSData *dat);
+  ~CubatureData();
+
+  // mm and OP are stored in column major format
+  // OP is the local stiffness matrix used by the Poisson solver
+  op_dat rx, sx, ry, sy, J, mm, Dx, Dy, OP;
+  op_dat temp, temp2;
+
+private:
+  INSData *data;
+
+  double *rx_data;
+  double *sx_data;
+  double *ry_data;
+  double *sy_data;
+  double *J_data;
+  double *mm_data;
+  double *Dx_data;
+  double *Dy_data;
+  double *OP_data;
+  double *temp_data;
+  double *temp2_data;
+};
+
+class GaussData {
+public:
+  GaussData(INSData *dat);
+  ~GaussData();
+
+  op_dat x, y;
+  op_dat rx, sx, ry, sy, sJ, nx, ny, tau, reverse;
+  op_dat mDx[3], mDy[3], pDx[3], pDy[3], mD[3], pD[3];
+  // OP is in column major format
+  op_dat OP[3], OPf[3];
+private:
+  INSData *data;
+
+  double *x_data;
+  double *y_data;
+  double *rx_data;
+  double *sx_data;
+  double *ry_data;
+  double *sy_data;
+  double *sJ_data;
+  double *nx_data;
+  double *ny_data;
+  double *tau_data;
+  double *mDx_data[3];
+  double *mDy_data[3];
+  double *pDx_data[3];
+  double *pDy_data[3];
+  double *mD_data[3];
+  double *pD_data[3];
+  double *OP_data[3];
+  double *OPf_data[3];
+
+  int *reverse_data;
 };
 
 #endif

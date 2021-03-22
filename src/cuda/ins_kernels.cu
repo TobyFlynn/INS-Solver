@@ -18,6 +18,30 @@ __constant__ double bc_v_cuda;
 __constant__ int FMASK_cuda[15];
 __constant__ double ic_u_cuda;
 __constant__ double ic_v_cuda;
+__constant__ double cubW_cuda[46];
+__constant__ double cubV_cuda[690];
+__constant__ double cubVDr_cuda[690];
+__constant__ double cubVDs_cuda[690];
+__constant__ double gF0Dr_cuda[105];
+__constant__ double gF0Ds_cuda[105];
+__constant__ double gF1Dr_cuda[105];
+__constant__ double gF1Ds_cuda[105];
+__constant__ double gF2Dr_cuda[105];
+__constant__ double gF2Ds_cuda[105];
+__constant__ double gaussW_cuda[7];
+__constant__ double gFInterp0_cuda[105];
+__constant__ double gFInterp1_cuda[105];
+__constant__ double gFInterp2_cuda[105];
+__constant__ double gF0DrR_cuda[105];
+__constant__ double gF0DsR_cuda[105];
+__constant__ double gF1DrR_cuda[105];
+__constant__ double gF1DsR_cuda[105];
+__constant__ double gF2DrR_cuda[105];
+__constant__ double gF2DsR_cuda[105];
+__constant__ double gFInterp0R_cuda[105];
+__constant__ double gFInterp1R_cuda[105];
+__constant__ double gFInterp2R_cuda[105];
+__constant__ double lift_drag_vec_cuda[5];
 
 //header
 #include "op_lib_cpp.h"
@@ -71,13 +95,108 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(ic_v_cuda, dat, dim*size));
   }
   else
+  if (!strcmp(name,"cubW")) {
+    cutilSafeCall(cudaMemcpyToSymbol(cubW_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"cubV")) {
+    cutilSafeCall(cudaMemcpyToSymbol(cubV_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"cubVDr")) {
+    cutilSafeCall(cudaMemcpyToSymbol(cubVDr_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"cubVDs")) {
+    cutilSafeCall(cudaMemcpyToSymbol(cubVDs_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF0Dr")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF0Dr_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF0Ds")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF0Ds_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF1Dr")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF1Dr_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF1Ds")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF1Ds_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF2Dr")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF2Dr_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF2Ds")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF2Ds_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gaussW")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gaussW_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gFInterp0")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp0_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gFInterp1")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp1_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gFInterp2")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp2_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF0DrR")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF0DrR_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF0DsR")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF0DsR_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF1DrR")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF1DrR_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF1DsR")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF1DsR_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF2DrR")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF2DrR_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gF2DsR")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF2DsR_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gFInterp0R")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp0R_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gFInterp1R")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp1R_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"gFInterp2R")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp2R_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"lift_drag_vec")) {
+    cutilSafeCall(cudaMemcpyToSymbol(lift_drag_vec_cuda, dat, dim*size));
+  }
+  else
   {
     printf("error: unknown const name\n"); exit(1);
   }
 }
 
 //user kernel files
-#include "init_grid_kernel.cu"
 #include "set_ic_kernel.cu"
 #include "calc_dt_kernel.cu"
 #include "advection_flux_kernel.cu"
@@ -87,22 +206,26 @@ int size, char *dat, char const *name){
 #include "advection_intermediate_vel_kernel.cu"
 #include "pressure_bc_kernel.cu"
 #include "pressure_rhs_kernel.cu"
-#include "pressure_bc2_kernel.cu"
-#include "pressure_bc3_kernel.cu"
 #include "pressure_update_vel_kernel.cu"
-#include "viscosity_faces_kernel.cu"
-#include "viscosity_set_bc_kernel.cu"
-#include "viscosity_rhs_kernel.cu"
 #include "viscosity_bc_kernel.cu"
-#include "setup_poisson_kernel.cu"
-#include "set_tau_kernel.cu"
-#include "set_tau_bc_kernel.cu"
-#include "poisson_rhs_faces_kernel.cu"
-#include "poisson_rhs_bc_kernel.cu"
-#include "poisson_rhs_du_kernel.cu"
-#include "poisson_rhs_qbc_kernel.cu"
-#include "poisson_rhs_fluxq_kernel.cu"
-#include "poisson_rhs_J_kernel.cu"
+#include "viscosity_rhs_kernel.cu"
+#include "viscosity_reset_bc_kernel.cu"
+#include "lift_drag_kernel.cu"
+#include "min_max_kernel.cu"
+#include "init_grid_kernel.cu"
+#include "init_cubature_grad_kernel.cu"
+#include "init_cubature_kernel.cu"
+#include "init_cubature_OP_kernel.cu"
+#include "gauss_reverse_kernel.cu"
+#include "init_gauss_kernel.cu"
+#include "gauss_tau_kernel.cu"
+#include "gauss_tau_bc_kernel.cu"
+#include "init_gauss_grad_kernel.cu"
+#include "init_gauss_grad2_kernel.cu"
+#include "init_gauss_grad_neighbour_kernel.cu"
+#include "gauss_grad_faces_kernel.cu"
+#include "gauss_op_kernel.cu"
+#include "gauss_gfi_faces_kernel.cu"
 #include "div_kernel.cu"
 #include "curl_kernel.cu"
 #include "grad_kernel.cu"

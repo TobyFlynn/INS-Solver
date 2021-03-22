@@ -3,16 +3,16 @@
 #include "op_seq.h"
 #include "../blas_calls.h"
 
-inline void openblas_pressure_rhs(const int numCells, const double *div,
+inline void openblas_pressure_rhs(const int numCells, double *div,
                                   const double *dPdN, double *rhs) {
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, LIFT, 15, dPdN, 15, 1.0, div, 15);
   cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, MASS, 15, div, 15, 0.0, rhs, 15);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, LIFT, 15, dPdN, 15, 1.0, rhs, 15);
 }
 
 void pressure_rhs_blas(INSData *nsData, int ind) {
   // Make sure OP2 data is in the right place
   op_arg pressure_rhs_args[] = {
-    op_arg_dat(nsData->divVelT, -1, OP_ID, 15, "double", OP_READ),
+    op_arg_dat(nsData->divVelT, -1, OP_ID, 15, "double", OP_RW),
     op_arg_dat(nsData->dPdN[(ind + 1) % 2], -1, OP_ID, 15, "double", OP_READ),
     op_arg_dat(nsData->pRHS, -1, OP_ID, 15, "double", OP_WRITE)
   };

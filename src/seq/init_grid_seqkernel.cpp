@@ -18,14 +18,10 @@ void op_par_loop_init_grid(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13,
-  op_arg arg14,
-  op_arg arg15,
-  op_arg arg16,
-  op_arg arg17){
+  op_arg arg13){
 
-  int nargs = 18;
-  op_arg args[18];
+  int nargs = 14;
+  op_arg args[14];
 
   arg0.idx = 0;
   args[0] = arg0;
@@ -44,14 +40,10 @@ void op_par_loop_init_grid(char const *name, op_set set,
   args[11] = arg11;
   args[12] = arg12;
   args[13] = arg13;
-  args[14] = arg14;
-  args[15] = arg15;
-  args[16] = arg16;
-  args[17] = arg17;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(0);
+  op_timing_realloc(15);
   op_timers_core(&cpu_t1, &wall_t1);
 
   if (OP_diags>2) {
@@ -90,11 +82,7 @@ void op_par_loop_init_grid(char const *name, op_set set,
         &((double*)arg10.data)[15 * n],
         &((double*)arg11.data)[15 * n],
         &((double*)arg12.data)[15 * n],
-        &((double*)arg13.data)[15 * n],
-        &((double*)arg14.data)[15 * n],
-        &((double*)arg15.data)[15 * n],
-        &((double*)arg16.data)[15 * n],
-        &((double*)arg17.data)[15 * n]);
+        &((double*)arg13.data)[15 * n]);
     }
   }
 
@@ -106,24 +94,20 @@ void op_par_loop_init_grid(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[0].name      = name;
-  OP_kernels[0].count    += 1;
-  OP_kernels[0].time     += wall_t2 - wall_t1;
-  OP_kernels[0].transfer += (float)set->size * arg0.size;
-  OP_kernels[0].transfer += (float)set->size * arg3.size;
-  OP_kernels[0].transfer += (float)set->size * arg4.size;
-  OP_kernels[0].transfer += (float)set->size * arg5.size;
-  OP_kernels[0].transfer += (float)set->size * arg6.size;
-  OP_kernels[0].transfer += (float)set->size * arg7.size;
-  OP_kernels[0].transfer += (float)set->size * arg8.size;
-  OP_kernels[0].transfer += (float)set->size * arg9.size;
-  OP_kernels[0].transfer += (float)set->size * arg10.size;
-  OP_kernels[0].transfer += (float)set->size * arg11.size;
-  OP_kernels[0].transfer += (float)set->size * arg12.size;
-  OP_kernels[0].transfer += (float)set->size * arg13.size;
-  OP_kernels[0].transfer += (float)set->size * arg14.size;
-  OP_kernels[0].transfer += (float)set->size * arg15.size;
-  OP_kernels[0].transfer += (float)set->size * arg16.size;
-  OP_kernels[0].transfer += (float)set->size * arg17.size;
-  OP_kernels[0].transfer += (float)set->size * arg0.map->dim * 4.0f;
+  OP_kernels[15].name      = name;
+  OP_kernels[15].count    += 1;
+  OP_kernels[15].time     += wall_t2 - wall_t1;
+  OP_kernels[15].transfer += (float)set->size * arg0.size;
+  OP_kernels[15].transfer += (float)set->size * arg3.size;
+  OP_kernels[15].transfer += (float)set->size * arg4.size;
+  OP_kernels[15].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[15].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[15].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[15].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[15].transfer += (float)set->size * arg9.size;
+  OP_kernels[15].transfer += (float)set->size * arg10.size;
+  OP_kernels[15].transfer += (float)set->size * arg11.size;
+  OP_kernels[15].transfer += (float)set->size * arg12.size;
+  OP_kernels[15].transfer += (float)set->size * arg13.size;
+  OP_kernels[15].transfer += (float)set->size * arg0.map->dim * 4.0f;
 }

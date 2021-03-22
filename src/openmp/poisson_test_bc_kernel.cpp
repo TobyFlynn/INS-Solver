@@ -9,32 +9,36 @@
 void op_par_loop_poisson_test_bc(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2){
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
 
-  int nargs = 3;
-  op_arg args[3];
+  int nargs = 5;
+  op_arg args[5];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
+  args[3] = arg3;
+  args[4] = arg4;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(30);
-  OP_kernels[30].name      = name;
-  OP_kernels[30].count    += 1;
+  op_timing_realloc(33);
+  OP_kernels[33].name      = name;
+  OP_kernels[33].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 1;
-  int  inds[3] = {-1,-1,0};
+  int  ninds   = 3;
+  int  inds[5] = {-1,-1,0,1,2};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_test_bc\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_30
-    int part_size = OP_PART_SIZE_30;
+  #ifdef OP_PART_SIZE_33
+    int part_size = OP_PART_SIZE_33;
   #else
     int part_size = OP_part_size;
   #endif
@@ -66,14 +70,16 @@ void op_par_loop_poisson_test_bc(char const *name, op_set set,
           poisson_test_bc(
             &((int*)arg0.data)[1 * n],
             &((int*)arg1.data)[1 * n],
-            &((double*)arg2.data)[15 * map2idx]);
+            &((double*)arg2.data)[21 * map2idx],
+            &((double*)arg3.data)[21 * map2idx],
+            &((double*)arg4.data)[21 * map2idx]);
         }
       }
 
       block_offset += nblocks;
     }
-    OP_kernels[30].transfer  += Plan->transfer;
-    OP_kernels[30].transfer2 += Plan->transfer2;
+    OP_kernels[33].transfer  += Plan->transfer;
+    OP_kernels[33].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -84,5 +90,5 @@ void op_par_loop_poisson_test_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[30].time     += wall_t2 - wall_t1;
+  OP_kernels[33].time     += wall_t2 - wall_t1;
 }

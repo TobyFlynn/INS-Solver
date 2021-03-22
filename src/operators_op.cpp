@@ -70,7 +70,6 @@ void div(INSData *data, op_dat u, op_dat v, op_dat res) {
 
 void curl(INSData *data, op_dat u, op_dat v, op_dat res) {
   // Same matrix multiplications as div
-  // Rename this later
   div_blas(data, u, v);
 
   op_par_loop_curl("curl",data->cells,

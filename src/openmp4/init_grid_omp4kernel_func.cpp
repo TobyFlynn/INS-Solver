@@ -27,14 +27,6 @@ void init_grid_omp4_kernel(
   int dat12size,
   double *data13,
   int dat13size,
-  double *data14,
-  int dat14size,
-  double *data15,
-  int dat15size,
-  double *data16,
-  int dat16size,
-  double *data17,
-  int dat17size,
   double *data0,
   int dat0size,
   int *col_reord,
@@ -44,7 +36,7 @@ void init_grid_omp4_kernel(
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size],data15[0:dat15size],data16[0:dat16size],data17[0:dat17size]) \
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size]) \
     map(to: FMASK_ompkernel[:15])\
     map(to:col_reord[0:set_size1],map0[0:map0size],data0[0:dat0size])
   #pragma omp distribute parallel for schedule(static,1)
@@ -65,19 +57,15 @@ void init_grid_omp4_kernel(
     const double **nc = arg0_vec;
     double *nodeX = &data3[3*n_op];
     double *nodeY = &data4[3*n_op];
-    const double *xr = &data5[15*n_op];
-    const double *yr = &data6[15*n_op];
-    const double *xs = &data7[15*n_op];
-    const double *ys = &data8[15*n_op];
-    double *rx = &data9[15*n_op];
-    double *ry = &data10[15*n_op];
-    double *sx = &data11[15*n_op];
-    double *sy = &data12[15*n_op];
-    double *nx = &data13[15*n_op];
-    double *ny = &data14[15*n_op];
-    double *J = &data15[15*n_op];
-    double *sJ = &data16[15*n_op];
-    double *fscale = &data17[15*n_op];
+    double *rx = &data5[15*n_op];
+    double *ry = &data6[15*n_op];
+    double *sx = &data7[15*n_op];
+    double *sy = &data8[15*n_op];
+    double *nx = &data9[15*n_op];
+    double *ny = &data10[15*n_op];
+    double *J = &data11[15*n_op];
+    double *sJ = &data12[15*n_op];
+    double *fscale = &data13[15*n_op];
 
     //inline function
     
@@ -88,31 +76,35 @@ void init_grid_omp4_kernel(
     nodeY[1] = nc[1][1];
     nodeY[2] = nc[2][1];
 
+
+    for(int i = 0; i < 5; i++) {
+      nx[i] = ry[FMASK_ompkernel[i]];
+      ny[i] = -rx[FMASK_ompkernel[i]];
+    }
+
+    for(int i = 0; i < 5; i++) {
+      nx[5 + i] = sy[FMASK_ompkernel[5 + i]] - ry[FMASK_ompkernel[5 + i]];
+      ny[5 + i] = rx[FMASK_ompkernel[5 + i]] - sx[FMASK_ompkernel[5 + i]];
+    }
+
+    for(int i = 0; i < 5; i++) {
+      nx[2 * 5 + i] = -sy[FMASK_ompkernel[2 * 5 + i]];
+      ny[2 * 5 + i] = sx[FMASK_ompkernel[2 * 5 + i]];
+    }
+
     for(int i = 0; i < 15; i++) {
-      J[i] = -xs[i] * yr[i] + xr[i] * ys[i];
+      J[i] = -sx[i] * ry[i] + rx[i] * sy[i];
     }
 
     for(int i = 0; i < 15; i++) {
-      rx[i] = ys[i] / J[i];
-      sx[i] = -yr[i] / J[i];
-      ry[i] = -xs[i] / J[i];
-      sy[i] = xr[i] / J[i];
-    }
-
-
-    for(int i = 0; i < 5; i++) {
-      nx[i] = yr[FMASK_ompkernel[i]];
-      ny[i] = -xr[FMASK_ompkernel[i]];
-    }
-
-    for(int i = 0; i < 5; i++) {
-      nx[5 + i] = ys[FMASK_ompkernel[5 + i]] - yr[FMASK_ompkernel[5 + i]];
-      ny[5 + i] = xr[FMASK_ompkernel[5 + i]] - xs[FMASK_ompkernel[5 + i]];
-    }
-
-    for(int i = 0; i < 5; i++) {
-      nx[2 * 5 + i] = -ys[FMASK_ompkernel[2 * 5 + i]];
-      ny[2 * 5 + i] = xs[FMASK_ompkernel[2 * 5 + i]];
+      double rx_n = sy[i] / J[i];
+      double sx_n = -ry[i] / J[i];
+      double ry_n = -sx[i] / J[i];
+      double sy_n = rx[i] / J[i];
+      rx[i] = rx_n;
+      sx[i] = sx_n;
+      ry[i] = ry_n;
+      sy[i] = sy_n;
     }
 
     for(int i = 0; i < 3 * 5; i++) {

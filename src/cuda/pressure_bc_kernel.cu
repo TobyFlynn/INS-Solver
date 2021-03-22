@@ -26,7 +26,7 @@ __device__ void pressure_bc_gpu( const int *bedge_type, const int *bedgeNum, con
     fmask = &FMASK_cuda[2 * 5];
   }
 
-  if(*bedge_type == 0 || *bedge_type == 2) {
+  if(*bedge_type == 0 || *bedge_type == 2 || *bedge_type == 3) {
 
     for(int i = 0; i < 5; i++) {
       int fInd = fmask[i];
@@ -38,12 +38,14 @@ __device__ void pressure_bc_gpu( const int *bedge_type, const int *bedgeNum, con
 
   if(*bedge_type == 0) {
 
+    const double PI = 3.141592653589793238463;
+    for(int i = 0; i < 5; i++) {
+      double y1 = y[fmask[i]];
+      double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
 
 
-
-
-
-
+      dPdN[exInd + i] -= bcdUndt;
+    }
   }
 
 }
@@ -144,10 +146,10 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(8);
+  op_timing_realloc(7);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[8].name      = name;
-  OP_kernels[8].count    += 1;
+  OP_kernels[7].name      = name;
+  OP_kernels[7].count    += 1;
 
 
   int    ninds   = 9;
@@ -173,8 +175,8 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_8
-      int nthread = OP_BLOCK_SIZE_8;
+    #ifdef OP_BLOCK_SIZE_7
+      int nthread = OP_BLOCK_SIZE_7;
     #else
       int nthread = OP_block_size;
     #endif
@@ -209,5 +211,5 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[8].time     += wall_t2 - wall_t1;
+  OP_kernels[7].time     += wall_t2 - wall_t1;
 }

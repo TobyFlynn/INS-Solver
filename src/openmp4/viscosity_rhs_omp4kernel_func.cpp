@@ -25,17 +25,19 @@ void viscosity_rhs_omp4_kernel(
     //variable mapping
     const double *factor = &arg0_l;
     const double *J = &data1[15*n_op];
-    const double *qtt0 = &data2[15*n_op];
-    const double *qtt1 = &data3[15*n_op];
-    double *vRHS0 = &data4[15*n_op];
-    double *vRHS1 = &data5[15*n_op];
+    double *vRHS0 = &data2[15*n_op];
+    double *vRHS1 = &data3[15*n_op];
+    double *bcx = &data4[21*n_op];
+    double *bcy = &data5[21*n_op];
 
     //inline function
     
 
     for(int i = 0; i < 15; i++) {
-      vRHS0[i] = *factor * J[i] * qtt0[i];
-      vRHS1[i] = *factor * J[i] * qtt1[i];
+
+
+      vRHS0[i] = (*factor) * vRHS0[i];
+      vRHS1[i] = (*factor) * vRHS1[i];
     }
     //end inline func
   }

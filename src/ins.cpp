@@ -7,7 +7,6 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
-#include <getopt.h>
 #include <limits>
 
 #include "constants/all_constants.h"
@@ -19,7 +18,6 @@
 #include "poisson.h"
 
 // Kernels
-#include "kernels/init_grid.h"
 #include "kernels/set_ic.h"
 #include "kernels/calc_dt.h"
 
@@ -30,39 +28,35 @@
 #include "kernels/advection_intermediate_vel.h"
 
 #include "kernels/pressure_bc.h"
-#include "kernels/pressure_bc2.h"
-#include "kernels/pressure_bc3.h"
 #include "kernels/pressure_rhs.h"
 #include "kernels/pressure_update_vel.h"
 
-#include "kernels/viscosity_faces.h"
 #include "kernels/viscosity_rhs.h"
+#include "kernels/viscosity_reset_bc.h"
 #include "kernels/viscosity_bc.h"
-#include "kernels/viscosity_set_bc.h"
+
+#include "kernels/lift_drag.h"
+#include "kernels/min_max.h"
 
 using namespace std;
-
-// Stuff for parsing command line arguments
-extern char *optarg;
-extern int  optind, opterr, optopt;
-static struct option options[] = {
-  {"iter", required_argument, 0, 0},
-  {"alpha", required_argument, 0, 0},
-  {0,    0,                  0,  0}
-};
 
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t);
 
-void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
-              double b1, double g0, double dt, double t);
+bool pressure(INSData *data, Poisson *poisson, int currentInd, double a0,
+              double a1, double b0, double b1, double g0, double dt, double t);
 
-void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
+bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
+               Poisson *poisson, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t);
+
+void lift_drag_coeff(INSData *data, double *lift, double *drag, int ind);
+
+void print_min_max(INSData *data, int ind);
 
 int main(int argc, char **argv) {
   string filename = "./cylinder.cgns";
-  char help[] = "TODO";
+  char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
   if(ierr) {
     cout << "Error initialising PETSc" << endl;
@@ -81,10 +75,10 @@ int main(int argc, char **argv) {
   cout << "mu: " << mu << endl;
   cout << "nu: " << nu << endl;
 
-  // Object that holds all sets, maps and dats
-  // (along with memory associated with them)
+  // Object that holds all sets, maps and dats (along with memory associated with them)
   INSData *data = new INSData();
 
+  // Lamda used to identify the type of boundary edges
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
     if(x1 == 0.0 && x2 == 0.0) {
       // Inflow
@@ -92,9 +86,13 @@ int main(int argc, char **argv) {
     } else if(x1 == 2.2 && x2 == 2.2) {
       // Outflow
       return 1;
-    } else {
-      // Wall
+    } else if(x1 > 0.1 && x2 > 0.1 && x1 < 0.3 && x2 < 0.3
+              && y1 > 0.1 && y2 > 0.1 && y1 < 0.3 && y2 < 0.3) {
+      // Cylinder Wall
       return 2;
+    } else {
+      // Top/Bottom Wall
+      return 3;
     }
   };
 
@@ -108,47 +106,38 @@ int main(int argc, char **argv) {
 
   // Get input from args
   int iter = 1;
+  PetscBool found;
+  PetscOptionsGetInt(NULL, NULL, "-iter", &iter, &found);
+
+  int save = -1;
+  PetscOptionsGetInt(NULL, NULL, "-save", &save, &found);
+
   bc_alpha = 0.0;
 
-  int opt_index = 0;
-  while(getopt_long_only(argc, argv, "", options, &opt_index) != -1) {
-    if(strcmp((char*)options[opt_index].name,"iter") == 0) iter = atoi(optarg);
-    if(strcmp((char*)options[opt_index].name,"alpha") == 0) bc_alpha = stod(optarg);
-  }
-
-  // Calculate geometric factors
-  init_grid_blas(data);
-
-  op_par_loop(init_grid, "init_grid", data->cells,
-              op_arg_dat(data->node_coords, -3, data->cell2nodes, 2, "double", OP_READ),
-              op_arg_dat(data->nodeX, -1, OP_ID, 3, "double", OP_WRITE),
-              op_arg_dat(data->nodeY, -1, OP_ID, 3, "double", OP_WRITE),
-              op_arg_dat(data->xr, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->yr, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->xs, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->ys, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->rx, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->ry, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->sx, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->sy, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->nx, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->ny, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->J,  -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->sJ, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->fscale, -1, OP_ID, 15, "double", OP_WRITE));
+  CubatureData *cubData = new CubatureData(data);
+  GaussData *gaussData = new GaussData(data);
 
   // Set initial conditions
   op_par_loop(set_ic, "set_ic", data->cells,
               op_arg_dat(data->Q[0][0],   -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->Q[0][1],   -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->Q[0][2],   -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->exQ[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->exQ[1], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->dPdN[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->dPdN[1], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->pRHSex, -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(data->Q[0][1],   -1, OP_ID, 15, "double", OP_WRITE));
 
-  Poisson *poisson = new Poisson(data);
+  // Initialise Poisson solvers
+  Poisson *pressurePoisson = new Poisson(data, cubData, gaussData);
+  int pressure_dirichlet[] = {1, -1, -1};
+  int pressure_neumann[] = {0, 2, 3};
+  pressurePoisson->setDirichletBCs(pressure_dirichlet);
+  pressurePoisson->setNeumannBCs(pressure_neumann);
+  pressurePoisson->createMatrix();
+  pressurePoisson->createBCMatrix();
+  Poisson *viscosityPoisson = new Poisson(data, cubData, gaussData);
+  int viscosity_dirichlet[] = {0, 2, 3};
+  int viscosity_neumann[] = {1, -1, -1};
+  viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
+  viscosityPoisson->setNeumannBCs(viscosity_neumann);
+  viscosityPoisson->createMatrix();
+  viscosityPoisson->createMassMatrix();
+  viscosityPoisson->createBCMatrix();
 
   double dt = numeric_limits<double>::max();
   op_par_loop(calc_dt, "calc_dt", data->cells,
@@ -170,9 +159,15 @@ int main(int argc, char **argv) {
   double a_time = 0.0;
   double p_time = 0.0;
   double v_time = 0.0;
+  double s_time = 0.0;
+
+  if(save != -1)
+    save_solution_init("sol.cgns", data);
+
   op_timers(&cpu_1, &wall_1);
 
   for(int i = 0; i < iter; i++) {
+    // Switch from forwards Euler time integration to second-order Adams-Bashford after first iteration
     if(i == 1) {
       g0 = 1.5;
       a0 = 2.0;
@@ -186,19 +181,51 @@ int main(int argc, char **argv) {
     a_time += wall_loop_2 - wall_loop_1;
 
     op_timers(&cpu_loop_1, &wall_loop_1);
-    pressure(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
+    bool converged = pressure(data, pressurePoisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
+    if(!converged) {
+      cout << "******** ERROR ********" << endl;
+      cout << "Pressure solve failed to converge, exiting..." << endl;
+      cout << "Iteration: " << i << " Time: " << time << endl;
+      break;
+    }
     op_timers(&cpu_loop_2, &wall_loop_2);
     p_time += wall_loop_2 - wall_loop_1;
 
     op_timers(&cpu_loop_1, &wall_loop_1);
-    viscosity(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
+    converged = viscosity(data, cubData, gaussData, viscosityPoisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
+    if(!converged) {
+      cout << "******** ERROR ********" << endl;
+      cout << "Viscosity solve failed to converge, exiting..." << endl;
+      cout << "Iteration: " << i << " Time: " << time << endl;
+      break;
+    }
     op_timers(&cpu_loop_2, &wall_loop_2);
     v_time += wall_loop_2 - wall_loop_1;
 
     currentIter++;
     time += dt;
+
+    // Calculate drag and lift coefficients + save data
+    if(save != -1 && (i + 1) % save == 0) {
+      op_timers(&cpu_loop_1, &wall_loop_1);
+      // print_min_max(data, currentIter % 2);
+      cout << "Iteration: " << i << endl;
+      double lift, drag;
+      lift_drag_coeff(data, &lift, &drag, currentIter % 2);
+      cout << "Cd: " << drag << " Cl: " << lift << endl;
+      cout << "Avg. Pressure Iter: " << pressurePoisson->getAverageConvergeIter();
+      cout << " Avg. Viscosity Iter: " << viscosityPoisson->getAverageConvergeIter() << endl;
+
+      save_solution_iter("sol.cgns", data, currentIter % 2, (i + 1) / save);
+      cout << "Time " << time << endl;
+      op_timers(&cpu_loop_2, &wall_loop_2);
+      s_time += wall_loop_2 - wall_loop_1;
+    }
   }
   op_timers(&cpu_2, &wall_2);
+
+  if(save != -1)
+    save_solution_finalise("sol.cgns", data, (iter / save) + 1, dt * save);
 
   cout << "Final time: " << time << endl;
 
@@ -208,32 +235,21 @@ int main(int argc, char **argv) {
   cout << "Time in advection solve: " << a_time << endl;
   cout << "Time in pressure solve: " << p_time << endl;
   cout << "Time in viscosity solve: " << v_time << endl;
+  cout << "Time spent saving and calculating lift/drag: " << s_time << endl;
 
   // Save solution to CGNS file
-  double *sol_q0 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  double *sol_q1 = (double *)malloc(15 * op_get_size(data->cells) * sizeof(double));
-  op_fetch_data(data->Q[currentIter % 2][0], sol_q0);
-  op_fetch_data(data->Q[currentIter % 2][1], sol_q1);
-  save_solution("cylinder.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-                sol_q0, sol_q1, data->cgnsCells);
+  save_solution("end.cgns", data, currentIter % 2);
 
-  // op_fetch_data(data->QT[0], sol_q0);
-  // op_fetch_data(data->QT[1], sol_q1);
-  // save_solution("cylinder1.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-  //               sol_q0, sol_q1, data->cgnsCells);
-  //
-  // op_fetch_data(data->QTT[0], sol_q0);
-  // op_fetch_data(data->QTT[1], sol_q1);
-  // save_solution("cylinder2.cgns", op_get_size(data->nodes), op_get_size(data->cells),
-  //               sol_q0, sol_q1, data->cgnsCells);
-
-  free(sol_q0);
-  free(sol_q1);
+  // op_fetch_data_hdf5_file(data->Q[currentIter % 2][0], "sol.h5");
+  // op_fetch_data_hdf5_file(data->Q[currentIter % 2][1], "sol.h5");
 
   // Clean up OP2
   op_exit();
 
-  delete poisson;
+  delete pressurePoisson;
+  delete viscosityPoisson;
+  delete gaussData;
+  delete cubData;
   delete data;
 
   ierr = PetscFinalize();
@@ -242,6 +258,7 @@ int main(int argc, char **argv) {
 
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t) {
+  // Calculate flux values
   op_par_loop(advection_flux, "advection_flux", data->cells,
               op_arg_dat(data->Q[currentInd][0], -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->Q[currentInd][1], -1, OP_ID, 15, "double", OP_READ),
@@ -253,6 +270,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
   div(data, data->F[0], data->F[1], data->N[currentInd][0]);
   div(data, data->F[2], data->F[3], data->N[currentInd][1]);
 
+  // Exchange values on edges between elements
   op_par_loop(advection_faces, "advection_faces", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
@@ -262,6 +280,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->exQ[0], -2, data->edge2cells, 15, "double", OP_INC),
               op_arg_dat(data->exQ[1], -2, data->edge2cells, 15, "double", OP_INC));
 
+  // Enforce BCs
   op_par_loop(advection_bc, "advection_bc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
@@ -273,6 +292,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->exQ[0], 0, data->bedge2cells, 15, "double", OP_INC),
               op_arg_dat(data->exQ[1], 0, data->bedge2cells, 15, "double", OP_INC));
 
+  // Calculate numberical flux across edges
   op_par_loop(advection_numerical_flux, "advection_numerical_flux", data->cells,
               op_arg_dat(data->fscale,  -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->nx,      -1, OP_ID, 15, "double", OP_READ),
@@ -286,6 +306,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
 
   advection_lift_blas(data, currentInd);
 
+  // Calculate the intermediate velocity values
   op_par_loop(advection_intermediate_vel, "advection_intermediate_vel", data->cells,
               op_arg_gbl(&a0, 1, "double", OP_READ),
               op_arg_gbl(&a1, 1, "double", OP_READ),
@@ -305,18 +326,13 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QT[1], -1, OP_ID, 15, "double", OP_WRITE));
 }
 
-void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
+bool pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
               double b1, double g0, double dt, double t) {
-  int pressure_dirichlet[] = {1, -1};
-  int pressure_neumann[] = {0, 2};
-  poisson->setDirichletBCs(pressure_dirichlet);
-  poisson->setNeumannBCs(pressure_neumann);
   div(data, data->QT[0], data->QT[1], data->divVelT);
   curl(data, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
   grad(data, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
 
-  // Apply boundary conditions
-  // May need to change in future if non-constant boundary conditions used
+  // Apply pressure boundary conditions
   op_par_loop(pressure_bc, "pressure_bc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
@@ -331,6 +347,7 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->gradCurlVel[1], 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->dPdN[currentInd], 0, data->bedge2cells, 15, "double", OP_INC));
 
+  // Calculate RHS of pressure solve
   op_par_loop(pressure_rhs, "pressure_rhs", data->cells,
               op_arg_gbl(&b0, 1, "double", OP_READ),
               op_arg_gbl(&b1, 1, "double", OP_READ),
@@ -344,21 +361,14 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
 
   pressure_rhs_blas(data, currentInd);
 
-  // Dirichlet BCs, p = 0 on outflow
-  op_par_loop(pressure_bc2, "pressure_bc2", data->bedges,
-              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->pRHS, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->pRHSex, 0, data->bedge2cells, 15, "double", OP_INC));
+  // Call PETSc linear solver
+  poisson->setBCValues(data->zeroBC);
+  bool converged = poisson->solve(data->pRHS, data->p);
 
-  op_par_loop(pressure_bc3, "pressure_bc3", data->cells,
-              op_arg_dat(data->pRHSex, -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(data->pRHS, -1, OP_ID, 15, "double", OP_RW));
-
-  poisson->solve(data->pRHS, data->p);
-
+  // Calculate gradient of pressure
   grad(data, data->p, data->dpdx, data->dpdy);
 
+  // Calculate new velocity intermediate values
   double factor = dt / g0;
   op_par_loop(pressure_update_vel, "pressure_update_vel", data->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
@@ -367,59 +377,126 @@ void pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->QT[0], -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->QT[1], -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 15, "double", OP_WRITE));
+
+  return converged;
 }
 
-void viscosity(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
+bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
+               Poisson *poisson, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t) {
-  int viscosity_dirichlet[] = {0, 2};
-  int viscosity_neumann[] = {1, -1};
-  poisson->setDirichletBCs(viscosity_dirichlet);
-  poisson->setNeumannBCs(viscosity_neumann);
-
   double time = t + dt;
-
-  op_par_loop(viscosity_faces, "viscosity_faces", data->edges,
-              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(data->QTT[0], -2, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->QTT[1], -2, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->exQ[0], -2, data->edge2cells, 15, "double", OP_INC),
-              op_arg_dat(data->exQ[1], -2, data->edge2cells, 15, "double", OP_INC));
-
-  op_par_loop(advection_bc, "advection_bc", data->bedges,
+  // Get BCs for viscosity solve
+  op_par_loop(viscosity_bc, "viscosity_bc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&time, 1, "double", OP_READ),
-              op_arg_dat(data->x, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->y, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->QTT[0], 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->QTT[1], 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(data->exQ[0], 0, data->bedge2cells, 15, "double", OP_INC),
-              op_arg_dat(data->exQ[1], 0, data->bedge2cells, 15, "double", OP_INC));
+              op_arg_dat(gaussData->x, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(gaussData->y, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(data->visBC[0], 0, data->bedge2cells, 21, "double", OP_INC),
+              op_arg_dat(data->visBC[1], 0, data->bedge2cells, 21, "double", OP_INC));
 
-  op_par_loop(viscosity_set_bc, "viscosity_set_bc", data->cells,
-              op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(data->exQ[0], -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(data->exQ[1], -1, OP_ID, 15, "double", OP_RW));
-
-  viscosity_rhs_blas(data);
+  // Set up RHS for viscosity solve
+  viscosity_rhs_blas(data, cubatureData);
 
   double factor = g0 / (nu * dt);
   op_par_loop(viscosity_rhs, "viscosity_rhs", data->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
               op_arg_dat(data->J, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->visRHS[0], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->visRHS[1], -1, OP_ID, 15, "double", OP_WRITE));
-/*
-  op_par_loop(viscosity_bc, "viscosity_bc", data->bedges,
+              op_arg_dat(data->visRHS[0], -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(data->visRHS[1], -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(data->visBC[0], -1, OP_ID, 21, "double", OP_RW),
+              op_arg_dat(data->visBC[1], -1, OP_ID, 21, "double", OP_RW));
+
+  // Call PETSc linear solver
+  poisson->setBCValues(data->visBC[0]);
+  bool convergedX = poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
+
+  poisson->setBCValues(data->visBC[1]);
+  bool convergedY = poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
+
+  // Reset BC dats ready for next iteration
+  op_par_loop(viscosity_reset_bc, "viscosity_reset_bc", data->cells,
+              op_arg_dat(data->visBC[0], -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(data->visBC[1], -1, OP_ID, 21, "double", OP_WRITE));
+
+  return convergedX && convergedY;
+}
+
+// Function to calculate lift and drag coefficients of the cylinder
+void lift_drag_coeff(INSData *data, double *lift, double *drag, int ind) {
+  *lift = 0.0;
+  *drag = 0.0;
+
+  grad(data, data->Q[(ind + 1) % 2][0], data->dQdx[0], data->dQdy[0]);
+  grad(data, data->Q[(ind + 1) % 2][1], data->dQdx[1], data->dQdy[1]);
+
+  op_par_loop(lift_drag, "lift_drag", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->visRHS[0], 0, data->bedge2cells, 15, "double", OP_INC),
-              op_arg_dat(data->visRHS[1], 0, data->bedge2cells, 15, "double", OP_INC));
-*/
-  poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
-  poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
+              op_arg_dat(data->p, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->dQdx[0], 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->dQdy[0], 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->dQdx[1], 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->dQdy[1], 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->nx, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->ny, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->sJ, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_gbl(drag, 1, "double", OP_INC),
+              op_arg_gbl(lift, 1, "double", OP_INC));
+
+  // Divide by radius of cylinder
+  *lift = *lift / 0.05;
+  *drag = *drag / 0.05;
+}
+
+// Function for printing the min and max values of various OP2 dats
+void print_min_max(INSData *data, int ind) {
+  double minQT0 = numeric_limits<double>::max();
+  double minQT1 = numeric_limits<double>::max();
+  double minQTT0 = numeric_limits<double>::max();
+  double minQTT1 = numeric_limits<double>::max();
+  double minQ0 = numeric_limits<double>::max();
+  double minQ1 = numeric_limits<double>::max();
+  double maxQT0 = 0.0;
+  double maxQT1 = 0.0;
+  double maxQTT0 = 0.0;
+  double maxQTT1 = 0.0;
+  double maxQ0 = 0.0;
+  double maxQ1 = 0.0;
+
+  op_par_loop(min_max, "min_max", data->cells,
+              op_arg_gbl(&minQT0, 1, "double", OP_MIN),
+              op_arg_gbl(&maxQT0, 1, "double", OP_MAX),
+              op_arg_dat(data->QT[0], -1, OP_ID, 15, "double", OP_READ));
+
+  op_par_loop(min_max, "min_max", data->cells,
+              op_arg_gbl(&minQT1, 1, "double", OP_MIN),
+              op_arg_gbl(&maxQT1, 1, "double", OP_MAX),
+              op_arg_dat(data->QT[1], -1, OP_ID, 15, "double", OP_READ));
+
+  op_par_loop(min_max, "min_max", data->cells,
+              op_arg_gbl(&minQTT0, 1, "double", OP_MIN),
+              op_arg_gbl(&maxQTT0, 1, "double", OP_MAX),
+              op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_READ));
+
+  op_par_loop(min_max, "min_max", data->cells,
+              op_arg_gbl(&minQTT1, 1, "double", OP_MIN),
+              op_arg_gbl(&maxQTT1, 1, "double", OP_MAX),
+              op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_READ));
+
+  op_par_loop(min_max, "min_max", data->cells,
+              op_arg_gbl(&minQ0, 1, "double", OP_MIN),
+              op_arg_gbl(&maxQ0, 1, "double", OP_MAX),
+              op_arg_dat(data->Q[ind][0], -1, OP_ID, 15, "double", OP_READ));
+
+  op_par_loop(min_max, "min_max", data->cells,
+              op_arg_gbl(&minQ1, 1, "double", OP_MIN),
+              op_arg_gbl(&maxQ1, 1, "double", OP_MAX),
+              op_arg_dat(data->Q[ind][1], -1, OP_ID, 15, "double", OP_READ));
+
+  cout << "QT0: " << minQT0 << " " << maxQT0 << " QT1: " << minQT1 << " " << maxQT1 << endl;
+  cout << "QTT0: " << minQTT0 << " " << maxQTT0 << " QTT1: " << minQTT1 << " " << maxQTT1 << endl;
+  cout << "Q0: " << minQ0 << " " << maxQ0 << " Q1: " << minQ1 << " " << maxQ1 << endl;
 }

@@ -18,14 +18,10 @@ void op_par_loop_init_grid(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13,
-  op_arg arg14,
-  op_arg arg15,
-  op_arg arg16,
-  op_arg arg17){
+  op_arg arg13){
 
-  int nargs = 18;
-  op_arg args[18];
+  int nargs = 14;
+  op_arg args[14];
 
   arg0.idx = 0;
   args[0] = arg0;
@@ -44,28 +40,24 @@ void op_par_loop_init_grid(char const *name, op_set set,
   args[11] = arg11;
   args[12] = arg12;
   args[13] = arg13;
-  args[14] = arg14;
-  args[15] = arg15;
-  args[16] = arg16;
-  args[17] = arg17;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(0);
-  OP_kernels[0].name      = name;
-  OP_kernels[0].count    += 1;
+  op_timing_realloc(15);
+  OP_kernels[15].name      = name;
+  OP_kernels[15].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
   int  ninds   = 1;
-  int  inds[18] = {0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+  int  inds[14] = {0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: init_grid\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_0
-    int part_size = OP_PART_SIZE_0;
+  #ifdef OP_PART_SIZE_15
+    int part_size = OP_PART_SIZE_15;
   #else
     int part_size = OP_part_size;
   #endif
@@ -114,18 +106,14 @@ void op_par_loop_init_grid(char const *name, op_set set,
             &((double*)arg10.data)[15 * n],
             &((double*)arg11.data)[15 * n],
             &((double*)arg12.data)[15 * n],
-            &((double*)arg13.data)[15 * n],
-            &((double*)arg14.data)[15 * n],
-            &((double*)arg15.data)[15 * n],
-            &((double*)arg16.data)[15 * n],
-            &((double*)arg17.data)[15 * n]);
+            &((double*)arg13.data)[15 * n]);
         }
       }
 
       block_offset += nblocks;
     }
-    OP_kernels[0].transfer  += Plan->transfer;
-    OP_kernels[0].transfer2 += Plan->transfer2;
+    OP_kernels[15].transfer  += Plan->transfer;
+    OP_kernels[15].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -136,5 +124,5 @@ void op_par_loop_init_grid(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[0].time     += wall_t2 - wall_t1;
+  OP_kernels[15].time     += wall_t2 - wall_t1;
 }

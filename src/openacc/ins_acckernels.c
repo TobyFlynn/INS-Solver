@@ -14,6 +14,30 @@ extern double bc_v;
 extern int FMASK[15];
 extern double ic_u;
 extern double ic_v;
+extern double cubW[46];
+extern double cubV[690];
+extern double cubVDr[690];
+extern double cubVDs[690];
+extern double gF0Dr[105];
+extern double gF0Ds[105];
+extern double gF1Dr[105];
+extern double gF1Ds[105];
+extern double gF2Dr[105];
+extern double gF2Ds[105];
+extern double gaussW[7];
+extern double gFInterp0[105];
+extern double gFInterp1[105];
+extern double gFInterp2[105];
+extern double gF0DrR[105];
+extern double gF0DsR[105];
+extern double gF1DrR[105];
+extern double gF1DsR[105];
+extern double gF2DrR[105];
+extern double gF2DsR[105];
+extern double gFInterp0R[105];
+extern double gFInterp1R[105];
+extern double gFInterp2R[105];
+extern double lift_drag_vec[5];
 
 // header
 #include "op_lib_c.h"
@@ -21,7 +45,6 @@ extern double ic_v;
 void op_decl_const_char(int dim, char const *type,
 int size, char *dat, char const *name){}
 // user kernel files
-#include "init_grid_acckernel.c"
 #include "set_ic_acckernel.c"
 #include "calc_dt_acckernel.c"
 #include "advection_flux_acckernel.c"
@@ -31,22 +54,26 @@ int size, char *dat, char const *name){}
 #include "advection_intermediate_vel_acckernel.c"
 #include "pressure_bc_acckernel.c"
 #include "pressure_rhs_acckernel.c"
-#include "pressure_bc2_acckernel.c"
-#include "pressure_bc3_acckernel.c"
 #include "pressure_update_vel_acckernel.c"
-#include "viscosity_faces_acckernel.c"
-#include "viscosity_set_bc_acckernel.c"
-#include "viscosity_rhs_acckernel.c"
 #include "viscosity_bc_acckernel.c"
-#include "setup_poisson_acckernel.c"
-#include "set_tau_acckernel.c"
-#include "set_tau_bc_acckernel.c"
-#include "poisson_rhs_faces_acckernel.c"
-#include "poisson_rhs_bc_acckernel.c"
-#include "poisson_rhs_du_acckernel.c"
-#include "poisson_rhs_qbc_acckernel.c"
-#include "poisson_rhs_fluxq_acckernel.c"
-#include "poisson_rhs_J_acckernel.c"
+#include "viscosity_rhs_acckernel.c"
+#include "viscosity_reset_bc_acckernel.c"
+#include "lift_drag_acckernel.c"
+#include "min_max_acckernel.c"
+#include "init_grid_acckernel.c"
+#include "init_cubature_grad_acckernel.c"
+#include "init_cubature_acckernel.c"
+#include "init_cubature_OP_acckernel.c"
+#include "gauss_reverse_acckernel.c"
+#include "init_gauss_acckernel.c"
+#include "gauss_tau_acckernel.c"
+#include "gauss_tau_bc_acckernel.c"
+#include "init_gauss_grad_acckernel.c"
+#include "init_gauss_grad2_acckernel.c"
+#include "init_gauss_grad_neighbour_acckernel.c"
+#include "gauss_grad_faces_acckernel.c"
+#include "gauss_op_acckernel.c"
+#include "gauss_gfi_faces_acckernel.c"
 #include "div_acckernel.c"
 #include "curl_acckernel.c"
 #include "grad_acckernel.c"

@@ -3,7 +3,14 @@
 
 #include <string>
 
-void save_solution(std::string filename, int numPts, int numCells, double *q0,
-                   double *q1, int *cellMap);
+#include "ins_data.h"
+
+void save_solution_init(std::string filename, INSData *data);
+
+void save_solution_iter(std::string filename, INSData *data, int ind, int iter);
+
+void save_solution_finalise(std::string filename, INSData *data, int numIter, double dt);
+
+void save_solution(std::string filename, INSData *data, int ind);
 
 #endif

@@ -6,10 +6,8 @@
 //user function
 //#pragma acc routine
 inline void init_grid_openacc( const double **nc, double *nodeX, double *nodeY,
-                      const double *xr, const double *yr, const double *xs,
-                      const double *ys, double *rx, double *ry, double *sx,
-                      double *sy, double *nx, double *ny, double *J, double *sJ,
-                      double *fscale) {
+                      double *rx, double *ry, double *sx, double *sy,
+                      double *nx, double *ny, double *J, double *sJ, double *fscale) {
   nodeX[0] = nc[0][0];
   nodeX[1] = nc[1][0];
   nodeX[2] = nc[2][0];
@@ -17,31 +15,35 @@ inline void init_grid_openacc( const double **nc, double *nodeX, double *nodeY,
   nodeY[1] = nc[1][1];
   nodeY[2] = nc[2][1];
 
+
+  for(int i = 0; i < 5; i++) {
+    nx[i] = ry[FMASK[i]];
+    ny[i] = -rx[FMASK[i]];
+  }
+
+  for(int i = 0; i < 5; i++) {
+    nx[5 + i] = sy[FMASK[5 + i]] - ry[FMASK[5 + i]];
+    ny[5 + i] = rx[FMASK[5 + i]] - sx[FMASK[5 + i]];
+  }
+
+  for(int i = 0; i < 5; i++) {
+    nx[2 * 5 + i] = -sy[FMASK[2 * 5 + i]];
+    ny[2 * 5 + i] = sx[FMASK[2 * 5 + i]];
+  }
+
   for(int i = 0; i < 15; i++) {
-    J[i] = -xs[i] * yr[i] + xr[i] * ys[i];
+    J[i] = -sx[i] * ry[i] + rx[i] * sy[i];
   }
 
   for(int i = 0; i < 15; i++) {
-    rx[i] = ys[i] / J[i];
-    sx[i] = -yr[i] / J[i];
-    ry[i] = -xs[i] / J[i];
-    sy[i] = xr[i] / J[i];
-  }
-
-
-  for(int i = 0; i < 5; i++) {
-    nx[i] = yr[FMASK[i]];
-    ny[i] = -xr[FMASK[i]];
-  }
-
-  for(int i = 0; i < 5; i++) {
-    nx[5 + i] = ys[FMASK[5 + i]] - yr[FMASK[5 + i]];
-    ny[5 + i] = xr[FMASK[5 + i]] - xs[FMASK[5 + i]];
-  }
-
-  for(int i = 0; i < 5; i++) {
-    nx[2 * 5 + i] = -ys[FMASK[2 * 5 + i]];
-    ny[2 * 5 + i] = xs[FMASK[2 * 5 + i]];
+    double rx_n = sy[i] / J[i];
+    double sx_n = -ry[i] / J[i];
+    double ry_n = -sx[i] / J[i];
+    double sy_n = rx[i] / J[i];
+    rx[i] = rx_n;
+    sx[i] = sx_n;
+    ry[i] = ry_n;
+    sy[i] = sy_n;
   }
 
   for(int i = 0; i < 3 * 5; i++) {
@@ -65,14 +67,10 @@ void op_par_loop_init_grid(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13,
-  op_arg arg14,
-  op_arg arg15,
-  op_arg arg16,
-  op_arg arg17){
+  op_arg arg13){
 
-  int nargs = 18;
-  op_arg args[18];
+  int nargs = 14;
+  op_arg args[14];
 
   arg0.idx = 0;
   args[0] = arg0;
@@ -91,28 +89,24 @@ void op_par_loop_init_grid(char const *name, op_set set,
   args[11] = arg11;
   args[12] = arg12;
   args[13] = arg13;
-  args[14] = arg14;
-  args[15] = arg15;
-  args[16] = arg16;
-  args[17] = arg17;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(0);
+  op_timing_realloc(15);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[0].name      = name;
-  OP_kernels[0].count    += 1;
+  OP_kernels[15].name      = name;
+  OP_kernels[15].count    += 1;
 
   int  ninds   = 1;
-  int  inds[18] = {0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+  int  inds[14] = {0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: init_grid\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_0
-    int part_size = OP_PART_SIZE_0;
+  #ifdef OP_PART_SIZE_15
+    int part_size = OP_PART_SIZE_15;
   #else
     int part_size = OP_part_size;
   #endif
@@ -139,10 +133,6 @@ void op_par_loop_init_grid(char const *name, op_set set,
     double* data11 = (double*)arg11.data_d;
     double* data12 = (double*)arg12.data_d;
     double* data13 = (double*)arg13.data_d;
-    double* data14 = (double*)arg14.data_d;
-    double* data15 = (double*)arg15.data_d;
-    double* data16 = (double*)arg16.data_d;
-    double* data17 = (double*)arg17.data_d;
     double *data0 = (double *)arg0.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
@@ -158,7 +148,7 @@ void op_par_loop_init_grid(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map0,data3,data4,data5,data6,data7,data8,data9,data10,data11,data12,data13,data14,data15,data16,data17,data0)
+      #pragma acc parallel loop independent deviceptr(col_reord,map0,data3,data4,data5,data6,data7,data8,data9,data10,data11,data12,data13,data0)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map0idx;
@@ -185,16 +175,12 @@ void op_par_loop_init_grid(char const *name, op_set set,
           &data10[15 * n],
           &data11[15 * n],
           &data12[15 * n],
-          &data13[15 * n],
-          &data14[15 * n],
-          &data15[15 * n],
-          &data16[15 * n],
-          &data17[15 * n]);
+          &data13[15 * n]);
       }
 
     }
-    OP_kernels[0].transfer  += Plan->transfer;
-    OP_kernels[0].transfer2 += Plan->transfer2;
+    OP_kernels[15].transfer  += Plan->transfer;
+    OP_kernels[15].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -205,5 +191,5 @@ void op_par_loop_init_grid(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[0].time     += wall_t2 - wall_t1;
+  OP_kernels[15].time     += wall_t2 - wall_t1;
 }

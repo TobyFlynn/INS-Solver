@@ -23,7 +23,7 @@ extern "C" {
 #include "../blas_calls.h"
 
 inline void cublas_pressure_rhs(cublasHandle_t handle, const int numCells,
-                                const double *div_d, const double *dPdN_d,
+                                double *div_d, const double *dPdN_d,
                                 double *rhs_d) {
   double *LIFT_d;
   cudaMalloc((void**)&LIFT_d, 15 * 15 * sizeof(double));
@@ -35,10 +35,10 @@ inline void cublas_pressure_rhs(cublasHandle_t handle, const int numCells,
 
   // CUBLAS_OP_T because cublas is column major but constants are stored row major
   double alpha = 1.0;
-  double beta1 = 0.0;
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, MASS_d, 15, div_d, 15, &beta1, rhs_d, 15);
-  double beta2 = 1.0;
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, LIFT_d, 15, dPdN_d, 15, &beta2, rhs_d, 15);
+  double beta1 = 1.0;
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, LIFT_d, 15, dPdN_d, 15, &beta1, div_d, 15);
+  double beta2 = 0.0;
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, MASS_d, 15, div_d, 15, &beta2, rhs_d, 15);
 
   cudaFree(LIFT_d);
   cudaFree(MASS_d);
@@ -51,7 +51,7 @@ void pressure_rhs_blas(INSData *nsData, int ind) {
   cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg pressure_rhs_args[] = {
-    op_arg_dat(nsData->divVelT, -1, OP_ID, 15, "double", OP_READ),
+    op_arg_dat(nsData->divVelT, -1, OP_ID, 15, "double", OP_RW),
     op_arg_dat(nsData->dPdN[(ind + 1) % 2], -1, OP_ID, 15, "double", OP_READ),
     op_arg_dat(nsData->pRHS, -1, OP_ID, 15, "double", OP_WRITE)
   };

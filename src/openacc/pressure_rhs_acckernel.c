@@ -8,9 +8,10 @@
 inline void pressure_rhs_openacc( const double *b0, const double *b1, const double *g0,
                          const double *dt, const double *J, const double *sJ,
                          const double *dPdN, double *dPdNOld, double *divVelT) {
+  double factor = (*g0) / (*dt);
   for(int i = 0; i < 15; i++) {
-    divVelT[i] = J[i] * (-divVelT[i] * *g0 / *dt);
-    dPdNOld[i] = sJ[i] * (*b0 * dPdN[i] + *b1 * dPdNOld[i]);
+    divVelT[i] = J[i] * (-divVelT[i] * factor);
+    dPdNOld[i] = sJ[i] * ((*b0) * dPdN[i] + (*b1) * dPdNOld[i]);
   }
 }
 
@@ -45,10 +46,10 @@ void op_par_loop_pressure_rhs(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(9);
+  op_timing_realloc(8);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[9].name      = name;
-  OP_kernels[9].count    += 1;
+  OP_kernels[8].name      = name;
+  OP_kernels[8].count    += 1;
 
 
   if (OP_diags>2) {
@@ -92,10 +93,10 @@ void op_par_loop_pressure_rhs(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[9].time     += wall_t2 - wall_t1;
-  OP_kernels[9].transfer += (float)set->size * arg4.size;
-  OP_kernels[9].transfer += (float)set->size * arg5.size;
-  OP_kernels[9].transfer += (float)set->size * arg6.size;
-  OP_kernels[9].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[9].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[8].time     += wall_t2 - wall_t1;
+  OP_kernels[8].transfer += (float)set->size * arg4.size;
+  OP_kernels[8].transfer += (float)set->size * arg5.size;
+  OP_kernels[8].transfer += (float)set->size * arg6.size;
+  OP_kernels[8].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[8].transfer += (float)set->size * arg8.size * 2.0f;
 }

@@ -21,7 +21,7 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum, const double
     fmask = &FMASK[2 * 5];
   }
 
-  if(*bedge_type == 0 || *bedge_type == 2) {
+  if(*bedge_type == 0 || *bedge_type == 2 || *bedge_type == 3) {
     // Inflow or Wall
     for(int i = 0; i < 5; i++) {
       int fInd = fmask[i];
@@ -33,11 +33,13 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum, const double
 
   if(*bedge_type == 0) {
     // Inflow
-    // TODO: Workout what this value should be for our test app
-    // const double PI = 3.141592653589793238463;
-    // for(int i = 0; i < 5; i++) {
-    //   double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * (y[fmask[i]] + 0.2) * (0.21 - y[fmask[i]]);
-    //   dPdN[exInd + i] -= bcdUndt;
-    // }
+    const double PI = 3.141592653589793238463;
+    for(int i = 0; i < 5; i++) {
+      double y1 = y[fmask[i]];
+      double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
+      // printf("%g\n", bcdUndt);
+      // double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0);
+      dPdN[exInd + i] -= bcdUndt;
+    }
   }
 }

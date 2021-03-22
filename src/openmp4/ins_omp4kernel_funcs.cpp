@@ -14,6 +14,30 @@ double bc_v_ompkernel;
 int FMASK_ompkernel[15];
 double ic_u_ompkernel;
 double ic_v_ompkernel;
+double cubW_ompkernel[46];
+double cubV_ompkernel[690];
+double cubVDr_ompkernel[690];
+double cubVDs_ompkernel[690];
+double gF0Dr_ompkernel[105];
+double gF0Ds_ompkernel[105];
+double gF1Dr_ompkernel[105];
+double gF1Ds_ompkernel[105];
+double gF2Dr_ompkernel[105];
+double gF2Ds_ompkernel[105];
+double gaussW_ompkernel[7];
+double gFInterp0_ompkernel[105];
+double gFInterp1_ompkernel[105];
+double gFInterp2_ompkernel[105];
+double gF0DrR_ompkernel[105];
+double gF0DsR_ompkernel[105];
+double gF1DrR_ompkernel[105];
+double gF1DsR_ompkernel[105];
+double gF2DrR_ompkernel[105];
+double gF2DsR_ompkernel[105];
+double gFInterp0R_ompkernel[105];
+double gFInterp1R_ompkernel[105];
+double gFInterp2R_ompkernel[105];
+double lift_drag_vec_ompkernel[5];
 
 // header
 #include "op_lib_cpp.h"
@@ -53,10 +77,81 @@ void op_decl_const_char(int dim, char const *type,
   } else if(!strcmp(name, "ic_v")) {
     memcpy(&ic_v_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:ic_v_ompkernel)
+  } else if(!strcmp(name, "cubW")) {
+    memcpy(cubW_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:cubW_ompkernel[:46])
+  } else if(!strcmp(name, "cubV")) {
+    memcpy(cubV_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:cubV_ompkernel[:690])
+  } else if(!strcmp(name, "cubVDr")) {
+    memcpy(cubVDr_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:cubVDr_ompkernel[:690])
+  } else if(!strcmp(name, "cubVDs")) {
+    memcpy(cubVDs_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:cubVDs_ompkernel[:690])
+  } else if(!strcmp(name, "gF0Dr")) {
+    memcpy(gF0Dr_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF0Dr_ompkernel[:105])
+  } else if(!strcmp(name, "gF0Ds")) {
+    memcpy(gF0Ds_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF0Ds_ompkernel[:105])
+  } else if(!strcmp(name, "gF1Dr")) {
+    memcpy(gF1Dr_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF1Dr_ompkernel[:105])
+  } else if(!strcmp(name, "gF1Ds")) {
+    memcpy(gF1Ds_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF1Ds_ompkernel[:105])
+  } else if(!strcmp(name, "gF2Dr")) {
+    memcpy(gF2Dr_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF2Dr_ompkernel[:105])
+  } else if(!strcmp(name, "gF2Ds")) {
+    memcpy(gF2Ds_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF2Ds_ompkernel[:105])
+  } else if(!strcmp(name, "gaussW")) {
+    memcpy(gaussW_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gaussW_ompkernel[:7])
+  } else if(!strcmp(name, "gFInterp0")) {
+    memcpy(gFInterp0_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp0_ompkernel[:105])
+  } else if(!strcmp(name, "gFInterp1")) {
+    memcpy(gFInterp1_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp1_ompkernel[:105])
+  } else if(!strcmp(name, "gFInterp2")) {
+    memcpy(gFInterp2_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp2_ompkernel[:105])
+  } else if(!strcmp(name, "gF0DrR")) {
+    memcpy(gF0DrR_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF0DrR_ompkernel[:105])
+  } else if(!strcmp(name, "gF0DsR")) {
+    memcpy(gF0DsR_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF0DsR_ompkernel[:105])
+  } else if(!strcmp(name, "gF1DrR")) {
+    memcpy(gF1DrR_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF1DrR_ompkernel[:105])
+  } else if(!strcmp(name, "gF1DsR")) {
+    memcpy(gF1DsR_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF1DsR_ompkernel[:105])
+  } else if(!strcmp(name, "gF2DrR")) {
+    memcpy(gF2DrR_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF2DrR_ompkernel[:105])
+  } else if(!strcmp(name, "gF2DsR")) {
+    memcpy(gF2DsR_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF2DsR_ompkernel[:105])
+  } else if(!strcmp(name, "gFInterp0R")) {
+    memcpy(gFInterp0R_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp0R_ompkernel[:105])
+  } else if(!strcmp(name, "gFInterp1R")) {
+    memcpy(gFInterp1R_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp1R_ompkernel[:105])
+  } else if(!strcmp(name, "gFInterp2R")) {
+    memcpy(gFInterp2R_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp2R_ompkernel[:105])
+  } else if(!strcmp(name, "lift_drag_vec")) {
+    memcpy(lift_drag_vec_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:lift_drag_vec_ompkernel[:5])
   }
 }
 // user kernel files
-#include "init_grid_omp4kernel_func.cpp"
 #include "set_ic_omp4kernel_func.cpp"
 #include "calc_dt_omp4kernel_func.cpp"
 #include "advection_flux_omp4kernel_func.cpp"
@@ -66,22 +161,26 @@ void op_decl_const_char(int dim, char const *type,
 #include "advection_intermediate_vel_omp4kernel_func.cpp"
 #include "pressure_bc_omp4kernel_func.cpp"
 #include "pressure_rhs_omp4kernel_func.cpp"
-#include "pressure_bc2_omp4kernel_func.cpp"
-#include "pressure_bc3_omp4kernel_func.cpp"
 #include "pressure_update_vel_omp4kernel_func.cpp"
-#include "viscosity_faces_omp4kernel_func.cpp"
-#include "viscosity_set_bc_omp4kernel_func.cpp"
-#include "viscosity_rhs_omp4kernel_func.cpp"
 #include "viscosity_bc_omp4kernel_func.cpp"
-#include "setup_poisson_omp4kernel_func.cpp"
-#include "set_tau_omp4kernel_func.cpp"
-#include "set_tau_bc_omp4kernel_func.cpp"
-#include "poisson_rhs_faces_omp4kernel_func.cpp"
-#include "poisson_rhs_bc_omp4kernel_func.cpp"
-#include "poisson_rhs_du_omp4kernel_func.cpp"
-#include "poisson_rhs_qbc_omp4kernel_func.cpp"
-#include "poisson_rhs_fluxq_omp4kernel_func.cpp"
-#include "poisson_rhs_J_omp4kernel_func.cpp"
+#include "viscosity_rhs_omp4kernel_func.cpp"
+#include "viscosity_reset_bc_omp4kernel_func.cpp"
+#include "lift_drag_omp4kernel_func.cpp"
+#include "min_max_omp4kernel_func.cpp"
+#include "init_grid_omp4kernel_func.cpp"
+#include "init_cubature_grad_omp4kernel_func.cpp"
+#include "init_cubature_omp4kernel_func.cpp"
+#include "init_cubature_OP_omp4kernel_func.cpp"
+#include "gauss_reverse_omp4kernel_func.cpp"
+#include "init_gauss_omp4kernel_func.cpp"
+#include "gauss_tau_omp4kernel_func.cpp"
+#include "gauss_tau_bc_omp4kernel_func.cpp"
+#include "init_gauss_grad_omp4kernel_func.cpp"
+#include "init_gauss_grad2_omp4kernel_func.cpp"
+#include "init_gauss_grad_neighbour_omp4kernel_func.cpp"
+#include "gauss_grad_faces_omp4kernel_func.cpp"
+#include "gauss_op_omp4kernel_func.cpp"
+#include "gauss_gfi_faces_omp4kernel_func.cpp"
 #include "div_omp4kernel_func.cpp"
 #include "curl_omp4kernel_func.cpp"
 #include "grad_omp4kernel_func.cpp"
