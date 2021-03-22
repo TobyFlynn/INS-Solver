@@ -18,6 +18,8 @@ public:
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
 
+  double getAverageConvergeIter();
+
   void setDirichletBCs(int *d);
   void setNeumannBCs(int *n);
   void setBCValues(op_dat bc);
@@ -45,6 +47,9 @@ private:
 
   bool massMat;
   double massFactor;
+
+  int numberIter = 0;
+  int solveCount = 0;
 
   bool pMatInit = false;
   bool pMMatInit = false;

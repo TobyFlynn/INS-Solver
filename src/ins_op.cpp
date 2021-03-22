@@ -373,6 +373,8 @@ int main(int argc, char **argv) {
       double lift, drag;
       lift_drag_coeff(data, &lift, &drag, currentIter % 2);
       cout << "Cd: " << drag << " Cl: " << lift << endl;
+      cout << "Avg. Pressure Iter: " << pressurePoisson->getAverageConvergeIter();
+      cout << " Avg. Viscosity Iter: " << viscosityPoisson->getAverageConvergeIter() << endl;
 
       save_solution_iter("sol.cgns", data, currentIter % 2, (i + 1) / save);
       cout << "Time " << time << endl;

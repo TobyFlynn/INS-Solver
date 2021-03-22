@@ -98,6 +98,8 @@ bool Poisson::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
     cout << "Number of iterations for linear solver: " << numIt << endl;
     cout << "Converged reason: " << reason << " Residual: " << residual << endl;
   }
+  numberIter += numIt;
+  solveCount++;
 
   // Get solution and free PETSc vectors and matrix
   Vec solution;
@@ -337,4 +339,11 @@ void Poisson::createBCMatrix() {
 
   MatAssemblyBegin(pBCMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pBCMat, MAT_FINAL_ASSEMBLY);
+}
+
+double Poisson::getAverageConvergeIter() {
+  double res = (double)numberIter/(double)solveCount;
+  numberIter = 0;
+  solveCount = 0;
+  return res;
 }
