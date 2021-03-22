@@ -59,7 +59,7 @@ void get_min_max(INSData *data, double *minQT0, double *minQT1, double *minQTT0,
 
 int main(int argc, char **argv) {
   string filename = "./cylinder.cgns";
-  char help[] = "The number of iterations to run is specified with \"-iter [number of iterations]\"";
+  char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
   if(ierr) {
     cout << "Error initialising PETSc" << endl;
@@ -99,22 +99,6 @@ int main(int argc, char **argv) {
     }
   };
 
-  // auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-  //   if(x1 == x2 && x1 < -0.15) {
-  //     // Inflow
-  //     // cout << "Inflow (" << x1 << "," << y1 << ") and (" << x2 << "," << y2 << ")" << endl;
-  //     return 0;
-  //   } else if(x1 == x2 && x2 > 1.5) {
-  //     // Outflow
-  //     // cout << "Outflow (" << x1 << "," << y1 << ") and (" << x2 << "," << y2 << ")" << endl;
-  //     return 1;
-  //   } else {
-  //     // Wall
-  //     // cout << "Wall (" << x1 << "," << y1 << ") and (" << x2 << "," << y2 << ")" << endl;
-  //     return 2;
-  //   }
-  // };
-
   load_mesh(filename.c_str(), data, bcNum);
 
   // Initialise OP2
@@ -127,6 +111,9 @@ int main(int argc, char **argv) {
   int iter = 1;
   PetscBool found;
   PetscOptionsGetInt(NULL, NULL, "-iter", &iter, &found);
+
+  int save = -1;
+  PetscOptionsGetInt(NULL, NULL, "-save", &save, &found);
 
   bc_alpha = 0.0;
 
@@ -175,6 +162,11 @@ int main(int argc, char **argv) {
   double a_time = 0.0;
   double p_time = 0.0;
   double v_time = 0.0;
+  double s_time = 0.0;
+
+  if(save != -1)
+    save_solution_all_init("sol.cgns", data, (iter / save) + 1, dt * save);
+
   op_timers(&cpu_1, &wall_1);
 
   for(int i = 0; i < iter; i++) {
@@ -213,8 +205,12 @@ int main(int argc, char **argv) {
     op_timers(&cpu_loop_2, &wall_loop_2);
     v_time += wall_loop_2 - wall_loop_1;
 
+    currentIter++;
+    time += dt;
+
     // Print the min and max values of intermediate velocities and final velocity of this iteration
-    if(i % 100 == 0) {
+    if(save != -1 && (i + 1) % save == 0) {
+      op_timers(&cpu_loop_1, &wall_loop_1);
       double minQT0 = numeric_limits<double>::max();
       double minQT1 = numeric_limits<double>::max();
       double minQTT0 = numeric_limits<double>::max();
@@ -239,11 +235,17 @@ int main(int argc, char **argv) {
       double lift, drag;
       lift_drag_coeff(data, &lift, &drag, currentIter % 2);
       cout << "Cd: " << drag << " Cl: " << lift << endl;
+
+      save_solution_all("sol.cgns", data, currentIter % 2, (i + 1) / save);
+      cout << "Time " << time << endl;
+      op_timers(&cpu_loop_2, &wall_loop_2);
+      s_time += wall_loop_2 - wall_loop_1;
     }
-    currentIter++;
-    time += dt;
   }
   op_timers(&cpu_2, &wall_2);
+
+  if(save != -1)
+    save_solution_all_finalise("sol.cgns", data, (iter / save) + 1, dt * save);
 
   cout << "Final time: " << time << endl;
 
@@ -253,10 +255,11 @@ int main(int argc, char **argv) {
   cout << "Time in advection solve: " << a_time << endl;
   cout << "Time in pressure solve: " << p_time << endl;
   cout << "Time in viscosity solve: " << v_time << endl;
+  cout << "Time spent saving and calculating lift/drag: " << s_time << endl;
 
   // Save solution to CGNS file
-  save_solution_all("sol.cgns", data, currentIter % 2);
-  
+  save_end_solution("end.cgns", data, currentIter % 2);
+
   // op_fetch_data_hdf5_file(data->Q[currentIter % 2][0], "sol.h5");
   // op_fetch_data_hdf5_file(data->Q[currentIter % 2][1], "sol.h5");
 
@@ -496,10 +499,10 @@ void get_min_max(INSData *data, double *minQT0, double *minQT1, double *minQTT0,
   op_par_loop(min_max, "min_max", data->cells,
               op_arg_gbl(minQ0, 1, "double", OP_MIN),
               op_arg_gbl(maxQ0, 1, "double", OP_MAX),
-              op_arg_dat(data->Q[(ind + 1) % 2][0], -1, OP_ID, 15, "double", OP_READ));
+              op_arg_dat(data->Q[ind][0], -1, OP_ID, 15, "double", OP_READ));
 
   op_par_loop(min_max, "min_max", data->cells,
               op_arg_gbl(minQ1, 1, "double", OP_MIN),
               op_arg_gbl(maxQ1, 1, "double", OP_MAX),
-              op_arg_dat(data->Q[(ind + 1) % 2][1], -1, OP_ID, 15, "double", OP_READ));
+              op_arg_dat(data->Q[ind][1], -1, OP_ID, 15, "double", OP_READ));
 }

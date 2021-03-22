@@ -11,7 +11,13 @@ void save_solution(std::string filename, int numPts, int numCells, double *q0,
 void save_solution_cell(std::string filename, int numPts, int numCells, double *q0,
                         double *q1, int *cellMap);
 
-void save_solution_all(std::string filename, INSData *data, int ind);
+void save_solution_all_init(std::string filename, INSData *data, int numIter, double dt);
+
+void save_solution_all(std::string filename, INSData *data, int ind, int iter);
+
+void save_solution_all_finalise(std::string filename, INSData *data, int numIter, double dt);
+
+void save_end_solution(std::string filename, INSData *data, int ind);
 
 void save_solution_t(std::string filename, int numPts, int numCells, double *q0, double *q1,
                      double *p, double *pRHS, double *px, double *py, double *utx, double *uty,
