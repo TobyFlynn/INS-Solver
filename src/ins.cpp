@@ -52,10 +52,7 @@ bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
 
 void lift_drag_coeff(INSData *data, double *lift, double *drag, int ind);
 
-void get_min_max(INSData *data, double *minQT0, double *minQT1, double *minQTT0,
-                 double *minQTT1, double *minQ0, double *minQ1, double *maxQT0,
-                 double *maxQT1, double *maxQTT0, double *maxQTT1,
-                 double *maxQ0, double *maxQ1, int ind);
+void print_min_max(INSData *data, int ind);
 
 int main(int argc, char **argv) {
   string filename = "./cylinder.cgns";
@@ -165,7 +162,7 @@ int main(int argc, char **argv) {
   double s_time = 0.0;
 
   if(save != -1)
-    save_solution_all_init("sol.cgns", data, (iter / save) + 1, dt * save);
+    save_solution_init("sol.cgns", data);
 
   op_timers(&cpu_1, &wall_1);
 
@@ -208,35 +205,16 @@ int main(int argc, char **argv) {
     currentIter++;
     time += dt;
 
-    // Print the min and max values of intermediate velocities and final velocity of this iteration
+    // Calculate drag and lift coefficients + save data
     if(save != -1 && (i + 1) % save == 0) {
       op_timers(&cpu_loop_1, &wall_loop_1);
-      double minQT0 = numeric_limits<double>::max();
-      double minQT1 = numeric_limits<double>::max();
-      double minQTT0 = numeric_limits<double>::max();
-      double minQTT1 = numeric_limits<double>::max();
-      double minQ0 = numeric_limits<double>::max();
-      double minQ1 = numeric_limits<double>::max();
-      double maxQT0 = 0.0;
-      double maxQT1 = 0.0;
-      double maxQTT0 = 0.0;
-      double maxQTT1 = 0.0;
-      double maxQ0 = 0.0;
-      double maxQ1 = 0.0;
-
-      get_min_max(data, &minQT0, &minQT1, &minQTT0, &minQTT1, &minQ0, &minQ1, &maxQT0,
-                  &maxQT1, &maxQTT0, &maxQTT1, &maxQ0, &maxQ1, currentIter % 2);
-
-      cout << "Iter: " << i << endl;
-      cout << "QT0: " << minQT0 << " " << maxQT0 << " QT1: " << minQT1 << " " << maxQT1 << endl;
-      cout << "QTT0: " << minQTT0 << " " << maxQTT0 << " QTT1: " << minQTT1 << " " << maxQTT1 << endl;
-      cout << "Q0: " << minQ0 << " " << maxQ0 << " Q1: " << minQ1 << " " << maxQ1 << endl;
-
+      // print_min_max(data, currentIter % 2);
+      cout << "Iteration: " << i << endl;
       double lift, drag;
       lift_drag_coeff(data, &lift, &drag, currentIter % 2);
       cout << "Cd: " << drag << " Cl: " << lift << endl;
 
-      save_solution_all("sol.cgns", data, currentIter % 2, (i + 1) / save);
+      save_solution_iter("sol.cgns", data, currentIter % 2, (i + 1) / save);
       cout << "Time " << time << endl;
       op_timers(&cpu_loop_2, &wall_loop_2);
       s_time += wall_loop_2 - wall_loop_1;
@@ -245,7 +223,7 @@ int main(int argc, char **argv) {
   op_timers(&cpu_2, &wall_2);
 
   if(save != -1)
-    save_solution_all_finalise("sol.cgns", data, (iter / save) + 1, dt * save);
+    save_solution_finalise("sol.cgns", data, (iter / save) + 1, dt * save);
 
   cout << "Final time: " << time << endl;
 
@@ -258,7 +236,7 @@ int main(int argc, char **argv) {
   cout << "Time spent saving and calculating lift/drag: " << s_time << endl;
 
   // Save solution to CGNS file
-  save_end_solution("end.cgns", data, currentIter % 2);
+  save_solution("end.cgns", data, currentIter % 2);
 
   // op_fetch_data_hdf5_file(data->Q[currentIter % 2][0], "sol.h5");
   // op_fetch_data_hdf5_file(data->Q[currentIter % 2][1], "sol.h5");
@@ -471,38 +449,52 @@ void lift_drag_coeff(INSData *data, double *lift, double *drag, int ind) {
   *drag = *drag / 0.05;
 }
 
-// Function for getting the min and max values of various OP2 dats
-void get_min_max(INSData *data, double *minQT0, double *minQT1, double *minQTT0,
-                 double *minQTT1, double *minQ0, double *minQ1, double *maxQT0,
-                 double *maxQT1, double *maxQTT0, double *maxQTT1,
-                 double *maxQ0, double *maxQ1, int ind) {
+// Function for printing the min and max values of various OP2 dats
+void print_min_max(INSData *data, int ind) {
+  double minQT0 = numeric_limits<double>::max();
+  double minQT1 = numeric_limits<double>::max();
+  double minQTT0 = numeric_limits<double>::max();
+  double minQTT1 = numeric_limits<double>::max();
+  double minQ0 = numeric_limits<double>::max();
+  double minQ1 = numeric_limits<double>::max();
+  double maxQT0 = 0.0;
+  double maxQT1 = 0.0;
+  double maxQTT0 = 0.0;
+  double maxQTT1 = 0.0;
+  double maxQ0 = 0.0;
+  double maxQ1 = 0.0;
+
   op_par_loop(min_max, "min_max", data->cells,
-              op_arg_gbl(minQT0, 1, "double", OP_MIN),
-              op_arg_gbl(maxQT0, 1, "double", OP_MAX),
+              op_arg_gbl(&minQT0, 1, "double", OP_MIN),
+              op_arg_gbl(&maxQT0, 1, "double", OP_MAX),
               op_arg_dat(data->QT[0], -1, OP_ID, 15, "double", OP_READ));
 
   op_par_loop(min_max, "min_max", data->cells,
-              op_arg_gbl(minQT1, 1, "double", OP_MIN),
-              op_arg_gbl(maxQT1, 1, "double", OP_MAX),
+              op_arg_gbl(&minQT1, 1, "double", OP_MIN),
+              op_arg_gbl(&maxQT1, 1, "double", OP_MAX),
               op_arg_dat(data->QT[1], -1, OP_ID, 15, "double", OP_READ));
 
   op_par_loop(min_max, "min_max", data->cells,
-              op_arg_gbl(minQTT0, 1, "double", OP_MIN),
-              op_arg_gbl(maxQTT0, 1, "double", OP_MAX),
+              op_arg_gbl(&minQTT0, 1, "double", OP_MIN),
+              op_arg_gbl(&maxQTT0, 1, "double", OP_MAX),
               op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_READ));
 
   op_par_loop(min_max, "min_max", data->cells,
-              op_arg_gbl(minQTT1, 1, "double", OP_MIN),
-              op_arg_gbl(maxQTT1, 1, "double", OP_MAX),
+              op_arg_gbl(&minQTT1, 1, "double", OP_MIN),
+              op_arg_gbl(&maxQTT1, 1, "double", OP_MAX),
               op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_READ));
 
   op_par_loop(min_max, "min_max", data->cells,
-              op_arg_gbl(minQ0, 1, "double", OP_MIN),
-              op_arg_gbl(maxQ0, 1, "double", OP_MAX),
+              op_arg_gbl(&minQ0, 1, "double", OP_MIN),
+              op_arg_gbl(&maxQ0, 1, "double", OP_MAX),
               op_arg_dat(data->Q[ind][0], -1, OP_ID, 15, "double", OP_READ));
 
   op_par_loop(min_max, "min_max", data->cells,
-              op_arg_gbl(minQ1, 1, "double", OP_MIN),
-              op_arg_gbl(maxQ1, 1, "double", OP_MAX),
+              op_arg_gbl(&minQ1, 1, "double", OP_MIN),
+              op_arg_gbl(&maxQ1, 1, "double", OP_MAX),
               op_arg_dat(data->Q[ind][1], -1, OP_ID, 15, "double", OP_READ));
+
+  cout << "QT0: " << minQT0 << " " << maxQT0 << " QT1: " << minQT1 << " " << maxQT1 << endl;
+  cout << "QTT0: " << minQTT0 << " " << maxQTT0 << " QTT1: " << minQTT1 << " " << maxQTT1 << endl;
+  cout << "Q0: " << minQ0 << " " << maxQ0 << " Q1: " << minQ1 << " " << maxQ1 << endl;
 }

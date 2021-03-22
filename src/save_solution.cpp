@@ -1,3 +1,5 @@
+// Include OP2 stuff
+#include "op_seq.h"
 // Include CGNS stuff
 #include "cgnslib.h"
 // Include C++ stuff
@@ -7,145 +9,292 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <map>
+#include <cmath>
+
+#include "ins_data.h"
+#include "operators.h"
 
 using namespace std;
 
-void save_solution(std::string filename, int numPts, int numCells, double *q0,
-                   double *q1, double *p, int *cellMap) {
-  vector<double> velX(numPts);
-  vector<double> velY(numPts);
-  vector<double> pr(numPts);
-  vector<int> num(numPts);
+struct Point {
+  double x;
+  double y;
+  double u;
+  double v;
+  double pr;
+  double vort;
+  vector<int> cells;
+  vector<int> pointNum;
+  int counter;
+};
 
-  for(int i = 0; i < numPts; i++) {
-    velX[i] = 0.0;
-    velY[i] = 0.0;
-    pr[i] = 0.0;
-    num[i] = 0;
+struct cmpCoords {
+    bool operator()(const pair<double,double>& a, const pair<double,double>& b) const {
+        bool xCmp = abs(a.first - b.first) < 1e-8;
+        bool yCmp = abs(a.second - b.second) < 1e-8;
+        if(xCmp && yCmp) {
+          return false;
+        }
+        return a < b;
+    }
+};
+
+void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double> &y_v,
+                      vector<double> &u_v, vector<double> &v_v, vector<double> &pr_v,
+                      vector<double> &vort_v, vector<cgsize_t> &cells) {
+  // Calculate vorticity
+  curl(data, data->Q[ind][0], data->Q[ind][1], data->vorticity);
+
+  // Get Data from OP2
+  int numCells = op_get_size(data->cells);
+  double *Ux   = (double *)malloc(15 * numCells * sizeof(double));
+  double *Uy   = (double *)malloc(15 * numCells * sizeof(double));
+  double *pr   = (double *)malloc(15 * numCells * sizeof(double));
+  double *vort = (double *)malloc(15 * numCells * sizeof(double));
+  double *x    = (double *)malloc(15 * numCells * sizeof(double));
+  double *y    = (double *)malloc(15 * numCells * sizeof(double));
+
+  op_fetch_data(data->Q[ind][0], Ux);
+  op_fetch_data(data->Q[ind][1], Uy);
+  op_fetch_data(data->p, pr);
+  op_fetch_data(data->vorticity, vort);
+  op_fetch_data(data->x, x);
+  op_fetch_data(data->y, y);
+  // Maps points to sub elements that they are part of.
+  // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
+  // -1 is just padding to get each line to 6
+  int cellMask[15][6] = {
+    {0, -1, -1, -1, -1, -1}, // Point 0 is part of sub element 0
+    {0, 1, 2, -1, -1, -1},    // 1
+    {2, 3, 4, -1, -1, -1},    // 2
+    {4, 5, 6, -1, -1, -1},    // 3
+    {6, -1, -1, -1, -1, -1}, // End of first point row
+    {0, 1, 7, -1, -1, -1},    // 5
+    {1, 2, 3, 9, 8, 7},       // 6
+    {3, 4, 5, 11, 10, 9},     // 7
+    {6, 5, 11, -1, -1, -1}, // End of second point row
+    {7, 8, 12, -1, -1, -1},   // 9
+    {8, 9, 10, 14, 13, 12},   // 10
+    {11, 10, 14, -1, -1, -1}, // End of third point row
+    {12, 13, 15, -1, -1, -1}, // 12
+    {14, 13, 15, -1, -1, -1}, // End of fourth point row
+    {15, -1, -1, -1, -1, -1}  // 14
+  };
+
+  int pointNum[15][6] = {
+    {0, -1, -1, -1, -1, -1}, // Point 0 is the first point of sub element 0
+    {1, 0, 0, -1, -1, -1},  // 1
+    {1, 0, 0, -1, -1, -1},  // 2
+    {1, 0, 0, -1, -1, -1},  // 3
+    {1, -1, -1, -1, -1, -1}, // End of first point row
+    {2, 2, 0, -1, -1, -1},  // 5
+    {1, 2, 2, 0, 0, 1},     // 6
+    {1, 2, 2, 0, 0, 1},     // 7
+    {2, 1, 1, -1, -1, -1}, // End of second point row
+    {2, 2, 0, -1, -1, -1},  // 9
+    {1, 2, 2, 0, 0, 1},     // 10
+    {2, 1, 1, -1, -1, -1}, // End of third point row
+    {2, 2, 0, -1, -1, -1},  // 12
+    {2, 1, 1, -1, -1, -1}, // End of fourth point row
+    {2, -1, -1, -1, -1, -1} // 14
+  };
+
+  // 16 sub elements per original element
+  map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
+  for(int c = 0; c < numCells; c++) {
+    int ind = c * 15;
+    for(int p = 0; p < 15; p++) {
+      pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
+      unique_ptr<Point> point = make_unique<Point>();
+      auto res = pointMap.insert(make_pair(coords, move(point)));
+      if(res.second) {
+        res.first->second->x    = x[ind + p];
+        res.first->second->y    = y[ind + p];
+        res.first->second->u    = Ux[ind + p];
+        res.first->second->v    = Uy[ind + p];
+        res.first->second->pr   = pr[ind + p];
+        res.first->second->vort = vort[ind + p];
+        for(int m = 0; m < 6; m++) {
+          if(cellMask[p][m] >= 0) {
+            res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
+            res.first->second->pointNum.push_back(pointNum[p][m]);
+          } else {
+            break;
+          }
+        }
+        res.first->second->counter = 1;
+      } else {
+        res.first->second->u    += Ux[ind + p];
+        res.first->second->v    += Uy[ind + p];
+        res.first->second->pr   += pr[ind + p];
+        res.first->second->vort += vort[ind + p];
+        for(int m = 0; m < 6; m++) {
+          if(cellMask[p][m] >= 0) {
+            res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
+            res.first->second->pointNum.push_back(pointNum[p][m]);
+          } else {
+            break;
+          }
+        }
+        res.first->second->counter++;
+      }
+    }
   }
 
-  int qNode0Ind = 0;
-  int qNode1Ind = 4;
-  int qNode2Ind = 14;
+  int index = 0;
 
-  for(int i = 0; i < numCells; i++) {
-    int qCellInd = i * 15;
-    int node0 = cellMap[i * 3];
-    int node1 = cellMap[i * 3 + 1];
-    int node2 = cellMap[i * 3 + 2];
-
-    velX[node0] += q0[qCellInd + qNode0Ind];
-    velY[node0] += q1[qCellInd + qNode0Ind];
-    pr[node0] += p[qCellInd + qNode0Ind];
-    num[node0]++;
-
-    velX[node1] += q0[qCellInd + qNode1Ind];
-    velY[node1] += q1[qCellInd + qNode1Ind];
-    pr[node1] += p[qCellInd + qNode1Ind];
-    num[node1]++;
-
-    velX[node2] += q0[qCellInd + qNode2Ind];
-    velY[node2] += q1[qCellInd + qNode2Ind];
-    pr[node2] += p[qCellInd + qNode2Ind];
-    num[node2]++;
+  for(auto const &p : pointMap) {
+    x_v.push_back(p.second->x);
+    y_v.push_back(p.second->y);
+    u_v.push_back(p.second->u / p.second->counter);
+    v_v.push_back(p.second->v / p.second->counter);
+    pr_v.push_back(p.second->pr / p.second->counter);
+    vort_v.push_back(p.second->vort / p.second->counter);
+    for(int i = 0; i < p.second->cells.size(); i++) {
+      cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
+    }
+    index++;
   }
 
-  for(int i = 0; i < numPts; i++) {
-    velX[i] = velX[i] / (double)num[i];
-    velY[i] = velY[i] / (double)num[i];
-    pr[i] = pr[i] / (double)num[i];
-  }
+  free(Ux);
+  free(Uy);
+  free(pr);
+  free(vort);
+  free(x);
+  free(y);
+}
 
-  // Write out CGNS file
+void save_solution_iter(std::string filename, INSData *data, int ind, int iter) {
+  int numCells = op_get_size(data->cells);
+  vector<double> x_v;
+  vector<double> y_v;
+  vector<double> u_v;
+  vector<double> v_v;
+  vector<double> pr_v;
+  vector<double> vort_v;
+  vector<cgsize_t> cells(3 * numCells * 16);
+
+  get_data_vectors(data, ind, x_v, y_v, u_v, v_v, pr_v, vort_v, cells);
+
   int file;
   if (cg_open(filename.c_str(), CG_MODE_MODIFY, &file)) {
     cg_error_exit();
   }
-
   int baseIndex = 1;
   int zoneIndex = 1;
-  int flowIndex;
-  // Create flow solution node
-  cg_sol_write(file, baseIndex, zoneIndex, "FlowSolution", CGNS_ENUMV(Vertex), &flowIndex);
 
-  // Write pressure
-  int pIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Pressure", pr.data(), &pIndex);
+  int flowIndex;
+  string flowName = "FlowSolution" + to_string(iter);
+  // Create flow solution node
+  cg_sol_write(file, baseIndex, zoneIndex, flowName.c_str(), CGNS_ENUMV(Vertex), &flowIndex);
 
   // Write velocity x
   int velXIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityX", velX.data(), &velXIndex);
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityX", u_v.data(), &velXIndex);
 
   // Write velocity y
   int velYIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityY", velY.data(), &velYIndex);
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityY", v_v.data(), &velYIndex);
+
+  // Write pressure
+  int pIndex;
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Pressure", pr_v.data(), &pIndex);
+
+  // Write vorticity
+  int vortIndex;
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VorticityMagnitude", vort_v.data(), &vortIndex);
 
   float exp[5];
   cg_goto(file, baseIndex, "end");
   cg_dataclass_write(CGNS_ENUMV(Dimensional));
   cg_units_write(CGNS_ENUMV(Kilogram), CGNS_ENUMV(Meter), CGNS_ENUMV(Second), CGNS_ENUMV(Kelvin), CGNS_ENUMV(Degree));
+
+  exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", velXIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+
+  exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", velYIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
   exp[0] = 1.0f; exp[1] = -1.0f; exp[2] = -2.0f; exp[3] = 0.0f; exp[4] = 0.0f;
   cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", pIndex, "end");
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
-  exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
-  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", velXIndex, "end");
-  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
-
-  exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
-  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", velYIndex, "end");
+  exp[0] = 0.0f; exp[1] = 0.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", vortIndex, "end");
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
   cg_close(file);
 }
 
-void save_solution_cell(std::string filename, int numPts, int numCells, double *q0,
-                        double *q1, int *cellMap) {
-  vector<double> velX(numCells);
-  vector<double> velY(numCells);
+void save_solution_init(std::string filename, INSData *data) {
+  int numCells = op_get_size(data->cells);
+  vector<double> x_v;
+  vector<double> y_v;
+  vector<double> u_v;
+  vector<double> v_v;
+  vector<double> pr_v;
+  vector<double> vort_v;
+  vector<cgsize_t> cells(3 * numCells * 16);
 
-  int qNode0Ind = 0;
-  int qNode1Ind = 4;
-  int qNode2Ind = 14;
+  get_data_vectors(data, 0, x_v, y_v, u_v, v_v, pr_v, vort_v, cells);
 
-  for(int i = 0; i < numCells; i++) {
-    int qCellInd = i * 15;
-    int node0 = cellMap[i * 3];
-    int node1 = cellMap[i * 3 + 1];
-    int node2 = cellMap[i * 3 + 2];
-
-    velX[i] = 0.0;
-    velY[i] = 0.0;
-
-    for(int j = 0; j < 15; j++) {
-      velX[i] += q0[qCellInd + j];
-      velY[i] += q1[qCellInd + j];
-    }
-
-    velX[i] = velX[i] / 15.0;
-    velY[i] = velY[i] / 15.0;
-  }
-
-  // Write out CGNS file
   int file;
-  if (cg_open(filename.c_str(), CG_MODE_MODIFY, &file)) {
+  if (cg_open(filename.c_str(), CG_MODE_WRITE, &file)) {
     cg_error_exit();
   }
+  // Create base
+  int baseIndex;
+  int zoneIndex;
+  int cellDim = 2;
+  int physicalDim = 2;
+  cg_base_write(file, "Base", cellDim, physicalDim, &baseIndex);
 
-  int baseIndex = 1;
-  int zoneIndex = 1;
+  // Create zone
+  cgsize_t sizes[3];
+  // Number of vertices
+  sizes[0] = x_v.size();
+  // Number of cells
+  sizes[1] = numCells * 16;
+  // Number of boundary vertices (zero if elements not sorted)
+  sizes[2] = 0;
+  cg_zone_write(file, baseIndex, "Zone", sizes,
+                CGNS_ENUMV(Unstructured), &zoneIndex);
+  // Write grid coordinates
+  int coordIndex;
+  cg_coord_write(file, baseIndex, zoneIndex, CGNS_ENUMV(RealDouble),
+                 "CoordinateX", x_v.data(), &coordIndex);
+  cg_coord_write(file, baseIndex, zoneIndex, CGNS_ENUMV(RealDouble),
+                 "CoordinateY", y_v.data(), &coordIndex);
+  // Write elements
+  int sectionIndex;
+  int start = 1;
+  int end = sizes[1];
+  cg_section_write(file, baseIndex, zoneIndex, "GridElements", CGNS_ENUMV(TRI_3),
+                   start, end, 0, cells.data(), &sectionIndex);
+
+  // Write first flow solution
   int flowIndex;
   // Create flow solution node
-  cg_sol_write(file, baseIndex, zoneIndex, "FlowSolution", CGNS_ENUMV(CellCenter), &flowIndex);
+  cg_sol_write(file, baseIndex, zoneIndex, "FlowSolution0", CGNS_ENUMV(Vertex), &flowIndex);
 
   // Write velocity x
   int velXIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityX", velX.data(), &velXIndex);
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityX", u_v.data(), &velXIndex);
 
   // Write velocity y
   int velYIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityY", velY.data(), &velYIndex);
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityY", v_v.data(), &velYIndex);
+
+  // Write pressure
+  int pIndex;
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Pressure", pr_v.data(), &pIndex);
+
+  // Write vorticity
+  int vortIndex;
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VorticityMagnitude", vort_v.data(), &vortIndex);
 
   float exp[5];
   cg_goto(file, baseIndex, "end");
@@ -160,144 +309,140 @@ void save_solution_cell(std::string filename, int numPts, int numCells, double *
   cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", velYIndex, "end");
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
+  exp[0] = 1.0f; exp[1] = -1.0f; exp[2] = -2.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", pIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+
+  exp[0] = 0.0f; exp[1] = 0.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", vortIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+
   cg_close(file);
 }
 
-void save_solution_t(std::string filename, int numPts, int numCells, double *q0, double *q1,
-                     double *p, double *pRHS, double *px, double *py, double *utx, double *uty,
-                     double *uttx, double *utty, double *visx, double *visy, int *cellMap) {
-  vector<double> velX(numPts);
-  vector<double> velY(numPts);
-  vector<double> pr(numPts);
-  vector<double> prRHS(numPts);
-  vector<double> prX(numPts);
-  vector<double> prY(numPts);
-  vector<double> utX(numPts);
-  vector<double> utY(numPts);
-  vector<double> uttX(numPts);
-  vector<double> uttY(numPts);
-  vector<double> visX(numPts);
-  vector<double> visY(numPts);
-  vector<int> num(numPts);
+void save_solution_finalise(std::string filename, INSData *data, int numIter, double dt) {
+  vector<double> times;
+  char flowPtrs[numIter][32];
 
-  for(int i = 0; i < numPts; i++) {
-    velX[i] = 0.0;
-    velY[i] = 0.0;
-    pr[i] = 0.0;
-    prRHS[i] = 0.0;
-    prX[i] = 0.0;
-    prY[i] = 0.0;
-    utX[i] = 0.0;
-    utY[i] = 0.0;
-    uttX[i] = 0.0;
-    uttY[i] = 0.0;
-    visX[i] = 0.0;
-    visY[i] = 0.0;
-    num[i] = 0;
+  for(int i = 0; i < numIter; i++) {
+    times.push_back(i * dt);
+    string name = "FlowSolution" + to_string(i);
+    strcpy(flowPtrs[i], name.c_str());
   }
 
-  int qNode0Ind = 0;
-  int qNode1Ind = 4;
-  int qNode2Ind = 14;
-
-  for(int i = 0; i < numCells; i++) {
-    int qCellInd = i * 15;
-    int node0 = cellMap[i * 3];
-    int node1 = cellMap[i * 3 + 1];
-    int node2 = cellMap[i * 3 + 2];
-
-    velX[node0] += q0[qCellInd + qNode0Ind];
-    velY[node0] += q1[qCellInd + qNode0Ind];
-    pr[node0] += p[qCellInd + qNode0Ind];
-    prRHS[node0] += pRHS[qCellInd + qNode0Ind];
-    prX[node0] += px[qCellInd + qNode0Ind];
-    prY[node0] += py[qCellInd + qNode0Ind];
-    utX[node0] += utx[qCellInd + qNode0Ind];
-    utY[node0] += uty[qCellInd + qNode0Ind];
-    uttX[node0] += uttx[qCellInd + qNode0Ind];
-    uttY[node0] += utty[qCellInd + qNode0Ind];
-    visX[node0] += visx[qCellInd + qNode0Ind];
-    visY[node0] += visy[qCellInd + qNode0Ind];
-    num[node0]++;
-
-    velX[node1] += q0[qCellInd + qNode1Ind];
-    velY[node1] += q1[qCellInd + qNode1Ind];
-    pr[node1] += p[qCellInd + qNode1Ind];
-    prRHS[node1] += pRHS[qCellInd + qNode1Ind];
-    prX[node1] += px[qCellInd + qNode1Ind];
-    prY[node1] += py[qCellInd + qNode1Ind];
-    utX[node1] += utx[qCellInd + qNode1Ind];
-    utY[node1] += uty[qCellInd + qNode1Ind];
-    uttX[node1] += uttx[qCellInd + qNode1Ind];
-    uttY[node1] += utty[qCellInd + qNode1Ind];
-    visX[node1] += visx[qCellInd + qNode1Ind];
-    visY[node1] += visy[qCellInd + qNode1Ind];
-    num[node1]++;
-
-    velX[node2] += q0[qCellInd + qNode2Ind];
-    velY[node2] += q1[qCellInd + qNode2Ind];
-    pr[node2] += p[qCellInd + qNode2Ind];
-    prRHS[node2] += pRHS[qCellInd + qNode2Ind];
-    prX[node2] += px[qCellInd + qNode2Ind];
-    prY[node2] += py[qCellInd + qNode2Ind];
-    utX[node2] += utx[qCellInd + qNode2Ind];
-    utY[node2] += uty[qCellInd + qNode2Ind];
-    uttX[node2] += uttx[qCellInd + qNode2Ind];
-    uttY[node2] += utty[qCellInd + qNode2Ind];
-    visX[node2] += visx[qCellInd + qNode2Ind];
-    visY[node2] += visy[qCellInd + qNode2Ind];
-    num[node2]++;
-  }
-
-  for(int i = 0; i < numPts; i++) {
-    velX[i] = velX[i] / (double)num[i];
-    velY[i] = velY[i] / (double)num[i];
-    pr[i] = pr[i] / (double)num[i];
-    prRHS[i] = prRHS[i] / (double)num[i];
-    prX[i] = prX[i] / (double)num[i];
-    prY[i] = prY[i] / (double)num[i];
-    utX[i] = utX[i] / (double)num[i];
-    utY[i] = utY[i] / (double)num[i];
-    uttX[i] = uttX[i] / (double)num[i];
-    uttY[i] = uttY[i] / (double)num[i];
-    visX[i] = visX[i] / (double)num[i];
-    visY[i] = visY[i] / (double)num[i];
-  }
-
-  // Write out CGNS file
   int file;
   if (cg_open(filename.c_str(), CG_MODE_MODIFY, &file)) {
     cg_error_exit();
   }
-
   int baseIndex = 1;
   int zoneIndex = 1;
+
+  // Create base iteration node
+  cg_biter_write(file, baseIndex, "BaseIter", numIter);
+  // Store time values of each iteration
+  cg_gopath(file, "/Base/BaseIter");
+  cgsize_t timeDims[1] = {times.size()};
+  cg_array_write("TimeValues", CGNS_ENUMV(RealDouble), 1, timeDims, times.data());
+
+  // Create zone iteration node
+  cg_ziter_write(file, baseIndex, zoneIndex, "ZoneIter");
+  cg_gopath(file, "/Base/Zone/ZoneIter");
+  cgsize_t flowPtrsDim[2] = {32, numIter};
+  cg_array_write("FlowSolutionPointers", CGNS_ENUMV(Character), 2, flowPtrsDim, flowPtrs);
+
+  cg_simulation_type_write(file, baseIndex, CGNS_ENUMV(TimeAccurate));
+
+  cg_close(file);
+}
+
+void save_solution(std::string filename, INSData *data, int ind) {
+  int numCells = op_get_size(data->cells);
+  vector<double> x_v;
+  vector<double> y_v;
+  vector<double> u_v;
+  vector<double> v_v;
+  vector<double> pr_v;
+  vector<double> vort_v;
+  vector<cgsize_t> cells(3 * numCells * 16);
+
+  get_data_vectors(data, ind, x_v, y_v, u_v, v_v, pr_v, vort_v, cells);
+
+  int file;
+  if (cg_open(filename.c_str(), CG_MODE_WRITE, &file)) {
+    cg_error_exit();
+  }
+  int baseIndex;
+  int zoneIndex;
+  string baseName = "Base";
+  int cellDim = 2;
+  int physicalDim = 2;
+  cg_base_write(file, baseName.c_str(), cellDim, physicalDim, &baseIndex);
+  // Create zone
+  string zoneName = "Zone";
+  cgsize_t sizes[3];
+  // Number of vertices
+  sizes[0] = x_v.size();
+  // Number of cells
+  sizes[1] = numCells * 16;
+  // Number of boundary vertices (zero if elements not sorted)
+  sizes[2] = 0;
+  cg_zone_write(file, baseIndex, zoneName.c_str(), sizes,
+                CGNS_ENUMV(Unstructured), &zoneIndex);
+  // Write grid coordinates
+  int coordIndex;
+  cg_coord_write(file, baseIndex, zoneIndex, CGNS_ENUMV(RealDouble),
+                 "CoordinateX", x_v.data(), &coordIndex);
+  cg_coord_write(file, baseIndex, zoneIndex, CGNS_ENUMV(RealDouble),
+                 "CoordinateY", y_v.data(), &coordIndex);
+
+  // Write elements
+  int sectionIndex;
+  int start = 1;
+  int end = sizes[1];
+
+  cg_section_write(file, baseIndex, zoneIndex, "GridElements", CGNS_ENUMV(TRI_3),
+                   start, end, 0, cells.data(), &sectionIndex);
+
   int flowIndex;
   // Create flow solution node
   cg_sol_write(file, baseIndex, zoneIndex, "FlowSolution", CGNS_ENUMV(Vertex), &flowIndex);
 
-  // Write pressure
-  int pIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Pressure", pr.data(), &pIndex);
-
   // Write velocity x
   int velXIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityX", velX.data(), &velXIndex);
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityX", u_v.data(), &velXIndex);
 
   // Write velocity y
   int velYIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityY", velY.data(), &velYIndex);
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityY", v_v.data(), &velYIndex);
 
-  int tIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "pRHS", prRHS.data(), &tIndex);
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "pX", prX.data(), &tIndex);
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "pY", prY.data(), &tIndex);
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "utX", utX.data(), &tIndex);
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "utY", utY.data(), &tIndex);
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "uttX", uttX.data(), &tIndex);
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "uttY", uttY.data(), &tIndex);
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "visX", visX.data(), &tIndex);
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "visY", visY.data(), &tIndex);
+  // Write pressure
+  int pIndex;
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Pressure", pr_v.data(), &pIndex);
+
+  // Write vorticity
+  int vortIndex;
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VorticityMagnitude", vort_v.data(), &vortIndex);
+
+  float exp[5];
+  cg_goto(file, baseIndex, "end");
+  cg_dataclass_write(CGNS_ENUMV(Dimensional));
+  cg_units_write(CGNS_ENUMV(Kilogram), CGNS_ENUMV(Meter), CGNS_ENUMV(Second), CGNS_ENUMV(Kelvin), CGNS_ENUMV(Degree));
+
+  exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", velXIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+
+  exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", velYIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+
+  exp[0] = 1.0f; exp[1] = -1.0f; exp[2] = -2.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", pIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+
+  exp[0] = 0.0f; exp[1] = 0.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", vortIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
   cg_close(file);
 }

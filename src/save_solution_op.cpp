@@ -59,7 +59,9 @@ struct cmpCoords {
     }
 };
 
-void save_solution_all(std::string filename, INSData *data, int ind, int iter) {
+void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double> &y_v,
+                      vector<double> &u_v, vector<double> &v_v, vector<double> &pr_v,
+                      vector<double> &vort_v, vector<cgsize_t> &cells) {
   // Calculate vorticity
   curl(data, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
@@ -159,13 +161,6 @@ void save_solution_all(std::string filename, INSData *data, int ind, int iter) {
     }
   }
 
-  vector<double> x_v;
-  vector<double> y_v;
-  vector<double> u_v;
-  vector<double> v_v;
-  vector<double> pr_v;
-  vector<double> vort_v;
-  vector<cgsize_t> cells(3 * numCells * 16);
   int index = 0;
 
   for(auto const &p : pointMap) {
@@ -180,6 +175,26 @@ void save_solution_all(std::string filename, INSData *data, int ind, int iter) {
     }
     index++;
   }
+
+  free(Ux);
+  free(Uy);
+  free(pr);
+  free(vort);
+  free(x);
+  free(y);
+}
+
+void save_solution_iter(std::string filename, INSData *data, int ind, int iter) {
+  int numCells = op_get_size(data->cells);
+  vector<double> x_v;
+  vector<double> y_v;
+  vector<double> u_v;
+  vector<double> v_v;
+  vector<double> pr_v;
+  vector<double> vort_v;
+  vector<cgsize_t> cells(3 * numCells * 16);
+
+  get_data_vectors(data, ind, x_v, y_v, u_v, v_v, pr_v, vort_v, cells);
 
   int file;
   if (cg_open(filename.c_str(), CG_MODE_MODIFY, &file)) {
@@ -231,115 +246,10 @@ void save_solution_all(std::string filename, INSData *data, int ind, int iter) {
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
   cg_close(file);
-
-  free(Ux);
-  free(Uy);
-  free(pr);
-  free(vort);
-  free(x);
-  free(y);
 }
 
-void save_solution_all_init(std::string filename, INSData *data, int numIter, double dt) {
-  // Calculate vorticity
-  curl(data, data->Q[0][0], data->Q[0][1], data->vorticity);
-
-  // Get Data from OP2
+void save_solution_init(std::string filename, INSData *data) {
   int numCells = op_get_size(data->cells);
-  double *Ux   = (double *)malloc(15 * numCells * sizeof(double));
-  double *Uy   = (double *)malloc(15 * numCells * sizeof(double));
-  double *pr   = (double *)malloc(15 * numCells * sizeof(double));
-  double *vort = (double *)malloc(15 * numCells * sizeof(double));
-  double *x    = (double *)malloc(15 * numCells * sizeof(double));
-  double *y    = (double *)malloc(15 * numCells * sizeof(double));
-
-  op_fetch_data(data->Q[0][0], Ux);
-  op_fetch_data(data->Q[0][1], Uy);
-  op_fetch_data(data->p, pr);
-  op_fetch_data(data->vorticity, vort);
-  op_fetch_data(data->x, x);
-  op_fetch_data(data->y, y);
-  // Maps points to sub elements that they are part of.
-  // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
-  // -1 is just padding to get each line to 6
-  int cellMask[15][6] = {
-    {0, -1, -1, -1, -1, -1}, // Point 0 is part of sub element 0
-    {0, 1, 2, -1, -1, -1},    // 1
-    {2, 3, 4, -1, -1, -1},    // 2
-    {4, 5, 6, -1, -1, -1},    // 3
-    {6, -1, -1, -1, -1, -1}, // End of first point row
-    {0, 1, 7, -1, -1, -1},    // 5
-    {1, 2, 3, 9, 8, 7},       // 6
-    {3, 4, 5, 11, 10, 9},     // 7
-    {6, 5, 11, -1, -1, -1}, // End of second point row
-    {7, 8, 12, -1, -1, -1},   // 9
-    {8, 9, 10, 14, 13, 12},   // 10
-    {11, 10, 14, -1, -1, -1}, // End of third point row
-    {12, 13, 15, -1, -1, -1}, // 12
-    {14, 13, 15, -1, -1, -1}, // End of fourth point row
-    {15, -1, -1, -1, -1, -1}  // 14
-  };
-
-  int pointNum[15][6] = {
-    {0, -1, -1, -1, -1, -1}, // Point 0 is the first point of sub element 0
-    {1, 0, 0, -1, -1, -1},  // 1
-    {1, 0, 0, -1, -1, -1},  // 2
-    {1, 0, 0, -1, -1, -1},  // 3
-    {1, -1, -1, -1, -1, -1}, // End of first point row
-    {2, 2, 0, -1, -1, -1},  // 5
-    {1, 2, 2, 0, 0, 1},     // 6
-    {1, 2, 2, 0, 0, 1},     // 7
-    {2, 1, 1, -1, -1, -1}, // End of second point row
-    {2, 2, 0, -1, -1, -1},  // 9
-    {1, 2, 2, 0, 0, 1},     // 10
-    {2, 1, 1, -1, -1, -1}, // End of third point row
-    {2, 2, 0, -1, -1, -1},  // 12
-    {2, 1, 1, -1, -1, -1}, // End of fourth point row
-    {2, -1, -1, -1, -1, -1} // 14
-  };
-
-  // 16 sub elements per original element
-  map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
-  for(int c = 0; c < numCells; c++) {
-    int ind = c * 15;
-    for(int p = 0; p < 15; p++) {
-      pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
-      unique_ptr<Point> point = make_unique<Point>();
-      auto res = pointMap.insert(make_pair(coords, move(point)));
-      if(res.second) {
-        res.first->second->x    = x[ind + p];
-        res.first->second->y    = y[ind + p];
-        res.first->second->u    = Ux[ind + p];
-        res.first->second->v    = Uy[ind + p];
-        res.first->second->pr   = pr[ind + p];
-        res.first->second->vort = vort[ind + p];
-        for(int m = 0; m < 6; m++) {
-          if(cellMask[p][m] >= 0) {
-            res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
-            res.first->second->pointNum.push_back(pointNum[p][m]);
-          } else {
-            break;
-          }
-        }
-        res.first->second->counter = 1;
-      } else {
-        res.first->second->u    += Ux[ind + p];
-        res.first->second->v    += Uy[ind + p];
-        res.first->second->pr   += pr[ind + p];
-        res.first->second->vort += vort[ind + p];
-        for(int m = 0; m < 6; m++) {
-          if(cellMask[p][m] >= 0) {
-            res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
-            res.first->second->pointNum.push_back(pointNum[p][m]);
-          } else {
-            break;
-          }
-        }
-        res.first->second->counter++;
-      }
-    }
-  }
-
   vector<double> x_v;
   vector<double> y_v;
   vector<double> u_v;
@@ -347,20 +257,8 @@ void save_solution_all_init(std::string filename, INSData *data, int numIter, do
   vector<double> pr_v;
   vector<double> vort_v;
   vector<cgsize_t> cells(3 * numCells * 16);
-  int index = 0;
 
-  for(auto const &p : pointMap) {
-    x_v.push_back(p.second->x);
-    y_v.push_back(p.second->y);
-    u_v.push_back(p.second->u / p.second->counter);
-    v_v.push_back(p.second->v / p.second->counter);
-    pr_v.push_back(p.second->pr / p.second->counter);
-    vort_v.push_back(p.second->vort / p.second->counter);
-    for(int i = 0; i < p.second->cells.size(); i++) {
-      cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
-    }
-    index++;
-  }
+  get_data_vectors(data, 0, x_v, y_v, u_v, v_v, pr_v, vort_v, cells);
 
   int file;
   if (cg_open(filename.c_str(), CG_MODE_WRITE, &file)) {
@@ -441,7 +339,7 @@ void save_solution_all_init(std::string filename, INSData *data, int numIter, do
   cg_close(file);
 }
 
-void save_solution_all_finalise(std::string filename, INSData *data, int numIter, double dt) {
+void save_solution_finalise(std::string filename, INSData *data, int numIter, double dt) {
   vector<double> times;
   char flowPtrs[numIter][32];
 
@@ -476,106 +374,8 @@ void save_solution_all_finalise(std::string filename, INSData *data, int numIter
   cg_close(file);
 }
 
-void save_end_solution(std::string filename, INSData *data, int ind) {
-  // Calculate vorticity
-  curl(data, data->Q[ind][0], data->Q[ind][1], data->vorticity);
-
-  // Get Data from OP2
+void save_solution(std::string filename, INSData *data, int ind) {
   int numCells = op_get_size(data->cells);
-  double *Ux   = (double *)malloc(15 * numCells * sizeof(double));
-  double *Uy   = (double *)malloc(15 * numCells * sizeof(double));
-  double *pr   = (double *)malloc(15 * numCells * sizeof(double));
-  double *vort = (double *)malloc(15 * numCells * sizeof(double));
-  double *x    = (double *)malloc(15 * numCells * sizeof(double));
-  double *y    = (double *)malloc(15 * numCells * sizeof(double));
-
-  op_fetch_data(data->Q[ind][0], Ux);
-  op_fetch_data(data->Q[ind][1], Uy);
-  op_fetch_data(data->p, pr);
-  op_fetch_data(data->vorticity, vort);
-  op_fetch_data(data->x, x);
-  op_fetch_data(data->y, y);
-  // Maps points to sub elements that they are part of.
-  // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
-  // -1 is just padding to get each line to 6
-  int cellMask[15][6] = {
-    {0, -1, -1, -1, -1, -1}, // Point 0 is part of sub element 0
-    {0, 1, 2, -1, -1, -1},    // 1
-    {2, 3, 4, -1, -1, -1},    // 2
-    {4, 5, 6, -1, -1, -1},    // 3
-    {6, -1, -1, -1, -1, -1}, // End of first point row
-    {0, 1, 7, -1, -1, -1},    // 5
-    {1, 2, 3, 9, 8, 7},       // 6
-    {3, 4, 5, 11, 10, 9},     // 7
-    {6, 5, 11, -1, -1, -1}, // End of second point row
-    {7, 8, 12, -1, -1, -1},   // 9
-    {8, 9, 10, 14, 13, 12},   // 10
-    {11, 10, 14, -1, -1, -1}, // End of third point row
-    {12, 13, 15, -1, -1, -1}, // 12
-    {14, 13, 15, -1, -1, -1}, // End of fourth point row
-    {15, -1, -1, -1, -1, -1}  // 14
-  };
-
-  int pointNum[15][6] = {
-    {0, -1, -1, -1, -1, -1}, // Point 0 is the first point of sub element 0
-    {1, 0, 0, -1, -1, -1},  // 1
-    {1, 0, 0, -1, -1, -1},  // 2
-    {1, 0, 0, -1, -1, -1},  // 3
-    {1, -1, -1, -1, -1, -1}, // End of first point row
-    {2, 2, 0, -1, -1, -1},  // 5
-    {1, 2, 2, 0, 0, 1},     // 6
-    {1, 2, 2, 0, 0, 1},     // 7
-    {2, 1, 1, -1, -1, -1}, // End of second point row
-    {2, 2, 0, -1, -1, -1},  // 9
-    {1, 2, 2, 0, 0, 1},     // 10
-    {2, 1, 1, -1, -1, -1}, // End of third point row
-    {2, 2, 0, -1, -1, -1},  // 12
-    {2, 1, 1, -1, -1, -1}, // End of fourth point row
-    {2, -1, -1, -1, -1, -1} // 14
-  };
-
-  // 16 sub elements per original element
-  map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
-  for(int c = 0; c < numCells; c++) {
-    int ind = c * 15;
-    for(int p = 0; p < 15; p++) {
-      pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
-      unique_ptr<Point> point = make_unique<Point>();
-      auto res = pointMap.insert(make_pair(coords, move(point)));
-      if(res.second) {
-        res.first->second->x    = x[ind + p];
-        res.first->second->y    = y[ind + p];
-        res.first->second->u    = Ux[ind + p];
-        res.first->second->v    = Uy[ind + p];
-        res.first->second->pr   = pr[ind + p];
-        res.first->second->vort = vort[ind + p];
-        for(int m = 0; m < 6; m++) {
-          if(cellMask[p][m] >= 0) {
-            res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
-            res.first->second->pointNum.push_back(pointNum[p][m]);
-          } else {
-            break;
-          }
-        }
-        res.first->second->counter = 1;
-      } else {
-        res.first->second->u    += Ux[ind + p];
-        res.first->second->v    += Uy[ind + p];
-        res.first->second->pr   += pr[ind + p];
-        res.first->second->vort += vort[ind + p];
-        for(int m = 0; m < 6; m++) {
-          if(cellMask[p][m] >= 0) {
-            res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
-            res.first->second->pointNum.push_back(pointNum[p][m]);
-          } else {
-            break;
-          }
-        }
-        res.first->second->counter++;
-      }
-    }
-  }
-
   vector<double> x_v;
   vector<double> y_v;
   vector<double> u_v;
@@ -583,20 +383,8 @@ void save_end_solution(std::string filename, INSData *data, int ind) {
   vector<double> pr_v;
   vector<double> vort_v;
   vector<cgsize_t> cells(3 * numCells * 16);
-  int index = 0;
 
-  for(auto const &p : pointMap) {
-    x_v.push_back(p.second->x);
-    y_v.push_back(p.second->y);
-    u_v.push_back(p.second->u / p.second->counter);
-    v_v.push_back(p.second->v / p.second->counter);
-    pr_v.push_back(p.second->pr / p.second->counter);
-    vort_v.push_back(p.second->vort / p.second->counter);
-    for(int i = 0; i < p.second->cells.size(); i++) {
-      cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
-    }
-    index++;
-  }
+  get_data_vectors(data, ind, x_v, y_v, u_v, v_v, pr_v, vort_v, cells);
 
   int file;
   if (cg_open(filename.c_str(), CG_MODE_WRITE, &file)) {
@@ -676,11 +464,4 @@ void save_end_solution(std::string filename, INSData *data, int ind) {
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
   cg_close(file);
-
-  free(Ux);
-  free(Uy);
-  free(pr);
-  free(vort);
-  free(x);
-  free(y);
 }
