@@ -176,6 +176,7 @@ void op_par_loop_min_max(char const *, op_set,
 #include "operators.h"
 #include "save_solution.h"
 #include "poisson.h"
+#include "timing.h"
 
 // Kernels
 #include "kernels/set_ic.h"
@@ -200,6 +201,8 @@ void op_par_loop_min_max(char const *, op_set,
 
 using namespace std;
 
+Timing *timer;
+
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t);
 
@@ -215,6 +218,10 @@ void lift_drag_coeff(INSData *data, double *lift, double *drag, int ind);
 void print_min_max(INSData *data, int ind);
 
 int main(int argc, char **argv) {
+  timer = new Timing();
+  timer->startWallTime();
+  timer->startSetup();
+
   string filename = "./cylinder.cgns";
   char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
@@ -315,16 +322,11 @@ int main(int argc, char **argv) {
   int currentIter = 0;
   double time = 0.0;
 
-  double cpu_1, wall_1, cpu_2, wall_2, cpu_loop_1, wall_loop_1, cpu_loop_2, wall_loop_2;
-  double a_time = 0.0;
-  double p_time = 0.0;
-  double v_time = 0.0;
-  double s_time = 0.0;
-
   if(save != -1)
     save_solution_init("sol.cgns", data);
 
-  op_timers(&cpu_1, &wall_1);
+  timer->endSetup();
+  timer->startMainLoop();
 
   for(int i = 0; i < iter; i++) {
     // Switch from forwards Euler time integration to second-order Adams-Bashford after first iteration
@@ -335,12 +337,11 @@ int main(int argc, char **argv) {
       b0 = 2.0;
       b1 = -1.0;
     }
-    op_timers(&cpu_loop_1, &wall_loop_1);
+    timer->startAdvection();
     advection(data, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
-    op_timers(&cpu_loop_2, &wall_loop_2);
-    a_time += wall_loop_2 - wall_loop_1;
+    timer->endAdvection();
 
-    op_timers(&cpu_loop_1, &wall_loop_1);
+    timer->startPressure();
     bool converged = pressure(data, pressurePoisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
     if(!converged) {
       cout << "******** ERROR ********" << endl;
@@ -348,10 +349,9 @@ int main(int argc, char **argv) {
       cout << "Iteration: " << i << " Time: " << time << endl;
       break;
     }
-    op_timers(&cpu_loop_2, &wall_loop_2);
-    p_time += wall_loop_2 - wall_loop_1;
+    timer->endPressure();
 
-    op_timers(&cpu_loop_1, &wall_loop_1);
+    timer->startViscosity();
     converged = viscosity(data, cubData, gaussData, viscosityPoisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
     if(!converged) {
       cout << "******** ERROR ********" << endl;
@@ -359,49 +359,43 @@ int main(int argc, char **argv) {
       cout << "Iteration: " << i << " Time: " << time << endl;
       break;
     }
-    op_timers(&cpu_loop_2, &wall_loop_2);
-    v_time += wall_loop_2 - wall_loop_1;
+    timer->endViscosity();
 
     currentIter++;
     time += dt;
 
     // Calculate drag and lift coefficients + save data
     if(save != -1 && (i + 1) % save == 0) {
-      op_timers(&cpu_loop_1, &wall_loop_1);
       // print_min_max(data, currentIter % 2);
       cout << "Iteration: " << i << endl;
+      timer->startLiftDrag();
       double lift, drag;
       lift_drag_coeff(data, &lift, &drag, currentIter % 2);
+      timer->endLiftDrag();
       cout << "Cd: " << drag << " Cl: " << lift << endl;
       cout << "Avg. Pressure Iter: " << pressurePoisson->getAverageConvergeIter();
       cout << " Avg. Viscosity Iter: " << viscosityPoisson->getAverageConvergeIter() << endl;
 
+      timer->startSave();
       save_solution_iter("sol.cgns", data, currentIter % 2, (i + 1) / save);
+      timer->endSave();
       cout << "Time " << time << endl;
-      op_timers(&cpu_loop_2, &wall_loop_2);
-      s_time += wall_loop_2 - wall_loop_1;
     }
   }
-  op_timers(&cpu_2, &wall_2);
+  timer->endMainLoop();
 
   if(save != -1)
     save_solution_finalise("sol.cgns", data, (iter / save) + 1, dt * save);
 
-  cout << "Final time: " << time << endl;
-
-  cout << "Wall time: " << wall_2 - wall_1 << endl;
-  cout << "Time to simulate 1 second: " << (wall_2 - wall_1) / time << endl << endl;
-
-  cout << "Time in advection solve: " << a_time << endl;
-  cout << "Time in pressure solve: " << p_time << endl;
-  cout << "Time in viscosity solve: " << v_time << endl;
-  cout << "Time spent saving and calculating lift/drag: " << s_time << endl;
-
   // Save solution to CGNS file
   save_solution("end.cgns", data, currentIter % 2);
 
-  // op_fetch_data_hdf5_file(data->Q[currentIter % 2][0], "sol.h5");
-  // op_fetch_data_hdf5_file(data->Q[currentIter % 2][1], "sol.h5");
+  timer->endWallTime();
+  timer->exportTimings("timings.csv", iter, time);
+
+  cout << "Final time: " << time << endl;
+  cout << "Wall time: " << timer->getWallTime() << endl;
+  cout << "Time to simulate 1 second: " << timer->getWallTime() / time << endl;
 
   // Clean up OP2
   op_exit();
@@ -411,6 +405,7 @@ int main(int argc, char **argv) {
   delete gaussData;
   delete cubData;
   delete data;
+  delete timer;
 
   ierr = PetscFinalize();
   return ierr;
@@ -488,6 +483,7 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
 
 bool pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double a1, double b0,
               double b1, double g0, double dt, double t) {
+  timer->startPressureSetup();
   div(data, data->QT[0], data->QT[1], data->divVelT);
   curl(data, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
   grad(data, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
@@ -520,10 +516,13 @@ bool pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->divVelT,-1,OP_ID,15,"double",OP_RW));
 
   pressure_rhs_blas(data, currentInd);
+  timer->endPressureSetup();
 
   // Call PETSc linear solver
+  timer->startPressureLinearSolve();
   poisson->setBCValues(data->zeroBC);
   bool converged = poisson->solve(data->pRHS, data->p);
+  timer->endPressureLinearSolve();
 
   // Calculate gradient of pressure
   grad(data, data->p, data->dpdx, data->dpdy);
@@ -546,6 +545,7 @@ bool pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
 bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
                Poisson *poisson, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t) {
+  timer->startViscositySetup();
   double time = t + dt;
   // Get BCs for viscosity solve
   op_par_loop_viscosity_bc("viscosity_bc",data->bedges,
@@ -569,12 +569,16 @@ bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
               op_arg_dat(data->visBC[0],-1,OP_ID,21,"double",OP_RW),
               op_arg_dat(data->visBC[1],-1,OP_ID,21,"double",OP_RW));
 
+  timer->endViscositySetup();
+
   // Call PETSc linear solver
+  timer->startViscosityLinearSolve();
   poisson->setBCValues(data->visBC[0]);
   bool convergedX = poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
 
   poisson->setBCValues(data->visBC[1]);
   bool convergedY = poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
+  timer->endViscosityLinearSolve();
 
   // Reset BC dats ready for next iteration
   op_par_loop_viscosity_reset_bc("viscosity_reset_bc",data->cells,

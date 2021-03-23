@@ -1,5 +1,5 @@
-#ifndef __BLAS_CALLS_H
-#define __BLAS_CALLS_H
+#ifndef __INS_BLAS_CALLS_H
+#define __INS_BLAS_CALLS_H
 
 #include "op_seq.h"
 #include "ins_data.h"

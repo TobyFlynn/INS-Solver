@@ -1,5 +1,5 @@
-#ifndef __AIRFOIL_SAVESOLUTION_H
-#define __AIRFOIL_SAVESOLUTION_H
+#ifndef __INS_SAVESOLUTION_H
+#define __INS_SAVESOLUTION_H
 
 #include <string>
 

@@ -1,5 +1,5 @@
-#ifndef __OPERATORS_H
-#define __OPERATORS_H
+#ifndef __INS_OPERATORS_H
+#define __INS_OPERATORS_H
 
 #include "op_seq.h"
 #include "ins_data.h"

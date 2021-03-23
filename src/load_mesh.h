@@ -1,5 +1,5 @@
-#ifndef __AIRFOIL_LOADMESH_H
-#define __AIRFOIL_LOADMESH_H
+#ifndef __INS_LOADMESH_H
+#define __INS_LOADMESH_H
 // Include CGNS stuff
 #include "cgnslib.h"
 // Include C++ stuff

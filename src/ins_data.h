@@ -1,5 +1,5 @@
-#ifndef __NS_DATA_H
-#define __NS_DATA_H
+#ifndef __INS_DATA_H
+#define __INS_DATA_H
 
 #include "op_seq.h"
 
