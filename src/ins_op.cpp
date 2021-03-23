@@ -162,6 +162,7 @@ void op_par_loop_min_max(char const *, op_set,
 
 // Include C++ stuff
 #include <string>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -200,6 +201,35 @@ void op_par_loop_min_max(char const *, op_set,
 #include "kernels/min_max.h"
 
 using namespace std;
+
+void export_data_init(string filename) {
+  ofstream file(filename);
+
+  // Create first row of csv file (headers of columns)
+  file << "Iteration" << ",";
+  file << "Time" << ",";
+  file << "Drag Coefficient" << ",";
+  file << "Lift Coefficient" << ",";
+  file << "Avg. Pressure Convergance" << ",";
+  file << "Avg. Viscosity Convergance" << endl;
+
+  file.close();
+}
+
+void export_data(string filename, int iter, double time, double drag,
+                 double lift, double avgPr, double avgVis) {
+  ofstream file(filename, ios::app);
+
+  // Create first row of csv file (headers of columns)
+  file << to_string(iter) << ",";
+  file << to_string(time) << ",";
+  file << to_string(drag) << ",";
+  file << to_string(lift) << ",";
+  file << to_string(avgPr) << ",";
+  file << to_string(avgVis) << endl;
+
+  file.close();
+}
 
 Timing *timer;
 
@@ -322,8 +352,10 @@ int main(int argc, char **argv) {
   int currentIter = 0;
   double time = 0.0;
 
-  if(save != -1)
+  if(save != -1) {
     save_solution_init("sol.cgns", data);
+    export_data_init("data.csv");
+  }
 
   timer->endSetup();
   timer->startMainLoop();
@@ -367,19 +399,16 @@ int main(int argc, char **argv) {
     // Calculate drag and lift coefficients + save data
     if(save != -1 && (i + 1) % save == 0) {
       // print_min_max(data, currentIter % 2);
-      cout << "Iteration: " << i << endl;
+      cout << "Iteration: " << i << " Time: " << time << endl;
       timer->startLiftDrag();
       double lift, drag;
       lift_drag_coeff(data, &lift, &drag, currentIter % 2);
+      export_data("data.csv", i, time, drag, lift, pressurePoisson->getAverageConvergeIter(), viscosityPoisson->getAverageConvergeIter());
       timer->endLiftDrag();
-      cout << "Cd: " << drag << " Cl: " << lift << endl;
-      cout << "Avg. Pressure Iter: " << pressurePoisson->getAverageConvergeIter();
-      cout << " Avg. Viscosity Iter: " << viscosityPoisson->getAverageConvergeIter() << endl;
 
       timer->startSave();
       save_solution_iter("sol.cgns", data, currentIter % 2, (i + 1) / save);
       timer->endSave();
-      cout << "Time " << time << endl;
     }
   }
   timer->endMainLoop();
