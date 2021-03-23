@@ -10,16 +10,26 @@ inline void viscosity_bc_openacc( const int *bedge_type, const int *bedgeNum,
                          double *exQ0, double *exQ1) {
   int exInd = 0;
   if(*bedgeNum == 1) {
-    exInd = 7;
+    exInd = 5;
   } else if(*bedgeNum == 2) {
-    exInd = 2 * 7;
+    exInd = 2 * 5;
+  }
+
+  int *fmask;
+
+  if(*bedgeNum == 0) {
+    fmask = FMASK;
+  } else if(*bedgeNum == 1) {
+    fmask = &FMASK[5];
+  } else {
+    fmask = &FMASK[2 * 5];
   }
 
   if(*bedge_type == 0) {
 
     const double PI = 3.141592653589793238463;
-    for(int i = 0; i < 7; i++) {
-      double y1 = y[exInd + i];
+    for(int i = 0; i < 5; i++) {
+      double y1 = y[fmask[i]];
       exQ0[exInd + i] += pow(0.41, -2.0) * sin((PI * (*t)) / 8.0) * 6.0 * y1 * (0.41 - y1);
 
 
@@ -128,10 +138,10 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
           &data0[1 * n],
           &data1[1 * n],
           &arg2_l,
-          &data3[21 * map3idx],
-          &data4[21 * map3idx],
-          &data5[21 * map3idx],
-          &data6[21 * map3idx]);
+          &data3[15 * map3idx],
+          &data4[15 * map3idx],
+          &data5[15 * map3idx],
+          &data6[15 * map3idx]);
       }
 
     }

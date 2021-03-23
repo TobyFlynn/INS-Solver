@@ -116,7 +116,7 @@ void INSData::initOP2() {
     flux_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
     dPdN_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
     visRHS_data[i] = (double *)calloc(15 * numCells, sizeof(double));
-    visBC_data[i]  = (double *)calloc(21 * numCells, sizeof(double));
+    visBC_data[i]  = (double *)calloc(15 * numCells, sizeof(double));
     dQdx_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
     dQdy_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
     gradCurlVel_data[i] = (double *)calloc(15 * numCells, sizeof(double));
@@ -128,7 +128,7 @@ void INSData::initOP2() {
   p_data         = (double *)calloc(15 * numCells, sizeof(double));
   dpdx_data      = (double *)calloc(15 * numCells, sizeof(double));
   dpdy_data      = (double *)calloc(15 * numCells, sizeof(double));
-  zeroBC_data    = (double *)calloc(21 * numCells, sizeof(double));
+  zeroBC_data    = (double *)calloc(15 * numCells, sizeof(double));
   vorticity_data = (double *)calloc(15 * numCells, sizeof(double));
 
   // Initialise OP2
@@ -203,7 +203,7 @@ void INSData::initOP2() {
     string dQdyname = "dQdy" + to_string(i);
     dQdy[i] = op_decl_dat(cells, 15, "double", dQdy_data[i], dQdyname.c_str());
     string visBCname = "visBC" + to_string(i);
-    visBC[i] = op_decl_dat(cells, 21, "double", visBC_data[i], visBCname.c_str());
+    visBC[i] = op_decl_dat(cells, 15, "double", visBC_data[i], visBCname.c_str());
   }
   divVelT   = op_decl_dat(cells, 15, "double", divVelT_data, "divVelT");
   curlVel   = op_decl_dat(cells, 15, "double", curlVel_data, "curlVel");
@@ -212,7 +212,7 @@ void INSData::initOP2() {
   p         = op_decl_dat(cells, 15, "double", p_data, "p");
   dpdx      = op_decl_dat(cells, 15, "double", dpdx_data, "dpdx");
   dpdy      = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
-  zeroBC    = op_decl_dat(cells, 21, "double", zeroBC_data, "zeroBC");
+  zeroBC    = op_decl_dat(cells, 15, "double", zeroBC_data, "zeroBC");
   vorticity = op_decl_dat(cells, 15, "double", vorticity_data, "vorticity");
 
   op_decl_const(1, "double", &gam);

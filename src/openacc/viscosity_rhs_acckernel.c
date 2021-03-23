@@ -73,8 +73,8 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
         &data1[15*n],
         &data2[15*n],
         &data3[15*n],
-        &data4[21*n],
-        &data5[21*n]);
+        &data4[15*n],
+        &data5[15*n]);
     }
   }
 

@@ -38,8 +38,8 @@ __global__ void op_cuda_viscosity_rhs(
                   arg1+n*15,
                   arg2+n*15,
                   arg3+n*15,
-                  arg4+n*21,
-                  arg5+n*21);
+                  arg4+n*15,
+                  arg5+n*15);
   }
 }
 

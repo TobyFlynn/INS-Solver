@@ -43,8 +43,8 @@ void pressure_rhs_omp4_kernel(
     
     double factor = (*g0) / (*dt);
     for(int i = 0; i < 15; i++) {
-      divVelT[i] = J[i] * (-divVelT[i] * factor);
-      dPdNOld[i] = sJ[i] * ((*b0) * dPdN[i] + (*b1) * dPdNOld[i]);
+      divVelT[i] = -J[i] * (-divVelT[i] * factor);
+      dPdNOld[i] = -sJ[i] * ((*b0) * dPdN[i] + (*b1) * dPdNOld[i]);
     }
     //end inline func
   }

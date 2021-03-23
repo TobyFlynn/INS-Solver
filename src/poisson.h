@@ -6,54 +6,58 @@
 #include "petscvec.h"
 #include "petscksp.h"
 
-extern double gFInterp0[7 * 15];
-extern double gFInterp1[7 * 15];
-extern double gFInterp2[7 * 15];
-extern double gaussW[7];
+extern double ones[15];
+extern double r[15];
+extern double s[15];
+extern double Dr[15 * 15];
+extern double Ds[15 * 15];
+extern double Drw[15 * 15];
+extern double Dsw[15 * 15];
+extern double LIFT[15 * 15];
+extern double MASS[15 * 15];
+extern int FMASK[15];
 
 class Poisson {
 public:
-  Poisson(INSData *nsData, CubatureData *cubData, GaussData *gaussData);
+  Poisson(INSData *nsData);
   ~Poisson();
 
-  bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
+  void rhs(const double *u, double *rhs);
+  void solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass = false, double factor = 0.0);
 
-  double getAverageConvergeIter();
-
-  void setDirichletBCs(int *d);
+  void setDirichletBCs(int *d, op_dat d_dat);
   void setNeumannBCs(int *n);
-  void setBCValues(op_dat bc);
-
-  void createMatrix();
-  void createMassMatrix();
-  void createBCMatrix();
-
   // OP2 Dats
-  op_dat bc_dat;
+  op_dat pTau, pExRHS[2], pU, pDu, pFluxXu, pFluxYu, pDuDx, pDuDy, pFluxQ, pDivQ, pRHS;
+  op_dat dBC;
 private:
-  void create_vec(Vec *v, int size = 15);
+  void copy_u(const double *u);
+  void copy_rhs(double *rhs);
+  void create_vec(Vec *v);
   void destroy_vec(Vec *v);
-  void load_vec(Vec *v, op_dat v_dat, int size = 15);
+  void load_vec(Vec *v, op_dat v_dat);
   void store_vec(Vec *v, op_dat v_dat);
-  void create_mat(Mat *m, int row, int col, int prealloc);
   INSData *data;
-  CubatureData *cData;
-  GaussData *gData;
-
-  Mat pMat, pBCMat, pMMat;
+  // Pointers to private memory
+  double *pTau_data;
+  double *pExRHS_data[2];
+  double *pU_data;
+  double *pDu_data;
+  double *pFluxXu_data;
+  double *pFluxYu_data;
+  double *pDuDx_data;
+  double *pDuDy_data;
+  double *pFluxQ_data;
+  double *pDivQ_data;
+  double *pRHS_data;
 
   int *dirichlet;
   int *neumann;
 
   bool massMat;
   double massFactor;
-
-  int numberIter = 0;
-  int solveCount = 0;
-
-  bool pMatInit = false;
-  bool pMMatInit = false;
-  bool pBCMatInit = false;
 };
+
+PetscErrorCode matAMult(Mat A, Vec x, Vec y);
 
 #endif

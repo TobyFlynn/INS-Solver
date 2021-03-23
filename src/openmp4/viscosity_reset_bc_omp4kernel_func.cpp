@@ -15,12 +15,12 @@ void viscosity_reset_bc_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    double *exQ0 = &data0[21*n_op];
-    double *exQ1 = &data1[21*n_op];
+    double *exQ0 = &data0[15*n_op];
+    double *exQ1 = &data1[15*n_op];
 
     //inline function
     
-    for(int i = 0; i < 21; i++) {
+    for(int i = 0; i < 15; i++) {
       exQ0[i] = 0.0;
       exQ1[i] = 0.0;
     }

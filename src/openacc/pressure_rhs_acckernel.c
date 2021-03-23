@@ -10,8 +10,8 @@ inline void pressure_rhs_openacc( const double *b0, const double *b1, const doub
                          const double *dPdN, double *dPdNOld, double *divVelT) {
   double factor = (*g0) / (*dt);
   for(int i = 0; i < 15; i++) {
-    divVelT[i] = J[i] * (-divVelT[i] * factor);
-    dPdNOld[i] = sJ[i] * ((*b0) * dPdN[i] + (*b1) * dPdNOld[i]);
+    divVelT[i] = -J[i] * (-divVelT[i] * factor);
+    dPdNOld[i] = -sJ[i] * ((*b0) * dPdN[i] + (*b1) * dPdNOld[i]);
   }
 }
 

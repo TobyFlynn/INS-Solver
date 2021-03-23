@@ -160,21 +160,23 @@ int main(int argc, char **argv) {
               op_arg_dat(data->Q[0][1],   -1, OP_ID, 15, "double", OP_WRITE));
 
   // Initialise Poisson solvers
-  Poisson *pressurePoisson = new Poisson(data, cubData, gaussData);
-  int pressure_dirichlet[] = {1, -1, -1};
-  int pressure_neumann[] = {0, 2, 3};
-  pressurePoisson->setDirichletBCs(pressure_dirichlet);
-  pressurePoisson->setNeumannBCs(pressure_neumann);
-  pressurePoisson->createMatrix();
-  pressurePoisson->createBCMatrix();
-  Poisson *viscosityPoisson = new Poisson(data, cubData, gaussData);
-  int viscosity_dirichlet[] = {0, 2, 3};
-  int viscosity_neumann[] = {1, -1, -1};
-  viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
-  viscosityPoisson->setNeumannBCs(viscosity_neumann);
-  viscosityPoisson->createMatrix();
-  viscosityPoisson->createMassMatrix();
-  viscosityPoisson->createBCMatrix();
+  // Poisson *pressurePoisson = new Poisson(data, cubData, gaussData);
+  // int pressure_dirichlet[] = {1, -1, -1};
+  // int pressure_neumann[] = {0, 2, 3};
+  // pressurePoisson->setDirichletBCs(pressure_dirichlet);
+  // pressurePoisson->setNeumannBCs(pressure_neumann);
+  // pressurePoisson->createMatrix();
+  // pressurePoisson->createBCMatrix();
+  // Poisson *viscosityPoisson = new Poisson(data, cubData, gaussData);
+  // int viscosity_dirichlet[] = {0, 2, 3};
+  // int viscosity_neumann[] = {1, -1, -1};
+  // viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
+  // viscosityPoisson->setNeumannBCs(viscosity_neumann);
+  // viscosityPoisson->createMatrix();
+  // viscosityPoisson->createMassMatrix();
+  // viscosityPoisson->createBCMatrix();
+
+  Poisson *poisson = new Poisson(data);
 
   double dt = numeric_limits<double>::max();
   op_par_loop(calc_dt, "calc_dt", data->cells,
@@ -214,7 +216,7 @@ int main(int argc, char **argv) {
     timer->endAdvection();
 
     timer->startPressure();
-    bool converged = pressure(data, pressurePoisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
+    bool converged = pressure(data, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
     if(!converged) {
       cout << "******** ERROR ********" << endl;
       cout << "Pressure solve failed to converge, exiting..." << endl;
@@ -224,7 +226,7 @@ int main(int argc, char **argv) {
     timer->endPressure();
 
     timer->startViscosity();
-    converged = viscosity(data, cubData, gaussData, viscosityPoisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
+    converged = viscosity(data, cubData, gaussData, poisson, currentIter % 2, a0, a1, b0, b1, g0, dt, time);
     if(!converged) {
       cout << "******** ERROR ********" << endl;
       cout << "Viscosity solve failed to converge, exiting..." << endl;
@@ -243,7 +245,7 @@ int main(int argc, char **argv) {
       timer->startLiftDrag();
       double lift, drag;
       lift_drag_coeff(data, &lift, &drag, currentIter % 2);
-      export_data("data.csv", i, time, drag, lift, pressurePoisson->getAverageConvergeIter(), viscosityPoisson->getAverageConvergeIter());
+      // export_data("data.csv", i, time, drag, lift, pressurePoisson->getAverageConvergeIter(), viscosityPoisson->getAverageConvergeIter());
       timer->endLiftDrag();
 
       timer->startSave();
@@ -269,8 +271,9 @@ int main(int argc, char **argv) {
   // Clean up OP2
   op_exit();
 
-  delete pressurePoisson;
-  delete viscosityPoisson;
+  // delete pressurePoisson;
+  // delete viscosityPoisson;
+  delete poisson;
   delete gaussData;
   delete cubData;
   delete data;
@@ -389,8 +392,11 @@ bool pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
 
   // Call PETSc linear solver
   timer->startPressureLinearSolve();
-  poisson->setBCValues(data->zeroBC);
-  bool converged = poisson->solve(data->pRHS, data->p);
+  int pressure_dirichlet[] = {1, -1, -1};
+  int pressure_neumann[] = {0, 2, 3};
+  poisson->setDirichletBCs(pressure_dirichlet, data->zeroBC);
+  poisson->setNeumannBCs(pressure_neumann);
+  poisson->solve(data->pRHS, data->p, false);
   timer->endPressureLinearSolve();
 
   // Calculate gradient of pressure
@@ -408,7 +414,7 @@ bool pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 15, "double", OP_WRITE));
 
-  return converged;
+  return true;
 }
 
 bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
@@ -421,10 +427,10 @@ bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&time, 1, "double", OP_READ),
-              op_arg_dat(gaussData->x, 0, data->bedge2cells, 21, "double", OP_READ),
-              op_arg_dat(gaussData->y, 0, data->bedge2cells, 21, "double", OP_READ),
-              op_arg_dat(data->visBC[0], 0, data->bedge2cells, 21, "double", OP_INC),
-              op_arg_dat(data->visBC[1], 0, data->bedge2cells, 21, "double", OP_INC));
+              op_arg_dat(data->x, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->y, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->visBC[0], 0, data->bedge2cells, 15, "double", OP_INC),
+              op_arg_dat(data->visBC[1], 0, data->bedge2cells, 15, "double", OP_INC));
 
   // Set up RHS for viscosity solve
   viscosity_rhs_blas(data, cubatureData);
@@ -435,26 +441,30 @@ bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
               op_arg_dat(data->J, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->visRHS[0], -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(data->visRHS[1], -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(data->visBC[0], -1, OP_ID, 21, "double", OP_RW),
-              op_arg_dat(data->visBC[1], -1, OP_ID, 21, "double", OP_RW));
+              op_arg_dat(data->visBC[0], -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(data->visBC[1], -1, OP_ID, 15, "double", OP_RW));
 
   timer->endViscositySetup();
 
   // Call PETSc linear solver
   timer->startViscosityLinearSolve();
-  poisson->setBCValues(data->visBC[0]);
-  bool convergedX = poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
+  int viscosity_dirichlet[] = {0, 2, 3};
+  int viscosity_neumann[] = {1, -1, -1};
+  poisson->setDirichletBCs(viscosity_dirichlet, data->visBC[0]);
+  poisson->setNeumannBCs(viscosity_neumann);
+  poisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, true, factor);
 
-  poisson->setBCValues(data->visBC[1]);
-  bool convergedY = poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
+  poisson->setDirichletBCs(viscosity_dirichlet, data->visBC[1]);
+  poisson->setNeumannBCs(viscosity_neumann);
+  poisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, true, factor);
   timer->endViscosityLinearSolve();
 
   // Reset BC dats ready for next iteration
   op_par_loop(viscosity_reset_bc, "viscosity_reset_bc", data->cells,
-              op_arg_dat(data->visBC[0], -1, OP_ID, 21, "double", OP_WRITE),
-              op_arg_dat(data->visBC[1], -1, OP_ID, 21, "double", OP_WRITE));
+              op_arg_dat(data->visBC[0], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->visBC[1], -1, OP_ID, 15, "double", OP_WRITE));
 
-  return convergedX && convergedY;
+  return true;
 }
 
 // Function to calculate lift and drag coefficients of the cylinder
