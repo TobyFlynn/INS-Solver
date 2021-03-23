@@ -38,7 +38,3 @@
 #include "div_omp4kernel.cpp"
 #include "curl_omp4kernel.cpp"
 #include "grad_omp4kernel.cpp"
-#include "poisson_test_init_omp4kernel.cpp"
-#include "poisson_test_bc_omp4kernel.cpp"
-#include "poisson_test_set_rhs_omp4kernel.cpp"
-#include "poisson_test_error_omp4kernel.cpp"

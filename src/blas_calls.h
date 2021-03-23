@@ -71,6 +71,4 @@ void pressure_rhs_blas(INSData *nsData, int ind);
 
 void viscosity_rhs_blas(INSData *nsData, CubatureData *cubatureData);
 
-void poisson_test_rhs_blas(INSData *nsData, op_dat rhs);
-
 #endif

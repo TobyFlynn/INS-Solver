@@ -77,7 +77,3 @@ int size, char *dat, char const *name){}
 #include "div_acckernel.c"
 #include "curl_acckernel.c"
 #include "grad_acckernel.c"
-#include "poisson_test_init_acckernel.c"
-#include "poisson_test_bc_acckernel.c"
-#include "poisson_test_set_rhs_acckernel.c"
-#include "poisson_test_error_acckernel.c"
