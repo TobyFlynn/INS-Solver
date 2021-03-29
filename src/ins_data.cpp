@@ -210,8 +210,10 @@ void INSData::initOP2() {
   pRHS      = op_decl_dat(cells, 15, "double", pRHS_data, "pRHS");
   pRHSex    = op_decl_dat(cells, 15, "double", pRHSex_data, "pRHSex");
   p         = op_decl_dat(cells, 15, "double", p_data, "p");
-  dpdx      = op_decl_dat(cells, 15, "double", dpdx_data, "dpdx");
-  dpdy      = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
+  // dpdx      = op_decl_dat(cells, 15, "double", dpdx_data, "dpdx");
+  // dpdy      = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
+  dpdx      = op_decl_dat_hdf5(cells, 15, "double", "../../../res.h5", "dpdx");
+  dpdy      = op_decl_dat_hdf5(cells, 15, "double", "../../../res.h5", "dpdy");
   zeroBC    = op_decl_dat(cells, 15, "double", zeroBC_data, "zeroBC");
   vorticity = op_decl_dat(cells, 15, "double", vorticity_data, "vorticity");
 

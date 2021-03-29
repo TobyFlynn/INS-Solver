@@ -33,20 +33,6 @@ __device__ void viscosity_bc_gpu( const int *bedge_type, const int *bedgeNum,
 
 
     }
-  } else if(*bedge_type == 1) {
-
-
-
-
-
-
-  } else {
-
-
-
-
-
-
   }
 
 }

@@ -4,6 +4,8 @@
 
 #include "poisson.h"
 
+PetscErrorCode matAMult(Mat A, Vec x, Vec y);
+
 void Poisson::copy_u(const double *u) {
   op_arg u_copy_args[] = {
     op_arg_dat(pU, -1, OP_ID, 15, "double", OP_WRITE)
@@ -52,6 +54,12 @@ void Poisson::store_vec(Vec *v, op_dat v_dat) {
   cudaMemcpy((double *)v_dat->data_d, v_ptr, 15 * data->numCells * sizeof(double), cudaMemcpyDeviceToDevice);
   op_mpi_set_dirtybit_cuda(1, vec_petsc_args);
   VecCUDARestoreArrayRead(*v, &v_ptr);
+}
+
+void Poisson::create_shell_mat(Mat *m) {
+  MatCreateShell(PETSC_COMM_SELF, 15 * data->numCells, 15 * data->numCells, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
+  MatShellSetOperation(*m, MATOP_MULT, (void(*)(void))matAMult);
+  MatShellSetVecType(*m, VECCUDA);
 }
 
 PetscErrorCode matAMult(Mat A, Vec x, Vec y) {

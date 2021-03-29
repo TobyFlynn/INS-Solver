@@ -73,20 +73,6 @@ void viscosity_bc_omp4_kernel(
 
 
       }
-    } else if(*bedge_type == 1) {
-
-
-
-
-
-
-    } else {
-
-
-
-
-
-
     }
     //end inline func
   }

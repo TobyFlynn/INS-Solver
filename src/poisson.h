@@ -37,6 +37,7 @@ private:
   void destroy_vec(Vec *v);
   void load_vec(Vec *v, op_dat v_dat);
   void store_vec(Vec *v, op_dat v_dat);
+  void create_shell_mat(Mat *m);
   INSData *data;
   // Pointers to private memory
   double *pTau_data;
@@ -57,7 +58,5 @@ private:
   bool massMat;
   double massFactor;
 };
-
-PetscErrorCode matAMult(Mat A, Vec x, Vec y);
 
 #endif

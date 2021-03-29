@@ -46,3 +46,4 @@
 #include "div_omp4kernel.cpp"
 #include "curl_omp4kernel.cpp"
 #include "grad_omp4kernel.cpp"
+#include "diff_omp4kernel.cpp"

@@ -85,3 +85,4 @@ int size, char *dat, char const *name){}
 #include "div_acckernel.c"
 #include "curl_acckernel.c"
 #include "grad_acckernel.c"
+#include "diff_acckernel.c"

@@ -237,3 +237,4 @@ int size, char *dat, char const *name){
 #include "div_kernel.cu"
 #include "curl_kernel.cu"
 #include "grad_kernel.cu"
+#include "diff_kernel.cu"

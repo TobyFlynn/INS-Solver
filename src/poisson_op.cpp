@@ -102,8 +102,6 @@ void op_par_loop_poisson_rhs_J(char const *, op_set,
 
 using namespace std;
 
-PetscErrorCode matAMult(Mat A, Vec x, Vec y);
-
 Poisson::Poisson(INSData *nsData) {
   data = nsData;
   // Allocate memory
@@ -176,8 +174,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
   create_vec(&x);
 
   Mat Amat;
-  MatCreateShell(PETSC_COMM_SELF, 15 * data->numCells, 15 * data->numCells, PETSC_DETERMINE, PETSC_DETERMINE, this, &Amat);
-  MatShellSetOperation(Amat, MATOP_MULT, (void(*)(void))matAMult);
+  create_shell_mat(&Amat);
 
   KSP ksp;
   KSPCreate(PETSC_COMM_SELF, &ksp);
@@ -187,7 +184,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
     KSPSetType(ksp, KSPCG);
   }
   KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
+  KSPSetTolerances(ksp, 1e-12, 1e-50, 1e5, 1e4);
 
   // Solve
   KSPSolve(ksp, b, x);
@@ -202,6 +199,7 @@ void Poisson::solve(op_dat b_dat, op_dat x_dat, bool method, bool addMass, doubl
 
   Vec solution;
   KSPGetSolution(ksp, &solution);
+  // KSPBuildResidual(ksp, NULL, NULL, &solution);
   store_vec(&solution, x_dat);
   KSPDestroy(&ksp);
   MatDestroy(&Amat);

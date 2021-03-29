@@ -29,19 +29,5 @@ inline void viscosity_bc(const int *bedge_type, const int *bedgeNum,
       // exQ0[exInd + i] += 0.1;
       // exQ1[exInd + i] += bc_v;
     }
-  } else if(*bedge_type == 1) {
-    // Outflow - Natural boundary condition
-    // for(int i = 0; i < 7; i++) {
-    //   int qInd = fmask[i];
-    //   exQ0[exInd + i] += q0[qInd];
-    //   exQ1[exInd + i] += q1[qInd];
-    // }
-  } else {
-    // Wall - No slip
-    // for(int i = 0; i < 7; i++) {
-    //   int qInd = fmask[i];
-    //   exQ0[exInd + i] += q0[qInd] - 2 * (nx[exInd + i] * q0[qInd] + ny[exInd + i] * q1[qInd]) * nx[exInd + i];
-    //   exQ1[exInd + i] += q1[qInd] - 2 * (nx[exInd + i] * q0[qInd] + ny[exInd + i] * q1[qInd]) * ny[exInd + i];
-    // }
   }
 }

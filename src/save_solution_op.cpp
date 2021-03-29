@@ -13,6 +13,10 @@
 extern "C" {
 #endif
 #endif
+
+void op_par_loop_diff(char const *, op_set,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -33,6 +37,8 @@ extern "C" {
 
 #include "ins_data.h"
 #include "operators.h"
+
+#include "kernels/diff.h"
 
 using namespace std;
 
@@ -65,6 +71,22 @@ void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double
   // Calculate vorticity
   curl(data, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
+  // op_dat QTT0 = op_decl_dat_hdf5(data->cells, 15, "double", "../../../res.h5", "QTT0");
+  // op_dat QTT1 = op_decl_dat_hdf5(data->cells, 15, "double", "../../../res.h5", "QTT1");
+  // op_dat Q0 = op_decl_dat_hdf5(data->cells, 15, "double", "../../../res.h5", "Q10");
+  // op_dat Q1 = op_decl_dat_hdf5(data->cells, 15, "double", "../../../res.h5", "Q11");
+  // op_dat dpdx = op_decl_dat_hdf5(data->cells, 15, "double", "../../../res.h5", "dpdx");
+  // op_dat dpdy = op_decl_dat_hdf5(data->cells, 15, "double", "../../../res.h5", "dpdy");
+  // op_dat p = op_decl_dat_hdf5(data->cells, 15, "double", "../../../res.h5", "p");
+/*
+  op_par_loop_diff("diff",data->cells,
+              op_arg_dat(Q0,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->Q[ind][0],-1,OP_ID,15,"double",OP_RW));
+
+  op_par_loop_diff("diff",data->cells,
+              op_arg_dat(Q1,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->Q[ind][1],-1,OP_ID,15,"double",OP_RW));
+*/
   // Get Data from OP2
   int numCells = op_get_size(data->cells);
   double *Ux   = (double *)malloc(15 * numCells * sizeof(double));

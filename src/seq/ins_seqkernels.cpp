@@ -83,3 +83,4 @@ extern double lift_drag_vec[5];
 #include "div_seqkernel.cpp"
 #include "curl_seqkernel.cpp"
 #include "grad_seqkernel.cpp"
+#include "diff_seqkernel.cpp"

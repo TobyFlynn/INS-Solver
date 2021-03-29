@@ -44,6 +44,7 @@
 #define op_par_loop_div op_par_loop_div_gpu
 #define op_par_loop_curl op_par_loop_curl_gpu
 #define op_par_loop_grad op_par_loop_grad_gpu
+#define op_par_loop_diff op_par_loop_diff_gpu
 #include "ins_kernels.cu"
 #undef op_par_loop_set_ic
 #undef op_par_loop_calc_dt
@@ -85,6 +86,7 @@
 #undef op_par_loop_div
 #undef op_par_loop_curl
 #undef op_par_loop_grad
+#undef op_par_loop_diff
 #else
 #define op_par_loop_set_ic op_par_loop_set_ic_cpu
 #define op_par_loop_calc_dt op_par_loop_calc_dt_cpu
@@ -126,6 +128,7 @@
 #define op_par_loop_div op_par_loop_div_cpu
 #define op_par_loop_curl op_par_loop_curl_cpu
 #define op_par_loop_grad op_par_loop_grad_cpu
+#define op_par_loop_diff op_par_loop_diff_cpu
 #include "../openmp/ins_kernels.cpp"
 #undef op_par_loop_set_ic
 #undef op_par_loop_calc_dt
@@ -167,6 +170,7 @@
 #undef op_par_loop_div
 #undef op_par_loop_curl
 #undef op_par_loop_grad
+#undef op_par_loop_diff
 
 //user kernel files
 
@@ -2852,6 +2856,40 @@ void op_par_loop_grad(char const *name, op_set set,
     arg5,
     arg6,
     arg7);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_diff_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_diff(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_diff_gpu(name, set,
+      arg0,
+      arg1);
+
+    }else{
+    op_par_loop_diff_cpu(name, set,
+      arg0,
+      arg1);
+
+  }
+}
+#else
+void op_par_loop_diff(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  op_par_loop_diff_gpu(name, set,
+    arg0,
+    arg1);
 
   }
 #endif //OP_HYBRID_GPU

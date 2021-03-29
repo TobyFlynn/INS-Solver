@@ -10,9 +10,9 @@ inline void cublas_viscosity_rhs(cublasHandle_t handle, const int numCells, cons
   // cudaMalloc((void**)&visMat_d, 15 * 15 * sizeof(double));
   // cudaMemcpy(visMat_d, visMat, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
 
-  // double *MASS_d;
-  // cudaMalloc((void**)&MASS_d, 15 * 15 * sizeof(double));
-  // cudaMemcpy(MASS_d, MASS, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  double *MASS_d;
+  cudaMalloc((void**)&MASS_d, 15 * 15 * sizeof(double));
+  cudaMemcpy(MASS_d, MASS, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
 
   // CUBLAS_OP_T because cublas is column major but constants are stored row major
   double alpha = 1.0;
@@ -20,22 +20,22 @@ inline void cublas_viscosity_rhs(cublasHandle_t handle, const int numCells, cons
   // cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, visMat_d, 15, qtt0_d, 15, &beta, temp0_d, 15);
   // cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, visMat_d, 15, qtt1_d, 15, &beta, temp1_d, 15);
 
-  // cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, MASS_d, 15, qtt0_d, 15, &beta, vis0_d, 15);
-  // cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, MASS_d, 15, qtt1_d, 15, &beta, vis1_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, MASS_d, 15, qtt0_d, 15, &beta, vis0_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, MASS_d, 15, qtt1_d, 15, &beta, vis1_d, 15);
 
-  for(int i = 0; i < numCells; i++) {
-    const double *mm = mm_d + i * 15 * 15;
-    const double *qtt0 = qtt0_d + i * 15;
-    const double *qtt1 = qtt1_d + i * 15;
-    double *vis0 = vis0_d + i * 15;
-    double *vis1 = vis1_d + i * 15;
-
-    cublasDgemv(handle, CUBLAS_OP_N, 15, 15, &alpha, mm, 15, qtt0, 1, &beta, vis0, 1);
-    cublasDgemv(handle, CUBLAS_OP_N, 15, 15, &alpha, mm, 15, qtt1, 1, &beta, vis1, 1);
-  }
+  // for(int i = 0; i < numCells; i++) {
+  //   const double *mm = mm_d + i * 15 * 15;
+  //   const double *qtt0 = qtt0_d + i * 15;
+  //   const double *qtt1 = qtt1_d + i * 15;
+  //   double *vis0 = vis0_d + i * 15;
+  //   double *vis1 = vis1_d + i * 15;
+  //
+  //   cublasDgemv(handle, CUBLAS_OP_N, 15, 15, &alpha, mm, 15, qtt0, 1, &beta, vis0, 1);
+  //   cublasDgemv(handle, CUBLAS_OP_N, 15, 15, &alpha, mm, 15, qtt1, 1, &beta, vis1, 1);
+  // }
 
   // cudaFree(visMat_d);
-  // cudaFree(MASS_d);
+  cudaFree(MASS_d);
 }
 
 void viscosity_rhs_blas(INSData *nsData, CubatureData *cubatureData) {

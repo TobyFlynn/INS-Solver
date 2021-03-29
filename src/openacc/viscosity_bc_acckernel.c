@@ -35,20 +35,6 @@ inline void viscosity_bc_openacc( const int *bedge_type, const int *bedgeNum,
 
 
     }
-  } else if(*bedge_type == 1) {
-
-
-
-
-
-
-  } else {
-
-
-
-
-
-
   }
 }
 

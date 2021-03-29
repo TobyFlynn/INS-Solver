@@ -87,3 +87,4 @@ extern double lift_drag_vec[5];
 #include "div_kernel.cpp"
 #include "curl_kernel.cpp"
 #include "grad_kernel.cpp"
+#include "diff_kernel.cpp"

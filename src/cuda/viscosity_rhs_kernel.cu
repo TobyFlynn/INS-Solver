@@ -7,10 +7,10 @@ __device__ void viscosity_rhs_gpu( const double *factor, const double *J, double
                           double *vRHS1, double *bcx, double *bcy) {
 
   for(int i = 0; i < 15; i++) {
+    vRHS0[i] = *factor * J[i] * vRHS0[i];
+    vRHS1[i] = *factor * J[i] * vRHS1[i];
 
 
-    vRHS0[i] = (*factor) * vRHS0[i];
-    vRHS1[i] = (*factor) * vRHS1[i];
   }
 
 

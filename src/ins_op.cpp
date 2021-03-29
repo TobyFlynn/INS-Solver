@@ -428,6 +428,16 @@ int main(int argc, char **argv) {
   cout << "Wall time: " << timer->getWallTime() << endl;
   cout << "Time to simulate 1 second: " << timer->getWallTime() / time << endl;
 
+  op_fetch_data_hdf5_file(data->QT[0], "res.h5");
+  op_fetch_data_hdf5_file(data->QT[1], "res.h5");
+  op_fetch_data_hdf5_file(data->QTT[0], "res.h5");
+  op_fetch_data_hdf5_file(data->QTT[1], "res.h5");
+  op_fetch_data_hdf5_file(data->Q[1][0], "res.h5");
+  op_fetch_data_hdf5_file(data->Q[1][1], "res.h5");
+  op_fetch_data_hdf5_file(data->dpdx, "res.h5");
+  op_fetch_data_hdf5_file(data->dpdy, "res.h5");
+  op_fetch_data_hdf5_file(data->p, "res.h5");
+
   // Clean up OP2
   op_exit();
 
@@ -595,7 +605,7 @@ bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
   // Set up RHS for viscosity solve
   viscosity_rhs_blas(data, cubatureData);
 
-  double factor = g0 / (nu * dt);
+  double factor = -g0 / (nu * dt);
   op_par_loop_viscosity_rhs("viscosity_rhs",data->cells,
               op_arg_gbl(&factor,1,"double",OP_READ),
               op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),
