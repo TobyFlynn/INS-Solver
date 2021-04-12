@@ -15,9 +15,10 @@ inline void viscosity_rhs_openacc( const double *factor, const double *J, double
 
   }
 
-
-
-
+  for(int i = 0; i < 15; i++) {
+    bcx[i] *= -1.0;
+    bcy[i] *= -1.0;
+  }
 }
 
 // host stub function

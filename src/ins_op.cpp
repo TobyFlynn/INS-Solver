@@ -605,7 +605,7 @@ bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
   // Set up RHS for viscosity solve
   viscosity_rhs_blas(data, cubatureData);
 
-  double factor = -g0 / (nu * dt);
+  double factor = g0 / (nu * dt);
   op_par_loop_viscosity_rhs("viscosity_rhs",data->cells,
               op_arg_gbl(&factor,1,"double",OP_READ),
               op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),

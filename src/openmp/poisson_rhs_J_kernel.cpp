@@ -18,9 +18,9 @@ void op_par_loop_poisson_rhs_J(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(36);
-  OP_kernels[36].name      = name;
-  OP_kernels[36].count    += 1;
+  op_timing_realloc(39);
+  OP_kernels[39].name      = name;
+  OP_kernels[39].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
 
@@ -56,7 +56,7 @@ void op_par_loop_poisson_rhs_J(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[36].time     += wall_t2 - wall_t1;
-  OP_kernels[36].transfer += (float)set->size * arg0.size;
-  OP_kernels[36].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[39].time     += wall_t2 - wall_t1;
+  OP_kernels[39].transfer += (float)set->size * arg0.size;
+  OP_kernels[39].transfer += (float)set->size * arg1.size * 2.0f;
 }

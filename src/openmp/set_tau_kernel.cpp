@@ -51,9 +51,9 @@ void op_par_loop_set_tau(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(29);
-  OP_kernels[29].name      = name;
-  OP_kernels[29].count    += 1;
+  op_timing_realloc(32);
+  OP_kernels[32].name      = name;
+  OP_kernels[32].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
   int  ninds   = 5;
@@ -64,8 +64,8 @@ void op_par_loop_set_tau(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_29
-    int part_size = OP_PART_SIZE_29;
+  #ifdef OP_PART_SIZE_32
+    int part_size = OP_PART_SIZE_32;
   #else
     int part_size = OP_part_size;
   #endif
@@ -123,8 +123,8 @@ void op_par_loop_set_tau(char const *name, op_set set,
 
       block_offset += nblocks;
     }
-    OP_kernels[29].transfer  += Plan->transfer;
-    OP_kernels[29].transfer2 += Plan->transfer2;
+    OP_kernels[32].transfer  += Plan->transfer;
+    OP_kernels[32].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -135,5 +135,5 @@ void op_par_loop_set_tau(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[29].time     += wall_t2 - wall_t1;
+  OP_kernels[32].time     += wall_t2 - wall_t1;
 }

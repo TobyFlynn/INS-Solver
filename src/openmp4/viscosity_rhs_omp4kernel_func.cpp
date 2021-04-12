@@ -39,6 +39,11 @@ void viscosity_rhs_omp4_kernel(
 
 
     }
+
+    for(int i = 0; i < 15; i++) {
+      bcx[i] *= -1.0;
+      bcy[i] *= -1.0;
+    }
     //end inline func
   }
 
