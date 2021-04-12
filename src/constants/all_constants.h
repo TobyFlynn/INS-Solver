@@ -9,6 +9,7 @@
 #include "constant_Dsw.h"
 #include "constant_LIFT.h"
 #include "constant_MASS.h"
+#include "constant_invMass.h"
 #include "constant_util.h"
 #include "constant_cubDr.h"
 #include "constant_cubDs.h"
