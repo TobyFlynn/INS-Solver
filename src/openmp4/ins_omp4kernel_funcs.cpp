@@ -185,6 +185,7 @@ void op_decl_const_char(int dim, char const *type,
 #include "curl_omp4kernel_func.cpp"
 #include "grad_omp4kernel_func.cpp"
 #include "cub_grad_omp4kernel_func.cpp"
+#include "cub_div_omp4kernel_func.cpp"
 #include "poisson_rhs_faces_omp4kernel_func.cpp"
 #include "poisson_rhs_bc_omp4kernel_func.cpp"
 #include "poisson_rhs_flux_omp4kernel_func.cpp"

@@ -55,6 +55,17 @@ void op_par_loop_cub_grad(char const *, op_set,
   op_arg,
   op_arg,
   op_arg );
+
+void op_par_loop_cub_div(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -68,6 +79,7 @@ void op_par_loop_cub_grad(char const *, op_set,
 #include "kernels/curl.h"
 #include "kernels/grad.h"
 #include "kernels/cub_grad.h"
+#include "kernels/cub_div.h"
 
 void div(INSData *data, op_dat u, op_dat v, op_dat res) {
   div_blas(data, u, v);
@@ -129,4 +141,21 @@ void cub_grad(INSData *data, CubatureData *cubData, op_dat u, op_dat ux, op_dat 
               op_arg_dat(cubData->op_temps[3],-1,OP_ID,46,"double",OP_WRITE));
 
   cub_grad_blas2(data, cubData, ux, uy);
+}
+
+void cub_div(INSData *data, CubatureData *cubData, op_dat u, op_dat v, op_dat res) {
+  cub_div_blas(data, cubData, u, v);
+
+  op_par_loop_cub_div("cub_div",data->cells,
+              op_arg_dat(cubData->op_temps[0],-1,OP_ID,46,"double",OP_RW),
+              op_arg_dat(cubData->op_temps[1],-1,OP_ID,46,"double",OP_RW),
+              op_arg_dat(cubData->rx,-1,OP_ID,46,"double",OP_READ),
+              op_arg_dat(cubData->sx,-1,OP_ID,46,"double",OP_READ),
+              op_arg_dat(cubData->ry,-1,OP_ID,46,"double",OP_READ),
+              op_arg_dat(cubData->sy,-1,OP_ID,46,"double",OP_READ),
+              op_arg_dat(cubData->J,-1,OP_ID,46,"double",OP_READ),
+              op_arg_dat(cubData->op_temps[2],-1,OP_ID,46,"double",OP_WRITE),
+              op_arg_dat(cubData->op_temps[3],-1,OP_ID,46,"double",OP_WRITE));
+
+  cub_div_blas2(data, cubData, res);
 }

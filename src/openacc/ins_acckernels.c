@@ -78,6 +78,7 @@ int size, char *dat, char const *name){}
 #include "curl_acckernel.c"
 #include "grad_acckernel.c"
 #include "cub_grad_acckernel.c"
+#include "cub_div_acckernel.c"
 #include "poisson_rhs_faces_acckernel.c"
 #include "poisson_rhs_bc_acckernel.c"
 #include "poisson_rhs_flux_acckernel.c"

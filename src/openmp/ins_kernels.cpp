@@ -80,6 +80,7 @@ extern double lift_drag_vec[5];
 #include "curl_kernel.cpp"
 #include "grad_kernel.cpp"
 #include "cub_grad_kernel.cpp"
+#include "cub_div_kernel.cpp"
 #include "poisson_rhs_faces_kernel.cpp"
 #include "poisson_rhs_bc_kernel.cpp"
 #include "poisson_rhs_flux_kernel.cpp"

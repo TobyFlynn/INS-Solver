@@ -39,6 +39,7 @@
 #include "curl_omp4kernel.cpp"
 #include "grad_omp4kernel.cpp"
 #include "cub_grad_omp4kernel.cpp"
+#include "cub_div_omp4kernel.cpp"
 #include "poisson_rhs_faces_omp4kernel.cpp"
 #include "poisson_rhs_bc_omp4kernel.cpp"
 #include "poisson_rhs_flux_omp4kernel.cpp"
