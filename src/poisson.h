@@ -65,4 +65,26 @@ private:
   bool pBCMatInit = false;
 };
 
+class Poisson_MF : public Poisson {
+public:
+  Poisson_MF(INSData *data, CubatureData *cubData, GaussData *gaussData);
+  ~Poisson_MF();
+
+  bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
+  void calc_rhs(const double *u_d, double *rhs_d);
+
+  op_dat u, rhs;
+private:
+  void create_shell_mat(Mat *m);
+  void copy_u(const double *u_d);
+  void copy_rhs(double *rhs_d);
+  void createBCMatrix();
+
+  Mat pBCMat;
+  bool pBCMatInit = false;
+
+  double *u_data;
+  double *rhs_data;
+};
+
 #endif
