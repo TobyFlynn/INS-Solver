@@ -16,7 +16,7 @@ public:
   Poisson(INSData *nsData, CubatureData *cubData, GaussData *gaussData);
   ~Poisson();
 
-  bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
+  virtual bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0) = 0;
 
   double getAverageConvergeIter();
 
@@ -24,13 +24,9 @@ public:
   void setNeumannBCs(int *n);
   void setBCValues(op_dat bc);
 
-  void createMatrix();
-  void createMassMatrix();
-  void createBCMatrix();
-
   // OP2 Dats
   op_dat bc_dat;
-private:
+protected:
   void create_vec(Vec *v, int size = 15);
   void destroy_vec(Vec *v);
   void load_vec(Vec *v, op_dat v_dat, int size = 15);
@@ -40,8 +36,6 @@ private:
   CubatureData *cData;
   GaussData *gData;
 
-  Mat pMat, pBCMat, pMMat;
-
   int *dirichlet;
   int *neumann;
 
@@ -50,6 +44,21 @@ private:
 
   int numberIter = 0;
   int solveCount = 0;
+};
+
+class Poisson_M : public Poisson {
+public:
+  Poisson_M(INSData *data, CubatureData *cubData, GaussData *gaussData) : Poisson(data, cubData, gaussData) {}
+  ~Poisson_M();
+
+  void createMatrix();
+  void createMassMatrix();
+  void createBCMatrix();
+
+  bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
+
+private:
+  Mat pMat, pBCMat, pMMat;
 
   bool pMatInit = false;
   bool pMMatInit = false;
