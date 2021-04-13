@@ -40,6 +40,7 @@
 #define op_par_loop_poisson_rhs_faces op_par_loop_poisson_rhs_faces_gpu
 #define op_par_loop_poisson_rhs_bc op_par_loop_poisson_rhs_bc_gpu
 #define op_par_loop_poisson_rhs_flux op_par_loop_poisson_rhs_flux_gpu
+#define op_par_loop_poisson_rhs_J op_par_loop_poisson_rhs_J_gpu
 #include "ins_kernels.cu"
 #undef op_par_loop_set_ic
 #undef op_par_loop_calc_dt
@@ -77,6 +78,7 @@
 #undef op_par_loop_poisson_rhs_faces
 #undef op_par_loop_poisson_rhs_bc
 #undef op_par_loop_poisson_rhs_flux
+#undef op_par_loop_poisson_rhs_J
 #else
 #define op_par_loop_set_ic op_par_loop_set_ic_cpu
 #define op_par_loop_calc_dt op_par_loop_calc_dt_cpu
@@ -114,6 +116,7 @@
 #define op_par_loop_poisson_rhs_faces op_par_loop_poisson_rhs_faces_cpu
 #define op_par_loop_poisson_rhs_bc op_par_loop_poisson_rhs_bc_cpu
 #define op_par_loop_poisson_rhs_flux op_par_loop_poisson_rhs_flux_cpu
+#define op_par_loop_poisson_rhs_J op_par_loop_poisson_rhs_J_cpu
 #include "../openmp/ins_kernels.cpp"
 #undef op_par_loop_set_ic
 #undef op_par_loop_calc_dt
@@ -151,6 +154,7 @@
 #undef op_par_loop_poisson_rhs_faces
 #undef op_par_loop_poisson_rhs_bc
 #undef op_par_loop_poisson_rhs_flux
+#undef op_par_loop_poisson_rhs_J
 
 //user kernel files
 
@@ -2610,6 +2614,46 @@ void op_par_loop_poisson_rhs_flux(char const *name, op_set set,
     arg3,
     arg4,
     arg5);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_poisson_rhs_J_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_poisson_rhs_J(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_poisson_rhs_J_gpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+    }else{
+    op_par_loop_poisson_rhs_J_cpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+  }
+}
+#else
+void op_par_loop_poisson_rhs_J(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  op_par_loop_poisson_rhs_J_gpu(name, set,
+    arg0,
+    arg1,
+    arg2);
 
   }
 #endif //OP_HYBRID_GPU

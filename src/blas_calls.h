@@ -3,6 +3,7 @@
 
 #include "op_seq.h"
 #include "ins_data.h"
+#include "poisson.h"
 
 extern double ones[15];
 extern double r[15];
@@ -38,6 +39,7 @@ extern double gF1DrR[7 * 15];
 extern double gF1DsR[7 * 15];
 extern double gF2DrR[7 * 15];
 extern double gF2DsR[7 * 15];
+extern double invMass[15 * 15];
 
 void init_cubature_grad_blas(INSData *nsData, CubatureData *cubData);
 
@@ -76,5 +78,7 @@ void gauss_interp_blas(INSData *data, op_dat input, op_dat output);
 void cub_grad_blas(INSData *data, CubatureData *cubatureData, op_dat u);
 
 void cub_grad_blas2(INSData *data, CubatureData *cubatureData, op_dat ux, op_dat uy);
+
+void poisson_rhs_blas1(INSData *data, Poisson_MF *poisson);
 
 #endif

@@ -233,3 +233,4 @@ int size, char *dat, char const *name){
 #include "poisson_rhs_faces_kernel.cu"
 #include "poisson_rhs_bc_kernel.cu"
 #include "poisson_rhs_flux_kernel.cu"
+#include "poisson_rhs_J_kernel.cu"

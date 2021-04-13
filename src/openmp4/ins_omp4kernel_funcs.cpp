@@ -188,3 +188,4 @@ void op_decl_const_char(int dim, char const *type,
 #include "poisson_rhs_faces_omp4kernel_func.cpp"
 #include "poisson_rhs_bc_omp4kernel_func.cpp"
 #include "poisson_rhs_flux_omp4kernel_func.cpp"
+#include "poisson_rhs_J_omp4kernel_func.cpp"

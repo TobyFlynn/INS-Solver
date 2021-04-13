@@ -6,12 +6,14 @@
 #include "op_seq.h"
 
 #include "blas_calls.h"
+#include "operators.h"
 
 #include "kernels/gauss_tau.h"
 #include "kernels/gauss_tau_bc.h"
 #include "kernels/poisson_rhs_faces.h"
 #include "kernels/poisson_rhs_bc.h"
 #include "kernels/poisson_rhs_flux.h"
+#include "kernels/poisson_rhs_J.h"
 
 using namespace std;
 
@@ -25,6 +27,8 @@ Poisson_MF::Poisson_MF(INSData *nsData, CubatureData *cubData, GaussData *gaussD
   uNumFlux_data = (double *)calloc(21 * data->numCells, sizeof(double));
   uFluxX_data   = (double *)calloc(21 * data->numCells, sizeof(double));
   uFluxY_data   = (double *)calloc(21 * data->numCells, sizeof(double));
+  qx_data       = (double *)calloc(15 * data->numCells, sizeof(double));
+  qy_data       = (double *)calloc(15 * data->numCells, sizeof(double));
 
   u        = op_decl_dat(data->cells, 15, "double", u_data, "poisson_u");
   rhs      = op_decl_dat(data->cells, 15, "double", rhs_data, "poisson_rhs");
@@ -33,6 +37,8 @@ Poisson_MF::Poisson_MF(INSData *nsData, CubatureData *cubData, GaussData *gaussD
   uNumFlux = op_decl_dat(data->cells, 21, "double", uNumFlux_data, "poisson_uNumFlux");
   uFluxX   = op_decl_dat(data->cells, 21, "double", uFluxX_data, "poisson_uFluxX");
   uFluxY   = op_decl_dat(data->cells, 21, "double", uFluxY_data, "poisson_uFluxY");
+  qx       = op_decl_dat(data->cells, 15, "double", qx_data, "poisson_qx");
+  qy       = op_decl_dat(data->cells, 15, "double", qy_data, "poisson_qy");
 
   // Calculate tau
   op_par_loop(gauss_tau, "gauss_tau", data->edges,
@@ -149,6 +155,15 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(uNumFlux, -1, OP_ID, 21, "double", OP_READ),
               op_arg_dat(uFluxX, -1, OP_ID, 21, "double", OP_WRITE),
               op_arg_dat(uFluxY, -1, OP_ID, 21, "double", OP_WRITE));
+
+  cub_grad(data, cData, u, qx, qy);
+
+  poisson_rhs_blas1(data, this);
+
+  op_par_loop(poisson_rhs_J, "poisson_rhs_J", data->cells,
+              op_arg_dat(data->J, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(qx, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(qy, -1, OP_ID, 15, "double", OP_RW));
 
   copy_rhs(rhs_d);
 }

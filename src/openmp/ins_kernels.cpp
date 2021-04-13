@@ -83,3 +83,4 @@ extern double lift_drag_vec[5];
 #include "poisson_rhs_faces_kernel.cpp"
 #include "poisson_rhs_bc_kernel.cpp"
 #include "poisson_rhs_flux_kernel.cpp"
+#include "poisson_rhs_J_kernel.cpp"
