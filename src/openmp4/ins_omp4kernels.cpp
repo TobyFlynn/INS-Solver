@@ -43,3 +43,5 @@
 #include "poisson_rhs_bc_omp4kernel.cpp"
 #include "poisson_rhs_flux_omp4kernel.cpp"
 #include "poisson_rhs_J_omp4kernel.cpp"
+#include "poisson_rhs_qbc_omp4kernel.cpp"
+#include "poisson_rhs_qflux_omp4kernel.cpp"

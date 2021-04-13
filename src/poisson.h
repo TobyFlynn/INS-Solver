@@ -73,7 +73,8 @@ public:
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
   void calc_rhs(const double *u_d, double *rhs_d);
 
-  op_dat u, rhs, tau, gU, uNumFlux, uFluxX, uFluxY, qx, qy;
+  op_dat u, rhs, tau, gU, uNumFlux, uFluxX, uFluxY, qx, qy, gqx, gqy;
+  op_dat qxNumFlux, qyNumFlux, qFlux;
 
 private:
   void create_shell_mat(Mat *m);
@@ -93,6 +94,11 @@ private:
   double *uFluxY_data;
   double *qx_data;
   double *qy_data;
+  double *gqx_data;
+  double *gqy_data;
+  double *qxNumFlux_data;
+  double *qyNumFlux_data;
+  double *qFlux_data;
 };
 
 #endif

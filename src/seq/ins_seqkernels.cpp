@@ -80,3 +80,5 @@ extern double lift_drag_vec[5];
 #include "poisson_rhs_bc_seqkernel.cpp"
 #include "poisson_rhs_flux_seqkernel.cpp"
 #include "poisson_rhs_J_seqkernel.cpp"
+#include "poisson_rhs_qbc_seqkernel.cpp"
+#include "poisson_rhs_qflux_seqkernel.cpp"
