@@ -320,26 +320,32 @@ int main(int argc, char **argv) {
               op_arg_dat(data->Q[0][1],-1,OP_ID,15,"double",OP_WRITE));
 
   // Initialise Poisson solvers
-  // Poisson_M *pressurePoisson = new Poisson_M(data, cubData, gaussData);
-  // int pressure_dirichlet[] = {1, -1, -1};
-  // int pressure_neumann[] = {0, 2, 3};
-  // pressurePoisson->setDirichletBCs(pressure_dirichlet);
-  // pressurePoisson->setNeumannBCs(pressure_neumann);
-  // pressurePoisson->createMatrix();
-  // pressurePoisson->createBCMatrix();
-  Poisson_MF *pressurePoisson = new Poisson_MF(data, cubData, gaussData);
+  Poisson_M *pressurePoisson = new Poisson_M(data, cubData, gaussData);
   int pressure_dirichlet[] = {1, -1, -1};
   int pressure_neumann[] = {0, 2, 3};
   pressurePoisson->setDirichletBCs(pressure_dirichlet);
   pressurePoisson->setNeumannBCs(pressure_neumann);
+  pressurePoisson->createMatrix();
   pressurePoisson->createBCMatrix();
-  Poisson_M *viscosityPoisson = new Poisson_M(data, cubData, gaussData);
+  // Poisson_MF *pressurePoisson = new Poisson_MF(data, cubData, gaussData);
+  // int pressure_dirichlet[] = {1, -1, -1};
+  // int pressure_neumann[] = {0, 2, 3};
+  // pressurePoisson->setDirichletBCs(pressure_dirichlet);
+  // pressurePoisson->setNeumannBCs(pressure_neumann);
+  // pressurePoisson->createBCMatrix();
+  // Poisson_M *viscosityPoisson = new Poisson_M(data, cubData, gaussData);
+  // int viscosity_dirichlet[] = {0, 2, 3};
+  // int viscosity_neumann[] = {1, -1, -1};
+  // viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
+  // viscosityPoisson->setNeumannBCs(viscosity_neumann);
+  // viscosityPoisson->createMatrix();
+  // viscosityPoisson->createMassMatrix();
+  // viscosityPoisson->createBCMatrix();
+  Poisson_MF *viscosityPoisson = new Poisson_MF(data, cubData, gaussData);
   int viscosity_dirichlet[] = {0, 2, 3};
   int viscosity_neumann[] = {1, -1, -1};
   viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
   viscosityPoisson->setNeumannBCs(viscosity_neumann);
-  viscosityPoisson->createMatrix();
-  viscosityPoisson->createMassMatrix();
   viscosityPoisson->createBCMatrix();
 
   double dt = numeric_limits<double>::max();

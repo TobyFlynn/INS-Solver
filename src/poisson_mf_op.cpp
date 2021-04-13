@@ -167,14 +167,14 @@ bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) 
   create_vec(&b);
   load_vec(&b, b_dat);
 
-  // Vec bc;
-  // create_vec(&bc, 21);
-  // load_vec(&bc, bc_dat, 21);
+  Vec bc;
+  create_vec(&bc, 21);
+  load_vec(&bc, bc_dat, 21);
 
   // Calculate RHS for linear solve by applying the BCs
-  // Vec rhs;
-  // create_vec(&rhs);
-  // MatMultAdd(pBCMat, bc, b, rhs);
+  Vec rhs_v;
+  create_vec(&rhs_v);
+  MatMultAdd(pBCMat, bc, b, rhs_v);
 
   Vec x;
   create_vec(&x);
@@ -191,7 +191,7 @@ bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) 
   KSPSetOperators(ksp, Amat, Amat);
   KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 1e4);
   // Solve
-  KSPSolve(ksp, b, x);
+  KSPSolve(ksp, rhs_v, x);
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
   KSPConvergedReason reason;
@@ -215,8 +215,8 @@ bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) 
   KSPDestroy(&ksp);
   destroy_vec(&b);
   destroy_vec(&x);
-  // destroy_vec(&bc);
-  // destroy_vec(&rhs);
+  destroy_vec(&bc);
+  destroy_vec(&rhs_v);
   MatDestroy(&Amat);
 
   return converged;
@@ -310,6 +310,10 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
   cub_div(data, cData, qx, qy, rhs);
 
   poisson_rhs_blas2(data, this);
+
+  if(massMat) {
+    poisson_rhs_mass_blas(data, cData, this, massFactor);
+  }
 
   copy_rhs(rhs_d);
 }
