@@ -44,8 +44,8 @@ void poisson_rhs_blas1(INSData *data, Poisson_MF *poisson) {
   op_arg poisson_args[] = {
     op_arg_dat(poisson->uFluxX, -1, OP_ID, 21, "double", OP_READ),
     op_arg_dat(poisson->uFluxY, -1, OP_ID, 21, "double", OP_READ),
-    op_arg_dat(poisson->qx, -1, OP_ID, 21, "double", OP_RW),
-    op_arg_dat(poisson->qy, -1, OP_ID, 21, "double", OP_RW)
+    op_arg_dat(poisson->qx, -1, OP_ID, 15, "double", OP_RW),
+    op_arg_dat(poisson->qy, -1, OP_ID, 15, "double", OP_RW)
   };
   op_mpi_halo_exchanges_cuda(data->cells, 4, poisson_args);
 

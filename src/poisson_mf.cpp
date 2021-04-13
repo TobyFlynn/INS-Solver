@@ -20,8 +20,6 @@
 using namespace std;
 
 Poisson_MF::Poisson_MF(INSData *nsData, CubatureData *cubData, GaussData *gaussData) : Poisson(nsData, cubData, gaussData) {
-  createBCMatrix();
-
   u_data         = (double *)calloc(15 * data->numCells, sizeof(double));
   rhs_data       = (double *)calloc(15 * data->numCells, sizeof(double));
   tau_data       = (double *)calloc(3 * data->numCells, sizeof(double));
@@ -91,14 +89,14 @@ bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) 
   create_vec(&b);
   load_vec(&b, b_dat);
 
-  Vec bc;
-  create_vec(&bc, 21);
-  load_vec(&bc, bc_dat, 21);
+  // Vec bc;
+  // create_vec(&bc, 21);
+  // load_vec(&bc, bc_dat, 21);
 
   // Calculate RHS for linear solve by applying the BCs
-  Vec rhs;
-  create_vec(&rhs);
-  MatMultAdd(pBCMat, bc, b, rhs);
+  // Vec rhs;
+  // create_vec(&rhs);
+  // MatMultAdd(pBCMat, bc, b, rhs);
 
   Vec x;
   create_vec(&x);
@@ -110,11 +108,12 @@ bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) 
   KSP ksp;
   KSPCreate(PETSC_COMM_SELF, &ksp);
   KSPSetType(ksp, KSPCG);
+  // KSPSetType(ksp, KSPFGMRES);
 
   KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
+  KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 1e4);
   // Solve
-  KSPSolve(ksp, rhs, x);
+  KSPSolve(ksp, b, x);
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
   KSPConvergedReason reason;
@@ -138,8 +137,8 @@ bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) 
   KSPDestroy(&ksp);
   destroy_vec(&b);
   destroy_vec(&x);
-  destroy_vec(&bc);
-  destroy_vec(&rhs);
+  // destroy_vec(&bc);
+  // destroy_vec(&rhs);
   MatDestroy(&Amat);
 
   return converged;
@@ -229,6 +228,10 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(qxNumFlux, -1, OP_ID, 21, "double", OP_RW),
               op_arg_dat(qyNumFlux, -1, OP_ID, 21, "double", OP_RW),
               op_arg_dat(qFlux, -1, OP_ID, 21, "double", OP_WRITE));
+
+  cub_div(data, cData, qx, qy, rhs);
+
+  poisson_rhs_blas2(data, this);
 
   copy_rhs(rhs_d);
 }

@@ -81,6 +81,8 @@ void cub_grad_blas2(INSData *data, CubatureData *cubatureData, op_dat ux, op_dat
 
 void poisson_rhs_blas1(INSData *data, Poisson_MF *poisson);
 
+void poisson_rhs_blas2(INSData *data, Poisson_MF *poisson);
+
 void cub_div_blas(INSData *data, CubatureData *cubatureData, op_dat u, op_dat v);
 
 void cub_div_blas2(INSData *data, CubatureData *cubatureData, op_dat res);

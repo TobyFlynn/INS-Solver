@@ -7,7 +7,7 @@ __device__ void poisson_rhs_qflux_gpu( const double *nx, const double *ny, const
                               const double *tau, const double *gu, double *uFlux,
                               double *qxFlux, double *qyFlux, double *flux) {
   for(int i = 0; i < 21; i++) {
-    flux[i] = nx[i] * qxFlux[i] + ny[i] * qyFlux[i] + 2.0 * tau[i / 7] * (gu[i] - uFlux[i]);
+    flux[i] = nx[i] * qxFlux[i] + ny[i] * qyFlux[i] - 2.0 * tau[i / 7] * (gu[i] - uFlux[i]);
     flux[i] *= gaussW_cuda[i % 7] * sJ[i];
   }
 

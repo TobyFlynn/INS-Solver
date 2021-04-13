@@ -52,7 +52,6 @@ void poisson_rhs_bc_omp4_kernel(
     if(*bedge_type == *dirichlet0 || *bedge_type == *dirichlet1 || *bedge_type == *dirichlet2) {
 
     } else {
-
       for(int i = 0; i < 7; i++) {
         fluxU[exInd + i] += u[exInd + i];
       }
