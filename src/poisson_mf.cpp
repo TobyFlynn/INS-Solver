@@ -5,21 +5,55 @@
 
 #include "op_seq.h"
 
+#include "blas_calls.h"
+
+#include "kernels/gauss_tau.h"
+#include "kernels/gauss_tau_bc.h"
+#include "kernels/poisson_rhs_faces.h"
+#include "kernels/poisson_rhs_bc.h"
+#include "kernels/poisson_rhs_flux.h"
+
 using namespace std;
 
 Poisson_MF::Poisson_MF(INSData *nsData, CubatureData *cubData, GaussData *gaussData) : Poisson(nsData, cubData, gaussData) {
   createBCMatrix();
 
-  u_data   = (double *)calloc(15 * data->numCells, sizeof(double));
-  rhs_data = (double *)calloc(15 * data->numCells, sizeof(double));
+  u_data        = (double *)calloc(15 * data->numCells, sizeof(double));
+  rhs_data      = (double *)calloc(15 * data->numCells, sizeof(double));
+  tau_data      = (double *)calloc(3 * data->numCells, sizeof(double));
+  gU_data       = (double *)calloc(21 * data->numCells, sizeof(double));
+  uNumFlux_data = (double *)calloc(21 * data->numCells, sizeof(double));
+  uFluxX_data   = (double *)calloc(21 * data->numCells, sizeof(double));
+  uFluxY_data   = (double *)calloc(21 * data->numCells, sizeof(double));
 
-  u   = op_decl_dat(data->cells, 15, "double", u_data, "poisson_u");
-  rhs = op_decl_dat(data->cells, 15, "double", rhs_data, "poisson_rhs");
+  u        = op_decl_dat(data->cells, 15, "double", u_data, "poisson_u");
+  rhs      = op_decl_dat(data->cells, 15, "double", rhs_data, "poisson_rhs");
+  tau      = op_decl_dat(data->cells, 3, "double", tau_data, "poisson_tau");
+  gU       = op_decl_dat(data->cells, 21, "double", gU_data, "poisson_gU");
+  uNumFlux = op_decl_dat(data->cells, 21, "double", uNumFlux_data, "poisson_uNumFlux");
+  uFluxX   = op_decl_dat(data->cells, 21, "double", uFluxX_data, "poisson_uFluxX");
+  uFluxY   = op_decl_dat(data->cells, 21, "double", uFluxY_data, "poisson_uFluxY");
+
+  // Calculate tau
+  op_par_loop(gauss_tau, "gauss_tau", data->edges,
+              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(data->fscale, -2, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(tau, -2, data->edge2cells, 3, "double", OP_INC));
+
+  op_par_loop(gauss_tau_bc, "gauss_tau_bc", data->bedges,
+              op_arg_dat(data->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->fscale, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(tau, 0, data->bedge2cells, 3, "double", OP_INC));
 }
 
 Poisson_MF::~Poisson_MF() {
   free(u_data);
   free(rhs_data);
+  free(tau_data);
+  free(gU_data);
+  free(uNumFlux_data);
+  free(uFluxX_data);
+  free(uFluxY_data);
 
   if(pBCMatInit)
     MatDestroy(&pBCMat);
@@ -89,6 +123,32 @@ bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) 
 void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
   // Copy u to OP2 dat (different depending on whether CPU or GPU)
   copy_u(u_d);
+
+  gauss_interp_blas(data, u, gU);
+
+  op_par_loop(poisson_rhs_faces, "poisson_rhs_faces", data->edges,
+              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(gU, -2, data->edge2cells, 21, "double", OP_READ),
+              op_arg_dat(uNumFlux, -2, data->edge2cells, 21, "double", OP_INC));
+
+  op_par_loop(poisson_rhs_bc, "poisson_rhs_bc", data->bedges,
+              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),
+              op_arg_gbl(&dirichlet[1], 1, "int", OP_READ),
+              op_arg_gbl(&dirichlet[2], 1, "int", OP_READ),
+              op_arg_dat(gU, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(uNumFlux, 0, data->bedge2cells, 21, "double", OP_INC));
+
+  op_par_loop(poisson_rhs_flux, "poisson_rhs_flux", data->cells,
+              op_arg_dat(gData->nx, -1, OP_ID, 21, "double", OP_READ),
+              op_arg_dat(gData->ny, -1, OP_ID, 21, "double", OP_READ),
+              op_arg_dat(gData->sJ, -1, OP_ID, 21, "double", OP_READ),
+              op_arg_dat(uNumFlux, -1, OP_ID, 21, "double", OP_READ),
+              op_arg_dat(uFluxX, -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(uFluxY, -1, OP_ID, 21, "double", OP_WRITE));
 
   copy_rhs(rhs_d);
 }

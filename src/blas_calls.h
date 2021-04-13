@@ -71,4 +71,10 @@ void pressure_rhs_blas(INSData *nsData, int ind);
 
 void viscosity_rhs_blas(INSData *nsData, CubatureData *cubatureData);
 
+void gauss_interp_blas(INSData *data, op_dat input, op_dat output);
+
+void cub_grad_blas(INSData *data, CubatureData *cubatureData, op_dat u);
+
+void cub_grad_blas2(INSData *data, CubatureData *cubatureData, op_dat ux, op_dat uy);
+
 #endif

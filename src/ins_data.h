@@ -116,6 +116,7 @@ public:
   // OP is the local stiffness matrix used by the Poisson solver
   op_dat rx, sx, ry, sy, J, mm, Dx, Dy, OP;
   op_dat temp, temp2;
+  op_dat op_temps[4];
 
 private:
   INSData *data;
@@ -131,6 +132,7 @@ private:
   double *OP_data;
   double *temp_data;
   double *temp2_data;
+  double *op_temps_data[4];
 };
 
 class GaussData {

@@ -75,3 +75,7 @@ extern double lift_drag_vec[5];
 #include "div_seqkernel.cpp"
 #include "curl_seqkernel.cpp"
 #include "grad_seqkernel.cpp"
+#include "cub_grad_seqkernel.cpp"
+#include "poisson_rhs_faces_seqkernel.cpp"
+#include "poisson_rhs_bc_seqkernel.cpp"
+#include "poisson_rhs_flux_seqkernel.cpp"

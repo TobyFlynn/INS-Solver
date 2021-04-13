@@ -284,6 +284,11 @@ CubatureData::CubatureData(INSData *dat) {
   temp_data  = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
   temp2_data = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
 
+  op_temps_data[0] = (double *)calloc(46 * data->numCells, sizeof(double));
+  op_temps_data[1] = (double *)calloc(46 * data->numCells, sizeof(double));
+  op_temps_data[2] = (double *)calloc(46 * data->numCells, sizeof(double));
+  op_temps_data[3] = (double *)calloc(46 * data->numCells, sizeof(double));
+
   rx    = op_decl_dat(data->cells, 46, "double", rx_data, "cub-rx");
   sx    = op_decl_dat(data->cells, 46, "double", sx_data, "cub-sx");
   ry    = op_decl_dat(data->cells, 46, "double", ry_data, "cub-ry");
@@ -295,6 +300,11 @@ CubatureData::CubatureData(INSData *dat) {
   OP    = op_decl_dat(data->cells, 15 * 15, "double", OP_data, "cub-OP");
   temp  = op_decl_dat(data->cells, 46 * 15, "double", temp_data, "cub-temp");
   temp2 = op_decl_dat(data->cells, 46 * 15, "double", temp2_data, "cub-temp2");
+
+  op_temps[0] = op_decl_dat(data->cells, 46, "double", op_temps_data[0], "cub-op-temp0");
+  op_temps[1] = op_decl_dat(data->cells, 46, "double", op_temps_data[1], "cub-op-temp1");
+  op_temps[2] = op_decl_dat(data->cells, 46, "double", op_temps_data[2], "cub-op-temp2");
+  op_temps[3] = op_decl_dat(data->cells, 46, "double", op_temps_data[3], "cub-op-temp3");
 
   // Initialise geometric factors for calcuating grad matrix
   init_cubature_grad_blas(data, this);
@@ -346,6 +356,10 @@ CubatureData::~CubatureData() {
   free(OP_data);
   free(temp_data);
   free(temp2_data);
+  free(op_temps_data[0]);
+  free(op_temps_data[1]);
+  free(op_temps_data[2]);
+  free(op_temps_data[3]);
 }
 
 GaussData::GaussData(INSData *dat) {

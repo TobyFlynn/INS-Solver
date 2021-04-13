@@ -229,3 +229,7 @@ int size, char *dat, char const *name){
 #include "div_kernel.cu"
 #include "curl_kernel.cu"
 #include "grad_kernel.cu"
+#include "cub_grad_kernel.cu"
+#include "poisson_rhs_faces_kernel.cu"
+#include "poisson_rhs_bc_kernel.cu"
+#include "poisson_rhs_flux_kernel.cu"
