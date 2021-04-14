@@ -85,3 +85,6 @@ int size, char *dat, char const *name){}
 #include "poisson_rhs_J_acckernel.c"
 #include "poisson_rhs_qbc_acckernel.c"
 #include "poisson_rhs_qflux_acckernel.c"
+#include "poisson_test_init_acckernel.c"
+#include "poisson_test_bc_acckernel.c"
+#include "poisson_test_error_acckernel.c"

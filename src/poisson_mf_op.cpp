@@ -331,7 +331,7 @@ void Poisson_MF::createBCMatrix() {
     op_fetch_data(gData->mD[i], gauss_mD[i]);
   }
   op_fetch_data(gData->sJ, gauss_sJ);
-  op_fetch_data(gData->tau, gauss_tau);
+  op_fetch_data(tau, gauss_tau);
 
   // Create BCs matrix using Gauss data on boundary edges
   for(int i = 0; i < data->numBoundaryEdges; i++) {
@@ -346,11 +346,11 @@ void Poisson_MF::createBCMatrix() {
         int row = element * 15 + (j / 7);
         double val;
         if(edge == 0) {
-          val = gFInterp0[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
+          val = gFInterp0[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * 2.0 * gauss_tau[element * 3 + edge];
         } else if(edge == 1) {
-          val = gFInterp1[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
+          val = gFInterp1[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * 2.0 * gauss_tau[element * 3 + edge];
         } else {
-          val = gFInterp2[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
+          val = gFInterp2[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * 2.0 * gauss_tau[element * 3 + edge];
         }
         val -= gauss_mD[edge][element * 7 * 15 + indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         if(abs(val) > tol)

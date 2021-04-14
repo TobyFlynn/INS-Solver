@@ -89,4 +89,6 @@ void cub_div_blas2(INSData *data, CubatureData *cubatureData, op_dat res);
 
 void poisson_rhs_mass_blas(INSData *data, CubatureData *cubatureData, Poisson_MF *poisson, double factor);
 
+void poisson_test_rhs_blas(INSData *nsData, op_dat rhs);
+
 #endif

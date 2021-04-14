@@ -192,3 +192,6 @@ void op_decl_const_char(int dim, char const *type,
 #include "poisson_rhs_J_omp4kernel_func.cpp"
 #include "poisson_rhs_qbc_omp4kernel_func.cpp"
 #include "poisson_rhs_qflux_omp4kernel_func.cpp"
+#include "poisson_test_init_omp4kernel_func.cpp"
+#include "poisson_test_bc_omp4kernel_func.cpp"
+#include "poisson_test_error_omp4kernel_func.cpp"

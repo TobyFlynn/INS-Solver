@@ -87,3 +87,6 @@ extern double lift_drag_vec[5];
 #include "poisson_rhs_J_kernel.cpp"
 #include "poisson_rhs_qbc_kernel.cpp"
 #include "poisson_rhs_qflux_kernel.cpp"
+#include "poisson_test_init_kernel.cpp"
+#include "poisson_test_bc_kernel.cpp"
+#include "poisson_test_error_kernel.cpp"

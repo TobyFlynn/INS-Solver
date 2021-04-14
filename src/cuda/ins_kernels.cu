@@ -237,3 +237,6 @@ int size, char *dat, char const *name){
 #include "poisson_rhs_J_kernel.cu"
 #include "poisson_rhs_qbc_kernel.cu"
 #include "poisson_rhs_qflux_kernel.cu"
+#include "poisson_test_init_kernel.cu"
+#include "poisson_test_bc_kernel.cu"
+#include "poisson_test_error_kernel.cu"
