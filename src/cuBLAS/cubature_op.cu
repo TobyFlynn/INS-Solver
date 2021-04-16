@@ -22,10 +22,6 @@ inline void cublas_cubature_op(cublasHandle_t handle, const int numCells,
 }
 
 void cubature_op_blas(INSData *nsData, CubatureData *cubData) {
-  // Initialise cuBLAS
-  // cublasHandle_t handle;
-  // cublasCreate(&handle);
-  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg op_cubature_args[] = {
     op_arg_dat(cubData->Dx, -1, OP_ID, 46 * 15, "double", OP_READ),
@@ -42,6 +38,4 @@ void cubature_op_blas(INSData *nsData, CubatureData *cubData) {
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(5, op_cubature_args);
-  // Free resources used by cuBLAS
-  // cublasDestroy(handle);
 }

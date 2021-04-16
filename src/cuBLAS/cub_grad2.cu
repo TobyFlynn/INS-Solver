@@ -7,14 +7,6 @@ inline void cublas_cub_grad2(cublasHandle_t handle, const int numCells,
                             const double *temp0, const double *temp1,
                             const double *temp2, const double *temp3,
                             double *ux_d, double *uy_d) {
-  // double *Dr_d;
-  // cudaMalloc((void**)&Dr_d, 46 * 15 * sizeof(double));
-  // cudaMemcpy(Dr_d, cubDr, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  //
-  // double *Ds_d;
-  // cudaMalloc((void**)&Ds_d, 46 * 15 * sizeof(double));
-  // cudaMemcpy(Ds_d, cubDs, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-
   // CUBLAS_OP_T because cublas is column major but constants are stored row major
   cudaStream_t stream0, stream1;
   cudaStreamCreate(&stream0);
@@ -33,16 +25,9 @@ inline void cublas_cub_grad2(cublasHandle_t handle, const int numCells,
   cudaStreamDestroy(stream0);
   cudaStreamDestroy(stream1);
   cublasSetStream(handle, NULL);
-
-  // cudaFree(Dr_d);
-  // cudaFree(Ds_d);
 }
 
 void cub_grad_blas2(INSData *data, CubatureData *cubatureData, op_dat ux, op_dat uy) {
-  // Initialise cuBLAS
-  // cublasHandle_t handle;
-  // cublasCreate(&handle);
-  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg grad_args[] = {
     op_arg_dat(cubatureData->op_temps[0], -1, OP_ID, 46, "double", OP_READ),
@@ -60,6 +45,4 @@ void cub_grad_blas2(INSData *data, CubatureData *cubatureData, op_dat ux, op_dat
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(6, grad_args);
-  // Free resources used by cuBLAS
-  // cublasDestroy(handle);
 }

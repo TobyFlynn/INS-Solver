@@ -20,24 +20,6 @@ inline void cublas_init_gauss(cublasHandle_t handle, const int numCells,
   double *dVMds2_d;
   cudaMalloc((void**)&dVMds2_d, 7 * 15 * sizeof(double));
 
-  // double *Dr_d;
-  // cudaMalloc((void**)&Dr_d, 15 * 15 * sizeof(double));
-  // cudaMemcpy(Dr_d, Dr, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  //
-  // double *Ds_d;
-  // cudaMalloc((void**)&Ds_d, 15 * 15 * sizeof(double));
-  // cudaMemcpy(Ds_d, Ds, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  //
-  // double *gFInterp0_d;
-  // cudaMalloc((void**)&gFInterp0_d, 7 * 15 * sizeof(double));
-  // cudaMemcpy(gFInterp0_d, gFInterp0, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  // double *gFInterp1_d;
-  // cudaMalloc((void**)&gFInterp1_d, 7 * 15 * sizeof(double));
-  // cudaMemcpy(gFInterp1_d, gFInterp1, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  // double *gFInterp2_d;
-  // cudaMalloc((void**)&gFInterp2_d, 7 * 15 * sizeof(double));
-  // cudaMemcpy(gFInterp2_d, gFInterp2, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-
   double alpha = 1.0;
   double beta = 0.0;
   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, constants->gFInterp0_d, 15, constants->Dr_d, 15, &beta, dVMdr0_d, 7);
@@ -74,11 +56,6 @@ inline void cublas_init_gauss(cublasHandle_t handle, const int numCells,
     cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, dVMds2_d, 7, y, 1, &beta, gys + 14, 1);
   }
 
-  // cudaFree(gFInterp0_d);
-  // cudaFree(gFInterp1_d);
-  // cudaFree(gFInterp2_d);
-  // cudaFree(Dr_d);
-  // cudaFree(Ds_d);
   cudaFree(dVMdr0_d);
   cudaFree(dVMdr1_d);
   cudaFree(dVMdr2_d);
@@ -88,10 +65,6 @@ inline void cublas_init_gauss(cublasHandle_t handle, const int numCells,
 }
 
 void init_gauss_blas(INSData *nsData, GaussData *gaussData) {
-  // Initialise cuBLAS
-  // cublasHandle_t handle;
-  // cublasCreate(&handle);
-  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg init_gauss_args[] = {
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_READ),
@@ -110,6 +83,4 @@ void init_gauss_blas(INSData *nsData, GaussData *gaussData) {
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(6, init_gauss_args);
-  // Free resources used by cuBLAS
-  // cublasDestroy(handle);
 }

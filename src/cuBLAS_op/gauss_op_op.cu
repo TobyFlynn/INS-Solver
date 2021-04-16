@@ -26,15 +26,11 @@ inline void cublas_gauss_op(cublasHandle_t handle, const int numCells,
                             double *op_d, const double *mD_d, const double *term0_d,
                             const double *term1_d, const double *term2_d, int face) {
   double *gFInterp_d;
-  // cudaMalloc((void**)&gFInterp_d, 7 * 15 * sizeof(double));
   if(face == 0) {
-    // cudaMemcpy(gFInterp_d, gFInterp0, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
     gFInterp_d = constants->gFInterp0_d;
   } else if (face == 1) {
-    // cudaMemcpy(gFInterp_d, gFInterp1, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
     gFInterp_d = constants->gFInterp1_d;
   } else {
-    // cudaMemcpy(gFInterp_d, gFInterp2, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
     gFInterp_d = constants->gFInterp2_d;
   }
 
@@ -53,15 +49,9 @@ inline void cublas_gauss_op(cublasHandle_t handle, const int numCells,
     cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 15, 15, 7, &alpha2, term1, 7, mD, 15, &beta2, op, 15);
     cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 15, 15, 7, &alpha2, term2, 7, gFInterp_d, 15, &beta2, op, 15);
   }
-
-  // cudaFree(gFInterp_d);
 }
 
 void gauss_op_blas(INSData *nsData, GaussData *gaussData) {
-  // Initialise cuBLAS
-  // cublasHandle_t handle;
-  // cublasCreate(&handle);
-  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg gauss_args[] = {
     // Face 0
@@ -99,6 +89,4 @@ void gauss_op_blas(INSData *nsData, GaussData *gaussData) {
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(15, gauss_args);
-  // Free resources used by cuBLAS
-  // cublasDestroy(handle);
 }

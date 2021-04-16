@@ -6,24 +6,14 @@
 inline void cublas_gauss_coords(cublasHandle_t handle, const int numCells,
                                 const double *x_d, const double *y_d,
                                 double *gx_d, double *gy_d) {
-  // double *gInterp_d;
-  // cudaMalloc((void**)&gInterp_d, 21 * 15 * sizeof(double));
-  // cudaMemcpy(gInterp_d, gInterp, 21 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-
   // CUBLAS_OP_T because cublas is column major but constants are stored row major
   double alpha = 1.0;
   double beta = 0.0;
   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 21, numCells, 15, &alpha, constants->gInterp_d, 15, x_d, 15, &beta, gx_d, 21);
   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 21, numCells, 15, &alpha, constants->gInterp_d, 15, y_d, 15, &beta, gy_d, 21);
-
-  // cudaFree(gInterp_d);
 }
 
 void init_gauss_coords_blas(INSData *nsData, GaussData *gaussData) {
-  // Initialise cuBLAS
-  // cublasHandle_t handle;
-  // cublasCreate(&handle);
-  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg gauss_args[] = {
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_READ),
@@ -39,6 +29,4 @@ void init_gauss_coords_blas(INSData *nsData, GaussData *gaussData) {
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(4, gauss_args);
-  // Free resources used by cuBLAS
-  // cublasDestroy(handle);
 }

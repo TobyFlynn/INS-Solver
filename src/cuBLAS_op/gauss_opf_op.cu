@@ -44,10 +44,6 @@ inline void cublas_gauss_opf(cublasHandle_t handle, const int numCells,
 }
 
 void gauss_opf_blas(INSData *nsData, GaussData *gaussData) {
-  // Initialise cuBLAS
-  // cublasHandle_t handle;
-  // cublasCreate(&handle);
-  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg gauss_args[] = {
     // Face 0
@@ -88,6 +84,4 @@ void gauss_opf_blas(INSData *nsData, GaussData *gaussData) {
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(18, gauss_args);
-  // Free resources used by cuBLAS
-  // cublasDestroy(handle);
 }

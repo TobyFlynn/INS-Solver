@@ -7,28 +7,8 @@ inline void cublas_init_grid(cublasHandle_t handle, const int numCells,
                         const double *node_coords, const int *cell2nodes,
                         double *x_d, double *y_d, double *xr_d, double *xs_d,
                         double *yr_d, double *ys_d) {
-  // double *ones_d;
-  // cudaMalloc((void**)&ones_d, 15 * sizeof(double));
-  // cudaMemcpy(ones_d, ones, 15 * sizeof(double), cudaMemcpyHostToDevice);
-  //
-  // double *r_d;
-  // cudaMalloc((void**)&r_d, 15 * sizeof(double));
-  // cudaMemcpy(r_d, r, 15 * sizeof(double), cudaMemcpyHostToDevice);
-  //
-  // double *s_d;
-  // cudaMalloc((void**)&s_d, 15 * sizeof(double));
-  // cudaMemcpy(s_d, s, 15 * sizeof(double), cudaMemcpyHostToDevice);
-
   double *temp_d;
   cudaMalloc((void**)&temp_d, numCells * 15 * sizeof(double));
-
-  // double *Dr_d;
-  // cudaMalloc((void**)&Dr_d, 15 * 15 * sizeof(double));
-  // cudaMemcpy(Dr_d, Dr, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  //
-  // double *Ds_d;
-  // cudaMalloc((void**)&Ds_d, 15 * 15 * sizeof(double));
-  // cudaMemcpy(Ds_d, Ds, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
 
   for(int c = 0; c < numCells; c++) {
     // Get nodes for this cell (on host)
@@ -81,18 +61,10 @@ inline void cublas_init_grid(cublasHandle_t handle, const int numCells,
   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha2, constants->Dr_d, 15, y_d, 15, &beta, yr_d, 15);
   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha2, constants->Ds_d, 15, y_d, 15, &beta, ys_d, 15);
 
-  // cudaFree(ones_d);
-  // cudaFree(r_d);
   cudaFree(temp_d);
-  // cudaFree(Dr_d);
-  // cudaFree(Ds_d);
 }
 
 void init_grid_blas(INSData *nsData) {
-  // Initialise cuBLAS
-  // cublasHandle_t handle;
-  // cublasCreate(&handle);
-  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg init_grid_args[] = {
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_WRITE),
@@ -112,6 +84,4 @@ void init_grid_blas(INSData *nsData) {
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(6, init_grid_args);
-  // Free resources used by cuBLAS
-  // cublasDestroy(handle);
 }
