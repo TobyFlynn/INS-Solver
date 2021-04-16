@@ -18,9 +18,9 @@ inline void cublas_gauss_interp(cublasHandle_t handle, const int numCells,
 
 void gauss_interp_blas(INSData *data, op_dat input, op_dat output) {
   // Initialise cuBLAS
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+  // cublasHandle_t handle;
+  // cublasCreate(&handle);
+  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg interp_args[] = {
     op_arg_dat(input, -1, OP_ID, 15, "double", OP_READ),
@@ -28,11 +28,11 @@ void gauss_interp_blas(INSData *data, op_dat input, op_dat output) {
   };
   op_mpi_halo_exchanges_cuda(data->cells, 2, interp_args);
 
-  cublas_gauss_interp(handle, data->numCells, (double *)input->data_d,
+  cublas_gauss_interp(constants->handle, data->numCells, (double *)input->data_d,
                       (double *)output->data_d);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(2, interp_args);
   // Free resources used by cuBLAS
-  cublasDestroy(handle);
+  // cublasDestroy(handle);
 }

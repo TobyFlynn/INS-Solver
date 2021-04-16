@@ -89,9 +89,9 @@ inline void cublas_init_gauss(cublasHandle_t handle, const int numCells,
 
 void init_gauss_blas(INSData *nsData, GaussData *gaussData) {
   // Initialise cuBLAS
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+  // cublasHandle_t handle;
+  // cublasCreate(&handle);
+  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg init_gauss_args[] = {
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_READ),
@@ -103,7 +103,7 @@ void init_gauss_blas(INSData *nsData, GaussData *gaussData) {
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 6, init_gauss_args);
 
-  cublas_init_gauss(handle, nsData->numCells, (double *)nsData->x->data_d,
+  cublas_init_gauss(constants->handle, nsData->numCells, (double *)nsData->x->data_d,
                    (double *)nsData->y->data_d, (double *)gaussData->rx->data_d,
                    (double *)gaussData->sx->data_d, (double *)gaussData->ry->data_d,
                    (double *)gaussData->sy->data_d);
@@ -111,5 +111,5 @@ void init_gauss_blas(INSData *nsData, GaussData *gaussData) {
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(6, init_gauss_args);
   // Free resources used by cuBLAS
-  cublasDestroy(handle);
+  // cublasDestroy(handle);
 }

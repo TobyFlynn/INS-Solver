@@ -40,9 +40,9 @@ inline void cublas_gauss_coords(cublasHandle_t handle, const int numCells,
 
 void init_gauss_coords_blas(INSData *nsData, GaussData *gaussData) {
   // Initialise cuBLAS
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+  // cublasHandle_t handle;
+  // cublasCreate(&handle);
+  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg gauss_args[] = {
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_READ),
@@ -52,12 +52,12 @@ void init_gauss_coords_blas(INSData *nsData, GaussData *gaussData) {
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 4, gauss_args);
 
-  cublas_gauss_coords(handle, nsData->numCells, (double *)nsData->x->data_d,
+  cublas_gauss_coords(constants->handle, nsData->numCells, (double *)nsData->x->data_d,
                       (double *)nsData->y->data_d, (double *)gaussData->x->data_d,
                       (double *)gaussData->y->data_d);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(4, gauss_args);
   // Free resources used by cuBLAS
-  cublasDestroy(handle);
+  // cublasDestroy(handle);
 }

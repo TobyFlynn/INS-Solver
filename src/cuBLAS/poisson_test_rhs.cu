@@ -25,19 +25,19 @@ inline void cublas_poisson_test_rhs(cublasHandle_t handle, const int numCells,
 
 void poisson_test_rhs_blas(INSData *nsData, op_dat rhs) {
   // Initialise cuBLAS
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+  // cublasHandle_t handle;
+  // cublasCreate(&handle);
+  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg poisson_test_rhs_args[] = {
     op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_RW)
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 1, poisson_test_rhs_args);
 
-  cublas_poisson_test_rhs(handle, nsData->numCells, (double *)rhs->data_d);
+  cublas_poisson_test_rhs(constants->handle, nsData->numCells, (double *)rhs->data_d);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(1, poisson_test_rhs_args);
   // Free resources used by cuBLAS
-  cublasDestroy(handle);
+  // cublasDestroy(handle);
 }

@@ -30,9 +30,9 @@ inline void cublas_poisson_rhs1(cublasHandle_t handle, const int numCells,
 
 void poisson_rhs_blas1(INSData *data, Poisson_MF *poisson) {
   // Initialise cuBLAS
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+  // cublasHandle_t handle;
+  // cublasCreate(&handle);
+  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg poisson_args[] = {
     op_arg_dat(poisson->uFluxX, -1, OP_ID, 21, "double", OP_READ),
@@ -44,7 +44,7 @@ void poisson_rhs_blas1(INSData *data, Poisson_MF *poisson) {
   };
   op_mpi_halo_exchanges_cuda(data->cells, 6, poisson_args);
 
-  cublas_poisson_rhs1(handle, data->numCells, (double *)poisson->uFluxX->data_d,
+  cublas_poisson_rhs1(constants->handle, data->numCells, (double *)poisson->uFluxX->data_d,
                       (double *)poisson->uFluxY->data_d, (double *)poisson->dudx->data_d,
                       (double *)poisson->dudy->data_d, (double *)poisson->qx->data_d,
                       (double *)poisson->qy->data_d);
@@ -52,5 +52,5 @@ void poisson_rhs_blas1(INSData *data, Poisson_MF *poisson) {
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(6, poisson_args);
   // Free resources used by cuBLAS
-  cublasDestroy(handle);
+  // cublasDestroy(handle);
 }

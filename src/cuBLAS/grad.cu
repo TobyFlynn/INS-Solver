@@ -25,9 +25,9 @@ inline void cublas_grad(cublasHandle_t handle, const int numCells, const double 
 
 void grad_blas(INSData *nsData, op_dat u) {
   // Initialise cuBLAS
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+  // cublasHandle_t handle;
+  // cublasCreate(&handle);
+  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg grad_args[] = {
     op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
@@ -36,11 +36,11 @@ void grad_blas(INSData *nsData, op_dat u) {
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 3, grad_args);
 
-  cublas_grad(handle, nsData->numCells, (double *)u->data_d,
+  cublas_grad(constants->handle, nsData->numCells, (double *)u->data_d,
               (double *)nsData->div[0]->data_d, (double *)nsData->div[1]->data_d);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(3, grad_args);
   // Free resources used by cuBLAS
-  cublasDestroy(handle);
+  // cublasDestroy(handle);
 }

@@ -90,9 +90,9 @@ inline void cublas_init_grid(cublasHandle_t handle, const int numCells,
 
 void init_grid_blas(INSData *nsData) {
   // Initialise cuBLAS
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+  // cublasHandle_t handle;
+  // cublasCreate(&handle);
+  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg init_grid_args[] = {
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_WRITE),
@@ -104,7 +104,7 @@ void init_grid_blas(INSData *nsData) {
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 6, init_grid_args);
 
-  cublas_init_grid(handle, nsData->numCells, (double *)nsData->node_coords->data,
+  cublas_init_grid(constants->handle, nsData->numCells, (double *)nsData->node_coords->data,
                    (int *)nsData->cell2nodes->map, (double *)nsData->x->data_d,
                    (double *)nsData->y->data_d, (double *)nsData->rx->data_d,
                    (double *)nsData->sx->data_d, (double *)nsData->ry->data_d,
@@ -113,5 +113,5 @@ void init_grid_blas(INSData *nsData) {
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(6, init_grid_args);
   // Free resources used by cuBLAS
-  cublasDestroy(handle);
+  // cublasDestroy(handle);
 }

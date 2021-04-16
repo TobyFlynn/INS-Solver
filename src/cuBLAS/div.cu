@@ -28,9 +28,9 @@ inline void cublas_div(cublasHandle_t handle, const int numCells, const double *
 
 void div_blas(INSData *nsData, op_dat u, op_dat v) {
   // Initialise cuBLAS
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+  // cublasHandle_t handle;
+  // cublasCreate(&handle);
+  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg div_args[] = {
     op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
@@ -42,7 +42,7 @@ void div_blas(INSData *nsData, op_dat u, op_dat v) {
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 6, div_args);
 
-  cublas_div(handle, nsData->numCells, (double *)u->data_d,
+  cublas_div(constants->handle, nsData->numCells, (double *)u->data_d,
                    (double *)v->data_d, (double *)nsData->div[0]->data_d,
                    (double *)nsData->div[1]->data_d, (double *)nsData->div[2]->data_d,
                    (double *)nsData->div[3]->data_d);
@@ -50,5 +50,5 @@ void div_blas(INSData *nsData, op_dat u, op_dat v) {
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(6, div_args);
   // Free resources used by cuBLAS
-  cublasDestroy(handle);
+  // cublasDestroy(handle);
 }

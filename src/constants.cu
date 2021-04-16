@@ -77,6 +77,9 @@ Constants::Constants() {
   cudaMemcpy(s_d, s_g, 15 * sizeof(double), cudaMemcpyHostToDevice);
   cudaMalloc((void**)&ones_d, 15 * sizeof(double));
   cudaMemcpy(ones_d, ones_g, 15 * sizeof(double), cudaMemcpyHostToDevice);
+
+  cublasCreate(&handle);
+  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
 }
 
 Constants::~Constants() {
@@ -120,4 +123,6 @@ Constants::~Constants() {
   cudaFree(r_d);
   cudaFree(s_d);
   cudaFree(ones_d);
+
+  cublasDestroy(handle);
 }

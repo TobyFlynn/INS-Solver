@@ -41,6 +41,10 @@ extern double r_g[15];
 extern double s_g[15];
 extern double ones_g[15];
 
+#ifdef INS_CUDA
+#include "cublas_v2.h"
+#endif
+
 class Constants {
 public:
   Constants();
@@ -86,6 +90,9 @@ public:
   double *r, *r_d;
   double *s, *s_d;
   double *ones, *ones_d;
+  #ifdef INS_CUDA
+  cublasHandle_t handle;
+  #endif
 };
 
 #endif

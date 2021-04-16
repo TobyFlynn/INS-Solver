@@ -59,9 +59,9 @@ inline void cublas_viscosity_rhs(cublasHandle_t handle, const int numCells, cons
 
 void viscosity_rhs_blas(INSData *nsData, CubatureData *cubatureData) {
   // Initialise cuBLAS
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+  // cublasHandle_t handle;
+  // cublasCreate(&handle);
+  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg viscosity_rhs_args[] = {
     op_arg_dat(cubatureData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
@@ -72,12 +72,12 @@ void viscosity_rhs_blas(INSData *nsData, CubatureData *cubatureData) {
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 5, viscosity_rhs_args);
 
-  cublas_viscosity_rhs(handle, nsData->numCells, (double *)cubatureData->mm->data_d, (double *)nsData->QTT[0]->data_d,
+  cublas_viscosity_rhs(constants->handle, nsData->numCells, (double *)cubatureData->mm->data_d, (double *)nsData->QTT[0]->data_d,
                       (double *)nsData->QTT[1]->data_d, (double *)nsData->visRHS[0]->data_d,
                       (double *)nsData->visRHS[1]->data_d);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(5, viscosity_rhs_args);
   // Free resources used by cuBLAS
-  cublasDestroy(handle);
+  // cublasDestroy(handle);
 }

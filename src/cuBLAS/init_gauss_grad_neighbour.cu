@@ -112,9 +112,9 @@ inline void cublas_init_gauss_grad_neighbour(cublasHandle_t handle, const int nu
 
 void init_gauss_grad_neighbour_blas(INSData *nsData, GaussData *gaussData) {
   // Initialise cuBLAS
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+  // cublasHandle_t handle;
+  // cublasCreate(&handle);
+  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg init_grad_args[] = {
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_READ),
@@ -129,7 +129,7 @@ void init_gauss_grad_neighbour_blas(INSData *nsData, GaussData *gaussData) {
   int *reverse = (int *)malloc(3 * op_get_size(nsData->cells) * sizeof(int));
   op_fetch_data(gaussData->reverse, reverse);
 
-  cublas_init_gauss_grad_neighbour(handle, nsData->numCells, reverse, (double *)nsData->x->data_d,
+  cublas_init_gauss_grad_neighbour(constants->handle, nsData->numCells, reverse, (double *)nsData->x->data_d,
                    (double *)nsData->y->data_d, (double *)gaussData->rx->data_d,
                    (double *)gaussData->sx->data_d, (double *)gaussData->ry->data_d,
                    (double *)gaussData->sy->data_d);
@@ -139,5 +139,5 @@ void init_gauss_grad_neighbour_blas(INSData *nsData, GaussData *gaussData) {
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(6, init_grad_args);
   // Free resources used by cuBLAS
-  cublasDestroy(handle);
+  // cublasDestroy(handle);
 }

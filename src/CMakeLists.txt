@@ -41,6 +41,7 @@ target_compile_definitions(ins_cuda PUBLIC -DBUILD_CUDA)
 target_include_directories(ins_cuda PUBLIC ${CGNS_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${CUDAToolkit_INCLUDE_DIRS})
 target_link_libraries(ins_cuda ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so CUDA::cudart_static CUDA::cublas)
 set_property(TARGET ins_cuda PROPERTY CUDA_ARCHITECTURES OFF)
+target_compile_definitions(ins_cuda PRIVATE INS_CUDA)
 
 #op2_application(p_openmp LIBS op2_openmp op2_hdf5 SOURCES poisson_test_op.cpp ${CPU_SRC} ${OPENBLAS_SRC} openmp/ins_kernels.cpp ${KERNEL_HEADERS})
 #target_include_directories(p_openmp PUBLIC ${CGNS_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${OPENBLAS_DIR}/include)

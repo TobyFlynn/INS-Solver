@@ -27,9 +27,9 @@ inline void cublas_pressure_rhs(cublasHandle_t handle, const int numCells,
 
 void pressure_rhs_blas(INSData *nsData, int ind) {
   // Initialise cuBLAS
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+  // cublasHandle_t handle;
+  // cublasCreate(&handle);
+  // cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg pressure_rhs_args[] = {
     op_arg_dat(nsData->divVelT, -1, OP_ID, 15, "double", OP_RW),
@@ -38,12 +38,12 @@ void pressure_rhs_blas(INSData *nsData, int ind) {
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 3, pressure_rhs_args);
 
-  cublas_pressure_rhs(handle, nsData->numCells, (double *)nsData->divVelT->data_d,
+  cublas_pressure_rhs(constants->handle, nsData->numCells, (double *)nsData->divVelT->data_d,
                       (double *)nsData->dPdN[(ind + 1) % 2]->data_d,
                       (double *)nsData->pRHS->data_d);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(3, pressure_rhs_args);
   // Free resources used by cuBLAS
-  cublasDestroy(handle);
+  // cublasDestroy(handle);
 }
