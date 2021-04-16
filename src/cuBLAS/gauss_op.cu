@@ -7,13 +7,16 @@ inline void cublas_gauss_op(cublasHandle_t handle, const int numCells,
                             double *op_d, const double *mD_d, const double *term0_d,
                             const double *term1_d, const double *term2_d, int face) {
   double *gFInterp_d;
-  cudaMalloc((void**)&gFInterp_d, 7 * 15 * sizeof(double));
+  // cudaMalloc((void**)&gFInterp_d, 7 * 15 * sizeof(double));
   if(face == 0) {
-    cudaMemcpy(gFInterp_d, gFInterp0, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+    // cudaMemcpy(gFInterp_d, gFInterp0, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+    gFInterp_d = constants->gFInterp0_d;
   } else if (face == 1) {
-    cudaMemcpy(gFInterp_d, gFInterp1, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+    // cudaMemcpy(gFInterp_d, gFInterp1, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+    gFInterp_d = constants->gFInterp1_d;
   } else {
-    cudaMemcpy(gFInterp_d, gFInterp2, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+    // cudaMemcpy(gFInterp_d, gFInterp2, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+    gFInterp_d = constants->gFInterp2_d;
   }
 
   for(int c = 0; c < numCells; c++) {
@@ -32,7 +35,7 @@ inline void cublas_gauss_op(cublasHandle_t handle, const int numCells,
     cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 15, 15, 7, &alpha2, term2, 7, gFInterp_d, 15, &beta2, op, 15);
   }
 
-  cudaFree(gFInterp_d);
+  // cudaFree(gFInterp_d);
 }
 
 void gauss_op_blas(INSData *nsData, GaussData *gaussData) {

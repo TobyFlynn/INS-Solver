@@ -259,13 +259,13 @@ void Poisson_M::createBCMatrix() {
         int row = element * 15 + (j / 7);
         double val;
         if(edge == 0) {
-          val = gFInterp0[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
+          val = gFInterp0_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
         } else if(edge == 1) {
-          val = gFInterp1[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
+          val = gFInterp1_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
         } else {
-          val = gFInterp2[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
+          val = gFInterp2_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
         }
-        val -= gauss_mD[edge][element * 7 * 15 + indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
+        val -= gauss_mD[edge][element * 7 * 15 + indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         if(abs(val) > tol)
           MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
@@ -277,11 +277,11 @@ void Poisson_M::createBCMatrix() {
         int row = element * 15 + (j / 7);
         double val;
         if(edge == 0) {
-          val = gFInterp0[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
+          val = gFInterp0_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         } else if(edge == 1) {
-          val = gFInterp1[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
+          val = gFInterp1_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         } else {
-          val = gFInterp2[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
+          val = gFInterp2_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         }
         if(abs(val) > tol)
           MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);

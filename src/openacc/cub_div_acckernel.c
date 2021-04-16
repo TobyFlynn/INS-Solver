@@ -11,10 +11,10 @@ inline void cub_div_openacc( double *temp0, double *temp1, const double *rx, con
   for(int i = 0; i < 46; i++) {
     double Vu = temp0[i];
     double Vv = temp1[i];
-    temp0[i] = cubW[i] * J[i] * rx[i] * Vu;
-    temp1[i] = cubW[i] * J[i] * sx[i] * Vu;
-    temp2[i] = cubW[i] * J[i] * ry[i] * Vv;
-    temp3[i] = cubW[i] * J[i] * sy[i] * Vv;
+    temp0[i] = cubW_g[i] * J[i] * rx[i] * Vu;
+    temp1[i] = cubW_g[i] * J[i] * sx[i] * Vu;
+    temp2[i] = cubW_g[i] * J[i] * ry[i] * Vv;
+    temp3[i] = cubW_g[i] * J[i] * sy[i] * Vv;
   }
 }
 

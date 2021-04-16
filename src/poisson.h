@@ -5,11 +5,13 @@
 #include "ins_data.h"
 #include "petscvec.h"
 #include "petscksp.h"
+#include "timing.h"
 
-extern double gFInterp0[7 * 15];
-extern double gFInterp1[7 * 15];
-extern double gFInterp2[7 * 15];
-extern double gaussW[7];
+extern double gFInterp0_g[7 * 15];
+extern double gFInterp1_g[7 * 15];
+extern double gFInterp2_g[7 * 15];
+extern double gaussW_g[7];
+extern Timing *timer;
 
 class Poisson {
 public:
@@ -74,7 +76,7 @@ public:
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
   void calc_rhs(const double *u_d, double *rhs_d);
 
-  op_dat u, rhs, tau, gU, uNumFlux, uFluxX, uFluxY, qx, qy, gqx, gqy;
+  op_dat u, rhs, tau, gU, uNumFlux, uFluxX, uFluxY, dudx, dudy, qx, qy, gqx, gqy;
   op_dat qxNumFlux, qyNumFlux, qFlux;
 
 private:
@@ -92,6 +94,8 @@ private:
   double *uNumFlux_data;
   double *uFluxX_data;
   double *uFluxY_data;
+  double *dudx_data;
+  double *dudy_data;
   double *qx_data;
   double *qy_data;
   double *gqx_data;

@@ -43,6 +43,16 @@ public:
 
   void startViscosityLinearSolve();
   void endViscosityLinearSolve();
+
+  void startLinearSolveMF();
+  void endLinearSolveMF();
+
+  void startLinearSolveMFMatMult();
+  void endLinearSolveMFMatMult();
+
+  void startLinearSolveMFRHS();
+  void endLinearSolveMFRHS();
+
 private:
   double cpu1, cpu2;
 
@@ -81,6 +91,15 @@ private:
 
   double totalViscosityLinearSolve = 0.0;
   double viscosityLinearSolve1, viscosityLinearSolve2;
+
+  double totalLinearSolveMF = 0.0;
+  double linearSolveMF1, linearSolveMF2;
+
+  double totalLinearSolveMFMatMult = 0.0;
+  double linearSolveMFMatMult1, linearSolveMFMatMult2;
+
+  double totalLinearSolveMFRHS = 0.0;
+  double linearSolveMFRHS1, linearSolveMFRHS2;
 };
 
 #endif

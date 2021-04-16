@@ -6,24 +6,24 @@
 inline void cublas_init_gauss_grad(cublasHandle_t handle, const int numCells,
                         const double *x_d, const double *y_d, double *gxr_d,
                         double *gxs_d, double *gyr_d, double *gys_d) {
-  double *g0Dr_d;
-  cudaMalloc((void**)&g0Dr_d, 7 * 15 * sizeof(double));
-  cudaMemcpy(g0Dr_d, gF0Dr, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  double *g0Ds_d;
-  cudaMalloc((void**)&g0Ds_d, 7 * 15 * sizeof(double));
-  cudaMemcpy(g0Ds_d, gF0Ds, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  double *g1Dr_d;
-  cudaMalloc((void**)&g1Dr_d, 7 * 15 * sizeof(double));
-  cudaMemcpy(g1Dr_d, gF1Dr, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  double *g1Ds_d;
-  cudaMalloc((void**)&g1Ds_d, 7 * 15 * sizeof(double));
-  cudaMemcpy(g1Ds_d, gF1Ds, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  double *g2Dr_d;
-  cudaMalloc((void**)&g2Dr_d, 7 * 15 * sizeof(double));
-  cudaMemcpy(g2Dr_d, gF2Dr, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  double *g2Ds_d;
-  cudaMalloc((void**)&g2Ds_d, 7 * 15 * sizeof(double));
-  cudaMemcpy(g2Ds_d, gF2Ds, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *g0Dr_d;
+  // cudaMalloc((void**)&g0Dr_d, 7 * 15 * sizeof(double));
+  // cudaMemcpy(g0Dr_d, gF0Dr, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *g0Ds_d;
+  // cudaMalloc((void**)&g0Ds_d, 7 * 15 * sizeof(double));
+  // cudaMemcpy(g0Ds_d, gF0Ds, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *g1Dr_d;
+  // cudaMalloc((void**)&g1Dr_d, 7 * 15 * sizeof(double));
+  // cudaMemcpy(g1Dr_d, gF1Dr, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *g1Ds_d;
+  // cudaMalloc((void**)&g1Ds_d, 7 * 15 * sizeof(double));
+  // cudaMemcpy(g1Ds_d, gF1Ds, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *g2Dr_d;
+  // cudaMalloc((void**)&g2Dr_d, 7 * 15 * sizeof(double));
+  // cudaMemcpy(g2Dr_d, gF2Dr, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *g2Ds_d;
+  // cudaMalloc((void**)&g2Ds_d, 7 * 15 * sizeof(double));
+  // cudaMemcpy(g2Ds_d, gF2Ds, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
 
   // Calc Grad Matrices
   double alpha = 1.0;
@@ -37,30 +37,30 @@ inline void cublas_init_gauss_grad(cublasHandle_t handle, const int numCells,
     double *gys = gys_d + c * 21;
 
     // Face 0
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, g0Dr_d, 15, x, 1, &beta, gxr, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, g0Ds_d, 15, x, 1, &beta, gxs, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, g0Dr_d, 15, y, 1, &beta, gyr, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, g0Ds_d, 15, y, 1, &beta, gys, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF0Dr_d, 15, x, 1, &beta, gxr, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF0Ds_d, 15, x, 1, &beta, gxs, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF0Dr_d, 15, y, 1, &beta, gyr, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF0Ds_d, 15, y, 1, &beta, gys, 1);
 
     // Face 1
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, g1Dr_d, 15, x, 1, &beta, gxr + 7, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, g1Ds_d, 15, x, 1, &beta, gxs + 7, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, g1Dr_d, 15, y, 1, &beta, gyr + 7, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, g1Ds_d, 15, y, 1, &beta, gys + 7, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF1Dr_d, 15, x, 1, &beta, gxr + 7, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF1Ds_d, 15, x, 1, &beta, gxs + 7, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF1Dr_d, 15, y, 1, &beta, gyr + 7, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF1Ds_d, 15, y, 1, &beta, gys + 7, 1);
 
     // Face 2
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, g2Dr_d, 15, x, 1, &beta, gxr + 14, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, g2Ds_d, 15, x, 1, &beta, gxs + 14, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, g2Dr_d, 15, y, 1, &beta, gyr + 14, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, g2Ds_d, 15, y, 1, &beta, gys + 14, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF2Dr_d, 15, x, 1, &beta, gxr + 14, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF2Ds_d, 15, x, 1, &beta, gxs + 14, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF2Dr_d, 15, y, 1, &beta, gyr + 14, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF2Ds_d, 15, y, 1, &beta, gys + 14, 1);
   }
 
-  cudaFree(g0Dr_d);
-  cudaFree(g0Ds_d);
-  cudaFree(g1Dr_d);
-  cudaFree(g1Ds_d);
-  cudaFree(g2Dr_d);
-  cudaFree(g2Ds_d);
+  // cudaFree(g0Dr_d);
+  // cudaFree(g0Ds_d);
+  // cudaFree(g1Dr_d);
+  // cudaFree(g1Ds_d);
+  // cudaFree(g2Dr_d);
+  // cudaFree(g2Ds_d);
 }
 
 void init_gauss_grad_blas(INSData *nsData, GaussData *gaussData) {

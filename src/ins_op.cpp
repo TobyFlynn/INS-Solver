@@ -171,6 +171,7 @@ void op_par_loop_min_max(char const *, op_set,
 #include <limits>
 
 #include "constants/all_constants.h"
+#include "constants.h"
 #include "load_mesh.h"
 #include "ins_data.h"
 #include "blas_calls.h"
@@ -232,6 +233,7 @@ void export_data(string filename, int iter, double time, double drag,
 }
 
 Timing *timer;
+Constants *constants;
 
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t);
@@ -251,6 +253,7 @@ int main(int argc, char **argv) {
   timer = new Timing();
   timer->startWallTime();
   timer->startSetup();
+  constants = new Constants();
 
   string filename = "./cylinder.cgns";
   char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
@@ -438,6 +441,8 @@ int main(int argc, char **argv) {
   cout << "Wall time: " << timer->getWallTime() << endl;
   cout << "Time to simulate 1 second: " << timer->getWallTime() / time << endl;
 
+  op_timings_to_csv("op2_timings.csv");
+
   // Clean up OP2
   op_exit();
 
@@ -446,6 +451,7 @@ int main(int argc, char **argv) {
   delete gaussData;
   delete cubData;
   delete data;
+  delete constants;
   delete timer;
 
   ierr = PetscFinalize();

@@ -69,6 +69,7 @@ void Poisson::create_mat(Mat *m, int row, int col, int prealloc) {
 }
 
 PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
+  timer->startLinearSolveMFMatMult();
   Poisson_MF *poisson;
   MatShellGetContext(A, &poisson);
   const double *x_ptr;
@@ -80,7 +81,7 @@ PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
 
   VecRestoreArrayRead(x, &x_ptr);
   VecRestoreArray(y, &y_ptr);
-
+  timer->endLinearSolveMFMatMult();
   return 0;
 }
 

@@ -26,7 +26,7 @@ inline void init_cubature_openacc( double *rx, double *sx, double *ry, double *s
   for(int m = 0; m < 46; m++) {
     for(int n = 0; n < 15; n++) {
       int ind = m * 15 + n;
-      temp[ind] = J[m] * cubW[m] * cubV[ind];
+      temp[ind] = J[m] * cubW_g[m] * cubV_g[ind];
     }
   }
 }

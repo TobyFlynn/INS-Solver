@@ -5,8 +5,8 @@
 
 inline void openblas_cub_div(const int numCells, const double *in0, const double *in1,
                              double *out0, double *out1) {
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, cubV, 15, in0, 15, 0.0, out0, 46);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, cubV, 15, in1, 15, 0.0, out1, 46);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, constants->cubV, 15, in0, 15, 0.0, out0, 46);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, constants->cubV, 15, in1, 15, 0.0, out1, 46);
 }
 
 void cub_div_blas(INSData *data, CubatureData *cubatureData, op_dat u, op_dat v) {

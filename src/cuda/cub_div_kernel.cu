@@ -9,10 +9,10 @@ __device__ void cub_div_gpu( double *temp0, double *temp1, const double *rx, con
   for(int i = 0; i < 46; i++) {
     double Vu = temp0[i];
     double Vv = temp1[i];
-    temp0[i] = cubW_cuda[i] * J[i] * rx[i] * Vu;
-    temp1[i] = cubW_cuda[i] * J[i] * sx[i] * Vu;
-    temp2[i] = cubW_cuda[i] * J[i] * ry[i] * Vv;
-    temp3[i] = cubW_cuda[i] * J[i] * sy[i] * Vv;
+    temp0[i] = cubW_g_cuda[i] * J[i] * rx[i] * Vu;
+    temp1[i] = cubW_g_cuda[i] * J[i] * sx[i] * Vu;
+    temp2[i] = cubW_g_cuda[i] * J[i] * ry[i] * Vv;
+    temp3[i] = cubW_g_cuda[i] * J[i] * sy[i] * Vv;
   }
 
 }

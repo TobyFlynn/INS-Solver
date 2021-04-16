@@ -26,24 +26,24 @@ __device__ void init_gauss_grad_gpu( double *rx, double *sx, double *ry,  double
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
       int ind = m * 15 + n;
-      Dx0[ind] = rx[m] * gF0Dr_cuda[ind] + sx[m] * gF0Ds_cuda[ind];
-      Dy0[ind] = ry[m] * gF0Dr_cuda[ind] + sy[m] * gF0Ds_cuda[ind];
+      Dx0[ind] = rx[m] * gF0Dr_g_cuda[ind] + sx[m] * gF0Ds_g_cuda[ind];
+      Dy0[ind] = ry[m] * gF0Dr_g_cuda[ind] + sy[m] * gF0Ds_g_cuda[ind];
     }
   }
 
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
       int ind = m * 15 + n;
-      Dx1[ind] = rx[m + 7] * gF1Dr_cuda[ind] + sx[m + 7] * gF1Ds_cuda[ind];
-      Dy1[ind] = ry[m + 7] * gF1Dr_cuda[ind] + sy[m + 7] * gF1Ds_cuda[ind];
+      Dx1[ind] = rx[m + 7] * gF1Dr_g_cuda[ind] + sx[m + 7] * gF1Ds_g_cuda[ind];
+      Dy1[ind] = ry[m + 7] * gF1Dr_g_cuda[ind] + sy[m + 7] * gF1Ds_g_cuda[ind];
     }
   }
 
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
       int ind = m * 15 + n;
-      Dx2[ind] = rx[m + 14] * gF2Dr_cuda[ind] + sx[m + 14] * gF2Ds_cuda[ind];
-      Dy2[ind] = ry[m + 14] * gF2Dr_cuda[ind] + sy[m + 14] * gF2Ds_cuda[ind];
+      Dx2[ind] = rx[m + 14] * gF2Dr_g_cuda[ind] + sx[m + 14] * gF2Ds_g_cuda[ind];
+      Dy2[ind] = ry[m + 14] * gF2Dr_g_cuda[ind] + sy[m + 14] * gF2Ds_g_cuda[ind];
     }
   }
 

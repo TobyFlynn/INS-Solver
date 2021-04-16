@@ -8,8 +8,8 @@ __device__ void init_cubature_OP_gpu( const double *J, const double *Dx, const d
   for(int m = 0; m < 46; m++) {
     for(int n = 0; n < 15; n++) {
       int ind = m * 15 + n;
-      temp[ind] = J[m] * cubW_cuda[m] * Dx[ind];
-      temp2[ind] = J[m] * cubW_cuda[m] * Dy[ind];
+      temp[ind] = J[m] * cubW_g_cuda[m] * Dx[ind];
+      temp2[ind] = J[m] * cubW_g_cuda[m] * Dy[ind];
     }
   }
 

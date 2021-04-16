@@ -5,9 +5,9 @@
 
 inline void cublas_cubature_mm(cublasHandle_t handle, const int numCells,
                                const double *temp_d, double *mm_d) {
-  double *cubV_d;
-  cudaMalloc((void**)&cubV_d, 46 * 15 * sizeof(double));
-  cudaMemcpy(cubV_d, cubV, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *cubV_d;
+  // cudaMalloc((void**)&cubV_d, 46 * 15 * sizeof(double));
+  // cudaMemcpy(cubV_d, cubV, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
 
   for(int i = 0; i < numCells; i++) {
     const double *temp = temp_d + i * 46 * 15;
@@ -15,10 +15,10 @@ inline void cublas_cubature_mm(cublasHandle_t handle, const int numCells,
 
     double alpha = 1.0;
     double beta = 0.0;
-    cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_T, 15, 15, 46, &alpha, cubV_d, 15, temp, 15, &beta, mm, 15);
+    cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_T, 15, 15, 46, &alpha, constants->cubV_d, 15, temp, 15, &beta, mm, 15);
   }
 
-  cudaFree(cubV_d);
+  // cudaFree(cubV_d);
 }
 
 void cubature_mm_blas(INSData *nsData, CubatureData *cubData) {

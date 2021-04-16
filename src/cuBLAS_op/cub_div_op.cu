@@ -25,17 +25,26 @@ extern "C" {
 inline void cublas_cub_div(cublasHandle_t handle, const int numCells,
                            const double *in0_d, const double *in1_d,
                            double *out0_d, double *out1_d) {
-  double *V_d;
-  cudaMalloc((void**)&V_d, 46 * 15 * sizeof(double));
-  cudaMemcpy(V_d, cubV, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *V_d;
+  // cudaMalloc((void**)&V_d, 46 * 15 * sizeof(double));
+  // cudaMemcpy(V_d, cubV, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
 
   // CUBLAS_OP_T because cublas is column major but constants are stored row major
+  cudaStream_t stream0, stream1;
+  cudaStreamCreate(&stream0);
+  cudaStreamCreate(&stream1);
+
   double alpha = 1.0;
   double beta = 0.0;
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 46, numCells, 15, &alpha, V_d, 15, in0_d, 15, &beta, out0_d, 46);
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 46, numCells, 15, &alpha, V_d, 15, in1_d, 15, &beta, out1_d, 46);
+  cublasSetStream(handle, stream0);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 46, numCells, 15, &alpha, constants->cubV_d, 15, in0_d, 15, &beta, out0_d, 46);
+  cublasSetStream(handle, stream1);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 46, numCells, 15, &alpha, constants->cubV_d, 15, in1_d, 15, &beta, out1_d, 46);
 
-  cudaFree(V_d);
+  cudaStreamDestroy(stream0);
+  cudaStreamDestroy(stream1);
+
+  // cudaFree(V_d);
 }
 
 void cub_div_blas(INSData *data, CubatureData *cubatureData, op_dat u, op_dat v) {

@@ -20,32 +20,32 @@ inline void cublas_init_gauss(cublasHandle_t handle, const int numCells,
   double *dVMds2_d;
   cudaMalloc((void**)&dVMds2_d, 7 * 15 * sizeof(double));
 
-  double *Dr_d;
-  cudaMalloc((void**)&Dr_d, 15 * 15 * sizeof(double));
-  cudaMemcpy(Dr_d, Dr, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-
-  double *Ds_d;
-  cudaMalloc((void**)&Ds_d, 15 * 15 * sizeof(double));
-  cudaMemcpy(Ds_d, Ds, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-
-  double *gFInterp0_d;
-  cudaMalloc((void**)&gFInterp0_d, 7 * 15 * sizeof(double));
-  cudaMemcpy(gFInterp0_d, gFInterp0, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  double *gFInterp1_d;
-  cudaMalloc((void**)&gFInterp1_d, 7 * 15 * sizeof(double));
-  cudaMemcpy(gFInterp1_d, gFInterp1, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  double *gFInterp2_d;
-  cudaMalloc((void**)&gFInterp2_d, 7 * 15 * sizeof(double));
-  cudaMemcpy(gFInterp2_d, gFInterp2, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *Dr_d;
+  // cudaMalloc((void**)&Dr_d, 15 * 15 * sizeof(double));
+  // cudaMemcpy(Dr_d, Dr, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  //
+  // double *Ds_d;
+  // cudaMalloc((void**)&Ds_d, 15 * 15 * sizeof(double));
+  // cudaMemcpy(Ds_d, Ds, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  //
+  // double *gFInterp0_d;
+  // cudaMalloc((void**)&gFInterp0_d, 7 * 15 * sizeof(double));
+  // cudaMemcpy(gFInterp0_d, gFInterp0, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *gFInterp1_d;
+  // cudaMalloc((void**)&gFInterp1_d, 7 * 15 * sizeof(double));
+  // cudaMemcpy(gFInterp1_d, gFInterp1, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *gFInterp2_d;
+  // cudaMalloc((void**)&gFInterp2_d, 7 * 15 * sizeof(double));
+  // cudaMemcpy(gFInterp2_d, gFInterp2, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
 
   double alpha = 1.0;
   double beta = 0.0;
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, gFInterp0_d, 15, Dr_d, 15, &beta, dVMdr0_d, 7);
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, gFInterp1_d, 15, Dr_d, 15, &beta, dVMdr1_d, 7);
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, gFInterp2_d, 15, Dr_d, 15, &beta, dVMdr2_d, 7);
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, gFInterp0_d, 15, Ds_d, 15, &beta, dVMds0_d, 7);
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, gFInterp1_d, 15, Ds_d, 15, &beta, dVMds1_d, 7);
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, gFInterp2_d, 15, Ds_d, 15, &beta, dVMds2_d, 7);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, constants->gFInterp0_d, 15, constants->Dr_d, 15, &beta, dVMdr0_d, 7);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, constants->gFInterp1_d, 15, constants->Dr_d, 15, &beta, dVMdr1_d, 7);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, constants->gFInterp2_d, 15, constants->Dr_d, 15, &beta, dVMdr2_d, 7);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, constants->gFInterp0_d, 15, constants->Ds_d, 15, &beta, dVMds0_d, 7);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, constants->gFInterp1_d, 15, constants->Ds_d, 15, &beta, dVMds1_d, 7);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, 7, 15, 15, &alpha, constants->gFInterp2_d, 15, constants->Ds_d, 15, &beta, dVMds2_d, 7);
 
   for(int c = 0; c < numCells; c++) {
     const double *x = x_d + c * 15;
@@ -74,11 +74,11 @@ inline void cublas_init_gauss(cublasHandle_t handle, const int numCells,
     cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, dVMds2_d, 7, y, 1, &beta, gys + 14, 1);
   }
 
-  cudaFree(gFInterp0_d);
-  cudaFree(gFInterp1_d);
-  cudaFree(gFInterp2_d);
-  cudaFree(Dr_d);
-  cudaFree(Ds_d);
+  // cudaFree(gFInterp0_d);
+  // cudaFree(gFInterp1_d);
+  // cudaFree(gFInterp2_d);
+  // cudaFree(Dr_d);
+  // cudaFree(Ds_d);
   cudaFree(dVMdr0_d);
   cudaFree(dVMdr1_d);
   cudaFree(dVMdr2_d);

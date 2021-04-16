@@ -23,7 +23,7 @@ extern "C" {
 #include "../blas_calls.h"
 
 inline void openblas_cub_grad(const int numCells, const double *in, double *out) {
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, cubV, 15, in, 15, 0.0, out, 46);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, constants->cubV, 15, in, 15, 0.0, out, 46);
 }
 
 void cub_grad_blas(INSData *data, CubatureData *cubatureData, op_dat u) {

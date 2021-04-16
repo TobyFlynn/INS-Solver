@@ -26,7 +26,7 @@ void cub_div_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size]) \
-    map(to: cubW_ompkernel[:46])
+    map(to: cubW_g_ompkernel[:46])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
@@ -45,10 +45,10 @@ void cub_div_omp4_kernel(
     for(int i = 0; i < 46; i++) {
       double Vu = temp0[i];
       double Vv = temp1[i];
-      temp0[i] = cubW_ompkernel[i] * J[i] * rx[i] * Vu;
-      temp1[i] = cubW_ompkernel[i] * J[i] * sx[i] * Vu;
-      temp2[i] = cubW_ompkernel[i] * J[i] * ry[i] * Vv;
-      temp3[i] = cubW_ompkernel[i] * J[i] * sy[i] * Vv;
+      temp0[i] = cubW_g_ompkernel[i] * J[i] * rx[i] * Vu;
+      temp1[i] = cubW_g_ompkernel[i] * J[i] * sx[i] * Vu;
+      temp2[i] = cubW_g_ompkernel[i] * J[i] * ry[i] * Vv;
+      temp3[i] = cubW_g_ompkernel[i] * J[i] * sy[i] * Vv;
     }
     //end inline func
   }

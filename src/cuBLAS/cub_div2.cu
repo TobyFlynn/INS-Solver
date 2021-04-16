@@ -7,26 +7,26 @@ inline void cublas_cub_div2(cublasHandle_t handle, const int numCells,
                             const double *temp0, const double *temp1,
                             const double *temp2, const double *temp3,
                             double *res_d) {
-  double *Dr_d;
-  cudaMalloc((void**)&Dr_d, 46 * 15 * sizeof(double));
-  cudaMemcpy(Dr_d, cubDr, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-
-  double *Ds_d;
-  cudaMalloc((void**)&Ds_d, 46 * 15 * sizeof(double));
-  cudaMemcpy(Ds_d, cubDs, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *Dr_d;
+  // cudaMalloc((void**)&Dr_d, 46 * 15 * sizeof(double));
+  // cudaMemcpy(Dr_d, cubDr, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  //
+  // double *Ds_d;
+  // cudaMalloc((void**)&Ds_d, 46 * 15 * sizeof(double));
+  // cudaMemcpy(Ds_d, cubDs, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
 
   // CUBLAS_OP_T because cublas is column major but constants are stored row major
   double alpha = 1.0;
   double beta = 0.0;
   double beta2 = 1.0;
-  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, Dr_d, 15, temp0, 46, &beta, res_d, 15);
-  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, Ds_d, 15, temp1, 46, &beta2, res_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, constants->cubDr_d, 15, temp0, 46, &beta, res_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, constants->cubDs_d, 15, temp1, 46, &beta2, res_d, 15);
 
-  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, Dr_d, 15, temp2, 46, &beta2, res_d, 15);
-  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, Ds_d, 15, temp3, 46, &beta2, res_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, constants->cubDr_d, 15, temp2, 46, &beta2, res_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, constants->cubDs_d, 15, temp3, 46, &beta2, res_d, 15);
 
-  cudaFree(Dr_d);
-  cudaFree(Ds_d);
+  // cudaFree(Dr_d);
+  // cudaFree(Ds_d);
 }
 
 void cub_div_blas2(INSData *data, CubatureData *cubatureData, op_dat res) {

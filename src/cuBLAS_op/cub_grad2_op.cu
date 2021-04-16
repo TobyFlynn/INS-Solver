@@ -26,26 +26,34 @@ inline void cublas_cub_grad2(cublasHandle_t handle, const int numCells,
                             const double *temp0, const double *temp1,
                             const double *temp2, const double *temp3,
                             double *ux_d, double *uy_d) {
-  double *Dr_d;
-  cudaMalloc((void**)&Dr_d, 46 * 15 * sizeof(double));
-  cudaMemcpy(Dr_d, cubDr, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-
-  double *Ds_d;
-  cudaMalloc((void**)&Ds_d, 46 * 15 * sizeof(double));
-  cudaMemcpy(Ds_d, cubDs, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  // double *Dr_d;
+  // cudaMalloc((void**)&Dr_d, 46 * 15 * sizeof(double));
+  // cudaMemcpy(Dr_d, cubDr, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  //
+  // double *Ds_d;
+  // cudaMalloc((void**)&Ds_d, 46 * 15 * sizeof(double));
+  // cudaMemcpy(Ds_d, cubDs, 46 * 15 * sizeof(double), cudaMemcpyHostToDevice);
 
   // CUBLAS_OP_T because cublas is column major but constants are stored row major
+  cudaStream_t stream0, stream1;
+  cudaStreamCreate(&stream0);
+  cudaStreamCreate(&stream1);
+
   double alpha = 1.0;
   double beta = 0.0;
   double beta2 = 1.0;
-  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, Dr_d, 15, temp0, 46, &beta, ux_d, 15);
-  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, Ds_d, 15, temp1, 46, &beta2, ux_d, 15);
+  cublasSetStream(handle, stream0);
+  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, constants->cubDr_d, 15, temp0, 46, &beta, ux_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, constants->cubDs_d, 15, temp1, 46, &beta2, ux_d, 15);
+  cublasSetStream(handle, stream1);
+  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, constants->cubDr_d, 15, temp2, 46, &beta, uy_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, constants->cubDs_d, 15, temp3, 46, &beta2, uy_d, 15);
 
-  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, Dr_d, 15, temp2, 46, &beta, uy_d, 15);
-  cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 46, &alpha, Ds_d, 15, temp3, 46, &beta2, uy_d, 15);
+  cudaStreamDestroy(stream0);
+  cudaStreamDestroy(stream1);
 
-  cudaFree(Dr_d);
-  cudaFree(Ds_d);
+  // cudaFree(Dr_d);
+  // cudaFree(Ds_d);
 }
 
 void cub_grad_blas2(INSData *data, CubatureData *cubatureData, op_dat ux, op_dat uy) {

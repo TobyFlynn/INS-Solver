@@ -105,6 +105,8 @@ Poisson_MF::Poisson_MF(INSData *nsData, CubatureData *cubData, GaussData *gaussD
   uNumFlux_data  = (double *)calloc(21 * data->numCells, sizeof(double));
   uFluxX_data    = (double *)calloc(21 * data->numCells, sizeof(double));
   uFluxY_data    = (double *)calloc(21 * data->numCells, sizeof(double));
+  dudx_data      = (double *)calloc(15 * data->numCells, sizeof(double));
+  dudy_data      = (double *)calloc(15 * data->numCells, sizeof(double));
   qx_data        = (double *)calloc(15 * data->numCells, sizeof(double));
   qy_data        = (double *)calloc(15 * data->numCells, sizeof(double));
   gqx_data       = (double *)calloc(21 * data->numCells, sizeof(double));
@@ -120,6 +122,8 @@ Poisson_MF::Poisson_MF(INSData *nsData, CubatureData *cubData, GaussData *gaussD
   uNumFlux  = op_decl_dat(data->cells, 21, "double", uNumFlux_data, "poisson_uNumFlux");
   uFluxX    = op_decl_dat(data->cells, 21, "double", uFluxX_data, "poisson_uFluxX");
   uFluxY    = op_decl_dat(data->cells, 21, "double", uFluxY_data, "poisson_uFluxY");
+  dudx      = op_decl_dat(data->cells, 15, "double", dudx_data, "poisson_dudx");
+  dudy      = op_decl_dat(data->cells, 15, "double", dudy_data, "poisson_dudy");
   qx        = op_decl_dat(data->cells, 15, "double", qx_data, "poisson_qx");
   qy        = op_decl_dat(data->cells, 15, "double", qy_data, "poisson_qy");
   gqx       = op_decl_dat(data->cells, 21, "double", gqx_data, "poisson_gqx");
@@ -148,6 +152,8 @@ Poisson_MF::~Poisson_MF() {
   free(uNumFlux_data);
   free(uFluxX_data);
   free(uFluxY_data);
+  free(dudx_data);
+  free(dudy_data);
   free(qx_data);
   free(qy_data);
   free(gqx_data);
@@ -191,7 +197,9 @@ bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) 
   KSPSetOperators(ksp, Amat, Amat);
   KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 1e4);
   // Solve
+  timer->startLinearSolveMF();
   KSPSolve(ksp, rhs_v, x);
+  timer->endLinearSolveMF();
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
   KSPConvergedReason reason;
@@ -200,6 +208,7 @@ bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) 
   KSPGetResidualNorm(ksp, &residual);
   // Check that the solver converged
   bool converged = true;
+  cout << "Number of iterations for linear solver: " << numIt << endl;
   if(reason < 0) {
     converged = false;
     cout << "Number of iterations for linear solver: " << numIt << endl;
@@ -225,8 +234,9 @@ bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) 
 void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
   // Copy u to OP2 dat (different depending on whether CPU or GPU)
   copy_u(u_d);
-
+  timer->startLinearSolveMFRHS();
   gauss_interp_blas(data, u, gU);
+  timer->endLinearSolveMFRHS();
 
   op_par_loop_poisson_rhs_faces("poisson_rhs_faces",data->edges,
               op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
@@ -252,17 +262,21 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(uFluxX,-1,OP_ID,21,"double",OP_WRITE),
               op_arg_dat(uFluxY,-1,OP_ID,21,"double",OP_WRITE));
 
-  cub_grad(data, cData, u, qx, qy);
+  timer->startLinearSolveMFRHS();
+  cub_grad(data, cData, u, dudx, dudy);
 
   poisson_rhs_blas1(data, this);
+  timer->endLinearSolveMFRHS();
 
   op_par_loop_poisson_rhs_J("poisson_rhs_J",data->cells,
               op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(qx,-1,OP_ID,15,"double",OP_RW),
               op_arg_dat(qy,-1,OP_ID,15,"double",OP_RW));
 
+  timer->startLinearSolveMFRHS();
   gauss_interp_blas(data, qx, gqx);
   gauss_interp_blas(data, qy, gqy);
+  timer->endLinearSolveMFRHS();
 
   op_par_loop_poisson_rhs_faces("poisson_rhs_faces",data->edges,
               op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
@@ -307,12 +321,16 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(qyNumFlux,-1,OP_ID,21,"double",OP_RW),
               op_arg_dat(qFlux,-1,OP_ID,21,"double",OP_WRITE));
 
+  timer->startLinearSolveMFRHS();
   cub_div(data, cData, qx, qy, rhs);
 
   poisson_rhs_blas2(data, this);
+  timer->endLinearSolveMFRHS();
 
   if(massMat) {
+    timer->startLinearSolveMFRHS();
     poisson_rhs_mass_blas(data, cData, this, massFactor);
+    timer->endLinearSolveMFRHS();
   }
 
   copy_rhs(rhs_d);
@@ -346,13 +364,13 @@ void Poisson_MF::createBCMatrix() {
         int row = element * 15 + (j / 7);
         double val;
         if(edge == 0) {
-          val = gFInterp0[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * 2.0 * gauss_tau[element * 3 + edge];
+          val = gFInterp0_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * 2.0 * gauss_tau[element * 3 + edge];
         } else if(edge == 1) {
-          val = gFInterp1[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * 2.0 * gauss_tau[element * 3 + edge];
+          val = gFInterp1_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * 2.0 * gauss_tau[element * 3 + edge];
         } else {
-          val = gFInterp2[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * 2.0 * gauss_tau[element * 3 + edge];
+          val = gFInterp2_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * 2.0 * gauss_tau[element * 3 + edge];
         }
-        val -= gauss_mD[edge][element * 7 * 15 + indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
+        val -= gauss_mD[edge][element * 7 * 15 + indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         if(abs(val) > tol)
           MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
       }
@@ -364,11 +382,11 @@ void Poisson_MF::createBCMatrix() {
         int row = element * 15 + (j / 7);
         double val;
         if(edge == 0) {
-          val = gFInterp0[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
+          val = gFInterp0_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         } else if(edge == 1) {
-          val = gFInterp1[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
+          val = gFInterp1_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         } else {
-          val = gFInterp2[indT] * gaussW[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
+          val = gFInterp2_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         }
         if(abs(val) > tol)
           MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);

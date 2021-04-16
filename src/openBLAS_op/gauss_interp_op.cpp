@@ -23,7 +23,7 @@ extern "C" {
 #include "../blas_calls.h"
 
 inline void openblas_gauss_interp(const int numCells, const double *in, double *out) {
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 21, numCells, 15, 1.0, gInterp, 15, in, 15, 0.0, out, 21);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 21, numCells, 15, 1.0, constants->gInterp, 15, in, 15, 0.0, out, 21);
 }
 
 void gauss_interp_blas(INSData *data, op_dat input, op_dat output) {
