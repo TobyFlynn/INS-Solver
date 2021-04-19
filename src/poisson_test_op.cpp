@@ -41,11 +41,13 @@ void op_par_loop_poisson_test_error(char const *, op_set,
 #include <iostream>
 
 #include "constants/all_constants.h"
+#include "constants.h"
 #include "load_mesh.h"
 #include "ins_data.h"
 #include "save_solution.h"
 #include "poisson.h"
 #include "blas_calls.h"
+#include "timing.h"
 
 #include "kernels/poisson_test_init.h"
 #include "kernels/poisson_test_bc.h"
@@ -53,7 +55,15 @@ void op_par_loop_poisson_test_error(char const *, op_set,
 
 using namespace std;
 
+Timing *timer;
+Constants *constants;
+
 int main(int argc, char **argv) {
+  timer = new Timing();
+  timer->startWallTime();
+  timer->startSetup();
+  constants = new Constants();
+
   string filename = "./grid.cgns";
   char help[] = "TODO\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
@@ -143,6 +153,8 @@ int main(int argc, char **argv) {
   delete gaussData;
   delete cubData;
   delete data;
+  delete constants;
+  delete timer;
 
   ierr = PetscFinalize();
   return ierr;
