@@ -7,41 +7,6 @@
 #include "constants.h"
 
 extern Constants *constants;
-// extern double ones[15];
-// extern double r[15];
-// extern double s[15];
-// extern double Dr[15 * 15];
-// extern double Ds[15 * 15];
-// extern double Drw[15 * 15];
-// extern double Dsw[15 * 15];
-// extern double LIFT[15 * 15];
-// extern double MASS[15 * 15];
-// extern double cubDr[46 * 15];
-// extern double cubDs[46 * 15];
-// extern double cubV[46 * 15];
-// extern double cubW[46];
-// extern double cubVDr[46 * 15];
-// extern double cubVDs[46 * 15];
-// extern double gFInterp0[7 * 15];
-// extern double gFInterp1[7 * 15];
-// extern double gFInterp2[7 * 15];
-// extern double gF0Dr[7 * 15];
-// extern double gF0Ds[7 * 15];
-// extern double gF1Dr[7 * 15];
-// extern double gF1Ds[7 * 15];
-// extern double gF2Dr[7 * 15];
-// extern double gF2Ds[7 * 15];
-// extern double gInterp[21 * 15];
-// extern double gFInterp0R[7 * 15];
-// extern double gFInterp1R[7 * 15];
-// extern double gFInterp2R[7 * 15];
-// extern double gF0DrR[7 * 15];
-// extern double gF0DsR[7 * 15];
-// extern double gF1DrR[7 * 15];
-// extern double gF1DsR[7 * 15];
-// extern double gF2DrR[7 * 15];
-// extern double gF2DsR[7 * 15];
-// extern double invMass[15 * 15];
 
 void init_cubature_grad_blas(INSData *nsData, CubatureData *cubData);
 
@@ -77,6 +42,10 @@ void viscosity_rhs_blas(INSData *nsData, CubatureData *cubatureData);
 
 void gauss_interp_blas(INSData *data, op_dat input, op_dat output);
 
+void cub_grad_w_blas(INSData *data, CubatureData *cubatureData, op_dat u);
+
+void cub_grad_w_blas2(INSData *data, CubatureData *cubatureData, op_dat ux, op_dat uy);
+
 void cub_grad_blas(INSData *data, CubatureData *cubatureData, op_dat u);
 
 void cub_grad_blas2(INSData *data, CubatureData *cubatureData, op_dat ux, op_dat uy);
@@ -84,6 +53,10 @@ void cub_grad_blas2(INSData *data, CubatureData *cubatureData, op_dat ux, op_dat
 void poisson_rhs_blas1(INSData *data, Poisson_MF *poisson);
 
 void poisson_rhs_blas2(INSData *data, Poisson_MF *poisson);
+
+void cub_div_w_blas(INSData *data, CubatureData *cubatureData, op_dat u, op_dat v);
+
+void cub_div_w_blas2(INSData *data, CubatureData *cubatureData, op_dat res);
 
 void cub_div_blas(INSData *data, CubatureData *cubatureData, op_dat u, op_dat v);
 

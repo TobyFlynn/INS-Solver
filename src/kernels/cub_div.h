@@ -1,12 +1,9 @@
-inline void cub_div(double *temp0, double *temp1, const double *rx, const double *sx,
-                    const double *ry, const double *sy, const double *J,
-                    double *temp2, double *temp3) {
+inline void cub_div(const double *rx, const double *sx, const double *ry,
+                    const double *sy, const double *J, double *temp0,
+                    const double *temp1, const double *temp2, const double *temp3) {
   for(int i = 0; i < 46; i++) {
-    double Vu = temp0[i];
-    double Vv = temp1[i];
-    temp0[i] = cubW_g[i] * J[i] * rx[i] * Vu;
-    temp1[i] = cubW_g[i] * J[i] * sx[i] * Vu;
-    temp2[i] = cubW_g[i] * J[i] * ry[i] * Vv;
-    temp3[i] = cubW_g[i] * J[i] * sy[i] * Vv;
+    double div = rx[i] * temp0[i] + sx[i] * temp1[i];
+    div += ry[i] * temp2[i] + sy[i] * temp3[i];
+    temp0[i] = cubW_g[i] * J[i] * div;
   }
 }

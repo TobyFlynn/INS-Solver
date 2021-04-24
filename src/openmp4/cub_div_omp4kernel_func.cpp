@@ -30,25 +30,22 @@ void cub_div_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    double *temp0 = &data0[46*n_op];
-    double *temp1 = &data1[46*n_op];
-    const double *rx = &data2[46*n_op];
-    const double *sx = &data3[46*n_op];
-    const double *ry = &data4[46*n_op];
-    const double *sy = &data5[46*n_op];
-    const double *J = &data6[46*n_op];
-    double *temp2 = &data7[46*n_op];
-    double *temp3 = &data8[46*n_op];
+    const double *rx = &data0[46*n_op];
+    const double *sx = &data1[46*n_op];
+    const double *ry = &data2[46*n_op];
+    const double *sy = &data3[46*n_op];
+    const double *J = &data4[46*n_op];
+    double *temp0 = &data5[46*n_op];
+    const double *temp1 = &data6[46*n_op];
+    const double *temp2 = &data7[46*n_op];
+    const double *temp3 = &data8[46*n_op];
 
     //inline function
     
     for(int i = 0; i < 46; i++) {
-      double Vu = temp0[i];
-      double Vv = temp1[i];
-      temp0[i] = cubW_g_ompkernel[i] * J[i] * rx[i] * Vu;
-      temp1[i] = cubW_g_ompkernel[i] * J[i] * sx[i] * Vu;
-      temp2[i] = cubW_g_ompkernel[i] * J[i] * ry[i] * Vv;
-      temp3[i] = cubW_g_ompkernel[i] * J[i] * sy[i] * Vv;
+      double div = rx[i] * temp0[i] + sx[i] * temp1[i];
+      div += ry[i] * temp2[i] + sy[i] * temp3[i];
+      temp0[i] = cubW_g_ompkernel[i] * J[i] * div;
     }
     //end inline func
   }

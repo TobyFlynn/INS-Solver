@@ -22,9 +22,9 @@ void op_par_loop_poisson_test_init(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(40);
-  OP_kernels[40].name      = name;
-  OP_kernels[40].count    += 1;
+  op_timing_realloc(44);
+  OP_kernels[44].name      = name;
+  OP_kernels[44].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
 
@@ -62,9 +62,9 @@ void op_par_loop_poisson_test_init(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[40].time     += wall_t2 - wall_t1;
-  OP_kernels[40].transfer += (float)set->size * arg0.size;
-  OP_kernels[40].transfer += (float)set->size * arg1.size;
-  OP_kernels[40].transfer += (float)set->size * arg2.size;
-  OP_kernels[40].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[44].time     += wall_t2 - wall_t1;
+  OP_kernels[44].transfer += (float)set->size * arg0.size;
+  OP_kernels[44].transfer += (float)set->size * arg1.size;
+  OP_kernels[44].transfer += (float)set->size * arg2.size;
+  OP_kernels[44].transfer += (float)set->size * arg3.size * 2.0f;
 }

@@ -8,8 +8,8 @@
 #include "blas_calls.h"
 #include "operators.h"
 
-#include "kernels/gauss_tau.h"
-#include "kernels/gauss_tau_bc.h"
+#include "kernels/tau.h"
+#include "kernels/tau_bc.h"
 #include "kernels/poisson_rhs_faces.h"
 #include "kernels/poisson_rhs_bc.h"
 #include "kernels/poisson_rhs_flux.h"
@@ -55,14 +55,16 @@ Poisson_MF::Poisson_MF(INSData *nsData, CubatureData *cubData, GaussData *gaussD
   qFlux     = op_decl_dat(data->cells, 21, "double", qFlux_data, "poisson_qFlux");
 
   // Calculate tau
-  op_par_loop(gauss_tau, "gauss_tau", data->edges,
+  op_par_loop(tau, "tau", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(data->fscale, -2, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->J, -2, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->sJ, -2, data->edge2cells, 15, "double", OP_READ),
               op_arg_dat(tau, -2, data->edge2cells, 3, "double", OP_INC));
 
-  op_par_loop(gauss_tau_bc, "gauss_tau_bc", data->bedges,
+  op_par_loop(tau_bc, "tau_bc", data->bedges,
               op_arg_dat(data->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(data->fscale, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->J, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->sJ, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(tau, 0, data->bedge2cells, 3, "double", OP_INC));
 }
 
@@ -286,11 +288,11 @@ void Poisson_MF::createBCMatrix() {
         int row = element * 15 + (j / 7);
         double val;
         if(edge == 0) {
-          val = gFInterp0_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * 2.0 * gauss_tau[element * 3 + edge];
+          val = gFInterp0_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
         } else if(edge == 1) {
-          val = gFInterp1_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * 2.0 * gauss_tau[element * 3 + edge];
+          val = gFInterp1_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
         } else {
-          val = gFInterp2_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * 2.0 * gauss_tau[element * 3 + edge];
+          val = gFInterp2_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
         }
         val -= gauss_mD[edge][element * 7 * 15 + indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
         if(abs(val) > tol)

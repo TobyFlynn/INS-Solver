@@ -5,16 +5,13 @@
 //user function
 //user function
 //#pragma acc routine
-inline void cub_div_openacc( double *temp0, double *temp1, const double *rx, const double *sx,
-                    const double *ry, const double *sy, const double *J,
-                    double *temp2, double *temp3) {
+inline void cub_div_openacc( const double *rx, const double *sx, const double *ry,
+                    const double *sy, const double *J, double *temp0,
+                    const double *temp1, const double *temp2, const double *temp3) {
   for(int i = 0; i < 46; i++) {
-    double Vu = temp0[i];
-    double Vv = temp1[i];
-    temp0[i] = cubW_g[i] * J[i] * rx[i] * Vu;
-    temp1[i] = cubW_g[i] * J[i] * sx[i] * Vu;
-    temp2[i] = cubW_g[i] * J[i] * ry[i] * Vv;
-    temp3[i] = cubW_g[i] * J[i] * sy[i] * Vv;
+    double div = rx[i] * temp0[i] + sx[i] * temp1[i];
+    div += ry[i] * temp2[i] + sy[i] * temp3[i];
+    temp0[i] = cubW_g[i] * J[i] * div;
   }
 }
 
@@ -45,10 +42,10 @@ void op_par_loop_cub_div(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(33);
+  op_timing_realloc(35);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[33].name      = name;
-  OP_kernels[33].count    += 1;
+  OP_kernels[35].name      = name;
+  OP_kernels[35].count    += 1;
 
 
   if (OP_diags>2) {
@@ -92,14 +89,14 @@ void op_par_loop_cub_div(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[33].time     += wall_t2 - wall_t1;
-  OP_kernels[33].transfer += (float)set->size * arg0.size * 2.0f;
-  OP_kernels[33].transfer += (float)set->size * arg1.size * 2.0f;
-  OP_kernels[33].transfer += (float)set->size * arg2.size;
-  OP_kernels[33].transfer += (float)set->size * arg3.size;
-  OP_kernels[33].transfer += (float)set->size * arg4.size;
-  OP_kernels[33].transfer += (float)set->size * arg5.size;
-  OP_kernels[33].transfer += (float)set->size * arg6.size;
-  OP_kernels[33].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[33].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[35].time     += wall_t2 - wall_t1;
+  OP_kernels[35].transfer += (float)set->size * arg0.size;
+  OP_kernels[35].transfer += (float)set->size * arg1.size;
+  OP_kernels[35].transfer += (float)set->size * arg2.size;
+  OP_kernels[35].transfer += (float)set->size * arg3.size;
+  OP_kernels[35].transfer += (float)set->size * arg4.size;
+  OP_kernels[35].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[35].transfer += (float)set->size * arg6.size;
+  OP_kernels[35].transfer += (float)set->size * arg7.size;
+  OP_kernels[35].transfer += (float)set->size * arg8.size;
 }

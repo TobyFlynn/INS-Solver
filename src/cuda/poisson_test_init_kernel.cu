@@ -8,8 +8,8 @@ __device__ void poisson_test_init_gpu( const double *x, const double *y, const d
   for(int i = 0; i < 15; i++) {
     double x1 = x[i];
     double y1 = y[i];
-    rhs[i] = -2.0 * (2.0 * (y1 * y1 * y1) - 3 * (y1 * y1) + 1) + 6.0 * (1 - (x1 * x1)) * (2.0 * y1 - 1.0);
 
+    rhs[i] = 6 * x1 * y1 * (1.0 - y1) - 2.0 * x1 * x1 * x1;
 
     rhs[i] *= -J[i];
   }
@@ -54,10 +54,10 @@ void op_par_loop_poisson_test_init(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(40);
+  op_timing_realloc(44);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[40].name      = name;
-  OP_kernels[40].count    += 1;
+  OP_kernels[44].name      = name;
+  OP_kernels[44].count    += 1;
 
 
   if (OP_diags>2) {
@@ -68,8 +68,8 @@ void op_par_loop_poisson_test_init(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_40
-      int nthread = OP_BLOCK_SIZE_40;
+    #ifdef OP_BLOCK_SIZE_44
+      int nthread = OP_BLOCK_SIZE_44;
     #else
       int nthread = OP_block_size;
     #endif
@@ -87,9 +87,9 @@ void op_par_loop_poisson_test_init(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[40].time     += wall_t2 - wall_t1;
-  OP_kernels[40].transfer += (float)set->size * arg0.size;
-  OP_kernels[40].transfer += (float)set->size * arg1.size;
-  OP_kernels[40].transfer += (float)set->size * arg2.size;
-  OP_kernels[40].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[44].time     += wall_t2 - wall_t1;
+  OP_kernels[44].transfer += (float)set->size * arg0.size;
+  OP_kernels[44].transfer += (float)set->size * arg1.size;
+  OP_kernels[44].transfer += (float)set->size * arg2.size;
+  OP_kernels[44].transfer += (float)set->size * arg3.size * 2.0f;
 }
