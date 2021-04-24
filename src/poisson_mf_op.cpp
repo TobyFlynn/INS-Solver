@@ -79,6 +79,29 @@ void op_par_loop_poisson_rhs_qflux(char const *, op_set,
   op_arg,
   op_arg,
   op_arg );
+
+void op_par_loop_poisson_bc(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
+void op_par_loop_poisson_bc_J(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg );
+
+void op_par_loop_poisson_bc2(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
+void op_par_loop_poisson_bc3(char const *, op_set,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -97,6 +120,10 @@ void op_par_loop_poisson_rhs_qflux(char const *, op_set,
 #include "kernels/poisson_rhs_J.h"
 #include "kernels/poisson_rhs_qbc.h"
 #include "kernels/poisson_rhs_qflux.h"
+#include "kernels/poisson_bc.h"
+#include "kernels/poisson_bc_J.h"
+#include "kernels/poisson_bc2.h"
+#include "kernels/poisson_bc3.h"
 
 using namespace std;
 
@@ -170,26 +197,17 @@ Poisson_MF::~Poisson_MF() {
   free(qxNumFlux_data);
   free(qyNumFlux_data);
   free(qFlux_data);
-
-  if(pBCMatInit)
-    MatDestroy(&pBCMat);
 }
 
 bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   massMat = addMass;
   massFactor = factor;
+
+  applyBCs(b_dat);
+
   Vec b;
   create_vec(&b);
   load_vec(&b, b_dat);
-
-  Vec bc;
-  create_vec(&bc, 21);
-  load_vec(&bc, bc_dat, 21);
-
-  // Calculate RHS for linear solve by applying the BCs
-  Vec rhs_v;
-  create_vec(&rhs_v);
-  MatMultAdd(pBCMat, bc, b, rhs_v);
 
   Vec x;
   create_vec(&x);
@@ -207,7 +225,7 @@ bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) 
   KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 1e4);
   // Solve
   timer->startLinearSolveMF();
-  KSPSolve(ksp, rhs_v, x);
+  KSPSolve(ksp, b, x);
   timer->endLinearSolveMF();
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
@@ -233,8 +251,6 @@ bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) 
   KSPDestroy(&ksp);
   destroy_vec(&b);
   destroy_vec(&x);
-  destroy_vec(&bc);
-  destroy_vec(&rhs_v);
   MatDestroy(&Amat);
 
   return converged;
@@ -346,75 +362,33 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
   copy_rhs(rhs_d);
 }
 
-void Poisson_MF::createBCMatrix() {
-  create_mat(&pBCMat, 15 * data->numCells, 21 * data->numCells, 15);
-  pBCMatInit = true;
-  double tol = 1e-15;
+void Poisson_MF::applyBCs(op_dat b_dat) {
+  op_par_loop_poisson_bc("poisson_bc",data->cells,
+              op_arg_dat(gData->nx,-1,OP_ID,21,"double",OP_READ),
+              op_arg_dat(gData->ny,-1,OP_ID,21,"double",OP_READ),
+              op_arg_dat(gData->sJ,-1,OP_ID,21,"double",OP_READ),
+              op_arg_dat(bc_dat,-1,OP_ID,21,"double",OP_READ),
+              op_arg_dat(uFluxX,-1,OP_ID,21,"double",OP_WRITE),
+              op_arg_dat(uFluxY,-1,OP_ID,21,"double",OP_WRITE));
 
-  double *gauss_sJ  = (double *)malloc(21 * op_get_size(data->cells) * sizeof(double));
-  double *gauss_tau = (double *)malloc(3 * op_get_size(data->cells) * sizeof(double));
-  double *gauss_mD[3];
-  for(int i = 0; i < 3; i++) {
-    gauss_mD[i]  = (double *)malloc(7 * 15 * op_get_size(data->cells) * sizeof(double));
-    op_fetch_data(gData->mD[i], gauss_mD[i]);
-  }
-  op_fetch_data(gData->sJ, gauss_sJ);
-  op_fetch_data(tau, gauss_tau);
+  poisson_bc_blas(data, this);
 
-  // Create BCs matrix using Gauss data on boundary edges
-  for(int i = 0; i < data->numBoundaryEdges; i++) {
-    int element = data->bedge2cell_data[i];
-    int bedgeType = data->bedge_type_data[i];
-    int edge = data->bedgeNum_data[i];
-    if(dirichlet[0] == bedgeType || dirichlet[1] == bedgeType || dirichlet[2] == bedgeType) {
-      // Get data
-      for(int j = 0; j < 7 * 15; j++) {
-        int indT = (j % 7) * 15 + (j / 7);
-        int col = element * 21 + edge * 7 + (j % 7);
-        int row = element * 15 + (j / 7);
-        double val;
-        if(edge == 0) {
-          val = gFInterp0_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
-        } else if(edge == 1) {
-          val = gFInterp1_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
-        } else {
-          val = gFInterp2_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
-        }
-        val -= gauss_mD[edge][element * 7 * 15 + indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
-        if(abs(val) > tol)
-          MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
-      }
-    } else if(neumann[0] == bedgeType || neumann[1] == bedgeType || neumann[2] == bedgeType) {
-      // Get data
-      for(int j = 0; j < 7 * 15; j++) {
-        int indT = (j % 7) * 15 + (j / 7);
-        int col = element * 21 + edge * 7 + (j % 7);
-        int row = element * 15 + (j / 7);
-        double val;
-        if(edge == 0) {
-          val = gFInterp0_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
-        } else if(edge == 1) {
-          val = gFInterp1_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
-        } else {
-          val = gFInterp2_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
-        }
-        if(abs(val) > tol)
-          MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
-      }
-    } else {
-      cout << "UNDEFINED BOUNDARY EDGE" << endl;
-      cout << "Element " << element << " Edge " << edge << " Type " << bedgeType << endl;
-      cout << "D: " << dirichlet[0] << " " << dirichlet[1] << endl;
-      cout << "N: " << neumann[0] << " " << neumann[1] << endl;
-    }
-  }
+  op_par_loop_poisson_bc_J("poisson_bc_J",data->cells,
+              op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(gradx,-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(grady,-1,OP_ID,15,"double",OP_RW));
 
-  free(gauss_sJ);
-  free(gauss_tau);
-  for(int i = 0; i < 3; i++) {
-    free(gauss_mD[i]);
-  }
+  cub_div(data, cData, gradx, grady, dudx);
 
-  MatAssemblyBegin(pBCMat, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(pBCMat, MAT_FINAL_ASSEMBLY);
+  op_par_loop_poisson_bc2("poisson_bc2",data->cells,
+              op_arg_dat(gData->sJ,-1,OP_ID,21,"double",OP_READ),
+              op_arg_dat(tau,-1,OP_ID,3,"double",OP_READ),
+              op_arg_dat(bc_dat,-1,OP_ID,21,"double",OP_READ),
+              op_arg_dat(uFluxX,-1,OP_ID,21,"double",OP_WRITE));
+
+  poisson_bc_blas2(data, this);
+
+  op_par_loop_poisson_bc3("poisson_bc3",data->cells,
+              op_arg_dat(dudx,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(b_dat,-1,OP_ID,15,"double",OP_RW));
 }

@@ -335,7 +335,7 @@ int main(int argc, char **argv) {
   int pressure_neumann[] = {0, 2, 3};
   pressurePoisson->setDirichletBCs(pressure_dirichlet);
   pressurePoisson->setNeumannBCs(pressure_neumann);
-  pressurePoisson->createBCMatrix();
+  // pressurePoisson->createBCMatrix();
   // Poisson_M *viscosityPoisson = new Poisson_M(data, cubData, gaussData);
   // int viscosity_dirichlet[] = {0, 2, 3};
   // int viscosity_neumann[] = {1, -1, -1};
@@ -349,7 +349,7 @@ int main(int argc, char **argv) {
   int viscosity_neumann[] = {1, -1, -1};
   viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
   viscosityPoisson->setNeumannBCs(viscosity_neumann);
-  viscosityPoisson->createBCMatrix();
+  // viscosityPoisson->createBCMatrix();
 
   double dt = numeric_limits<double>::max();
   op_par_loop_calc_dt("calc_dt",data->cells,

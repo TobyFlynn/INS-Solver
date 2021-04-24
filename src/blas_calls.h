@@ -66,4 +66,8 @@ void poisson_rhs_mass_blas(INSData *data, CubatureData *cubatureData, Poisson_MF
 
 void poisson_test_rhs_blas(INSData *nsData, op_dat rhs);
 
+void poisson_bc_blas(INSData *data, Poisson_MF *poisson);
+
+void poisson_bc_blas2(INSData *data, Poisson_MF *poisson);
+
 #endif

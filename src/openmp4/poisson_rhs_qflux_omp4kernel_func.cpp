@@ -41,7 +41,7 @@ void poisson_rhs_qflux_omp4_kernel(
     
     for(int i = 0; i < 21; i++) {
 
-      flux[i] = nx[i] * qxFlux[i] + ny[i] * qyFlux[i] - tau[i / 7] * (uFlux[i]);
+      flux[i] = nx[i] * qxFlux[i] + ny[i] * qyFlux[i] + tau[i / 7] * (uFlux[i]);
       flux[i] *= gaussW_g_ompkernel[i % 7] * sJ[i];
     }
 

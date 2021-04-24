@@ -71,7 +71,6 @@ class Poisson_MF : public Poisson {
 public:
   Poisson_MF(INSData *data, CubatureData *cubData, GaussData *gaussData);
   ~Poisson_MF();
-  void createBCMatrix();
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
   void calc_rhs(const double *u_d, double *rhs_d);
@@ -83,9 +82,7 @@ private:
   void create_shell_mat(Mat *m);
   void copy_u(const double *u_d);
   void copy_rhs(double *rhs_d);
-
-  Mat pBCMat;
-  bool pBCMatInit = false;
+  void applyBCs(op_dat b_dat);
 
   double *u_data;
   double *rhs_data;

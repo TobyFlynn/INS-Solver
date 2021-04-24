@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
   int neumann[] = {2, 3, -1};
   poisson->setDirichletBCs(dirichlet);
   poisson->setNeumannBCs(neumann);
-  poisson->createBCMatrix();
+  // poisson->createBCMatrix();
   poisson->setBCValues(bc);
   // Poisson_M *poisson = new Poisson_M(data, cubData, gaussData);
   // int dirichlet[] = {0, 1, -1};
