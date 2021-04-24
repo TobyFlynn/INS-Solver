@@ -49,8 +49,9 @@ inline void poisson_rhs_faces(const int *edgeNum, const double **x, const double
     }
     int lInd = exIndL + i;
 
-    double flux = (u[0][lInd] + u[1][rInd]) / 2.0;
-    fluxU[0][lInd] += flux;
-    fluxU[1][rInd] += flux;
+    double fluxL = (u[0][lInd] - u[1][rInd]) / 2.0;
+    double fluxR = (u[1][rInd] - u[0][lInd]) / 2.0;
+    fluxU[0][lInd] += fluxL;
+    fluxU[1][rInd] += fluxR;
   }
 }

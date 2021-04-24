@@ -51,11 +51,11 @@ void poisson_rhs_qbc_omp4_kernel(
 
     if(*bedge_type == *neumann0 || *bedge_type == *neumann1 || *bedge_type == *neumann2) {
 
-    } else {
-
       for(int i = 0; i < 7; i++) {
         fluxU[exInd + i] += u[exInd + i];
       }
+    } else {
+
     }
     //end inline func
   }

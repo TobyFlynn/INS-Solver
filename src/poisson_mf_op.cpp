@@ -57,6 +57,8 @@ void op_par_loop_poisson_rhs_flux(char const *, op_set,
 void op_par_loop_poisson_rhs_J(char const *, op_set,
   op_arg,
   op_arg,
+  op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_poisson_rhs_qbc(char const *, op_set,
@@ -69,7 +71,6 @@ void op_par_loop_poisson_rhs_qbc(char const *, op_set,
   op_arg );
 
 void op_par_loop_poisson_rhs_qflux(char const *, op_set,
-  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -116,6 +117,8 @@ Poisson_MF::Poisson_MF(INSData *nsData, CubatureData *cubData, GaussData *gaussD
   qxNumFlux_data = (double *)calloc(21 * data->numCells, sizeof(double));
   qyNumFlux_data = (double *)calloc(21 * data->numCells, sizeof(double));
   qFlux_data     = (double *)calloc(21 * data->numCells, sizeof(double));
+  gradx_data     = (double *)calloc(15 * data->numCells, sizeof(double));
+  grady_data     = (double *)calloc(15 * data->numCells, sizeof(double));
 
   u         = op_decl_dat(data->cells, 15, "double", u_data, "poisson_u");
   rhs       = op_decl_dat(data->cells, 15, "double", rhs_data, "poisson_rhs");
@@ -133,6 +136,8 @@ Poisson_MF::Poisson_MF(INSData *nsData, CubatureData *cubData, GaussData *gaussD
   qxNumFlux = op_decl_dat(data->cells, 21, "double", qxNumFlux_data, "poisson_qxNumFlux");
   qyNumFlux = op_decl_dat(data->cells, 21, "double", qyNumFlux_data, "poisson_qyNumFlux");
   qFlux     = op_decl_dat(data->cells, 21, "double", qFlux_data, "poisson_qFlux");
+  gradx     = op_decl_dat(data->cells, 15, "double", gradx_data, "poisson_gradx");
+  grady     = op_decl_dat(data->cells, 15, "double", grady_data, "poisson_grady");
 
   // Calculate tau
   op_par_loop_tau("tau",data->edges,
@@ -275,11 +280,13 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
   op_par_loop_poisson_rhs_J("poisson_rhs_J",data->cells,
               op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(qx,-1,OP_ID,15,"double",OP_RW),
-              op_arg_dat(qy,-1,OP_ID,15,"double",OP_RW));
+              op_arg_dat(qy,-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(gradx,-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(grady,-1,OP_ID,15,"double",OP_RW));
 
   timer->startLinearSolveMFRHS();
-  gauss_interp_blas(data, qx, gqx);
-  gauss_interp_blas(data, qy, gqy);
+  gauss_interp_blas(data, gradx, gqx);
+  gauss_interp_blas(data, grady, gqy);
   timer->endLinearSolveMFRHS();
 
   op_par_loop_poisson_rhs_faces("poisson_rhs_faces",data->edges,
@@ -319,7 +326,6 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(gData->ny,-1,OP_ID,21,"double",OP_READ),
               op_arg_dat(gData->sJ,-1,OP_ID,21,"double",OP_READ),
               op_arg_dat(tau,-1,OP_ID,3,"double",OP_READ),
-              op_arg_dat(gU,-1,OP_ID,21,"double",OP_READ),
               op_arg_dat(uNumFlux,-1,OP_ID,21,"double",OP_RW),
               op_arg_dat(qxNumFlux,-1,OP_ID,21,"double",OP_RW),
               op_arg_dat(qyNumFlux,-1,OP_ID,21,"double",OP_RW),

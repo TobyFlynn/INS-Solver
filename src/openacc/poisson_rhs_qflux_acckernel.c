@@ -6,11 +6,11 @@
 //user function
 //#pragma acc routine
 inline void poisson_rhs_qflux_openacc( const double *nx, const double *ny, const double *sJ,
-                              const double *tau, const double *gu, double *uFlux,
-                              double *qxFlux, double *qyFlux, double *flux) {
+                              const double *tau, double *uFlux, double *qxFlux,
+                              double *qyFlux, double *flux) {
   for(int i = 0; i < 21; i++) {
 
-    flux[i] = nx[i] * qxFlux[i] + ny[i] * qyFlux[i] - tau[i / 7] * (gu[i] - uFlux[i]);
+    flux[i] = nx[i] * qxFlux[i] + ny[i] * qyFlux[i] - tau[i / 7] * (uFlux[i]);
     flux[i] *= gaussW_g[i % 7] * sJ[i];
   }
 
@@ -30,11 +30,10 @@ void op_par_loop_poisson_rhs_qflux(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
+  op_arg arg7){
 
-  int nargs = 9;
-  op_arg args[9];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -44,7 +43,6 @@ void op_par_loop_poisson_rhs_qflux(char const *name, op_set set,
   args[5] = arg5;
   args[6] = arg6;
   args[7] = arg7;
-  args[8] = arg8;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -74,8 +72,7 @@ void op_par_loop_poisson_rhs_qflux(char const *name, op_set set,
     double* data5 = (double*)arg5.data_d;
     double* data6 = (double*)arg6.data_d;
     double* data7 = (double*)arg7.data_d;
-    double* data8 = (double*)arg8.data_d;
-    #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7,data8)
+    #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7)
     for ( int n=0; n<set->size; n++ ){
       poisson_rhs_qflux_openacc(
         &data0[21*n],
@@ -85,8 +82,7 @@ void op_par_loop_poisson_rhs_qflux(char const *name, op_set set,
         &data4[21*n],
         &data5[21*n],
         &data6[21*n],
-        &data7[21*n],
-        &data8[21*n]);
+        &data7[21*n]);
     }
   }
 
@@ -100,9 +96,8 @@ void op_par_loop_poisson_rhs_qflux(char const *name, op_set set,
   OP_kernels[43].transfer += (float)set->size * arg1.size;
   OP_kernels[43].transfer += (float)set->size * arg2.size;
   OP_kernels[43].transfer += (float)set->size * arg3.size;
-  OP_kernels[43].transfer += (float)set->size * arg4.size;
+  OP_kernels[43].transfer += (float)set->size * arg4.size * 2.0f;
   OP_kernels[43].transfer += (float)set->size * arg5.size * 2.0f;
   OP_kernels[43].transfer += (float)set->size * arg6.size * 2.0f;
   OP_kernels[43].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[43].transfer += (float)set->size * arg8.size * 2.0f;
 }

@@ -77,7 +77,7 @@ public:
   void calc_rhs(const double *u_d, double *rhs_d);
 
   op_dat u, rhs, tau, gU, uNumFlux, uFluxX, uFluxY, dudx, dudy, qx, qy, gqx, gqy;
-  op_dat qxNumFlux, qyNumFlux, qFlux;
+  op_dat qxNumFlux, qyNumFlux, qFlux, gradx, grady;
 
 private:
   void create_shell_mat(Mat *m);
@@ -103,6 +103,8 @@ private:
   double *qxNumFlux_data;
   double *qyNumFlux_data;
   double *qFlux_data;
+  double *gradx_data;
+  double *grady_data;
 };
 
 #endif

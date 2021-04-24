@@ -4,11 +4,11 @@
 
 //user function
 __device__ void poisson_rhs_qflux_gpu( const double *nx, const double *ny, const double *sJ,
-                              const double *tau, const double *gu, double *uFlux,
-                              double *qxFlux, double *qyFlux, double *flux) {
+                              const double *tau, double *uFlux, double *qxFlux,
+                              double *qyFlux, double *flux) {
   for(int i = 0; i < 21; i++) {
 
-    flux[i] = nx[i] * qxFlux[i] + ny[i] * qyFlux[i] - tau[i / 7] * (gu[i] - uFlux[i]);
+    flux[i] = nx[i] * qxFlux[i] + ny[i] * qyFlux[i] - tau[i / 7] * (uFlux[i]);
     flux[i] *= gaussW_g_cuda[i % 7] * sJ[i];
   }
 
@@ -26,11 +26,10 @@ __global__ void op_cuda_poisson_rhs_qflux(
   const double *__restrict arg1,
   const double *__restrict arg2,
   const double *__restrict arg3,
-  const double *__restrict arg4,
+  double *arg4,
   double *arg5,
   double *arg6,
   double *arg7,
-  double *arg8,
   int   set_size ) {
 
 
@@ -45,8 +44,7 @@ __global__ void op_cuda_poisson_rhs_qflux(
                       arg4+n*21,
                       arg5+n*21,
                       arg6+n*21,
-                      arg7+n*21,
-                      arg8+n*21);
+                      arg7+n*21);
   }
 }
 
@@ -60,11 +58,10 @@ void op_par_loop_poisson_rhs_qflux(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
+  op_arg arg7){
 
-  int nargs = 9;
-  op_arg args[9];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -74,7 +71,6 @@ void op_par_loop_poisson_rhs_qflux(char const *name, op_set set,
   args[5] = arg5;
   args[6] = arg6;
   args[7] = arg7;
-  args[8] = arg8;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -109,7 +105,6 @@ void op_par_loop_poisson_rhs_qflux(char const *name, op_set set,
       (double *) arg5.data_d,
       (double *) arg6.data_d,
       (double *) arg7.data_d,
-      (double *) arg8.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
@@ -121,9 +116,8 @@ void op_par_loop_poisson_rhs_qflux(char const *name, op_set set,
   OP_kernels[43].transfer += (float)set->size * arg1.size;
   OP_kernels[43].transfer += (float)set->size * arg2.size;
   OP_kernels[43].transfer += (float)set->size * arg3.size;
-  OP_kernels[43].transfer += (float)set->size * arg4.size;
+  OP_kernels[43].transfer += (float)set->size * arg4.size * 2.0f;
   OP_kernels[43].transfer += (float)set->size * arg5.size * 2.0f;
   OP_kernels[43].transfer += (float)set->size * arg6.size * 2.0f;
   OP_kernels[43].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[43].transfer += (float)set->size * arg8.size * 2.0f;
 }

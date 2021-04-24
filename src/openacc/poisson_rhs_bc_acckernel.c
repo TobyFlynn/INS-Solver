@@ -13,11 +13,11 @@ inline void poisson_rhs_bc_openacc( const int *bedge_type, const int *bedgeNum,
   else if(*bedgeNum == 2) exInd = 2 * 7;
 
   if(*bedge_type == *dirichlet0 || *bedge_type == *dirichlet1 || *bedge_type == *dirichlet2) {
-
-  } else {
     for(int i = 0; i < 7; i++) {
       fluxU[exInd + i] += u[exInd + i];
     }
+  } else {
+
   }
 }
 
