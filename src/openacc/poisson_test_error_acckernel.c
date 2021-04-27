@@ -16,6 +16,7 @@ inline void poisson_test_error_openacc( const double *x, const double *y,
 
     double exact = y1 * (1.0 - y1) * x1 * x1 * x1;
     err[i] = fabs(sol[i] - exact);
+
   }
 }
 

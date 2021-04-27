@@ -52,6 +52,7 @@ void op_par_loop_poisson_test_error(char const *, op_set,
 #include "kernels/poisson_test_init.h"
 #include "kernels/poisson_test_bc.h"
 #include "kernels/poisson_test_error.h"
+#include "kernels/poisson_test_tmp.h"
 
 using namespace std;
 
@@ -142,18 +143,29 @@ int main(int argc, char **argv) {
   int neumann[] = {2, 3, -1};
   poisson->setDirichletBCs(dirichlet);
   poisson->setNeumannBCs(neumann);
-  // poisson->createBCMatrix();
   poisson->setBCValues(bc);
-  // Poisson_M *poisson = new Poisson_M(data, cubData, gaussData);
+  Poisson_M *poisson2 = new Poisson_M(data, cubData, gaussData);
   // int dirichlet[] = {0, 1, -1};
   // int neumann[] = {2, 3, -1};
-  // poisson->setDirichletBCs(dirichlet);
-  // poisson->setNeumannBCs(neumann);
-  // poisson->createMatrix();
-  // poisson->createBCMatrix();
-  // poisson->setBCValues(bc);
+  poisson2->setDirichletBCs(dirichlet);
+  poisson2->setNeumannBCs(neumann);
+  poisson2->createMatrix();
+  poisson2->createBCMatrix();
+  poisson2->setBCValues(bc);
+
+  Poisson_MF2 *poisson3 = new Poisson_MF2(data, cubData, gaussData);
+  // int dirichlet[] = {0, 1, -1};
+  // int neumann[] = {2, 3, -1};
+  poisson3->setDirichletBCs(dirichlet);
+  poisson3->setNeumannBCs(neumann);
+  poisson3->setOp();
+  poisson3->createBCMatrix();
+  poisson3->setBCValues(bc);
 
   poisson->solve(rhs, data->p);
+
+  // poisson3->solve(rhs, data->Q[0][1]);
+  // poisson3->solve(rhs, data->p);
 
   op_par_loop_poisson_test_error("poisson_test_error",data->cells,
               op_arg_dat(data->x,-1,OP_ID,15,"double",OP_READ),
@@ -166,7 +178,7 @@ int main(int argc, char **argv) {
   free(rhs_data);
   free(bc_data);
 
-  delete poisson;
+  // delete poisson;
   delete gaussData;
   delete cubData;
   delete data;

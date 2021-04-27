@@ -70,4 +70,6 @@ void poisson_bc_blas(INSData *data, Poisson_MF *poisson);
 
 void poisson_bc_blas2(INSData *data, Poisson_MF *poisson);
 
+void poisson_mf2_blas(INSData *data, Poisson_MF2 *poisson);
+
 #endif

@@ -35,6 +35,7 @@ void poisson_test_error_omp4_kernel(
 
       double exact = y1 * (1.0 - y1) * x1 * x1 * x1;
       err[i] = fabs(sol[i] - exact);
+
     }
     //end inline func
   }

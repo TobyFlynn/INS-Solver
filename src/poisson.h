@@ -104,4 +104,34 @@ private:
   double *grady_data;
 };
 
+class Poisson_MF2 : public Poisson {
+public:
+  Poisson_MF2(INSData *data, CubatureData *cubData, GaussData *gaussData);
+  ~Poisson_MF2();
+
+  bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
+  void calc_rhs(const double *u_d, double *rhs_d);
+
+  op_dat u, rhs, op1, op2[3], u_t, rhs_t;
+
+  void setOp();
+  void createBCMatrix();
+private:
+  void create_shell_mat(Mat *m);
+  void copy_u(const double *u_d);
+  void copy_rhs(double *rhs_d);
+  void applyBCs(op_dat b_dat);
+
+  Mat pBCMat;
+
+  double *u_data;
+  double *rhs_data;
+  double *op1_data;
+  double *op2_data[3];
+  double *u_t_data;
+  double *rhs_t_data;
+
+  bool pBCMatInit = false;
+};
+
 #endif

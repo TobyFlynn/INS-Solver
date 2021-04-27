@@ -43,6 +43,7 @@ bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   PC pc;
   KSPGetPC(ksp, &pc);
   PCSetType(pc, PCICC);
+  // PCSetType(pc, PCNONE);
 
   // Create matrix for linear solve, adding mass matrix scaled by a factor if required
   Mat op;

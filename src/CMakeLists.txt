@@ -14,7 +14,7 @@ list(APPEND OPENBLAS_SRC openBLAS_op/init_gauss_op.cpp openBLAS_op/init_gauss_gr
 list(APPEND OPENBLAS_SRC openBLAS_op/advection_lift_op.cpp openBLAS_op/pressure_rhs_op.cpp openBLAS_op/viscosity_rhs_op.cpp)
 list(APPEND OPENBLAS_SRC openBLAS_op/gauss_interp_op.cpp openBLAS_op/poisson_rhs1_op.cpp openBLAS_op/poisson_rhs2_op.cpp openBLAS_op/poisson_rhs_mass_op.cpp openBLAS_op/poisson_test_rhs_op.cpp openBLAS_op/poisson_bc_op.cpp openBLAS_op/poisson_bc2_op.cpp)
 list(APPEND OPENBLAS_SRC openBLAS_op/cub_grad_w_op.cpp openBLAS_op/cub_grad2_w_op.cpp openBLAS_op/cub_grad_op.cpp openBLAS_op/cub_grad2_op.cpp)
-list(APPEND OPENBLAS_SRC openBLAS_op/cub_div_w_op.cpp  openBLAS_op/cub_div2_w_op.cpp openBLAS_op/cub_div_op.cpp openBLAS_op/cub_div2_op.cpp)
+list(APPEND OPENBLAS_SRC openBLAS_op/cub_div_w_op.cpp  openBLAS_op/cub_div2_w_op.cpp openBLAS_op/cub_div_op.cpp openBLAS_op/cub_div2_op.cpp openBLAS_op/poisson_mf2_op.cpp)
 
 set(CUBLAS_SRC cuBLAS_op/init_grid_op.cu cuBLAS_op/div_op.cu cuBLAS_op/grad_op.cu)
 list(APPEND CUBLAS_SRC cuBLAS_op/init_cubature_op.cu cuBLAS_op/init_cubature_grad_op.cu cuBLAS_op/cubature_mm_op.cu cuBLAS_op/cubature_op_op.cu)
@@ -22,10 +22,10 @@ list(APPEND CUBLAS_SRC cuBLAS_op/init_gauss_op.cu cuBLAS_op/init_gauss_grad_op.c
 list(APPEND CUBLAS_SRC cuBLAS_op/advection_lift_op.cu cuBLAS_op/pressure_rhs_op.cu cuBLAS_op/viscosity_rhs_op.cu)
 list(APPEND CUBLAS_SRC cuBLAS_op/gauss_interp_op.cu cuBLAS_op/poisson_rhs1_op.cu cuBLAS_op/poisson_rhs2_op.cu cuBLAS_op/poisson_rhs_mass_op.cu cuBLAS_op/poisson_test_rhs_op.cu cuBLAS_op/poisson_bc_op.cu cuBLAS_op/poisson_bc2_op.cu)
 list(APPEND CUBLAS_SRC cuBLAS_op/cub_grad_w_op.cu cuBLAS_op/cub_grad2_w_op.cu cuBLAS_op/cub_grad_op.cu cuBLAS_op/cub_grad2_op.cu)
-list(APPEND CUBLAS_SRC cuBLAS_op/cub_div_w_op.cu cuBLAS_op/cub_div2_w_op.cu cuBLAS_op/cub_div_op.cu cuBLAS_op/cub_div2_op.cu)
+list(APPEND CUBLAS_SRC cuBLAS_op/cub_div_w_op.cu cuBLAS_op/cub_div2_w_op.cu cuBLAS_op/cub_div_op.cu cuBLAS_op/cub_div2_op.cu cuBLAS_op/poisson_mf2_op.cu)
 
-set(CPU_SRC operators_op.cpp poisson_op.cpp poisson_m_op.cpp poisson_mf_op.cpp poisson_copy_op.cpp ins_data_op.cpp save_solution_op.cpp timing_op.cpp constants.cpp)
-set(GPU_SRC operators_op.cpp poisson_op.cpp poisson_m_op.cpp poisson_mf_op.cpp poisson_copy_op.cu ins_data_op.cpp save_solution_op.cpp timing_op.cpp constants.cu)
+set(CPU_SRC operators_op.cpp poisson_op.cpp poisson_m_op.cpp poisson_mf_op.cpp poisson_mf2_op.cpp poisson_copy_op.cpp ins_data_op.cpp save_solution_op.cpp timing_op.cpp constants.cpp)
+set(GPU_SRC operators_op.cpp poisson_op.cpp poisson_m_op.cpp poisson_mf_op.cpp poisson_mf2_op.cpp poisson_copy_op.cu ins_data_op.cpp save_solution_op.cpp timing_op.cpp constants.cu)
 
 op2_application(ins_seq LIBS op2_seq op2_hdf5 SOURCES ins_op.cpp ${CPU_SRC} ${OPENBLAS_SRC} seq/ins_seqkernels.cpp ${KERNEL_HEADERS})
 
