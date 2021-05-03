@@ -28,10 +28,6 @@ void div_blas(INSData *nsData, op_dat u, op_dat v);
 
 void grad_blas(INSData *nsData, op_dat u);
 
-void advection_lift_blas(INSData *nsData, int ind);
-
-void pressure_rhs_blas(INSData *nsData, int ind);
-
 void viscosity_rhs_blas(INSData *nsData, CubatureData *cubatureData);
 
 void gauss_interp_blas(INSData *data, op_dat input, op_dat output);
