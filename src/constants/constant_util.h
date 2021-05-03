@@ -9,7 +9,7 @@ double vortex_y0 = 0.0;
 double vortex_beta = 5.0;
 
 // Utils
-double ones[15] = {
+double ones_g[15] = {
   1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
 };
 

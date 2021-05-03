@@ -25,10 +25,6 @@ inline void cublas_gauss_opf(cublasHandle_t handle, const int numCells,
 }
 
 void gauss_opf_blas(INSData *nsData, GaussData *gaussData) {
-  // Initialise cuBLAS
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-  cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
   // Make sure OP2 data is in the right place
   op_arg gauss_args[] = {
     // Face 0
@@ -55,20 +51,18 @@ void gauss_opf_blas(INSData *nsData, GaussData *gaussData) {
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 18, gauss_args);
 
-  cublas_gauss_opf(handle, nsData->numCells, (double *)gaussData->OPf[0]->data_d,
+  cublas_gauss_opf(constants->handle, nsData->numCells, (double *)gaussData->OPf[0]->data_d,
                    (double *)gaussData->pDy[0]->data_d, (double *)gaussData->pD[0]->data_d, (double *)gaussData->mDx[0]->data_d,
                    (double *)gaussData->mDx[1]->data_d, (double *)gaussData->mDx[2]->data_d);
 
-  cublas_gauss_opf(handle, nsData->numCells, (double *)gaussData->OPf[1]->data_d,
+  cublas_gauss_opf(constants->handle, nsData->numCells, (double *)gaussData->OPf[1]->data_d,
                    (double *)gaussData->pDy[1]->data_d, (double *)gaussData->pD[1]->data_d, (double *)gaussData->mDy[0]->data_d,
                    (double *)gaussData->mDy[1]->data_d, (double *)gaussData->mDy[2]->data_d);
 
-  cublas_gauss_opf(handle, nsData->numCells, (double *)gaussData->OPf[2]->data_d,
+  cublas_gauss_opf(constants->handle, nsData->numCells, (double *)gaussData->OPf[2]->data_d,
                    (double *)gaussData->pDy[2]->data_d, (double *)gaussData->pD[2]->data_d, (double *)gaussData->pDx[0]->data_d,
                    (double *)gaussData->pDx[1]->data_d, (double *)gaussData->pDx[2]->data_d);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(18, gauss_args);
-  // Free resources used by cuBLAS
-  cublasDestroy(handle);
 }

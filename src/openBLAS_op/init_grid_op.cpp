@@ -39,31 +39,31 @@ inline void openblas_init_grid(const int numCells, const double *node_coords,
     double *yr_c = yr + c * 15;
     double *ys_c = ys + c * 15;
 
-    cblas_dcopy(15, ones, 1, x_c, 1);
-    cblas_daxpy(15, 1.0, r, 1, x_c, 1);
+    cblas_dcopy(15, constants->ones, 1, x_c, 1);
+    cblas_daxpy(15, 1.0, constants->r, 1, x_c, 1);
     cblas_dscal(15, 0.5 * n1[0], x_c, 1);
-    cblas_dcopy(15, ones, 1, temp, 1);
-    cblas_daxpy(15, 1.0, s, 1, temp, 1);
+    cblas_dcopy(15, constants->ones, 1, temp, 1);
+    cblas_daxpy(15, 1.0, constants->s, 1, temp, 1);
     cblas_daxpy(15, 0.5 * n2[0], temp, 1, x_c, 1);
-    cblas_dcopy(15, s, 1, temp, 1);
-    cblas_daxpy(15, 1.0, r, 1, temp, 1);
+    cblas_dcopy(15, constants->s, 1, temp, 1);
+    cblas_daxpy(15, 1.0, constants->r, 1, temp, 1);
     cblas_daxpy(15, -0.5 * n0[0], temp, 1, x_c, 1);
 
-    cblas_dcopy(15, ones, 1, y_c, 1);
-    cblas_daxpy(15, 1.0, r, 1, y_c, 1);
+    cblas_dcopy(15, constants->ones, 1, y_c, 1);
+    cblas_daxpy(15, 1.0, constants->r, 1, y_c, 1);
     cblas_dscal(15, 0.5 * n1[1], y_c, 1);
-    cblas_dcopy(15, ones, 1, temp, 1);
-    cblas_daxpy(15, 1.0, s, 1, temp, 1);
+    cblas_dcopy(15, constants->ones, 1, temp, 1);
+    cblas_daxpy(15, 1.0, constants->s, 1, temp, 1);
     cblas_daxpy(15, 0.5 * n2[1], temp, 1, y_c, 1);
-    cblas_dcopy(15, s, 1, temp, 1);
-    cblas_daxpy(15, 1.0, r, 1, temp, 1);
+    cblas_dcopy(15, constants->s, 1, temp, 1);
+    cblas_daxpy(15, 1.0, constants->r, 1, temp, 1);
     cblas_daxpy(15, -0.5 * n0[1], temp, 1, y_c, 1);
   }
 
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dr, 15, x, 15, 0.0, xr, 15);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Ds, 15, x, 15, 0.0, xs, 15);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dr, 15, y, 15, 0.0, yr, 15);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Ds, 15, y, 15, 0.0, ys, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, constants->Dr, 15, x, 15, 0.0, xr, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, constants->Ds, 15, x, 15, 0.0, xs, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, constants->Dr, 15, y, 15, 0.0, yr, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, constants->Ds, 15, y, 15, 0.0, ys, 15);
 }
 
 void init_grid_blas(INSData *nsData) {

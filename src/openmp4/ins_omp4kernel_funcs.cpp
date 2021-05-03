@@ -14,29 +14,29 @@ double bc_v_ompkernel;
 int FMASK_ompkernel[15];
 double ic_u_ompkernel;
 double ic_v_ompkernel;
-double cubW_ompkernel[46];
-double cubV_ompkernel[690];
-double cubVDr_ompkernel[690];
-double cubVDs_ompkernel[690];
-double gF0Dr_ompkernel[105];
-double gF0Ds_ompkernel[105];
-double gF1Dr_ompkernel[105];
-double gF1Ds_ompkernel[105];
-double gF2Dr_ompkernel[105];
-double gF2Ds_ompkernel[105];
-double gaussW_ompkernel[7];
-double gFInterp0_ompkernel[105];
-double gFInterp1_ompkernel[105];
-double gFInterp2_ompkernel[105];
-double gF0DrR_ompkernel[105];
-double gF0DsR_ompkernel[105];
-double gF1DrR_ompkernel[105];
-double gF1DsR_ompkernel[105];
-double gF2DrR_ompkernel[105];
-double gF2DsR_ompkernel[105];
-double gFInterp0R_ompkernel[105];
-double gFInterp1R_ompkernel[105];
-double gFInterp2R_ompkernel[105];
+double cubW_g_ompkernel[46];
+double cubV_g_ompkernel[690];
+double cubVDr_g_ompkernel[690];
+double cubVDs_g_ompkernel[690];
+double gF0Dr_g_ompkernel[105];
+double gF0Ds_g_ompkernel[105];
+double gF1Dr_g_ompkernel[105];
+double gF1Ds_g_ompkernel[105];
+double gF2Dr_g_ompkernel[105];
+double gF2Ds_g_ompkernel[105];
+double gaussW_g_ompkernel[7];
+double gFInterp0_g_ompkernel[105];
+double gFInterp1_g_ompkernel[105];
+double gFInterp2_g_ompkernel[105];
+double gF0DrR_g_ompkernel[105];
+double gF0DsR_g_ompkernel[105];
+double gF1DrR_g_ompkernel[105];
+double gF1DsR_g_ompkernel[105];
+double gF2DrR_g_ompkernel[105];
+double gF2DsR_g_ompkernel[105];
+double gFInterp0R_g_ompkernel[105];
+double gFInterp1R_g_ompkernel[105];
+double gFInterp2R_g_ompkernel[105];
 double lift_drag_vec_ompkernel[5];
 
 // header
@@ -77,75 +77,75 @@ void op_decl_const_char(int dim, char const *type,
   } else if(!strcmp(name, "ic_v")) {
     memcpy(&ic_v_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:ic_v_ompkernel)
-  } else if(!strcmp(name, "cubW")) {
-    memcpy(cubW_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:cubW_ompkernel[:46])
-  } else if(!strcmp(name, "cubV")) {
-    memcpy(cubV_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:cubV_ompkernel[:690])
-  } else if(!strcmp(name, "cubVDr")) {
-    memcpy(cubVDr_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:cubVDr_ompkernel[:690])
-  } else if(!strcmp(name, "cubVDs")) {
-    memcpy(cubVDs_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:cubVDs_ompkernel[:690])
-  } else if(!strcmp(name, "gF0Dr")) {
-    memcpy(gF0Dr_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gF0Dr_ompkernel[:105])
-  } else if(!strcmp(name, "gF0Ds")) {
-    memcpy(gF0Ds_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gF0Ds_ompkernel[:105])
-  } else if(!strcmp(name, "gF1Dr")) {
-    memcpy(gF1Dr_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gF1Dr_ompkernel[:105])
-  } else if(!strcmp(name, "gF1Ds")) {
-    memcpy(gF1Ds_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gF1Ds_ompkernel[:105])
-  } else if(!strcmp(name, "gF2Dr")) {
-    memcpy(gF2Dr_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gF2Dr_ompkernel[:105])
-  } else if(!strcmp(name, "gF2Ds")) {
-    memcpy(gF2Ds_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gF2Ds_ompkernel[:105])
-  } else if(!strcmp(name, "gaussW")) {
-    memcpy(gaussW_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gaussW_ompkernel[:7])
-  } else if(!strcmp(name, "gFInterp0")) {
-    memcpy(gFInterp0_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gFInterp0_ompkernel[:105])
-  } else if(!strcmp(name, "gFInterp1")) {
-    memcpy(gFInterp1_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gFInterp1_ompkernel[:105])
-  } else if(!strcmp(name, "gFInterp2")) {
-    memcpy(gFInterp2_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gFInterp2_ompkernel[:105])
-  } else if(!strcmp(name, "gF0DrR")) {
-    memcpy(gF0DrR_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gF0DrR_ompkernel[:105])
-  } else if(!strcmp(name, "gF0DsR")) {
-    memcpy(gF0DsR_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gF0DsR_ompkernel[:105])
-  } else if(!strcmp(name, "gF1DrR")) {
-    memcpy(gF1DrR_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gF1DrR_ompkernel[:105])
-  } else if(!strcmp(name, "gF1DsR")) {
-    memcpy(gF1DsR_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gF1DsR_ompkernel[:105])
-  } else if(!strcmp(name, "gF2DrR")) {
-    memcpy(gF2DrR_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gF2DrR_ompkernel[:105])
-  } else if(!strcmp(name, "gF2DsR")) {
-    memcpy(gF2DsR_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gF2DsR_ompkernel[:105])
-  } else if(!strcmp(name, "gFInterp0R")) {
-    memcpy(gFInterp0R_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gFInterp0R_ompkernel[:105])
-  } else if(!strcmp(name, "gFInterp1R")) {
-    memcpy(gFInterp1R_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gFInterp1R_ompkernel[:105])
-  } else if(!strcmp(name, "gFInterp2R")) {
-    memcpy(gFInterp2R_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gFInterp2R_ompkernel[:105])
+  } else if(!strcmp(name, "cubW_g")) {
+    memcpy(cubW_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:cubW_g_ompkernel[:46])
+  } else if(!strcmp(name, "cubV_g")) {
+    memcpy(cubV_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:cubV_g_ompkernel[:690])
+  } else if(!strcmp(name, "cubVDr_g")) {
+    memcpy(cubVDr_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:cubVDr_g_ompkernel[:690])
+  } else if(!strcmp(name, "cubVDs_g")) {
+    memcpy(cubVDs_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:cubVDs_g_ompkernel[:690])
+  } else if(!strcmp(name, "gF0Dr_g")) {
+    memcpy(gF0Dr_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF0Dr_g_ompkernel[:105])
+  } else if(!strcmp(name, "gF0Ds_g")) {
+    memcpy(gF0Ds_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF0Ds_g_ompkernel[:105])
+  } else if(!strcmp(name, "gF1Dr_g")) {
+    memcpy(gF1Dr_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF1Dr_g_ompkernel[:105])
+  } else if(!strcmp(name, "gF1Ds_g")) {
+    memcpy(gF1Ds_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF1Ds_g_ompkernel[:105])
+  } else if(!strcmp(name, "gF2Dr_g")) {
+    memcpy(gF2Dr_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF2Dr_g_ompkernel[:105])
+  } else if(!strcmp(name, "gF2Ds_g")) {
+    memcpy(gF2Ds_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF2Ds_g_ompkernel[:105])
+  } else if(!strcmp(name, "gaussW_g")) {
+    memcpy(gaussW_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gaussW_g_ompkernel[:7])
+  } else if(!strcmp(name, "gFInterp0_g")) {
+    memcpy(gFInterp0_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp0_g_ompkernel[:105])
+  } else if(!strcmp(name, "gFInterp1_g")) {
+    memcpy(gFInterp1_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp1_g_ompkernel[:105])
+  } else if(!strcmp(name, "gFInterp2_g")) {
+    memcpy(gFInterp2_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp2_g_ompkernel[:105])
+  } else if(!strcmp(name, "gF0DrR_g")) {
+    memcpy(gF0DrR_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF0DrR_g_ompkernel[:105])
+  } else if(!strcmp(name, "gF0DsR_g")) {
+    memcpy(gF0DsR_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF0DsR_g_ompkernel[:105])
+  } else if(!strcmp(name, "gF1DrR_g")) {
+    memcpy(gF1DrR_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF1DrR_g_ompkernel[:105])
+  } else if(!strcmp(name, "gF1DsR_g")) {
+    memcpy(gF1DsR_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF1DsR_g_ompkernel[:105])
+  } else if(!strcmp(name, "gF2DrR_g")) {
+    memcpy(gF2DrR_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF2DrR_g_ompkernel[:105])
+  } else if(!strcmp(name, "gF2DsR_g")) {
+    memcpy(gF2DsR_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gF2DsR_g_ompkernel[:105])
+  } else if(!strcmp(name, "gFInterp0R_g")) {
+    memcpy(gFInterp0R_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp0R_g_ompkernel[:105])
+  } else if(!strcmp(name, "gFInterp1R_g")) {
+    memcpy(gFInterp1R_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp1R_g_ompkernel[:105])
+  } else if(!strcmp(name, "gFInterp2R_g")) {
+    memcpy(gFInterp2R_g_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:gFInterp2R_g_ompkernel[:105])
   } else if(!strcmp(name, "lift_drag_vec")) {
     memcpy(lift_drag_vec_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:lift_drag_vec_ompkernel[:5])
@@ -184,3 +184,30 @@ void op_decl_const_char(int dim, char const *type,
 #include "div_omp4kernel_func.cpp"
 #include "curl_omp4kernel_func.cpp"
 #include "grad_omp4kernel_func.cpp"
+#include "cub_grad_w_omp4kernel_func.cpp"
+#include "cub_grad_omp4kernel_func.cpp"
+#include "cub_div_w_omp4kernel_func.cpp"
+#include "cub_div_omp4kernel_func.cpp"
+#include "tau_omp4kernel_func.cpp"
+#include "tau_bc_omp4kernel_func.cpp"
+#include "poisson_rhs_faces_omp4kernel_func.cpp"
+#include "poisson_rhs_bc_omp4kernel_func.cpp"
+#include "poisson_rhs_flux_omp4kernel_func.cpp"
+#include "poisson_rhs_J_omp4kernel_func.cpp"
+#include "poisson_rhs_qbc_omp4kernel_func.cpp"
+#include "poisson_rhs_qflux_omp4kernel_func.cpp"
+#include "poisson_bc_omp4kernel_func.cpp"
+#include "poisson_bc_J_omp4kernel_func.cpp"
+#include "poisson_bc2_omp4kernel_func.cpp"
+#include "poisson_bc3_omp4kernel_func.cpp"
+#include "poisson_mf2_apply_bc_omp4kernel_func.cpp"
+#include "poisson_mf2_mass_omp4kernel_func.cpp"
+#include "poisson_mf2_omp4kernel_func.cpp"
+#include "poisson_mf2_faces_omp4kernel_func.cpp"
+#include "poisson_mf2_op_omp4kernel_func.cpp"
+#include "poisson_mf2_opf_omp4kernel_func.cpp"
+#include "poisson_mf2_opbf_omp4kernel_func.cpp"
+#include "poisson_mf2_bc_omp4kernel_func.cpp"
+#include "poisson_test_init_omp4kernel_func.cpp"
+#include "poisson_test_bc_omp4kernel_func.cpp"
+#include "poisson_test_error_omp4kernel_func.cpp"

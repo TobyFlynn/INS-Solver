@@ -45,36 +45,36 @@ inline void gauss_gfi_faces(const int *edgeNum, const double **x,
 
       if(edgeL == 0) {
         if(edgeR == 0) {
-          gf0[0][indL] += gFInterp0[indR];
-          gf0[1][indR] += gFInterp0[indL];
+          gf0[0][indL] += gFInterp0_g[indR];
+          gf0[1][indR] += gFInterp0_g[indL];
         } else if(edgeR == 1) {
-          gf0[0][indL] += gFInterp1[indR];
-          gf1[1][indR] += gFInterp0[indL];
+          gf0[0][indL] += gFInterp1_g[indR];
+          gf1[1][indR] += gFInterp0_g[indL];
         } else {
-          gf0[0][indL] += gFInterp2[indR];
-          gf2[1][indR] += gFInterp0[indL];
+          gf0[0][indL] += gFInterp2_g[indR];
+          gf2[1][indR] += gFInterp0_g[indL];
         }
       } else if(edgeL == 1) {
         if(edgeR == 0) {
-          gf1[0][indL] += gFInterp0[indR];
-          gf0[1][indR] += gFInterp1[indL];
+          gf1[0][indL] += gFInterp0_g[indR];
+          gf0[1][indR] += gFInterp1_g[indL];
         } else if(edgeR == 1) {
-          gf1[0][indL] += gFInterp1[indR];
-          gf1[1][indR] += gFInterp1[indL];
+          gf1[0][indL] += gFInterp1_g[indR];
+          gf1[1][indR] += gFInterp1_g[indL];
         } else {
-          gf1[0][indL] += gFInterp2[indR];
-          gf2[1][indR] += gFInterp1[indL];
+          gf1[0][indL] += gFInterp2_g[indR];
+          gf2[1][indR] += gFInterp1_g[indL];
         }
       } else {
         if(edgeR == 0) {
-          gf2[0][indL] += gFInterp0[indR];
-          gf0[1][indR] += gFInterp2[indL];
+          gf2[0][indL] += gFInterp0_g[indR];
+          gf0[1][indR] += gFInterp2_g[indL];
         } else if(edgeR == 1) {
-          gf2[0][indL] += gFInterp1[indR];
-          gf1[1][indR] += gFInterp2[indL];
+          gf2[0][indL] += gFInterp1_g[indR];
+          gf1[1][indR] += gFInterp2_g[indL];
         } else {
-          gf2[0][indL] += gFInterp2[indR];
-          gf2[1][indR] += gFInterp2[indL];
+          gf2[0][indL] += gFInterp2_g[indR];
+          gf2[1][indR] += gFInterp2_g[indL];
         }
       }
     }

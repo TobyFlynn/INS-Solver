@@ -28,7 +28,7 @@ void init_gauss_grad_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size]) \
-    map(to: gF0Dr_ompkernel[:105], gF0Ds_ompkernel[:105], gF1Dr_ompkernel[:105], gF1Ds_ompkernel[:105], gF2Dr_ompkernel[:105], gF2Ds_ompkernel[:105])
+    map(to: gF0Dr_g_ompkernel[:105], gF0Ds_g_ompkernel[:105], gF1Dr_g_ompkernel[:105], gF1Ds_g_ompkernel[:105], gF2Dr_g_ompkernel[:105], gF2Ds_g_ompkernel[:105])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
@@ -65,24 +65,24 @@ void init_gauss_grad_omp4_kernel(
     for(int m = 0; m < 7; m++) {
       for(int n = 0; n < 15; n++) {
         int ind = m * 15 + n;
-        Dx0[ind] = rx[m] * gF0Dr_ompkernel[ind] + sx[m] * gF0Ds_ompkernel[ind];
-        Dy0[ind] = ry[m] * gF0Dr_ompkernel[ind] + sy[m] * gF0Ds_ompkernel[ind];
+        Dx0[ind] = rx[m] * gF0Dr_g_ompkernel[ind] + sx[m] * gF0Ds_g_ompkernel[ind];
+        Dy0[ind] = ry[m] * gF0Dr_g_ompkernel[ind] + sy[m] * gF0Ds_g_ompkernel[ind];
       }
     }
 
     for(int m = 0; m < 7; m++) {
       for(int n = 0; n < 15; n++) {
         int ind = m * 15 + n;
-        Dx1[ind] = rx[m + 7] * gF1Dr_ompkernel[ind] + sx[m + 7] * gF1Ds_ompkernel[ind];
-        Dy1[ind] = ry[m + 7] * gF1Dr_ompkernel[ind] + sy[m + 7] * gF1Ds_ompkernel[ind];
+        Dx1[ind] = rx[m + 7] * gF1Dr_g_ompkernel[ind] + sx[m + 7] * gF1Ds_g_ompkernel[ind];
+        Dy1[ind] = ry[m + 7] * gF1Dr_g_ompkernel[ind] + sy[m + 7] * gF1Ds_g_ompkernel[ind];
       }
     }
 
     for(int m = 0; m < 7; m++) {
       for(int n = 0; n < 15; n++) {
         int ind = m * 15 + n;
-        Dx2[ind] = rx[m + 14] * gF2Dr_ompkernel[ind] + sx[m + 14] * gF2Ds_ompkernel[ind];
-        Dy2[ind] = ry[m + 14] * gF2Dr_ompkernel[ind] + sy[m + 14] * gF2Ds_ompkernel[ind];
+        Dx2[ind] = rx[m + 14] * gF2Dr_g_ompkernel[ind] + sx[m + 14] * gF2Ds_g_ompkernel[ind];
+        Dy2[ind] = ry[m + 14] * gF2Dr_g_ompkernel[ind] + sy[m + 14] * gF2Ds_g_ompkernel[ind];
       }
     }
     //end inline func

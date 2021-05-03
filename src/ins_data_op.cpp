@@ -387,29 +387,29 @@ void INSData::initOP2() {
   op_decl_const2("FMASK",15,"int",FMASK);
   op_decl_const2("ic_u",1,"double",&ic_u);
   op_decl_const2("ic_v",1,"double",&ic_v);
-  op_decl_const2("cubW",46,"double",cubW);
-  op_decl_const2("cubV",690,"double",cubV);
-  op_decl_const2("cubVDr",690,"double",cubVDr);
-  op_decl_const2("cubVDs",690,"double",cubVDs);
-  op_decl_const2("gF0Dr",105,"double",gF0Dr);
-  op_decl_const2("gF0Ds",105,"double",gF0Ds);
-  op_decl_const2("gF1Dr",105,"double",gF1Dr);
-  op_decl_const2("gF1Ds",105,"double",gF1Ds);
-  op_decl_const2("gF2Dr",105,"double",gF2Dr);
-  op_decl_const2("gF2Ds",105,"double",gF2Ds);
-  op_decl_const2("gaussW",7,"double",gaussW);
-  op_decl_const2("gFInterp0",105,"double",gFInterp0);
-  op_decl_const2("gFInterp1",105,"double",gFInterp1);
-  op_decl_const2("gFInterp2",105,"double",gFInterp2);
-  op_decl_const2("gF0DrR",105,"double",gF0DrR);
-  op_decl_const2("gF0DsR",105,"double",gF0DsR);
-  op_decl_const2("gF1DrR",105,"double",gF1DrR);
-  op_decl_const2("gF1DsR",105,"double",gF1DsR);
-  op_decl_const2("gF2DrR",105,"double",gF2DrR);
-  op_decl_const2("gF2DsR",105,"double",gF2DsR);
-  op_decl_const2("gFInterp0R",105,"double",gFInterp0R);
-  op_decl_const2("gFInterp1R",105,"double",gFInterp1R);
-  op_decl_const2("gFInterp2R",105,"double",gFInterp2R);
+  op_decl_const2("cubW_g",46,"double",cubW_g);
+  op_decl_const2("cubV_g",690,"double",cubV_g);
+  op_decl_const2("cubVDr_g",690,"double",cubVDr_g);
+  op_decl_const2("cubVDs_g",690,"double",cubVDs_g);
+  op_decl_const2("gF0Dr_g",105,"double",gF0Dr_g);
+  op_decl_const2("gF0Ds_g",105,"double",gF0Ds_g);
+  op_decl_const2("gF1Dr_g",105,"double",gF1Dr_g);
+  op_decl_const2("gF1Ds_g",105,"double",gF1Ds_g);
+  op_decl_const2("gF2Dr_g",105,"double",gF2Dr_g);
+  op_decl_const2("gF2Ds_g",105,"double",gF2Ds_g);
+  op_decl_const2("gaussW_g",7,"double",gaussW_g);
+  op_decl_const2("gFInterp0_g",105,"double",gFInterp0_g);
+  op_decl_const2("gFInterp1_g",105,"double",gFInterp1_g);
+  op_decl_const2("gFInterp2_g",105,"double",gFInterp2_g);
+  op_decl_const2("gF0DrR_g",105,"double",gF0DrR_g);
+  op_decl_const2("gF0DsR_g",105,"double",gF0DsR_g);
+  op_decl_const2("gF1DrR_g",105,"double",gF1DrR_g);
+  op_decl_const2("gF1DsR_g",105,"double",gF1DsR_g);
+  op_decl_const2("gF2DrR_g",105,"double",gF2DrR_g);
+  op_decl_const2("gF2DsR_g",105,"double",gF2DsR_g);
+  op_decl_const2("gFInterp0R_g",105,"double",gFInterp0R_g);
+  op_decl_const2("gFInterp1R_g",105,"double",gFInterp1R_g);
+  op_decl_const2("gFInterp2R_g",105,"double",gFInterp2R_g);
   op_decl_const2("lift_drag_vec",5,"double",lift_drag_vec);
 
   // Calculate geometric factors
@@ -445,6 +445,11 @@ CubatureData::CubatureData(INSData *dat) {
   temp_data  = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
   temp2_data = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
 
+  op_temps_data[0] = (double *)calloc(46 * data->numCells, sizeof(double));
+  op_temps_data[1] = (double *)calloc(46 * data->numCells, sizeof(double));
+  op_temps_data[2] = (double *)calloc(46 * data->numCells, sizeof(double));
+  op_temps_data[3] = (double *)calloc(46 * data->numCells, sizeof(double));
+
   rx    = op_decl_dat(data->cells, 46, "double", rx_data, "cub-rx");
   sx    = op_decl_dat(data->cells, 46, "double", sx_data, "cub-sx");
   ry    = op_decl_dat(data->cells, 46, "double", ry_data, "cub-ry");
@@ -456,6 +461,11 @@ CubatureData::CubatureData(INSData *dat) {
   OP    = op_decl_dat(data->cells, 15 * 15, "double", OP_data, "cub-OP");
   temp  = op_decl_dat(data->cells, 46 * 15, "double", temp_data, "cub-temp");
   temp2 = op_decl_dat(data->cells, 46 * 15, "double", temp2_data, "cub-temp2");
+
+  op_temps[0] = op_decl_dat(data->cells, 46, "double", op_temps_data[0], "cub-op-temp0");
+  op_temps[1] = op_decl_dat(data->cells, 46, "double", op_temps_data[1], "cub-op-temp1");
+  op_temps[2] = op_decl_dat(data->cells, 46, "double", op_temps_data[2], "cub-op-temp2");
+  op_temps[3] = op_decl_dat(data->cells, 46, "double", op_temps_data[3], "cub-op-temp3");
 
   // Initialise geometric factors for calcuating grad matrix
   init_cubature_grad_blas(data, this);
@@ -507,6 +517,10 @@ CubatureData::~CubatureData() {
   free(OP_data);
   free(temp_data);
   free(temp2_data);
+  free(op_temps_data[0]);
+  free(op_temps_data[1]);
+  free(op_temps_data[2]);
+  free(op_temps_data[3]);
 }
 
 GaussData::GaussData(INSData *dat) {

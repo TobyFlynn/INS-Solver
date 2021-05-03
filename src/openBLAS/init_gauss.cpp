@@ -13,12 +13,12 @@ inline void openblas_init_gauss(const int numCells, const double *x,
   double *dVMds_f1 = (double *)malloc(7 * 15 * sizeof(double));
   double *dVMds_f2 = (double *)malloc(7 * 15 * sizeof(double));
 
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 7, 15, 15, 1.0, gFInterp0, 15, Dr, 15, 0.0, dVMdr_f0, 7);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 7, 15, 15, 1.0, gFInterp1, 15, Dr, 15, 0.0, dVMdr_f1, 7);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 7, 15, 15, 1.0, gFInterp2, 15, Dr, 15, 0.0, dVMdr_f2, 7);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 7, 15, 15, 1.0, gFInterp0, 15, Ds, 15, 0.0, dVMds_f0, 7);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 7, 15, 15, 1.0, gFInterp1, 15, Ds, 15, 0.0, dVMds_f1, 7);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 7, 15, 15, 1.0, gFInterp2, 15, Ds, 15, 0.0, dVMds_f2, 7);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 7, 15, 15, 1.0, constants->gFInterp0, 15, constants->Dr, 15, 0.0, dVMdr_f0, 7);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 7, 15, 15, 1.0, constants->gFInterp1, 15, constants->Dr, 15, 0.0, dVMdr_f1, 7);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 7, 15, 15, 1.0, constants->gFInterp2, 15, constants->Dr, 15, 0.0, dVMdr_f2, 7);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 7, 15, 15, 1.0, constants->gFInterp0, 15, constants->Ds, 15, 0.0, dVMds_f0, 7);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 7, 15, 15, 1.0, constants->gFInterp1, 15, constants->Ds, 15, 0.0, dVMds_f1, 7);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 7, 15, 15, 1.0, constants->gFInterp2, 15, constants->Ds, 15, 0.0, dVMds_f2, 7);
 
   for(int c = 0; c < numCells; c++) {
     const double *x_c = x + c * 15;

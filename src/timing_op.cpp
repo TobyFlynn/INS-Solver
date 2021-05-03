@@ -43,7 +43,10 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << "Pressure Setup" << ",";
   file << "Pressure Linear Solve" << ",";
   file << "Viscosity Setup" << ",";
-  file << "Viscosity Linear Solve";
+  file << "Viscosity Linear Solve" << ",";
+  file << "Linear Solve MF" << ",";
+  file << "Linear Solve MF Mat Mult" << ",";
+  file << "Linear Solve MF RHS";
   file << endl;
 
   // Output timing data
@@ -60,7 +63,10 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << to_string(totalPressureSetup) << ",";
   file << to_string(totalPressureLinearSolve) << ",";
   file << to_string(totalViscositySetup) << ",";
-  file << to_string(totalViscosityLinearSolve);
+  file << to_string(totalViscosityLinearSolve) << ",";
+  file << to_string(totalLinearSolveMF) << ",";
+  file << to_string(totalLinearSolveMFMatMult) << ",";
+  file << to_string(totalLinearSolveMFRHS);
   file << endl;
 
   file.close();
@@ -164,4 +170,28 @@ void Timing::startViscosityLinearSolve() {
 void Timing::endViscosityLinearSolve() {
   op_timers(&cpu2, &viscosityLinearSolve2);
   totalViscosityLinearSolve += viscosityLinearSolve2 - viscosityLinearSolve1;
+}
+
+void Timing::startLinearSolveMF() {
+  op_timers(&cpu1, &linearSolveMF1);
+}
+void Timing::endLinearSolveMF() {
+  op_timers(&cpu2, &linearSolveMF2);
+  totalLinearSolveMF += linearSolveMF2 - linearSolveMF1;
+}
+
+void Timing::startLinearSolveMFMatMult() {
+  op_timers(&cpu1, &linearSolveMFMatMult1);
+}
+void Timing::endLinearSolveMFMatMult() {
+  op_timers(&cpu2, &linearSolveMFMatMult2);
+  totalLinearSolveMFMatMult += linearSolveMFMatMult2 - linearSolveMFMatMult1;
+}
+
+void Timing::startLinearSolveMFRHS() {
+  op_timers(&cpu1, &linearSolveMFRHS1);
+}
+void Timing::endLinearSolveMFRHS() {
+  op_timers(&cpu2, &linearSolveMFRHS2);
+  totalLinearSolveMFRHS += linearSolveMFRHS2 - linearSolveMFRHS1;
 }

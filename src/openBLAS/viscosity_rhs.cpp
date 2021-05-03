@@ -5,12 +5,6 @@
 
 inline void openblas_viscosity_rhs(const int numCells, const double *mm, const double *qtt0,
                                    const double *qtt1, double *vis0, double *vis1) {
-  // cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, visMat, 15, qtt0, 15, 0.0, temp0, 15);
-  // cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, visMat, 15, qtt1, 15, 0.0, temp1, 15);
-
-  // cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, MASS, 15, qtt0, 15, 0.0, vis0, 15);
-  // cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, MASS, 15, qtt1, 15, 0.0, vis1, 15);
-
   for(int i = 0; i < numCells; i++) {
     const double *mm_c = mm + i * 15 * 15;
     const double *qtt0_c = qtt0 + i * 15;

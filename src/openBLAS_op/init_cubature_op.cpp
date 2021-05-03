@@ -25,10 +25,10 @@ extern "C" {
 inline void openblas_init_cubature(const int numCells, const double *x,
                                 const double *y, double *cxr, double *cxs,
                                 double *cyr, double *cys) {
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, cubDr, 15, x, 15, 0.0, cxr, 46);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, cubDs, 15, x, 15, 0.0, cxs, 46);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, cubDr, 15, y, 15, 0.0, cyr, 46);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, cubDs, 15, y, 15, 0.0, cys, 46);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, constants->cubDr, 15, x, 15, 0.0, cxr, 46);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, constants->cubDs, 15, x, 15, 0.0, cxs, 46);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, constants->cubDr, 15, y, 15, 0.0, cyr, 46);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 46, numCells, 15, 1.0, constants->cubDs, 15, y, 15, 0.0, cys, 46);
 }
 
 void init_cubature_blas(INSData *nsData, CubatureData *cubData) {

@@ -18,29 +18,29 @@ __constant__ double bc_v_cuda;
 __constant__ int FMASK_cuda[15];
 __constant__ double ic_u_cuda;
 __constant__ double ic_v_cuda;
-__constant__ double cubW_cuda[46];
-__constant__ double cubV_cuda[690];
-__constant__ double cubVDr_cuda[690];
-__constant__ double cubVDs_cuda[690];
-__constant__ double gF0Dr_cuda[105];
-__constant__ double gF0Ds_cuda[105];
-__constant__ double gF1Dr_cuda[105];
-__constant__ double gF1Ds_cuda[105];
-__constant__ double gF2Dr_cuda[105];
-__constant__ double gF2Ds_cuda[105];
-__constant__ double gaussW_cuda[7];
-__constant__ double gFInterp0_cuda[105];
-__constant__ double gFInterp1_cuda[105];
-__constant__ double gFInterp2_cuda[105];
-__constant__ double gF0DrR_cuda[105];
-__constant__ double gF0DsR_cuda[105];
-__constant__ double gF1DrR_cuda[105];
-__constant__ double gF1DsR_cuda[105];
-__constant__ double gF2DrR_cuda[105];
-__constant__ double gF2DsR_cuda[105];
-__constant__ double gFInterp0R_cuda[105];
-__constant__ double gFInterp1R_cuda[105];
-__constant__ double gFInterp2R_cuda[105];
+__constant__ double cubW_g_cuda[46];
+__constant__ double cubV_g_cuda[690];
+__constant__ double cubVDr_g_cuda[690];
+__constant__ double cubVDs_g_cuda[690];
+__constant__ double gF0Dr_g_cuda[105];
+__constant__ double gF0Ds_g_cuda[105];
+__constant__ double gF1Dr_g_cuda[105];
+__constant__ double gF1Ds_g_cuda[105];
+__constant__ double gF2Dr_g_cuda[105];
+__constant__ double gF2Ds_g_cuda[105];
+__constant__ double gaussW_g_cuda[7];
+__constant__ double gFInterp0_g_cuda[105];
+__constant__ double gFInterp1_g_cuda[105];
+__constant__ double gFInterp2_g_cuda[105];
+__constant__ double gF0DrR_g_cuda[105];
+__constant__ double gF0DsR_g_cuda[105];
+__constant__ double gF1DrR_g_cuda[105];
+__constant__ double gF1DsR_g_cuda[105];
+__constant__ double gF2DrR_g_cuda[105];
+__constant__ double gF2DsR_g_cuda[105];
+__constant__ double gFInterp0R_g_cuda[105];
+__constant__ double gFInterp1R_g_cuda[105];
+__constant__ double gFInterp2R_g_cuda[105];
 __constant__ double lift_drag_vec_cuda[5];
 
 //header
@@ -95,96 +95,96 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(ic_v_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"cubW")) {
-    cutilSafeCall(cudaMemcpyToSymbol(cubW_cuda, dat, dim*size));
+  if (!strcmp(name,"cubW_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(cubW_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"cubV")) {
-    cutilSafeCall(cudaMemcpyToSymbol(cubV_cuda, dat, dim*size));
+  if (!strcmp(name,"cubV_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(cubV_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"cubVDr")) {
-    cutilSafeCall(cudaMemcpyToSymbol(cubVDr_cuda, dat, dim*size));
+  if (!strcmp(name,"cubVDr_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(cubVDr_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"cubVDs")) {
-    cutilSafeCall(cudaMemcpyToSymbol(cubVDs_cuda, dat, dim*size));
+  if (!strcmp(name,"cubVDs_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(cubVDs_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gF0Dr")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gF0Dr_cuda, dat, dim*size));
+  if (!strcmp(name,"gF0Dr_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF0Dr_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gF0Ds")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gF0Ds_cuda, dat, dim*size));
+  if (!strcmp(name,"gF0Ds_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF0Ds_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gF1Dr")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gF1Dr_cuda, dat, dim*size));
+  if (!strcmp(name,"gF1Dr_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF1Dr_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gF1Ds")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gF1Ds_cuda, dat, dim*size));
+  if (!strcmp(name,"gF1Ds_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF1Ds_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gF2Dr")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gF2Dr_cuda, dat, dim*size));
+  if (!strcmp(name,"gF2Dr_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF2Dr_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gF2Ds")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gF2Ds_cuda, dat, dim*size));
+  if (!strcmp(name,"gF2Ds_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF2Ds_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gaussW")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gaussW_cuda, dat, dim*size));
+  if (!strcmp(name,"gaussW_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gaussW_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gFInterp0")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gFInterp0_cuda, dat, dim*size));
+  if (!strcmp(name,"gFInterp0_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp0_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gFInterp1")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gFInterp1_cuda, dat, dim*size));
+  if (!strcmp(name,"gFInterp1_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp1_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gFInterp2")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gFInterp2_cuda, dat, dim*size));
+  if (!strcmp(name,"gFInterp2_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp2_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gF0DrR")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gF0DrR_cuda, dat, dim*size));
+  if (!strcmp(name,"gF0DrR_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF0DrR_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gF0DsR")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gF0DsR_cuda, dat, dim*size));
+  if (!strcmp(name,"gF0DsR_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF0DsR_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gF1DrR")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gF1DrR_cuda, dat, dim*size));
+  if (!strcmp(name,"gF1DrR_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF1DrR_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gF1DsR")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gF1DsR_cuda, dat, dim*size));
+  if (!strcmp(name,"gF1DsR_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF1DsR_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gF2DrR")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gF2DrR_cuda, dat, dim*size));
+  if (!strcmp(name,"gF2DrR_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF2DrR_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gF2DsR")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gF2DsR_cuda, dat, dim*size));
+  if (!strcmp(name,"gF2DsR_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gF2DsR_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gFInterp0R")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gFInterp0R_cuda, dat, dim*size));
+  if (!strcmp(name,"gFInterp0R_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp0R_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gFInterp1R")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gFInterp1R_cuda, dat, dim*size));
+  if (!strcmp(name,"gFInterp1R_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp1R_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"gFInterp2R")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gFInterp2R_cuda, dat, dim*size));
+  if (!strcmp(name,"gFInterp2R_g")) {
+    cutilSafeCall(cudaMemcpyToSymbol(gFInterp2R_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"lift_drag_vec")) {
@@ -229,3 +229,30 @@ int size, char *dat, char const *name){
 #include "div_kernel.cu"
 #include "curl_kernel.cu"
 #include "grad_kernel.cu"
+#include "cub_grad_w_kernel.cu"
+#include "cub_grad_kernel.cu"
+#include "cub_div_w_kernel.cu"
+#include "cub_div_kernel.cu"
+#include "tau_kernel.cu"
+#include "tau_bc_kernel.cu"
+#include "poisson_rhs_faces_kernel.cu"
+#include "poisson_rhs_bc_kernel.cu"
+#include "poisson_rhs_flux_kernel.cu"
+#include "poisson_rhs_J_kernel.cu"
+#include "poisson_rhs_qbc_kernel.cu"
+#include "poisson_rhs_qflux_kernel.cu"
+#include "poisson_bc_kernel.cu"
+#include "poisson_bc_J_kernel.cu"
+#include "poisson_bc2_kernel.cu"
+#include "poisson_bc3_kernel.cu"
+#include "poisson_mf2_apply_bc_kernel.cu"
+#include "poisson_mf2_mass_kernel.cu"
+#include "poisson_mf2_kernel.cu"
+#include "poisson_mf2_faces_kernel.cu"
+#include "poisson_mf2_op_kernel.cu"
+#include "poisson_mf2_opf_kernel.cu"
+#include "poisson_mf2_opbf_kernel.cu"
+#include "poisson_mf2_bc_kernel.cu"
+#include "poisson_test_init_kernel.cu"
+#include "poisson_test_bc_kernel.cu"
+#include "poisson_test_error_kernel.cu"

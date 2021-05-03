@@ -25,7 +25,7 @@ void gauss_gfi_faces_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size]) \
-    map(to: gFInterp0_ompkernel[:105], gFInterp1_ompkernel[:105], gFInterp2_ompkernel[:105])\
+    map(to: gFInterp0_g_ompkernel[:105], gFInterp1_g_ompkernel[:105], gFInterp2_g_ompkernel[:105])\
     map(to:col_reord[0:set_size1],map1[0:map1size],data1[0:dat1size],data3[0:dat3size],data5[0:dat5size],data7[0:dat7size],data9[0:dat9size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -104,36 +104,36 @@ void gauss_gfi_faces_omp4_kernel(
 
         if(edgeL == 0) {
           if(edgeR == 0) {
-            gf0[0][indL] += gFInterp0_ompkernel[indR];
-            gf0[1][indR] += gFInterp0_ompkernel[indL];
+            gf0[0][indL] += gFInterp0_g_ompkernel[indR];
+            gf0[1][indR] += gFInterp0_g_ompkernel[indL];
           } else if(edgeR == 1) {
-            gf0[0][indL] += gFInterp1_ompkernel[indR];
-            gf1[1][indR] += gFInterp0_ompkernel[indL];
+            gf0[0][indL] += gFInterp1_g_ompkernel[indR];
+            gf1[1][indR] += gFInterp0_g_ompkernel[indL];
           } else {
-            gf0[0][indL] += gFInterp2_ompkernel[indR];
-            gf2[1][indR] += gFInterp0_ompkernel[indL];
+            gf0[0][indL] += gFInterp2_g_ompkernel[indR];
+            gf2[1][indR] += gFInterp0_g_ompkernel[indL];
           }
         } else if(edgeL == 1) {
           if(edgeR == 0) {
-            gf1[0][indL] += gFInterp0_ompkernel[indR];
-            gf0[1][indR] += gFInterp1_ompkernel[indL];
+            gf1[0][indL] += gFInterp0_g_ompkernel[indR];
+            gf0[1][indR] += gFInterp1_g_ompkernel[indL];
           } else if(edgeR == 1) {
-            gf1[0][indL] += gFInterp1_ompkernel[indR];
-            gf1[1][indR] += gFInterp1_ompkernel[indL];
+            gf1[0][indL] += gFInterp1_g_ompkernel[indR];
+            gf1[1][indR] += gFInterp1_g_ompkernel[indL];
           } else {
-            gf1[0][indL] += gFInterp2_ompkernel[indR];
-            gf2[1][indR] += gFInterp1_ompkernel[indL];
+            gf1[0][indL] += gFInterp2_g_ompkernel[indR];
+            gf2[1][indR] += gFInterp1_g_ompkernel[indL];
           }
         } else {
           if(edgeR == 0) {
-            gf2[0][indL] += gFInterp0_ompkernel[indR];
-            gf0[1][indR] += gFInterp2_ompkernel[indL];
+            gf2[0][indL] += gFInterp0_g_ompkernel[indR];
+            gf0[1][indR] += gFInterp2_g_ompkernel[indL];
           } else if(edgeR == 1) {
-            gf2[0][indL] += gFInterp1_ompkernel[indR];
-            gf1[1][indR] += gFInterp2_ompkernel[indL];
+            gf2[0][indL] += gFInterp1_g_ompkernel[indR];
+            gf1[1][indR] += gFInterp2_g_ompkernel[indL];
           } else {
-            gf2[0][indL] += gFInterp2_ompkernel[indR];
-            gf2[1][indR] += gFInterp2_ompkernel[indL];
+            gf2[0][indL] += gFInterp2_g_ompkernel[indR];
+            gf2[1][indR] += gFInterp2_g_ompkernel[indL];
           }
         }
       }

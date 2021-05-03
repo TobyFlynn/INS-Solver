@@ -18,29 +18,29 @@ extern double bc_v;
 extern int FMASK[15];
 extern double ic_u;
 extern double ic_v;
-extern double cubW[46];
-extern double cubV[690];
-extern double cubVDr[690];
-extern double cubVDs[690];
-extern double gF0Dr[105];
-extern double gF0Ds[105];
-extern double gF1Dr[105];
-extern double gF1Ds[105];
-extern double gF2Dr[105];
-extern double gF2Ds[105];
-extern double gaussW[7];
-extern double gFInterp0[105];
-extern double gFInterp1[105];
-extern double gFInterp2[105];
-extern double gF0DrR[105];
-extern double gF0DsR[105];
-extern double gF1DrR[105];
-extern double gF1DsR[105];
-extern double gF2DrR[105];
-extern double gF2DsR[105];
-extern double gFInterp0R[105];
-extern double gFInterp1R[105];
-extern double gFInterp2R[105];
+extern double cubW_g[46];
+extern double cubV_g[690];
+extern double cubVDr_g[690];
+extern double cubVDs_g[690];
+extern double gF0Dr_g[105];
+extern double gF0Ds_g[105];
+extern double gF1Dr_g[105];
+extern double gF1Ds_g[105];
+extern double gF2Dr_g[105];
+extern double gF2Ds_g[105];
+extern double gaussW_g[7];
+extern double gFInterp0_g[105];
+extern double gFInterp1_g[105];
+extern double gFInterp2_g[105];
+extern double gF0DrR_g[105];
+extern double gF0DsR_g[105];
+extern double gF1DrR_g[105];
+extern double gF1DsR_g[105];
+extern double gF2DrR_g[105];
+extern double gF2DsR_g[105];
+extern double gFInterp0R_g[105];
+extern double gFInterp1R_g[105];
+extern double gFInterp2R_g[105];
 extern double lift_drag_vec[5];
 
 // header
@@ -79,3 +79,30 @@ extern double lift_drag_vec[5];
 #include "div_kernel.cpp"
 #include "curl_kernel.cpp"
 #include "grad_kernel.cpp"
+#include "cub_grad_w_kernel.cpp"
+#include "cub_grad_kernel.cpp"
+#include "cub_div_w_kernel.cpp"
+#include "cub_div_kernel.cpp"
+#include "tau_kernel.cpp"
+#include "tau_bc_kernel.cpp"
+#include "poisson_rhs_faces_kernel.cpp"
+#include "poisson_rhs_bc_kernel.cpp"
+#include "poisson_rhs_flux_kernel.cpp"
+#include "poisson_rhs_J_kernel.cpp"
+#include "poisson_rhs_qbc_kernel.cpp"
+#include "poisson_rhs_qflux_kernel.cpp"
+#include "poisson_bc_kernel.cpp"
+#include "poisson_bc_J_kernel.cpp"
+#include "poisson_bc2_kernel.cpp"
+#include "poisson_bc3_kernel.cpp"
+#include "poisson_mf2_apply_bc_kernel.cpp"
+#include "poisson_mf2_mass_kernel.cpp"
+#include "poisson_mf2_kernel.cpp"
+#include "poisson_mf2_faces_kernel.cpp"
+#include "poisson_mf2_op_kernel.cpp"
+#include "poisson_mf2_opf_kernel.cpp"
+#include "poisson_mf2_opbf_kernel.cpp"
+#include "poisson_mf2_bc_kernel.cpp"
+#include "poisson_test_init_kernel.cpp"
+#include "poisson_test_bc_kernel.cpp"
+#include "poisson_test_error_kernel.cpp"

@@ -14,29 +14,29 @@ extern double bc_v;
 extern int FMASK[15];
 extern double ic_u;
 extern double ic_v;
-extern double cubV[46 * 15];
-extern double cubW[46];
-extern double cubVDr[46 * 15];
-extern double cubVDs[46 * 15];
-extern double gaussW[7];
-extern double gFInterp0[7 * 15];
-extern double gFInterp1[7 * 15];
-extern double gFInterp2[7 * 15];
-extern double gF0Dr[7 * 15];
-extern double gF0Ds[7 * 15];
-extern double gF1Dr[7 * 15];
-extern double gF1Ds[7 * 15];
-extern double gF2Dr[7 * 15];
-extern double gF2Ds[7 * 15];
-extern double gFInterp0R[7 * 15];
-extern double gFInterp1R[7 * 15];
-extern double gFInterp2R[7 * 15];
-extern double gF0DrR[7 * 15];
-extern double gF0DsR[7 * 15];
-extern double gF1DrR[7 * 15];
-extern double gF1DsR[7 * 15];
-extern double gF2DrR[7 * 15];
-extern double gF2DsR[7 * 15];
+extern double cubV_g[46 * 15];
+extern double cubW_g[46];
+extern double cubVDr_g[46 * 15];
+extern double cubVDs_g[46 * 15];
+extern double gaussW_g[7];
+extern double gFInterp0_g[7 * 15];
+extern double gFInterp1_g[7 * 15];
+extern double gFInterp2_g[7 * 15];
+extern double gF0Dr_g[7 * 15];
+extern double gF0Ds_g[7 * 15];
+extern double gF1Dr_g[7 * 15];
+extern double gF1Ds_g[7 * 15];
+extern double gF2Dr_g[7 * 15];
+extern double gF2Ds_g[7 * 15];
+extern double gFInterp0R_g[7 * 15];
+extern double gFInterp1R_g[7 * 15];
+extern double gFInterp2R_g[7 * 15];
+extern double gF0DrR_g[7 * 15];
+extern double gF0DsR_g[7 * 15];
+extern double gF1DrR_g[7 * 15];
+extern double gF1DsR_g[7 * 15];
+extern double gF2DrR_g[7 * 15];
+extern double gF2DsR_g[7 * 15];
 extern double lift_drag_vec[5];
 
 class INSData {
@@ -116,6 +116,7 @@ public:
   // OP is the local stiffness matrix used by the Poisson solver
   op_dat rx, sx, ry, sy, J, mm, Dx, Dy, OP;
   op_dat temp, temp2;
+  op_dat op_temps[4];
 
 private:
   INSData *data;
@@ -131,6 +132,7 @@ private:
   double *OP_data;
   double *temp_data;
   double *temp2_data;
+  double *op_temps_data[4];
 };
 
 class GaussData {

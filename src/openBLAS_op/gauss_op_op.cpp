@@ -25,13 +25,13 @@ extern "C" {
 inline void openblas_gauss_op(const int numCells, double *op, const double *mD,
                               const double *term0, const double *term1,
                               const double *term2, int face) {
-  double *gFInterp = (double *)malloc(7 * 15 * sizeof(double));
+  double *gFInterp;
   if(face == 0) {
-    memcpy(gFInterp, gFInterp0, 7 * 15 * sizeof(double));
+    gFInterp = constants->gFInterp0;
   } else if (face == 1) {
-    memcpy(gFInterp, gFInterp1, 7 * 15 * sizeof(double));
+    gFInterp = constants->gFInterp1;
   } else {
-    memcpy(gFInterp, gFInterp2, 7 * 15 * sizeof(double));
+    gFInterp = constants->gFInterp2;
   }
 
   for(int c = 0; c < numCells; c++) {
@@ -45,8 +45,6 @@ inline void openblas_gauss_op(const int numCells, double *op, const double *mD,
     cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 15, 15, 7, -1.0, term1_c, 7, mD_c, 15, 1.0, op_c, 15);
     cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, 15, 15, 7, -1.0, term2_c, 7, gFInterp, 15, 1.0, op_c, 15);
   }
-
-  free(gFInterp);
 }
 
 void gauss_op_blas(INSData *nsData, GaussData *gaussData) {

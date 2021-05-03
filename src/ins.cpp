@@ -11,6 +11,7 @@
 #include <limits>
 
 #include "constants/all_constants.h"
+#include "constants.h"
 #include "load_mesh.h"
 #include "ins_data.h"
 #include "blas_calls.h"
@@ -72,6 +73,7 @@ void export_data(string filename, int iter, double time, double drag,
 }
 
 Timing *timer;
+Constants *constants;
 
 void advection(INSData *data, int currentInd, double a0, double a1, double b0,
                double b1, double g0, double dt, double t);
@@ -91,6 +93,7 @@ int main(int argc, char **argv) {
   timer = new Timing();
   timer->startWallTime();
   timer->startSetup();
+  constants = new Constants();
 
   string filename = "./cylinder.cgns";
   char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
@@ -149,6 +152,9 @@ int main(int argc, char **argv) {
   int save = -1;
   PetscOptionsGetInt(NULL, NULL, "-save", &save, &found);
 
+  int pmethod = 0;
+  PetscOptionsGetInt(NULL, NULL, "-pmethod", &pmethod, &found);
+
   bc_alpha = 0.0;
 
   CubatureData *cubData = new CubatureData(data);
@@ -160,21 +166,51 @@ int main(int argc, char **argv) {
               op_arg_dat(data->Q[0][1],   -1, OP_ID, 15, "double", OP_WRITE));
 
   // Initialise Poisson solvers
-  Poisson *pressurePoisson = new Poisson(data, cubData, gaussData);
+  Poisson *pressurePoisson;
+  Poisson *viscosityPoisson;
+
   int pressure_dirichlet[] = {1, -1, -1};
   int pressure_neumann[] = {0, 2, 3};
-  pressurePoisson->setDirichletBCs(pressure_dirichlet);
-  pressurePoisson->setNeumannBCs(pressure_neumann);
-  pressurePoisson->createMatrix();
-  pressurePoisson->createBCMatrix();
-  Poisson *viscosityPoisson = new Poisson(data, cubData, gaussData);
   int viscosity_dirichlet[] = {0, 2, 3};
   int viscosity_neumann[] = {1, -1, -1};
-  viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
-  viscosityPoisson->setNeumannBCs(viscosity_neumann);
-  viscosityPoisson->createMatrix();
-  viscosityPoisson->createMassMatrix();
-  viscosityPoisson->createBCMatrix();
+
+  if(pmethod == 0) {
+    Poisson_M *pressureM = new Poisson_M(data, cubData, gaussData);
+    pressureM->setDirichletBCs(pressure_dirichlet);
+    pressureM->setNeumannBCs(pressure_neumann);
+    pressureM->createMatrix();
+    pressureM->createBCMatrix();
+    pressurePoisson = pressureM;
+    Poisson_M *viscosityM = new Poisson_M(data, cubData, gaussData);
+    viscosityM->setDirichletBCs(viscosity_dirichlet);
+    viscosityM->setNeumannBCs(viscosity_neumann);
+    viscosityM->createMatrix();
+    viscosityM->createMassMatrix();
+    viscosityM->createBCMatrix();
+    viscosityPoisson = viscosityM;
+  } else if(pmethod == 1) {
+    Poisson_MF *pressureMF = new Poisson_MF(data, cubData, gaussData);
+    pressureMF->setDirichletBCs(pressure_dirichlet);
+    pressureMF->setNeumannBCs(pressure_neumann);
+    pressurePoisson = pressureMF;
+    Poisson_MF *viscosityMF = new Poisson_MF(data, cubData, gaussData);
+    viscosityMF->setDirichletBCs(viscosity_dirichlet);
+    viscosityMF->setNeumannBCs(viscosity_neumann);
+    viscosityPoisson = viscosityMF;
+  } else {
+    Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubData, gaussData);
+    pressureMF2->setDirichletBCs(pressure_dirichlet);
+    pressureMF2->setNeumannBCs(pressure_neumann);
+    pressureMF2->setOp();
+    pressureMF2->setBCOP();
+    pressurePoisson = pressureMF2;
+    Poisson_MF2 *viscosityMF2 = new Poisson_MF2(data, cubData, gaussData);
+    viscosityMF2->setDirichletBCs(viscosity_dirichlet);
+    viscosityMF2->setNeumannBCs(viscosity_neumann);
+    viscosityMF2->setOp();
+    viscosityMF2->setBCOP();
+    viscosityPoisson = viscosityMF2;
+  }
 
   double dt = numeric_limits<double>::max();
   op_par_loop(calc_dt, "calc_dt", data->cells,
@@ -266,6 +302,8 @@ int main(int argc, char **argv) {
   cout << "Wall time: " << timer->getWallTime() << endl;
   cout << "Time to simulate 1 second: " << timer->getWallTime() / time << endl;
 
+  op_timings_to_csv("op2_timings.csv");
+
   // Clean up OP2
   op_exit();
 
@@ -274,6 +312,7 @@ int main(int argc, char **argv) {
   delete gaussData;
   delete cubData;
   delete data;
+  delete constants;
   delete timer;
 
   ierr = PetscFinalize();

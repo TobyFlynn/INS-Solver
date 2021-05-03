@@ -28,7 +28,7 @@ inline void openblas_cubature_mm(const int numCells, const double *temp,
     const double *temp_c = temp + i * 46 * 15;
     double *mm_c = mm + i * 15 * 15;
 
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, 15, 15, 46, 1.0, cubV, 15, temp_c, 15, 0.0, mm_c, 15);
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, 15, 15, 46, 1.0, constants->cubV, 15, temp_c, 15, 0.0, mm_c, 15);
   }
 }
 

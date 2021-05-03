@@ -24,8 +24,8 @@ extern "C" {
 
 inline void openblas_grad(const int numCells, const double *u, double *div0,
                           double *div1) {
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Dr, 15, u, 15, 0.0, div0, 15);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, Ds, 15, u, 15, 0.0, div1, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, constants->Dr, 15, u, 15, 0.0, div0, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, constants->Ds, 15, u, 15, 0.0, div1, 15);
 }
 
 void grad_blas(INSData *nsData, op_dat u) {

@@ -50,36 +50,36 @@ __device__ void gauss_gfi_faces_gpu( const int *edgeNum, const double **x,
 
       if(edgeL == 0) {
         if(edgeR == 0) {
-          gf0[0][indL] += gFInterp0_cuda[indR];
-          gf0[1][indR] += gFInterp0_cuda[indL];
+          gf0[0][indL] += gFInterp0_g_cuda[indR];
+          gf0[1][indR] += gFInterp0_g_cuda[indL];
         } else if(edgeR == 1) {
-          gf0[0][indL] += gFInterp1_cuda[indR];
-          gf1[1][indR] += gFInterp0_cuda[indL];
+          gf0[0][indL] += gFInterp1_g_cuda[indR];
+          gf1[1][indR] += gFInterp0_g_cuda[indL];
         } else {
-          gf0[0][indL] += gFInterp2_cuda[indR];
-          gf2[1][indR] += gFInterp0_cuda[indL];
+          gf0[0][indL] += gFInterp2_g_cuda[indR];
+          gf2[1][indR] += gFInterp0_g_cuda[indL];
         }
       } else if(edgeL == 1) {
         if(edgeR == 0) {
-          gf1[0][indL] += gFInterp0_cuda[indR];
-          gf0[1][indR] += gFInterp1_cuda[indL];
+          gf1[0][indL] += gFInterp0_g_cuda[indR];
+          gf0[1][indR] += gFInterp1_g_cuda[indL];
         } else if(edgeR == 1) {
-          gf1[0][indL] += gFInterp1_cuda[indR];
-          gf1[1][indR] += gFInterp1_cuda[indL];
+          gf1[0][indL] += gFInterp1_g_cuda[indR];
+          gf1[1][indR] += gFInterp1_g_cuda[indL];
         } else {
-          gf1[0][indL] += gFInterp2_cuda[indR];
-          gf2[1][indR] += gFInterp1_cuda[indL];
+          gf1[0][indL] += gFInterp2_g_cuda[indR];
+          gf2[1][indR] += gFInterp1_g_cuda[indL];
         }
       } else {
         if(edgeR == 0) {
-          gf2[0][indL] += gFInterp0_cuda[indR];
-          gf0[1][indR] += gFInterp2_cuda[indL];
+          gf2[0][indL] += gFInterp0_g_cuda[indR];
+          gf0[1][indR] += gFInterp2_g_cuda[indL];
         } else if(edgeR == 1) {
-          gf2[0][indL] += gFInterp1_cuda[indR];
-          gf1[1][indR] += gFInterp2_cuda[indL];
+          gf2[0][indL] += gFInterp1_g_cuda[indR];
+          gf1[1][indR] += gFInterp2_g_cuda[indL];
         } else {
-          gf2[0][indL] += gFInterp2_cuda[indR];
-          gf2[1][indR] += gFInterp2_cuda[indL];
+          gf2[0][indL] += gFInterp2_g_cuda[indR];
+          gf2[1][indR] += gFInterp2_g_cuda[indL];
         }
       }
     }

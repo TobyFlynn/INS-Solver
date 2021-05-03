@@ -20,7 +20,7 @@ void init_cubature_grad_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size]) \
-    map(to: cubVDr_ompkernel[:690], cubVDs_ompkernel[:690])
+    map(to: cubVDr_g_ompkernel[:690], cubVDs_g_ompkernel[:690])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
@@ -53,8 +53,8 @@ void init_cubature_grad_omp4_kernel(
     for(int m = 0; m < 46; m++) {
       for(int n = 0; n < 15; n++) {
         int ind = m * 15 + n;
-        Dx[ind] = rx[m] * cubVDr_ompkernel[ind] + sx[m] * cubVDs_ompkernel[ind];
-        Dy[ind] = ry[m] * cubVDr_ompkernel[ind] + sy[m] * cubVDs_ompkernel[ind];
+        Dx[ind] = rx[m] * cubVDr_g_ompkernel[ind] + sx[m] * cubVDs_g_ompkernel[ind];
+        Dy[ind] = ry[m] * cubVDr_g_ompkernel[ind] + sy[m] * cubVDs_g_ompkernel[ind];
       }
     }
     //end inline func

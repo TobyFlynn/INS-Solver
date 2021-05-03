@@ -25,8 +25,8 @@ __device__ void init_cubature_grad_gpu( double *rx, double *sx, double *ry,  dou
   for(int m = 0; m < 46; m++) {
     for(int n = 0; n < 15; n++) {
       int ind = m * 15 + n;
-      Dx[ind] = rx[m] * cubVDr_cuda[ind] + sx[m] * cubVDs_cuda[ind];
-      Dy[ind] = ry[m] * cubVDr_cuda[ind] + sy[m] * cubVDs_cuda[ind];
+      Dx[ind] = rx[m] * cubVDr_g_cuda[ind] + sx[m] * cubVDs_g_cuda[ind];
+      Dy[ind] = ry[m] * cubVDr_g_cuda[ind] + sy[m] * cubVDs_g_cuda[ind];
     }
   }
 

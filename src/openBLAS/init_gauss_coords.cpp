@@ -5,8 +5,8 @@
 
 inline void openblas_gauss_coords(const int numCells, const double *x, const double *y,
                                   double *gx, double *gy) {
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 21, numCells, 15, 1.0, gInterp, 15, x, 15, 0.0, gx, 21);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 21, numCells, 15, 1.0, gInterp, 15, y, 15, 0.0, gy, 21);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 21, numCells, 15, 1.0, constants->gInterp, 15, x, 15, 0.0, gx, 21);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 21, numCells, 15, 1.0, constants->gInterp, 15, y, 15, 0.0, gy, 21);
 }
 
 void init_gauss_coords_blas(INSData *nsData, GaussData *gaussData) {
