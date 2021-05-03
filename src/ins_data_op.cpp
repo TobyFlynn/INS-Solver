@@ -468,7 +468,10 @@ CubatureData::CubatureData(INSData *dat) {
   op_temps[3] = op_decl_dat(data->cells, 46, "double", op_temps_data[3], "cub-op-temp3");
 
   // Initialise geometric factors for calcuating grad matrix
-  init_cubature_grad_blas(data, this);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_VDR), 15, data->x, 0.0, rx);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_VDS), 15, data->x, 0.0, sx);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_VDR), 15, data->y, 0.0, ry);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_VDS), 15, data->y, 0.0, sy);
 
   op_par_loop_init_cubature_grad("init_cubature_grad",data->cells,
               op_arg_dat(rx,-1,OP_ID,46,"double",OP_RW),
@@ -480,7 +483,10 @@ CubatureData::CubatureData(INSData *dat) {
   // Dx and Dy are row-major at this point
 
   // Calculate geometric factors for cubature volume nodes
-  init_cubature_blas(data, this);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DR), 15, data->x, 0.0, rx);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DS), 15, data->x, 0.0, sx);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DR), 15, data->y, 0.0, ry);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DS), 15, data->y, 0.0, sy);
 
   op_par_loop_init_cubature("init_cubature",data->cells,
               op_arg_dat(rx,-1,OP_ID,46,"double",OP_RW),
@@ -598,7 +604,8 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(sJ,-1,OP_ID,21,"double",OP_WRITE));
 
   // Calculate x and y coords of Gauss nodes
-  init_gauss_coords_blas(data, this);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, data->x, 0.0, x);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, data->y, 0.0, y);
 
   // Calculate tau (used when constructing the Poisson matrix)
   op_par_loop_gauss_tau("gauss_tau",data->edges,

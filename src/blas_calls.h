@@ -8,15 +8,9 @@
 
 extern Constants *constants;
 
-void init_cubature_grad_blas(INSData *nsData, CubatureData *cubData);
-
-void init_cubature_blas(INSData *nsData, CubatureData *cubData);
-
 void cubature_op_blas(INSData *nsData, CubatureData *cubData);
 
 void cubature_mm_blas(INSData *nsData, CubatureData *cubData);
-
-void init_gauss_coords_blas(INSData *nsData, GaussData *gaussData);
 
 void init_gauss_grad_blas(INSData *nsData, GaussData *gaussData);
 
@@ -71,5 +65,8 @@ void poisson_bc_blas(INSData *data, Poisson_MF *poisson);
 void poisson_bc_blas2(INSData *data, Poisson_MF *poisson);
 
 void poisson_mf2_blas(INSData *data, Poisson_MF2 *poisson, CubatureData *cubatureData, bool massMat, double massFactor);
+
+// Assumes matrix is in column major form and both op_dat are defined on the same set
+void op2_gemv(bool transpose, int m, int n, double alpha, double *A_ptr, int lda, op_dat x, double beta, op_dat y);
 
 #endif
