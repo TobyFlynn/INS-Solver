@@ -205,8 +205,8 @@ int main(int argc, char **argv) {
     pressureMF2->setBCOP();
     pressurePoisson = pressureMF2;
     Poisson_MF2 *viscosityMF2 = new Poisson_MF2(data, cubData, gaussData);
-    viscosityMF2->setDirichletBCs(pressure_dirichlet);
-    viscosityMF2->setNeumannBCs(pressure_neumann);
+    viscosityMF2->setDirichletBCs(viscosity_dirichlet);
+    viscosityMF2->setNeumannBCs(viscosity_neumann);
     viscosityMF2->setOp();
     viscosityMF2->setBCOP();
     viscosityPoisson = viscosityMF2;

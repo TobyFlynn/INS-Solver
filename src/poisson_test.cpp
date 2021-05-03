@@ -103,12 +103,12 @@ int main(int argc, char **argv) {
 
   poisson_test_rhs_blas(data, rhs);
 
-  Poisson_MF *poisson = new Poisson_MF(data, cubData, gaussData);
-  int dirichlet[] = {0, 1, -1};
-  int neumann[] = {2, 3, -1};
-  poisson->setDirichletBCs(dirichlet);
-  poisson->setNeumannBCs(neumann);
-  poisson->setBCValues(bc);
+  // Poisson_MF *poisson = new Poisson_MF(data, cubData, gaussData);
+  // int dirichlet[] = {0, 1, -1};
+  // int neumann[] = {2, 3, -1};
+  // poisson->setDirichletBCs(dirichlet);
+  // poisson->setNeumannBCs(neumann);
+  // poisson->setBCValues(bc);
   // Poisson_M *poisson2 = new Poisson_M(data, cubData, gaussData);
   // int dirichlet[] = {0, 1, -1};
   // int neumann[] = {2, 3, -1};
@@ -116,18 +116,18 @@ int main(int argc, char **argv) {
   // poisson2->setNeumannBCs(neumann);
   // poisson2->createMatrix();
   // poisson2->createBCMatrix();
+  // poisson2->createMassMatrix();
   // poisson2->setBCValues(bc);
+  Poisson_MF2 *poisson3 = new Poisson_MF2(data, cubData, gaussData);
+  int dirichlet[] = {0, 1, -1};
+  int neumann[] = {2, 3, -1};
+  poisson3->setDirichletBCs(dirichlet);
+  poisson3->setNeumannBCs(neumann);
+  poisson3->setOp();
+  poisson3->setBCOP();
+  poisson3->setBCValues(bc);
 
-  // Poisson_MF2 *poisson3 = new Poisson_MF2(data, cubData, gaussData);
-  // int dirichlet[] = {0, 1, -1};
-  // int neumann[] = {2, 3, -1};
-  // poisson3->setDirichletBCs(dirichlet);
-  // poisson3->setNeumannBCs(neumann);
-  // poisson3->setOp();
-  // poisson3->createBCMatrix();
-  // poisson3->setBCValues(bc);
-
-  poisson->solve(rhs, data->p);
+  poisson3->solve(rhs, data->p);
 
   // poisson3->solve(rhs, data->Q[0][1]);
   // poisson3->solve(rhs, data->p);
