@@ -312,6 +312,9 @@ int main(int argc, char **argv) {
   int save = -1;
   PetscOptionsGetInt(NULL, NULL, "-save", &save, &found);
 
+  int pmethod = 0;
+  PetscOptionsGetInt(NULL, NULL, "-pmethod", &pmethod, &found);
+
   bc_alpha = 0.0;
 
   CubatureData *cubData = new CubatureData(data);
@@ -323,33 +326,51 @@ int main(int argc, char **argv) {
               op_arg_dat(data->Q[0][1],-1,OP_ID,15,"double",OP_WRITE));
 
   // Initialise Poisson solvers
-  // Poisson_M *pressurePoisson = new Poisson_M(data, cubData, gaussData);
-  // int pressure_dirichlet[] = {1, -1, -1};
-  // int pressure_neumann[] = {0, 2, 3};
-  // pressurePoisson->setDirichletBCs(pressure_dirichlet);
-  // pressurePoisson->setNeumannBCs(pressure_neumann);
-  // pressurePoisson->createMatrix();
-  // pressurePoisson->createBCMatrix();
-  Poisson_MF *pressurePoisson = new Poisson_MF(data, cubData, gaussData);
+  Poisson *pressurePoisson;
+  Poisson *viscosityPoisson;
+
   int pressure_dirichlet[] = {1, -1, -1};
   int pressure_neumann[] = {0, 2, 3};
-  pressurePoisson->setDirichletBCs(pressure_dirichlet);
-  pressurePoisson->setNeumannBCs(pressure_neumann);
-  // pressurePoisson->createBCMatrix();
-  // Poisson_M *viscosityPoisson = new Poisson_M(data, cubData, gaussData);
-  // int viscosity_dirichlet[] = {0, 2, 3};
-  // int viscosity_neumann[] = {1, -1, -1};
-  // viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
-  // viscosityPoisson->setNeumannBCs(viscosity_neumann);
-  // viscosityPoisson->createMatrix();
-  // viscosityPoisson->createMassMatrix();
-  // viscosityPoisson->createBCMatrix();
-  Poisson_MF *viscosityPoisson = new Poisson_MF(data, cubData, gaussData);
   int viscosity_dirichlet[] = {0, 2, 3};
   int viscosity_neumann[] = {1, -1, -1};
-  viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
-  viscosityPoisson->setNeumannBCs(viscosity_neumann);
-  // viscosityPoisson->createBCMatrix();
+
+  if(pmethod == 0) {
+    Poisson_M *pressureM = new Poisson_M(data, cubData, gaussData);
+    pressureM->setDirichletBCs(pressure_dirichlet);
+    pressureM->setNeumannBCs(pressure_neumann);
+    pressureM->createMatrix();
+    pressureM->createBCMatrix();
+    pressurePoisson = pressureM;
+    Poisson_M *viscosityM = new Poisson_M(data, cubData, gaussData);
+    viscosityM->setDirichletBCs(viscosity_dirichlet);
+    viscosityM->setNeumannBCs(viscosity_neumann);
+    viscosityM->createMatrix();
+    viscosityM->createMassMatrix();
+    viscosityM->createBCMatrix();
+    viscosityPoisson = viscosityM;
+  } else if(pmethod == 1) {
+    Poisson_MF *pressureMF = new Poisson_MF(data, cubData, gaussData);
+    pressureMF->setDirichletBCs(pressure_dirichlet);
+    pressureMF->setNeumannBCs(pressure_neumann);
+    pressurePoisson = pressureMF;
+    Poisson_MF *viscosityMF = new Poisson_MF(data, cubData, gaussData);
+    viscosityMF->setDirichletBCs(viscosity_dirichlet);
+    viscosityMF->setNeumannBCs(viscosity_neumann);
+    viscosityPoisson = viscosityMF;
+  } else {
+    Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubData, gaussData);
+    pressureMF2->setDirichletBCs(pressure_dirichlet);
+    pressureMF2->setNeumannBCs(pressure_neumann);
+    pressureMF2->setOp();
+    pressureMF2->setBCOP();
+    pressurePoisson = pressureMF2;
+    Poisson_MF2 *viscosityMF2 = new Poisson_MF2(data, cubData, gaussData);
+    viscosityMF2->setDirichletBCs(pressure_dirichlet);
+    viscosityMF2->setNeumannBCs(pressure_neumann);
+    viscosityMF2->setOp();
+    viscosityMF2->setBCOP();
+    viscosityPoisson = viscosityMF2;
+  }
 
   double dt = numeric_limits<double>::max();
   op_par_loop_calc_dt("calc_dt",data->cells,
