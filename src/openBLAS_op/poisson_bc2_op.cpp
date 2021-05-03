@@ -23,7 +23,7 @@ extern "C" {
 #include "../blas_calls.h"
 
 inline void openblas_poisson_bc2(const int numCells, const double *flux, double *rhs) {
-  cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 15, numCells, 21, 1.0, constants->gInterp, 15, flux, 21, 1.0, rhs, 15);
+  cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 15, numCells, 21, -1.0, constants->gInterp, 15, flux, 21, -1.0, rhs, 15);
 }
 
 void poisson_bc_blas2(INSData *data, Poisson_MF *poisson) {

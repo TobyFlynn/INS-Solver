@@ -15,9 +15,9 @@ find_package(OP2 REQUIRED PATHS
   ${CMAKE_INSTALL_PREFIX}/lib/op2)
 
 # Import compiler flags for all build types
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OP2_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OP2_CXX_FLAGS} -std=c++14")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OP2_C_FLAGS}")
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -allow-unsupported-compiler -arch=sm_75")
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -arch=sm_75")
 
 include_directories(${OP2_INCLUDE_DIRS})
 add_definitions(${OP2_USER_DEFINITIONS})

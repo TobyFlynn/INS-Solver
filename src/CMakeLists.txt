@@ -7,6 +7,7 @@ list(APPEND KERNEL_HEADERS kernels/pressure_bc.h kernels/pressure_rhs.h kernels/
 list(APPEND KERNEL_HEADERS kernels/viscosity_rhs.h kernels/viscosity_reset_bc.h kernels/viscosity_bc.h)
 list(APPEND KERNEL_HEADERS kernels/poisson_rhs_faces.h kernels/poisson_rhs_bc.h kernels/poisson_rhs_flux.h kernels/poisson_rhs_J.h kernels/poisson_rhs_qbc.h kernels/poisson_rhs_qflux.h kernels/poisson_bc.h kernels/poisson_bc_J.h kernels/poisson_bc2.h kernels/poisson_bc3.h)
 list(APPEND KERNEL_HEADERS kernels/cub_grad.h kernels/cub_div.h kernels/poisson_test_init.h kernels/poisson_test_bc.h kernels/poisson_test_error.h kernels/tau.h kernels/tau_bc.h)
+list(APPEND KERNEL_HEADERS kernels/poisson_mf2.h kernels/poisson_mf2_mass.h kernels/poisson_mf2_faces.h kernels/poisson_mf2_op.h kernels/poisson_mf2_opf.h  kernels/poisson_mf2_opbf.h kernels/poisson_mf2_bc.h kernels/poisson_mf2_apply_bc)
 
 set(OPENBLAS_SRC openBLAS_op/init_grid_op.cpp openBLAS_op/div_op.cpp openBLAS_op/grad_op.cpp)
 list(APPEND OPENBLAS_SRC openBLAS_op/init_cubature_op.cpp openBLAS_op/init_cubature_grad_op.cpp openBLAS_op/cubature_mm_op.cpp openBLAS_op/cubature_op_op.cpp)
@@ -50,3 +51,10 @@ target_compile_definitions(ins_cuda PRIVATE INS_CUDA)
 op2_application(p_openmp LIBS op2_openmp op2_hdf5 SOURCES poisson_test_op.cpp ${CPU_SRC} ${OPENBLAS_SRC} openmp/ins_kernels.cpp ${KERNEL_HEADERS})
 target_include_directories(p_openmp PUBLIC ${CGNS_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${OPENBLAS_DIR}/include)
 target_link_libraries(p_openmp ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so -L${OPENBLAS_DIR}/lib -lopenblas)
+
+op2_application(p_cuda LIBS op2_cuda op2_hdf5 SOURCES poisson_test_op.cpp ${GPU_SRC} ${CUBLAS_SRC} cuda/ins_kernels.cu ${KERNEL_HEADERS})
+target_compile_definitions(p_cuda PUBLIC -DBUILD_CUDA)
+target_include_directories(p_cuda PUBLIC ${CGNS_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${CUDAToolkit_INCLUDE_DIRS})
+target_link_libraries(p_cuda ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so CUDA::cudart_static CUDA::cublas)
+set_property(TARGET p_cuda PROPERTY CUDA_ARCHITECTURES OFF)
+target_compile_definitions(p_cuda PRIVATE INS_CUDA)

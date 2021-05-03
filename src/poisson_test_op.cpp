@@ -75,41 +75,44 @@ int main(int argc, char **argv) {
 
   INSData *data = new INSData();
 
-  // // Lamda used to identify the type of boundary edges
-  // auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-  //   if(y1 == y2 && y1 > 0.5) {
-  //     // Neumann BC y = 1
-  //     return 2;
-  //   } else if(y1 == y2 && y1 < 0.5) {
-  //     // Neumann BC y = 0
-  //     return 3;
-  //   } else if(x1 < 0.5){
-  //     // Dirichlet BC x = 0
-  //     return 0;
-  //   } else {
-  //     // Dirichlet BC x = 1
-  //     return 1;
-  //   }
-  // };
-
   // Lamda used to identify the type of boundary edges
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
     if(y1 == y2 && y1 > 0.5) {
       // Neumann BC y = 1
-      return 1;
+      return 2;
     } else if(y1 == y2 && y1 < 0.5) {
       // Neumann BC y = 0
-      return 1;
+      return 3;
     } else if(x1 < 0.5){
       // Dirichlet BC x = 0
-      return 1;
+      return 0;
     } else {
       // Dirichlet BC x = 1
-      return 0;
+      return 1;
     }
   };
 
+  // Lamda used to identify the type of boundary edges
+  // auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+  //   if(y1 == y2 && y1 > 0.5) {
+  //     // Neumann BC y = 1
+  //     return 1;
+  //   } else if(y1 == y2 && y1 < 0.5) {
+  //     // Neumann BC y = 0
+  //     return 1;
+  //   } else if(x1 < 0.5){
+  //     // Dirichlet BC x = 0
+  //     return 1;
+  //   } else {
+  //     // Dirichlet BC x = 1
+  //     return 0;
+  //   }
+  // };
+
   load_mesh(filename.c_str(), data, bcNum);
+
+  // Initialise OP2
+  op_init(argc, argv, 2);
 
   // Initialise all sets, maps and dats
   data->initOP2();
@@ -144,23 +147,23 @@ int main(int argc, char **argv) {
   poisson->setDirichletBCs(dirichlet);
   poisson->setNeumannBCs(neumann);
   poisson->setBCValues(bc);
-  Poisson_M *poisson2 = new Poisson_M(data, cubData, gaussData);
+  // Poisson_M *poisson2 = new Poisson_M(data, cubData, gaussData);
   // int dirichlet[] = {0, 1, -1};
   // int neumann[] = {2, 3, -1};
-  poisson2->setDirichletBCs(dirichlet);
-  poisson2->setNeumannBCs(neumann);
-  poisson2->createMatrix();
-  poisson2->createBCMatrix();
-  poisson2->setBCValues(bc);
+  // poisson2->setDirichletBCs(dirichlet);
+  // poisson2->setNeumannBCs(neumann);
+  // poisson2->createMatrix();
+  // poisson2->createBCMatrix();
+  // poisson2->setBCValues(bc);
 
-  Poisson_MF2 *poisson3 = new Poisson_MF2(data, cubData, gaussData);
+  // Poisson_MF2 *poisson3 = new Poisson_MF2(data, cubData, gaussData);
   // int dirichlet[] = {0, 1, -1};
   // int neumann[] = {2, 3, -1};
-  poisson3->setDirichletBCs(dirichlet);
-  poisson3->setNeumannBCs(neumann);
-  poisson3->setOp();
-  poisson3->createBCMatrix();
-  poisson3->setBCValues(bc);
+  // poisson3->setDirichletBCs(dirichlet);
+  // poisson3->setNeumannBCs(neumann);
+  // poisson3->setOp();
+  // poisson3->createBCMatrix();
+  // poisson3->setBCValues(bc);
 
   poisson->solve(rhs, data->p);
 

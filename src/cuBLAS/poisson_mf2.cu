@@ -3,37 +3,100 @@
 #include "op_seq.h"
 #include "../blas_calls.h"
 
-// inline void cublas_poisson_rhs1(cublasHandle_t handle, const int numCells,
-//                                 const double *fluxX_d, const double *fluxY_d,
-//                                 double *dudx_d, double *dudy_d, double *qx_d,
-//                                 double *qy_d, double *gradx_d, double *grady_d) {
-//   // CUBLAS_OP_T because cublas is column major but constants are stored row major
-//   double alpha = -1.0;
-//   double alpha2 = 1.0;
-//   double beta = 1.0;
-//   double beta2 = 0.0;
-//   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha2, constants->invMass_d, 15, dudx_d, 15, &beta2, gradx_d, 15);
-//   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha2, constants->invMass_d, 15, dudy_d, 15, &beta2, grady_d, 15);
-//
-//   cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 21, &alpha, constants->gInterp_d, 15, fluxX_d, 21, &beta, dudx_d, 15);
-//   cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 15, numCells, 21, &alpha, constants->gInterp_d, 15, fluxY_d, 21, &beta, dudy_d, 15);
-//
-//   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha2, constants->invMass_d, 15, dudx_d, 15, &beta2, qx_d, 15);
-//   cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha2, constants->invMass_d, 15, dudy_d, 15, &beta2, qy_d, 15);
-// }
+inline void cublas_poisson_mf2_op1(cublasHandle_t handle, const int numCells,
+                                     const double *u, const double *op1, double *rhs) {
+  double alpha = 1.0;
+  double beta = 0.0;
+  for(int c = 0; c < numCells; c++) {
+    const double *u_c = u + c * 15;
+    const double *op1_c = op1 + c * 15 * 15;
+    double *rhs_c = rhs + c * 15;
 
-void poisson_mf2_blas(INSData *data, Poisson_MF2 *poisson) {
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 15, &alpha, op1_c, 15, u_c, 1, &beta, rhs_c, 1);
+  }
+}
+
+inline void cublas_poisson_mf2_mm(cublasHandle_t handle, const int numCells,
+                                  const double *u, const double *mm, double *rhs, const double f) {
+  double alpha = f;
+  double beta = 1.0;
+  for(int c = 0; c < numCells; c++) {
+    const double *u_c = u + c * 15;
+    const double *mm_c = mm + c * 15 * 15;
+    double *rhs_c = rhs + c * 15;
+
+    cublasDgemv(handle, CUBLAS_OP_N, 15, 15, &alpha, mm_c, 15, u_c, 1, &beta, rhs_c, 1);
+  }
+}
+
+inline void cublas_poisson_mf2_op2(cublasHandle_t handle, const int numEdges, const int *edges,
+                                     const int *edgeNum, const double *u,
+                                     const double *op0, const double *op1,
+                                     const double *op2, double *rhs) {
+  double alpha = 1.0;
+  double beta = 1.0;
+  for(int e = 0; e < numEdges; e++) {
+    const int leftElement  = edges[2 * e];
+    const int rightElement = edges[2 * e + 1];
+    const double *u_l = u + leftElement * 15;
+    const double *u_r = u + rightElement * 15;
+    const double *op2_l; const double *op2_r;
+    switch(edgeNum[2 * e]) {
+      case 0:
+        op2_l = op0 + leftElement * 15 * 15;
+        break;
+      case 1:
+        op2_l = op1 + leftElement * 15 * 15;
+        break;
+      case 2:
+        op2_l = op2 + leftElement * 15 * 15;
+        break;
+    }
+    switch(edgeNum[2 * e + 1]) {
+      case 0:
+        op2_r = op0 + rightElement * 15 * 15;
+        break;
+      case 1:
+        op2_r = op1 + rightElement * 15 * 15;
+        break;
+      case 2:
+        op2_r = op2 + rightElement * 15 * 15;
+        break;
+    }
+    double *rhs_l = rhs + leftElement * 15;
+    double *rhs_r = rhs + rightElement * 15;
+
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 15, &alpha, op2_l, 15, u_r, 1, &beta, rhs_l, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 15, &alpha, op2_r, 15, u_l, 1, &beta, rhs_r, 1);
+  }
+}
+
+void poisson_mf2_blas(INSData *data, Poisson_MF2 *poisson, CubatureData *cubatureData, bool massMat, double massFactor) {
   // Make sure OP2 data is in the right place
   op_arg poisson_args[] = {
     op_arg_dat(poisson->u, -1, OP_ID, 15, "double", OP_READ),
     op_arg_dat(poisson->op1, -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(cubatureData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(poisson->op2[0], -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(poisson->op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(poisson->op2[2], -1, OP_ID, 15 * 15, "double", OP_READ),
     op_arg_dat(poisson->rhs, -1, OP_ID, 15, "double", OP_WRITE)
   };
-  op_mpi_halo_exchanges_cuda(data->cells, 3, poisson_args);
+  op_mpi_halo_exchanges_cuda(data->cells, 7, poisson_args);
 
-  // cublas_poisson_rhs1(constants->handle, data->numCells, (double *)poisson->u->data_d,
-  //                     (double *)poisson->op1->data_d, (double *)poisson->rhs->data_d);
+  cublas_poisson_mf2_op1(constants->handle, data->numCells, (double *)poisson->u->data_d,
+                         (double *)poisson->op1->data_d, (double *)poisson->rhs->data_d);
+
+  if(massMat) {
+    cublas_poisson_mf2_mm(constants->handle, data->numCells, (double *)poisson->u->data_d,
+                           (double *)cubatureData->mm->data_d, (double *)poisson->rhs->data_d, massFactor);
+  }
+
+  cublas_poisson_mf2_op2(constants->handle, data->numEdges, (int *)data->edge2cell_data,
+                         (int *)data->edgeNum_data, (double *)poisson->u->data_d,
+                         (double *)poisson->op2[0]->data_d, (double *)poisson->op2[1]->data_d,
+                         (double *)poisson->op2[2]->data_d, (double *)poisson->rhs->data_d);
 
   // Set correct dirty bits for OP2
-  op_mpi_set_dirtybit_cuda(3, poisson_args);
+  op_mpi_set_dirtybit_cuda(7, poisson_args);
 }
