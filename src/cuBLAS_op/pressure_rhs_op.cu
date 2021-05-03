@@ -28,9 +28,9 @@ inline void cublas_pressure_rhs(cublasHandle_t handle, const int numCells,
   // CUBLAS_OP_T because cublas is column major but constants are stored row major
   double alpha = 1.0;
   double beta1 = 1.0;
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, constants->LIFT_d, 15, dPdN_d, 15, &beta1, div_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, constants->lift_d, 15, dPdN_d, 15, &beta1, div_d, 15);
   double beta2 = 0.0;
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, constants->MASS_d, 15, div_d, 15, &beta2, rhs_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, constants->mass_d, 15, div_d, 15, &beta2, rhs_d, 15);
 }
 
 void pressure_rhs_blas(INSData *nsData, int ind) {

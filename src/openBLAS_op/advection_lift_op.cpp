@@ -24,8 +24,8 @@ extern "C" {
 
 inline void openblas_advection_lift(const int numCells, const double *flux0,
                                const double *flux1, double *N0, double *N1) {
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, constants->LIFT, 15, flux0, 15, 1.0, N0, 15);
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, constants->LIFT, 15, flux1, 15, 1.0, N1, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, constants->lift, 15, flux0, 15, 1.0, N0, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, constants->lift, 15, flux1, 15, 1.0, N1, 15);
 }
 
 void advection_lift_blas(INSData *nsData, int ind) {

@@ -11,7 +11,7 @@ inline void cublas_poisson_test_rhs(cublasHandle_t handle, const int numCells,
   // CUBLAS_OP_T because cublas is column major but constants are stored row major
   double alpha = 1.0;
   double beta = 0.0;
-  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, constants->MASS_d, 15, rhs_d, 15, &beta, temp_d, 15);
+  cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, 15, numCells, 15, &alpha, constants->mass_d, 15, rhs_d, 15, &beta, temp_d, 15);
 
   cudaMemcpy(rhs_d, temp_d, 15 * numCells * sizeof(double), cudaMemcpyDeviceToDevice);
 

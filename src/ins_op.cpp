@@ -370,13 +370,6 @@ int main(int argc, char **argv) {
     viscosityMF2->setOp();
     viscosityMF2->setBCOP();
     viscosityPoisson = viscosityMF2;
-    // Poisson_M *viscosityM = new Poisson_M(data, cubData, gaussData);
-    // viscosityM->setDirichletBCs(viscosity_dirichlet);
-    // viscosityM->setNeumannBCs(viscosity_neumann);
-    // viscosityM->createMatrix();
-    // viscosityM->createMassMatrix();
-    // viscosityM->createBCMatrix();
-    // viscosityPoisson = viscosityM;
   }
 
   double dt = numeric_limits<double>::max();

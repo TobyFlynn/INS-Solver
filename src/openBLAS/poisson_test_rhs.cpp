@@ -6,7 +6,7 @@
 inline void openblas_poisson_test_rhs(const int numCells, double *rhs) {
   double *temp = (double *)malloc(15 * numCells * sizeof(double));
 
-  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, constants->MASS, 15, rhs, 15, 0.0, temp, 15);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 15, numCells, 15, 1.0, constants->mass, 15, rhs, 15, 0.0, temp, 15);
 
   memcpy(rhs, temp, 15 * numCells * sizeof(double));
 

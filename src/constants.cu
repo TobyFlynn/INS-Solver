@@ -67,10 +67,10 @@ Constants::Constants() {
   // Other constants
   cudaMalloc((void**)&invMass_d, 15 * 15 * sizeof(double));
   cudaMemcpy(invMass_d, invMass_g, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  cudaMalloc((void**)&LIFT_d, 15 * 15 * sizeof(double));
-  cudaMemcpy(LIFT_d, LIFT_g, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
-  cudaMalloc((void**)&MASS_d, 15 * 15 * sizeof(double));
-  cudaMemcpy(MASS_d, MASS_g, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  cudaMalloc((void**)&lift_d, 15 * 15 * sizeof(double));
+  cudaMemcpy(lift_d, lift_g, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  cudaMalloc((void**)&mass_d, 15 * 15 * sizeof(double));
+  cudaMemcpy(mass_d, mass_g, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
   cudaMalloc((void**)&r_d, 15 * sizeof(double));
   cudaMemcpy(r_d, r_g, 15 * sizeof(double), cudaMemcpyHostToDevice);
   cudaMalloc((void**)&s_d, 15 * sizeof(double));
@@ -118,11 +118,89 @@ Constants::~Constants() {
   cudaFree(gInterp_d);
   // Other constants
   cudaFree(invMass_d);
-  cudaFree(LIFT_d);
-  cudaFree(MASS_d);
+  cudaFree(lift_d);
+  cudaFree(mass_d);
   cudaFree(r_d);
   cudaFree(s_d);
   cudaFree(ones_d);
 
   cublasDestroy(handle);
+}
+
+double* Constants::get_ptr(Constant_Matrix mat) {
+  switch(mat) {
+    case CUB_DR:
+      return cubDr_d;
+    case CUB_DS:
+      return cubDs_d;
+    case CUB_V:
+      return cubV_d;
+    case CUB_VDR:
+      return cubVDr_d;
+    case CUB_VDS:
+      return cubVDs_d;
+    case CUB_W:
+      return cubW_d;
+    case DR:
+      return Dr_d;
+    case DRW:
+      return Drw_d;
+    case DS:
+      return Ds_d;
+    case DSW:
+      return Dsw_d;
+    case GAUSS_W:
+      return gaussW_d;
+    case GAUSS_F0DR:
+      return gF0Dr_d;
+    case GAUSS_F0DR_R:
+      return gF0DrR_d;
+    case GAUSS_F0DS:
+      return gF0Ds_d;
+    case GAUSS_F0DS_R:
+      return gF0DsR_d;
+    case GAUSS_F1DR:
+      return gF1Dr_d;
+    case GAUSS_F1DR_R:
+      return gF1DrR_d;
+    case GAUSS_F1DS:
+      return gF1Ds_d;
+    case GAUSS_F1DS_R:
+      return gF1DsR_d;
+    case GAUSS_F2DR:
+      return gF2Dr_d;
+    case GAUSS_F2DR_R:
+      return gF2DrR_d;
+    case GAUSS_F2DS:
+      return gF2Ds_d;
+    case GAUSS_F2DS_R:
+      return gF2DsR_d;
+    case GAUSS_FINTERP0:
+      return gFInterp0_d;
+    case GAUSS_FINTERP0_R:
+      return gFInterp0R_d;
+    case GAUSS_FINTERP1:
+      return gFInterp1_d;
+    case GAUSS_FINTERP1_R:
+      return gFInterp1R_d;
+    case GAUSS_FINTERP2:
+      return gFInterp2_d;
+    case GAUSS_FINTERP2_R:
+      return gFInterp2R_d;
+    case GAUSS_INTERP:
+      return gInterp_d;
+    case INV_MASS:
+      return invMass_d;
+    case LIFT:
+      return lift_d;
+    case MASS:
+      return mass_d;
+    case R:
+      return r_d;
+    case S:
+      return s_d;
+    case ONES:
+      return ones_d;
+  }
+  return nullptr;
 }

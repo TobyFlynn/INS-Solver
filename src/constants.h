@@ -35,8 +35,8 @@ extern double gFInterp2R_g[7*15];
 extern double gInterp_g[21*15];
 
 extern double invMass_g[15*15];
-extern double LIFT_g[15*15];
-extern double MASS_g[15*15];
+extern double lift_g[15*15];
+extern double mass_g[15*15];
 extern double r_g[15];
 extern double s_g[15];
 extern double ones_g[15];
@@ -47,9 +47,24 @@ extern double ones_g[15];
 
 class Constants {
 public:
-  Constants();
+  enum Constant_Matrix {
+    CUB_DR, CUB_DS, CUB_V, CUB_VDR, CUB_VDS, CUB_W,
 
+    DR, DRW, DS, DSW,
+
+    GAUSS_W, GAUSS_F0DR, GAUSS_F0DR_R, GAUSS_F0DS, GAUSS_F0DS_R,
+    GAUSS_F1DR, GAUSS_F1DR_R, GAUSS_F1DS, GAUSS_F1DS_R,
+    GAUSS_F2DR, GAUSS_F2DR_R, GAUSS_F2DS, GAUSS_F2DS_R,
+    GAUSS_FINTERP0, GAUSS_FINTERP0_R, GAUSS_FINTERP1, GAUSS_FINTERP1_R,
+    GAUSS_FINTERP2, GAUSS_FINTERP2_R, GAUSS_INTERP,
+
+    INV_MASS, LIFT, MASS, R, S, ONES
+  };
+
+  Constants();
   ~Constants();
+
+  double* get_ptr(Constant_Matrix mat);
 
   double *cubDr, *cubDr_d;
   double *cubDs, *cubDs_d;
@@ -85,8 +100,8 @@ public:
   double *gInterp, *gInterp_d;
 
   double *invMass, *invMass_d;
-  double *LIFT, *LIFT_d;
-  double *MASS, *MASS_d;
+  double *lift, *lift_d;
+  double *mass, *mass_d;
   double *r, *r_d;
   double *s, *s_d;
   double *ones, *ones_d;
