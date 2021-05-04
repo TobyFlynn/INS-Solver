@@ -37,5 +37,6 @@
 #include "constant_gF1DsR.h"
 #include "constant_gF2DrR.h"
 #include "constant_gF2DsR.h"
+#include "constant_invMassGaussInterpT.h"
 
 #endif

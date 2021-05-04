@@ -26,19 +26,9 @@ void gauss_opf_blas(INSData *nsData, GaussData *gaussData);
 
 void viscosity_rhs_blas(INSData *nsData, CubatureData *cubatureData);
 
-void gauss_interp_blas(INSData *data, op_dat input, op_dat output);
-
-void poisson_rhs_blas1(INSData *data, Poisson_MF *poisson);
-
-void poisson_rhs_blas2(INSData *data, Poisson_MF *poisson);
-
 void poisson_rhs_mass_blas(INSData *data, CubatureData *cubatureData, Poisson_MF *poisson, double factor);
 
 void poisson_test_rhs_blas(INSData *nsData, op_dat rhs);
-
-void poisson_bc_blas(INSData *data, Poisson_MF *poisson);
-
-void poisson_bc_blas2(INSData *data, Poisson_MF *poisson);
 
 void poisson_mf2_blas(INSData *data, Poisson_MF2 *poisson, CubatureData *cubatureData, bool massMat, double massFactor);
 

@@ -64,6 +64,8 @@ Constants::Constants() {
   cudaMemcpy(gFInterp2R_d, gFInterp2R_g, 7 * 15 * sizeof(double), cudaMemcpyHostToDevice);
   cudaMalloc((void**)&gInterp_d, 21 * 15 * sizeof(double));
   cudaMemcpy(gInterp_d, gInterp_g, 21 * 15 * sizeof(double), cudaMemcpyHostToDevice);
+  cudaMalloc((void**)&invMassGaussInterpT_d, 21 * 15 * sizeof(double));
+  cudaMemcpy(invMassGaussInterpT_d, invMassGaussInterpT_g, 21 * 15 * sizeof(double), cudaMemcpyHostToDevice);
   // Other constants
   cudaMalloc((void**)&invMass_d, 15 * 15 * sizeof(double));
   cudaMemcpy(invMass_d, invMass_g, 15 * 15 * sizeof(double), cudaMemcpyHostToDevice);
@@ -116,6 +118,7 @@ Constants::~Constants() {
   cudaFree(gFInterp2_d);
   cudaFree(gFInterp2R_d);
   cudaFree(gInterp_d);
+  cudaFree(invMassGaussInterpT_d);
   // Other constants
   cudaFree(invMass_d);
   cudaFree(lift_d);
@@ -189,6 +192,8 @@ double* Constants::get_ptr(Constant_Matrix mat) {
       return gFInterp2R_d;
     case GAUSS_INTERP:
       return gInterp_d;
+    case INV_MASS_GAUSS_INTERP_T:
+      return invMassGaussInterpT_d;
     case INV_MASS:
       return invMass_d;
     case LIFT:

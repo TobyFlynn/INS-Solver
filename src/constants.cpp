@@ -34,6 +34,8 @@ Constants::Constants() {
   gFInterp2  = gFInterp2_g;
   gFInterp2R = gFInterp2R_g;
   gInterp    = gInterp_g;
+
+  invMassGaussInterpT = invMassGaussInterpT_g;
   // Other constants
   invMass = invMass_g;
   lift    = lift_g;
@@ -109,6 +111,8 @@ double* Constants::get_ptr(Constant_Matrix mat) {
       return gFInterp2R;
     case GAUSS_INTERP:
       return gInterp;
+    case INV_MASS_GAUSS_INTERP_T:
+      return invMassGaussInterpT;
     case INV_MASS:
       return invMass;
     case LIFT:
