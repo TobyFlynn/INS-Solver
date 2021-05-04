@@ -28,8 +28,6 @@ void viscosity_rhs_blas(INSData *nsData, CubatureData *cubatureData);
 
 void poisson_rhs_mass_blas(INSData *data, CubatureData *cubatureData, Poisson_MF *poisson, double factor);
 
-void poisson_test_rhs_blas(INSData *nsData, op_dat rhs);
-
 void poisson_mf2_blas(INSData *data, Poisson_MF2 *poisson, CubatureData *cubatureData, bool massMat, double massFactor);
 
 // Assumes matrix is in column major form and both op_dat are defined on the same set
