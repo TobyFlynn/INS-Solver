@@ -1,7 +1,7 @@
 #include "cblas.h"
 
 #include "op_seq.h"
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
 inline void openblas_init_gauss(const int numCells, const double *x,
                                 const double *y, double *gxr, double *gxs,

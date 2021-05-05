@@ -1,7 +1,7 @@
 #include "cblas.h"
 
 #include "op_seq.h"
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
 inline void openblas_init_grid(const int numCells, const double *node_coords,
                                const int *cell2nodes, double *x, double *y,

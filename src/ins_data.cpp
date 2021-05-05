@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "blas_calls.h"
+#include "load_mesh.h"
 
 #include "kernels/init_grid.h"
 
@@ -26,67 +27,27 @@
 
 using namespace std;
 
-INSData::INSData() {
+INSData::INSData(std::string filename) {
+  // Lamda used to identify the type of boundary edges
+  auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+    if(x1 == 0.0 && x2 == 0.0) {
+      // Inflow
+      return 0;
+    } else if(x1 == 2.2 && x2 == 2.2) {
+      // Outflow
+      return 1;
+    } else if(x1 > 0.1 && x2 > 0.1 && x1 < 0.3 && x2 < 0.3
+              && y1 > 0.1 && y2 > 0.1 && y1 < 0.3 && y2 < 0.3) {
+      // Cylinder Wall
+      return 2;
+    } else {
+      // Top/Bottom Wall
+      return 3;
+    }
+  };
 
-}
+  load_mesh(filename.c_str(), this, bcNum);
 
-INSData::~INSData() {
-  free(coords);
-  free(cgnsCells);
-  free(edge2node_data);
-  free(edge2cell_data);
-  free(bedge2node_data);
-  free(bedge2cell_data);
-  free(bedge_type_data);
-  free(edgeNum_data);
-  free(bedgeNum_data);
-
-  free(nodeX_data);
-  free(nodeY_data);
-  free(x_data);
-  free(y_data);
-  free(rx_data);
-  free(ry_data);
-  free(sx_data);
-  free(sy_data);
-  free(nx_data);
-  free(ny_data);
-  free(J_data);
-  free(sJ_data);
-  free(fscale_data);
-  for(int i = 0; i < 4; i++) {
-    free(F_data[i]);
-    free(div_data[i]);
-  }
-  for(int i = 0; i < 2; i++) {
-    free(Q_data[0][i]);
-    free(Q_data[1][i]);
-    free(QT_data[i]);
-    free(QTT_data[i]);
-
-    free(N_data[0][i]);
-    free(N_data[1][i]);
-    free(exQ_data[i]);
-    free(flux_data[i]);
-    free(gradCurlVel_data[i]);
-    free(dPdN_data[i]);
-    free(visRHS_data[i]);
-    free(visBC_data[i]);
-    free(dQdx_data[i]);
-    free(dQdy_data[i]);
-  }
-  free(divVelT_data);
-  free(curlVel_data);
-  free(pRHS_data);
-  free(pRHSex_data);
-  free(p_data);
-  free(dpdx_data);
-  free(dpdy_data);
-  free(zeroBC_data);
-  free(vorticity_data);
-}
-
-void INSData::initOP2() {
   // Initialise memory
   nodeX_data  = (double*)calloc(3 * numCells, sizeof(double));
   nodeY_data  = (double*)calloc(3 * numCells, sizeof(double));
@@ -267,6 +228,62 @@ void INSData::initOP2() {
               op_arg_dat(J,  -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(sJ, -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(fscale, -1, OP_ID, 15, "double", OP_WRITE));
+}
+
+INSData::~INSData() {
+  free(coords);
+  free(cgnsCells);
+  free(edge2node_data);
+  free(edge2cell_data);
+  free(bedge2node_data);
+  free(bedge2cell_data);
+  free(bedge_type_data);
+  free(edgeNum_data);
+  free(bedgeNum_data);
+
+  free(nodeX_data);
+  free(nodeY_data);
+  free(x_data);
+  free(y_data);
+  free(rx_data);
+  free(ry_data);
+  free(sx_data);
+  free(sy_data);
+  free(nx_data);
+  free(ny_data);
+  free(J_data);
+  free(sJ_data);
+  free(fscale_data);
+  for(int i = 0; i < 4; i++) {
+    free(F_data[i]);
+    free(div_data[i]);
+  }
+  for(int i = 0; i < 2; i++) {
+    free(Q_data[0][i]);
+    free(Q_data[1][i]);
+    free(QT_data[i]);
+    free(QTT_data[i]);
+
+    free(N_data[0][i]);
+    free(N_data[1][i]);
+    free(exQ_data[i]);
+    free(flux_data[i]);
+    free(gradCurlVel_data[i]);
+    free(dPdN_data[i]);
+    free(visRHS_data[i]);
+    free(visBC_data[i]);
+    free(dQdx_data[i]);
+    free(dQdy_data[i]);
+  }
+  free(divVelT_data);
+  free(curlVel_data);
+  free(pRHS_data);
+  free(pRHSex_data);
+  free(p_data);
+  free(dpdx_data);
+  free(dpdy_data);
+  free(zeroBC_data);
+  free(vorticity_data);
 }
 
 CubatureData::CubatureData(INSData *dat) {

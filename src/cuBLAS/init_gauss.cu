@@ -1,7 +1,7 @@
 #include "cublas_v2.h"
 
 #include "op_seq.h"
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
 inline void cublas_init_gauss(cublasHandle_t handle, const int numCells,
                               const double *x_d, const double *y_d, double *gxr_d,

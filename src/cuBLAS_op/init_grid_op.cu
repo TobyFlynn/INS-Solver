@@ -20,7 +20,7 @@ extern "C" {
 #endif
 #endif
 
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
 inline void cublas_init_grid(cublasHandle_t handle, const int numCells,
                         const double *node_coords, const int *cell2nodes,

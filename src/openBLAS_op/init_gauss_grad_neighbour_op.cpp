@@ -20,7 +20,7 @@ extern "C" {
 #endif
 #endif
 
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
 inline void openblas_init_gauss_grad_neighbour(const int numCells, const int *reverse, const double *x,
                                 const double *y, double *gxr, double *gxs,

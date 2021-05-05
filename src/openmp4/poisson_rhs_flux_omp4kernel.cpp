@@ -43,10 +43,10 @@ void op_par_loop_poisson_rhs_flux(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(40);
+  op_timing_realloc(25);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[40].name      = name;
-  OP_kernels[40].count    += 1;
+  OP_kernels[25].name      = name;
+  OP_kernels[25].count    += 1;
 
 
   if (OP_diags>2) {
@@ -55,13 +55,13 @@ void op_par_loop_poisson_rhs_flux(char const *name, op_set set,
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_40
-    int part_size = OP_PART_SIZE_40;
+  #ifdef OP_PART_SIZE_25
+    int part_size = OP_PART_SIZE_25;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_40
-    int nthread = OP_BLOCK_SIZE_40;
+  #ifdef OP_BLOCK_SIZE_25
+    int nthread = OP_BLOCK_SIZE_25;
   #else
     int nthread = OP_block_size;
   #endif
@@ -108,11 +108,11 @@ void op_par_loop_poisson_rhs_flux(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[40].time     += wall_t2 - wall_t1;
-  OP_kernels[40].transfer += (float)set->size * arg0.size;
-  OP_kernels[40].transfer += (float)set->size * arg1.size;
-  OP_kernels[40].transfer += (float)set->size * arg2.size;
-  OP_kernels[40].transfer += (float)set->size * arg3.size;
-  OP_kernels[40].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[40].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[25].time     += wall_t2 - wall_t1;
+  OP_kernels[25].transfer += (float)set->size * arg0.size;
+  OP_kernels[25].transfer += (float)set->size * arg1.size;
+  OP_kernels[25].transfer += (float)set->size * arg2.size;
+  OP_kernels[25].transfer += (float)set->size * arg3.size;
+  OP_kernels[25].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[25].transfer += (float)set->size * arg5.size * 2.0f;
 }

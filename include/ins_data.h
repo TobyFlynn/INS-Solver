@@ -3,6 +3,8 @@
 
 #include "op_seq.h"
 
+#include <string>
+
 extern double gam;
 extern double mu;
 extern double nu;
@@ -41,9 +43,8 @@ extern double lift_drag_vec[5];
 
 class INSData {
 public:
-  INSData();
+  INSData(std::string filename);
   ~INSData();
-  void initOP2();
   // Pointers used when loading data
   double *coords;
   int *cgnsCells;

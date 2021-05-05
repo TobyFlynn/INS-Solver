@@ -20,7 +20,7 @@ extern "C" {
 #endif
 #endif
 
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
 inline void cublas_init_gauss_grad(cublasHandle_t handle, const int numCells,
                         const double *x_d, const double *y_d, double *gxr_d,
