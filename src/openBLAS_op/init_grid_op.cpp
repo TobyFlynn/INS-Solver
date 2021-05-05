@@ -78,7 +78,9 @@ void init_grid_blas(INSData *nsData) {
   };
   op_mpi_halo_exchanges(nsData->cells, 6, init_grid_args);
 
-  openblas_init_grid(nsData->numCells, (double *)nsData->node_coords->data,
+  int setSize = nsData->x->set->size;
+
+  openblas_init_grid(setSize, (double *)nsData->node_coords->data,
                      (int *)nsData->cell2nodes->map, (double *)nsData->x->data,
                      (double *)nsData->y->data, (double *)nsData->rx->data,
                      (double *)nsData->sx->data, (double *)nsData->ry->data,

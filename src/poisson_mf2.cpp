@@ -31,8 +31,8 @@
 
 using namespace std;
 
-Poisson_MF2::Poisson_MF2(INSData *nsData, CubatureData *cubData, GaussData *gaussData, bool blas) : Poisson(nsData, cubData, gaussData) {
-  use_blas = blas;
+Poisson_MF2::Poisson_MF2(INSData *nsData, CubatureData *cubData, GaussData *gaussData) : Poisson(nsData, cubData, gaussData) {
+  use_blas = false;
 
   u_data      = (double *)calloc(15 * data->numCells, sizeof(double));
   rhs_data    = (double *)calloc(15 * data->numCells, sizeof(double));
@@ -133,11 +133,11 @@ void Poisson_MF2::calc_rhs(const double *u_d, double *rhs_d) {
   copy_u(u_d);
 
   if(use_blas) {
-    op2_gemv_batch(true, 15, 15, 1.0, op1, 15, u, 0.0, rhs);
-    if(massMat) {
-      op2_gemv_batch(false, 15, 15, massFactor, cData->mm, 15, u, 1.0, rhs);
-    }
-    poisson_mf2_blas(data, this, cData, massMat, massFactor);
+    // op2_gemv_batch(true, 15, 15, 1.0, op1, 15, u, 0.0, rhs);
+    // if(massMat) {
+    //   op2_gemv_batch(false, 15, 15, massFactor, cData->mm, 15, u, 1.0, rhs);
+    // }
+    // poisson_mf2_blas(data, this, cData, massMat, massFactor);
   } else {
     if(massMat) {
       op_par_loop(poisson_mf2_mass, "poisson_mf2_mass", data->cells,

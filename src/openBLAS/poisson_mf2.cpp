@@ -1,3 +1,4 @@
+/*
 #include "cblas.h"
 
 #include "op_seq.h"
@@ -62,3 +63,4 @@ void poisson_mf2_blas(INSData *data, Poisson_MF2 *poisson, CubatureData *cubatur
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit(5, poisson_args);
 }
+*/

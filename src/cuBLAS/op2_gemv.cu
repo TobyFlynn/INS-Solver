@@ -10,7 +10,7 @@ void op2_gemv(bool transpose, int m, int n, double alpha, double *A_ptr, int lda
   };
   op_mpi_halo_exchanges_cuda(x->set, 2, gemv_args);
 
-  int setSize = op_get_size(x->set);
+  int setSize = x->set->size;
 
   if(transpose) {
     cublasDgemm(constants->handle, CUBLAS_OP_T, CUBLAS_OP_N, m, setSize, n, &alpha, A_ptr, lda, (double *)x->data_d, x->dim, &beta, (double *)y->data_d, y->dim);

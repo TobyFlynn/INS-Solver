@@ -68,7 +68,9 @@ void init_gauss_grad_blas(INSData *nsData, GaussData *gaussData) {
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 6, init_grad_args);
 
-  cublas_init_gauss_grad(constants->handle, nsData->numCells, (double *)nsData->x->data_d,
+  int setSize = nsData->x->set->size;
+
+  cublas_init_gauss_grad(constants->handle, setSize, (double *)nsData->x->data_d,
                    (double *)nsData->y->data_d, (double *)gaussData->rx->data_d,
                    (double *)gaussData->sx->data_d, (double *)gaussData->ry->data_d,
                    (double *)gaussData->sy->data_d);

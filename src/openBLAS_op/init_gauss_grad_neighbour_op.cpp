@@ -76,23 +76,21 @@ void init_gauss_grad_neighbour_blas(INSData *nsData, GaussData *gaussData) {
   op_arg init_grad_args[] = {
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_READ),
     op_arg_dat(nsData->y, -1, OP_ID, 15, "double", OP_READ),
+    op_arg_dat(gaussData->reverse, -1, OP_ID, 3, "double", OP_READ),
     op_arg_dat(gaussData->rx, -1, OP_ID, 21, "double", OP_WRITE),
     op_arg_dat(gaussData->sx, -1, OP_ID, 21, "double", OP_WRITE),
     op_arg_dat(gaussData->ry, -1, OP_ID, 21, "double", OP_WRITE),
     op_arg_dat(gaussData->sy, -1, OP_ID, 21, "double", OP_WRITE)
   };
-  op_mpi_halo_exchanges(nsData->cells, 6, init_grad_args);
+  op_mpi_halo_exchanges(nsData->cells, 7, init_grad_args);
 
-  int *reverse = (int *)malloc(3 * op_get_size(nsData->cells) * sizeof(int));
-  op_fetch_data(gaussData->reverse, reverse);
+  int setSize = nsData->x->set->size;
 
-  openblas_init_gauss_grad_neighbour(nsData->numCells, reverse, (double *)nsData->x->data,
+  openblas_init_gauss_grad_neighbour(setSize, (int *)gaussData->reverse->data, (double *)nsData->x->data,
                    (double *)nsData->y->data, (double *)gaussData->rx->data,
                    (double *)gaussData->sx->data, (double *)gaussData->ry->data,
                    (double *)gaussData->sy->data);
 
-  free(reverse);
-
   // Set correct dirty bits for OP2
-  op_mpi_set_dirtybit(6, init_grad_args);
+  op_mpi_set_dirtybit(7, init_grad_args);
 }

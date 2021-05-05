@@ -30,7 +30,7 @@ void op2_gemm_batch(bool transposeA, bool transposeB, int m, int n, int k, doubl
   };
   op_mpi_halo_exchanges_cuda(a->set, 3, gemv_args);
 
-  int setSize = op_get_size(a->set);
+  int setSize = a->set->size;
 
   if(transposeA) {
     if(transposeB) {

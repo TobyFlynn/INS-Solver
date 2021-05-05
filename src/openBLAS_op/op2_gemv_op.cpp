@@ -29,7 +29,7 @@ void op2_gemv(bool transpose, int m, int n, double alpha, double *A_ptr, int lda
   };
   op_mpi_halo_exchanges(x->set, 2, gemv_args);
 
-  int setSize = op_get_size(x->set);
+  int setSize = x->set->size;
 
   if(transpose) {
     cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, m, setSize, n, alpha, A_ptr, lda, (double *)x->data, x->dim, beta, (double *)y->data, y->dim);

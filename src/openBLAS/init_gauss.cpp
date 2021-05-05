@@ -66,7 +66,9 @@ void init_gauss_blas(INSData *nsData, GaussData *gaussData) {
   };
   op_mpi_halo_exchanges(nsData->cells, 6, init_gauss_args);
 
-  openblas_init_gauss(nsData->numCells, (double *)nsData->x->data,
+  int setSize = nsData->x->set->size;
+
+  openblas_init_gauss(setSize, (double *)nsData->x->data,
                      (double *)nsData->y->data, (double *)gaussData->rx->data,
                      (double *)gaussData->sx->data, (double *)gaussData->ry->data,
                      (double *)gaussData->sy->data);

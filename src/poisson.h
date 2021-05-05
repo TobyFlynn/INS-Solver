@@ -106,7 +106,7 @@ private:
 
 class Poisson_MF2 : public Poisson {
 public:
-  Poisson_MF2(INSData *data, CubatureData *cubData, GaussData *gaussData, bool blas = false);
+  Poisson_MF2(INSData *data, CubatureData *cubData, GaussData *gaussData);
   ~Poisson_MF2();
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);

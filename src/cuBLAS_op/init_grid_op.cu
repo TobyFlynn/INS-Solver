@@ -95,7 +95,9 @@ void init_grid_blas(INSData *nsData) {
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 6, init_grid_args);
 
-  cublas_init_grid(constants->handle, nsData->numCells, (double *)nsData->node_coords->data,
+  int setSize = nsData->x->set->size;
+
+  cublas_init_grid(constants->handle, setSize, (double *)nsData->node_coords->data,
                    (int *)nsData->cell2nodes->map, (double *)nsData->x->data_d,
                    (double *)nsData->y->data_d, (double *)nsData->rx->data_d,
                    (double *)nsData->sx->data_d, (double *)nsData->ry->data_d,

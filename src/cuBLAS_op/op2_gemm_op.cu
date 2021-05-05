@@ -29,7 +29,7 @@ void op2_gemm(bool transposeA, bool transposeB, int m, int n, int k, double alph
   };
   op_mpi_halo_exchanges_cuda(b->set, 2, gemv_args);
 
-  int setSize = op_get_size(b->set);
+  int setSize = b->set->size;
 
   if(transposeA) {
     if(transposeB) {
