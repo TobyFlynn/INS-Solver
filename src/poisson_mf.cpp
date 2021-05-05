@@ -256,7 +256,8 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
 
   if(massMat) {
     timer->startLinearSolveMFRHS();
-    poisson_rhs_mass_blas(data, cData, this, massFactor);
+    // poisson_rhs_mass_blas(data, cData, this, massFactor);
+    op2_gemv_batch(false, 15, 15, massFactor, cData->mm, 15, u, 1.0, rhs);
     timer->endLinearSolveMFRHS();
   }
 

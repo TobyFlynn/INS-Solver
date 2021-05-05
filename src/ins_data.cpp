@@ -346,7 +346,8 @@ CubatureData::CubatureData(INSData *dat) {
               op_arg_dat(temp,  -1, OP_ID, 46 * 15, "double", OP_WRITE),
               op_arg_dat(temp2, -1, OP_ID, 46 * 15, "double", OP_WRITE));
   // Temp and temp2 are in row-major at this point
-  cubature_op_blas(data, this);
+  op2_gemm_batch(false, true, 15, 15, 46, 1.0, Dx, 15, temp, 15, 0.0, OP, 15);
+  op2_gemm_batch(false, true, 15, 15, 46, 1.0, Dy, 15, temp2, 15, 1.0, OP, 15);
   // OP is in col-major at this point
 }
 
@@ -569,7 +570,17 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(pDy[1], -2, data->edge2cells, 7 * 15, "double", OP_INC),
               op_arg_dat(pDy[2], -2, data->edge2cells, 7 * 15, "double", OP_INC));
 
-  gauss_opf_blas(data, this);
+  op2_gemm_batch(true, true, 15, 15, 7, 1.0, mDx[0], 7, pDy[0], 15, 0.0, OPf[0], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, 1.0, mDx[1], 7, pD[0], 15, 1.0, OPf[0], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, -1.0, mDx[2], 7, pDy[0], 15, 1.0, OPf[0], 15);
+
+  op2_gemm_batch(true, true, 15, 15, 7, 1.0, mDy[0], 7, pDy[1], 15, 0.0, OPf[1], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, 1.0, mDy[1], 7, pD[1], 15, 1.0, OPf[1], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, -1.0, mDy[2], 7, pDy[1], 15, 1.0, OPf[1], 15);
+
+  op2_gemm_batch(true, true, 15, 15, 7, 1.0, pDx[0], 7, pDy[2], 15, 0.0, OPf[2], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, 1.0, pDx[1], 7, pD[2], 15, 1.0, OPf[2], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, -1.0, pDx[2], 7, pDy[2], 15, 1.0, OPf[2], 15);
 
   // Applying the correct factors to OP and OPf is done when constructing the Poisson matrix
 }

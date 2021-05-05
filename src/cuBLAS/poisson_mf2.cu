@@ -3,32 +3,6 @@
 #include "op_seq.h"
 #include "../blas_calls.h"
 
-inline void cublas_poisson_mf2_op1(cublasHandle_t handle, const int numCells,
-                                     const double *u, const double *op1, double *rhs) {
-  double alpha = 1.0;
-  double beta = 0.0;
-  for(int c = 0; c < numCells; c++) {
-    const double *u_c = u + c * 15;
-    const double *op1_c = op1 + c * 15 * 15;
-    double *rhs_c = rhs + c * 15;
-
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 15, &alpha, op1_c, 15, u_c, 1, &beta, rhs_c, 1);
-  }
-}
-
-inline void cublas_poisson_mf2_mm(cublasHandle_t handle, const int numCells,
-                                  const double *u, const double *mm, double *rhs, const double f) {
-  double alpha = f;
-  double beta = 1.0;
-  for(int c = 0; c < numCells; c++) {
-    const double *u_c = u + c * 15;
-    const double *mm_c = mm + c * 15 * 15;
-    double *rhs_c = rhs + c * 15;
-
-    cublasDgemv(handle, CUBLAS_OP_N, 15, 15, &alpha, mm_c, 15, u_c, 1, &beta, rhs_c, 1);
-  }
-}
-
 inline void cublas_poisson_mf2_op2(cublasHandle_t handle, const int numEdges, const int *edges,
                                      const int *edgeNum, const double *u,
                                      const double *op0, const double *op1,
@@ -75,22 +49,12 @@ void poisson_mf2_blas(INSData *data, Poisson_MF2 *poisson, CubatureData *cubatur
   // Make sure OP2 data is in the right place
   op_arg poisson_args[] = {
     op_arg_dat(poisson->u, -1, OP_ID, 15, "double", OP_READ),
-    op_arg_dat(poisson->op1, -1, OP_ID, 15 * 15, "double", OP_READ),
-    op_arg_dat(cubatureData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
     op_arg_dat(poisson->op2[0], -1, OP_ID, 15 * 15, "double", OP_READ),
     op_arg_dat(poisson->op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
     op_arg_dat(poisson->op2[2], -1, OP_ID, 15 * 15, "double", OP_READ),
-    op_arg_dat(poisson->rhs, -1, OP_ID, 15, "double", OP_WRITE)
+    op_arg_dat(poisson->rhs, -1, OP_ID, 15, "double", OP_RW)
   };
-  op_mpi_halo_exchanges_cuda(data->cells, 7, poisson_args);
-
-  cublas_poisson_mf2_op1(constants->handle, data->numCells, (double *)poisson->u->data_d,
-                         (double *)poisson->op1->data_d, (double *)poisson->rhs->data_d);
-
-  if(massMat) {
-    cublas_poisson_mf2_mm(constants->handle, data->numCells, (double *)poisson->u->data_d,
-                           (double *)cubatureData->mm->data_d, (double *)poisson->rhs->data_d, massFactor);
-  }
+  op_mpi_halo_exchanges_cuda(data->cells, 5, poisson_args);
 
   cublas_poisson_mf2_op2(constants->handle, data->numEdges, (int *)data->edge2cell_data,
                          (int *)data->edgeNum_data, (double *)poisson->u->data_d,
@@ -98,5 +62,5 @@ void poisson_mf2_blas(INSData *data, Poisson_MF2 *poisson, CubatureData *cubatur
                          (double *)poisson->op2[2]->data_d, (double *)poisson->rhs->data_d);
 
   // Set correct dirty bits for OP2
-  op_mpi_set_dirtybit_cuda(7, poisson_args);
+  op_mpi_set_dirtybit_cuda(5, poisson_args);
 }

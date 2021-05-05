@@ -22,28 +22,6 @@ extern "C" {
 
 #include "../blas_calls.h"
 
-inline void openblas_poisson_mf2_op1(const int numCells, const double *u,
-                                     const double *op1, double *rhs) {
-  for(int c = 0; c < numCells; c++) {
-    const double *u_c = u + c * 15;
-    const double *op1_c = op1 + c * 15 * 15;
-    double *rhs_c = rhs + c * 15;
-
-    cblas_dgemv(CblasRowMajor, CblasNoTrans, 15, 15, 1.0, op1_c, 15, u_c, 1, 0.0, rhs_c, 1);
-  }
-}
-
-inline void openblas_poisson_mf2_mm(const int numCells, const double *u,
-                                     const double *mm, double *rhs, const double f) {
-  for(int c = 0; c < numCells; c++) {
-    const double *u_c = u + c * 15;
-    const double *mm_c = mm + c * 15 * 15;
-    double *rhs_c = rhs + c * 15;
-
-    cblas_dgemv(CblasRowMajor, CblasTrans, 15, 15, f, mm_c, 15, u_c, 1, 1.0, rhs_c, 1);
-  }
-}
-
 inline void openblas_poisson_mf2_op2(const int numEdges, const int *edges,
                                      const int *edgeNum, const double *u,
                                      const double *op0, const double *op1,
@@ -88,22 +66,12 @@ void poisson_mf2_blas(INSData *data, Poisson_MF2 *poisson, CubatureData *cubatur
   // Make sure OP2 data is in the right place
   op_arg poisson_args[] = {
     op_arg_dat(poisson->u, -1, OP_ID, 15, "double", OP_READ),
-    op_arg_dat(poisson->op1, -1, OP_ID, 15 * 15, "double", OP_READ),
-    op_arg_dat(cubatureData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
     op_arg_dat(poisson->op2[0], -1, OP_ID, 15 * 15, "double", OP_READ),
     op_arg_dat(poisson->op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
     op_arg_dat(poisson->op2[2], -1, OP_ID, 15 * 15, "double", OP_READ),
-    op_arg_dat(poisson->rhs, -1, OP_ID, 15, "double", OP_WRITE)
+    op_arg_dat(poisson->rhs, -1, OP_ID, 15, "double", OP_RW)
   };
-  op_mpi_halo_exchanges(data->cells, 7, poisson_args);
-
-  openblas_poisson_mf2_op1(data->numCells, (double *)poisson->u->data,
-                           (double *)poisson->op1->data, (double *)poisson->rhs->data);
-
-  if(massMat) {
-    openblas_poisson_mf2_mm(data->numCells, (double *)poisson->u->data,
-                             (double *)cubatureData->mm->data, (double *)poisson->rhs->data, massFactor);
-  }
+  op_mpi_halo_exchanges(data->cells, 5, poisson_args);
 
   openblas_poisson_mf2_op2(data->numEdges, (int *)data->edge2cell_data,
                            (int *)data->edgeNum_data, (double *)poisson->u->data,
@@ -111,5 +79,5 @@ void poisson_mf2_blas(INSData *data, Poisson_MF2 *poisson, CubatureData *cubatur
                            (double *)poisson->op2[2]->data, (double *)poisson->rhs->data);
 
   // Set correct dirty bits for OP2
-  op_mpi_set_dirtybit(7, poisson_args);
+  op_mpi_set_dirtybit(5, poisson_args);
 }
