@@ -102,7 +102,10 @@ void op_par_loop_cub_div(char const *, op_set,
 #include "kernels/cub_div.h"
 
 void div(INSData *data, op_dat u, op_dat v, op_dat res) {
-  div_blas(data, u, v);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DR), 15, u, 0.0, data->div[0]);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DS), 15, u, 0.0, data->div[1]);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DR), 15, v, 0.0, data->div[2]);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DS), 15, v, 0.0, data->div[3]);
 
   op_par_loop_div("div",data->cells,
               op_arg_dat(data->div[0],-1,OP_ID,15,"double",OP_READ),
@@ -118,7 +121,10 @@ void div(INSData *data, op_dat u, op_dat v, op_dat res) {
 
 void curl(INSData *data, op_dat u, op_dat v, op_dat res) {
   // Same matrix multiplications as div
-  div_blas(data, u, v);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DR), 15, u, 0.0, data->div[0]);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DS), 15, u, 0.0, data->div[1]);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DR), 15, v, 0.0, data->div[2]);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DS), 15, v, 0.0, data->div[3]);
 
   op_par_loop_curl("curl",data->cells,
               op_arg_dat(data->div[0],-1,OP_ID,15,"double",OP_READ),
@@ -133,7 +139,8 @@ void curl(INSData *data, op_dat u, op_dat v, op_dat res) {
 }
 
 void grad(INSData *data, op_dat u, op_dat ux, op_dat uy) {
-  grad_blas(data, u);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DR), 15, u, 0.0, data->div[0]);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DS), 15, u, 0.0, data->div[1]);
 
   op_par_loop_grad("grad",data->cells,
               op_arg_dat(data->div[0],-1,OP_ID,15,"double",OP_READ),
@@ -148,7 +155,7 @@ void grad(INSData *data, op_dat u, op_dat ux, op_dat uy) {
 
 void cub_grad(INSData *data, CubatureData *cubData, op_dat u, op_dat ux, op_dat uy, bool weak) {
   if(weak) {
-    cub_grad_w_blas(data, cubData, u);
+    op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_V), 15, u, 0.0, cubData->op_temps[0]);
 
     op_par_loop_cub_grad_w("cub_grad_w",data->cells,
                 op_arg_dat(cubData->op_temps[0],-1,OP_ID,46,"double",OP_RW),
@@ -161,9 +168,13 @@ void cub_grad(INSData *data, CubatureData *cubData, op_dat u, op_dat ux, op_dat 
                 op_arg_dat(cubData->op_temps[2],-1,OP_ID,46,"double",OP_WRITE),
                 op_arg_dat(cubData->op_temps[3],-1,OP_ID,46,"double",OP_WRITE));
 
-    cub_grad_w_blas2(data, cubData, ux, uy);
+    op2_gemv(false, 15, 46, 1.0, constants->get_ptr(Constants::CUB_DR), 15, cubData->op_temps[0], 0.0, ux);
+    op2_gemv(false, 15, 46, 1.0, constants->get_ptr(Constants::CUB_DS), 15, cubData->op_temps[1], 1.0, ux);
+    op2_gemv(false, 15, 46, 1.0, constants->get_ptr(Constants::CUB_DR), 15, cubData->op_temps[2], 0.0, uy);
+    op2_gemv(false, 15, 46, 1.0, constants->get_ptr(Constants::CUB_DS), 15, cubData->op_temps[3], 1.0, uy);
   } else {
-    cub_grad_blas(data, cubData, u);
+    op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DR), 15, u, 0.0, cubData->op_temps[0]);
+    op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DS), 15, u, 0.0, cubData->op_temps[1]);
 
     op_par_loop_cub_grad("cub_grad",data->cells,
                 op_arg_dat(cubData->rx,-1,OP_ID,46,"double",OP_READ),
@@ -174,13 +185,15 @@ void cub_grad(INSData *data, CubatureData *cubData, op_dat u, op_dat ux, op_dat 
                 op_arg_dat(cubData->op_temps[0],-1,OP_ID,46,"double",OP_RW),
                 op_arg_dat(cubData->op_temps[1],-1,OP_ID,46,"double",OP_RW));
 
-    cub_grad_blas2(data, cubData, ux, uy);
+    op2_gemv(false, 15, 46, 1.0, constants->get_ptr(Constants::CUB_V), 15, cubData->op_temps[0], 0.0, ux);
+    op2_gemv(false, 15, 46, 1.0, constants->get_ptr(Constants::CUB_V), 15, cubData->op_temps[1], 0.0, uy);
   }
 }
 
 void cub_div(INSData *data, CubatureData *cubData, op_dat u, op_dat v, op_dat res, bool weak) {
   if(weak) {
-    cub_div_w_blas(data, cubData, u, v);
+    op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_V), 15, u, 0.0, cubData->op_temps[0]);
+    op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_V), 15, v, 0.0, cubData->op_temps[1]);
 
     op_par_loop_cub_div_w("cub_div_w",data->cells,
                 op_arg_dat(cubData->op_temps[0],-1,OP_ID,46,"double",OP_RW),
@@ -193,9 +206,15 @@ void cub_div(INSData *data, CubatureData *cubData, op_dat u, op_dat v, op_dat re
                 op_arg_dat(cubData->op_temps[2],-1,OP_ID,46,"double",OP_WRITE),
                 op_arg_dat(cubData->op_temps[3],-1,OP_ID,46,"double",OP_WRITE));
 
-    cub_div_w_blas2(data, cubData, res);
+    op2_gemv(false, 15, 46, 1.0, constants->get_ptr(Constants::CUB_DR), 15, cubData->op_temps[0], 0.0, res);
+    op2_gemv(false, 15, 46, 1.0, constants->get_ptr(Constants::CUB_DS), 15, cubData->op_temps[1], 1.0, res);
+    op2_gemv(false, 15, 46, 1.0, constants->get_ptr(Constants::CUB_DR), 15, cubData->op_temps[2], 1.0, res);
+    op2_gemv(false, 15, 46, 1.0, constants->get_ptr(Constants::CUB_DS), 15, cubData->op_temps[3], 1.0, res);
   } else {
-    cub_div_blas(data, cubData, u, v);
+    op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DR), 15, u, 0.0, cubData->op_temps[0]);
+    op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DS), 15, u, 0.0, cubData->op_temps[1]);
+    op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DR), 15, v, 0.0, cubData->op_temps[2]);
+    op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DS), 15, v, 0.0, cubData->op_temps[3]);
 
     op_par_loop_cub_div("cub_div",data->cells,
                 op_arg_dat(cubData->rx,-1,OP_ID,46,"double",OP_READ),
@@ -208,6 +227,6 @@ void cub_div(INSData *data, CubatureData *cubData, op_dat u, op_dat v, op_dat re
                 op_arg_dat(cubData->op_temps[2],-1,OP_ID,46,"double",OP_READ),
                 op_arg_dat(cubData->op_temps[3],-1,OP_ID,46,"double",OP_READ));
 
-    cub_div_blas2(data, cubData, res);
+    op2_gemv(false, 15, 46, 1.0, constants->get_ptr(Constants::CUB_V), 15, cubData->op_temps[0], 0.0, res);
   }
 }

@@ -367,7 +367,8 @@ void advection(INSData *data, int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->flux[0], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->flux[1], -1, OP_ID, 15, "double", OP_WRITE));
 
-  advection_lift_blas(data, currentInd);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::LIFT), 15, data->flux[0], 1.0, data->N[currentInd][0]);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::LIFT), 15, data->flux[1], 1.0, data->N[currentInd][1]);
 
   // Calculate the intermediate velocity values
   op_par_loop(advection_intermediate_vel, "advection_intermediate_vel", data->cells,
@@ -423,7 +424,8 @@ bool pressure(INSData *data, Poisson *poisson, int currentInd, double a0, double
               op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(data->divVelT, -1, OP_ID, 15, "double", OP_RW));
 
-  pressure_rhs_blas(data, currentInd);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::LIFT), 15, data->dPdN[(currentInd + 1) % 2], 1.0, data->divVelT);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::MASS), 15, data->divVelT, 0.0, data->pRHS);
   timer->endPressureSetup();
 
   // Call PETSc linear solver
@@ -466,7 +468,8 @@ bool viscosity(INSData *data, CubatureData *cubatureData, GaussData *gaussData,
               op_arg_dat(data->visBC[1], 0, data->bedge2cells, 21, "double", OP_INC));
 
   // Set up RHS for viscosity solve
-  viscosity_rhs_blas(data, cubatureData);
+  op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[0], 0.0, data->visRHS[0]);
+  op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[1], 0.0, data->visRHS[1]);
 
   double factor = g0 / (nu * dt);
   op_par_loop(viscosity_rhs, "viscosity_rhs", data->cells,

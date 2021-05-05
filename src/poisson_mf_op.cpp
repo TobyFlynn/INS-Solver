@@ -260,7 +260,7 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
   // Copy u to OP2 dat (different depending on whether CPU or GPU)
   copy_u(u_d);
   timer->startLinearSolveMFRHS();
-  gauss_interp_blas(data, u, gU);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, u, 0.0, gU);
   timer->endLinearSolveMFRHS();
 
   op_par_loop_poisson_rhs_faces("poisson_rhs_faces",data->edges,
@@ -290,7 +290,12 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
   timer->startLinearSolveMFRHS();
   cub_grad(data, cData, u, dudx, dudy);
 
-  poisson_rhs_blas1(data, this);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::INV_MASS), 15, dudx, 0.0, gradx);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::INV_MASS), 15, dudy, 0.0, grady);
+  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, uFluxX, 1.0, dudx);
+  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, uFluxY, 1.0, dudy);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::INV_MASS), 15, dudx, 0.0, qx);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::INV_MASS), 15, dudy, 0.0, qy);
   timer->endLinearSolveMFRHS();
 
   op_par_loop_poisson_rhs_J("poisson_rhs_J",data->cells,
@@ -301,8 +306,8 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(grady,-1,OP_ID,15,"double",OP_RW));
 
   timer->startLinearSolveMFRHS();
-  gauss_interp_blas(data, gradx, gqx);
-  gauss_interp_blas(data, grady, gqy);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, gradx, 0.0, gqx);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, grady, 0.0, gqy);
   timer->endLinearSolveMFRHS();
 
   op_par_loop_poisson_rhs_faces("poisson_rhs_faces",data->edges,
@@ -350,12 +355,13 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
   timer->startLinearSolveMFRHS();
   cub_div(data, cData, qx, qy, rhs);
 
-  poisson_rhs_blas2(data, this);
+  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, qFlux, -1.0, rhs);
   timer->endLinearSolveMFRHS();
 
   if(massMat) {
     timer->startLinearSolveMFRHS();
-    poisson_rhs_mass_blas(data, cData, this, massFactor);
+    // poisson_rhs_mass_blas(data, cData, this, massFactor);
+    op2_gemv_batch(false, 15, 15, massFactor, cData->mm, 15, u, 1.0, rhs);
     timer->endLinearSolveMFRHS();
   }
 
@@ -371,7 +377,8 @@ void Poisson_MF::applyBCs(op_dat b_dat) {
               op_arg_dat(uFluxX,-1,OP_ID,21,"double",OP_WRITE),
               op_arg_dat(uFluxY,-1,OP_ID,21,"double",OP_WRITE));
 
-  poisson_bc_blas(data, this);
+  op2_gemv(true, 15, 21, 1.0, constants->get_ptr(Constants::INV_MASS_GAUSS_INTERP_T), 21, uFluxX, 0.0, gradx);
+  op2_gemv(true, 15, 21, 1.0, constants->get_ptr(Constants::INV_MASS_GAUSS_INTERP_T), 21, uFluxY, 0.0, grady);
 
   op_par_loop_poisson_bc_J("poisson_bc_J",data->cells,
               op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),
@@ -386,7 +393,7 @@ void Poisson_MF::applyBCs(op_dat b_dat) {
               op_arg_dat(bc_dat,-1,OP_ID,21,"double",OP_READ),
               op_arg_dat(uFluxX,-1,OP_ID,21,"double",OP_WRITE));
 
-  poisson_bc_blas2(data, this);
+  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, uFluxX, -1.0, dudx);
 
   op_par_loop_poisson_bc3("poisson_bc3",data->cells,
               op_arg_dat(dudx,-1,OP_ID,15,"double",OP_READ),

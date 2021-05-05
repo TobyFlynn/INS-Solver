@@ -8,16 +8,6 @@
 
 extern Constants *constants;
 
-void init_cubature_grad_blas(INSData *nsData, CubatureData *cubData);
-
-void init_cubature_blas(INSData *nsData, CubatureData *cubData);
-
-void cubature_op_blas(INSData *nsData, CubatureData *cubData);
-
-void cubature_mm_blas(INSData *nsData, CubatureData *cubData);
-
-void init_gauss_coords_blas(INSData *nsData, GaussData *gaussData);
-
 void init_gauss_grad_blas(INSData *nsData, GaussData *gaussData);
 
 void init_gauss_blas(INSData *nsData, GaussData *gaussData);
@@ -26,50 +16,17 @@ void init_gauss_grad_neighbour_blas(INSData *nsData, GaussData *gaussData);
 
 void init_grid_blas(INSData *nsData);
 
-void gauss_op_blas(INSData *nsData, GaussData *gaussData);
-
-void gauss_opf_blas(INSData *nsData, GaussData *gaussData);
-
-void div_blas(INSData *nsData, op_dat u, op_dat v);
-
-void grad_blas(INSData *nsData, op_dat u);
-
-void advection_lift_blas(INSData *nsData, int ind);
-
-void pressure_rhs_blas(INSData *nsData, int ind);
-
-void viscosity_rhs_blas(INSData *nsData, CubatureData *cubatureData);
-
-void gauss_interp_blas(INSData *data, op_dat input, op_dat output);
-
-void cub_grad_w_blas(INSData *data, CubatureData *cubatureData, op_dat u);
-
-void cub_grad_w_blas2(INSData *data, CubatureData *cubatureData, op_dat ux, op_dat uy);
-
-void cub_grad_blas(INSData *data, CubatureData *cubatureData, op_dat u);
-
-void cub_grad_blas2(INSData *data, CubatureData *cubatureData, op_dat ux, op_dat uy);
-
-void poisson_rhs_blas1(INSData *data, Poisson_MF *poisson);
-
-void poisson_rhs_blas2(INSData *data, Poisson_MF *poisson);
-
-void cub_div_w_blas(INSData *data, CubatureData *cubatureData, op_dat u, op_dat v);
-
-void cub_div_w_blas2(INSData *data, CubatureData *cubatureData, op_dat res);
-
-void cub_div_blas(INSData *data, CubatureData *cubatureData, op_dat u, op_dat v);
-
-void cub_div_blas2(INSData *data, CubatureData *cubatureData, op_dat res);
-
-void poisson_rhs_mass_blas(INSData *data, CubatureData *cubatureData, Poisson_MF *poisson, double factor);
-
-void poisson_test_rhs_blas(INSData *nsData, op_dat rhs);
-
-void poisson_bc_blas(INSData *data, Poisson_MF *poisson);
-
-void poisson_bc_blas2(INSData *data, Poisson_MF *poisson);
-
 void poisson_mf2_blas(INSData *data, Poisson_MF2 *poisson, CubatureData *cubatureData, bool massMat, double massFactor);
+
+// Assumes matrix is in column major form and both op_dat are defined on the same set
+void op2_gemv(bool transpose, int m, int n, double alpha, double *A_ptr, int lda, op_dat x, double beta, op_dat y);
+
+void op2_gemm(bool transposeA, bool transposeB, int m, int n, int k, double alpha, double *a_ptr, int lda, op_dat b, int ldb, double beta, op_dat c, int ldc);
+
+void op2_gemm(bool transposeA, bool transposeB, int m, int n, int k, double alpha, op_dat a, int lda, double *b_ptr, int ldb, double beta, op_dat c, int ldc);
+
+void op2_gemv_batch(bool transpose, int m, int n, double alpha, op_dat a, int lda, op_dat x, double beta, op_dat y);
+
+void op2_gemm_batch(bool transposeA, bool transposeB, int m, int n, int k, double alpha, op_dat a, int lda, op_dat b, int ldb, double beta, op_dat c, int ldc);
 
 #endif

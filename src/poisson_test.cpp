@@ -82,9 +82,11 @@ int main(int argc, char **argv) {
   CubatureData *cubData = new CubatureData(data);
   GaussData *gaussData = new GaussData(data);
 
+  double *tmp_data = (double *)calloc(15 * data->numCells, sizeof(double));
   double *rhs_data = (double *)calloc(15 * data->numCells, sizeof(double));
   double *bc_data  = (double *)calloc(21 * data->numCells, sizeof(double));
 
+  op_dat tmp = op_decl_dat(data->cells, 15, "double", tmp_data, "tmp");
   op_dat rhs = op_decl_dat(data->cells, 15, "double", rhs_data, "rhs");
   op_dat bc  = op_decl_dat(data->cells, 21, "double", bc_data, "bc");
 
@@ -92,7 +94,7 @@ int main(int argc, char **argv) {
               op_arg_dat(data->x, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->y, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->J, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(tmp, -1, OP_ID, 15, "double", OP_WRITE));
 
   op_par_loop(poisson_test_bc, "poisson_test_bc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
@@ -101,7 +103,7 @@ int main(int argc, char **argv) {
               op_arg_dat(gaussData->y, 0, data->bedge2cells, 21, "double", OP_READ),
               op_arg_dat(bc, 0, data->bedge2cells, 21, "double", OP_INC));
 
-  poisson_test_rhs_blas(data, rhs);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::MASS), 15, tmp, 0.0, rhs);
 
   // Poisson_MF *poisson = new Poisson_MF(data, cubData, gaussData);
   // int dirichlet[] = {0, 1, -1};

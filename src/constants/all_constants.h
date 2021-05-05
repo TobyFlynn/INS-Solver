@@ -7,8 +7,8 @@
 #include "constant_Ds.h"
 #include "constant_Drw.h"
 #include "constant_Dsw.h"
-#include "constant_LIFT.h"
-#include "constant_MASS.h"
+#include "constant_lift.h"
+#include "constant_mass.h"
 #include "constant_invMass.h"
 #include "constant_util.h"
 #include "constant_cubDr.h"
@@ -37,5 +37,6 @@
 #include "constant_gF1DsR.h"
 #include "constant_gF2DrR.h"
 #include "constant_gF2DsR.h"
+#include "constant_invMassGaussInterpT.h"
 
 #endif

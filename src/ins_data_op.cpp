@@ -468,7 +468,10 @@ CubatureData::CubatureData(INSData *dat) {
   op_temps[3] = op_decl_dat(data->cells, 46, "double", op_temps_data[3], "cub-op-temp3");
 
   // Initialise geometric factors for calcuating grad matrix
-  init_cubature_grad_blas(data, this);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_VDR), 15, data->x, 0.0, rx);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_VDS), 15, data->x, 0.0, sx);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_VDR), 15, data->y, 0.0, ry);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_VDS), 15, data->y, 0.0, sy);
 
   op_par_loop_init_cubature_grad("init_cubature_grad",data->cells,
               op_arg_dat(rx,-1,OP_ID,46,"double",OP_RW),
@@ -480,7 +483,10 @@ CubatureData::CubatureData(INSData *dat) {
   // Dx and Dy are row-major at this point
 
   // Calculate geometric factors for cubature volume nodes
-  init_cubature_blas(data, this);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DR), 15, data->x, 0.0, rx);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DS), 15, data->x, 0.0, sx);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DR), 15, data->y, 0.0, ry);
+  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_DS), 15, data->y, 0.0, sy);
 
   op_par_loop_init_cubature("init_cubature",data->cells,
               op_arg_dat(rx,-1,OP_ID,46,"double",OP_RW),
@@ -490,7 +496,7 @@ CubatureData::CubatureData(INSData *dat) {
               op_arg_dat(J,-1,OP_ID,46,"double",OP_WRITE),
               op_arg_dat(temp,-1,OP_ID,690,"double",OP_WRITE));
   // Temp is in row-major at this point
-  cubature_mm_blas(data, this);
+  op2_gemm(false, true, 15, 15, 46, 1.0, constants->get_ptr(Constants::CUB_V), 15, temp, 15, 0.0, mm, 15);
   // mm is in col-major at this point
 
   // Calculate Cubature OP (contribution of Cubature points to Poisson matrix)
@@ -501,7 +507,8 @@ CubatureData::CubatureData(INSData *dat) {
               op_arg_dat(temp,-1,OP_ID,690,"double",OP_WRITE),
               op_arg_dat(temp2,-1,OP_ID,690,"double",OP_WRITE));
   // Temp and temp2 are in row-major at this point
-  cubature_op_blas(data, this);
+  op2_gemm_batch(false, true, 15, 15, 46, 1.0, Dx, 15, temp, 15, 0.0, OP, 15);
+  op2_gemm_batch(false, true, 15, 15, 46, 1.0, Dy, 15, temp2, 15, 1.0, OP, 15);
   // OP is in col-major at this point
 }
 
@@ -598,7 +605,8 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(sJ,-1,OP_ID,21,"double",OP_WRITE));
 
   // Calculate x and y coords of Gauss nodes
-  init_gauss_coords_blas(data, this);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, data->x, 0.0, x);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, data->y, 0.0, y);
 
   // Calculate tau (used when constructing the Poisson matrix)
   op_par_loop_gauss_tau("gauss_tau",data->edges,
@@ -708,7 +716,17 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(pDy[1],-1,OP_ID,105,"double",OP_WRITE),
               op_arg_dat(pDy[2],-1,OP_ID,105,"double",OP_WRITE));
 
-  gauss_op_blas(data, this);
+  op2_gemm(true, true, 15, 15, 7, 1.0, mDx[0], 7, constants->get_ptr(Constants::GAUSS_FINTERP0), 15, 0.0, OP[0], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, -1.0, mDx[1], 7, mD[0], 15, 1.0, OP[0], 15);
+  op2_gemm(true, true, 15, 15, 7, -1.0, mDx[2], 7, constants->get_ptr(Constants::GAUSS_FINTERP0), 15, 1.0, OP[0], 15);
+
+  op2_gemm(true, true, 15, 15, 7, 1.0, mDy[0], 7, constants->get_ptr(Constants::GAUSS_FINTERP1), 15, 0.0, OP[1], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, -1.0, mDy[1], 7, mD[1], 15, 1.0, OP[1], 15);
+  op2_gemm(true, true, 15, 15, 7, -1.0, mDy[2], 7, constants->get_ptr(Constants::GAUSS_FINTERP1), 15, 1.0, OP[1], 15);
+
+  op2_gemm(true, true, 15, 15, 7, 1.0, pDx[0], 7, constants->get_ptr(Constants::GAUSS_FINTERP2), 15, 0.0, OP[2], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, -1.0, pDx[1], 7, mD[2], 15, 1.0, OP[2], 15);
+  op2_gemm(true, true, 15, 15, 7, -1.0, pDx[2], 7, constants->get_ptr(Constants::GAUSS_FINTERP2), 15, 1.0, OP[2], 15);
 
   // Calculate Gauss OPf for each face (contribution to neighbouring element in Poisson matrix)
   op_par_loop_gauss_gfi_faces("gauss_gfi_faces",data->edges,
@@ -719,7 +737,17 @@ GaussData::GaussData(INSData *dat) {
               op_arg_dat(pDy[1],-2,data->edge2cells,105,"double",OP_INC),
               op_arg_dat(pDy[2],-2,data->edge2cells,105,"double",OP_INC));
 
-  gauss_opf_blas(data, this);
+  op2_gemm_batch(true, true, 15, 15, 7, 1.0, mDx[0], 7, pDy[0], 15, 0.0, OPf[0], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, 1.0, mDx[1], 7, pD[0], 15, 1.0, OPf[0], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, -1.0, mDx[2], 7, pDy[0], 15, 1.0, OPf[0], 15);
+
+  op2_gemm_batch(true, true, 15, 15, 7, 1.0, mDy[0], 7, pDy[1], 15, 0.0, OPf[1], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, 1.0, mDy[1], 7, pD[1], 15, 1.0, OPf[1], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, -1.0, mDy[2], 7, pDy[1], 15, 1.0, OPf[1], 15);
+
+  op2_gemm_batch(true, true, 15, 15, 7, 1.0, pDx[0], 7, pDy[2], 15, 0.0, OPf[2], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, 1.0, pDx[1], 7, pD[2], 15, 1.0, OPf[2], 15);
+  op2_gemm_batch(true, true, 15, 15, 7, -1.0, pDx[2], 7, pDy[2], 15, 1.0, OPf[2], 15);
 
   // Applying the correct factors to OP and OPf is done when constructing the Poisson matrix
 }
