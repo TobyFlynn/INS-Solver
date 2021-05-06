@@ -37,7 +37,8 @@ bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
 
   // Create PETSc Preconditioned Conjugate Gradient linear solver
   KSP ksp;
-  KSPCreate(PETSC_COMM_SELF, &ksp);
+  // KSPCreate(PETSC_COMM_SELF, &ksp);
+  KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPCG);
   // Set preconditioner to Incomplete Cholesky
   PC pc;
@@ -47,7 +48,7 @@ bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
 
   // Create matrix for linear solve, adding mass matrix scaled by a factor if required
   Mat op;
-  create_mat(&op, 15 * data->numCells, 15 * data->numCells, 15 * 4);
+  create_mat(&op, 15 * data->cells->size, 15 * data->cells->size, 15 * 4);
   MatAssemblyBegin(op, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(op, MAT_FINAL_ASSEMBLY);
   if(addMass) {
@@ -90,14 +91,14 @@ bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
 }
 
 void Poisson_M::createMatrix() {
-  create_mat(&pMat, 15 * data->numCells, 15 * data->numCells, 15 * 4);
+  create_mat(&pMat, 15 * data->cells->size, 15 * data->cells->size, 15 * 4);
   pMatInit = true;
   double tol = 1e-15;
 
   // Add cubature OP to Poisson matrix
-  double *cub_OP = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
+  double *cub_OP = (double *)malloc(15 * 15 * data->cells->size * sizeof(double));
   op_fetch_data(cData->OP, cub_OP);
-  for(int i = 0; i < data->numCells; i++) {
+  for(int i = 0; i < data->cells->size; i++) {
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
@@ -115,14 +116,14 @@ void Poisson_M::createMatrix() {
   double *gauss_OP[3];
   double *gauss_OPf[3];
   for(int i = 0; i < 3; i++) {
-    gauss_OP[i] = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
-    gauss_OPf[i] = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
+    gauss_OP[i] = (double *)malloc(15 * 15 * data->cells->size * sizeof(double));
+    gauss_OPf[i] = (double *)malloc(15 * 15 * data->cells->size * sizeof(double));
     op_fetch_data(gData->OP[i], gauss_OP[i]);
     op_fetch_data(gData->OPf[i], gauss_OPf[i]);
   }
 
   // Add Gauss OP and OPf to Poisson matrix
-  for(int i = 0; i < data->numEdges; i++) {
+  for(int i = 0; i < data->edges->size; i++) {
     int leftElement = data->edge2cell_data[i * 2];
     int rightElement = data->edge2cell_data[i * 2 + 1];
     int leftEdge = data->edgeNum_data[i * 2];
@@ -177,7 +178,7 @@ void Poisson_M::createMatrix() {
   }
 
   // Add Gauss OP for boundary edges
-  for(int i = 0; i < data->numBoundaryEdges; i++) {
+  for(int i = 0; i < data->bedges->size; i++) {
     int element = data->bedge2cell_data[i];
     int bedgeType = data->bedge_type_data[i];
     int edge = data->bedgeNum_data[i];
@@ -209,12 +210,12 @@ void Poisson_M::createMatrix() {
 }
 
 void Poisson_M::createMassMatrix() {
-  create_mat(&pMMat, 15 * data->numCells, 15 * data->numCells, 15);
+  create_mat(&pMMat, 15 * data->cells->size, 15 * data->cells->size, 15);
   pMMatInit = true;
   // Add Cubature OP to mass matrix
-  double *cub_MM = (double *)malloc(15 * 15 * op_get_size(data->cells) * sizeof(double));
+  double *cub_MM = (double *)malloc(15 * 15 * data->cells->size * sizeof(double));
   op_fetch_data(cData->mm, cub_MM);
-  for(int i = 0; i < data->numCells; i++) {
+  for(int i = 0; i < data->cells->size; i++) {
     // Convert data to row major format
     for(int m = 0; m < 15; m++) {
       for(int n = 0; n < 15; n++) {
@@ -233,22 +234,22 @@ void Poisson_M::createMassMatrix() {
 }
 
 void Poisson_M::createBCMatrix() {
-  create_mat(&pBCMat, 15 * data->numCells, 21 * data->numCells, 15);
+  create_mat(&pBCMat, 15 * data->cells->size, 21 * data->cells->size, 15);
   pBCMatInit = true;
   double tol = 1e-15;
 
-  double *gauss_sJ  = (double *)malloc(21 * op_get_size(data->cells) * sizeof(double));
-  double *gauss_tau = (double *)malloc(3 * op_get_size(data->cells) * sizeof(double));
+  double *gauss_sJ  = (double *)malloc(21 * data->cells->size * sizeof(double));
+  double *gauss_tau = (double *)malloc(3 * data->cells->size * sizeof(double));
   double *gauss_mD[3];
   for(int i = 0; i < 3; i++) {
-    gauss_mD[i]  = (double *)malloc(7 * 15 * op_get_size(data->cells) * sizeof(double));
+    gauss_mD[i]  = (double *)malloc(7 * 15 * data->cells->size * sizeof(double));
     op_fetch_data(gData->mD[i], gauss_mD[i]);
   }
   op_fetch_data(gData->sJ, gauss_sJ);
   op_fetch_data(gData->tau, gauss_tau);
 
   // Create BCs matrix using Gauss data on boundary edges
-  for(int i = 0; i < data->numBoundaryEdges; i++) {
+  for(int i = 0; i < data->bedges->size; i++) {
     int element = data->bedge2cell_data[i];
     int bedgeType = data->bedge_type_data[i];
     int edge = data->bedgeNum_data[i];

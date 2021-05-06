@@ -6,7 +6,7 @@ void Poisson_MF::copy_u(const double *u_d) {
     op_arg_dat(u, -1, OP_ID, 15, "double", OP_WRITE)
   };
   op_mpi_halo_exchanges_cuda(data->cells, 1, u_copy_args);
-  cudaMemcpy(u->data_d, u_d, data->numCells * 15 * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(u->data_d, u_d, u->set->size * 15 * sizeof(double), cudaMemcpyDeviceToDevice);
   op_mpi_set_dirtybit_cuda(1, u_copy_args);
 }
 
@@ -16,7 +16,7 @@ void Poisson_MF::copy_rhs(double *rhs_d) {
     op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(data->cells, 1, rhs_copy_args);
-  cudaMemcpy(rhs_d, rhs->data_d, data->numCells * 15 * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(rhs_d, rhs->data_d, rhs->set->size * 15 * sizeof(double), cudaMemcpyDeviceToDevice);
   op_mpi_set_dirtybit_cuda(1, rhs_copy_args);
 }
 
@@ -26,7 +26,7 @@ void Poisson_MF2::copy_u(const double *u_d) {
     op_arg_dat(u, -1, OP_ID, 15, "double", OP_WRITE)
   };
   op_mpi_halo_exchanges_cuda(data->cells, 1, u_copy_args);
-  cudaMemcpy(u->data_d, u_d, data->numCells * 15 * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(u->data_d, u_d, u->set->size * 15 * sizeof(double), cudaMemcpyDeviceToDevice);
   op_mpi_set_dirtybit_cuda(1, u_copy_args);
 }
 
@@ -36,13 +36,16 @@ void Poisson_MF2::copy_rhs(double *rhs_d) {
     op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(data->cells, 1, rhs_copy_args);
-  cudaMemcpy(rhs_d, rhs->data_d, data->numCells * 15 * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(rhs_d, rhs->data_d, rhs->set->size * 15 * sizeof(double), cudaMemcpyDeviceToDevice);
   op_mpi_set_dirtybit_cuda(1, rhs_copy_args);
 }
 
 // Create a PETSc vector for GPUs
 void Poisson::create_vec(Vec *v, int size) {
-  VecCreateSeqCUDA(PETSC_COMM_SELF, size * data->numCells, v);
+  // VecCreateSeqCUDA(PETSC_COMM_SELF, size * data->cells->size, v);
+  VecCreate(PETSC_COMM_WORLD, v);
+  VecSetType(*v, VECCUDA);
+  VecSetSizes(*v, size * data->cells->size, PETSC_DECIDE);
 }
 
 // Destroy a PETSc vector
@@ -58,7 +61,7 @@ void Poisson::load_vec(Vec *v, op_dat v_dat, int size) {
     op_arg_dat(v_dat, -1, OP_ID, size, "double", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(data->cells, 1, vec_petsc_args);
-  cudaMemcpy(v_ptr, (double *)v_dat->data_d, size * data->numCells * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(v_ptr, (double *)v_dat->data_d, size * v_dat->set->size * sizeof(double), cudaMemcpyDeviceToDevice);
   op_mpi_set_dirtybit_cuda(1, vec_petsc_args);
   VecCUDARestoreArray(*v, &v_ptr);
 }
@@ -71,17 +74,24 @@ void Poisson::store_vec(Vec *v, op_dat v_dat) {
     op_arg_dat(v_dat, -1, OP_ID, 15, "double", OP_WRITE)
   };
   op_mpi_halo_exchanges_cuda(data->cells, 1, vec_petsc_args);
-  cudaMemcpy((double *)v_dat->data_d, v_ptr, 15 * data->numCells * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy((double *)v_dat->data_d, v_ptr, 15 * v_dat->set->size * sizeof(double), cudaMemcpyDeviceToDevice);
   op_mpi_set_dirtybit_cuda(1, vec_petsc_args);
   VecCUDARestoreArrayRead(*v, &v_ptr);
 }
 
 // Create a PETSc matrix for GPUs
 void Poisson::create_mat(Mat *m, int row, int col, int prealloc) {
-  MatCreate(PETSC_COMM_SELF, m);
-  MatSetSizes(*m, PETSC_DECIDE, PETSC_DECIDE, row, col);
-  MatSetType(*m, MATSEQAIJCUSPARSE);
+  // MatCreate(PETSC_COMM_SELF, m);
+  MatCreate(PETSC_COMM_WORLD, m);
+  // MatSetSizes(*m, PETSC_DECIDE, PETSC_DECIDE, row, col);
+  MatSetSizes(*m, row, col, PETSC_DECIDE, PETSC_DECIDE);
+  // MatSetType(*m, MATSEQAIJCUSPARSE);
+  MatSetType(*m, MATAIJCUSPARSE);
+  #ifdef INS_MPI
+  MatMPIAIJSetPreallocation(*m, prealloc, NULL, prealloc, NULL);
+  #else
   MatSeqAIJSetPreallocation(*m, prealloc, NULL);
+  #endif
 }
 
 PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
@@ -119,13 +129,15 @@ PetscErrorCode matAMult2(Mat A, Vec x, Vec y) {
 }
 
 void Poisson_MF::create_shell_mat(Mat *m) {
-  MatCreateShell(PETSC_COMM_SELF, 15 * data->numCells, 15 * data->numCells, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
+  // MatCreateShell(PETSC_COMM_SELF, 15 * data->cells->size, 15 * data->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
+  MatCreateShell(PETSC_COMM_WORLD, 15 * data->cells->size, 15 * data->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
   MatShellSetOperation(*m, MATOP_MULT, (void(*)(void))matAMult);
   MatShellSetVecType(*m, VECCUDA);
 }
 
 void Poisson_MF2::create_shell_mat(Mat *m) {
-  MatCreateShell(PETSC_COMM_SELF, 15 * data->numCells, 15 * data->numCells, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
+  // MatCreateShell(PETSC_COMM_SELF, 15 * data->cells->size, 15 * data->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
+  MatCreateShell(PETSC_COMM_WORLD, 15 * data->cells->size, 15 * data->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
   MatShellSetOperation(*m, MATOP_MULT, (void(*)(void))matAMult2);
   MatShellSetVecType(*m, VECCUDA);
 }

@@ -89,7 +89,8 @@ bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor)
 
   // Create PETSc Preconditioned Conjugate Gradient linear solver
   KSP ksp;
-  KSPCreate(PETSC_COMM_SELF, &ksp);
+  // KSPCreate(PETSC_COMM_SELF, &ksp);
+  KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPCG);
   // KSPSetType(ksp, KSPFGMRES);
 
