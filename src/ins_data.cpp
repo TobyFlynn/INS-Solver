@@ -9,6 +9,7 @@
 #include "load_mesh.h"
 
 #include "kernels/init_grid.h"
+#include "kernels/init_nodes.h"
 
 #include "kernels/init_cubature_grad.h"
 #include "kernels/init_cubature.h"
@@ -211,23 +212,6 @@ INSData::INSData(std::string filename) {
   op_decl_const(7*15, "double", gFInterp1R_g);
   op_decl_const(7*15, "double", gFInterp2R_g);
   op_decl_const(5, "double", lift_drag_vec);
-
-  // Calculate geometric factors
-  init_grid_blas(this);
-
-  op_par_loop(init_grid, "init_grid", cells,
-              op_arg_dat(node_coords, -3, cell2nodes, 2, "double", OP_READ),
-              op_arg_dat(nodeX, -1, OP_ID, 3, "double", OP_WRITE),
-              op_arg_dat(nodeY, -1, OP_ID, 3, "double", OP_WRITE),
-              op_arg_dat(rx, -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(ry, -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(sx, -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(sy, -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(nx, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(ny, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(J,  -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(sJ, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(fscale, -1, OP_ID, 15, "double", OP_WRITE));
 }
 
 INSData::~INSData() {
@@ -286,6 +270,27 @@ INSData::~INSData() {
   free(vorticity_data);
 }
 
+void INSData::init() {
+  op_par_loop(init_nodes, "init_nodes", cells,
+              op_arg_dat(node_coords, -3, cell2nodes, 2, "double", OP_READ),
+              op_arg_dat(nodeX, -1, OP_ID, 3, "double", OP_WRITE),
+              op_arg_dat(nodeY, -1, OP_ID, 3, "double", OP_WRITE));
+
+  // Calculate geometric factors
+  init_grid_blas(this);
+
+  op_par_loop(init_grid, "init_grid", cells,
+              op_arg_dat(rx, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(ry, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(sx, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(sy, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(nx, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(ny, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(J,  -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(sJ, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(fscale, -1, OP_ID, 15, "double", OP_WRITE));
+}
+
 CubatureData::CubatureData(INSData *dat) {
   data = dat;
 
@@ -322,7 +327,27 @@ CubatureData::CubatureData(INSData *dat) {
   op_temps[1] = op_decl_dat(data->cells, 46, "double", op_temps_data[1], "cub-op-temp1");
   op_temps[2] = op_decl_dat(data->cells, 46, "double", op_temps_data[2], "cub-op-temp2");
   op_temps[3] = op_decl_dat(data->cells, 46, "double", op_temps_data[3], "cub-op-temp3");
+}
 
+CubatureData::~CubatureData() {
+  free(rx_data);
+  free(sx_data);
+  free(ry_data);
+  free(sy_data);
+  free(J_data);
+  free(mm_data);
+  free(Dx_data);
+  free(Dy_data);
+  free(OP_data);
+  free(temp_data);
+  free(temp2_data);
+  free(op_temps_data[0]);
+  free(op_temps_data[1]);
+  free(op_temps_data[2]);
+  free(op_temps_data[3]);
+}
+
+void CubatureData::init() {
   // Initialise geometric factors for calcuating grad matrix
   op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_VDR), 15, data->x, 0.0, rx);
   op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_VDS), 15, data->x, 0.0, sx);
@@ -366,24 +391,6 @@ CubatureData::CubatureData(INSData *dat) {
   op2_gemm_batch(false, true, 15, 15, 46, 1.0, Dx, 15, temp, 15, 0.0, OP, 15);
   op2_gemm_batch(false, true, 15, 15, 46, 1.0, Dy, 15, temp2, 15, 1.0, OP, 15);
   // OP is in col-major at this point
-}
-
-CubatureData::~CubatureData() {
-  free(rx_data);
-  free(sx_data);
-  free(ry_data);
-  free(sy_data);
-  free(J_data);
-  free(mm_data);
-  free(Dx_data);
-  free(Dy_data);
-  free(OP_data);
-  free(temp_data);
-  free(temp2_data);
-  free(op_temps_data[0]);
-  free(op_temps_data[1]);
-  free(op_temps_data[2]);
-  free(op_temps_data[3]);
 }
 
 GaussData::GaussData(INSData *dat) {
@@ -440,7 +447,33 @@ GaussData::GaussData(INSData *dat) {
     name = "OPf" + to_string(i);
     OPf[i] = op_decl_dat(data->cells, 15 * 15, "double", OPf_data[i], name.c_str());
   }
+}
 
+GaussData::~GaussData() {
+  free(x_data);
+  free(y_data);
+  free(rx_data);
+  free(sx_data);
+  free(ry_data);
+  free(sy_data);
+  free(sJ_data);
+  free(nx_data);
+  free(ny_data);
+  free(tau_data);
+  free(reverse_data);
+  for(int i = 0; i < 3; i++) {
+    free(mDx_data[i]);
+    free(mDy_data[i]);
+    free(pDx_data[i]);
+    free(pDy_data[i]);
+    free(mD_data[i]);
+    free(pD_data[i]);
+    free(OP_data[i]);
+    free(OPf_data[i]);
+  }
+}
+
+void GaussData::init() {
   // Check which edges will require matrices to be 'reverse'
   op_par_loop(gauss_reverse, "gauss_reverse", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
@@ -610,28 +643,4 @@ GaussData::GaussData(INSData *dat) {
   op2_gemm_batch(true, true, 15, 15, 7, -1.0, pDx[2], 7, pDy[2], 15, 1.0, OPf[2], 15);
 
   // Applying the correct factors to OP and OPf is done when constructing the Poisson matrix
-}
-
-GaussData::~GaussData() {
-  free(x_data);
-  free(y_data);
-  free(rx_data);
-  free(sx_data);
-  free(ry_data);
-  free(sy_data);
-  free(sJ_data);
-  free(nx_data);
-  free(ny_data);
-  free(tau_data);
-  free(reverse_data);
-  for(int i = 0; i < 3; i++) {
-    free(mDx_data[i]);
-    free(mDy_data[i]);
-    free(pDx_data[i]);
-    free(pDy_data[i]);
-    free(mD_data[i]);
-    free(pD_data[i]);
-    free(OP_data[i]);
-    free(OPf_data[i]);
-  }
 }

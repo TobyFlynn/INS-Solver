@@ -70,10 +70,10 @@ void op_par_loop_lift_drag(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(57);
+  op_timing_realloc(58);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[57].name      = name;
-  OP_kernels[57].count    += 1;
+  OP_kernels[58].name      = name;
+  OP_kernels[58].count    += 1;
 
   int  ninds   = 8;
   int  inds[12] = {-1,-1,0,1,2,3,4,5,6,7,-1,-1};
@@ -83,8 +83,8 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_57
-    int part_size = OP_PART_SIZE_57;
+  #ifdef OP_PART_SIZE_58
+    int part_size = OP_PART_SIZE_58;
   #else
     int part_size = OP_part_size;
   #endif
@@ -156,8 +156,8 @@ void op_par_loop_lift_drag(char const *name, op_set set,
     }
   }
 }
-OP_kernels[57].transfer  += Plan->transfer;
-OP_kernels[57].transfer2 += Plan->transfer2;
+OP_kernels[58].transfer  += Plan->transfer;
+OP_kernels[58].transfer2 += Plan->transfer2;
 }
 
 if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -170,5 +170,5 @@ op_mpi_set_dirtybit_cuda(nargs, args);
 
 // update kernel record
 op_timers_core(&cpu_t2, &wall_t2);
-OP_kernels[57].time     += wall_t2 - wall_t1;
+OP_kernels[58].time     += wall_t2 - wall_t1;
 }

@@ -36,6 +36,8 @@ endif()
 
 set(PETSC_DIR $ENV{PETSC_DIR})
 
+set(PARMETIS_DIR "/home/u1717021/Code/PhD/parmetis-4.0.3/build")
+
 enable_language(CUDA)
 find_package(CUDAToolkit)
 include_directories(${CUDAToolkit_INCLUDE_DIRS})

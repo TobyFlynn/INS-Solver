@@ -43,6 +43,7 @@ extern double lift_drag_vec[5];
 #include "op_lib_cpp.h"
 
 // user kernel files
+#include "init_nodes_seqkernel.cpp"
 #include "init_grid_seqkernel.cpp"
 #include "init_cubature_grad_seqkernel.cpp"
 #include "init_cubature_seqkernel.cpp"

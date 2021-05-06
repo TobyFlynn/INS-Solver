@@ -72,6 +72,8 @@ Timing *timer;
 Constants *constants;
 
 int main(int argc, char **argv) {
+  op_init(argc, argv, 2);
+
   timer = new Timing();
   timer->startWallTime();
   timer->startSetup();
@@ -84,9 +86,6 @@ int main(int argc, char **argv) {
     cout << "Error initialising PETSc" << endl;
     return ierr;
   }
-
-  // Initialise OP2
-  op_init(argc, argv, 2);
 
   gam = 1.4;
   mu = 1e-2;
@@ -122,11 +121,12 @@ int main(int argc, char **argv) {
   double g0 = 1.0;
   int currentIter = 0;
   double time = 0.0;
-
+  #ifndef INS_MPI
   if(save != -1) {
     save_solution_init("sol.cgns", solver->data);
     export_data_init("data.csv");
   }
+  #endif
 
   timer->endSetup();
   timer->startMainLoop();
@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
 
     currentIter++;
     time += solver->dt;
-
+    #ifndef INS_MPI
     // Calculate drag and lift coefficients + save data
     if(save != -1 && (i + 1) % save == 0) {
       cout << "Iteration: " << i << " Time: " << time << endl;
@@ -180,17 +180,20 @@ int main(int argc, char **argv) {
       save_solution_iter("sol.cgns", solver->data, currentIter % 2, (i + 1) / save);
       timer->endSave();
     }
+    #endif
   }
   timer->endMainLoop();
 
+  #ifndef INS_MPI
   if(save != -1)
     save_solution_finalise("sol.cgns", solver->data, (iter / save) + 1, solver->dt * save);
 
   // Save solution to CGNS file
   save_solution("end.cgns", solver->data, currentIter % 2);
+  #endif
 
   timer->endWallTime();
-  timer->exportTimings("timings.csv", iter, time);
+  // timer->exportTimings("timings.csv", iter, time);
 
   cout << "Final time: " << time << endl;
   cout << "Wall time: " << timer->getWallTime() << endl;
@@ -198,13 +201,12 @@ int main(int argc, char **argv) {
 
   op_timings_to_csv("op2_timings.csv");
 
-  // Clean up OP2
-  op_exit();
-
   delete solver;
   delete constants;
   delete timer;
 
   ierr = PetscFinalize();
+  // Clean up OP2
+  op_exit();
   return ierr;
 }

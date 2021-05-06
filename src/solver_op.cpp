@@ -204,15 +204,15 @@ Solver::Solver(std::string filename, int pmethod) {
     Poisson_M *pressureM = new Poisson_M(data, cubatureData, gaussData);
     pressureM->setDirichletBCs(pressure_dirichlet);
     pressureM->setNeumannBCs(pressure_neumann);
-    pressureM->createMatrix();
-    pressureM->createBCMatrix();
+    // pressureM->createMatrix();
+    // pressureM->createBCMatrix();
     pressurePoisson = pressureM;
     Poisson_M *viscosityM = new Poisson_M(data, cubatureData, gaussData);
     viscosityM->setDirichletBCs(viscosity_dirichlet);
     viscosityM->setNeumannBCs(viscosity_neumann);
-    viscosityM->createMatrix();
-    viscosityM->createMassMatrix();
-    viscosityM->createBCMatrix();
+    // viscosityM->createMatrix();
+    // viscosityM->createMassMatrix();
+    // viscosityM->createBCMatrix();
     viscosityPoisson = viscosityM;
   } else if(pmethod == 1) {
     Poisson_MF *pressureMF = new Poisson_MF(data, cubatureData, gaussData);
@@ -227,16 +227,25 @@ Solver::Solver(std::string filename, int pmethod) {
     Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubatureData, gaussData);
     pressureMF2->setDirichletBCs(pressure_dirichlet);
     pressureMF2->setNeumannBCs(pressure_neumann);
-    pressureMF2->setOp();
-    pressureMF2->setBCOP();
+    // pressureMF2->setOp();
+    // pressureMF2->setBCOP();
     pressurePoisson = pressureMF2;
     Poisson_MF2 *viscosityMF2 = new Poisson_MF2(data, cubatureData, gaussData);
     viscosityMF2->setDirichletBCs(viscosity_dirichlet);
     viscosityMF2->setNeumannBCs(viscosity_neumann);
-    viscosityMF2->setOp();
-    viscosityMF2->setBCOP();
+    // viscosityMF2->setOp();
+    // viscosityMF2->setBCOP();
     viscosityPoisson = viscosityMF2;
   }
+
+  // op_partition("PARMETIS", "KWAY", data->cells, data->edge2cells, NULL);
+  op_partition("PARMETIS", "KWAY", NULL, NULL, NULL);
+
+  data->init();
+  cubatureData->init();
+  gaussData->init();
+  pressurePoisson->init();
+  viscosityPoisson->init();
 
   // Set initial conditions
   op_par_loop_set_ic("set_ic",data->cells,

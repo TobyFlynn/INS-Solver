@@ -19,10 +19,15 @@ void cgns_load_cells(int file, int baseIndex, int zoneIndex, int *cgnsCells, int
 
 template<>
 void cgns_load_cells<int>(int file, int baseIndex, int zoneIndex, int *cgnsCells, int numCells) {
+  std::vector<cgsize_t> cells(numCells * 3);
   cgsize_t parentData;
-  cg_elements_read(file, baseIndex, zoneIndex, 1, (cgsize_t *)cgnsCells, &parentData);
-  // CGNS starts numbering from 1 but OP2 starts from 0
-  std::transform(cgnsCells, cgnsCells + 3 * numCells, cgnsCells, [](int x) { return x - 1;});
+  cg_elements_read(file, baseIndex, zoneIndex, 1, cells.data(), &parentData);
+  std::transform(cells.begin(), cells.end(), cgnsCells, [](int x) { return x - 1;});
+  // cgsize_t parentData;
+  // cg_elements_read(file, baseIndex, zoneIndex, 1, (cgsize_t *)cgnsCells, &parentData);
+  // // CGNS starts numbering from 1 but OP2 starts from 0
+  // std::transform(cgnsCells, cgnsCells + 3 * numCells, cgnsCells, [](int x) { return x - 1;})
+  ;
 }
 
 template<>
@@ -63,7 +68,7 @@ void scatter_double_array(double *g_array, double *l_array, int comm_size,
   }
 
   MPI_Scatterv(g_array, sendcnts, displs, MPI_DOUBLE, l_array,
-               l_size * elem_size, MPI_DOUBLE, MPI_ROOT, MPI_COMM_WORLD);
+               l_size * elem_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
   free(sendcnts);
   free(displs);
@@ -84,7 +89,7 @@ void scatter_int_array(int *g_array, int *l_array, int comm_size, int g_size,
   }
 
   MPI_Scatterv(g_array, sendcnts, displs, MPI_INT, l_array, l_size * elem_size,
-               MPI_INT, MPI_ROOT, MPI_COMM_WORLD);
+               MPI_INT, 0, MPI_COMM_WORLD);
 
   free(sendcnts);
   free(displs);
@@ -102,7 +107,9 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
   int *cells_g, *edge2node_g, *edge2cell_g, *edgeNum_g;
   int *bedge2node_g, *bedge2cell_g, *bedgeNum_g, *bedge_type_g;
 
-  if(rank == MPI_ROOT) {
+  std::cout << "MPI_ROOT: " << MPI_ROOT << std::endl;
+
+  if(rank == 0) {
     // Read CGNS grid
     int file;
     if(cg_open(filename.c_str(), CG_MODE_READ, &file)) {
@@ -222,15 +229,16 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
     cg_close(file);
   }
 
-  MPI_Bcast(&numNodes_g, 1, MPI_INT, MPI_ROOT, MPI_COMM_WORLD);
-  MPI_Bcast(&numCells_g, 1, MPI_INT, MPI_ROOT, MPI_COMM_WORLD);
-  MPI_Bcast(&numEdges_g, 1, MPI_INT, MPI_ROOT, MPI_COMM_WORLD);
-  MPI_Bcast(&numBoundaryEdges_g, 1, MPI_INT, MPI_ROOT, MPI_COMM_WORLD);
+  MPI_Bcast(&numNodes_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&numCells_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&numEdges_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&numBoundaryEdges_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
   data->numNodes         = compute_local_size(numNodes_g, comm_size, rank);
   data->numCells         = compute_local_size(numCells_g, comm_size, rank);
   data->numEdges         = compute_local_size(numEdges_g, comm_size, rank);
   data->numBoundaryEdges = compute_local_size(numBoundaryEdges_g, comm_size, rank);
+  // std::cout << data->numNodes << "," << data->numCells << "," << data->numEdges << "," << data->numBoundaryEdges << std::endl;
 
   data->coords          = (double *)malloc(2 * data->numNodes * sizeof(double));
   data->cgnsCells       = (int *)malloc(data->numCells * 3 * sizeof(int));
@@ -252,7 +260,7 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
   scatter_int_array(bedgeNum_g, data->bedgeNum_data, comm_size, numBoundaryEdges_g, data->numBoundaryEdges, 1);
   scatter_int_array(bedge_type_g, data->bedge_type_data, comm_size, numBoundaryEdges_g, data->numBoundaryEdges, 1);
 
-  if(rank == MPI_ROOT) {
+  if(rank == 0) {
     free(coords_g);
     free(cells_g);
     free(edge2node_g);

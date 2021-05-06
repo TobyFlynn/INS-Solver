@@ -45,6 +45,7 @@ class INSData {
 public:
   INSData(std::string filename);
   ~INSData();
+  void init();
   // Pointers used when loading data
   double *coords;
   int *cgnsCells;
@@ -112,6 +113,7 @@ class CubatureData {
 public:
   CubatureData(INSData *dat);
   ~CubatureData();
+  void init();
 
   // mm and OP are stored in column major format
   // OP is the local stiffness matrix used by the Poisson solver
@@ -140,6 +142,7 @@ class GaussData {
 public:
   GaussData(INSData *dat);
   ~GaussData();
+  void init();
 
   op_dat x, y;
   op_dat rx, sx, ry, sy, sJ, nx, ny, tau, reverse;

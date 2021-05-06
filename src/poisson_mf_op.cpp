@@ -165,19 +165,6 @@ Poisson_MF::Poisson_MF(INSData *nsData, CubatureData *cubData, GaussData *gaussD
   qFlux     = op_decl_dat(data->cells, 21, "double", qFlux_data, "poisson_qFlux");
   gradx     = op_decl_dat(data->cells, 15, "double", gradx_data, "poisson_gradx");
   grady     = op_decl_dat(data->cells, 15, "double", grady_data, "poisson_grady");
-
-  // Calculate tau
-  op_par_loop_tau("tau",data->edges,
-              op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
-              op_arg_dat(data->J,-2,data->edge2cells,15,"double",OP_READ),
-              op_arg_dat(data->sJ,-2,data->edge2cells,15,"double",OP_READ),
-              op_arg_dat(tau,-2,data->edge2cells,3,"double",OP_INC));
-
-  op_par_loop_tau_bc("tau_bc",data->bedges,
-              op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
-              op_arg_dat(data->J,0,data->bedge2cells,15,"double",OP_READ),
-              op_arg_dat(data->sJ,0,data->bedge2cells,15,"double",OP_READ),
-              op_arg_dat(tau,0,data->bedge2cells,3,"double",OP_INC));
 }
 
 Poisson_MF::~Poisson_MF() {
@@ -197,6 +184,21 @@ Poisson_MF::~Poisson_MF() {
   free(qxNumFlux_data);
   free(qyNumFlux_data);
   free(qFlux_data);
+}
+
+void Poisson_MF::init() {
+  // Calculate tau
+  op_par_loop_tau("tau",data->edges,
+              op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
+              op_arg_dat(data->J,-2,data->edge2cells,15,"double",OP_READ),
+              op_arg_dat(data->sJ,-2,data->edge2cells,15,"double",OP_READ),
+              op_arg_dat(tau,-2,data->edge2cells,3,"double",OP_INC));
+
+  op_par_loop_tau_bc("tau_bc",data->bedges,
+              op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
+              op_arg_dat(data->J,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->sJ,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(tau,0,data->bedge2cells,3,"double",OP_INC));
 }
 
 bool Poisson_MF::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
@@ -361,7 +363,6 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
 
   if(massMat) {
     timer->startLinearSolveMFRHS();
-    // poisson_rhs_mass_blas(data, cData, this, massFactor);
     op2_gemv_batch(false, 15, 15, massFactor, cData->mm, 15, u, 1.0, rhs);
     timer->endLinearSolveMFRHS();
   }

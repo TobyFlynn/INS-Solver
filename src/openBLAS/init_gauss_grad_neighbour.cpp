@@ -57,7 +57,7 @@ void init_gauss_grad_neighbour_blas(INSData *nsData, GaussData *gaussData) {
   op_arg init_grad_args[] = {
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_READ),
     op_arg_dat(nsData->y, -1, OP_ID, 15, "double", OP_READ),
-    op_arg_dat(gaussData->reverse, -1, OP_ID, 3, "double", OP_READ),
+    op_arg_dat(gaussData->reverse, -1, OP_ID, 3, "int", OP_READ),
     op_arg_dat(gaussData->rx, -1, OP_ID, 21, "double", OP_WRITE),
     op_arg_dat(gaussData->sx, -1, OP_ID, 21, "double", OP_WRITE),
     op_arg_dat(gaussData->ry, -1, OP_ID, 21, "double", OP_WRITE),

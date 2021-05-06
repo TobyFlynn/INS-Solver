@@ -19,6 +19,7 @@ public:
   ~Poisson();
 
   virtual bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0) = 0;
+  virtual void init() = 0;
 
   double getAverageConvergeIter();
 
@@ -58,6 +59,7 @@ public:
   void createBCMatrix();
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
+  void init();
 
 private:
   Mat pMat, pBCMat, pMMat;
@@ -74,6 +76,7 @@ public:
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
   void calc_rhs(const double *u_d, double *rhs_d);
+  void init();
 
   op_dat u, rhs, tau, gU, uNumFlux, uFluxX, uFluxY, dudx, dudy, qx, qy, gqx, gqy;
   op_dat qxNumFlux, qyNumFlux, qFlux, gradx, grady;
@@ -111,6 +114,7 @@ public:
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
   void calc_rhs(const double *u_d, double *rhs_d);
+  void init();
 
   op_dat u, rhs, op1, op2[3], op_bc, u_t, rhs_t;
 

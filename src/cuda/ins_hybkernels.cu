@@ -4,6 +4,7 @@
 
 //header
 #ifdef GPUPASS
+#define op_par_loop_init_nodes op_par_loop_init_nodes_gpu
 #define op_par_loop_init_grid op_par_loop_init_grid_gpu
 #define op_par_loop_init_cubature_grad op_par_loop_init_cubature_grad_gpu
 #define op_par_loop_init_cubature op_par_loop_init_cubature_gpu
@@ -63,6 +64,7 @@
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_gpu
 #define op_par_loop_lift_drag op_par_loop_lift_drag_gpu
 #include "ins_kernels.cu"
+#undef op_par_loop_init_nodes
 #undef op_par_loop_init_grid
 #undef op_par_loop_init_cubature_grad
 #undef op_par_loop_init_cubature
@@ -122,6 +124,7 @@
 #undef op_par_loop_viscosity_reset_bc
 #undef op_par_loop_lift_drag
 #else
+#define op_par_loop_init_nodes op_par_loop_init_nodes_cpu
 #define op_par_loop_init_grid op_par_loop_init_grid_cpu
 #define op_par_loop_init_cubature_grad op_par_loop_init_cubature_grad_cpu
 #define op_par_loop_init_cubature op_par_loop_init_cubature_cpu
@@ -181,6 +184,7 @@
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_cpu
 #define op_par_loop_lift_drag op_par_loop_lift_drag_cpu
 #include "../openmp/ins_kernels.cpp"
+#undef op_par_loop_init_nodes
 #undef op_par_loop_init_grid
 #undef op_par_loop_init_cubature_grad
 #undef op_par_loop_init_cubature
@@ -242,6 +246,46 @@
 
 //user kernel files
 
+void op_par_loop_init_nodes_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_init_nodes(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_init_nodes_gpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+    }else{
+    op_par_loop_init_nodes_cpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+  }
+}
+#else
+void op_par_loop_init_nodes(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  op_par_loop_init_nodes_gpu(name, set,
+    arg0,
+    arg1,
+    arg2);
+
+  }
+#endif //OP_HYBRID_GPU
+
 void op_par_loop_init_grid_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
@@ -251,10 +295,7 @@ void op_par_loop_init_grid_gpu(char const *name, op_set set,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11);
+  op_arg arg8);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -267,10 +308,7 @@ void op_par_loop_init_grid(char const *name, op_set set,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11){
+  op_arg arg8){
 
   if (OP_hybrid_gpu) {
     op_par_loop_init_grid_gpu(name, set,
@@ -282,10 +320,7 @@ void op_par_loop_init_grid(char const *name, op_set set,
       arg5,
       arg6,
       arg7,
-      arg8,
-      arg9,
-      arg10,
-      arg11);
+      arg8);
 
     }else{
     op_par_loop_init_grid_cpu(name, set,
@@ -297,10 +332,7 @@ void op_par_loop_init_grid(char const *name, op_set set,
       arg5,
       arg6,
       arg7,
-      arg8,
-      arg9,
-      arg10,
-      arg11);
+      arg8);
 
   }
 }
@@ -314,10 +346,7 @@ void op_par_loop_init_grid(char const *name, op_set set,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11){
+  op_arg arg8){
 
   op_par_loop_init_grid_gpu(name, set,
     arg0,
@@ -328,10 +357,7 @@ void op_par_loop_init_grid(char const *name, op_set set,
     arg5,
     arg6,
     arg7,
-    arg8,
-    arg9,
-    arg10,
-    arg11);
+    arg8);
 
   }
 #endif //OP_HYBRID_GPU

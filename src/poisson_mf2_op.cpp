@@ -172,6 +172,11 @@ Poisson_MF2::~Poisson_MF2() {
   free(op_bc_data);
 }
 
+void Poisson_MF2::init() {
+  setOp();
+  setBCOP();
+}
+
 bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   massMat = addMass;
   massFactor = factor;

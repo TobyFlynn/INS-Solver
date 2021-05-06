@@ -35,6 +35,12 @@ Poisson_M::~Poisson_M() {
     MatDestroy(&pBCMat);
 }
 
+void Poisson_M::init() {
+  createMatrix();
+  createMassMatrix();
+  createBCMatrix();
+}
+
 bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   massMat = addMass;
   massFactor = factor;
