@@ -83,8 +83,8 @@ Solver::Solver(std::string filename, int pmethod) {
     viscosityPoisson = viscosityMF2;
   }
 
-  // op_partition("PARMETIS", "KWAY", data->cells, data->edge2cells, NULL);
-  op_partition("PARMETIS", "KWAY", NULL, NULL, NULL);
+  op_partition("PARMETIS", "KWAY", data->cells, data->edge2cells, NULL);
+  // op_partition("PARMETIS", "KWAY", NULL, NULL, NULL);
 
   data->init();
   cubatureData->init();
