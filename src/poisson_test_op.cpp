@@ -42,12 +42,11 @@ void op_par_loop_poisson_test_error(char const *, op_set,
 
 #include "constants/all_constants.h"
 #include "constants.h"
-#include "load_mesh.h"
 #include "ins_data.h"
 #include "save_solution.h"
 #include "poisson.h"
-#include "blas_calls.h"
 #include "timing.h"
+#include "blas_calls.h"
 
 #include "kernels/poisson_test_init.h"
 #include "kernels/poisson_test_bc.h"
@@ -60,6 +59,9 @@ Timing *timer;
 Constants *constants;
 
 int main(int argc, char **argv) {
+  // Initialise OP2
+  op_init(argc, argv, 2);
+
   timer = new Timing();
   timer->startWallTime();
   timer->startSetup();
@@ -73,52 +75,34 @@ int main(int argc, char **argv) {
     return ierr;
   }
 
-  INSData *data = new INSData();
+  PetscBool found;
+  int pmethod = 0;
+  PetscOptionsGetInt(NULL, NULL, "-pmethod", &pmethod, &found);
 
-  // Lamda used to identify the type of boundary edges
-  auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-    if(y1 == y2 && y1 > 0.5) {
-      // Neumann BC y = 1
-      return 2;
-    } else if(y1 == y2 && y1 < 0.5) {
-      // Neumann BC y = 0
-      return 3;
-    } else if(x1 < 0.5){
-      // Dirichlet BC x = 0
-      return 0;
-    } else {
-      // Dirichlet BC x = 1
-      return 1;
-    }
-  };
-
-  // Lamda used to identify the type of boundary edges
-  // auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-  //   if(y1 == y2 && y1 > 0.5) {
-  //     // Neumann BC y = 1
-  //     return 1;
-  //   } else if(y1 == y2 && y1 < 0.5) {
-  //     // Neumann BC y = 0
-  //     return 1;
-  //   } else if(x1 < 0.5){
-  //     // Dirichlet BC x = 0
-  //     return 1;
-  //   } else {
-  //     // Dirichlet BC x = 1
-  //     return 0;
-  //   }
-  // };
-
-  load_mesh(filename.c_str(), data, bcNum);
-
-  // Initialise OP2
-  op_init(argc, argv, 2);
-
-  // Initialise all sets, maps and dats
-  data->initOP2();
-
+  INSData *data = new INSData(filename);
   CubatureData *cubData = new CubatureData(data);
   GaussData *gaussData = new GaussData(data);
+
+  Poisson *poisson;
+  int dirichlet[] = {0, 1, -1};
+  int neumann[] = {2, 3, -1};
+
+  if(pmethod == 0) {
+    Poisson_M *pressureM = new Poisson_M(data, cubData, gaussData);
+    pressureM->setDirichletBCs(dirichlet);
+    pressureM->setNeumannBCs(neumann);
+    poisson = pressureM;
+  } else if(pmethod == 1) {
+    Poisson_MF *pressureMF = new Poisson_MF(data, cubData, gaussData);
+    pressureMF->setDirichletBCs(dirichlet);
+    pressureMF->setNeumannBCs(neumann);
+    poisson = pressureMF;
+  } else {
+    Poisson_MF2 *poissonMF2 = new Poisson_MF2(data, cubData, gaussData);
+    poissonMF2->setDirichletBCs(dirichlet);
+    poissonMF2->setNeumannBCs(neumann);
+    poisson = poissonMF2;
+  }
 
   double *tmp_data = (double *)calloc(15 * data->numCells, sizeof(double));
   double *rhs_data = (double *)calloc(15 * data->numCells, sizeof(double));
@@ -127,6 +111,14 @@ int main(int argc, char **argv) {
   op_dat tmp = op_decl_dat(data->cells, 15, "double", tmp_data, "tmp");
   op_dat rhs = op_decl_dat(data->cells, 15, "double", rhs_data, "rhs");
   op_dat bc  = op_decl_dat(data->cells, 21, "double", bc_data, "bc");
+
+  op_partition("PARMETIS", "KWAY", data->cells, data->edge2cells, NULL);
+  // op_partition("PARMETIS", "KWAY", data->cells, NULL, NULL);
+
+  data->init();
+  cubData->init();
+  gaussData->init();
+  poisson->init();
 
   op_par_loop_poisson_test_init("poisson_test_init",data->cells,
               op_arg_dat(data->x,-1,OP_ID,15,"double",OP_READ),
@@ -143,34 +135,8 @@ int main(int argc, char **argv) {
 
   op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::MASS), 15, tmp, 0.0, rhs);
 
-  // Poisson_MF *poisson = new Poisson_MF(data, cubData, gaussData);
-  // int dirichlet[] = {0, 1, -1};
-  // int neumann[] = {2, 3, -1};
-  // poisson->setDirichletBCs(dirichlet);
-  // poisson->setNeumannBCs(neumann);
-  // poisson->setBCValues(bc);
-  // Poisson_M *poisson2 = new Poisson_M(data, cubData, gaussData);
-  // int dirichlet[] = {0, 1, -1};
-  // int neumann[] = {2, 3, -1};
-  // poisson2->setDirichletBCs(dirichlet);
-  // poisson2->setNeumannBCs(neumann);
-  // poisson2->createMatrix();
-  // poisson2->createBCMatrix();
-  // poisson2->createMassMatrix();
-  // poisson2->setBCValues(bc);
-  Poisson_MF2 *poisson3 = new Poisson_MF2(data, cubData, gaussData);
-  int dirichlet[] = {0, 1, -1};
-  int neumann[] = {2, 3, -1};
-  poisson3->setDirichletBCs(dirichlet);
-  poisson3->setNeumannBCs(neumann);
-  poisson3->setOp();
-  poisson3->setBCOP();
-  poisson3->setBCValues(bc);
-
-  poisson3->solve(rhs, data->p);
-
-  // poisson3->solve(rhs, data->Q[0][1]);
-  // poisson3->solve(rhs, data->p);
+  poisson->setBCValues(bc);
+  poisson->solve(rhs, data->p);
 
   op_par_loop_poisson_test_error("poisson_test_error",data->cells,
               op_arg_dat(data->x,-1,OP_ID,15,"double",OP_READ),
@@ -183,7 +149,7 @@ int main(int argc, char **argv) {
   free(rhs_data);
   free(bc_data);
 
-  // delete poisson;
+  delete poisson;
   delete gaussData;
   delete cubData;
   delete data;
@@ -191,5 +157,7 @@ int main(int argc, char **argv) {
   delete timer;
 
   ierr = PetscFinalize();
+  // Clean up OP2
+  op_exit();
   return ierr;
 }

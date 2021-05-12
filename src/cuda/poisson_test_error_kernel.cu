@@ -11,8 +11,8 @@ __device__ void poisson_test_error_gpu( const double *x, const double *y,
     double y1 = y[i];
 
 
-    double exact = (1.0 - (x[i] * x[i])) * (2.0 * (y[i] * y[i] * y[i]) - 3.0 * (y[i] * y[i]) + 1.0);
 
+    double exact = y1 * (1.0 - y1) * x1 * x1 * x1;
     err[i] = fabs(sol[i] - exact);
 
   }

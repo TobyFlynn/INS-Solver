@@ -10,8 +10,8 @@ inline void poisson_test_init_openacc( const double *x, const double *y, const d
   for(int i = 0; i < 15; i++) {
     double x1 = x[i];
     double y1 = y[i];
-    rhs[i] = -2.0 * (2.0 * (y1 * y1 * y1) - 3 * (y1 * y1) + 1) + 6.0 * (1 - (x1 * x1)) * (2.0 * y1 - 1.0);
 
+    rhs[i] = 6 * x1 * y1 * (1.0 - y1) - 2.0 * x1 * x1 * x1;
 
     rhs[i] *= -J[i];
   }
