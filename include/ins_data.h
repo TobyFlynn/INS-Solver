@@ -56,6 +56,7 @@ public:
   int *bedge_type_data;
   int *edgeNum_data;
   int *bedgeNum_data;
+  int numNodes_g, numCells_g, numEdges_g, numBoundaryEdges_g;
   int numNodes, numCells, numEdges, numBoundaryEdges;
   // OP2 stuff
   op_set nodes, cells, edges, bedges;

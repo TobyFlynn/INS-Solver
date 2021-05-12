@@ -22,12 +22,8 @@ void cgns_load_cells<int>(int file, int baseIndex, int zoneIndex, int *cgnsCells
   std::vector<cgsize_t> cells(numCells * 3);
   cgsize_t parentData;
   cg_elements_read(file, baseIndex, zoneIndex, 1, cells.data(), &parentData);
+  // CGNS starts numbering from 1 but OP2 starts from 0
   std::transform(cells.begin(), cells.end(), cgnsCells, [](int x) { return x - 1;});
-  // cgsize_t parentData;
-  // cg_elements_read(file, baseIndex, zoneIndex, 1, (cgsize_t *)cgnsCells, &parentData);
-  // // CGNS starts numbering from 1 but OP2 starts from 0
-  // std::transform(cgnsCells, cgnsCells + 3 * numCells, cgnsCells, [](int x) { return x - 1;})
-  ;
 }
 
 template<>
@@ -42,58 +38,7 @@ void cgns_load_cells<long>(int file, int baseIndex, int zoneIndex, int *cgnsCell
 #ifdef INS_MPI
 
 #include "mpi.h"
-
-int compute_local_size(int global_size, int mpi_comm_size, int mpi_rank) {
-  int local_size = global_size / mpi_comm_size;
-  int remainder = global_size % mpi_comm_size;
-
-  if (mpi_rank < remainder) {
-    local_size = local_size + 1;
-  }
-  return local_size;
-}
-
-void scatter_double_array(double *g_array, double *l_array, int comm_size,
-                          int g_size, int l_size, int elem_size) {
-  int *sendcnts = (int *)malloc(comm_size * sizeof(int));
-  int *displs = (int *)malloc(comm_size * sizeof(int));
-  int disp = 0;
-
-  for (int i = 0; i < comm_size; i++) {
-    sendcnts[i] = elem_size * compute_local_size(g_size, comm_size, i);
-  }
-  for (int i = 0; i < comm_size; i++) {
-    displs[i] = disp;
-    disp = disp + sendcnts[i];
-  }
-
-  MPI_Scatterv(g_array, sendcnts, displs, MPI_DOUBLE, l_array,
-               l_size * elem_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-  free(sendcnts);
-  free(displs);
-}
-
-void scatter_int_array(int *g_array, int *l_array, int comm_size, int g_size,
-                       int l_size, int elem_size) {
-  int *sendcnts = (int *)malloc(comm_size * sizeof(int));
-  int *displs = (int *)malloc(comm_size * sizeof(int));
-  int disp = 0;
-
-  for (int i = 0; i < comm_size; i++) {
-    sendcnts[i] = elem_size * compute_local_size(g_size, comm_size, i);
-  }
-  for (int i = 0; i < comm_size; i++) {
-    displs[i] = disp;
-    disp = disp + sendcnts[i];
-  }
-
-  MPI_Scatterv(g_array, sendcnts, displs, MPI_INT, l_array, l_size * elem_size,
-               MPI_INT, 0, MPI_COMM_WORLD);
-
-  free(sendcnts);
-  free(displs);
-}
+#include "mpi_helper_func.h"
 
 template<typename Func>
 void load_mesh(std::string filename, INSData *data, Func bcNum) {
@@ -102,7 +47,6 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
-  int numNodes_g, numCells_g, numEdges_g, numBoundaryEdges_g;
   double *coords_g;
   int *cells_g, *edge2node_g, *edge2cell_g, *edgeNum_g;
   int *bedge2node_g, *bedge2cell_g, *bedgeNum_g, *bedge_type_g;
@@ -122,13 +66,13 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
     char zoneName[33];
     // Get zone name and size
     cg_zone_read(file, baseIndex, zoneIndex, zoneName, &cg_numNodes);
-    numNodes_g = (int) cg_numNodes;
+    data->numNodes_g = (int) cg_numNodes;
     std::cout << "Zone Name: " << zoneName << std::endl;
-    std::cout << "Zone Size: " << numNodes_g << std::endl;
+    std::cout << "Zone Size: " << data->numNodes_g << std::endl;
 
     // Get vertices
-    std::vector<double> x(numNodes_g);
-    std::vector<double> y(numNodes_g);
+    std::vector<double> x(data->numNodes_g);
+    std::vector<double> y(data->numNodes_g);
     cgsize_t minVertex = 1;
     cgsize_t maxVertex = cg_numNodes;
     cg_coord_read(file, baseIndex, zoneIndex, "CoordinateX",
@@ -136,7 +80,7 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
     cg_coord_read(file, baseIndex, zoneIndex, "CoordinateY",
                   CGNS_ENUMV(RealDouble), &minVertex, &maxVertex, y.data());
 
-    coords_g = (double *)malloc(2 * numNodes_g * sizeof(double));
+    coords_g = (double *)malloc(2 * data->numNodes_g * sizeof(double));
     for(int i = 0; i < x.size(); i++) {
       coords_g[2 * i] = x[i];
       coords_g[2 * i + 1] = y[i];
@@ -161,9 +105,9 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
     std::cout << " Parent Flag: " << parentFlag << std::endl;
 
     // Get cells
-    numCells_g = elementEnd - elementStart + 1;
-    cells_g = (int *)malloc(numCells_g * 3 * sizeof(int));
-    cgns_load_cells<cgsize_t>(file, baseIndex, zoneIndex, cells_g, numCells_g);
+    data->numCells_g = elementEnd - elementStart + 1;
+    cells_g = (int *)malloc(data->numCells_g * 3 * sizeof(int));
+    cgns_load_cells<cgsize_t>(file, baseIndex, zoneIndex, cells_g, data->numCells_g);
 
     // Get edge data
     cg_gopath(file, "/Base/Zone1/Edges");
@@ -174,14 +118,14 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
     cg_array_info(1, arrayName, &arrayDataType, &arrayRank, arrayDims);
     std::cout << "Array Name: " << arrayName << std::endl;
     std::cout << "Array Dims: " << arrayDims[0] << " " << arrayDims[1] << std::endl;
-    numEdges_g = arrayDims[1];
-    edge2node_g = (int *)malloc(2 * numEdges_g * sizeof(int));
-    edge2cell_g = (int *)malloc(2 * numEdges_g * sizeof(int));
-    edgeNum_g   = (int *)malloc(2 * numEdges_g * sizeof(int));
+    data->numEdges_g = arrayDims[1];
+    edge2node_g = (int *)malloc(2 * data->numEdges_g * sizeof(int));
+    edge2cell_g = (int *)malloc(2 * data->numEdges_g * sizeof(int));
+    edgeNum_g   = (int *)malloc(2 * data->numEdges_g * sizeof(int));
     std::vector<int> edgeData(arrayDims[0] * arrayDims[1]);
     cg_array_read(1, edgeData.data());
 
-    for(int i = 0; i < numEdges_g; i++) {
+    for(int i = 0; i < data->numEdges_g; i++) {
       // - 1 as CGNS counts points from 1 but OP2 counts from 0
       // Cell index do start from one in this data
       edge2node_g[i * 2]     = edgeData[i * 6] - 1;
@@ -201,15 +145,15 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
     cg_array_info(1, barrayName, &barrayDataType, &barrayRank, barrayDims);
     std::cout << "Array Name: " << barrayName << std::endl;
     std::cout << "Array Dims: " << barrayDims[0] << " " << barrayDims[1] << std::endl;
-    numBoundaryEdges_g = barrayDims[1];
-    bedge2node_g = (int *)malloc(2 * numBoundaryEdges_g * sizeof(int));
-    bedge2cell_g = (int *)malloc(numBoundaryEdges_g * sizeof(int));
-    bedgeNum_g   = (int *)malloc(numBoundaryEdges_g * sizeof(int));
-    bedge_type_g = (int *)malloc(numBoundaryEdges_g * sizeof(int));
+    data->numBoundaryEdges_g = barrayDims[1];
+    bedge2node_g = (int *)malloc(2 * data->numBoundaryEdges_g * sizeof(int));
+    bedge2cell_g = (int *)malloc(data->numBoundaryEdges_g * sizeof(int));
+    bedgeNum_g   = (int *)malloc(data->numBoundaryEdges_g * sizeof(int));
+    bedge_type_g = (int *)malloc(data->numBoundaryEdges_g * sizeof(int));
     std::vector<int> bedgeData(barrayDims[0] * barrayDims[1]);
     cg_array_read(1, bedgeData.data());
 
-    for(int i = 0; i < numBoundaryEdges_g; i++) {
+    for(int i = 0; i < data->numBoundaryEdges_g; i++) {
       // - 1 as CGNS counts points from 1 but OP2 counts from 0
       // Cell index do start from one in this data
       bedge2node_g[i * 2]     = bedgeData[i * 4] - 1;
@@ -229,15 +173,15 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
     cg_close(file);
   }
 
-  MPI_Bcast(&numNodes_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&numCells_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&numEdges_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&numBoundaryEdges_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&data->numNodes_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&data->numCells_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&data->numEdges_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&data->numBoundaryEdges_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-  data->numNodes         = compute_local_size(numNodes_g, comm_size, rank);
-  data->numCells         = compute_local_size(numCells_g, comm_size, rank);
-  data->numEdges         = compute_local_size(numEdges_g, comm_size, rank);
-  data->numBoundaryEdges = compute_local_size(numBoundaryEdges_g, comm_size, rank);
+  data->numNodes         = compute_local_size(data->numNodes_g, comm_size, rank);
+  data->numCells         = compute_local_size(data->numCells_g, comm_size, rank);
+  data->numEdges         = compute_local_size(data->numEdges_g, comm_size, rank);
+  data->numBoundaryEdges = compute_local_size(data->numBoundaryEdges_g, comm_size, rank);
   // std::cout << data->numNodes << "," << data->numCells << "," << data->numEdges << "," << data->numBoundaryEdges << std::endl;
 
   data->coords          = (double *)malloc(2 * data->numNodes * sizeof(double));
@@ -250,15 +194,15 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
   data->bedgeNum_data   = (int *)malloc(data->numBoundaryEdges * sizeof(int));
   data->bedge_type_data = (int *)malloc(data->numBoundaryEdges * sizeof(int));
 
-  scatter_double_array(coords_g, data->coords, comm_size, numNodes_g, data->numNodes, 2);
-  scatter_int_array(cells_g, data->cgnsCells, comm_size, numCells_g, data->numCells, 3);
-  scatter_int_array(edge2node_g, data->edge2node_data, comm_size, numEdges_g, data->numEdges, 2);
-  scatter_int_array(edge2cell_g, data->edge2cell_data, comm_size, numEdges_g, data->numEdges, 2);
-  scatter_int_array(edgeNum_g, data->edgeNum_data, comm_size, numEdges_g, data->numEdges, 2);
-  scatter_int_array(bedge2node_g, data->bedge2node_data, comm_size, numBoundaryEdges_g, data->numBoundaryEdges, 2);
-  scatter_int_array(bedge2cell_g, data->bedge2cell_data, comm_size, numBoundaryEdges_g, data->numBoundaryEdges, 1);
-  scatter_int_array(bedgeNum_g, data->bedgeNum_data, comm_size, numBoundaryEdges_g, data->numBoundaryEdges, 1);
-  scatter_int_array(bedge_type_g, data->bedge_type_data, comm_size, numBoundaryEdges_g, data->numBoundaryEdges, 1);
+  scatter_double_array(coords_g, data->coords, comm_size, data->numNodes_g, data->numNodes, 2);
+  scatter_int_array(cells_g, data->cgnsCells, comm_size, data->numCells_g, data->numCells, 3);
+  scatter_int_array(edge2node_g, data->edge2node_data, comm_size, data->numEdges_g, data->numEdges, 2);
+  scatter_int_array(edge2cell_g, data->edge2cell_data, comm_size, data->numEdges_g, data->numEdges, 2);
+  scatter_int_array(edgeNum_g, data->edgeNum_data, comm_size, data->numEdges_g, data->numEdges, 2);
+  scatter_int_array(bedge2node_g, data->bedge2node_data, comm_size, data->numBoundaryEdges_g, data->numBoundaryEdges, 2);
+  scatter_int_array(bedge2cell_g, data->bedge2cell_data, comm_size, data->numBoundaryEdges_g, data->numBoundaryEdges, 1);
+  scatter_int_array(bedgeNum_g, data->bedgeNum_data, comm_size, data->numBoundaryEdges_g, data->numBoundaryEdges, 1);
+  scatter_int_array(bedge_type_g, data->bedge_type_data, comm_size, data->numBoundaryEdges_g, data->numBoundaryEdges, 1);
 
   if(rank == 0) {
     free(coords_g);

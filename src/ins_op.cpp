@@ -187,10 +187,10 @@ int main(int argc, char **argv) {
   #ifndef INS_MPI
   if(save != -1)
     save_solution_finalise("sol.cgns", solver->data, (iter / save) + 1, solver->dt * save);
-
+  #endif
+  
   // Save solution to CGNS file
   save_solution("end.cgns", solver->data, currentIter % 2);
-  #endif
 
   timer->endWallTime();
   // timer->exportTimings("timings.csv", iter, time);
