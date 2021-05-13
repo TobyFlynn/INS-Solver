@@ -6,15 +6,13 @@ list(APPEND KERNEL_HEADERS kernels/advection_flux.h kernels/advection_faces.h ke
 list(APPEND KERNEL_HEADERS kernels/pressure_bc.h kernels/pressure_rhs.h kernels/pressure_update_vel.h)
 list(APPEND KERNEL_HEADERS kernels/viscosity_rhs.h kernels/viscosity_reset_bc.h kernels/viscosity_bc.h)
 list(APPEND KERNEL_HEADERS kernels/cub_grad.h kernels/cub_div.h kernels/poisson_test_init.h kernels/poisson_test_bc.h kernels/poisson_test_error.h)
-list(APPEND KERNEL_HEADERS kernels/poisson_mf2.h kernels/poisson_mf2_mass.h kernels/poisson_mf2_faces.h kernels/poisson_mf2_op.h kernels/poisson_mf2_opf.h  kernels/poisson_mf2_opbf.h kernels/poisson_mf2_bc.h kernels/poisson_mf2_apply_bc)
+list(APPEND KERNEL_HEADERS kernels/poisson_mf2.h kernels/poisson_mf2_mass.h kernels/poisson_mf2_faces.h kernels/poisson_mf2_op.h kernels/poisson_mf2_opf.h  kernels/poisson_mf2_opbf.h kernels/poisson_mf2_bc.h kernels/poisson_mf2_apply_bc.h)
 
 set(OPENBLAS_SRC openBLAS_op/init_grid_op.cpp openBLAS_op/op2_gemv_op.cpp openBLAS_op/op2_gemm_op.cpp openBLAS_op/op2_gemv_batch_op.cpp openBLAS_op/op2_gemm_batch_op.cpp)
 list(APPEND OPENBLAS_SRC openBLAS_op/init_gauss_op.cpp openBLAS_op/init_gauss_grad_op.cpp openBLAS_op/init_gauss_grad_neighbour_op.cpp)
-#list(APPEND OPENBLAS_SRC openBLAS_op/poisson_mf2_op.cpp)
 
 set(CUBLAS_SRC cuBLAS_op/init_grid_op.cu cuBLAS_op/op2_gemv_op.cu cuBLAS_op/op2_gemm_op.cu cuBLAS_op/op2_gemv_batch_op.cu cuBLAS_op/op2_gemm_batch_op.cu)
 list(APPEND CUBLAS_SRC cuBLAS_op/init_gauss_op.cu cuBLAS_op/init_gauss_grad_op.cu cuBLAS_op/init_gauss_grad_neighbour_op.cu)
-#list(APPEND CUBLAS_SRC cuBLAS_op/poisson_mf2_op.cu)
 
 set(COMMON_SRC solver_op.cpp operators_op.cpp poisson_op.cpp poisson_m_op.cpp poisson_mf2_op.cpp ins_data_op.cpp timing_op.cpp)
 set(CPU_SRC poisson_copy_op.cpp constants.cpp)
@@ -41,18 +39,17 @@ target_compile_definitions(ins_cuda PRIVATE INS_CUDA)
 
 op2_application(ins_mpi LIBS op2_mpi op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${MPI_SRC} ${OPENBLAS_SRC} seq/ins_seqkernels.cpp ${KERNEL_HEADERS})
 target_include_directories(ins_mpi PUBLIC ${PETSC_DIR}/include ${OpenBLAS_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(ins_mpi libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so ${OpenBLAS_LIBRARIES} ${GFORT_LIB})
+target_link_libraries(ins_mpi libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so ${OpenBLAS_LIBRARIES} ${GFORT_LIB} libptscotch.a libscotch.a)
 target_compile_definitions(ins_mpi PRIVATE INS_MPI)
 
 op2_application(ins_mpi_openmp LIBS op2_mpi op2_openmp op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${MPI_SRC} ${OPENBLAS_SRC} openmp/ins_kernels.cpp ${KERNEL_HEADERS})
 target_include_directories(ins_mpi_openmp PUBLIC ${PETSC_DIR}/include ${OpenBLAS_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(ins_mpi_openmp libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so ${OpenBLAS_LIBRARIES} ${GFORT_LIB})
+target_link_libraries(ins_mpi_openmp libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so ${OpenBLAS_LIBRARIES} ${GFORT_LIB} libptscotch.a libscotch.a)
 target_compile_definitions(ins_mpi_openmp PRIVATE INS_MPI)
 
 op2_application(ins_mpi_cuda LIBS op2_mpi_cuda op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${GPU_SRC} ${MPI_SRC} ${CUBLAS_SRC} cuda/ins_kernels.cu ${KERNEL_HEADERS})
 target_compile_definitions(ins_mpi_cuda PUBLIC -DBUILD_CUDA)
-# Link CGNS Library
 target_include_directories(ins_mpi_cuda PUBLIC ${PETSC_DIR}/include ${CUDAToolkit_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(ins_mpi_cuda $libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so CUDA::cudart_static CUDA::cublas)
+target_link_libraries(ins_mpi_cuda $libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so CUDA::cudart_static CUDA::cublas libptscotch.a libscotch.a)
 set_property(TARGET ins_mpi_cuda PROPERTY CUDA_ARCHITECTURES OFF)
 target_compile_definitions(ins_mpi_cuda PRIVATE INS_CUDA INS_MPI)

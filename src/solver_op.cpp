@@ -224,7 +224,7 @@ Solver::Solver(std::string filename, int pmethod) {
     viscosityPoisson = viscosityMF2;
   }
 
-  op_partition("PARMETIS", "KWAY", data->cells, data->edge2cells, NULL);
+  op_partition("PTSCOTCH", "KWAY", data->cells, data->edge2cells, NULL);
 
   data->init();
   cubatureData->init();
