@@ -304,3 +304,11 @@ void Solver::lift_drag_coeff(double *lift, double *drag, int ind) {
   *lift = *lift / 0.05;
   *drag = *drag / 0.05;
 }
+
+double Solver::getAvgPressureConvergance() {
+  return pressurePoisson->getAverageConvergeIter();
+}
+
+double Solver::getAvgViscosityConvergance() {
+  return viscosityPoisson->getAverageConvergeIter();
+}

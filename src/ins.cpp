@@ -174,12 +174,14 @@ int main(int argc, char **argv) {
   save_solution("end.cgns", solver->data, currentIter % 2);
 
   timer->endWallTime();
-  // timer->exportTimings("timings.csv", iter, time);
+  timer->exportTimings("timings.csv", iter, time);
 
   cout << "Final time: " << time << endl;
   cout << "Wall time: " << timer->getWallTime() << endl;
   cout << "Solve time: " << timer->getMainLoop() << endl;
   cout << "Time to simulate 1 second: " << timer->getWallTime() / time << endl;
+  cout << "Average number of iterations to pressure convergance: " << solver->getAvgPressureConvergance() << endl;
+  cout << "Average number of iterations to viscosity convergance: " << solver->getAvgViscosityConvergance() << endl;
 
   op_timings_to_csv("op2_timings.csv");
 

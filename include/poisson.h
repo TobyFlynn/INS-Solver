@@ -94,8 +94,6 @@ private:
   double *op_bc_data;
   double *u_t_data;
   double *rhs_t_data;
-
-  bool use_blas;
 };
 
 #endif

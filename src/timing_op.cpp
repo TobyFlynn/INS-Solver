@@ -26,6 +26,7 @@ extern "C" {
 
 using namespace std;
 
+#ifndef INS_MPI
 void Timing::exportTimings(std::string filename, int iter, double time) {
   ofstream file(filename);
 
@@ -71,6 +72,59 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
 
   file.close();
 }
+#else
+#include "mpi.h"
+void Timing::exportTimings(std::string filename, int iter, double time) {
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if(rank != 0)
+    return;
+    
+  ofstream file(filename);
+
+  // Create first row of csv file (headers of columns)
+  file << "Iterations" << ",";
+  file << "Final Time" << ",";
+  file << "Wall Time" << ",";
+  file << "Setup" << ",";
+  file << "Main Loop" << ",";
+  file << "Advection" << ",";
+  file << "Pressure" << ",";
+  file << "Viscosity" << ",";
+  file << "Lift/Drag" << ",";
+  file << "Save" << ",";
+  file << "Pressure Setup" << ",";
+  file << "Pressure Linear Solve" << ",";
+  file << "Viscosity Setup" << ",";
+  file << "Viscosity Linear Solve" << ",";
+  file << "Linear Solve MF" << ",";
+  file << "Linear Solve MF Mat Mult" << ",";
+  file << "Linear Solve MF RHS";
+  file << endl;
+
+  // Output timing data
+  file << to_string(iter) << ",";
+  file << to_string(time) << ",";
+  file << to_string(totalWallTime) << ",";
+  file << to_string(totalSetup) << ",";
+  file << to_string(totalMainLoop) << ",";
+  file << to_string(totalAdvection) << ",";
+  file << to_string(totalPressure) << ",";
+  file << to_string(totalViscosity) << ",";
+  file << to_string(totalLiftDrag) << ",";
+  file << to_string(totalSave) << ",";
+  file << to_string(totalPressureSetup) << ",";
+  file << to_string(totalPressureLinearSolve) << ",";
+  file << to_string(totalViscositySetup) << ",";
+  file << to_string(totalViscosityLinearSolve) << ",";
+  file << to_string(totalLinearSolveMF) << ",";
+  file << to_string(totalLinearSolveMFMatMult) << ",";
+  file << to_string(totalLinearSolveMFRHS);
+  file << endl;
+
+  file.close();
+}
+#endif
 
 double Timing::getWallTime() {
   return totalWallTime;

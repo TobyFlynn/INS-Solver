@@ -22,6 +22,9 @@ public:
 
   void lift_drag_coeff(double *lift, double *drag, int ind);
 
+  double getAvgPressureConvergance();
+  double getAvgViscosityConvergance();
+
   INSData *data;
   double dt;
 private:
