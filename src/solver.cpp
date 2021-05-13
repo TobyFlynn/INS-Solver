@@ -58,19 +58,6 @@ Solver::Solver(std::string filename, int pmethod) {
     viscosityM->setDirichletBCs(viscosity_dirichlet);
     viscosityM->setNeumannBCs(viscosity_neumann);
     viscosityPoisson = viscosityM;
-  } else if(pmethod == 1) {
-    #ifdef INS_MPI
-    cerr << "*** ERROR ***\n  pmethod 1 is not currently implemented for MPI" << endl;
-    exit(-1);
-    #endif
-    Poisson_MF *pressureMF = new Poisson_MF(data, cubatureData, gaussData);
-    pressureMF->setDirichletBCs(pressure_dirichlet);
-    pressureMF->setNeumannBCs(pressure_neumann);
-    pressurePoisson = pressureMF;
-    Poisson_MF *viscosityMF = new Poisson_MF(data, cubatureData, gaussData);
-    viscosityMF->setDirichletBCs(viscosity_dirichlet);
-    viscosityMF->setNeumannBCs(viscosity_neumann);
-    viscosityPoisson = viscosityMF;
   } else {
     Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubatureData, gaussData);
     pressureMF2->setDirichletBCs(pressure_dirichlet);

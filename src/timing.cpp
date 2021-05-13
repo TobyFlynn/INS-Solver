@@ -57,6 +57,10 @@ double Timing::getWallTime() {
   return totalWallTime;
 }
 
+double Timing::getMainLoop() {
+  return totalMainLoop;
+}
+
 void Timing::startWallTime() {
   op_timers(&cpu1, &wallTime1);
 }

@@ -54,11 +54,6 @@ int main(int argc, char **argv) {
     pressureM->setDirichletBCs(dirichlet);
     pressureM->setNeumannBCs(neumann);
     poisson = pressureM;
-  } else if(pmethod == 1) {
-    Poisson_MF *pressureMF = new Poisson_MF(data, cubData, gaussData);
-    pressureMF->setDirichletBCs(dirichlet);
-    pressureMF->setNeumannBCs(neumann);
-    poisson = pressureMF;
   } else {
     Poisson_MF2 *poissonMF2 = new Poisson_MF2(data, cubData, gaussData);
     poissonMF2->setDirichletBCs(dirichlet);

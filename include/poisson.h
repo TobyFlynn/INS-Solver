@@ -69,44 +69,6 @@ private:
   bool pBCMatInit = false;
 };
 
-class Poisson_MF : public Poisson {
-public:
-  Poisson_MF(INSData *data, CubatureData *cubData, GaussData *gaussData);
-  ~Poisson_MF();
-
-  bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
-  void calc_rhs(const double *u_d, double *rhs_d);
-  void init();
-
-  op_dat u, rhs, tau, gU, uNumFlux, uFluxX, uFluxY, dudx, dudy, qx, qy, gqx, gqy;
-  op_dat qxNumFlux, qyNumFlux, qFlux, gradx, grady;
-
-private:
-  void create_shell_mat(Mat *m);
-  void copy_u(const double *u_d);
-  void copy_rhs(double *rhs_d);
-  void applyBCs(op_dat b_dat);
-
-  double *u_data;
-  double *rhs_data;
-  double *tau_data;
-  double *gU_data;
-  double *uNumFlux_data;
-  double *uFluxX_data;
-  double *uFluxY_data;
-  double *dudx_data;
-  double *dudy_data;
-  double *qx_data;
-  double *qy_data;
-  double *gqx_data;
-  double *gqy_data;
-  double *qxNumFlux_data;
-  double *qyNumFlux_data;
-  double *qFlux_data;
-  double *gradx_data;
-  double *grady_data;
-};
-
 class Poisson_MF2 : public Poisson {
 public:
   Poisson_MF2(INSData *data, CubatureData *cubData, GaussData *gaussData);

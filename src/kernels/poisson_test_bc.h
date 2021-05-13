@@ -10,8 +10,8 @@ inline void poisson_test_bc(const int *bedge_type, const int *bedgeNum,
   if(*bedge_type == 0) {
     for(int i = 0; i < 7; i++) {
       double y1 = y[exInd + i];
-      bc[exInd + i] += y1 * (1.0 - y1);
-      // bc[exInd + i] += 2.0 * y1 * y1 * y1  - 3.0 * y1 * y1 + 1.0;
+      // bc[exInd + i] += y1 * (1.0 - y1);
+      bc[exInd + i] += 2.0 * y1 * y1 * y1  - 3.0 * y1 * y1 + 1.0;
     }
   }
 }

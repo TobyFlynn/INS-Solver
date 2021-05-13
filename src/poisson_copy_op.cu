@@ -5,26 +5,6 @@
 #include "poisson.h"
 
 // Copy u PETSc vec array to OP2 dat (TODO avoid this copy)
-void Poisson_MF::copy_u(const double *u_d) {
-  op_arg u_copy_args[] = {
-    op_arg_dat(u, -1, OP_ID, 15, "double", OP_WRITE)
-  };
-  op_mpi_halo_exchanges_cuda(data->cells, 1, u_copy_args);
-  cudaMemcpy(u->data_d, u_d, u->set->size * 15 * sizeof(double), cudaMemcpyDeviceToDevice);
-  op_mpi_set_dirtybit_cuda(1, u_copy_args);
-}
-
-// Copy rhs OP2 dat to PETSc vec array (TODO avoid this copy)
-void Poisson_MF::copy_rhs(double *rhs_d) {
-  op_arg rhs_copy_args[] = {
-    op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_READ)
-  };
-  op_mpi_halo_exchanges_cuda(data->cells, 1, rhs_copy_args);
-  cudaMemcpy(rhs_d, rhs->data_d, rhs->set->size * 15 * sizeof(double), cudaMemcpyDeviceToDevice);
-  op_mpi_set_dirtybit_cuda(1, rhs_copy_args);
-}
-
-// Copy u PETSc vec array to OP2 dat (TODO avoid this copy)
 void Poisson_MF2::copy_u(const double *u_d) {
   op_arg u_copy_args[] = {
     op_arg_dat(u, -1, OP_ID, 15, "double", OP_WRITE)
@@ -98,23 +78,6 @@ void Poisson::create_mat(Mat *m, int row, int col, int prealloc) {
   #endif
 }
 
-PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
-  timer->startLinearSolveMFMatMult();
-  Poisson_MF *poisson;
-  MatShellGetContext(A, &poisson);
-  const double *x_ptr;
-  double *y_ptr;
-  VecCUDAGetArrayRead(x, &x_ptr);
-  VecCUDAGetArray(y, &y_ptr);
-
-  poisson->calc_rhs(x_ptr, y_ptr);
-
-  VecCUDARestoreArrayRead(x, &x_ptr);
-  VecCUDARestoreArray(y, &y_ptr);
-  timer->endLinearSolveMFMatMult();
-  return 0;
-}
-
 PetscErrorCode matAMult2(Mat A, Vec x, Vec y) {
   timer->startLinearSolveMFMatMult();
   Poisson_MF2 *poisson;
@@ -130,13 +93,6 @@ PetscErrorCode matAMult2(Mat A, Vec x, Vec y) {
   VecCUDARestoreArray(y, &y_ptr);
   timer->endLinearSolveMFMatMult();
   return 0;
-}
-
-void Poisson_MF::create_shell_mat(Mat *m) {
-  // MatCreateShell(PETSC_COMM_SELF, 15 * data->cells->size, 15 * data->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
-  MatCreateShell(PETSC_COMM_WORLD, 15 * data->cells->size, 15 * data->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
-  MatShellSetOperation(*m, MATOP_MULT, (void(*)(void))matAMult);
-  MatShellSetVecType(*m, VECCUDA);
 }
 
 void Poisson_MF2::create_shell_mat(Mat *m) {

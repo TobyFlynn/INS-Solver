@@ -7,6 +7,7 @@ class Timing {
 public:
   void exportTimings(std::string filename, int iter, double time);
   double getWallTime();
+  double getMainLoop();
 
   void startWallTime();
   void endWallTime();

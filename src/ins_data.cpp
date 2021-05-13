@@ -31,36 +31,36 @@ using namespace std;
 INSData::INSData(std::string filename) {
   #ifdef POISSON_TEST
   // Lamda used to identify the type of boundary edges
-  // auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-  //   if(y1 == y2 && y1 > 0.5) {
-  //     // Neumann BC y = 1
-  //     return 2;
-  //   } else if(y1 == y2 && y1 < 0.5) {
-  //     // Neumann BC y = 0
-  //     return 3;
-  //   } else if(x1 < 0.5){
-  //     // Dirichlet BC x = 0
-  //     return 0;
-  //   } else {
-  //     // Dirichlet BC x = 1
-  //     return 1;
-  //   }
-  // };
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
     if(y1 == y2 && y1 > 0.5) {
       // Neumann BC y = 1
-      return 1;
+      return 2;
     } else if(y1 == y2 && y1 < 0.5) {
       // Neumann BC y = 0
-      return 1;
+      return 3;
     } else if(x1 < 0.5){
       // Dirichlet BC x = 0
-      return 1;
+      return 0;
     } else {
       // Dirichlet BC x = 1
-      return 0;
+      return 1;
     }
   };
+  // auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+  //   if(y1 == y2 && y1 > 0.5) {
+  //     // Neumann BC y = 1
+  //     return 1;
+  //   } else if(y1 == y2 && y1 < 0.5) {
+  //     // Neumann BC y = 0
+  //     return 1;
+  //   } else if(x1 < 0.5){
+  //     // Dirichlet BC x = 0
+  //     return 1;
+  //   } else {
+  //     // Dirichlet BC x = 1
+  //     return 0;
+  //   }
+  // };
   #else
   // Lamda used to identify the type of boundary edges
   auto bcNum = [](double x1, double x2, double y1, double y2) -> int {

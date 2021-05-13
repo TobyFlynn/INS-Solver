@@ -17,8 +17,8 @@ inline void poisson_test_bc_openacc( const int *bedge_type, const int *bedgeNum,
   if(*bedge_type == 0) {
     for(int i = 0; i < 7; i++) {
       double y1 = y[exInd + i];
-      bc[exInd + i] += y1 * (1.0 - y1);
 
+      bc[exInd + i] += 2.0 * y1 * y1 * y1  - 3.0 * y1 * y1 + 1.0;
     }
   }
 }
@@ -42,10 +42,10 @@ void op_par_loop_poisson_test_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(43);
+  op_timing_realloc(31);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[43].name      = name;
-  OP_kernels[43].count    += 1;
+  OP_kernels[31].name      = name;
+  OP_kernels[31].count    += 1;
 
   int  ninds   = 3;
   int  inds[5] = {-1,-1,0,1,2};
@@ -55,8 +55,8 @@ void op_par_loop_poisson_test_bc(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_43
-    int part_size = OP_PART_SIZE_43;
+  #ifdef OP_PART_SIZE_31
+    int part_size = OP_PART_SIZE_31;
   #else
     int part_size = OP_part_size;
   #endif
@@ -107,8 +107,8 @@ void op_par_loop_poisson_test_bc(char const *name, op_set set,
       }
 
     }
-    OP_kernels[43].transfer  += Plan->transfer;
-    OP_kernels[43].transfer2 += Plan->transfer2;
+    OP_kernels[31].transfer  += Plan->transfer;
+    OP_kernels[31].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -119,5 +119,5 @@ void op_par_loop_poisson_test_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[43].time     += wall_t2 - wall_t1;
+  OP_kernels[31].time     += wall_t2 - wall_t1;
 }

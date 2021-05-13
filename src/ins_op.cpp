@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
   if(save != -1)
     save_solution_finalise("sol.cgns", solver->data, (iter / save) + 1, solver->dt * save);
   #endif
-  
+
   // Save solution to CGNS file
   save_solution("end.cgns", solver->data, currentIter % 2);
 
@@ -197,6 +197,7 @@ int main(int argc, char **argv) {
 
   cout << "Final time: " << time << endl;
   cout << "Wall time: " << timer->getWallTime() << endl;
+  cout << "Solve time: " << timer->getMainLoop() << endl;
   cout << "Time to simulate 1 second: " << timer->getWallTime() / time << endl;
 
   op_timings_to_csv("op2_timings.csv");
