@@ -3,8 +3,12 @@
 //
 
 void init_grid_omp4_kernel(
-  int *map0,
-  int map0size,
+  double *data0,
+  int dat0size,
+  double *data1,
+  int dat1size,
+  double *data2,
+  int dat2size,
   double *data3,
   int dat3size,
   double *data4,
@@ -17,64 +21,27 @@ void init_grid_omp4_kernel(
   int dat7size,
   double *data8,
   int dat8size,
-  double *data9,
-  int dat9size,
-  double *data10,
-  int dat10size,
-  double *data11,
-  int dat11size,
-  double *data12,
-  int dat12size,
-  double *data13,
-  int dat13size,
-  double *data0,
-  int dat0size,
-  int *col_reord,
-  int set_size1,
-  int start,
-  int end,
+  int count,
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size]) \
-    map(to: FMASK_ompkernel[:15])\
-    map(to:col_reord[0:set_size1],map0[0:map0size],data0[0:dat0size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size]) \
+    map(to: FMASK_ompkernel[:15])
   #pragma omp distribute parallel for schedule(static,1)
-  for ( int e=start; e<end; e++ ){
-    int n_op = col_reord[e];
-    int map0idx;
-    int map1idx;
-    int map2idx;
-    map0idx = map0[n_op + set_size1 * 0];
-    map1idx = map0[n_op + set_size1 * 1];
-    map2idx = map0[n_op + set_size1 * 2];
-
-    const double* arg0_vec[] = {
-       &data0[2 * map0idx],
-       &data0[2 * map1idx],
-       &data0[2 * map2idx]};
+  for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double **nc = arg0_vec;
-    double *nodeX = &data3[3*n_op];
-    double *nodeY = &data4[3*n_op];
-    double *rx = &data5[15*n_op];
-    double *ry = &data6[15*n_op];
-    double *sx = &data7[15*n_op];
-    double *sy = &data8[15*n_op];
-    double *nx = &data9[15*n_op];
-    double *ny = &data10[15*n_op];
-    double *J = &data11[15*n_op];
-    double *sJ = &data12[15*n_op];
-    double *fscale = &data13[15*n_op];
+    double *rx = &data0[15*n_op];
+    double *ry = &data1[15*n_op];
+    double *sx = &data2[15*n_op];
+    double *sy = &data3[15*n_op];
+    double *nx = &data4[15*n_op];
+    double *ny = &data5[15*n_op];
+    double *J = &data6[15*n_op];
+    double *sJ = &data7[15*n_op];
+    double *fscale = &data8[15*n_op];
 
     //inline function
     
-    nodeX[0] = nc[0][0];
-    nodeX[1] = nc[1][0];
-    nodeX[2] = nc[2][0];
-    nodeY[0] = nc[0][1];
-    nodeY[1] = nc[1][1];
-    nodeY[2] = nc[2][1];
 
 
     for(int i = 0; i < 5; i++) {

@@ -1,13 +1,5 @@
-inline void init_grid(const double **nc, double *nodeX, double *nodeY,
-                      double *rx, double *ry, double *sx, double *sy,
+inline void init_grid(double *rx, double *ry, double *sx, double *sy,
                       double *nx, double *ny, double *J, double *sJ, double *fscale) {
-  nodeX[0] = nc[0][0];
-  nodeX[1] = nc[1][0];
-  nodeX[2] = nc[2][0];
-  nodeY[0] = nc[0][1];
-  nodeY[1] = nc[1][1];
-  nodeY[2] = nc[2][1];
-
   // Calculate normals
   // Face 0
   for(int i = 0; i < 5; i++) {

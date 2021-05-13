@@ -1,7 +1,7 @@
 #include "cublas_v2.h"
 
 #include "op_seq.h"
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
 void op2_gemm_batch(bool transposeA, bool transposeB, int m, int n, int k, double alpha, op_dat a, int lda, op_dat b, int ldb, double beta, op_dat c, int ldc) {
   op_arg gemv_args[] = {
@@ -11,7 +11,7 @@ void op2_gemm_batch(bool transposeA, bool transposeB, int m, int n, int k, doubl
   };
   op_mpi_halo_exchanges_cuda(a->set, 3, gemv_args);
 
-  int setSize = op_get_size(a->set);
+  int setSize = a->set->size;
 
   if(transposeA) {
     if(transposeB) {

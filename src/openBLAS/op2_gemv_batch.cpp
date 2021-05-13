@@ -1,7 +1,7 @@
 #include "cblas.h"
 
 #include "op_seq.h"
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
 void op2_gemv_batch(bool transpose, int m, int n, double alpha, op_dat a, int lda, op_dat x, double beta, op_dat y) {
   op_arg gemv_args[] = {
@@ -11,7 +11,7 @@ void op2_gemv_batch(bool transpose, int m, int n, double alpha, op_dat a, int ld
   };
   op_mpi_halo_exchanges(a->set, 3, gemv_args);
 
-  int setSize = op_get_size(a->set);
+  int setSize = a->set->size;
 
   if(transpose) {
     for(int i = 0; i < setSize; i++) {

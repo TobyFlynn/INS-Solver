@@ -20,7 +20,7 @@ extern "C" {
 #endif
 #endif
 
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
 inline void cublas_init_gauss_grad_neighbour(cublasHandle_t handle, const int numCells, const int *reverse,
                         const double *x_d, const double *y_d, double *gxr_d,
@@ -82,17 +82,20 @@ void init_gauss_grad_neighbour_blas(INSData *nsData, GaussData *gaussData) {
   op_arg init_grad_args[] = {
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_READ),
     op_arg_dat(nsData->y, -1, OP_ID, 15, "double", OP_READ),
+    op_arg_dat(gaussData->reverse, -1, OP_ID, 3, "int", OP_READ),
     op_arg_dat(gaussData->rx, -1, OP_ID, 21, "double", OP_WRITE),
     op_arg_dat(gaussData->sx, -1, OP_ID, 21, "double", OP_WRITE),
     op_arg_dat(gaussData->ry, -1, OP_ID, 21, "double", OP_WRITE),
     op_arg_dat(gaussData->sy, -1, OP_ID, 21, "double", OP_WRITE)
   };
-  op_mpi_halo_exchanges_cuda(nsData->cells, 6, init_grad_args);
+  op_mpi_halo_exchanges_cuda(nsData->cells, 7, init_grad_args);
 
-  int *reverse = (int *)malloc(3 * op_get_size(nsData->cells) * sizeof(int));
-  op_fetch_data(gaussData->reverse, reverse);
+  int setSize = nsData->x->set->size;
 
-  cublas_init_gauss_grad_neighbour(constants->handle, nsData->numCells, reverse, (double *)nsData->x->data_d,
+  int *reverse = (int *)malloc(3 * setSize * sizeof(int));
+  cudaMemcpy(reverse, gaussData->reverse->data_d, 3 * setSize * sizeof(int), cudaMemcpyDeviceToHost);
+
+  cublas_init_gauss_grad_neighbour(constants->handle, setSize, reverse, (double *)nsData->x->data_d,
                    (double *)nsData->y->data_d, (double *)gaussData->rx->data_d,
                    (double *)gaussData->sx->data_d, (double *)gaussData->ry->data_d,
                    (double *)gaussData->sy->data_d);
@@ -100,5 +103,5 @@ void init_gauss_grad_neighbour_blas(INSData *nsData, GaussData *gaussData) {
   free(reverse);
 
   // Set correct dirty bits for OP2
-  op_mpi_set_dirtybit_cuda(6, init_grad_args);
+  op_mpi_set_dirtybit_cuda(7, init_grad_args);
 }

@@ -1,16 +1,16 @@
 #include "cblas.h"
 
 #include "op_seq.h"
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
-inline void openblas_init_grid(const int numCells, const double *node_coords,
-                               const int *cell2nodes, double *x, double *y,
+inline void openblas_init_grid(const int numCells, const double *nodeX,
+                               const double *nodeY, double *x, double *y,
                                double *xr, double *xs, double *yr, double *ys) {
   for(int c = 0; c < numCells; c++) {
     // Get nodes for this cell (on host)
-    const double *n0 = &node_coords[2 * cell2nodes[3 * c]];
-    const double *n1 = &node_coords[2 * cell2nodes[3 * c + 1]];
-    const double *n2 = &node_coords[2 * cell2nodes[3 * c + 2]];
+    const double n0[] = {nodeX[c * 3], nodeY[3 * c]};
+    const double n1[] = {nodeX[c * 3 + 1], nodeY[3 * c + 1]};
+    const double n2[] = {nodeX[c * 3 + 2], nodeY[3 * c + 2]};
 
     double temp[15];
     double *x_c = x + c * 15;
@@ -50,6 +50,8 @@ inline void openblas_init_grid(const int numCells, const double *node_coords,
 void init_grid_blas(INSData *nsData) {
   // Make sure OP2 data is in the right place
   op_arg init_grid_args[] = {
+    op_arg_dat(nsData->nodeX, -1, OP_ID, 3, "double", OP_READ),
+    op_arg_dat(nsData->nodeY, -1, OP_ID, 3, "double", OP_READ),
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_WRITE),
     op_arg_dat(nsData->y, -1, OP_ID, 15, "double", OP_WRITE),
     op_arg_dat(nsData->rx, -1, OP_ID, 15, "double", OP_WRITE),
@@ -57,14 +59,16 @@ void init_grid_blas(INSData *nsData) {
     op_arg_dat(nsData->ry, -1, OP_ID, 15, "double", OP_WRITE),
     op_arg_dat(nsData->sy, -1, OP_ID, 15, "double", OP_WRITE)
   };
-  op_mpi_halo_exchanges(nsData->cells, 6, init_grid_args);
+  op_mpi_halo_exchanges(nsData->cells, 8, init_grid_args);
 
-  openblas_init_grid(nsData->numCells, (double *)nsData->node_coords->data,
-                     (int *)nsData->cell2nodes->map, (double *)nsData->x->data,
+  int setSize = nsData->x->set->size;
+
+  openblas_init_grid(setSize, (double *)nsData->nodeX->data,
+                     (double *)nsData->nodeY->data, (double *)nsData->x->data,
                      (double *)nsData->y->data, (double *)nsData->rx->data,
                      (double *)nsData->sx->data, (double *)nsData->ry->data,
                      (double *)nsData->sy->data);
 
   // Set correct dirty bits for OP2
-  op_mpi_set_dirtybit(6, init_grid_args);
+  op_mpi_set_dirtybit(8, init_grid_args);
 }

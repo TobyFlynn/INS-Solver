@@ -3,15 +3,8 @@
 //
 
 //user function
-__device__ void init_grid_gpu( const double **nc, double *nodeX, double *nodeY,
-                      double *rx, double *ry, double *sx, double *sy,
+__device__ void init_grid_gpu( double *rx, double *ry, double *sx, double *sy,
                       double *nx, double *ny, double *J, double *sJ, double *fscale) {
-  nodeX[0] = nc[0][0];
-  nodeX[1] = nc[1][0];
-  nodeX[2] = nc[2][0];
-  nodeY[0] = nc[0][1];
-  nodeY[1] = nc[1][1];
-  nodeY[2] = nc[2][1];
 
 
   for(int i = 0; i < 5; i++) {
@@ -55,50 +48,31 @@ __device__ void init_grid_gpu( const double **nc, double *nodeX, double *nodeY,
 
 // CUDA kernel function
 __global__ void op_cuda_init_grid(
-  const double *__restrict ind_arg0,
-  const int *__restrict opDat0Map,
+  double *arg0,
+  double *arg1,
+  double *arg2,
   double *arg3,
   double *arg4,
   double *arg5,
   double *arg6,
   double *arg7,
   double *arg8,
-  double *arg9,
-  double *arg10,
-  double *arg11,
-  double *arg12,
-  double *arg13,
-  int start,
-  int end,
-  int   set_size) {
-  int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid + start < end) {
-    int n = tid + start;
-    //initialise local variables
-    int map0idx;
-    int map1idx;
-    int map2idx;
-    map0idx = opDat0Map[n + set_size * 0];
-    map1idx = opDat0Map[n + set_size * 1];
-    map2idx = opDat0Map[n + set_size * 2];
-    const double* arg0_vec[] = {
-       &ind_arg0[2 * map0idx],
-       &ind_arg0[2 * map1idx],
-       &ind_arg0[2 * map2idx]};
+  int   set_size ) {
+
+
+  //process set elements
+  for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    init_grid_gpu(arg0_vec,
-              arg3+n*3,
-              arg4+n*3,
+    init_grid_gpu(arg0+n*15,
+              arg1+n*15,
+              arg2+n*15,
+              arg3+n*15,
+              arg4+n*15,
               arg5+n*15,
               arg6+n*15,
               arg7+n*15,
-              arg8+n*15,
-              arg9+n*15,
-              arg10+n*15,
-              arg11+n*15,
-              arg12+n*15,
-              arg13+n*15);
+              arg8+n*15);
   }
 }
 
@@ -106,92 +80,76 @@ __global__ void op_cuda_init_grid(
 //host stub function
 void op_par_loop_init_grid(char const *name, op_set set,
   op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11,
-  op_arg arg12,
-  op_arg arg13){
+  op_arg arg8){
 
-  int nargs = 14;
-  op_arg args[14];
+  int nargs = 9;
+  op_arg args[9];
 
-  arg0.idx = 0;
   args[0] = arg0;
-  for ( int v=1; v<3; v++ ){
-    args[0 + v] = op_arg_dat(arg0.dat, v, arg0.map, 2, "double", OP_READ);
-  }
-
+  args[1] = arg1;
+  args[2] = arg2;
   args[3] = arg3;
   args[4] = arg4;
   args[5] = arg5;
   args[6] = arg6;
   args[7] = arg7;
   args[8] = arg8;
-  args[9] = arg9;
-  args[10] = arg10;
-  args[11] = arg11;
-  args[12] = arg12;
-  args[13] = arg13;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(15);
+  op_timing_realloc(1);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[15].name      = name;
-  OP_kernels[15].count    += 1;
+  OP_kernels[1].name      = name;
+  OP_kernels[1].count    += 1;
 
-
-  int    ninds   = 1;
-  int    inds[14] = {0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
   if (OP_diags>2) {
-    printf(" kernel routine with indirection: init_grid\n");
+    printf(" kernel routine w/o indirection:  init_grid");
   }
+
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_15
-      int nthread = OP_BLOCK_SIZE_15;
+    #ifdef OP_BLOCK_SIZE_1
+      int nthread = OP_BLOCK_SIZE_1;
     #else
       int nthread = OP_block_size;
     #endif
 
-    for ( int round=0; round<2; round++ ){
-      if (round==1) {
-        op_mpi_wait_all_cuda(nargs, args);
-      }
-      int start = round==0 ? 0 : set->core_size;
-      int end = round==0 ? set->core_size : set->size + set->exec_size;
-      if (end-start>0) {
-        int nblocks = (end-start-1)/nthread+1;
-        op_cuda_init_grid<<<nblocks,nthread>>>(
-        (double *)arg0.data_d,
-        arg0.map_data_d,
-        (double*)arg3.data_d,
-        (double*)arg4.data_d,
-        (double*)arg5.data_d,
-        (double*)arg6.data_d,
-        (double*)arg7.data_d,
-        (double*)arg8.data_d,
-        (double*)arg9.data_d,
-        (double*)arg10.data_d,
-        (double*)arg11.data_d,
-        (double*)arg12.data_d,
-        (double*)arg13.data_d,
-        start,end,set->size+set->exec_size);
-      }
-    }
+    int nblocks = 200;
+
+    op_cuda_init_grid<<<nblocks,nthread>>>(
+      (double *) arg0.data_d,
+      (double *) arg1.data_d,
+      (double *) arg2.data_d,
+      (double *) arg3.data_d,
+      (double *) arg4.data_d,
+      (double *) arg5.data_d,
+      (double *) arg6.data_d,
+      (double *) arg7.data_d,
+      (double *) arg8.data_d,
+      set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[15].time     += wall_t2 - wall_t1;
+  OP_kernels[1].time     += wall_t2 - wall_t1;
+  OP_kernels[1].transfer += (float)set->size * arg0.size * 2.0f;
+  OP_kernels[1].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[1].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[1].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[1].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[1].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[1].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[1].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[1].transfer += (float)set->size * arg8.size * 2.0f;
 }

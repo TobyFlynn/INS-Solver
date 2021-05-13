@@ -1,7 +1,7 @@
 #include "cublas_v2.h"
 
 #include "op_seq.h"
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
 inline void cublas_init_gauss(cublasHandle_t handle, const int numCells,
                               const double *x_d, const double *y_d, double *gxr_d,
@@ -76,7 +76,9 @@ void init_gauss_blas(INSData *nsData, GaussData *gaussData) {
   };
   op_mpi_halo_exchanges_cuda(nsData->cells, 6, init_gauss_args);
 
-  cublas_init_gauss(constants->handle, nsData->numCells, (double *)nsData->x->data_d,
+  int setSize = nsData->x->set->size;
+
+  cublas_init_gauss(constants->handle, setSize, (double *)nsData->x->data_d,
                    (double *)nsData->y->data_d, (double *)gaussData->rx->data_d,
                    (double *)gaussData->sx->data_d, (double *)gaussData->ry->data_d,
                    (double *)gaussData->sy->data_d);
