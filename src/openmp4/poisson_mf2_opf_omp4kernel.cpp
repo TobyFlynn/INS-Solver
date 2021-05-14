@@ -11,6 +11,10 @@ void poisson_mf2_opf_omp4_kernel(
   int dat1size,
   int *map2,
   int map2size,
+  double *data8,
+  int dat8size,
+  double *data16,
+  int dat16size,
   double *data2,
   int dat2size,
   double *data3,
@@ -23,14 +27,8 @@ void poisson_mf2_opf_omp4_kernel(
   int dat6size,
   double *data7,
   int dat7size,
-  double *data8,
-  int dat8size,
   double *data9,
   int dat9size,
-  double *data10,
-  int dat10size,
-  double *data11,
-  int dat11size,
   int *col_reord,
   int set_size1,
   int start,
@@ -57,15 +55,11 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
   op_arg arg14,
   op_arg arg15,
   op_arg arg16,
-  op_arg arg17,
-  op_arg arg18,
-  op_arg arg19,
-  op_arg arg20,
-  op_arg arg21){
+  op_arg arg17){
 
   double*arg0h = (double *)arg0.data;
-  int nargs = 22;
-  op_arg args[22];
+  int nargs = 18;
+  op_arg args[18];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -85,10 +79,6 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
   args[15] = arg15;
   args[16] = arg16;
   args[17] = arg17;
-  args[18] = arg18;
-  args[19] = arg19;
-  args[20] = arg20;
-  args[21] = arg21;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -97,8 +87,8 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
   OP_kernels[27].name      = name;
   OP_kernels[27].count    += 1;
 
-  int  ninds   = 10;
-  int  inds[22] = {-1,-1,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9};
+  int  ninds   = 7;
+  int  inds[18] = {-1,-1,0,1,2,3,4,5,-1,6,0,1,2,3,4,5,-1,6};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_mf2_opf\n");
@@ -131,6 +121,10 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
 
     int* data1 = (int*)arg1.data_d;
     int dat1size = getSetSizeFromOpArg(&arg1) * arg1.dat->dim;
+    double* data8 = (double*)arg8.data_d;
+    int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
+    double* data16 = (double*)arg16.data_d;
+    int dat16size = getSetSizeFromOpArg(&arg16) * arg16.dat->dim;
     double *data2 = (double *)arg2.data_d;
     int dat2size = getSetSizeFromOpArg(&arg2) * arg2.dat->dim;
     double *data3 = (double *)arg3.data_d;
@@ -143,14 +137,8 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
     int dat6size = getSetSizeFromOpArg(&arg6) * arg6.dat->dim;
     double *data7 = (double *)arg7.data_d;
     int dat7size = getSetSizeFromOpArg(&arg7) * arg7.dat->dim;
-    double *data8 = (double *)arg8.data_d;
-    int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
     double *data9 = (double *)arg9.data_d;
     int dat9size = getSetSizeFromOpArg(&arg9) * arg9.dat->dim;
-    double *data10 = (double *)arg10.data_d;
-    int dat10size = getSetSizeFromOpArg(&arg10) * arg10.dat->dim;
-    double *data11 = (double *)arg11.data_d;
-    int dat11size = getSetSizeFromOpArg(&arg11) * arg11.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -170,6 +158,10 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
         dat1size,
         map2,
         map2size,
+        data8,
+        dat8size,
+        data16,
+        dat16size,
         data2,
         dat2size,
         data3,
@@ -182,14 +174,8 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
         dat6size,
         data7,
         dat7size,
-        data8,
-        dat8size,
         data9,
         dat9size,
-        data10,
-        dat10size,
-        data11,
-        dat11size,
         col_reord,
         set_size1,
         start,

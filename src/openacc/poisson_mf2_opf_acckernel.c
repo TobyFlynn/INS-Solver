@@ -7,11 +7,11 @@
 //#pragma acc routine
 inline void poisson_mf2_opf_openacc( const double *tol, const int *edgeNum, const double *gop0L,
                             const double *gop1L, const double *gop2L, const double *gopf0L,
-                            const double *gopf1L, const double *gopf2L, double *op20L,
-                            double *op21L, double *op22L, double *op1L,
+                            const double *gopf1L, const double *gopf2L, double *op2L,
+                            double *op1L,
                             const double *gop0R, const double *gop1R, const double *gop2R,
                             const double *gopf0R, const double *gopf1R, const double *gopf2R,
-                            double *op20R, double *op21R, double *op22R, double *op1R) {
+                            double *op2R, double *op1R) {
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
 
@@ -21,13 +21,13 @@ inline void poisson_mf2_opf_openacc( const double *tol, const int *edgeNum, cons
         int ind = m * 15 + n;
         int colInd = n * 15 + m;
         double val = 0.5 * gop0L[colInd];
-
+        if(fabs(val) > *tol) {
           op1L[ind] += val;
-
+        }
         val = -0.5 * gopf0L[colInd];
-
-          op20L[ind] += val;
-
+        if(fabs(val) > *tol) {
+          op2L[ind] += val;
+        }
       }
     }
   } else if(edgeL == 1) {
@@ -36,13 +36,13 @@ inline void poisson_mf2_opf_openacc( const double *tol, const int *edgeNum, cons
         int ind = m * 15 + n;
         int colInd = n * 15 + m;
         double val = 0.5 * gop1L[colInd];
-
+        if(fabs(val) > *tol) {
           op1L[ind] += val;
-
+        }
         val = -0.5 * gopf1L[colInd];
-
-          op21L[ind] += val;
-
+        if(fabs(val) > *tol) {
+          op2L[ind] += val;
+        }
       }
     }
   } else {
@@ -51,13 +51,13 @@ inline void poisson_mf2_opf_openacc( const double *tol, const int *edgeNum, cons
         int ind = m * 15 + n;
         int colInd = n * 15 + m;
         double val = 0.5 * gop2L[colInd];
-
+        if(fabs(val) > *tol) {
           op1L[ind] += val;
-
+        }
         val = -0.5 * gopf2L[colInd];
-
-          op22L[ind] += val;
-
+        if(fabs(val) > *tol) {
+          op2L[ind] += val;
+        }
       }
     }
   }
@@ -68,13 +68,13 @@ inline void poisson_mf2_opf_openacc( const double *tol, const int *edgeNum, cons
         int ind = m * 15 + n;
         int colInd = n * 15 + m;
         double val = 0.5 * gop0R[colInd];
-
+        if(fabs(val) > *tol) {
           op1R[ind] += val;
-
+        }
         val = -0.5 * gopf0R[colInd];
-
-          op20R[ind] += val;
-
+        if(fabs(val) > *tol) {
+          op2R[ind] += val;
+        }
       }
     }
   } else if(edgeR == 1) {
@@ -83,13 +83,13 @@ inline void poisson_mf2_opf_openacc( const double *tol, const int *edgeNum, cons
         int ind = m * 15 + n;
         int colInd = n * 15 + m;
         double val = 0.5 * gop1R[colInd];
-
+        if(fabs(val) > *tol) {
           op1R[ind] += val;
-
+        }
         val = -0.5 * gopf1R[colInd];
-
-          op21R[ind] += val;
-
+        if(fabs(val) > *tol) {
+          op2R[ind] += val;
+        }
       }
     }
   } else {
@@ -98,13 +98,13 @@ inline void poisson_mf2_opf_openacc( const double *tol, const int *edgeNum, cons
         int ind = m * 15 + n;
         int colInd = n * 15 + m;
         double val = 0.5 * gop2R[colInd];
-
+        if(fabs(val) > *tol) {
           op1R[ind] += val;
-
+        }
         val = -0.5 * gopf2R[colInd];
-
-          op22R[ind] += val;
-
+        if(fabs(val) > *tol) {
+          op2R[ind] += val;
+        }
       }
     }
   }
@@ -129,15 +129,11 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
   op_arg arg14,
   op_arg arg15,
   op_arg arg16,
-  op_arg arg17,
-  op_arg arg18,
-  op_arg arg19,
-  op_arg arg20,
-  op_arg arg21){
+  op_arg arg17){
 
   double*arg0h = (double *)arg0.data;
-  int nargs = 22;
-  op_arg args[22];
+  int nargs = 18;
+  op_arg args[18];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -157,10 +153,6 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
   args[15] = arg15;
   args[16] = arg16;
   args[17] = arg17;
-  args[18] = arg18;
-  args[19] = arg19;
-  args[20] = arg20;
-  args[21] = arg21;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -169,8 +161,8 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
   OP_kernels[27].name      = name;
   OP_kernels[27].count    += 1;
 
-  int  ninds   = 10;
-  int  inds[22] = {-1,-1,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9};
+  int  ninds   = 7;
+  int  inds[18] = {-1,-1,0,1,2,3,4,5,-1,6,0,1,2,3,4,5,-1,6};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_mf2_opf\n");
@@ -196,16 +188,15 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
     int *map2 = arg2.map_data_d;
 
     int* data1 = (int*)arg1.data_d;
+    double* data8 = (double*)arg8.data_d;
+    double* data16 = (double*)arg16.data_d;
     double *data2 = (double *)arg2.data_d;
     double *data3 = (double *)arg3.data_d;
     double *data4 = (double *)arg4.data_d;
     double *data5 = (double *)arg5.data_d;
     double *data6 = (double *)arg6.data_d;
     double *data7 = (double *)arg7.data_d;
-    double *data8 = (double *)arg8.data_d;
     double *data9 = (double *)arg9.data_d;
-    double *data10 = (double *)arg10.data_d;
-    double *data11 = (double *)arg11.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -220,13 +211,13 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map2,data1,data2,data3,data4,data5,data6,data7,data8,data9,data10,data11)
+      #pragma acc parallel loop independent deviceptr(col_reord,map2,data1,data8,data16,data2,data3,data4,data5,data6,data7,data9)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map2idx;
-        int map12idx;
+        int map10idx;
         map2idx = map2[n + set_size1 * 0];
-        map12idx = map2[n + set_size1 * 1];
+        map10idx = map2[n + set_size1 * 1];
 
 
         poisson_mf2_opf_openacc(
@@ -238,20 +229,16 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
           &data5[225 * map2idx],
           &data6[225 * map2idx],
           &data7[225 * map2idx],
-          &data8[225 * map2idx],
+          &data8[225 * n],
           &data9[225 * map2idx],
-          &data10[225 * map2idx],
-          &data11[225 * map2idx],
-          &data2[225 * map12idx],
-          &data3[225 * map12idx],
-          &data4[225 * map12idx],
-          &data5[225 * map12idx],
-          &data6[225 * map12idx],
-          &data7[225 * map12idx],
-          &data8[225 * map12idx],
-          &data9[225 * map12idx],
-          &data10[225 * map12idx],
-          &data11[225 * map12idx]);
+          &data2[225 * map10idx],
+          &data3[225 * map10idx],
+          &data4[225 * map10idx],
+          &data5[225 * map10idx],
+          &data6[225 * map10idx],
+          &data7[225 * map10idx],
+          &data16[225 * n],
+          &data9[225 * map10idx]);
       }
 
     }

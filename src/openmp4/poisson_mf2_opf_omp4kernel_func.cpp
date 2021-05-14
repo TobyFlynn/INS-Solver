@@ -8,6 +8,10 @@ void poisson_mf2_opf_omp4_kernel(
   int dat1size,
   int *map2,
   int map2size,
+  double *data8,
+  int dat8size,
+  double *data16,
+  int dat16size,
   double *data2,
   int dat2size,
   double *data3,
@@ -20,14 +24,8 @@ void poisson_mf2_opf_omp4_kernel(
   int dat6size,
   double *data7,
   int dat7size,
-  double *data8,
-  int dat8size,
   double *data9,
   int dat9size,
-  double *data10,
-  int dat10size,
-  double *data11,
-  int dat11size,
   int *col_reord,
   int set_size1,
   int start,
@@ -36,15 +34,15 @@ void poisson_mf2_opf_omp4_kernel(
   int nthread){
 
   double arg0_l = *arg0;
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size])\
-    map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size],data8[0:dat8size],data16[0:dat16size])\
+    map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data9[0:dat9size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
     int map2idx;
-    int map12idx;
+    int map10idx;
     map2idx = map2[n_op + set_size1 * 0];
-    map12idx = map2[n_op + set_size1 * 1];
+    map10idx = map2[n_op + set_size1 * 1];
 
     //variable mapping
     const double *tol = &arg0_l;
@@ -55,20 +53,16 @@ void poisson_mf2_opf_omp4_kernel(
     const double *gopf0L = &data5[225 * map2idx];
     const double *gopf1L = &data6[225 * map2idx];
     const double *gopf2L = &data7[225 * map2idx];
-    double *op20L = &data8[225 * map2idx];
-    double *op21L = &data9[225 * map2idx];
-    double *op22L = &data10[225 * map2idx];
-    double *op1L = &data11[225 * map2idx];
-    const double *gop0R = &data2[225 * map12idx];
-    const double *gop1R = &data3[225 * map12idx];
-    const double *gop2R = &data4[225 * map12idx];
-    const double *gopf0R = &data5[225 * map12idx];
-    const double *gopf1R = &data6[225 * map12idx];
-    const double *gopf2R = &data7[225 * map12idx];
-    double *op20R = &data8[225 * map12idx];
-    double *op21R = &data9[225 * map12idx];
-    double *op22R = &data10[225 * map12idx];
-    double *op1R = &data11[225 * map12idx];
+    double *op2L = &data8[225*n_op];
+    double *op1L = &data9[225 * map2idx];
+    const double *gop0R = &data2[225 * map10idx];
+    const double *gop1R = &data3[225 * map10idx];
+    const double *gop2R = &data4[225 * map10idx];
+    const double *gopf0R = &data5[225 * map10idx];
+    const double *gopf1R = &data6[225 * map10idx];
+    const double *gopf2R = &data7[225 * map10idx];
+    double *op2R = &data16[225*n_op];
+    double *op1R = &data9[225 * map10idx];
 
     //inline function
     
@@ -81,13 +75,13 @@ void poisson_mf2_opf_omp4_kernel(
           int ind = m * 15 + n;
           int colInd = n * 15 + m;
           double val = 0.5 * gop0L[colInd];
-
+          if(fabs(val) > *tol) {
             op1L[ind] += val;
-
+          }
           val = -0.5 * gopf0L[colInd];
-
-            op20L[ind] += val;
-
+          if(fabs(val) > *tol) {
+            op2L[ind] += val;
+          }
         }
       }
     } else if(edgeL == 1) {
@@ -96,13 +90,13 @@ void poisson_mf2_opf_omp4_kernel(
           int ind = m * 15 + n;
           int colInd = n * 15 + m;
           double val = 0.5 * gop1L[colInd];
-
+          if(fabs(val) > *tol) {
             op1L[ind] += val;
-
+          }
           val = -0.5 * gopf1L[colInd];
-
-            op21L[ind] += val;
-
+          if(fabs(val) > *tol) {
+            op2L[ind] += val;
+          }
         }
       }
     } else {
@@ -111,13 +105,13 @@ void poisson_mf2_opf_omp4_kernel(
           int ind = m * 15 + n;
           int colInd = n * 15 + m;
           double val = 0.5 * gop2L[colInd];
-
+          if(fabs(val) > *tol) {
             op1L[ind] += val;
-
+          }
           val = -0.5 * gopf2L[colInd];
-
-            op22L[ind] += val;
-
+          if(fabs(val) > *tol) {
+            op2L[ind] += val;
+          }
         }
       }
     }
@@ -128,13 +122,13 @@ void poisson_mf2_opf_omp4_kernel(
           int ind = m * 15 + n;
           int colInd = n * 15 + m;
           double val = 0.5 * gop0R[colInd];
-
+          if(fabs(val) > *tol) {
             op1R[ind] += val;
-
+          }
           val = -0.5 * gopf0R[colInd];
-
-            op20R[ind] += val;
-
+          if(fabs(val) > *tol) {
+            op2R[ind] += val;
+          }
         }
       }
     } else if(edgeR == 1) {
@@ -143,13 +137,13 @@ void poisson_mf2_opf_omp4_kernel(
           int ind = m * 15 + n;
           int colInd = n * 15 + m;
           double val = 0.5 * gop1R[colInd];
-
+          if(fabs(val) > *tol) {
             op1R[ind] += val;
-
+          }
           val = -0.5 * gopf1R[colInd];
-
-            op21R[ind] += val;
-
+          if(fabs(val) > *tol) {
+            op2R[ind] += val;
+          }
         }
       }
     } else {
@@ -158,13 +152,13 @@ void poisson_mf2_opf_omp4_kernel(
           int ind = m * 15 + n;
           int colInd = n * 15 + m;
           double val = 0.5 * gop2R[colInd];
-
+          if(fabs(val) > *tol) {
             op1R[ind] += val;
-
+          }
           val = -0.5 * gopf2R[colInd];
-
-            op22R[ind] += val;
-
+          if(fabs(val) > *tol) {
+            op2R[ind] += val;
+          }
         }
       }
     }

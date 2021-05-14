@@ -78,7 +78,7 @@ public:
   void calc_rhs(const double *u_d, double *rhs_d);
   void init();
 
-  op_dat u, rhs, op1, op2[3], op_bc, u_t, rhs_t;
+  op_dat u, rhs, op1, op2[2], op_bc, u_t, rhs_t;
 
   void setOp();
   void setBCOP();

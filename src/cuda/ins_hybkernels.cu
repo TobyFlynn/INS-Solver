@@ -1870,12 +1870,7 @@ void op_par_loop_poisson_mf2_faces_gpu(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10);
+  op_arg arg5);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -1885,12 +1880,7 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10){
+  op_arg arg5){
 
   if (OP_hybrid_gpu) {
     op_par_loop_poisson_mf2_faces_gpu(name, set,
@@ -1899,12 +1889,7 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
       arg2,
       arg3,
       arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8,
-      arg9,
-      arg10);
+      arg5);
 
     }else{
     op_par_loop_poisson_mf2_faces_cpu(name, set,
@@ -1913,12 +1898,7 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
       arg2,
       arg3,
       arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8,
-      arg9,
-      arg10);
+      arg5);
 
   }
 }
@@ -1929,12 +1909,7 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10){
+  op_arg arg5){
 
   op_par_loop_poisson_mf2_faces_gpu(name, set,
     arg0,
@@ -1942,12 +1917,7 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
     arg2,
     arg3,
     arg4,
-    arg5,
-    arg6,
-    arg7,
-    arg8,
-    arg9,
-    arg10);
+    arg5);
 
   }
 #endif //OP_HYBRID_GPU
@@ -2010,11 +1980,7 @@ void op_par_loop_poisson_mf2_opf_gpu(char const *name, op_set set,
   op_arg arg14,
   op_arg arg15,
   op_arg arg16,
-  op_arg arg17,
-  op_arg arg18,
-  op_arg arg19,
-  op_arg arg20,
-  op_arg arg21);
+  op_arg arg17);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -2036,11 +2002,7 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
   op_arg arg14,
   op_arg arg15,
   op_arg arg16,
-  op_arg arg17,
-  op_arg arg18,
-  op_arg arg19,
-  op_arg arg20,
-  op_arg arg21){
+  op_arg arg17){
 
   if (OP_hybrid_gpu) {
     op_par_loop_poisson_mf2_opf_gpu(name, set,
@@ -2061,11 +2023,7 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
       arg14,
       arg15,
       arg16,
-      arg17,
-      arg18,
-      arg19,
-      arg20,
-      arg21);
+      arg17);
 
     }else{
     op_par_loop_poisson_mf2_opf_cpu(name, set,
@@ -2086,11 +2044,7 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
       arg14,
       arg15,
       arg16,
-      arg17,
-      arg18,
-      arg19,
-      arg20,
-      arg21);
+      arg17);
 
   }
 }
@@ -2113,11 +2067,7 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
   op_arg arg14,
   op_arg arg15,
   op_arg arg16,
-  op_arg arg17,
-  op_arg arg18,
-  op_arg arg19,
-  op_arg arg20,
-  op_arg arg21){
+  op_arg arg17){
 
   op_par_loop_poisson_mf2_opf_gpu(name, set,
     arg0,
@@ -2137,11 +2087,7 @@ void op_par_loop_poisson_mf2_opf(char const *name, op_set set,
     arg14,
     arg15,
     arg16,
-    arg17,
-    arg18,
-    arg19,
-    arg20,
-    arg21);
+    arg17);
 
   }
 #endif //OP_HYBRID_GPU
