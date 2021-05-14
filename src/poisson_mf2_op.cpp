@@ -144,11 +144,25 @@ Poisson_MF2::~Poisson_MF2() {
   free(u_t_data);
   free(rhs_t_data);
   free(op_bc_data);
+
+  destroy_vec(&b);
+  destroy_vec(&x);
+  KSPDestroy(&ksp);
+  MatDestroy(&Amat);
 }
 
 void Poisson_MF2::init() {
   setOp();
   setBCOP();
+
+  create_vec(&b);
+  create_vec(&x);
+  create_shell_mat(&Amat);
+
+  KSPCreate(PETSC_COMM_WORLD, &ksp);
+  KSPSetType(ksp, KSPCG);
+  KSPSetOperators(ksp, Amat, Amat);
+  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
 }
 
 bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
@@ -161,25 +175,8 @@ bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor)
               op_arg_dat(bc_dat,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(b_dat,0,data->bedge2cells,15,"double",OP_INC));
 
-  Vec b;
-  create_vec(&b);
   load_vec(&b, b_dat);
 
-  Vec x;
-  create_vec(&x);
-
-  Mat Amat;
-  create_shell_mat(&Amat);
-
-  // Create PETSc Preconditioned Conjugate Gradient linear solver
-  KSP ksp;
-  // KSPCreate(PETSC_COMM_SELF, &ksp);
-  KSPCreate(PETSC_COMM_WORLD, &ksp);
-  KSPSetType(ksp, KSPCG);
-  // KSPSetType(ksp, KSPFGMRES);
-
-  KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
   // Solve
   timer->startLinearSolveMF();
   KSPSolve(ksp, b, x);
@@ -188,12 +185,11 @@ bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor)
   KSPGetIterationNumber(ksp, &numIt);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp, &reason);
-  double residual;
-  KSPGetResidualNorm(ksp, &residual);
   // Check that the solver converged
   bool converged = true;
-  // cout << "Number of iterations for linear solver: " << numIt << endl;
   if(reason < 0) {
+    double residual;
+    KSPGetResidualNorm(ksp, &residual);
     converged = false;
     cout << "Number of iterations for linear solver: " << numIt << endl;
     cout << "Converged reason: " << reason << " Residual: " << residual << endl;
@@ -205,10 +201,6 @@ bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor)
   Vec solution;
   KSPGetSolution(ksp, &solution);
   store_vec(&solution, x_dat);
-  KSPDestroy(&ksp);
-  destroy_vec(&b);
-  destroy_vec(&x);
-  MatDestroy(&Amat);
 
   return converged;
 }

@@ -14,49 +14,48 @@ Poisson_M::~Poisson_M() {
     MatDestroy(&pMMat);
   if(pBCMatInit)
     MatDestroy(&pBCMat);
+
+  destroy_vec(&b);
+  destroy_vec(&bc);
+  destroy_vec(&rhs);
+  destroy_vec(&x);
+
+  MatDestroy(&op);
+  KSPDestroy(&ksp);
 }
 
 void Poisson_M::init() {
   createMatrix();
   createMassMatrix();
   createBCMatrix();
+
+  create_vec(&b);
+  create_vec(&bc, 21);
+  create_vec(&rhs);
+  create_vec(&x);
+
+  create_mat(&op, 15 * data->cells->size, 15 * data->cells->size, 15 * 4);
+  MatAssemblyBegin(op, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(op, MAT_FINAL_ASSEMBLY);
+
+  KSPCreate(PETSC_COMM_WORLD, &ksp);
+  KSPSetType(ksp, KSPCG);
+  PC pc;
+  KSPGetPC(ksp, &pc);
+  PCSetType(pc, PCICC);
+  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
 }
 
 bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   massMat = addMass;
   massFactor = factor;
-  Vec b;
-  create_vec(&b);
-  load_vec(&b, b_dat);
-
-  Vec bc;
-  create_vec(&bc, 21);
-  load_vec(&bc, bc_dat, 21);
 
   // Calculate RHS for linear solve by applying the BCs
-  Vec rhs;
-  create_vec(&rhs);
+  load_vec(&b, b_dat);
+  load_vec(&bc, bc_dat, 21);
   MatMultAdd(pBCMat, bc, b, rhs);
 
-  Vec x;
-  create_vec(&x);
-
-  // Create PETSc Preconditioned Conjugate Gradient linear solver
-  KSP ksp;
-  // KSPCreate(PETSC_COMM_SELF, &ksp);
-  KSPCreate(PETSC_COMM_WORLD, &ksp);
-  KSPSetType(ksp, KSPCG);
-  // Set preconditioner to Incomplete Cholesky
-  PC pc;
-  KSPGetPC(ksp, &pc);
-  PCSetType(pc, PCICC);
-  // PCSetType(pc, PCNONE);
-
   // Create matrix for linear solve, adding mass matrix scaled by a factor if required
-  Mat op;
-  create_mat(&op, 15 * data->cells->size, 15 * data->cells->size, 15 * 4);
-  MatAssemblyBegin(op, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(op, MAT_FINAL_ASSEMBLY);
   if(addMass) {
     MatCopy(pMat, op, DIFFERENT_NONZERO_PATTERN);
     MatAXPY(op, factor, pMMat, DIFFERENT_NONZERO_PATTERN);
@@ -65,18 +64,19 @@ bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   }
 
   KSPSetOperators(ksp, op, op);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
+
   // Solve
   KSPSolve(ksp, rhs, x);
+
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp, &reason);
-  double residual;
-  KSPGetResidualNorm(ksp, &residual);
   // Check that the solver converged
   bool converged = true;
   if(reason < 0) {
+    double residual;
+    KSPGetResidualNorm(ksp, &residual);
     converged = false;
     cout << "Number of iterations for linear solver: " << numIt << endl;
     cout << "Converged reason: " << reason << " Residual: " << residual << endl;
@@ -88,10 +88,6 @@ bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   Vec solution;
   KSPGetSolution(ksp, &solution);
   store_vec(&solution, x_dat);
-  KSPDestroy(&ksp);
-  destroy_vec(&b);
-  destroy_vec(&x);
-  MatDestroy(&op);
 
   return converged;
 }

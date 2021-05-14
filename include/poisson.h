@@ -62,7 +62,9 @@ public:
   void init();
 
 private:
-  Mat pMat, pBCMat, pMMat;
+  Mat pMat, pBCMat, pMMat, op;
+  Vec b, bc, rhs, x;
+  KSP ksp;
 
   bool pMatInit = false;
   bool pMMatInit = false;
@@ -94,6 +96,10 @@ private:
   double *op_bc_data;
   double *u_t_data;
   double *rhs_t_data;
+
+  Mat Amat;
+  KSP ksp;
+  Vec b, x;
 };
 
 #endif
