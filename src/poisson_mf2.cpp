@@ -23,9 +23,8 @@ Poisson_MF2::Poisson_MF2(INSData *nsData, CubatureData *cubData, GaussData *gaus
   u_data      = (double *)calloc(15 * data->numCells, sizeof(double));
   rhs_data    = (double *)calloc(15 * data->numCells, sizeof(double));
   op1_data    = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
-  op2_data[0] = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
-  op2_data[1] = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
-  op2_data[2] = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
+  op2_data[0] = (double *)calloc(15 * 15 * data->numEdges, sizeof(double));
+  op2_data[1] = (double *)calloc(15 * 15 * data->numEdges, sizeof(double));
   op_bc_data  = (double *)calloc(7 * 15 * data->numBoundaryEdges, sizeof(double));
   u_t_data    = (double *)calloc(15 * data->numCells, sizeof(double));
   rhs_t_data  = (double *)calloc(15 * data->numCells, sizeof(double));
@@ -35,9 +34,8 @@ Poisson_MF2::Poisson_MF2(INSData *nsData, CubatureData *cubData, GaussData *gaus
   u_t    = op_decl_dat(data->cells, 15, "double", u_t_data, "poisson_u_t");
   rhs_t  = op_decl_dat(data->cells, 15, "double", rhs_t_data, "poisson_rhs_t");
   op1    = op_decl_dat(data->cells, 15 * 15, "double", op1_data, "poisson_op1");
-  op2[0] = op_decl_dat(data->cells, 15 * 15, "double", op2_data[0], "poisson_op20");
-  op2[1] = op_decl_dat(data->cells, 15 * 15, "double", op2_data[1], "poisson_op21");
-  op2[2] = op_decl_dat(data->cells, 15 * 15, "double", op2_data[2], "poisson_op22");
+  op2[0] = op_decl_dat(data->edges, 15 * 15, "double", op2_data[0], "poisson_op20");
+  op2[1] = op_decl_dat(data->edges, 15 * 15, "double", op2_data[1], "poisson_op21");
   op_bc  = op_decl_dat(data->bedges, 7 * 15, "double", op_bc_data, "poisson_op_bc");
 }
 
@@ -47,7 +45,6 @@ Poisson_MF2::~Poisson_MF2() {
   free(op1_data);
   free(op2_data[0]);
   free(op2_data[1]);
-  free(op2_data[2]);
   free(u_t_data);
   free(rhs_t_data);
   free(op_bc_data);
@@ -141,16 +138,11 @@ void Poisson_MF2::calc_rhs(const double *u_d, double *rhs_d) {
   }
 
   op_par_loop(poisson_mf2_faces, "poisson_mf2_faces", data->edges,
-              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(u, 0, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(op2[0], 0, data->edge2cells, 15 * 15, "double", OP_READ),
-              op_arg_dat(op2[1], 0, data->edge2cells, 15 * 15, "double", OP_READ),
-              op_arg_dat(op2[2], 0, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(op2[0], -1, OP_ID, 15 * 15, "double", OP_READ),
               op_arg_dat(rhs, 0, data->edge2cells, 15, "double", OP_INC),
               op_arg_dat(u, 1, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(op2[0], 1, data->edge2cells, 15 * 15, "double", OP_READ),
-              op_arg_dat(op2[1], 1, data->edge2cells, 15 * 15, "double", OP_READ),
-              op_arg_dat(op2[2], 1, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
               op_arg_dat(rhs, 1, data->edge2cells, 15, "double", OP_INC));
 
   timer->endLinearSolveMFRHS();
@@ -175,9 +167,7 @@ void Poisson_MF2::setOp() {
               op_arg_dat(gData->OPf[0], 0, data->edge2cells, 15 * 15, "double", OP_READ),
               op_arg_dat(gData->OPf[1], 0, data->edge2cells, 15 * 15, "double", OP_READ),
               op_arg_dat(gData->OPf[2], 0, data->edge2cells, 15 * 15, "double", OP_READ),
-              op_arg_dat(op2[0], 0, data->edge2cells, 15 * 15, "double", OP_INC),
-              op_arg_dat(op2[1], 0, data->edge2cells, 15 * 15, "double", OP_INC),
-              op_arg_dat(op2[2], 0, data->edge2cells, 15 * 15, "double", OP_INC),
+              op_arg_dat(op2[0], -1, OP_ID, 15 * 15, "double", OP_INC),
               op_arg_dat(op1, 0, data->edge2cells, 15 * 15, "double", OP_INC),
               op_arg_dat(gData->OP[0], 1, data->edge2cells, 15 * 15, "double", OP_READ),
               op_arg_dat(gData->OP[1], 1, data->edge2cells, 15 * 15, "double", OP_READ),
@@ -185,9 +175,7 @@ void Poisson_MF2::setOp() {
               op_arg_dat(gData->OPf[0], 1, data->edge2cells, 15 * 15, "double", OP_READ),
               op_arg_dat(gData->OPf[1], 1, data->edge2cells, 15 * 15, "double", OP_READ),
               op_arg_dat(gData->OPf[2], 1, data->edge2cells, 15 * 15, "double", OP_READ),
-              op_arg_dat(op2[0], 1, data->edge2cells, 15 * 15, "double", OP_INC),
-              op_arg_dat(op2[1], 1, data->edge2cells, 15 * 15, "double", OP_INC),
-              op_arg_dat(op2[2], 1, data->edge2cells, 15 * 15, "double", OP_INC),
+              op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_INC),
               op_arg_dat(op1, 1, data->edge2cells, 15 * 15, "double", OP_INC));
 
   op_par_loop(poisson_mf2_opbf, "poisson_mf2_opbf", data->bedges,
