@@ -34,7 +34,7 @@ protected:
   void destroy_vec(Vec *v);
   void load_vec(Vec *v, op_dat v_dat, int size = 15);
   void store_vec(Vec *v, op_dat v_dat);
-  void create_mat(Mat *m, int row, int col, int prealloc);
+  void create_mat(Mat *m, int row, int col, int prealloc0, int prealloc1 = 0);
   INSData *data;
   CubatureData *cData;
   GaussData *gData;
@@ -51,17 +51,21 @@ protected:
 
 class Poisson_M : public Poisson {
 public:
-  Poisson_M(INSData *data, CubatureData *cubData, GaussData *gaussData) : Poisson(data, cubData, gaussData) {}
+  Poisson_M(INSData *data, CubatureData *cubData, GaussData *gaussData);
   ~Poisson_M();
-
-  void createMatrix();
-  void createMassMatrix();
-  void createBCMatrix();
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
   void init();
 
+  op_dat glb_ind, glb_indL, glb_indR, glb_indBC, op1, op2[2], op_bc;
 private:
+  void setGlbInd();
+  void setOp();
+  void setBCOP();
+  void createMatrix();
+  void createMassMatrix();
+  void createBCMatrix();
+
   Mat pMat, pBCMat, pMMat, op;
   Vec b, bc, rhs, x;
   KSP ksp;
@@ -69,6 +73,14 @@ private:
   bool pMatInit = false;
   bool pMMatInit = false;
   bool pBCMatInit = false;
+
+  int *glb_ind_data;
+  int *glb_indL_data;
+  int *glb_indR_data;
+  int *glb_indBC_data;
+  double *op1_data;
+  double *op2_data[2];
+  double *op_bc_data;
 };
 
 class Poisson_MF2 : public Poisson {
@@ -92,7 +104,7 @@ private:
   double *u_data;
   double *rhs_data;
   double *op1_data;
-  double *op2_data[3];
+  double *op2_data[2];
   double *op_bc_data;
   double *u_t_data;
   double *rhs_t_data;

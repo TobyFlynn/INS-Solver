@@ -4,6 +4,10 @@
 
 #include "poisson.h"
 
+#ifdef INS_MPI
+#include "mpi_helper_func.h"
+#endif
+
 // Copy u PETSc vec array to OP2 dat (TODO avoid this copy)
 void Poisson_MF2::copy_u(const double *u_d) {
   op_arg u_copy_args[] = {
@@ -64,18 +68,18 @@ void Poisson::store_vec(Vec *v, op_dat v_dat) {
 }
 
 // Create a PETSc matrix for GPUs
-void Poisson::create_mat(Mat *m, int row, int col, int prealloc) {
-  // MatCreate(PETSC_COMM_SELF, m);
+void Poisson::create_mat(Mat *m, int row, int col, int prealloc0, int prealloc1) {
   MatCreate(PETSC_COMM_WORLD, m);
-  // MatSetSizes(*m, PETSC_DECIDE, PETSC_DECIDE, row, col);
   MatSetSizes(*m, row, col, PETSC_DECIDE, PETSC_DECIDE);
-  // MatSetType(*m, MATSEQAIJCUSPARSE);
-  MatSetType(*m, MATAIJCUSPARSE);
+
   #ifdef INS_MPI
-  MatMPIAIJSetPreallocation(*m, prealloc, NULL, prealloc, NULL);
+  MatSetType(*m, MATMPIAIJCUSPARSE);
+  MatMPIAIJSetPreallocation(*m, prealloc0, NULL, prealloc1, NULL);
   #else
-  MatSeqAIJSetPreallocation(*m, prealloc, NULL);
+  MatSetType(*m, MATSEQAIJCUSPARSE);
+  MatSeqAIJSetPreallocation(*m, prealloc0, NULL);
   #endif
+  MatSetOption(*m, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
 }
 
 PetscErrorCode matAMult2(Mat A, Vec x, Vec y) {
@@ -100,4 +104,188 @@ void Poisson_MF2::create_shell_mat(Mat *m) {
   MatCreateShell(PETSC_COMM_WORLD, 15 * data->cells->size, 15 * data->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
   MatShellSetOperation(*m, MATOP_MULT, (void(*)(void))matAMult2);
   MatShellSetVecType(*m, VECCUDA);
+}
+
+void Poisson_M::setGlbInd() {
+  int global_ind = 0;
+  #ifdef INS_MPI
+  global_ind = get_global_start_index(glb_ind->set);
+  #endif
+  op_arg args[] = {
+    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE)
+  };
+  op_mpi_halo_exchanges_cuda(data->cells, 1, args);
+  int *data_ptr = (int *)malloc(data->cells->size * sizeof(int));
+  cudaMemcpy(data_ptr, glb_ind->data_d, glb_ind->set->size * sizeof(int), cudaMemcpyDeviceToHost);
+  for(int i = 0; i < data->cells->size; i++) {
+    data_ptr[i] = global_ind + i;
+  }
+  cudaMemcpy(glb_ind->data_d, data_ptr, glb_ind->set->size * sizeof(int), cudaMemcpyHostToDevice);
+  op_mpi_set_dirtybit_cuda(1, args);
+  free(data_ptr);
+}
+
+void Poisson_M::createMassMatrix() {
+  create_mat(&pMMat, 15 * data->cells->size, 15 * data->cells->size, 15);
+  pMMatInit = true;
+  // Add Cubature OP to mass matrix
+  double *cub_MM = (double *)malloc(15 * 15 * data->cells->size * sizeof(double));
+  int *glb       = (int *)malloc(data->cells->size * sizeof(int));
+  op_arg args[] = {
+    op_arg_dat(cData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(data->cells, 2, args);
+  cudaMemcpy(cub_MM, cData->mm->data_d, cData->mm->set->size * 15 * 15 * sizeof(double), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb, glb_ind->data_d, glb_ind->set->size * sizeof(int), cudaMemcpyDeviceToHost);
+  op_mpi_set_dirtybit_cuda(2, args);
+
+  for(int i = 0; i < data->cells->size; i++) {
+    // Convert data to row major format
+    int global_ind = glb[i];
+    for(int m = 0; m < 15; m++) {
+      for(int n = 0; n < 15; n++) {
+        int row = global_ind * 15 + m;
+        int col = global_ind * 15 + n;
+        int colInd = n * 15 + m;
+        double val = cub_MM[i * 15 * 15 + colInd];
+        MatSetValues(pMMat, 1, &row, 1, &col, &val, INSERT_VALUES);
+      }
+    }
+  }
+
+  free(cub_MM);
+  free(glb);
+
+  MatAssemblyBegin(pMMat, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(pMMat, MAT_FINAL_ASSEMBLY);
+}
+
+void Poisson_M::createMatrix() {
+  create_mat(&pMat, 15 * data->cells->size, 15 * data->cells->size, 15 * 4);
+  pMatInit = true;
+  double tol = 1e-15;
+
+  // Add cubature OP to Poisson matrix
+  op_arg args[] = {
+    op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(data->cells, 2, args);
+  double *op1_data = (double *)malloc(15 * 15 * data->cells->size * sizeof(double));
+  int *glb = (int *)malloc(data->cells->size * sizeof(int));
+  cudaMemcpy(op1_data, op1->data_d, op1->set->size * 15 * 15 * sizeof(double), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb, glb_ind->data_d, glb_ind->set->size * sizeof(int), cudaMemcpyDeviceToHost);
+  op_mpi_set_dirtybit_cuda(2, args);
+
+  for(int i = 0; i < data->cells->size; i++) {
+    int global_ind = glb[i];
+    // Convert data to row major format
+    for(int m = 0; m < 15; m++) {
+      for(int n = 0; n < 15; n++) {
+        int row = global_ind * 15 + m;
+        int col = global_ind * 15 + n;
+        double val = op1_data[i * 15 * 15 + m * 15 + n];
+        MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
+      }
+    }
+  }
+
+  free(op1_data);
+  free(glb);
+
+  op_arg edge_args[] = {
+    op_arg_dat(op2[0], -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(data->edges, 4, edge_args);
+  double *op2L_data = (double *)malloc(15 * 15 * data->edges->size * sizeof(double));
+  double *op2R_data = (double *)malloc(15 * 15 * data->edges->size * sizeof(double));
+  int *glb_l = (int *)malloc(data->edges->size * sizeof(int));
+  int *glb_r = (int *)malloc(data->edges->size * sizeof(int));
+
+  cudaMemcpy(op2L_data, op2[0]->data_d, 15 * 15 * data->edges->size * sizeof(double), cudaMemcpyDeviceToHost);
+  cudaMemcpy(op2R_data, op2[1]->data_d, 15 * 15 * data->edges->size * sizeof(double), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_l, glb_indL->data_d, data->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_r, glb_indR->data_d, data->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
+
+  // Add Gauss OP and OPf to Poisson matrix
+  for(int i = 0; i < data->edges->size; i++) {
+    int leftElement = glb_l[i];
+    int rightElement = glb_r[i];
+
+    // Gauss OPf
+    // Convert data to row major format
+    for(int m = 0; m < 15; m++) {
+      for(int n = 0; n < 15; n++) {
+        int row = leftElement * 15 + m;
+        int col = rightElement * 15 + n;
+        double val = op2L_data[i * 15 * 15 + m * 15 + n];
+        MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
+      }
+    }
+    // Convert data to row major format
+    for(int m = 0; m < 15; m++) {
+      for(int n = 0; n < 15; n++) {
+        int row = rightElement * 15 + m;
+        int col = leftElement * 15 + n;
+        double val = op2R_data[i * 15 * 15 + m * 15 + n];
+        MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
+      }
+    }
+  }
+
+  free(op2L_data);
+  free(op2R_data);
+  free(glb_l);
+  free(glb_r);
+
+  op_mpi_set_dirtybit_cuda(4, edge_args);
+
+  MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
+
+}
+
+void Poisson_M::createBCMatrix() {
+  create_mat(&pBCMat, 15 * data->cells->size, 21 * data->cells->size, 15);
+  pBCMatInit = true;
+  double tol = 1e-15;
+
+  op_arg args[] = {
+    op_arg_dat(op_bc, -1, OP_ID, 7 * 15, "double", OP_READ),
+    op_arg_dat(glb_indBC, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(data->bedgeNum, -1, OP_ID, 1, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(data->bedges, 3, args);
+
+  double *op_data = (double *)malloc(7 * 15 * data->bedges->size * sizeof(double));
+  int *glb        = (int *)malloc(data->bedges->size * sizeof(int));
+  int *edgeNum    = (int *)malloc(data->bedges->size * sizeof(int));
+
+  cudaMemcpy(op_data, op_bc->data_d, 7 * 15 * data->bedges->size * sizeof(double), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb, glb_indBC->data_d, data->bedges->size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(edgeNum, data->bedgeNum->data_d, data->bedges->size * sizeof(int), cudaMemcpyDeviceToHost);
+
+  // Create BCs matrix using Gauss data on boundary edges
+  for(int i = 0; i < data->bedges->size; i++) {
+    int global_ind = glb[i];
+    for(int j = 0; j < 7 * 15; j++) {
+      int col = global_ind * 21 + edgeNum[i] * 7 + (j % 7);
+      int row = global_ind * 15 + (j / 7);
+      double val = op_data[i * 7 * 15 + j];
+      MatSetValues(pBCMat, 1, &row, 1, &col, &val, INSERT_VALUES);
+    }
+  }
+
+  free(op_data);
+  free(glb);
+  free(edgeNum);
+
+  op_mpi_set_dirtybit_cuda(3, args);
+
+  MatAssemblyBegin(pBCMat, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(pBCMat, MAT_FINAL_ASSEMBLY);
 }

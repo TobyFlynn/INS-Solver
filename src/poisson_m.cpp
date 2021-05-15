@@ -5,7 +5,33 @@
 
 #include "op_seq.h"
 
+#include "kernels/poisson_mf2_op.h"
+#include "kernels/poisson_mf2_opf.h"
+#include "kernels/poisson_mf2_opbf.h"
+#include "kernels/glb_ind_kernel.h"
+#include "kernels/glb_ind_kernelBC.h"
+
 using namespace std;
+
+Poisson_M::Poisson_M(INSData *data, CubatureData *cubData, GaussData *gaussData) : Poisson(data, cubData, gaussData) {
+  glb_ind_data   = (int *)calloc(data->numCells, sizeof(int));
+  glb_indL_data  = (int *)calloc(data->numEdges, sizeof(int));
+  glb_indR_data  = (int *)calloc(data->numEdges, sizeof(int));
+  glb_indBC_data = (int *)calloc(data->numBoundaryEdges, sizeof(int));
+  op1_data       = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
+  op2_data[0]    = (double *)calloc(15 * 15 * data->numEdges, sizeof(double));
+  op2_data[1]    = (double *)calloc(15 * 15 * data->numEdges, sizeof(double));
+  op_bc_data     = (double *)calloc(7 * 15 * data->numBoundaryEdges, sizeof(double));
+
+  glb_ind   = op_decl_dat(data->cells, 1, "int", glb_ind_data, "poisson_glb_ind");
+  glb_indL  = op_decl_dat(data->edges, 1, "int", glb_indL_data, "poisson_glb_indL");
+  glb_indR  = op_decl_dat(data->edges, 1, "int", glb_indR_data, "poisson_glb_indR");
+  glb_indBC = op_decl_dat(data->bedges, 1, "int", glb_indBC_data, "poisson_glb_indBC");
+  op1       = op_decl_dat(data->cells, 15 * 15, "double", op1_data, "poisson_op1");
+  op2[0]    = op_decl_dat(data->edges, 15 * 15, "double", op2_data[0], "poisson_op20");
+  op2[1]    = op_decl_dat(data->edges, 15 * 15, "double", op2_data[1], "poisson_op21");
+  op_bc     = op_decl_dat(data->bedges, 7 * 15, "double", op_bc_data, "poisson_op_bc");
+}
 
 Poisson_M::~Poisson_M() {
   if(pMatInit)
@@ -22,9 +48,27 @@ Poisson_M::~Poisson_M() {
 
   MatDestroy(&op);
   KSPDestroy(&ksp);
+
+  free(glb_ind_data);
+  free(glb_indL_data);
+  free(glb_indR_data);
+  free(glb_indBC_data);
+  free(op1_data);
+  free(op2_data[0]);
+  free(op2_data[1]);
 }
 
 void Poisson_M::init() {
+  setGlbInd();
+  op_par_loop(glb_ind_kernel, "glb_ind_kernel", data->edges,
+              op_arg_dat(glb_ind, -2, data->edge2cells, 1, "int", OP_READ),
+              op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_WRITE),
+              op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_WRITE));
+  op_par_loop(glb_ind_kernelBC, "glb_ind_kernelBC", data->bedges,
+              op_arg_dat(glb_ind, 0, data->bedge2cells, 1, "int", OP_READ),
+              op_arg_dat(glb_indBC, -1, OP_ID, 1, "int", OP_WRITE));
+  setOp();
+  setBCOP();
   createMatrix();
   createMassMatrix();
   createBCMatrix();
@@ -40,9 +84,12 @@ void Poisson_M::init() {
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPCG);
+  // KSPSetType(ksp, KSPGMRES);
   PC pc;
   KSPGetPC(ksp, &pc);
-  PCSetType(pc, PCICC);
+  // PCSetType(pc, PCICC);
+  // PCSetType(pc, PCJACOBI);
+  PCSetType(pc, PCNONE);
   KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
 }
 
@@ -92,149 +139,7 @@ bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   return converged;
 }
 
-void Poisson_M::createMatrix() {
-  create_mat(&pMat, 15 * data->cells->size, 15 * data->cells->size, 15 * 4);
-  pMatInit = true;
-  double tol = 1e-15;
-
-  // Add cubature OP to Poisson matrix
-  double *cub_OP = (double *)malloc(15 * 15 * data->cells->size * sizeof(double));
-  op_fetch_data(cData->OP, cub_OP);
-  for(int i = 0; i < data->cells->size; i++) {
-    // Convert data to row major format
-    for(int m = 0; m < 15; m++) {
-      for(int n = 0; n < 15; n++) {
-        int row = i * 15 + m;
-        int col = i * 15 + n;
-        int colInd = n * 15 + m;
-        double val = cub_OP[i * 15 * 15 + colInd];
-        if(abs(val) > tol)
-          MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
-      }
-    }
-  }
-  free(cub_OP);
-
-  double *gauss_OP[3];
-  double *gauss_OPf[3];
-  for(int i = 0; i < 3; i++) {
-    gauss_OP[i] = (double *)malloc(15 * 15 * data->cells->size * sizeof(double));
-    gauss_OPf[i] = (double *)malloc(15 * 15 * data->cells->size * sizeof(double));
-    op_fetch_data(gData->OP[i], gauss_OP[i]);
-    op_fetch_data(gData->OPf[i], gauss_OPf[i]);
-  }
-
-  // Add Gauss OP and OPf to Poisson matrix
-  for(int i = 0; i < data->edges->size; i++) {
-    int leftElement = data->edge2cell_data[i * 2];
-    int rightElement = data->edge2cell_data[i * 2 + 1];
-    int leftEdge = data->edgeNum_data[i * 2];
-    int rightEdge = data->edgeNum_data[i * 2 + 1];
-    // Gauss OP
-    // Convert data to row major format
-    for(int m = 0; m < 15; m++) {
-      for(int n = 0; n < 15; n++) {
-        int row = leftElement * 15 + m;
-        int col = leftElement * 15 + n;
-        int colInd = n * 15 + m;
-        double val = 0.5 * gauss_OP[leftEdge][leftElement * 15 * 15 + colInd];
-        if(abs(val) > tol)
-          MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
-      }
-    }
-    // Convert data to row major format
-    for(int m = 0; m < 15; m++) {
-      for(int n = 0; n < 15; n++) {
-        int row = rightElement * 15 + m;
-        int col = rightElement * 15 + n;
-        int colInd = n * 15 + m;
-        double val = 0.5 * gauss_OP[rightEdge][rightElement * 15 * 15 + colInd];
-        if(abs(val) > tol)
-          MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
-      }
-    }
-
-    // Gauss OPf
-    // Convert data to row major format
-    for(int m = 0; m < 15; m++) {
-      for(int n = 0; n < 15; n++) {
-        int row = leftElement * 15 + m;
-        int col = rightElement * 15 + n;
-        int colInd = n * 15 + m;
-        double val = -0.5 * gauss_OPf[leftEdge][leftElement * 15 * 15 + colInd];
-        if(abs(val) > tol)
-          MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
-      }
-    }
-    // Convert data to row major format
-    for(int m = 0; m < 15; m++) {
-      for(int n = 0; n < 15; n++) {
-        int row = rightElement * 15 + m;
-        int col = leftElement * 15 + n;
-        int colInd = n * 15 + m;
-        double val = -0.5 * gauss_OPf[rightEdge][rightElement * 15 * 15 + colInd];
-        if(abs(val) > tol)
-          MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
-      }
-    }
-  }
-
-  // Add Gauss OP for boundary edges
-  for(int i = 0; i < data->bedges->size; i++) {
-    int element = data->bedge2cell_data[i];
-    int bedgeType = data->bedge_type_data[i];
-    int edge = data->bedgeNum_data[i];
-    if(dirichlet[0] == bedgeType || dirichlet[1] == bedgeType || dirichlet[2] == bedgeType) {
-      // Convert data to row major format
-      for(int m = 0; m < 15; m++) {
-        for(int n = 0; n < 15; n++) {
-          int row = element * 15 + m;
-          int col = element * 15 + n;
-          int colInd = n * 15 + m;
-          double val = gauss_OP[edge][element * 15 * 15 + colInd];
-          if(abs(val) > tol)
-            MatSetValues(pMat, 1, &row, 1, &col, &val, ADD_VALUES);
-        }
-      }
-    }
-  }
-
-  for(int i = 0; i < 3; i++) {
-    free(gauss_OP[i]);
-    free(gauss_OPf[i]);
-  }
-
-  MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
-  // PetscViewer pv;
-  // PetscViewerDrawOpen(PETSC_COMM_SELF, NULL, NULL, PETSC_DECIDE, PETSC_DECIDE, 500, 500, &pv);
-  // MatView(pMat, pv);
-}
-
-void Poisson_M::createMassMatrix() {
-  create_mat(&pMMat, 15 * data->cells->size, 15 * data->cells->size, 15);
-  pMMatInit = true;
-  // Add Cubature OP to mass matrix
-  double *cub_MM = (double *)malloc(15 * 15 * data->cells->size * sizeof(double));
-  op_fetch_data(cData->mm, cub_MM);
-  for(int i = 0; i < data->cells->size; i++) {
-    // Convert data to row major format
-    for(int m = 0; m < 15; m++) {
-      for(int n = 0; n < 15; n++) {
-        int row = i * 15 + m;
-        int col = i * 15 + n;
-        int colInd = n * 15 + m;
-        double val = cub_MM[i * 15 * 15 + colInd];
-        MatSetValues(pMMat, 1, &row, 1, &col, &val, ADD_VALUES);
-      }
-    }
-  }
-  free(cub_MM);
-
-  MatAssemblyBegin(pMMat, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(pMMat, MAT_FINAL_ASSEMBLY);
-}
-
+/*
 void Poisson_M::createBCMatrix() {
   create_mat(&pBCMat, 15 * data->cells->size, 21 * data->cells->size, 15);
   pBCMatInit = true;
@@ -306,4 +211,64 @@ void Poisson_M::createBCMatrix() {
 
   MatAssemblyBegin(pBCMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pBCMat, MAT_FINAL_ASSEMBLY);
+}
+*/
+
+void Poisson_M::setOp() {
+  double tol = 1e-15;
+
+  op_par_loop(poisson_mf2_op, "poisson_mf2_op", data->cells,
+              op_arg_dat(cData->OP, -1, OP_ID, 15 * 15, "double", OP_READ),
+              op_arg_gbl(&tol, 1, "double", OP_READ),
+              op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_WRITE));
+
+  op_par_loop(poisson_mf2_opf, "poisson_mf2_opf", data->edges,
+              op_arg_gbl(&tol, 1, "double", OP_READ),
+              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(gData->OP[0], 0, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(gData->OP[1], 0, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(gData->OP[2], 0, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(gData->OPf[0], 0, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(gData->OPf[1], 0, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(gData->OPf[2], 0, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(op2[0], -1, OP_ID, 15 * 15, "double", OP_INC),
+              op_arg_dat(op1, 0, data->edge2cells, 15 * 15, "double", OP_INC),
+              op_arg_dat(gData->OP[0], 1, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(gData->OP[1], 1, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(gData->OP[2], 1, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(gData->OPf[0], 1, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(gData->OPf[1], 1, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(gData->OPf[2], 1, data->edge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_INC),
+              op_arg_dat(op1, 1, data->edge2cells, 15 * 15, "double", OP_INC));
+
+  op_par_loop(poisson_mf2_opbf, "poisson_mf2_opbf", data->bedges,
+              op_arg_gbl(&tol, 1, "double", OP_READ),
+              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),
+              op_arg_gbl(&dirichlet[1], 1, "int", OP_READ),
+              op_arg_gbl(&dirichlet[2], 1, "int", OP_READ),
+              op_arg_dat(gData->OP[0], 0, data->bedge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(gData->OP[1], 0, data->bedge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(gData->OP[2], 0, data->bedge2cells, 15 * 15, "double", OP_READ),
+              op_arg_dat(op1, 0, data->bedge2cells, 15 * 15, "double", OP_INC));
+}
+
+void Poisson_M::setBCOP() {
+  double tol = 1e-15;
+  // If not dirichlet BC, kernel will assume it is a neumann bc
+  op_par_loop(poisson_mf2_bc, "poisson_mf2_bc", data->bedges,
+              op_arg_gbl(&tol, 1, "double", OP_READ),
+              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),
+              op_arg_gbl(&dirichlet[1], 1, "int", OP_READ),
+              op_arg_gbl(&dirichlet[2], 1, "int", OP_READ),
+              op_arg_dat(gData->mD[0], 0, data->bedge2cells, 7 * 15, "double", OP_READ),
+              op_arg_dat(gData->mD[1], 0, data->bedge2cells, 7 * 15, "double", OP_READ),
+              op_arg_dat(gData->mD[2], 0, data->bedge2cells, 7 * 15, "double", OP_READ),
+              op_arg_dat(gData->sJ, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(gData->tau, 0, data->bedge2cells, 3, "double", OP_READ),
+              op_arg_dat(op_bc, -1, OP_ID, 7 * 15, "double", OP_INC));
 }
