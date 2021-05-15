@@ -84,11 +84,9 @@ void Poisson_M::init() {
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPCG);
-  // KSPSetType(ksp, KSPGMRES);
   PC pc;
   KSPGetPC(ksp, &pc);
   // PCSetType(pc, PCICC);
-  // PCSetType(pc, PCJACOBI);
   PCSetType(pc, PCNONE);
   KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
 }
@@ -138,81 +136,6 @@ bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
 
   return converged;
 }
-
-/*
-void Poisson_M::createBCMatrix() {
-  create_mat(&pBCMat, 15 * data->cells->size, 21 * data->cells->size, 15);
-  pBCMatInit = true;
-  double tol = 1e-15;
-
-  double *gauss_sJ  = (double *)malloc(21 * data->cells->size * sizeof(double));
-  double *gauss_tau = (double *)malloc(3 * data->cells->size * sizeof(double));
-  double *gauss_mD[3];
-  for(int i = 0; i < 3; i++) {
-    gauss_mD[i]  = (double *)malloc(7 * 15 * data->cells->size * sizeof(double));
-    op_fetch_data(gData->mD[i], gauss_mD[i]);
-  }
-  op_fetch_data(gData->sJ, gauss_sJ);
-  op_fetch_data(gData->tau, gauss_tau);
-
-  // Create BCs matrix using Gauss data on boundary edges
-  for(int i = 0; i < data->bedges->size; i++) {
-    int element = data->bedge2cell_data[i];
-    int bedgeType = data->bedge_type_data[i];
-    int edge = data->bedgeNum_data[i];
-    if(dirichlet[0] == bedgeType || dirichlet[1] == bedgeType || dirichlet[2] == bedgeType) {
-      // Get data
-      for(int j = 0; j < 7 * 15; j++) {
-        int indT = (j % 7) * 15 + (j / 7);
-        int col = element * 21 + edge * 7 + (j % 7);
-        int row = element * 15 + (j / 7);
-        double val;
-        if(edge == 0) {
-          val = gFInterp0_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
-        } else if(edge == 1) {
-          val = gFInterp1_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
-        } else {
-          val = gFInterp2_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)] * gauss_tau[element * 3 + edge];
-        }
-        val -= gauss_mD[edge][element * 7 * 15 + indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
-        if(abs(val) > tol)
-          MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
-      }
-    } else if(neumann[0] == bedgeType || neumann[1] == bedgeType || neumann[2] == bedgeType) {
-      // Get data
-      for(int j = 0; j < 7 * 15; j++) {
-        int indT = (j % 7) * 15 + (j / 7);
-        int col = element * 21 + edge * 7 + (j % 7);
-        int row = element * 15 + (j / 7);
-        double val;
-        if(edge == 0) {
-          val = gFInterp0_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
-        } else if(edge == 1) {
-          val = gFInterp1_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
-        } else {
-          val = gFInterp2_g[indT] * gaussW_g[j % 7] * gauss_sJ[element * 21 + edge * 7 + (j % 7)];
-        }
-        if(abs(val) > tol)
-          MatSetValues(pBCMat, 1, &row, 1, &col, &val, ADD_VALUES);
-      }
-    } else {
-      cout << "UNDEFINED BOUNDARY EDGE" << endl;
-      cout << "Element " << element << " Edge " << edge << " Type " << bedgeType << endl;
-      cout << "D: " << dirichlet[0] << " " << dirichlet[1] << endl;
-      cout << "N: " << neumann[0] << " " << neumann[1] << endl;
-    }
-  }
-
-  free(gauss_sJ);
-  free(gauss_tau);
-  for(int i = 0; i < 3; i++) {
-    free(gauss_mD[i]);
-  }
-
-  MatAssemblyBegin(pBCMat, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(pBCMat, MAT_FINAL_ASSEMBLY);
-}
-*/
 
 void Poisson_M::setOp() {
   double tol = 1e-15;

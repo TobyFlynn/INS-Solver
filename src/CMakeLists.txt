@@ -5,7 +5,7 @@ list(APPEND KERNEL_HEADERS kernels/div.h kernels/curl.h kernels/grad.h)
 list(APPEND KERNEL_HEADERS kernels/advection_flux.h kernels/advection_faces.h kernels/advection_bc.h kernels/advection_numerical_flux.h kernels/advection_intermediate_vel.h)
 list(APPEND KERNEL_HEADERS kernels/pressure_bc.h kernels/pressure_rhs.h kernels/pressure_update_vel.h)
 list(APPEND KERNEL_HEADERS kernels/viscosity_rhs.h kernels/viscosity_reset_bc.h kernels/viscosity_bc.h)
-list(APPEND KERNEL_HEADERS kernels/cub_grad.h kernels/cub_div.h kernels/poisson_test_init.h kernels/poisson_test_bc.h kernels/poisson_test_error.h)
+list(APPEND KERNEL_HEADERS kernels/poisson_test_init.h kernels/poisson_test_bc.h kernels/poisson_test_error.h)
 list(APPEND KERNEL_HEADERS kernels/poisson_mf2.h kernels/poisson_mf2_mass.h kernels/poisson_mf2_faces.h kernels/poisson_mf2_op.h kernels/poisson_mf2_opf.h  kernels/poisson_mf2_opbf.h kernels/poisson_mf2_bc.h kernels/poisson_mf2_apply_bc)
 
 set(OPENBLAS_SRC openBLAS_op/init_grid_op.cpp openBLAS_op/op2_gemv_op.cpp openBLAS_op/op2_gemm_op.cpp openBLAS_op/op2_gemv_batch_op.cpp openBLAS_op/op2_gemm_batch_op.cpp)

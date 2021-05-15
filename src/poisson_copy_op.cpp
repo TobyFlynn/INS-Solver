@@ -49,7 +49,6 @@ void Poisson_MF2::copy_rhs(double *rhs_d) {
 
 // Create a PETSc vector for CPUs
 void Poisson::create_vec(Vec *v, int size) {
-  // VecCreateSeq(PETSC_COMM_SELF, size * data->cells->size, v);
   VecCreate(PETSC_COMM_WORLD, v);
   VecSetType(*v, VECSTANDARD);
   VecSetSizes(*v, size * data->cells->size, PETSC_DECIDE);
@@ -119,7 +118,6 @@ PetscErrorCode matAMult2(Mat A, Vec x, Vec y) {
 }
 
 void Poisson_MF2::create_shell_mat(Mat *m) {
-  // MatCreateShell(PETSC_COMM_SELF, 15 * data->cells->size, 15 * data->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
   MatCreateShell(PETSC_COMM_WORLD, 15 * data->cells->size, 15 * data->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
   MatShellSetOperation(*m, MATOP_MULT, (void(*)(void))matAMult2);
   MatShellSetVecType(*m, VECSTANDARD);
