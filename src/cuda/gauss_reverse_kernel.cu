@@ -132,10 +132,10 @@ void op_par_loop_gauss_reverse(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(19);
+  op_timing_realloc(5);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[19].name      = name;
-  OP_kernels[19].count    += 1;
+  OP_kernels[5].name      = name;
+  OP_kernels[5].count    += 1;
 
 
   int    ninds   = 3;
@@ -148,8 +148,8 @@ void op_par_loop_gauss_reverse(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_19
-      int nthread = OP_BLOCK_SIZE_19;
+    #ifdef OP_BLOCK_SIZE_5
+      int nthread = OP_BLOCK_SIZE_5;
     #else
       int nthread = OP_block_size;
     #endif
@@ -176,5 +176,5 @@ void op_par_loop_gauss_reverse(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[19].time     += wall_t2 - wall_t1;
+  OP_kernels[5].time     += wall_t2 - wall_t1;
 }

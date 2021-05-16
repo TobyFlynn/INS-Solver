@@ -20,7 +20,7 @@ extern "C" {
 #endif
 #endif
 
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
 void op2_gemm(bool transposeA, bool transposeB, int m, int n, int k, double alpha, double *a_ptr, int lda, op_dat b, int ldb, double beta, op_dat c, int ldc) {
   op_arg gemv_args[] = {
@@ -29,7 +29,7 @@ void op2_gemm(bool transposeA, bool transposeB, int m, int n, int k, double alph
   };
   op_mpi_halo_exchanges(b->set, 2, gemv_args);
 
-  int setSize = op_get_size(b->set);
+  int setSize = b->set->size;
 
   if(transposeA) {
     if(transposeB) {
@@ -75,7 +75,7 @@ void op2_gemm(bool transposeA, bool transposeB, int m, int n, int k, double alph
   };
   op_mpi_halo_exchanges(a->set, 2, gemv_args);
 
-  int setSize = op_get_size(a->set);
+  int setSize = a->set->size;
 
   if(transposeA) {
     if(transposeB) {

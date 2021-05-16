@@ -6,8 +6,10 @@
 #include <memory>
 
 #include "blas_calls.h"
+#include "load_mesh.h"
 
 #include "kernels/init_grid.h"
+#include "kernels/init_nodes.h"
 
 #include "kernels/init_cubature_grad.h"
 #include "kernels/init_cubature.h"
@@ -26,67 +28,61 @@
 
 using namespace std;
 
-INSData::INSData() {
+INSData::INSData(std::string filename) {
+  #ifdef POISSON_TEST
+  // Lamda used to identify the type of boundary edges
+  auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+    if(y1 == y2 && y1 > 0.5) {
+      // Neumann BC y = 1
+      return 2;
+    } else if(y1 == y2 && y1 < 0.5) {
+      // Neumann BC y = 0
+      return 3;
+    } else if(x1 < 0.5){
+      // Dirichlet BC x = 0
+      return 0;
+    } else {
+      // Dirichlet BC x = 1
+      return 1;
+    }
+  };
+  // auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+  //   if(y1 == y2 && y1 > 0.5) {
+  //     // Neumann BC y = 1
+  //     return 1;
+  //   } else if(y1 == y2 && y1 < 0.5) {
+  //     // Neumann BC y = 0
+  //     return 1;
+  //   } else if(x1 < 0.5){
+  //     // Dirichlet BC x = 0
+  //     return 1;
+  //   } else {
+  //     // Dirichlet BC x = 1
+  //     return 0;
+  //   }
+  // };
+  #else
+  // Lamda used to identify the type of boundary edges
+  auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
+    if(x1 == 0.0 && x2 == 0.0) {
+      // Inflow
+      return 0;
+    } else if(x1 == 2.2 && x2 == 2.2) {
+      // Outflow
+      return 1;
+    } else if(x1 > 0.1 && x2 > 0.1 && x1 < 0.3 && x2 < 0.3
+              && y1 > 0.1 && y2 > 0.1 && y1 < 0.3 && y2 < 0.3) {
+      // Cylinder Wall
+      return 2;
+    } else {
+      // Top/Bottom Wall
+      return 3;
+    }
+  };
+  #endif
 
-}
+  load_mesh(filename.c_str(), this, bcNum);
 
-INSData::~INSData() {
-  free(coords);
-  free(cgnsCells);
-  free(edge2node_data);
-  free(edge2cell_data);
-  free(bedge2node_data);
-  free(bedge2cell_data);
-  free(bedge_type_data);
-  free(edgeNum_data);
-  free(bedgeNum_data);
-
-  free(nodeX_data);
-  free(nodeY_data);
-  free(x_data);
-  free(y_data);
-  free(rx_data);
-  free(ry_data);
-  free(sx_data);
-  free(sy_data);
-  free(nx_data);
-  free(ny_data);
-  free(J_data);
-  free(sJ_data);
-  free(fscale_data);
-  for(int i = 0; i < 4; i++) {
-    free(F_data[i]);
-    free(div_data[i]);
-  }
-  for(int i = 0; i < 2; i++) {
-    free(Q_data[0][i]);
-    free(Q_data[1][i]);
-    free(QT_data[i]);
-    free(QTT_data[i]);
-
-    free(N_data[0][i]);
-    free(N_data[1][i]);
-    free(exQ_data[i]);
-    free(flux_data[i]);
-    free(gradCurlVel_data[i]);
-    free(dPdN_data[i]);
-    free(visRHS_data[i]);
-    free(visBC_data[i]);
-    free(dQdx_data[i]);
-    free(dQdy_data[i]);
-  }
-  free(divVelT_data);
-  free(curlVel_data);
-  free(pRHS_data);
-  free(pRHSex_data);
-  free(p_data);
-  free(dpdx_data);
-  free(dpdy_data);
-  free(zeroBC_data);
-  free(vorticity_data);
-}
-
-void INSData::initOP2() {
   // Initialise memory
   nodeX_data  = (double*)calloc(3 * numCells, sizeof(double));
   nodeY_data  = (double*)calloc(3 * numCells, sizeof(double));
@@ -250,14 +246,74 @@ void INSData::initOP2() {
   op_decl_const(7*15, "double", gFInterp1R_g);
   op_decl_const(7*15, "double", gFInterp2R_g);
   op_decl_const(5, "double", lift_drag_vec);
+}
+
+INSData::~INSData() {
+  free(coords);
+  free(cgnsCells);
+  free(edge2node_data);
+  free(edge2cell_data);
+  free(bedge2node_data);
+  free(bedge2cell_data);
+  free(bedge_type_data);
+  free(edgeNum_data);
+  free(bedgeNum_data);
+
+  free(nodeX_data);
+  free(nodeY_data);
+  free(x_data);
+  free(y_data);
+  free(rx_data);
+  free(ry_data);
+  free(sx_data);
+  free(sy_data);
+  free(nx_data);
+  free(ny_data);
+  free(J_data);
+  free(sJ_data);
+  free(fscale_data);
+  for(int i = 0; i < 4; i++) {
+    free(F_data[i]);
+    free(div_data[i]);
+  }
+  for(int i = 0; i < 2; i++) {
+    free(Q_data[0][i]);
+    free(Q_data[1][i]);
+    free(QT_data[i]);
+    free(QTT_data[i]);
+
+    free(N_data[0][i]);
+    free(N_data[1][i]);
+    free(exQ_data[i]);
+    free(flux_data[i]);
+    free(gradCurlVel_data[i]);
+    free(dPdN_data[i]);
+    free(visRHS_data[i]);
+    free(visBC_data[i]);
+    free(dQdx_data[i]);
+    free(dQdy_data[i]);
+  }
+  free(divVelT_data);
+  free(curlVel_data);
+  free(pRHS_data);
+  free(pRHSex_data);
+  free(p_data);
+  free(dpdx_data);
+  free(dpdy_data);
+  free(zeroBC_data);
+  free(vorticity_data);
+}
+
+void INSData::init() {
+  op_par_loop(init_nodes, "init_nodes", cells,
+              op_arg_dat(node_coords, -3, cell2nodes, 2, "double", OP_READ),
+              op_arg_dat(nodeX, -1, OP_ID, 3, "double", OP_WRITE),
+              op_arg_dat(nodeY, -1, OP_ID, 3, "double", OP_WRITE));
 
   // Calculate geometric factors
   init_grid_blas(this);
 
   op_par_loop(init_grid, "init_grid", cells,
-              op_arg_dat(node_coords, -3, cell2nodes, 2, "double", OP_READ),
-              op_arg_dat(nodeX, -1, OP_ID, 3, "double", OP_WRITE),
-              op_arg_dat(nodeY, -1, OP_ID, 3, "double", OP_WRITE),
               op_arg_dat(rx, -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(ry, -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(sx, -1, OP_ID, 15, "double", OP_RW),
@@ -284,11 +340,6 @@ CubatureData::CubatureData(INSData *dat) {
   temp_data  = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
   temp2_data = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
 
-  op_temps_data[0] = (double *)calloc(46 * data->numCells, sizeof(double));
-  op_temps_data[1] = (double *)calloc(46 * data->numCells, sizeof(double));
-  op_temps_data[2] = (double *)calloc(46 * data->numCells, sizeof(double));
-  op_temps_data[3] = (double *)calloc(46 * data->numCells, sizeof(double));
-
   rx    = op_decl_dat(data->cells, 46, "double", rx_data, "cub-rx");
   sx    = op_decl_dat(data->cells, 46, "double", sx_data, "cub-sx");
   ry    = op_decl_dat(data->cells, 46, "double", ry_data, "cub-ry");
@@ -300,12 +351,23 @@ CubatureData::CubatureData(INSData *dat) {
   OP    = op_decl_dat(data->cells, 15 * 15, "double", OP_data, "cub-OP");
   temp  = op_decl_dat(data->cells, 46 * 15, "double", temp_data, "cub-temp");
   temp2 = op_decl_dat(data->cells, 46 * 15, "double", temp2_data, "cub-temp2");
+}
 
-  op_temps[0] = op_decl_dat(data->cells, 46, "double", op_temps_data[0], "cub-op-temp0");
-  op_temps[1] = op_decl_dat(data->cells, 46, "double", op_temps_data[1], "cub-op-temp1");
-  op_temps[2] = op_decl_dat(data->cells, 46, "double", op_temps_data[2], "cub-op-temp2");
-  op_temps[3] = op_decl_dat(data->cells, 46, "double", op_temps_data[3], "cub-op-temp3");
+CubatureData::~CubatureData() {
+  free(rx_data);
+  free(sx_data);
+  free(ry_data);
+  free(sy_data);
+  free(J_data);
+  free(mm_data);
+  free(Dx_data);
+  free(Dy_data);
+  free(OP_data);
+  free(temp_data);
+  free(temp2_data);
+}
 
+void CubatureData::init() {
   // Initialise geometric factors for calcuating grad matrix
   op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_VDR), 15, data->x, 0.0, rx);
   op2_gemv(true, 46, 15, 1.0, constants->get_ptr(Constants::CUB_VDS), 15, data->x, 0.0, sx);
@@ -349,24 +411,6 @@ CubatureData::CubatureData(INSData *dat) {
   op2_gemm_batch(false, true, 15, 15, 46, 1.0, Dx, 15, temp, 15, 0.0, OP, 15);
   op2_gemm_batch(false, true, 15, 15, 46, 1.0, Dy, 15, temp2, 15, 1.0, OP, 15);
   // OP is in col-major at this point
-}
-
-CubatureData::~CubatureData() {
-  free(rx_data);
-  free(sx_data);
-  free(ry_data);
-  free(sy_data);
-  free(J_data);
-  free(mm_data);
-  free(Dx_data);
-  free(Dy_data);
-  free(OP_data);
-  free(temp_data);
-  free(temp2_data);
-  free(op_temps_data[0]);
-  free(op_temps_data[1]);
-  free(op_temps_data[2]);
-  free(op_temps_data[3]);
 }
 
 GaussData::GaussData(INSData *dat) {
@@ -423,7 +467,33 @@ GaussData::GaussData(INSData *dat) {
     name = "OPf" + to_string(i);
     OPf[i] = op_decl_dat(data->cells, 15 * 15, "double", OPf_data[i], name.c_str());
   }
+}
 
+GaussData::~GaussData() {
+  free(x_data);
+  free(y_data);
+  free(rx_data);
+  free(sx_data);
+  free(ry_data);
+  free(sy_data);
+  free(sJ_data);
+  free(nx_data);
+  free(ny_data);
+  free(tau_data);
+  free(reverse_data);
+  for(int i = 0; i < 3; i++) {
+    free(mDx_data[i]);
+    free(mDy_data[i]);
+    free(pDx_data[i]);
+    free(pDy_data[i]);
+    free(mD_data[i]);
+    free(pD_data[i]);
+    free(OP_data[i]);
+    free(OPf_data[i]);
+  }
+}
+
+void GaussData::init() {
   // Check which edges will require matrices to be 'reverse'
   op_par_loop(gauss_reverse, "gauss_reverse", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
@@ -593,28 +663,4 @@ GaussData::GaussData(INSData *dat) {
   op2_gemm_batch(true, true, 15, 15, 7, -1.0, pDx[2], 7, pDy[2], 15, 1.0, OPf[2], 15);
 
   // Applying the correct factors to OP and OPf is done when constructing the Poisson matrix
-}
-
-GaussData::~GaussData() {
-  free(x_data);
-  free(y_data);
-  free(rx_data);
-  free(sx_data);
-  free(ry_data);
-  free(sy_data);
-  free(sJ_data);
-  free(nx_data);
-  free(ny_data);
-  free(tau_data);
-  free(reverse_data);
-  for(int i = 0; i < 3; i++) {
-    free(mDx_data[i]);
-    free(mDy_data[i]);
-    free(pDx_data[i]);
-    free(pDy_data[i]);
-    free(mD_data[i]);
-    free(pD_data[i]);
-    free(OP_data[i]);
-    free(OPf_data[i]);
-  }
 }

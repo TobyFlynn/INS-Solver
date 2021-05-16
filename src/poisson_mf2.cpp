@@ -8,18 +8,6 @@
 #include "blas_calls.h"
 #include "operators.h"
 
-#include "kernels/tau.h"
-#include "kernels/tau_bc.h"
-#include "kernels/poisson_rhs_faces.h"
-#include "kernels/poisson_rhs_bc.h"
-#include "kernels/poisson_rhs_flux.h"
-#include "kernels/poisson_rhs_J.h"
-#include "kernels/poisson_rhs_qbc.h"
-#include "kernels/poisson_rhs_qflux.h"
-#include "kernels/poisson_bc.h"
-#include "kernels/poisson_bc_J.h"
-#include "kernels/poisson_bc2.h"
-#include "kernels/poisson_bc3.h"
 #include "kernels/poisson_mf2.h"
 #include "kernels/poisson_mf2_mass.h"
 #include "kernels/poisson_mf2_faces.h"
@@ -31,15 +19,12 @@
 
 using namespace std;
 
-Poisson_MF2::Poisson_MF2(INSData *nsData, CubatureData *cubData, GaussData *gaussData, bool blas) : Poisson(nsData, cubData, gaussData) {
-  use_blas = blas;
-
+Poisson_MF2::Poisson_MF2(INSData *nsData, CubatureData *cubData, GaussData *gaussData) : Poisson(nsData, cubData, gaussData) {
   u_data      = (double *)calloc(15 * data->numCells, sizeof(double));
   rhs_data    = (double *)calloc(15 * data->numCells, sizeof(double));
   op1_data    = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
-  op2_data[0] = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
-  op2_data[1] = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
-  op2_data[2] = (double *)calloc(15 * 15 * data->numCells, sizeof(double));
+  op2_data[0] = (double *)calloc(15 * 15 * data->numEdges, sizeof(double));
+  op2_data[1] = (double *)calloc(15 * 15 * data->numEdges, sizeof(double));
   op_bc_data  = (double *)calloc(7 * 15 * data->numBoundaryEdges, sizeof(double));
   u_t_data    = (double *)calloc(15 * data->numCells, sizeof(double));
   rhs_t_data  = (double *)calloc(15 * data->numCells, sizeof(double));
@@ -49,9 +34,8 @@ Poisson_MF2::Poisson_MF2(INSData *nsData, CubatureData *cubData, GaussData *gaus
   u_t    = op_decl_dat(data->cells, 15, "double", u_t_data, "poisson_u_t");
   rhs_t  = op_decl_dat(data->cells, 15, "double", rhs_t_data, "poisson_rhs_t");
   op1    = op_decl_dat(data->cells, 15 * 15, "double", op1_data, "poisson_op1");
-  op2[0] = op_decl_dat(data->cells, 15 * 15, "double", op2_data[0], "poisson_op20");
-  op2[1] = op_decl_dat(data->cells, 15 * 15, "double", op2_data[1], "poisson_op21");
-  op2[2] = op_decl_dat(data->cells, 15 * 15, "double", op2_data[2], "poisson_op22");
+  op2[0] = op_decl_dat(data->edges, 15 * 15, "double", op2_data[0], "poisson_op20");
+  op2[1] = op_decl_dat(data->edges, 15 * 15, "double", op2_data[1], "poisson_op21");
   op_bc  = op_decl_dat(data->bedges, 7 * 15, "double", op_bc_data, "poisson_op_bc");
 }
 
@@ -61,10 +45,28 @@ Poisson_MF2::~Poisson_MF2() {
   free(op1_data);
   free(op2_data[0]);
   free(op2_data[1]);
-  free(op2_data[2]);
   free(u_t_data);
   free(rhs_t_data);
   free(op_bc_data);
+
+  destroy_vec(&b);
+  destroy_vec(&x);
+  KSPDestroy(&ksp);
+  MatDestroy(&Amat);
+}
+
+void Poisson_MF2::init() {
+  setOp();
+  setBCOP();
+
+  create_vec(&b);
+  create_vec(&x);
+  create_shell_mat(&Amat);
+
+  KSPCreate(PETSC_COMM_WORLD, &ksp);
+  KSPSetType(ksp, KSPCG);
+  KSPSetOperators(ksp, Amat, Amat);
+  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
 }
 
 bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
@@ -77,24 +79,8 @@ bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor)
               op_arg_dat(bc_dat, 0, data->bedge2cells, 21, "double", OP_READ),
               op_arg_dat(b_dat, 0, data->bedge2cells, 15, "double", OP_INC));
 
-  Vec b;
-  create_vec(&b);
   load_vec(&b, b_dat);
 
-  Vec x;
-  create_vec(&x);
-
-  Mat Amat;
-  create_shell_mat(&Amat);
-
-  // Create PETSc Preconditioned Conjugate Gradient linear solver
-  KSP ksp;
-  KSPCreate(PETSC_COMM_SELF, &ksp);
-  KSPSetType(ksp, KSPCG);
-  // KSPSetType(ksp, KSPFGMRES);
-
-  KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
   // Solve
   timer->startLinearSolveMF();
   KSPSolve(ksp, b, x);
@@ -103,12 +89,11 @@ bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor)
   KSPGetIterationNumber(ksp, &numIt);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp, &reason);
-  double residual;
-  KSPGetResidualNorm(ksp, &residual);
   // Check that the solver converged
   bool converged = true;
-  cout << "Number of iterations for linear solver: " << numIt << endl;
   if(reason < 0) {
+    double residual;
+    KSPGetResidualNorm(ksp, &residual);
     converged = false;
     cout << "Number of iterations for linear solver: " << numIt << endl;
     cout << "Converged reason: " << reason << " Residual: " << residual << endl;
@@ -120,51 +105,39 @@ bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor)
   Vec solution;
   KSPGetSolution(ksp, &solution);
   store_vec(&solution, x_dat);
-  KSPDestroy(&ksp);
-  destroy_vec(&b);
-  destroy_vec(&x);
-  MatDestroy(&Amat);
 
   return converged;
 }
 
 void Poisson_MF2::calc_rhs(const double *u_d, double *rhs_d) {
-  // Copy u to OP2 dat (different depending on whether CPU or GPU)
+  // Copy u to OP2 dat
   copy_u(u_d);
 
-  if(use_blas) {
-    op2_gemv_batch(true, 15, 15, 1.0, op1, 15, u, 0.0, rhs);
-    if(massMat) {
-      op2_gemv_batch(false, 15, 15, massFactor, cData->mm, 15, u, 1.0, rhs);
-    }
-    poisson_mf2_blas(data, this, cData, massMat, massFactor);
+  timer->startLinearSolveMFRHS();
+
+  if(massMat) {
+    op_par_loop(poisson_mf2_mass, "poisson_mf2_mass", data->cells,
+                op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
+                op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
+                op_arg_gbl(&massFactor, 1, "double", OP_READ),
+                op_arg_dat(cData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
+                op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE));
   } else {
-    if(massMat) {
-      op_par_loop(poisson_mf2_mass, "poisson_mf2_mass", data->cells,
-                  op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
-                  op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
-                  op_arg_gbl(&massFactor, 1, "double", OP_READ),
-                  op_arg_dat(cData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
-                  op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE));
-    } else {
-      op_par_loop(poisson_mf2, "poisson_mf2", data->cells,
-                  op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
-                  op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
-                  op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE));
-    }
-    op_par_loop(poisson_mf2_faces, "poisson_mf2_faces", data->edges,
-                op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-                op_arg_dat(u, 0, data->edge2cells, 15, "double", OP_READ),
-                op_arg_dat(op2[0], 0, data->edge2cells, 15 * 15, "double", OP_READ),
-                op_arg_dat(op2[1], 0, data->edge2cells, 15 * 15, "double", OP_READ),
-                op_arg_dat(op2[2], 0, data->edge2cells, 15 * 15, "double", OP_READ),
-                op_arg_dat(rhs, 0, data->edge2cells, 15, "double", OP_INC),
-                op_arg_dat(u, 1, data->edge2cells, 15, "double", OP_READ),
-                op_arg_dat(op2[0], 1, data->edge2cells, 15 * 15, "double", OP_READ),
-                op_arg_dat(op2[1], 1, data->edge2cells, 15 * 15, "double", OP_READ),
-                op_arg_dat(op2[2], 1, data->edge2cells, 15 * 15, "double", OP_READ),
-                op_arg_dat(rhs, 1, data->edge2cells, 15, "double", OP_INC));
+    op_par_loop(poisson_mf2, "poisson_mf2", data->cells,
+                op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
+                op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
+                op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE));
   }
+
+  op_par_loop(poisson_mf2_faces, "poisson_mf2_faces", data->edges,
+              op_arg_dat(u, 0, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(op2[0], -1, OP_ID, 15 * 15, "double", OP_READ),
+              op_arg_dat(rhs, 0, data->edge2cells, 15, "double", OP_INC),
+              op_arg_dat(u, 1, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
+              op_arg_dat(rhs, 1, data->edge2cells, 15, "double", OP_INC));
+
+  timer->endLinearSolveMFRHS();
 
   copy_rhs(rhs_d);
 }
@@ -186,9 +159,7 @@ void Poisson_MF2::setOp() {
               op_arg_dat(gData->OPf[0], 0, data->edge2cells, 15 * 15, "double", OP_READ),
               op_arg_dat(gData->OPf[1], 0, data->edge2cells, 15 * 15, "double", OP_READ),
               op_arg_dat(gData->OPf[2], 0, data->edge2cells, 15 * 15, "double", OP_READ),
-              op_arg_dat(op2[0], 0, data->edge2cells, 15 * 15, "double", OP_INC),
-              op_arg_dat(op2[1], 0, data->edge2cells, 15 * 15, "double", OP_INC),
-              op_arg_dat(op2[2], 0, data->edge2cells, 15 * 15, "double", OP_INC),
+              op_arg_dat(op2[0], -1, OP_ID, 15 * 15, "double", OP_INC),
               op_arg_dat(op1, 0, data->edge2cells, 15 * 15, "double", OP_INC),
               op_arg_dat(gData->OP[0], 1, data->edge2cells, 15 * 15, "double", OP_READ),
               op_arg_dat(gData->OP[1], 1, data->edge2cells, 15 * 15, "double", OP_READ),
@@ -196,9 +167,7 @@ void Poisson_MF2::setOp() {
               op_arg_dat(gData->OPf[0], 1, data->edge2cells, 15 * 15, "double", OP_READ),
               op_arg_dat(gData->OPf[1], 1, data->edge2cells, 15 * 15, "double", OP_READ),
               op_arg_dat(gData->OPf[2], 1, data->edge2cells, 15 * 15, "double", OP_READ),
-              op_arg_dat(op2[0], 1, data->edge2cells, 15 * 15, "double", OP_INC),
-              op_arg_dat(op2[1], 1, data->edge2cells, 15 * 15, "double", OP_INC),
-              op_arg_dat(op2[2], 1, data->edge2cells, 15 * 15, "double", OP_INC),
+              op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_INC),
               op_arg_dat(op1, 1, data->edge2cells, 15 * 15, "double", OP_INC));
 
   op_par_loop(poisson_mf2_opbf, "poisson_mf2_opbf", data->bedges,

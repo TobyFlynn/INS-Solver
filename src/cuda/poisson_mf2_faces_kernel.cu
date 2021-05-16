@@ -3,149 +3,94 @@
 //
 
 //user function
-__device__ void poisson_mf2_faces_gpu( const int *edgeNum, const double *uL,
-                              const double *op0L, const double *op1L,
-                              const double *op2L, double *rhsL,
-                              const double *uR, const double *op0R, const double *op1R,
-                              const double *op2R, double *rhsR) {
-
-  int edgeL = edgeNum[0];
-  int edgeR = edgeNum[1];
-
-  if(edgeL == 0) {
-    for(int m = 0; m < 15; m++) {
-      int ind = m * 15;
-      double val = 0.0;
-      for(int n = 0; n < 15; n++) {
-        val += op0L[ind + n] * uR[n];
-      }
-      rhsL[m] += val;
+__device__ void poisson_mf2_faces_gpu( const double *uL, const double *opL, double *rhsL,
+                              const double *uR, const double *opR, double *rhsR) {
+  for(int m = 0; m < 15; m++) {
+    int ind = m * 15;
+    double val = 0.0;
+    for(int n = 0; n < 15; n++) {
+      val += opL[ind + n] * uR[n];
     }
-  } else if(edgeL == 1) {
-    for(int m = 0; m < 15; m++) {
-      int ind = m * 15;
-      double val = 0.0;
-      for(int n = 0; n < 15; n++) {
-        val += op1L[ind + n] * uR[n];
-      }
-      rhsL[m] += val;
-    }
-  } else {
-    for(int m = 0; m < 15; m++) {
-      int ind = m * 15;
-      double val = 0.0;
-      for(int n = 0; n < 15; n++) {
-        val += op2L[ind + n] * uR[n];
-      }
-      rhsL[m] += val;
-    }
+    rhsL[m] += val;
   }
 
-  if(edgeR == 0) {
-    for(int m = 0; m < 15; m++) {
-      int ind = m * 15;
-      double val = 0.0;
-      for(int n = 0; n < 15; n++) {
-        val += op0R[ind + n] * uL[n];
-      }
-      rhsR[m] += val;
+  for(int m = 0; m < 15; m++) {
+    int ind = m * 15;
+    double val = 0.0;
+    for(int n = 0; n < 15; n++) {
+      val += opR[ind + n] * uL[n];
     }
-  } else if(edgeR == 1) {
-    for(int m = 0; m < 15; m++) {
-      int ind = m * 15;
-      double val = 0.0;
-      for(int n = 0; n < 15; n++) {
-        val += op1R[ind + n] * uL[n];
-      }
-      rhsR[m] += val;
-    }
-  } else {
-    for(int m = 0; m < 15; m++) {
-      int ind = m * 15;
-      double val = 0.0;
-      for(int n = 0; n < 15; n++) {
-        val += op2R[ind + n] * uL[n];
-      }
-      rhsR[m] += val;
-    }
+    rhsR[m] += val;
   }
-
 
 }
 
 // CUDA kernel function
 __global__ void op_cuda_poisson_mf2_faces(
   const double *__restrict ind_arg0,
-  const double *__restrict ind_arg1,
-  const double *__restrict ind_arg2,
-  const double *__restrict ind_arg3,
-  double *__restrict ind_arg4,
-  const int *__restrict opDat1Map,
-  const int *__restrict arg0,
+  double *__restrict ind_arg1,
+  const int *__restrict opDat0Map,
+  const double *__restrict arg1,
+  const double *__restrict arg4,
   int start,
   int end,
   int   set_size) {
+  double arg2_l[15];
   double arg5_l[15];
-  double arg10_l[15];
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
+    double arg2_l[15];
+    for ( int d=0; d<15; d++ ){
+      arg2_l[d] = ZERO_double;
+    }
     double arg5_l[15];
     for ( int d=0; d<15; d++ ){
       arg5_l[d] = ZERO_double;
     }
-    double arg10_l[15];
-    for ( int d=0; d<15; d++ ){
-      arg10_l[d] = ZERO_double;
-    }
-    int map1idx;
-    int map6idx;
-    map1idx = opDat1Map[n + set_size * 0];
-    map6idx = opDat1Map[n + set_size * 1];
+    int map0idx;
+    int map3idx;
+    map0idx = opDat0Map[n + set_size * 0];
+    map3idx = opDat0Map[n + set_size * 1];
 
     //user-supplied kernel call
-    poisson_mf2_faces_gpu(arg0+n*2,
-                      ind_arg0+map1idx*15,
-                      ind_arg1+map1idx*225,
-                      ind_arg2+map1idx*225,
-                      ind_arg3+map1idx*225,
-                      arg5_l,
-                      ind_arg0+map6idx*15,
-                      ind_arg1+map6idx*225,
-                      ind_arg2+map6idx*225,
-                      ind_arg3+map6idx*225,
-                      arg10_l);
-    atomicAdd(&ind_arg4[0+map1idx*15],arg5_l[0]);
-    atomicAdd(&ind_arg4[1+map1idx*15],arg5_l[1]);
-    atomicAdd(&ind_arg4[2+map1idx*15],arg5_l[2]);
-    atomicAdd(&ind_arg4[3+map1idx*15],arg5_l[3]);
-    atomicAdd(&ind_arg4[4+map1idx*15],arg5_l[4]);
-    atomicAdd(&ind_arg4[5+map1idx*15],arg5_l[5]);
-    atomicAdd(&ind_arg4[6+map1idx*15],arg5_l[6]);
-    atomicAdd(&ind_arg4[7+map1idx*15],arg5_l[7]);
-    atomicAdd(&ind_arg4[8+map1idx*15],arg5_l[8]);
-    atomicAdd(&ind_arg4[9+map1idx*15],arg5_l[9]);
-    atomicAdd(&ind_arg4[10+map1idx*15],arg5_l[10]);
-    atomicAdd(&ind_arg4[11+map1idx*15],arg5_l[11]);
-    atomicAdd(&ind_arg4[12+map1idx*15],arg5_l[12]);
-    atomicAdd(&ind_arg4[13+map1idx*15],arg5_l[13]);
-    atomicAdd(&ind_arg4[14+map1idx*15],arg5_l[14]);
-    atomicAdd(&ind_arg4[0+map6idx*15],arg10_l[0]);
-    atomicAdd(&ind_arg4[1+map6idx*15],arg10_l[1]);
-    atomicAdd(&ind_arg4[2+map6idx*15],arg10_l[2]);
-    atomicAdd(&ind_arg4[3+map6idx*15],arg10_l[3]);
-    atomicAdd(&ind_arg4[4+map6idx*15],arg10_l[4]);
-    atomicAdd(&ind_arg4[5+map6idx*15],arg10_l[5]);
-    atomicAdd(&ind_arg4[6+map6idx*15],arg10_l[6]);
-    atomicAdd(&ind_arg4[7+map6idx*15],arg10_l[7]);
-    atomicAdd(&ind_arg4[8+map6idx*15],arg10_l[8]);
-    atomicAdd(&ind_arg4[9+map6idx*15],arg10_l[9]);
-    atomicAdd(&ind_arg4[10+map6idx*15],arg10_l[10]);
-    atomicAdd(&ind_arg4[11+map6idx*15],arg10_l[11]);
-    atomicAdd(&ind_arg4[12+map6idx*15],arg10_l[12]);
-    atomicAdd(&ind_arg4[13+map6idx*15],arg10_l[13]);
-    atomicAdd(&ind_arg4[14+map6idx*15],arg10_l[14]);
+    poisson_mf2_faces_gpu(ind_arg0+map0idx*15,
+                      arg1+n*225,
+                      arg2_l,
+                      ind_arg0+map3idx*15,
+                      arg4+n*225,
+                      arg5_l);
+    atomicAdd(&ind_arg1[0+map0idx*15],arg2_l[0]);
+    atomicAdd(&ind_arg1[1+map0idx*15],arg2_l[1]);
+    atomicAdd(&ind_arg1[2+map0idx*15],arg2_l[2]);
+    atomicAdd(&ind_arg1[3+map0idx*15],arg2_l[3]);
+    atomicAdd(&ind_arg1[4+map0idx*15],arg2_l[4]);
+    atomicAdd(&ind_arg1[5+map0idx*15],arg2_l[5]);
+    atomicAdd(&ind_arg1[6+map0idx*15],arg2_l[6]);
+    atomicAdd(&ind_arg1[7+map0idx*15],arg2_l[7]);
+    atomicAdd(&ind_arg1[8+map0idx*15],arg2_l[8]);
+    atomicAdd(&ind_arg1[9+map0idx*15],arg2_l[9]);
+    atomicAdd(&ind_arg1[10+map0idx*15],arg2_l[10]);
+    atomicAdd(&ind_arg1[11+map0idx*15],arg2_l[11]);
+    atomicAdd(&ind_arg1[12+map0idx*15],arg2_l[12]);
+    atomicAdd(&ind_arg1[13+map0idx*15],arg2_l[13]);
+    atomicAdd(&ind_arg1[14+map0idx*15],arg2_l[14]);
+    atomicAdd(&ind_arg1[0+map3idx*15],arg5_l[0]);
+    atomicAdd(&ind_arg1[1+map3idx*15],arg5_l[1]);
+    atomicAdd(&ind_arg1[2+map3idx*15],arg5_l[2]);
+    atomicAdd(&ind_arg1[3+map3idx*15],arg5_l[3]);
+    atomicAdd(&ind_arg1[4+map3idx*15],arg5_l[4]);
+    atomicAdd(&ind_arg1[5+map3idx*15],arg5_l[5]);
+    atomicAdd(&ind_arg1[6+map3idx*15],arg5_l[6]);
+    atomicAdd(&ind_arg1[7+map3idx*15],arg5_l[7]);
+    atomicAdd(&ind_arg1[8+map3idx*15],arg5_l[8]);
+    atomicAdd(&ind_arg1[9+map3idx*15],arg5_l[9]);
+    atomicAdd(&ind_arg1[10+map3idx*15],arg5_l[10]);
+    atomicAdd(&ind_arg1[11+map3idx*15],arg5_l[11]);
+    atomicAdd(&ind_arg1[12+map3idx*15],arg5_l[12]);
+    atomicAdd(&ind_arg1[13+map3idx*15],arg5_l[13]);
+    atomicAdd(&ind_arg1[14+map3idx*15],arg5_l[14]);
   }
 }
 
@@ -157,15 +102,10 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10){
+  op_arg arg5){
 
-  int nargs = 11;
-  op_arg args[11];
+  int nargs = 6;
+  op_arg args[6];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -173,22 +113,17 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   args[3] = arg3;
   args[4] = arg4;
   args[5] = arg5;
-  args[6] = arg6;
-  args[7] = arg7;
-  args[8] = arg8;
-  args[9] = arg9;
-  args[10] = arg10;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(51);
+  op_timing_realloc(27);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[51].name      = name;
-  OP_kernels[51].count    += 1;
+  OP_kernels[27].name      = name;
+  OP_kernels[27].count    += 1;
 
 
-  int    ninds   = 5;
-  int    inds[11] = {-1,0,1,2,3,4,0,1,2,3,4};
+  int    ninds   = 2;
+  int    inds[6] = {0,-1,1,0,-1,1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_mf2_faces\n");
@@ -197,8 +132,8 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_51
-      int nthread = OP_BLOCK_SIZE_51;
+    #ifdef OP_BLOCK_SIZE_27
+      int nthread = OP_BLOCK_SIZE_27;
     #else
       int nthread = OP_block_size;
     #endif
@@ -212,13 +147,11 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
       if (end-start>0) {
         int nblocks = (end-start-1)/nthread+1;
         op_cuda_poisson_mf2_faces<<<nblocks,nthread>>>(
-        (double *)arg1.data_d,
+        (double *)arg0.data_d,
         (double *)arg2.data_d,
-        (double *)arg3.data_d,
-        (double *)arg4.data_d,
-        (double *)arg5.data_d,
-        arg1.map_data_d,
-        (int*)arg0.data_d,
+        arg0.map_data_d,
+        (double*)arg1.data_d,
+        (double*)arg4.data_d,
         start,end,set->size+set->exec_size);
       }
     }
@@ -227,5 +160,5 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[51].time     += wall_t2 - wall_t1;
+  OP_kernels[27].time     += wall_t2 - wall_t1;
 }

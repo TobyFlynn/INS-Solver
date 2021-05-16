@@ -56,7 +56,6 @@ int main(int argc, char **argv) {
   reader->Update();
   grid = reader->GetOutput();
 
-  map<int,unique_ptr<Point2D>> pointMap;
   map<int,unique_ptr<Cell>> cellMap;
   map<pair<int,int>,unique_ptr<Edge>> internalEdgeMap;
   // Maps for each type of boundary
@@ -65,15 +64,9 @@ int main(int argc, char **argv) {
   map<int,unique_ptr<Edge>> outflowBoundaryEdgeMap;
   map<int,unique_ptr<Edge>> airfoilBoundaryEdgeMap;
 
-  // Copy VTK points
-  vector<double> x(grid->GetNumberOfPoints());
-  vector<double> y(grid->GetNumberOfPoints());
-  for(int i = 0; i < grid->GetNumberOfPoints(); i++) {
-    double coords[3];
-    grid->GetPoint(i, coords);
-    x[i] = coords[0];
-    y[i] = coords[1];
-  }
+  vector<int> pointIds;
+  vector<double> x;
+  vector<double> y;
 
   // Iterate over cells
   vtkSmartPointer<vtkCellIterator> cellIterator = grid->NewCellIterator();
@@ -82,23 +75,26 @@ int main(int argc, char **argv) {
     // only an issue due to how Gmsh generates the VTK file
     if(cellIterator->GetNumberOfPoints() == 3 && cellIterator->GetCellType() == VTK_TRIANGLE) {
       vtkSmartPointer<vtkIdList> ids = cellIterator->GetPointIds();
-      // Add points to pointMap if it does not already contain the point
+      int newIds[3];
       for(int i = 0; i < 3; i++) {
-        if(pointMap.count(ids->GetId(i)) == 0) {
+        auto it = find(pointIds.begin(), pointIds.end(), ids->GetId(i));
+        if(it != pointIds.end()) {
+          newIds[i] = distance(pointIds.begin(), it);
+        } else {
+          pointIds.push_back(ids->GetId(i));
+          newIds[i] = pointIds.size() - 1;
           double coords[3];
           grid->GetPoint(ids->GetId(i), coords);
-          unique_ptr<Point2D> point = make_unique<Point2D>();
-          point->x = coords[0];
-          point->y = coords[1];
-          pointMap.insert(pair<int,unique_ptr<Point2D>>(ids->GetId(i), move(point)));
+          x.push_back(coords[0]);
+          y.push_back(coords[1]);
         }
       }
+
       // Add cell to map
       unique_ptr<Cell> cell = make_unique<Cell>();
-      // Convert from clockwise to anticlockwise
-      cell->points[0] = ids->GetId(0) + 1;
-      cell->points[1] = ids->GetId(2) + 1;
-      cell->points[2] = ids->GetId(1) + 1;
+      cell->points[0] = newIds[0] + 1;
+      cell->points[1] = newIds[2] + 1;
+      cell->points[2] = newIds[1] + 1;
       cellMap.insert(pair<int,unique_ptr<Cell>>(cellIterator->GetCellId(), move(cell)));
     }
     // Go to next cell
@@ -115,11 +111,6 @@ int main(int argc, char **argv) {
   cout << "Number of points: " << x.size() << endl;
   cout << "VTK Number of points: " << grid->GetNumberOfPoints() << endl;
   cout << "Number of cell: " << elements.size() << endl;
-
-  if(x.size() != grid->GetNumberOfPoints()) {
-    cout << "******* Potential error when generating the grid *******" << endl;
-    cout << "  Difference between number of points in grid and number in VTK file, indices may be wrong" << endl;
-  }
 
   // Add edges to edge map if not already contained in mapping
   // If already added then update cell field
@@ -212,16 +203,6 @@ int main(int argc, char **argv) {
       edges.push_back(edge.second->num[1]);
     }
   }
-
-  // cout << "Number of edges: " << edges.size() / 4 << endl;
-
-  /*for(int i = 0; i < edges.size() / 4; i++) {
-    int ind = i * 4;
-    if(edges[ind + 2] == 2403 || edges[ind + 3] == 2403){// && edges[ind + 3] == 1676) {
-      cout << "EDGE" << endl;
-      cout << "  " << edges[ind] << " " << edges[ind + 1] << endl;
-    }
-  }*/
 
   // Write out CGNS file
   string outFileName = "";

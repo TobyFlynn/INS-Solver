@@ -20,10 +20,10 @@ extern "C" {
 #endif
 #endif
 
-#include "../blas_calls.h"
+#include "blas_calls.h"
 
 inline void cublas_init_grid(cublasHandle_t handle, const int numCells,
-                        const double *node_coords, const int *cell2nodes,
+                        const double *nodeX, const double *nodeY,
                         double *x_d, double *y_d, double *xr_d, double *xs_d,
                         double *yr_d, double *ys_d) {
   double *temp_d;
@@ -31,9 +31,9 @@ inline void cublas_init_grid(cublasHandle_t handle, const int numCells,
 
   for(int c = 0; c < numCells; c++) {
     // Get nodes for this cell (on host)
-    const double *n0 = &node_coords[2 * cell2nodes[3 * c]];
-    const double *n1 = &node_coords[2 * cell2nodes[3 * c + 1]];
-    const double *n2 = &node_coords[2 * cell2nodes[3 * c + 2]];
+    const double n0[] = {nodeX[c * 3], nodeY[3 * c]};
+    const double n1[] = {nodeX[c * 3 + 1], nodeY[3 * c + 1]};
+    const double n2[] = {nodeX[c * 3 + 2], nodeY[3 * c + 2]};
 
     double *temp = temp_d + c * 15;
     double *x = x_d + c * 15;
@@ -86,6 +86,8 @@ inline void cublas_init_grid(cublasHandle_t handle, const int numCells,
 void init_grid_blas(INSData *nsData) {
   // Make sure OP2 data is in the right place
   op_arg init_grid_args[] = {
+    op_arg_dat(nsData->nodeX, -1, OP_ID, 3, "double", OP_READ),
+    op_arg_dat(nsData->nodeY, -1, OP_ID, 3, "double", OP_READ),
     op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_WRITE),
     op_arg_dat(nsData->y, -1, OP_ID, 15, "double", OP_WRITE),
     op_arg_dat(nsData->rx, -1, OP_ID, 15, "double", OP_WRITE),
@@ -93,14 +95,22 @@ void init_grid_blas(INSData *nsData) {
     op_arg_dat(nsData->ry, -1, OP_ID, 15, "double", OP_WRITE),
     op_arg_dat(nsData->sy, -1, OP_ID, 15, "double", OP_WRITE)
   };
-  op_mpi_halo_exchanges_cuda(nsData->cells, 6, init_grid_args);
+  op_mpi_halo_exchanges_cuda(nsData->cells, 8, init_grid_args);
 
-  cublas_init_grid(constants->handle, nsData->numCells, (double *)nsData->node_coords->data,
-                   (int *)nsData->cell2nodes->map, (double *)nsData->x->data_d,
+  int setSize = nsData->x->set->size;
+  double *tempX = (double *)malloc(setSize * 3 * sizeof(double));
+  double *tempY = (double *)malloc(setSize * 3 * sizeof(double));
+  cudaMemcpy(tempX, nsData->nodeX->data_d, setSize * 3 * sizeof(double), cudaMemcpyDeviceToHost);
+  cudaMemcpy(tempY, nsData->nodeY->data_d, setSize * 3 * sizeof(double), cudaMemcpyDeviceToHost);
+
+  cublas_init_grid(constants->handle, setSize, tempX, tempY, (double *)nsData->x->data_d,
                    (double *)nsData->y->data_d, (double *)nsData->rx->data_d,
                    (double *)nsData->sx->data_d, (double *)nsData->ry->data_d,
                    (double *)nsData->sy->data_d);
 
+  free(tempX);
+  free(tempY);
+
   // Set correct dirty bits for OP2
-  op_mpi_set_dirtybit_cuda(6, init_grid_args);
+  op_mpi_set_dirtybit_cuda(8, init_grid_args);
 }
