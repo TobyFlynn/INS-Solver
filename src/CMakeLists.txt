@@ -19,8 +19,8 @@ list(APPEND CUBLAS_SRC cuBLAS_op/init_gauss_op.cu cuBLAS_op/init_gauss_grad_op.c
 set(COMMON_SRC solver_op.cpp operators_op.cpp poisson_op.cpp poisson_m_op.cpp poisson_mf2_op.cpp ins_data_op.cpp timing_op.cpp)
 set(CPU_SRC poisson_copy_op.cpp constants.cpp)
 set(GPU_SRC poisson_copy_op.cu constants.cu)
-set(SN_SRC save_solution_op.cpp)
-set(MPI_SRC save_solution_mpi_op.cpp mpi_helper_func.cpp)
+set(SN_SRC save_solution_op.cpp load_mesh.cpp)
+set(MPI_SRC save_solution_mpi_op.cpp load_mesh_mpi.cpp mpi_helper_func.cpp)
 
 op2_application(ins_seq LIBS op2_seq op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${SN_SRC} ${OPENBLAS_SRC} seq/ins_seqkernels.cpp ${KERNEL_HEADERS})
 

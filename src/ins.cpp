@@ -60,11 +60,10 @@ int main(int argc, char **argv) {
   timer->startSetup();
   constants = new Constants();
 
-  string filename = "./cylinder.cgns";
   char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
   if(ierr) {
-    cout << "Error initialising PETSc" << endl;
+    cerr << "Error initialising PETSc" << endl;
     return ierr;
   }
 
@@ -91,6 +90,27 @@ int main(int argc, char **argv) {
   int pmethod = 0;
   PetscOptionsGetInt(NULL, NULL, "-pmethod", &pmethod, &found);
 
+  char inputFile[255];
+  PetscOptionsGetString(NULL, NULL, "-input", inputFile, 255, &found);
+  if(!found) {
+    cerr << "Did not specify an input file, use the -input flag" << endl;
+    return -1;
+  }
+  string filename = string(inputFile);
+
+  char outDir[255];
+  string outputDir = "";
+  PetscOptionsGetString(NULL, NULL, "-output", outDir, 255, &found);
+  if(!found) {
+    outputDir = "./";
+  } else {
+    outputDir = string(outDir);
+  }
+
+  if(outputDir.back() != '/') {
+    outputDir += "/";
+  }
+
   bc_alpha = 0.0;
 
   Solver *solver = new Solver(filename, pmethod);
@@ -104,8 +124,8 @@ int main(int argc, char **argv) {
   double time = 0.0;
   #ifndef INS_MPI
   if(save != -1) {
-    save_solution_init("sol.cgns", solver->data);
-    export_data_init("data.csv");
+    save_solution_init(outputDir + "sol.cgns", solver->data);
+    export_data_init(outputDir + "data.csv");
   }
   #endif
 
@@ -154,11 +174,11 @@ int main(int argc, char **argv) {
       timer->startLiftDrag();
       double lift, drag;
       solver->lift_drag_coeff(&lift, &drag, currentIter % 2);
-      // export_data("data.csv", i, time, drag, lift, pressurePoisson->getAverageConvergeIter(), viscosityPoisson->getAverageConvergeIter());
+      // export_data(outputDir + "data.csv", i, time, drag, lift, pressurePoisson->getAverageConvergeIter(), viscosityPoisson->getAverageConvergeIter());
       timer->endLiftDrag();
 
       timer->startSave();
-      save_solution_iter("sol.cgns", solver->data, currentIter % 2, (i + 1) / save);
+      save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, (i + 1) / save);
       timer->endSave();
     }
     #endif
@@ -167,14 +187,14 @@ int main(int argc, char **argv) {
 
   #ifndef INS_MPI
   if(save != -1)
-    save_solution_finalise("sol.cgns", solver->data, (iter / save) + 1, solver->dt * save);
+    save_solution_finalise(outputDir + "sol.cgns", solver->data, (iter / save) + 1, solver->dt * save);
   #endif
 
   // Save solution to CGNS file
-  save_solution("end.cgns", solver->data, currentIter % 2);
+  save_solution(outputDir + "end.cgns", solver->data, currentIter % 2);
 
   timer->endWallTime();
-  timer->exportTimings("timings.csv", iter, time);
+  timer->exportTimings(outputDir + "timings.csv", iter, time);
 
   cout << "Final time: " << time << endl;
   cout << "Wall time: " << timer->getWallTime() << endl;
@@ -183,7 +203,8 @@ int main(int argc, char **argv) {
   cout << "Average number of iterations to pressure convergance: " << solver->getAvgPressureConvergance() << endl;
   cout << "Average number of iterations to viscosity convergance: " << solver->getAvgViscosityConvergance() << endl;
 
-  op_timings_to_csv("op2_timings.csv");
+  string op_out_file = outputDir + "op2_timings.csv";
+  op_timings_to_csv(op_out_file.c_str());
 
   delete solver;
   delete constants;
