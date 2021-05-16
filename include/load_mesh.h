@@ -40,8 +40,7 @@ void cgns_load_cells<long>(int file, int baseIndex, int zoneIndex, int *cgnsCell
 #include "mpi.h"
 #include "mpi_helper_func.h"
 
-template<typename Func>
-void load_mesh(std::string filename, INSData *data, Func bcNum) {
+void load_mesh(std::string filename, INSData *data) {
   int rank;
   int comm_size;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -156,18 +155,13 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
     for(int i = 0; i < data->numBoundaryEdges_g; i++) {
       // - 1 as CGNS counts points from 1 but OP2 counts from 0
       // Cell index do start from one in this data
-      bedge2node_g[i * 2]     = bedgeData[i * 4] - 1;
-      bedge2node_g[i * 2 + 1] = bedgeData[i * 4 + 1] - 1;
-      bedge2cell_g[i]         = bedgeData[i * 4 + 2];
-      bedgeNum_g[i]           = bedgeData[i * 4 + 3];
-      // Set boundary type
-      // 0 = inflow, 1 = outflow, 2 = wall
-      double x1 = coords_g[2 * bedge2node_g[i * 2]];
-      double y1 = coords_g[2 * bedge2node_g[i * 2] + 1];
-      double x2 = coords_g[2 * bedge2node_g[i * 2 + 1]];
-      double y2 = coords_g[2 * bedge2node_g[i * 2 + 1] + 1];
-
-      bedge_type_g[i] = bcNum(x1, x2, y1, y2);
+      bedge2node_g[i * 2]     = bedgeData[i * 5] - 1;
+      bedge2node_g[i * 2 + 1] = bedgeData[i * 5 + 1] - 1;
+      bedge2cell_g[i]         = bedgeData[i * 5 + 2];
+      bedgeNum_g[i]           = bedgeData[i * 5 + 3];
+      bedge_type_g[i]         = bedgeData[i * 5 + 4];
+      if(bedge_type_g[i] < 0)
+        std::cerr << "Error reading in boundary edge type" << std::endl;
     }
 
     cg_close(file);
@@ -218,8 +212,7 @@ void load_mesh(std::string filename, INSData *data, Func bcNum) {
 
 #else
 
-template<typename Func>
-void load_mesh(std::string filename, INSData *nsData, Func bcNum) {
+void load_mesh(std::string filename, INSData *nsData) {
   // Read CGNS grid
   int file;
   if(cg_open(filename.c_str(), CG_MODE_READ, &file)) {
@@ -322,18 +315,13 @@ void load_mesh(std::string filename, INSData *nsData, Func bcNum) {
   for(int i = 0; i < nsData->numBoundaryEdges; i++) {
     // - 1 as CGNS counts points from 1 but OP2 counts from 0
     // Cell index do start from one in this data
-    nsData->bedge2node_data[i * 2]     = bedgeData[i * 4] - 1;
-    nsData->bedge2node_data[i * 2 + 1] = bedgeData[i * 4 + 1] - 1;
-    nsData->bedge2cell_data[i]         = bedgeData[i * 4 + 2];
-    nsData->bedgeNum_data[i]           = bedgeData[i * 4 + 3];
-    // Set boundary type
-    // 0 = inflow, 1 = outflow, 2 = wall
-    double x1 = nsData->coords[2 * nsData->bedge2node_data[i * 2]];
-    double y1 = nsData->coords[2 * nsData->bedge2node_data[i * 2] + 1];
-    double x2 = nsData->coords[2 * nsData->bedge2node_data[i * 2 + 1]];
-    double y2 = nsData->coords[2 * nsData->bedge2node_data[i * 2 + 1] + 1];
-
-    nsData->bedge_type_data[i] = bcNum(x1, x2, y1, y2);
+    nsData->bedge2node_data[i * 2]     = bedgeData[i * 5] - 1;
+    nsData->bedge2node_data[i * 2 + 1] = bedgeData[i * 5 + 1] - 1;
+    nsData->bedge2cell_data[i]         = bedgeData[i * 5 + 2];
+    nsData->bedgeNum_data[i]           = bedgeData[i * 5 + 3];
+    nsData->bedge_type_data[i]         = bedgeData[i * 5 + 4];
+    if(nsData->bedge_type_data[i] < 0)
+      std::cerr << "Error reading in boundary edge type" << std::endl;
   }
 
   cg_close(file);

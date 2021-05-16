@@ -192,59 +192,7 @@ void op_par_loop_gauss_gfi_faces(char const *, op_set,
 using namespace std;
 
 INSData::INSData(std::string filename) {
-  #ifdef POISSON_TEST
-  // Lamda used to identify the type of boundary edges
-  auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-    if(y1 == y2 && y1 > 0.5) {
-      // Neumann BC y = 1
-      return 2;
-    } else if(y1 == y2 && y1 < 0.5) {
-      // Neumann BC y = 0
-      return 3;
-    } else if(x1 < 0.5){
-      // Dirichlet BC x = 0
-      return 0;
-    } else {
-      // Dirichlet BC x = 1
-      return 1;
-    }
-  };
-  // auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-  //   if(y1 == y2 && y1 > 0.5) {
-  //     // Neumann BC y = 1
-  //     return 1;
-  //   } else if(y1 == y2 && y1 < 0.5) {
-  //     // Neumann BC y = 0
-  //     return 1;
-  //   } else if(x1 < 0.5){
-  //     // Dirichlet BC x = 0
-  //     return 1;
-  //   } else {
-  //     // Dirichlet BC x = 1
-  //     return 0;
-  //   }
-  // };
-  #else
-  // Lamda used to identify the type of boundary edges
-  auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-    if(x1 == 0.0 && x2 == 0.0) {
-      // Inflow
-      return 0;
-    } else if(x1 == 2.2 && x2 == 2.2) {
-      // Outflow
-      return 1;
-    } else if(x1 > 0.1 && x2 > 0.1 && x1 < 0.3 && x2 < 0.3
-              && y1 > 0.1 && y2 > 0.1 && y1 < 0.3 && y2 < 0.3) {
-      // Cylinder Wall
-      return 2;
-    } else {
-      // Top/Bottom Wall
-      return 3;
-    }
-  };
-  #endif
-
-  load_mesh(filename.c_str(), this, bcNum);
+  load_mesh(filename.c_str(), this);
 
   // Initialise memory
   nodeX_data  = (double*)calloc(3 * numCells, sizeof(double));
