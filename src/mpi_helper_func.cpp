@@ -1,3 +1,5 @@
+#include "op_seq.h"
+
 #include "mpi.h"
 
 #include <memory>
@@ -73,4 +75,22 @@ void gather_double_array(double *g_array, double *l_array, int comm_size,
 
   free(sendcnts);
   free(displs);
+}
+
+int get_global_start_index(op_set set) {
+  int rank, comm_size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+
+  int *sizes = (int *)malloc(comm_size * sizeof(int));
+
+  MPI_Allgather(&set->size, 1, MPI_INT, sizes, 1, MPI_INT, MPI_COMM_WORLD);
+
+  int index = 0;
+  for(int i = 0; i < rank; i++) {
+    index += sizes[i];
+  }
+
+  free(sizes);
+  return index;
 }

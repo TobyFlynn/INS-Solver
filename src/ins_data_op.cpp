@@ -192,59 +192,7 @@ void op_par_loop_gauss_gfi_faces(char const *, op_set,
 using namespace std;
 
 INSData::INSData(std::string filename) {
-  #ifdef POISSON_TEST
-  // Lamda used to identify the type of boundary edges
-  auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-    if(y1 == y2 && y1 > 0.5) {
-      // Neumann BC y = 1
-      return 2;
-    } else if(y1 == y2 && y1 < 0.5) {
-      // Neumann BC y = 0
-      return 3;
-    } else if(x1 < 0.5){
-      // Dirichlet BC x = 0
-      return 0;
-    } else {
-      // Dirichlet BC x = 1
-      return 1;
-    }
-  };
-  // auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-  //   if(y1 == y2 && y1 > 0.5) {
-  //     // Neumann BC y = 1
-  //     return 1;
-  //   } else if(y1 == y2 && y1 < 0.5) {
-  //     // Neumann BC y = 0
-  //     return 1;
-  //   } else if(x1 < 0.5){
-  //     // Dirichlet BC x = 0
-  //     return 1;
-  //   } else {
-  //     // Dirichlet BC x = 1
-  //     return 0;
-  //   }
-  // };
-  #else
-  // Lamda used to identify the type of boundary edges
-  auto bcNum = [](double x1, double x2, double y1, double y2) -> int {
-    if(x1 == 0.0 && x2 == 0.0) {
-      // Inflow
-      return 0;
-    } else if(x1 == 2.2 && x2 == 2.2) {
-      // Outflow
-      return 1;
-    } else if(x1 > 0.1 && x2 > 0.1 && x1 < 0.3 && x2 < 0.3
-              && y1 > 0.1 && y2 > 0.1 && y1 < 0.3 && y2 < 0.3) {
-      // Cylinder Wall
-      return 2;
-    } else {
-      // Top/Bottom Wall
-      return 3;
-    }
-  };
-  #endif
-
-  load_mesh(filename.c_str(), this, bcNum);
+  load_mesh(filename.c_str(), this);
 
   // Initialise memory
   nodeX_data  = (double*)calloc(3 * numCells, sizeof(double));
@@ -503,11 +451,6 @@ CubatureData::CubatureData(INSData *dat) {
   temp_data  = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
   temp2_data = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
 
-  op_temps_data[0] = (double *)calloc(46 * data->numCells, sizeof(double));
-  op_temps_data[1] = (double *)calloc(46 * data->numCells, sizeof(double));
-  op_temps_data[2] = (double *)calloc(46 * data->numCells, sizeof(double));
-  op_temps_data[3] = (double *)calloc(46 * data->numCells, sizeof(double));
-
   rx    = op_decl_dat(data->cells, 46, "double", rx_data, "cub-rx");
   sx    = op_decl_dat(data->cells, 46, "double", sx_data, "cub-sx");
   ry    = op_decl_dat(data->cells, 46, "double", ry_data, "cub-ry");
@@ -519,11 +462,6 @@ CubatureData::CubatureData(INSData *dat) {
   OP    = op_decl_dat(data->cells, 15 * 15, "double", OP_data, "cub-OP");
   temp  = op_decl_dat(data->cells, 46 * 15, "double", temp_data, "cub-temp");
   temp2 = op_decl_dat(data->cells, 46 * 15, "double", temp2_data, "cub-temp2");
-
-  op_temps[0] = op_decl_dat(data->cells, 46, "double", op_temps_data[0], "cub-op-temp0");
-  op_temps[1] = op_decl_dat(data->cells, 46, "double", op_temps_data[1], "cub-op-temp1");
-  op_temps[2] = op_decl_dat(data->cells, 46, "double", op_temps_data[2], "cub-op-temp2");
-  op_temps[3] = op_decl_dat(data->cells, 46, "double", op_temps_data[3], "cub-op-temp3");
 }
 
 CubatureData::~CubatureData() {
@@ -538,10 +476,6 @@ CubatureData::~CubatureData() {
   free(OP_data);
   free(temp_data);
   free(temp2_data);
-  free(op_temps_data[0]);
-  free(op_temps_data[1]);
-  free(op_temps_data[2]);
-  free(op_temps_data[3]);
 }
 
 void CubatureData::init() {

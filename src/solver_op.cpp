@@ -201,10 +201,10 @@ Solver::Solver(std::string filename, int pmethod) {
   int viscosity_neumann[] = {1, -1, -1};
 
   if(pmethod == 0) {
-    #ifdef INS_MPI
-    cerr << "*** ERROR ***\n  pmethod 0 is not currently implemented for MPI" << endl;
-    exit(-1);
-    #endif
+    // #ifdef INS_MPI
+    // cerr << "*** ERROR ***\n  pmethod 0 is not currently implemented for MPI" << endl;
+    // exit(-1);
+    // #endif
     Poisson_M *pressureM = new Poisson_M(data, cubatureData, gaussData);
     pressureM->setDirichletBCs(pressure_dirichlet);
     pressureM->setNeumannBCs(pressure_neumann);

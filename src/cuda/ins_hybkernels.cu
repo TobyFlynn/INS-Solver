@@ -22,18 +22,16 @@
 #define op_par_loop_div op_par_loop_div_gpu
 #define op_par_loop_curl op_par_loop_curl_gpu
 #define op_par_loop_grad op_par_loop_grad_gpu
-#define op_par_loop_cub_grad_w op_par_loop_cub_grad_w_gpu
-#define op_par_loop_cub_grad op_par_loop_cub_grad_gpu
-#define op_par_loop_cub_div_w op_par_loop_cub_div_w_gpu
-#define op_par_loop_cub_div op_par_loop_cub_div_gpu
-#define op_par_loop_poisson_mf2_apply_bc op_par_loop_poisson_mf2_apply_bc_gpu
-#define op_par_loop_poisson_mf2_mass op_par_loop_poisson_mf2_mass_gpu
-#define op_par_loop_poisson_mf2 op_par_loop_poisson_mf2_gpu
-#define op_par_loop_poisson_mf2_faces op_par_loop_poisson_mf2_faces_gpu
+#define op_par_loop_glb_ind_kernel op_par_loop_glb_ind_kernel_gpu
+#define op_par_loop_glb_ind_kernelBC op_par_loop_glb_ind_kernelBC_gpu
 #define op_par_loop_poisson_mf2_op op_par_loop_poisson_mf2_op_gpu
 #define op_par_loop_poisson_mf2_opf op_par_loop_poisson_mf2_opf_gpu
 #define op_par_loop_poisson_mf2_opbf op_par_loop_poisson_mf2_opbf_gpu
 #define op_par_loop_poisson_mf2_bc op_par_loop_poisson_mf2_bc_gpu
+#define op_par_loop_poisson_mf2_apply_bc op_par_loop_poisson_mf2_apply_bc_gpu
+#define op_par_loop_poisson_mf2_mass op_par_loop_poisson_mf2_mass_gpu
+#define op_par_loop_poisson_mf2 op_par_loop_poisson_mf2_gpu
+#define op_par_loop_poisson_mf2_faces op_par_loop_poisson_mf2_faces_gpu
 #define op_par_loop_poisson_test_init op_par_loop_poisson_test_init_gpu
 #define op_par_loop_poisson_test_bc op_par_loop_poisson_test_bc_gpu
 #define op_par_loop_poisson_test_error op_par_loop_poisson_test_error_gpu
@@ -70,18 +68,16 @@
 #undef op_par_loop_div
 #undef op_par_loop_curl
 #undef op_par_loop_grad
-#undef op_par_loop_cub_grad_w
-#undef op_par_loop_cub_grad
-#undef op_par_loop_cub_div_w
-#undef op_par_loop_cub_div
-#undef op_par_loop_poisson_mf2_apply_bc
-#undef op_par_loop_poisson_mf2_mass
-#undef op_par_loop_poisson_mf2
-#undef op_par_loop_poisson_mf2_faces
+#undef op_par_loop_glb_ind_kernel
+#undef op_par_loop_glb_ind_kernelBC
 #undef op_par_loop_poisson_mf2_op
 #undef op_par_loop_poisson_mf2_opf
 #undef op_par_loop_poisson_mf2_opbf
 #undef op_par_loop_poisson_mf2_bc
+#undef op_par_loop_poisson_mf2_apply_bc
+#undef op_par_loop_poisson_mf2_mass
+#undef op_par_loop_poisson_mf2
+#undef op_par_loop_poisson_mf2_faces
 #undef op_par_loop_poisson_test_init
 #undef op_par_loop_poisson_test_bc
 #undef op_par_loop_poisson_test_error
@@ -118,18 +114,16 @@
 #define op_par_loop_div op_par_loop_div_cpu
 #define op_par_loop_curl op_par_loop_curl_cpu
 #define op_par_loop_grad op_par_loop_grad_cpu
-#define op_par_loop_cub_grad_w op_par_loop_cub_grad_w_cpu
-#define op_par_loop_cub_grad op_par_loop_cub_grad_cpu
-#define op_par_loop_cub_div_w op_par_loop_cub_div_w_cpu
-#define op_par_loop_cub_div op_par_loop_cub_div_cpu
-#define op_par_loop_poisson_mf2_apply_bc op_par_loop_poisson_mf2_apply_bc_cpu
-#define op_par_loop_poisson_mf2_mass op_par_loop_poisson_mf2_mass_cpu
-#define op_par_loop_poisson_mf2 op_par_loop_poisson_mf2_cpu
-#define op_par_loop_poisson_mf2_faces op_par_loop_poisson_mf2_faces_cpu
+#define op_par_loop_glb_ind_kernel op_par_loop_glb_ind_kernel_cpu
+#define op_par_loop_glb_ind_kernelBC op_par_loop_glb_ind_kernelBC_cpu
 #define op_par_loop_poisson_mf2_op op_par_loop_poisson_mf2_op_cpu
 #define op_par_loop_poisson_mf2_opf op_par_loop_poisson_mf2_opf_cpu
 #define op_par_loop_poisson_mf2_opbf op_par_loop_poisson_mf2_opbf_cpu
 #define op_par_loop_poisson_mf2_bc op_par_loop_poisson_mf2_bc_cpu
+#define op_par_loop_poisson_mf2_apply_bc op_par_loop_poisson_mf2_apply_bc_cpu
+#define op_par_loop_poisson_mf2_mass op_par_loop_poisson_mf2_mass_cpu
+#define op_par_loop_poisson_mf2 op_par_loop_poisson_mf2_cpu
+#define op_par_loop_poisson_mf2_faces op_par_loop_poisson_mf2_faces_cpu
 #define op_par_loop_poisson_test_init op_par_loop_poisson_test_init_cpu
 #define op_par_loop_poisson_test_bc op_par_loop_poisson_test_bc_cpu
 #define op_par_loop_poisson_test_error op_par_loop_poisson_test_error_cpu
@@ -166,18 +160,16 @@
 #undef op_par_loop_div
 #undef op_par_loop_curl
 #undef op_par_loop_grad
-#undef op_par_loop_cub_grad_w
-#undef op_par_loop_cub_grad
-#undef op_par_loop_cub_div_w
-#undef op_par_loop_cub_div
-#undef op_par_loop_poisson_mf2_apply_bc
-#undef op_par_loop_poisson_mf2_mass
-#undef op_par_loop_poisson_mf2
-#undef op_par_loop_poisson_mf2_faces
+#undef op_par_loop_glb_ind_kernel
+#undef op_par_loop_glb_ind_kernelBC
 #undef op_par_loop_poisson_mf2_op
 #undef op_par_loop_poisson_mf2_opf
 #undef op_par_loop_poisson_mf2_opbf
 #undef op_par_loop_poisson_mf2_bc
+#undef op_par_loop_poisson_mf2_apply_bc
+#undef op_par_loop_poisson_mf2_mass
+#undef op_par_loop_poisson_mf2
+#undef op_par_loop_poisson_mf2_faces
 #undef op_par_loop_poisson_test_init
 #undef op_par_loop_poisson_test_bc
 #undef op_par_loop_poisson_test_error
@@ -1434,416 +1426,26 @@ void op_par_loop_grad(char const *name, op_set set,
   }
 #endif //OP_HYBRID_GPU
 
-void op_par_loop_cub_grad_w_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_cub_grad_w(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_cub_grad_w_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-    }else{
-    op_par_loop_cub_grad_w_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-  }
-}
-#else
-void op_par_loop_cub_grad_w(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  op_par_loop_cub_grad_w_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6,
-    arg7,
-    arg8);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_cub_grad_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_cub_grad(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_cub_grad_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6);
-
-    }else{
-    op_par_loop_cub_grad_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6);
-
-  }
-}
-#else
-void op_par_loop_cub_grad(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6){
-
-  op_par_loop_cub_grad_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_cub_div_w_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_cub_div_w(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_cub_div_w_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-    }else{
-    op_par_loop_cub_div_w_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-  }
-}
-#else
-void op_par_loop_cub_div_w(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  op_par_loop_cub_div_w_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6,
-    arg7,
-    arg8);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_cub_div_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_cub_div(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_cub_div_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-    }else{
-    op_par_loop_cub_div_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-  }
-}
-#else
-void op_par_loop_cub_div(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  op_par_loop_cub_div_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6,
-    arg7,
-    arg8);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_poisson_mf2_apply_bc_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_poisson_mf2_apply_bc(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_poisson_mf2_apply_bc_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3);
-
-    }else{
-    op_par_loop_poisson_mf2_apply_bc_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3);
-
-  }
-}
-#else
-void op_par_loop_poisson_mf2_apply_bc(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3){
-
-  op_par_loop_poisson_mf2_apply_bc_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_poisson_mf2_mass_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_poisson_mf2_mass(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_poisson_mf2_mass_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4);
-
-    }else{
-    op_par_loop_poisson_mf2_mass_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4);
-
-  }
-}
-#else
-void op_par_loop_poisson_mf2_mass(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4){
-
-  op_par_loop_poisson_mf2_mass_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_poisson_mf2_gpu(char const *name, op_set set,
+void op_par_loop_glb_ind_kernel_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
-void op_par_loop_poisson_mf2(char const *name, op_set set,
+void op_par_loop_glb_ind_kernel(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2){
 
   if (OP_hybrid_gpu) {
-    op_par_loop_poisson_mf2_gpu(name, set,
+    op_par_loop_glb_ind_kernel_gpu(name, set,
       arg0,
       arg1,
       arg2);
 
     }else{
-    op_par_loop_poisson_mf2_cpu(name, set,
+    op_par_loop_glb_ind_kernel_cpu(name, set,
       arg0,
       arg1,
       arg2);
@@ -1851,12 +1453,12 @@ void op_par_loop_poisson_mf2(char const *name, op_set set,
   }
 }
 #else
-void op_par_loop_poisson_mf2(char const *name, op_set set,
+void op_par_loop_glb_ind_kernel(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2){
 
-  op_par_loop_poisson_mf2_gpu(name, set,
+  op_par_loop_glb_ind_kernel_gpu(name, set,
     arg0,
     arg1,
     arg2);
@@ -1864,60 +1466,36 @@ void op_par_loop_poisson_mf2(char const *name, op_set set,
   }
 #endif //OP_HYBRID_GPU
 
-void op_par_loop_poisson_mf2_faces_gpu(char const *name, op_set set,
+void op_par_loop_glb_ind_kernelBC_gpu(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5);
+  op_arg arg1);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
-void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
+void op_par_loop_glb_ind_kernelBC(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5){
+  op_arg arg1){
 
   if (OP_hybrid_gpu) {
-    op_par_loop_poisson_mf2_faces_gpu(name, set,
+    op_par_loop_glb_ind_kernelBC_gpu(name, set,
       arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5);
+      arg1);
 
     }else{
-    op_par_loop_poisson_mf2_faces_cpu(name, set,
+    op_par_loop_glb_ind_kernelBC_cpu(name, set,
       arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5);
+      arg1);
 
   }
 }
 #else
-void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
+void op_par_loop_glb_ind_kernelBC(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5){
+  op_arg arg1){
 
-  op_par_loop_poisson_mf2_faces_gpu(name, set,
+  op_par_loop_glb_ind_kernelBC_gpu(name, set,
     arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5);
+    arg1);
 
   }
 #endif //OP_HYBRID_GPU
@@ -2264,6 +1842,202 @@ void op_par_loop_poisson_mf2_bc(char const *name, op_set set,
     arg9,
     arg10,
     arg11);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_poisson_mf2_apply_bc_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_poisson_mf2_apply_bc(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_poisson_mf2_apply_bc_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3);
+
+    }else{
+    op_par_loop_poisson_mf2_apply_bc_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3);
+
+  }
+}
+#else
+void op_par_loop_poisson_mf2_apply_bc(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3){
+
+  op_par_loop_poisson_mf2_apply_bc_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_poisson_mf2_mass_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_poisson_mf2_mass(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_poisson_mf2_mass_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4);
+
+    }else{
+    op_par_loop_poisson_mf2_mass_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4);
+
+  }
+}
+#else
+void op_par_loop_poisson_mf2_mass(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
+
+  op_par_loop_poisson_mf2_mass_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_poisson_mf2_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_poisson_mf2(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_poisson_mf2_gpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+    }else{
+    op_par_loop_poisson_mf2_cpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+  }
+}
+#else
+void op_par_loop_poisson_mf2(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  op_par_loop_poisson_mf2_gpu(name, set,
+    arg0,
+    arg1,
+    arg2);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_poisson_mf2_faces_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_poisson_mf2_faces_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+    }else{
+    op_par_loop_poisson_mf2_faces_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+  }
+}
+#else
+void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  op_par_loop_poisson_mf2_faces_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5);
 
   }
 #endif //OP_HYBRID_GPU
