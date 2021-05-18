@@ -50,7 +50,7 @@ inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
       }
     }
   } else {
-    if(*bedge_type == 0 || *bedge_type == 1) {
+    if(*bedge_type == 0) {
 
       for(int i = 0; i < 5; i++) {
         int fInd = fmask[i];
@@ -60,7 +60,10 @@ inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
 
         double y1 = y[fmask[i]];
         double x1 = x[fmask[i]];
-        double bcdUndt = -cos(2.0 * PI * x1) * cos(2.0 * PI * y1) * exp(-nu * 8.0 * PI * PI * *t);
+        double nx1 = nx[exInd + i];
+        double ny1 = ny[exInd + i];
+        double bcdUndt = (nx1 * sin(2.0 * PI * y1) + ny1 * sin(2.0 * PI * x1))
+                          * exp(-nu * 4.0 * PI * PI * *t);
         dPdN[exInd + i] -= bcdUndt;
       }
     }

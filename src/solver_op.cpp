@@ -18,6 +18,9 @@ extern "C" {
 
 void op_par_loop_set_ic(char const *, op_set,
   op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_calc_dt(char const *, op_set,
@@ -98,6 +101,15 @@ void op_par_loop_pressure_bc(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_pressure_bc2(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
 void op_par_loop_pressure_rhs(char const *, op_set,
   op_arg,
   op_arg,
@@ -117,9 +129,12 @@ void op_par_loop_pressure_update_vel(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_viscosity_bc(char const *, op_set,
+  op_arg,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -179,6 +194,7 @@ void op_par_loop_lift_drag(char const *, op_set,
 #include "kernels/advection_intermediate_vel.h"
 
 #include "kernels/pressure_bc.h"
+#include "kernels/pressure_bc2.h"
 #include "kernels/pressure_rhs.h"
 #include "kernels/pressure_update_vel.h"
 
@@ -234,6 +250,9 @@ Solver::Solver(std::string filename, int pmethod, int prob) {
 
   // Set initial conditions
   op_par_loop_set_ic("set_ic",data->cells,
+              op_arg_gbl(&problem,1,"int",OP_READ),
+              op_arg_dat(data->x,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->y,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->Q[0][0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->Q[0][1],-1,OP_ID,15,"double",OP_WRITE));
 
@@ -349,6 +368,17 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->gradCurlVel[1],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->dPdN[currentInd],0,data->bedge2cells,15,"double",OP_INC));
 
+  if(problem == 1) {
+    op_par_loop_pressure_bc2("pressure_bc2",data->bedges,
+                op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
+                op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
+                op_arg_gbl(&t,1,"double",OP_READ),
+                op_arg_gbl(&problem,1,"int",OP_READ),
+                op_arg_dat(gaussData->x,0,data->bedge2cells,21,"double",OP_READ),
+                op_arg_dat(gaussData->y,0,data->bedge2cells,21,"double",OP_READ),
+                op_arg_dat(data->prBC,0,data->bedge2cells,21,"double",OP_INC));
+  }
+
   // Calculate RHS of pressure solve
   op_par_loop_pressure_rhs("pressure_rhs",data->cells,
               op_arg_gbl(&b0,1,"double",OP_READ),
@@ -367,7 +397,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
 
   // Call PETSc linear solver
   timer->startPressureLinearSolve();
-  pressurePoisson->setBCValues(data->zeroBC);
+  pressurePoisson->setBCValues(data->prBC);
   bool converged = pressurePoisson->solve(data->pRHS, data->p);
   timer->endPressureLinearSolve();
 
@@ -384,7 +414,8 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QT[1],-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->QTT[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->QTT[1],-1,OP_ID,15,"double",OP_WRITE),
-              op_arg_dat(data->dPdN[(currentInd + 1) % 2],-1,OP_ID,15,"double",OP_WRITE));
+              op_arg_dat(data->dPdN[(currentInd + 1) % 2],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->prBC,-1,OP_ID,21,"double",OP_WRITE));
 
   return converged;
 }
@@ -401,6 +432,8 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_gbl(&problem,1,"int",OP_READ),
               op_arg_dat(gaussData->x,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(gaussData->y,0,data->bedge2cells,21,"double",OP_READ),
+              op_arg_dat(gaussData->nx,0,data->bedge2cells,21,"double",OP_READ),
+              op_arg_dat(gaussData->ny,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(data->visBC[0],0,data->bedge2cells,21,"double",OP_INC),
               op_arg_dat(data->visBC[1],0,data->bedge2cells,21,"double",OP_INC));
 

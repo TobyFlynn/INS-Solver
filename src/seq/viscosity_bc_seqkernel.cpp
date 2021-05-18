@@ -14,10 +14,12 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7){
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9){
 
-  int nargs = 8;
-  op_arg args[8];
+  int nargs = 10;
+  op_arg args[10];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -27,10 +29,12 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   args[5] = arg5;
   args[6] = arg6;
   args[7] = arg7;
+  args[8] = arg8;
+  args[9] = arg9;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(41);
+  op_timing_realloc(42);
   op_timers_core(&cpu_t1, &wall_t1);
 
   if (OP_diags>2) {
@@ -57,7 +61,9 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
         &((double*)arg4.data)[21 * map4idx],
         &((double*)arg5.data)[21 * map4idx],
         &((double*)arg6.data)[21 * map4idx],
-        &((double*)arg7.data)[21 * map4idx]);
+        &((double*)arg7.data)[21 * map4idx],
+        &((double*)arg8.data)[21 * map4idx],
+        &((double*)arg9.data)[21 * map4idx]);
     }
   }
 
@@ -69,16 +75,18 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[41].name      = name;
-  OP_kernels[41].count    += 1;
-  OP_kernels[41].time     += wall_t2 - wall_t1;
-  OP_kernels[41].transfer += (float)set->size * arg4.size;
-  OP_kernels[41].transfer += (float)set->size * arg5.size;
-  OP_kernels[41].transfer += (float)set->size * arg6.size * 2.0f;
-  OP_kernels[41].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[41].transfer += (float)set->size * arg0.size;
-  OP_kernels[41].transfer += (float)set->size * arg1.size;
-  OP_kernels[41].transfer += (float)set->size * arg2.size;
-  OP_kernels[41].transfer += (float)set->size * arg3.size;
-  OP_kernels[41].transfer += (float)set->size * arg4.map->dim * 4.0f;
+  OP_kernels[42].name      = name;
+  OP_kernels[42].count    += 1;
+  OP_kernels[42].time     += wall_t2 - wall_t1;
+  OP_kernels[42].transfer += (float)set->size * arg4.size;
+  OP_kernels[42].transfer += (float)set->size * arg5.size;
+  OP_kernels[42].transfer += (float)set->size * arg6.size;
+  OP_kernels[42].transfer += (float)set->size * arg7.size;
+  OP_kernels[42].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[42].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[42].transfer += (float)set->size * arg0.size;
+  OP_kernels[42].transfer += (float)set->size * arg1.size;
+  OP_kernels[42].transfer += (float)set->size * arg2.size;
+  OP_kernels[42].transfer += (float)set->size * arg3.size;
+  OP_kernels[42].transfer += (float)set->size * arg4.map->dim * 4.0f;
 }
