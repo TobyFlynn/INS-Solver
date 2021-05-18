@@ -45,6 +45,7 @@
 #include "advection_numerical_flux_omp4kernel.cpp"
 #include "advection_intermediate_vel_omp4kernel.cpp"
 #include "pressure_bc_omp4kernel.cpp"
+#include "pressure_bc2_omp4kernel.cpp"
 #include "pressure_rhs_omp4kernel.cpp"
 #include "pressure_update_vel_omp4kernel.cpp"
 #include "viscosity_bc_omp4kernel.cpp"

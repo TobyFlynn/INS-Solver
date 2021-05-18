@@ -5,7 +5,7 @@
 //user function
 //user function
 
-void viscosity_bc_omp4_kernel(
+void pressure_bc2_omp4_kernel(
   int *data0,
   int dat0size,
   int *data1,
@@ -20,12 +20,6 @@ void viscosity_bc_omp4_kernel(
   int dat5size,
   double *data6,
   int dat6size,
-  double *data7,
-  int dat7size,
-  double *data8,
-  int dat8size,
-  double *data9,
-  int dat9size,
   int *col_reord,
   int set_size1,
   int start,
@@ -34,22 +28,19 @@ void viscosity_bc_omp4_kernel(
   int nthread);
 
 // host stub function
-void op_par_loop_viscosity_bc(char const *name, op_set set,
+void op_par_loop_pressure_bc2(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9){
+  op_arg arg6){
 
   double*arg2h = (double *)arg2.data;
   int*arg3h = (int *)arg3.data;
-  int nargs = 10;
-  op_arg args[10];
+  int nargs = 7;
+  op_arg args[7];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -58,34 +49,31 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   args[4] = arg4;
   args[5] = arg5;
   args[6] = arg6;
-  args[7] = arg7;
-  args[8] = arg8;
-  args[9] = arg9;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(42);
+  op_timing_realloc(39);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[42].name      = name;
-  OP_kernels[42].count    += 1;
+  OP_kernels[39].name      = name;
+  OP_kernels[39].count    += 1;
 
-  int  ninds   = 6;
-  int  inds[10] = {-1,-1,-1,-1,0,1,2,3,4,5};
+  int  ninds   = 3;
+  int  inds[7] = {-1,-1,-1,-1,0,1,2};
 
   if (OP_diags>2) {
-    printf(" kernel routine with indirection: viscosity_bc\n");
+    printf(" kernel routine with indirection: pressure_bc2\n");
   }
 
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_42
-    int part_size = OP_PART_SIZE_42;
+  #ifdef OP_PART_SIZE_39
+    int part_size = OP_PART_SIZE_39;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_42
-    int nthread = OP_BLOCK_SIZE_42;
+  #ifdef OP_BLOCK_SIZE_39
+    int nthread = OP_BLOCK_SIZE_39;
   #else
     int nthread = OP_block_size;
   #endif
@@ -112,12 +100,6 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
     int dat5size = getSetSizeFromOpArg(&arg5) * arg5.dat->dim;
     double *data6 = (double *)arg6.data_d;
     int dat6size = getSetSizeFromOpArg(&arg6) * arg6.dat->dim;
-    double *data7 = (double *)arg7.data_d;
-    int dat7size = getSetSizeFromOpArg(&arg7) * arg7.dat->dim;
-    double *data8 = (double *)arg8.data_d;
-    int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
-    double *data9 = (double *)arg9.data_d;
-    int dat9size = getSetSizeFromOpArg(&arg9) * arg9.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -131,7 +113,7 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      viscosity_bc_omp4_kernel(
+      pressure_bc2_omp4_kernel(
         data0,
         dat0size,
         data1,
@@ -146,12 +128,6 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
         dat5size,
         data6,
         dat6size,
-        data7,
-        dat7size,
-        data8,
-        dat8size,
-        data9,
-        dat9size,
         col_reord,
         set_size1,
         start,
@@ -160,8 +136,8 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
         nthread);
 
     }
-    OP_kernels[42].transfer  += Plan->transfer;
-    OP_kernels[42].transfer2 += Plan->transfer2;
+    OP_kernels[39].transfer  += Plan->transfer;
+    OP_kernels[39].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -173,5 +149,5 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[42].time     += wall_t2 - wall_t1;
+  OP_kernels[39].time     += wall_t2 - wall_t1;
 }

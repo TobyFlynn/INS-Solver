@@ -18,10 +18,11 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   op_arg arg8,
   op_arg arg9,
   op_arg arg10,
-  op_arg arg11){
+  op_arg arg11,
+  op_arg arg12){
 
-  int nargs = 12;
-  op_arg args[12];
+  int nargs = 13;
+  op_arg args[13];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -35,6 +36,7 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   args[9] = arg9;
   args[10] = arg10;
   args[11] = arg11;
+  args[12] = arg12;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -53,23 +55,24 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
       if (n==set->core_size) {
         op_mpi_wait_all(nargs, args);
       }
-      int map3idx;
-      map3idx = arg3.map_data[n * arg3.map->dim + 0];
+      int map4idx;
+      map4idx = arg4.map_data[n * arg4.map->dim + 0];
 
 
       pressure_bc(
         &((int*)arg0.data)[1 * n],
         &((int*)arg1.data)[1 * n],
         (double*)arg2.data,
-        &((double*)arg3.data)[15 * map3idx],
-        &((double*)arg4.data)[15 * map3idx],
-        &((double*)arg5.data)[15 * map3idx],
-        &((double*)arg6.data)[15 * map3idx],
-        &((double*)arg7.data)[15 * map3idx],
-        &((double*)arg8.data)[15 * map3idx],
-        &((double*)arg9.data)[15 * map3idx],
-        &((double*)arg10.data)[15 * map3idx],
-        &((double*)arg11.data)[15 * map3idx]);
+        (int*)arg3.data,
+        &((double*)arg4.data)[15 * map4idx],
+        &((double*)arg5.data)[15 * map4idx],
+        &((double*)arg6.data)[15 * map4idx],
+        &((double*)arg7.data)[15 * map4idx],
+        &((double*)arg8.data)[15 * map4idx],
+        &((double*)arg9.data)[15 * map4idx],
+        &((double*)arg10.data)[15 * map4idx],
+        &((double*)arg11.data)[15 * map4idx],
+        &((double*)arg12.data)[15 * map4idx]);
     }
   }
 
@@ -84,7 +87,6 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   OP_kernels[38].name      = name;
   OP_kernels[38].count    += 1;
   OP_kernels[38].time     += wall_t2 - wall_t1;
-  OP_kernels[38].transfer += (float)set->size * arg3.size;
   OP_kernels[38].transfer += (float)set->size * arg4.size;
   OP_kernels[38].transfer += (float)set->size * arg5.size;
   OP_kernels[38].transfer += (float)set->size * arg6.size;
@@ -92,9 +94,11 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   OP_kernels[38].transfer += (float)set->size * arg8.size;
   OP_kernels[38].transfer += (float)set->size * arg9.size;
   OP_kernels[38].transfer += (float)set->size * arg10.size;
-  OP_kernels[38].transfer += (float)set->size * arg11.size * 2.0f;
+  OP_kernels[38].transfer += (float)set->size * arg11.size;
+  OP_kernels[38].transfer += (float)set->size * arg12.size * 2.0f;
   OP_kernels[38].transfer += (float)set->size * arg0.size;
   OP_kernels[38].transfer += (float)set->size * arg1.size;
   OP_kernels[38].transfer += (float)set->size * arg2.size;
-  OP_kernels[38].transfer += (float)set->size * arg3.map->dim * 4.0f;
+  OP_kernels[38].transfer += (float)set->size * arg3.size;
+  OP_kernels[38].transfer += (float)set->size * arg4.map->dim * 4.0f;
 }
