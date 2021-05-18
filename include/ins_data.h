@@ -70,6 +70,11 @@ public:
   op_dat zeroBC, visBC[2];
   op_dat dQdx[2], dQdy[2];
   op_dat vorticity;
+
+  int pressure_dirichlet[3];
+  int pressure_neumann[3];
+  int viscosity_dirichlet[3];
+  int viscosity_neumann[3];
 private:
   // Pointers to private memory
   double *nodeX_data;

@@ -8,10 +8,9 @@ void pressure_bc_omp4_kernel(
   int *data1,
   int dat1size,
   double *arg2,
-  int *map3,
-  int map3size,
-  double *data3,
-  int dat3size,
+  int *arg3,
+  int *map4,
+  int map4size,
   double *data4,
   int dat4size,
   double *data5,
@@ -28,6 +27,8 @@ void pressure_bc_omp4_kernel(
   int dat10size,
   double *data11,
   int dat11size,
+  double *data12,
+  int dat12size,
   int *col_reord,
   int set_size1,
   int start,
@@ -36,28 +37,30 @@ void pressure_bc_omp4_kernel(
   int nthread){
 
   double arg2_l = *arg2;
+  int arg3_l = *arg3;
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
     map(to: nu_ompkernel, FMASK_ompkernel[:15])\
-    map(to:col_reord[0:set_size1],map3[0:map3size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size])
+    map(to:col_reord[0:set_size1],map4[0:map4size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
-    int map3idx;
-    map3idx = map3[n_op + set_size1 * 0];
+    int map4idx;
+    map4idx = map4[n_op + set_size1 * 0];
 
     //variable mapping
     const int *bedge_type = &data0[1*n_op];
     const int *bedgeNum = &data1[1*n_op];
     const double *t = &arg2_l;
-    const double *x = &data3[15 * map3idx];
-    const double *y = &data4[15 * map3idx];
-    const double *nx = &data5[15 * map3idx];
-    const double *ny = &data6[15 * map3idx];
-    const double *N0 = &data7[15 * map3idx];
-    const double *N1 = &data8[15 * map3idx];
-    const double *gradCurlVel0 = &data9[15 * map3idx];
-    const double *gradCurlVel1 = &data10[15 * map3idx];
-    double *dPdN = &data11[15 * map3idx];
+    const int *problem = &arg3_l;
+    const double *x = &data4[15 * map4idx];
+    const double *y = &data5[15 * map4idx];
+    const double *nx = &data6[15 * map4idx];
+    const double *ny = &data7[15 * map4idx];
+    const double *N0 = &data8[15 * map4idx];
+    const double *N1 = &data9[15 * map4idx];
+    const double *gradCurlVel0 = &data10[15 * map4idx];
+    const double *gradCurlVel1 = &data11[15 * map4idx];
+    double *dPdN = &data12[15 * map4idx];
 
     //inline function
     
@@ -78,29 +81,46 @@ void pressure_bc_omp4_kernel(
       fmask = &FMASK_ompkernel[2 * 5];
     }
 
-    if(*bedge_type == 0 || *bedge_type == 2 || *bedge_type == 3) {
+    const double PI = 3.141592653589793238463;
 
-      for(int i = 0; i < 5; i++) {
-        int fInd = fmask[i];
-        double res1 = -N0[fInd] - nu_ompkernel * gradCurlVel1[fInd];
-        double res2 = -N1[fInd] + nu_ompkernel * gradCurlVel0[fInd];
-        dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
+    if(*problem == 0) {
+      if(*bedge_type == 0 || *bedge_type == 2 || *bedge_type == 3) {
+
+        for(int i = 0; i < 5; i++) {
+          int fInd = fmask[i];
+          double res1 = -N0[fInd] - nu_ompkernel * gradCurlVel1[fInd];
+          double res2 = -N1[fInd] + nu_ompkernel * gradCurlVel0[fInd];
+          dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
+        }
       }
-    }
 
-    if(*bedge_type == 0) {
+      if(*bedge_type == 0) {
 
-      const double PI = 3.141592653589793238463;
-      for(int i = 0; i < 5; i++) {
-        double y1 = y[fmask[i]];
-        double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
+        for(int i = 0; i < 5; i++) {
+          double y1 = y[fmask[i]];
+          double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
+          dPdN[exInd + i] -= bcdUndt;
+        }
+      }
+    } else {
+      if(*bedge_type == 0 || *bedge_type == 1) {
 
+        for(int i = 0; i < 5; i++) {
+          int fInd = fmask[i];
+          double res1 = -N0[fInd] - nu_ompkernel * gradCurlVel1[fInd];
+          double res2 = -N1[fInd] + nu_ompkernel * gradCurlVel0[fInd];
+          dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
 
-        dPdN[exInd + i] -= bcdUndt;
+          double y1 = y[fmask[i]];
+          double x1 = x[fmask[i]];
+          double bcdUndt = -cos(2.0 * PI * x1) * cos(2.0 * PI * y1) * exp(-nu_ompkernel * 8.0 * PI * PI * *t);
+          dPdN[exInd + i] -= bcdUndt;
+        }
       }
     }
     //end inline func
   }
 
   *arg2 = arg2_l;
+  *arg3 = arg3_l;
 }

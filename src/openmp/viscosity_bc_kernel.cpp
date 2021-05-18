@@ -13,10 +13,11 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6){
+  op_arg arg6,
+  op_arg arg7){
 
-  int nargs = 7;
-  op_arg args[7];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -25,6 +26,7 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   args[4] = arg4;
   args[5] = arg5;
   args[6] = arg6;
+  args[7] = arg7;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -34,7 +36,7 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   op_timers_core(&cpu_t1, &wall_t1);
 
   int  ninds   = 4;
-  int  inds[7] = {-1,-1,-1,0,1,2,3};
+  int  inds[8] = {-1,-1,-1,-1,0,1,2,3};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: viscosity_bc\n");
@@ -67,18 +69,19 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
         int nelem    = Plan->nelems[blockId];
         int offset_b = Plan->offset[blockId];
         for ( int n=offset_b; n<offset_b+nelem; n++ ){
-          int map3idx;
-          map3idx = arg3.map_data[n * arg3.map->dim + 0];
+          int map4idx;
+          map4idx = arg4.map_data[n * arg4.map->dim + 0];
 
 
           viscosity_bc(
             &((int*)arg0.data)[1 * n],
             &((int*)arg1.data)[1 * n],
             (double*)arg2.data,
-            &((double*)arg3.data)[21 * map3idx],
-            &((double*)arg4.data)[21 * map3idx],
-            &((double*)arg5.data)[21 * map3idx],
-            &((double*)arg6.data)[21 * map3idx]);
+            (int*)arg3.data,
+            &((double*)arg4.data)[21 * map4idx],
+            &((double*)arg5.data)[21 * map4idx],
+            &((double*)arg6.data)[21 * map4idx],
+            &((double*)arg7.data)[21 * map4idx]);
         }
       }
 

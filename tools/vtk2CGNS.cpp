@@ -92,6 +92,25 @@ int getBoundaryEdgeNum(const string &type, double x0, double y0, double x1, doub
   return -1;
 }
 
+void getBCs(const string &type, int *bc_data) {
+  if(type == "cylinder") {
+    // Pressure Dirichlet
+    bc_data[0] = 1; bc_data[1] = -1; bc_data[2] = -1;
+    // Pressure Neumann
+    bc_data[3] = 0; bc_data[4] = 2; bc_data[5] = 3;
+    // Viscosity Dirichlet
+    bc_data[6] = 0; bc_data[7] = 2; bc_data[8] = 3;
+    // Viscosity Neumann
+    bc_data[9] = 1; bc_data[10] = -1; bc_data[11] = -1;
+  } else if(type == "poisson-test-0") {
+    // N/A
+  } else if(type == "poisson-test-1") {
+    // N/A
+  } else {
+    cerr << "***ERROR*** Unrecognised boundary type specified" << endl;
+  }
+}
+
 int main(int argc, char **argv) {
   string fileName = "naca0012.vtk";
   string bcType = "";
@@ -257,6 +276,9 @@ int main(int argc, char **argv) {
     }
   }
 
+  int bc_data[12];
+  getBCs(bcType, bc_data);
+
   // Write out CGNS file
   string outFileName = "";
   for(int i = 0; i < fileName.length(); i++) {
@@ -319,6 +341,12 @@ int main(int argc, char **argv) {
   cg_user_data_write("BoundaryEdges");
   cg_gopath(file, "/Base/Zone1/BoundaryEdges");
   cg_array_write("BoundaryEdgesData", CGNS_ENUMV(Integer), 2, boundaryDim, boundaryEdges.data());
+
+  cgsize_t bcDim[2] = {3, 4};
+  cg_gopath(file, "/Base/Zone1");
+  cg_user_data_write("BCs");
+  cg_gopath(file, "/Base/Zone1/BCs");
+  cg_array_write("BCs", CGNS_ENUMV(Integer), 2, bcDim, bc_data);
 
   cg_close(file);
 }

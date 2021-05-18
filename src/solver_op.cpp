@@ -51,6 +51,7 @@ void op_par_loop_advection_bc(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_advection_numerical_flux(char const *, op_set,
@@ -94,6 +95,7 @@ void op_par_loop_pressure_bc(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_pressure_rhs(char const *, op_set,
@@ -118,6 +120,7 @@ void op_par_loop_pressure_update_vel(char const *, op_set,
   op_arg );
 
 void op_par_loop_viscosity_bc(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -190,37 +193,34 @@ extern Constants *constants;
 
 using namespace std;
 
-Solver::Solver(std::string filename, int pmethod) {
+Solver::Solver(std::string filename, int pmethod, int prob) {
+  problem = prob;
   data = new INSData(filename);
   cubatureData = new CubatureData(data);
   gaussData = new GaussData(data);
 
-  int pressure_dirichlet[] = {1, -1, -1};
-  int pressure_neumann[] = {0, 2, 3};
-  int viscosity_dirichlet[] = {0, 2, 3};
-  int viscosity_neumann[] = {1, -1, -1};
+  // int pressure_dirichlet[] = {1, -1, -1};
+  // int pressure_neumann[] = {0, 2, 3};
+  // int viscosity_dirichlet[] = {0, 2, 3};
+  // int viscosity_neumann[] = {1, -1, -1};
 
   if(pmethod == 0) {
-    // #ifdef INS_MPI
-    // cerr << "*** ERROR ***\n  pmethod 0 is not currently implemented for MPI" << endl;
-    // exit(-1);
-    // #endif
     Poisson_M *pressureM = new Poisson_M(data, cubatureData, gaussData);
-    pressureM->setDirichletBCs(pressure_dirichlet);
-    pressureM->setNeumannBCs(pressure_neumann);
+    pressureM->setDirichletBCs(data->pressure_dirichlet);
+    pressureM->setNeumannBCs(data->pressure_neumann);
     pressurePoisson = pressureM;
     Poisson_M *viscosityM = new Poisson_M(data, cubatureData, gaussData);
-    viscosityM->setDirichletBCs(viscosity_dirichlet);
-    viscosityM->setNeumannBCs(viscosity_neumann);
+    viscosityM->setDirichletBCs(data->viscosity_dirichlet);
+    viscosityM->setNeumannBCs(data->viscosity_neumann);
     viscosityPoisson = viscosityM;
   } else {
     Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubatureData, gaussData);
-    pressureMF2->setDirichletBCs(pressure_dirichlet);
-    pressureMF2->setNeumannBCs(pressure_neumann);
+    pressureMF2->setDirichletBCs(data->pressure_dirichlet);
+    pressureMF2->setNeumannBCs(data->pressure_neumann);
     pressurePoisson = pressureMF2;
     Poisson_MF2 *viscosityMF2 = new Poisson_MF2(data, cubatureData, gaussData);
-    viscosityMF2->setDirichletBCs(viscosity_dirichlet);
-    viscosityMF2->setNeumannBCs(viscosity_neumann);
+    viscosityMF2->setDirichletBCs(data->viscosity_dirichlet);
+    viscosityMF2->setNeumannBCs(data->viscosity_neumann);
     viscosityPoisson = viscosityMF2;
   }
 
@@ -283,6 +283,7 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
               op_arg_gbl(&t,1,"double",OP_READ),
+              op_arg_gbl(&problem,1,"int",OP_READ),
               op_arg_dat(data->x,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->y,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][0],0,data->bedge2cells,15,"double",OP_READ),
@@ -337,6 +338,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
               op_arg_gbl(&t,1,"double",OP_READ),
+              op_arg_gbl(&problem,1,"int",OP_READ),
               op_arg_dat(data->x,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->y,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->nx,0,data->bedge2cells,15,"double",OP_READ),
@@ -396,6 +398,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
               op_arg_gbl(&time,1,"double",OP_READ),
+              op_arg_gbl(&problem,1,"int",OP_READ),
               op_arg_dat(gaussData->x,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(gaussData->y,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(data->visBC[0],0,data->bedge2cells,21,"double",OP_INC),

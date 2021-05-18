@@ -43,6 +43,7 @@ void load_mesh(std::string filename, INSData *data) {
   double *coords_g;
   int *cells_g, *edge2node_g, *edge2cell_g, *edgeNum_g;
   int *bedge2node_g, *bedge2cell_g, *bedgeNum_g, *bedge_type_g;
+  int *bcs_g = (int *)malloc(12 * sizeof(int));
 
   if(rank == 0) {
     // Read CGNS grid
@@ -156,6 +157,16 @@ void load_mesh(std::string filename, INSData *data) {
         std::cerr << "Error reading in boundary edge type" << std::endl;
     }
 
+    cg_gopath(file, "/Base/Zone1/BCs");
+    char bcarrayName[33];
+    DataType_t bcarrayDataType;
+    int bcarrayRank;
+    cgsize_t bcarrayDims[2];
+    cg_array_info(1, bcarrayName, &bcarrayDataType, &bcarrayRank, bcarrayDims);
+    std::cout << "Array Name: " << bcarrayName << std::endl;
+    std::cout << "Array Dims: " << bcarrayDims[0] << " " << bcarrayDims[1] << std::endl;
+    cg_array_read(1, bcs_g);
+
     cg_close(file);
   }
 
@@ -163,6 +174,7 @@ void load_mesh(std::string filename, INSData *data) {
   MPI_Bcast(&data->numCells_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&data->numEdges_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&data->numBoundaryEdges_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(bcs_g, 12, MPI_INT, 0, MPI_COMM_WORLD);
 
   data->numNodes         = compute_local_size(data->numNodes_g, comm_size, rank);
   data->numCells         = compute_local_size(data->numCells_g, comm_size, rank);
@@ -188,6 +200,15 @@ void load_mesh(std::string filename, INSData *data) {
   scatter_int_array(bedge2cell_g, data->bedge2cell_data, comm_size, data->numBoundaryEdges_g, data->numBoundaryEdges, 1);
   scatter_int_array(bedgeNum_g, data->bedgeNum_data, comm_size, data->numBoundaryEdges_g, data->numBoundaryEdges, 1);
   scatter_int_array(bedge_type_g, data->bedge_type_data, comm_size, data->numBoundaryEdges_g, data->numBoundaryEdges, 1);
+
+  for(int i = 0; i < 3; i++) {
+    data->pressure_dirichlet[i] = bcs_g[0 + i];
+    data->pressure_neumann[i] = bcs_g[3 + i];
+    data->viscosity_dirichlet[i] = bcs_g[6 + i];
+    data->viscosity_neumann[i] = bcs_g[9 + i];
+  }
+
+  free(bcs_g);
 
   if(rank == 0) {
     free(coords_g);
