@@ -215,11 +215,6 @@ Solver::Solver(std::string filename, int pmethod, int prob) {
   cubatureData = new CubatureData(data);
   gaussData = new GaussData(data);
 
-  // int pressure_dirichlet[] = {1, -1, -1};
-  // int pressure_neumann[] = {0, 2, 3};
-  // int viscosity_dirichlet[] = {0, 2, 3};
-  // int viscosity_neumann[] = {1, -1, -1};
-
   if(pmethod == 0) {
     Poisson_M *pressureM = new Poisson_M(data, cubatureData, gaussData);
     pressureM->setDirichletBCs(data->pressure_dirichlet);
