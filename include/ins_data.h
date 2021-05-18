@@ -67,9 +67,14 @@ public:
   op_dat div[4];
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, pRHSex, p, dpdx, dpdy;
   op_dat visRHS[2];
-  op_dat zeroBC, visBC[2];
+  op_dat prBC, visBC[2];
   op_dat dQdx[2], dQdy[2];
   op_dat vorticity;
+
+  int pressure_dirichlet[3];
+  int pressure_neumann[3];
+  int viscosity_dirichlet[3];
+  int viscosity_neumann[3];
 private:
   // Pointers to private memory
   double *nodeX_data;
@@ -103,7 +108,7 @@ private:
   double *dpdx_data;
   double *dpdy_data;
   double *visRHS_data[2];
-  double *zeroBC_data;
+  double *prBC_data;
   double *visBC_data[2];
   double *dQdx_data[2];
   double *dQdy_data[2];

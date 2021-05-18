@@ -4,7 +4,8 @@
 
 //user function
 __device__ void viscosity_bc_gpu( const int *bedge_type, const int *bedgeNum,
-                         const double *t, const double *x, const double *y,
+                         const double *t, const int *problem, const double *x,
+                         const double *y, const double *nx, const double *ny,
                          double *exQ0, double *exQ1) {
   int exInd = 0;
   if(*bedgeNum == 1) {
@@ -13,30 +14,47 @@ __device__ void viscosity_bc_gpu( const int *bedge_type, const int *bedgeNum,
     exInd = 2 * 7;
   }
 
-  if(*bedge_type == 0) {
+  const double PI = 3.141592653589793238463;
 
-    const double PI = 3.141592653589793238463;
-    for(int i = 0; i < 7; i++) {
-      double y1 = y[exInd + i];
-      exQ0[exInd + i] += pow(0.41, -2.0) * sin((PI * (*t)) / 8.0) * 6.0 * y1 * (0.41 - y1);
+  if(*problem == 0) {
+    if(*bedge_type == 0) {
+
+      for(int i = 0; i < 7; i++) {
+        double y1 = y[exInd + i];
+        exQ0[exInd + i] += pow(0.41, -2.0) * sin((PI * (*t)) / 8.0) * 6.0 * y1 * (0.41 - y1);
+      }
+    } else if(*bedge_type == 1) {
 
 
+
+
+
+
+    } else {
 
     }
-  } else if(*bedge_type == 1) {
-
-
-
-
-
-
   } else {
+    if(*bedge_type == 0) {
 
+      for(int i = 0; i < 7; i++) {
+        double y1 = y[exInd + i];
+        double x1 = x[exInd + i];
+        exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu_cuda * 4.0 * PI * PI * *t);
+        exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu_cuda * 4.0 * PI * PI * *t);
+      }
+    }
 
+    if(*bedge_type == 1) {
 
-
-
-
+      for(int i = 0; i < 7; i++) {
+        double y1  = y[exInd + i];
+        double x1  = x[exInd + i];
+        double ny1 = ny[exInd + i];
+        double nx1 = nx[exInd + i];
+        exQ0[exInd + i] += ny1 * 2.0 * PI * (-cos(2.0 * PI * y1)) * exp(-nu_cuda * 4.0 * PI * PI * *t);
+        exQ1[exInd + i] += nx1 * 2.0 * PI * cos(2.0 * PI * x1) * exp(-nu_cuda * 4.0 * PI * PI * *t);
+      }
+    }
   }
 
 }
@@ -45,82 +63,88 @@ __device__ void viscosity_bc_gpu( const int *bedge_type, const int *bedgeNum,
 __global__ void op_cuda_viscosity_bc(
   const double *__restrict ind_arg0,
   const double *__restrict ind_arg1,
-  double *__restrict ind_arg2,
-  double *__restrict ind_arg3,
-  const int *__restrict opDat3Map,
+  const double *__restrict ind_arg2,
+  const double *__restrict ind_arg3,
+  double *__restrict ind_arg4,
+  double *__restrict ind_arg5,
+  const int *__restrict opDat4Map,
   const int *__restrict arg0,
   const int *__restrict arg1,
   const double *arg2,
+  const int *arg3,
   int start,
   int end,
   int   set_size) {
-  double arg5_l[21];
-  double arg6_l[21];
+  double arg8_l[21];
+  double arg9_l[21];
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg5_l[21];
+    double arg8_l[21];
     for ( int d=0; d<21; d++ ){
-      arg5_l[d] = ZERO_double;
+      arg8_l[d] = ZERO_double;
     }
-    double arg6_l[21];
+    double arg9_l[21];
     for ( int d=0; d<21; d++ ){
-      arg6_l[d] = ZERO_double;
+      arg9_l[d] = ZERO_double;
     }
-    int map3idx;
-    map3idx = opDat3Map[n + set_size * 0];
+    int map4idx;
+    map4idx = opDat4Map[n + set_size * 0];
 
     //user-supplied kernel call
     viscosity_bc_gpu(arg0+n*1,
                  arg1+n*1,
                  arg2,
-                 ind_arg0+map3idx*21,
-                 ind_arg1+map3idx*21,
-                 arg5_l,
-                 arg6_l);
-    atomicAdd(&ind_arg2[0+map3idx*21],arg5_l[0]);
-    atomicAdd(&ind_arg2[1+map3idx*21],arg5_l[1]);
-    atomicAdd(&ind_arg2[2+map3idx*21],arg5_l[2]);
-    atomicAdd(&ind_arg2[3+map3idx*21],arg5_l[3]);
-    atomicAdd(&ind_arg2[4+map3idx*21],arg5_l[4]);
-    atomicAdd(&ind_arg2[5+map3idx*21],arg5_l[5]);
-    atomicAdd(&ind_arg2[6+map3idx*21],arg5_l[6]);
-    atomicAdd(&ind_arg2[7+map3idx*21],arg5_l[7]);
-    atomicAdd(&ind_arg2[8+map3idx*21],arg5_l[8]);
-    atomicAdd(&ind_arg2[9+map3idx*21],arg5_l[9]);
-    atomicAdd(&ind_arg2[10+map3idx*21],arg5_l[10]);
-    atomicAdd(&ind_arg2[11+map3idx*21],arg5_l[11]);
-    atomicAdd(&ind_arg2[12+map3idx*21],arg5_l[12]);
-    atomicAdd(&ind_arg2[13+map3idx*21],arg5_l[13]);
-    atomicAdd(&ind_arg2[14+map3idx*21],arg5_l[14]);
-    atomicAdd(&ind_arg2[15+map3idx*21],arg5_l[15]);
-    atomicAdd(&ind_arg2[16+map3idx*21],arg5_l[16]);
-    atomicAdd(&ind_arg2[17+map3idx*21],arg5_l[17]);
-    atomicAdd(&ind_arg2[18+map3idx*21],arg5_l[18]);
-    atomicAdd(&ind_arg2[19+map3idx*21],arg5_l[19]);
-    atomicAdd(&ind_arg2[20+map3idx*21],arg5_l[20]);
-    atomicAdd(&ind_arg3[0+map3idx*21],arg6_l[0]);
-    atomicAdd(&ind_arg3[1+map3idx*21],arg6_l[1]);
-    atomicAdd(&ind_arg3[2+map3idx*21],arg6_l[2]);
-    atomicAdd(&ind_arg3[3+map3idx*21],arg6_l[3]);
-    atomicAdd(&ind_arg3[4+map3idx*21],arg6_l[4]);
-    atomicAdd(&ind_arg3[5+map3idx*21],arg6_l[5]);
-    atomicAdd(&ind_arg3[6+map3idx*21],arg6_l[6]);
-    atomicAdd(&ind_arg3[7+map3idx*21],arg6_l[7]);
-    atomicAdd(&ind_arg3[8+map3idx*21],arg6_l[8]);
-    atomicAdd(&ind_arg3[9+map3idx*21],arg6_l[9]);
-    atomicAdd(&ind_arg3[10+map3idx*21],arg6_l[10]);
-    atomicAdd(&ind_arg3[11+map3idx*21],arg6_l[11]);
-    atomicAdd(&ind_arg3[12+map3idx*21],arg6_l[12]);
-    atomicAdd(&ind_arg3[13+map3idx*21],arg6_l[13]);
-    atomicAdd(&ind_arg3[14+map3idx*21],arg6_l[14]);
-    atomicAdd(&ind_arg3[15+map3idx*21],arg6_l[15]);
-    atomicAdd(&ind_arg3[16+map3idx*21],arg6_l[16]);
-    atomicAdd(&ind_arg3[17+map3idx*21],arg6_l[17]);
-    atomicAdd(&ind_arg3[18+map3idx*21],arg6_l[18]);
-    atomicAdd(&ind_arg3[19+map3idx*21],arg6_l[19]);
-    atomicAdd(&ind_arg3[20+map3idx*21],arg6_l[20]);
+                 arg3,
+                 ind_arg0+map4idx*21,
+                 ind_arg1+map4idx*21,
+                 ind_arg2+map4idx*21,
+                 ind_arg3+map4idx*21,
+                 arg8_l,
+                 arg9_l);
+    atomicAdd(&ind_arg4[0+map4idx*21],arg8_l[0]);
+    atomicAdd(&ind_arg4[1+map4idx*21],arg8_l[1]);
+    atomicAdd(&ind_arg4[2+map4idx*21],arg8_l[2]);
+    atomicAdd(&ind_arg4[3+map4idx*21],arg8_l[3]);
+    atomicAdd(&ind_arg4[4+map4idx*21],arg8_l[4]);
+    atomicAdd(&ind_arg4[5+map4idx*21],arg8_l[5]);
+    atomicAdd(&ind_arg4[6+map4idx*21],arg8_l[6]);
+    atomicAdd(&ind_arg4[7+map4idx*21],arg8_l[7]);
+    atomicAdd(&ind_arg4[8+map4idx*21],arg8_l[8]);
+    atomicAdd(&ind_arg4[9+map4idx*21],arg8_l[9]);
+    atomicAdd(&ind_arg4[10+map4idx*21],arg8_l[10]);
+    atomicAdd(&ind_arg4[11+map4idx*21],arg8_l[11]);
+    atomicAdd(&ind_arg4[12+map4idx*21],arg8_l[12]);
+    atomicAdd(&ind_arg4[13+map4idx*21],arg8_l[13]);
+    atomicAdd(&ind_arg4[14+map4idx*21],arg8_l[14]);
+    atomicAdd(&ind_arg4[15+map4idx*21],arg8_l[15]);
+    atomicAdd(&ind_arg4[16+map4idx*21],arg8_l[16]);
+    atomicAdd(&ind_arg4[17+map4idx*21],arg8_l[17]);
+    atomicAdd(&ind_arg4[18+map4idx*21],arg8_l[18]);
+    atomicAdd(&ind_arg4[19+map4idx*21],arg8_l[19]);
+    atomicAdd(&ind_arg4[20+map4idx*21],arg8_l[20]);
+    atomicAdd(&ind_arg5[0+map4idx*21],arg9_l[0]);
+    atomicAdd(&ind_arg5[1+map4idx*21],arg9_l[1]);
+    atomicAdd(&ind_arg5[2+map4idx*21],arg9_l[2]);
+    atomicAdd(&ind_arg5[3+map4idx*21],arg9_l[3]);
+    atomicAdd(&ind_arg5[4+map4idx*21],arg9_l[4]);
+    atomicAdd(&ind_arg5[5+map4idx*21],arg9_l[5]);
+    atomicAdd(&ind_arg5[6+map4idx*21],arg9_l[6]);
+    atomicAdd(&ind_arg5[7+map4idx*21],arg9_l[7]);
+    atomicAdd(&ind_arg5[8+map4idx*21],arg9_l[8]);
+    atomicAdd(&ind_arg5[9+map4idx*21],arg9_l[9]);
+    atomicAdd(&ind_arg5[10+map4idx*21],arg9_l[10]);
+    atomicAdd(&ind_arg5[11+map4idx*21],arg9_l[11]);
+    atomicAdd(&ind_arg5[12+map4idx*21],arg9_l[12]);
+    atomicAdd(&ind_arg5[13+map4idx*21],arg9_l[13]);
+    atomicAdd(&ind_arg5[14+map4idx*21],arg9_l[14]);
+    atomicAdd(&ind_arg5[15+map4idx*21],arg9_l[15]);
+    atomicAdd(&ind_arg5[16+map4idx*21],arg9_l[16]);
+    atomicAdd(&ind_arg5[17+map4idx*21],arg9_l[17]);
+    atomicAdd(&ind_arg5[18+map4idx*21],arg9_l[18]);
+    atomicAdd(&ind_arg5[19+map4idx*21],arg9_l[19]);
+    atomicAdd(&ind_arg5[20+map4idx*21],arg9_l[20]);
   }
 }
 
@@ -133,11 +157,15 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6){
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9){
 
   double*arg2h = (double *)arg2.data;
-  int nargs = 7;
-  op_arg args[7];
+  int*arg3h = (int *)arg3.data;
+  int nargs = 10;
+  op_arg args[10];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -146,17 +174,20 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   args[4] = arg4;
   args[5] = arg5;
   args[6] = arg6;
+  args[7] = arg7;
+  args[8] = arg8;
+  args[9] = arg9;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(41);
+  op_timing_realloc(42);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[41].name      = name;
-  OP_kernels[41].count    += 1;
+  OP_kernels[42].name      = name;
+  OP_kernels[42].count    += 1;
 
 
-  int    ninds   = 4;
-  int    inds[7] = {-1,-1,-1,0,1,2,3};
+  int    ninds   = 6;
+  int    inds[10] = {-1,-1,-1,-1,0,1,2,3,4,5};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: viscosity_bc\n");
@@ -167,6 +198,7 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
     //transfer constants to GPU
     int consts_bytes = 0;
     consts_bytes += ROUND_UP(1*sizeof(double));
+    consts_bytes += ROUND_UP(1*sizeof(int));
     reallocConstArrays(consts_bytes);
     consts_bytes = 0;
     arg2.data   = OP_consts_h + consts_bytes;
@@ -175,11 +207,17 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
       ((double *)arg2.data)[d] = arg2h[d];
     }
     consts_bytes += ROUND_UP(1*sizeof(double));
+    arg3.data   = OP_consts_h + consts_bytes;
+    arg3.data_d = OP_consts_d + consts_bytes;
+    for ( int d=0; d<1; d++ ){
+      ((int *)arg3.data)[d] = arg3h[d];
+    }
+    consts_bytes += ROUND_UP(1*sizeof(int));
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_41
-      int nthread = OP_BLOCK_SIZE_41;
+    #ifdef OP_BLOCK_SIZE_42
+      int nthread = OP_BLOCK_SIZE_42;
     #else
       int nthread = OP_block_size;
     #endif
@@ -193,14 +231,17 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
       if (end-start>0) {
         int nblocks = (end-start-1)/nthread+1;
         op_cuda_viscosity_bc<<<nblocks,nthread>>>(
-        (double *)arg3.data_d,
         (double *)arg4.data_d,
         (double *)arg5.data_d,
         (double *)arg6.data_d,
-        arg3.map_data_d,
+        (double *)arg7.data_d,
+        (double *)arg8.data_d,
+        (double *)arg9.data_d,
+        arg4.map_data_d,
         (int*)arg0.data_d,
         (int*)arg1.data_d,
         (double*)arg2.data_d,
+        (int*)arg3.data_d,
         start,end,set->size+set->exec_size);
       }
     }
@@ -209,5 +250,5 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[41].time     += wall_t2 - wall_t1;
+  OP_kernels[42].time     += wall_t2 - wall_t1;
 }

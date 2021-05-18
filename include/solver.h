@@ -8,7 +8,7 @@
 
 class Solver {
 public:
-  Solver(std::string filename, int pmethod);
+  Solver(std::string filename, int pmethod, int prob);
   ~Solver();
 
   void advection(int currentInd, double a0, double a1, double b0, double b1,
@@ -32,6 +32,7 @@ private:
   GaussData *gaussData;
   Poisson *pressurePoisson;
   Poisson *viscosityPoisson;
+  int problem;
 };
 
 #endif

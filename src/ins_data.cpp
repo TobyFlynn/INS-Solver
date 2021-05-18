@@ -72,7 +72,7 @@ INSData::INSData(std::string filename) {
   p_data         = (double *)calloc(15 * numCells, sizeof(double));
   dpdx_data      = (double *)calloc(15 * numCells, sizeof(double));
   dpdy_data      = (double *)calloc(15 * numCells, sizeof(double));
-  zeroBC_data    = (double *)calloc(21 * numCells, sizeof(double));
+  prBC_data      = (double *)calloc(21 * numCells, sizeof(double));
   vorticity_data = (double *)calloc(15 * numCells, sizeof(double));
 
   // Initialise OP2
@@ -156,7 +156,7 @@ INSData::INSData(std::string filename) {
   p         = op_decl_dat(cells, 15, "double", p_data, "p");
   dpdx      = op_decl_dat(cells, 15, "double", dpdx_data, "dpdx");
   dpdy      = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
-  zeroBC    = op_decl_dat(cells, 21, "double", zeroBC_data, "zeroBC");
+  prBC      = op_decl_dat(cells, 21, "double", prBC_data, "prBC");
   vorticity = op_decl_dat(cells, 15, "double", vorticity_data, "vorticity");
 
   op_decl_const(1, "double", &gam);
@@ -248,7 +248,7 @@ INSData::~INSData() {
   free(p_data);
   free(dpdx_data);
   free(dpdy_data);
-  free(zeroBC_data);
+  free(prBC_data);
   free(vorticity_data);
 }
 

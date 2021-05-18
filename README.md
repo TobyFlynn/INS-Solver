@@ -17,7 +17,7 @@ Directory structure:
   - The 'kernels' directory contains all the OP2 kernels.
   - All other directories are created by the OP2 code generation.
 - The 'tools' directory contains an unstructured VTK to CGNS mesh conversion code.
-- The 'grids' directory contains some sample grids. The code is currently set up to deal with `cylinder.vtk` and `cylinder2.vtk`. Currently identifying the type of boundary edge (e.g. inflow/outflow/wall) is hard coded when loading in the mesh. 
+- The 'grids' directory contains some sample grids. The code is currently set up to deal with `cylinder.vtk` and `cylinder2.vtk`.
 
 Build instructions:
 ```
@@ -33,16 +33,32 @@ Creating CGNS grid:
 ```
 cd build/tools
 cp ../../grids/cylinder.vtk .
-./vtk2CGNS
+./vtk2CGNS -file cylinder.vtk -bc cylinder
 ```
+The `-file` flag specifies the input file and the `-bc` flag specifies which boundary conditions to save with the CGNS file. Current valid options for `-bc` are `cylinder`, `poisson-test-0`, `poisson-test-1` and `vortex`.
 
 Running INS:
 ```
 cd build/src
 cp ../tools/cylinder.cgns .
-./ins_cuda -iter 1000 -save 100
-./ins_openmp -iter 1000 -save 100
-./ins_seq -iter 1000 -save 100
+./ins_cuda -iter 1000 -pmethod 1 -input cylinder.cgns
+./ins_openmp -iter 1000 -pmethod 1 -input cylinder.cgns
 ```
 
-You can then use Paraview to view the end result which is stored in `end.cgns`. The flow solution will also be saved every 100 iterations in `sol.cgns`. Paraview can then be used to view an animation of the flow using `sol.cgns`.
+You can then use Paraview to view the end result which is stored in `end.cgns`. Flags for the INS solver are:
+- `-iter` the number of iterations to run for
+- `-pmethod` the method for Poisson solver (`0` for explicit matrix, `1` for matrix free)
+- `-input` the input grid file
+- `-output` the output directory (by default the same directory as the executable)
+- `-save` save the flow every `x` iterations (currently only on the single node solvers)
+- `-problem` the problem that the solver is solving (`0` for the cylinder problem, `1` for the vortex problem)
+
+To run the vortex error checker:
+```
+cd build/src
+./ins_cuda -iter 100 -pmethod 1 -input cylinder.cgns -problem 1
+cd ../tools
+cp ../src/end.cgns
+./vortexError
+```
+The absolute error values at each grid point will then be saved to `err.cgns`.

@@ -11,10 +11,9 @@ void pressure_bc_omp4_kernel(
   int *data1,
   int dat1size,
   double *arg2,
-  int *map3,
-  int map3size,
-  double *data3,
-  int dat3size,
+  int *arg3,
+  int *map4,
+  int map4size,
   double *data4,
   int dat4size,
   double *data5,
@@ -31,6 +30,8 @@ void pressure_bc_omp4_kernel(
   int dat10size,
   double *data11,
   int dat11size,
+  double *data12,
+  int dat12size,
   int *col_reord,
   int set_size1,
   int start,
@@ -51,11 +52,13 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   op_arg arg8,
   op_arg arg9,
   op_arg arg10,
-  op_arg arg11){
+  op_arg arg11,
+  op_arg arg12){
 
   double*arg2h = (double *)arg2.data;
-  int nargs = 12;
-  op_arg args[12];
+  int*arg3h = (int *)arg3.data;
+  int nargs = 13;
+  op_arg args[13];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -69,6 +72,7 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   args[9] = arg9;
   args[10] = arg10;
   args[11] = arg11;
+  args[12] = arg12;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -78,7 +82,7 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   OP_kernels[38].count    += 1;
 
   int  ninds   = 9;
-  int  inds[12] = {-1,-1,-1,0,1,2,3,4,5,6,7,8};
+  int  inds[13] = {-1,-1,-1,-1,0,1,2,3,4,5,6,7,8};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: pressure_bc\n");
@@ -99,6 +103,7 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   #endif
 
   double arg2_l = arg2h[0];
+  int arg3_l = arg3h[0];
 
   int ncolors = 0;
   int set_size1 = set->size + set->exec_size;
@@ -106,15 +111,13 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   if (set_size >0) {
 
     //Set up typed device pointers for OpenMP
-    int *map3 = arg3.map_data_d;
-     int map3size = arg3.map->dim * set_size1;
+    int *map4 = arg4.map_data_d;
+     int map4size = arg4.map->dim * set_size1;
 
     int* data0 = (int*)arg0.data_d;
     int dat0size = getSetSizeFromOpArg(&arg0) * arg0.dat->dim;
     int* data1 = (int*)arg1.data_d;
     int dat1size = getSetSizeFromOpArg(&arg1) * arg1.dat->dim;
-    double *data3 = (double *)arg3.data_d;
-    int dat3size = getSetSizeFromOpArg(&arg3) * arg3.dat->dim;
     double *data4 = (double *)arg4.data_d;
     int dat4size = getSetSizeFromOpArg(&arg4) * arg4.dat->dim;
     double *data5 = (double *)arg5.data_d;
@@ -131,6 +134,8 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
     int dat10size = getSetSizeFromOpArg(&arg10) * arg10.dat->dim;
     double *data11 = (double *)arg11.data_d;
     int dat11size = getSetSizeFromOpArg(&arg11) * arg11.dat->dim;
+    double *data12 = (double *)arg12.data_d;
+    int dat12size = getSetSizeFromOpArg(&arg12) * arg12.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -150,10 +155,9 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
         data1,
         dat1size,
         &arg2_l,
-        map3,
-        map3size,
-        data3,
-        dat3size,
+        &arg3_l,
+        map4,
+        map4size,
         data4,
         dat4size,
         data5,
@@ -170,6 +174,8 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
         dat10size,
         data11,
         dat11size,
+        data12,
+        dat12size,
         col_reord,
         set_size1,
         start,

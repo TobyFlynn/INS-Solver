@@ -11,10 +11,9 @@ void advection_bc_omp4_kernel(
   int *data1,
   int dat1size,
   double *arg2,
-  int *map3,
-  int map3size,
-  double *data3,
-  int dat3size,
+  int *arg3,
+  int *map4,
+  int map4size,
   double *data4,
   int dat4size,
   double *data5,
@@ -25,6 +24,8 @@ void advection_bc_omp4_kernel(
   int dat7size,
   double *data8,
   int dat8size,
+  double *data9,
+  int dat9size,
   int *col_reord,
   int set_size1,
   int start,
@@ -42,11 +43,13 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8){
+  op_arg arg8,
+  op_arg arg9){
 
   double*arg2h = (double *)arg2.data;
-  int nargs = 9;
-  op_arg args[9];
+  int*arg3h = (int *)arg3.data;
+  int nargs = 10;
+  op_arg args[10];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -57,6 +60,7 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   args[6] = arg6;
   args[7] = arg7;
   args[8] = arg8;
+  args[9] = arg9;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -66,7 +70,7 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   OP_kernels[35].count    += 1;
 
   int  ninds   = 6;
-  int  inds[9] = {-1,-1,-1,0,1,2,3,4,5};
+  int  inds[10] = {-1,-1,-1,-1,0,1,2,3,4,5};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: advection_bc\n");
@@ -87,6 +91,7 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   #endif
 
   double arg2_l = arg2h[0];
+  int arg3_l = arg3h[0];
 
   int ncolors = 0;
   int set_size1 = set->size + set->exec_size;
@@ -94,15 +99,13 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   if (set_size >0) {
 
     //Set up typed device pointers for OpenMP
-    int *map3 = arg3.map_data_d;
-     int map3size = arg3.map->dim * set_size1;
+    int *map4 = arg4.map_data_d;
+     int map4size = arg4.map->dim * set_size1;
 
     int* data0 = (int*)arg0.data_d;
     int dat0size = getSetSizeFromOpArg(&arg0) * arg0.dat->dim;
     int* data1 = (int*)arg1.data_d;
     int dat1size = getSetSizeFromOpArg(&arg1) * arg1.dat->dim;
-    double *data3 = (double *)arg3.data_d;
-    int dat3size = getSetSizeFromOpArg(&arg3) * arg3.dat->dim;
     double *data4 = (double *)arg4.data_d;
     int dat4size = getSetSizeFromOpArg(&arg4) * arg4.dat->dim;
     double *data5 = (double *)arg5.data_d;
@@ -113,6 +116,8 @@ void op_par_loop_advection_bc(char const *name, op_set set,
     int dat7size = getSetSizeFromOpArg(&arg7) * arg7.dat->dim;
     double *data8 = (double *)arg8.data_d;
     int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
+    double *data9 = (double *)arg9.data_d;
+    int dat9size = getSetSizeFromOpArg(&arg9) * arg9.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -132,10 +137,9 @@ void op_par_loop_advection_bc(char const *name, op_set set,
         data1,
         dat1size,
         &arg2_l,
-        map3,
-        map3size,
-        data3,
-        dat3size,
+        &arg3_l,
+        map4,
+        map4size,
         data4,
         dat4size,
         data5,
@@ -146,6 +150,8 @@ void op_par_loop_advection_bc(char const *name, op_set set,
         dat7size,
         data8,
         dat8size,
+        data9,
+        dat9size,
         col_reord,
         set_size1,
         start,

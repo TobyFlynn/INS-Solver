@@ -143,5 +143,22 @@ void load_mesh(std::string filename, INSData *nsData) {
       std::cerr << "Error reading in boundary edge type" << std::endl;
   }
 
+  cg_gopath(file, "/Base/Zone1/BCs");
+  char bcarrayName[33];
+  DataType_t bcarrayDataType;
+  int bcarrayRank;
+  cgsize_t bcarrayDims[2];
+  cg_array_info(1, bcarrayName, &bcarrayDataType, &bcarrayRank, bcarrayDims);
+  std::cout << "Array Name: " << bcarrayName << std::endl;
+  std::cout << "Array Dims: " << bcarrayDims[0] << " " << bcarrayDims[1] << std::endl;
+  std::vector<int> bcData(bcarrayDims[0] * bcarrayDims[1]);
+  cg_array_read(1, bcData.data());
+  for(int i = 0; i < 3; i++) {
+    nsData->pressure_dirichlet[i] = bcData[0 + i];
+    nsData->pressure_neumann[i] = bcData[3 + i];
+    nsData->viscosity_dirichlet[i] = bcData[6 + i];
+    nsData->viscosity_neumann[i] = bcData[9 + i];
+  }
+
   cg_close(file);
 }
