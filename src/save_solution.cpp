@@ -355,7 +355,7 @@ void save_solution_finalise(std::string filename, INSData *data, int numIter, do
   cg_close(file);
 }
 
-void save_solution(std::string filename, INSData *data, int ind) {
+void save_solution(std::string filename, INSData *data, int ind, double finalTime, double nu) {
   int numCells = op_get_size(data->cells);
   vector<double> x_v;
   vector<double> y_v;
@@ -443,6 +443,13 @@ void save_solution(std::string filename, INSData *data, int ind) {
   exp[0] = 0.0f; exp[1] = 0.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
   cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", vortIndex, "end");
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+
+  cgsize_t dim[2] = {1, 2};
+  double infoData[] = {finalTime, nu};
+  cg_gopath(file, "/Base/Zone1");
+  cg_user_data_write("info");
+  cg_gopath(file, "/Base/Zone1/info");
+  cg_array_write("info", CGNS_ENUMV(RealDouble), 2, dim, infoData);
 
   cg_close(file);
 }

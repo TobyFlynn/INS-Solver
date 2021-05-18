@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
   #endif
 
   // Save solution to CGNS file
-  save_solution(outputDir + "end.cgns", solver->data, currentIter % 2);
+  save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, time, nu);
 
   timer->endWallTime();
   timer->exportTimings(outputDir + "timings.csv", iter, time);

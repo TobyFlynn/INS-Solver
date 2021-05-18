@@ -18,18 +18,14 @@ extern char *optarg;
 extern int  optind, opterr, optopt;
 static struct option options[] = {
   {"file", required_argument, 0, 0},
-  {"t", required_argument, 0, 0},
   {0,    0,                  0,  0}
 };
 
 int main(int argc, char **argv) {
   string fileName = "end.cgns";
-  double time = 0.0;
-  double nu = 1e-3;
   int opt_index = 0;
   while(getopt_long_only(argc, argv, "", options, &opt_index) != -1) {
     if(strcmp((char*)options[opt_index].name,"file") == 0) fileName = optarg;
-    if(strcmp((char*)options[opt_index].name,"t") == 0) time = stod(optarg);
   }
 
   int file;
@@ -74,6 +70,12 @@ int main(int argc, char **argv) {
   cg_field_read(file, baseIndex, zoneIndex, flowIndex, "VelocityX", CGNS_ENUMV(RealDouble), &minVertex, &maxVertex, u.data());
   cg_field_read(file, baseIndex, zoneIndex, flowIndex, "VelocityY", CGNS_ENUMV(RealDouble), &minVertex, &maxVertex, v.data());
   cg_field_read(file, baseIndex, zoneIndex, flowIndex, "Pressure", CGNS_ENUMV(RealDouble), &minVertex, &maxVertex, pr.data());
+
+  cg_gopath(file, "/Base/Zone1/info");
+  double data[2];
+  cg_array_read(1, data);
+  double time = data[0];
+  double nu = data[1];
 
   cg_close(file);
 

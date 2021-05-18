@@ -68,6 +68,15 @@ inline void advection_bc_openacc( const int *bedge_type, const int *bedgeNum,
         exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu * 4.0 * PI * PI * *t);
       }
     }
+
+    if(*bedge_type == 1) {
+
+      for(int i = 0; i < 5; i++) {
+        int qInd = fmask[i];
+        exQ0[exInd + i] += q0[qInd];
+        exQ1[exInd + i] += q1[qInd];
+      }
+    }
   }
 }
 

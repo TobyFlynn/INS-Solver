@@ -114,6 +114,15 @@ void advection_bc_omp4_kernel(
           exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu_ompkernel * 4.0 * PI * PI * *t);
         }
       }
+
+      if(*bedge_type == 1) {
+
+        for(int i = 0; i < 5; i++) {
+          int qInd = fmask[i];
+          exQ0[exInd + i] += q0[qInd];
+          exQ1[exInd + i] += q1[qInd];
+        }
+      }
     }
     //end inline func
   }
