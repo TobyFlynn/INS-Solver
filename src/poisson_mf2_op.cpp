@@ -163,6 +163,7 @@ void Poisson_MF2::init() {
   KSPSetType(ksp, KSPCG);
   KSPSetOperators(ksp, Amat, Amat);
   KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
+  KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
 }
 
 bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
@@ -176,6 +177,8 @@ bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor)
               op_arg_dat(b_dat,0,data->bedge2cells,15,"double",OP_INC));
 
   load_vec(&b, b_dat);
+
+  load_vec(&x, x_dat);
 
   // Solve
   timer->startLinearSolveMF();
