@@ -168,6 +168,7 @@ void Poisson_M::init() {
   // PCSetType(pc, PCICC);
   PCSetType(pc, PCNONE);
   KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
+  KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
 }
 
 bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
@@ -188,6 +189,8 @@ bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   }
 
   KSPSetOperators(ksp, op, op);
+
+  load_vec(&x, x_dat);
 
   // Solve
   KSPSolve(ksp, rhs, x);
