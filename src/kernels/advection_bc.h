@@ -59,6 +59,10 @@ inline void advection_bc(const int *bedge_type, const int *bedgeNum,
         int qInd = fmask[i];
         exQ0[exInd + i] += q0[qInd];
         exQ1[exInd + i] += q1[qInd];
+        // double y1 = y[qInd];
+        // double x1 = x[qInd];
+        // exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu * 4.0 * PI * PI * *t);
+        // exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu * 4.0 * PI * PI * *t);
       }
     }
   }

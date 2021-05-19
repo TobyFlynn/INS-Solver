@@ -378,7 +378,7 @@ void save_solution(std::string filename, INSData *data, int ind, double finalTim
   int physicalDim = 2;
   cg_base_write(file, baseName.c_str(), cellDim, physicalDim, &baseIndex);
   // Create zone
-  string zoneName = "Zone";
+  string zoneName = "Zone1";
   cgsize_t sizes[3];
   // Number of vertices
   sizes[0] = x_v.size();
