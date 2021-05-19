@@ -84,26 +84,16 @@ void advection_bc_omp4_kernel(
         }
       } else if(*bedge_type == 1) {
 
-
-
-
-
-
+        for(int i = 0; i < 5; i++) {
+          int qInd = fmask[i];
+          exQ0[exInd + i] += q0[qInd];
+          exQ1[exInd + i] += q1[qInd];
+        }
       } else {
 
 
       }
     } else {
-
-
-
-
-
-
-
-
-
-
       if(*bedge_type == 0) {
 
         for(int i = 0; i < 5; i++) {
@@ -121,6 +111,10 @@ void advection_bc_omp4_kernel(
           int qInd = fmask[i];
           exQ0[exInd + i] += q0[qInd];
           exQ1[exInd + i] += q1[qInd];
+
+
+
+
         }
       }
     }

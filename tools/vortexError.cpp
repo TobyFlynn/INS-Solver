@@ -72,10 +72,17 @@ int main(int argc, char **argv) {
   cg_field_read(file, baseIndex, zoneIndex, flowIndex, "Pressure", CGNS_ENUMV(RealDouble), &minVertex, &maxVertex, pr.data());
 
   cg_gopath(file, "/Base/Zone1/info");
+  char infoName[33];
+  DataType_t infoDataType;
+  int infoRank;
+  cgsize_t infoDims[2];
+  cg_array_info(1, infoName, &infoDataType, &infoRank, infoDims);
   double data[2];
   cg_array_read(1, data);
   double time = data[0];
   double nu = data[1];
+  cout << "Time: " << time << endl;
+  cout << "nu: " << nu << endl;
 
   cg_close(file);
 

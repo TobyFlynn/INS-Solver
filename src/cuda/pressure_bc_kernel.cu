@@ -60,7 +60,7 @@ __device__ void pressure_bc_gpu( const int *bedge_type, const int *bedgeNum,
         double x1 = x[fmask[i]];
         double nx1 = nx[exInd + i];
         double ny1 = ny[exInd + i];
-        double bcdUndt = (nx1 * sin(2.0 * PI * y1) + ny1 * sin(2.0 * PI * x1))
+        double bcdUndt = -nu_cuda * 4.0 * PI * PI * (-nx1 * sin(2.0 * PI * y1) + ny1 * sin(2.0 * PI * x1))
                           * exp(-nu_cuda * 4.0 * PI * PI * *t);
         dPdN[exInd + i] -= bcdUndt;
       }
