@@ -14,6 +14,14 @@ int compute_local_size(int global_size, int mpi_comm_size, int mpi_rank) {
   return local_size;
 }
 
+int compute_global_start(int global_size, int mpi_comm_size, int mpi_rank) {
+  int start = 0;
+  for (int i = 0; i < mpi_rank; i++) {
+    start += compute_local_size(global_size, mpi_comm_size, i);
+  }
+  return start;
+}
+
 void scatter_double_array(double *g_array, double *l_array, int comm_size,
                           int g_size, int l_size, int elem_size) {
   int *sendcnts = (int *)malloc(comm_size * sizeof(int));
