@@ -237,6 +237,7 @@ INSData::INSData(std::string filename) {
   dpdy_data      = (double *)calloc(15 * numCells, sizeof(double));
   prBC_data      = (double *)calloc(21 * numCells, sizeof(double));
   vorticity_data = (double *)calloc(15 * numCells, sizeof(double));
+  save_temp_data = (double *)calloc(16 * numCells, sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -321,6 +322,7 @@ INSData::INSData(std::string filename) {
   dpdy      = op_decl_dat(cells, 15, "double", dpdy_data, "dpdy");
   prBC      = op_decl_dat(cells, 21, "double", prBC_data, "prBC");
   vorticity = op_decl_dat(cells, 15, "double", vorticity_data, "vorticity");
+  save_temp = op_decl_dat(cells, 16, "double", save_temp_data, "save_temp");
 
   op_decl_const2("gam",1,"double",&gam);
   op_decl_const2("mu",1,"double",&mu);
@@ -413,6 +415,7 @@ INSData::~INSData() {
   free(dpdy_data);
   free(prBC_data);
   free(vorticity_data);
+  free(save_temp_data);
 }
 
 void INSData::init() {

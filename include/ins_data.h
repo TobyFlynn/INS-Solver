@@ -70,6 +70,7 @@ public:
   op_dat prBC, visBC[2];
   op_dat dQdx[2], dQdy[2];
   op_dat vorticity;
+  op_dat save_temp;
 
   int pressure_dirichlet[3];
   int pressure_neumann[3];
@@ -113,6 +114,7 @@ private:
   double *dQdx_data[2];
   double *dQdy_data[2];
   double *vorticity_data;
+  double *save_temp_data;
 };
 
 class CubatureData {

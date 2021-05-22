@@ -50,6 +50,7 @@
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_gpu
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_gpu
 #define op_par_loop_lift_drag op_par_loop_lift_drag_gpu
+#define op_par_loop_save_values op_par_loop_save_values_gpu
 #include "ins_kernels.cu"
 #undef op_par_loop_init_nodes
 #undef op_par_loop_init_grid
@@ -97,6 +98,7 @@
 #undef op_par_loop_viscosity_rhs
 #undef op_par_loop_viscosity_reset_bc
 #undef op_par_loop_lift_drag
+#undef op_par_loop_save_values
 #else
 #define op_par_loop_init_nodes op_par_loop_init_nodes_cpu
 #define op_par_loop_init_grid op_par_loop_init_grid_cpu
@@ -144,6 +146,7 @@
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_cpu
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_cpu
 #define op_par_loop_lift_drag op_par_loop_lift_drag_cpu
+#define op_par_loop_save_values op_par_loop_save_values_cpu
 #include "../openmp/ins_kernels.cpp"
 #undef op_par_loop_init_nodes
 #undef op_par_loop_init_grid
@@ -191,6 +194,7 @@
 #undef op_par_loop_viscosity_rhs
 #undef op_par_loop_viscosity_reset_bc
 #undef op_par_loop_lift_drag
+#undef op_par_loop_save_values
 
 //user kernel files
 
@@ -3260,6 +3264,40 @@ void op_par_loop_lift_drag(char const *name, op_set set,
     arg9,
     arg10,
     arg11);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_save_values_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_save_values(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_save_values_gpu(name, set,
+      arg0,
+      arg1);
+
+    }else{
+    op_par_loop_save_values_cpu(name, set,
+      arg0,
+      arg1);
+
+  }
+}
+#else
+void op_par_loop_save_values(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  op_par_loop_save_values_gpu(name, set,
+    arg0,
+    arg1);
 
   }
 #endif //OP_HYBRID_GPU
