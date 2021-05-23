@@ -14,6 +14,14 @@ int compute_local_size(int global_size, int mpi_comm_size, int mpi_rank) {
   return local_size;
 }
 
+int compute_global_start(int global_size, int mpi_comm_size, int mpi_rank) {
+  int start = 0;
+  for (int i = 0; i < mpi_rank; i++) {
+    start += compute_local_size(global_size, mpi_comm_size, i);
+  }
+  return start;
+}
+
 void scatter_double_array(double *g_array, double *l_array, int comm_size,
                           int g_size, int l_size, int elem_size) {
   int *sendcnts = (int *)malloc(comm_size * sizeof(int));
@@ -93,4 +101,29 @@ int get_global_start_index(op_set set) {
 
   free(sizes);
   return index;
+}
+
+void gather_op2_double_array(double *g_array, double *l_array, int l_size,
+                             int elem_size, int comm_size, int rank) {
+  int *sizes = (int *)malloc(comm_size * sizeof(int));
+  MPI_Allgather(&l_size, 1, MPI_INT, sizes, 1, MPI_INT, MPI_COMM_WORLD);
+
+  int *sendcnts = (int *)malloc(comm_size * sizeof(int));
+  int *displs = (int *)malloc(comm_size * sizeof(int));
+  int disp = 0;
+
+  for (int i = 0; i < comm_size; i++) {
+    sendcnts[i] = elem_size * sizes[i];
+  }
+  for (int i = 0; i < comm_size; i++) {
+    displs[i] = disp;
+    disp = disp + sendcnts[i];
+  }
+
+  MPI_Gatherv(l_array, sizes[rank] * elem_size, MPI_DOUBLE, g_array, sendcnts,
+              displs, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+  free(sendcnts);
+  free(displs);
+  free(sizes);
 }

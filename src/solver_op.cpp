@@ -257,7 +257,7 @@ Solver::Solver(std::string filename, int pmethod, int prob) {
               op_arg_dat(data->nodeY,-1,OP_ID,3,"double",OP_READ),
               op_arg_gbl(&dt,1,"double",OP_MIN));
   dt = dt / 25.0;
-  cout << "dt: " << dt << endl;
+  op_printf("dt: %g\n", dt);
 }
 
 Solver::~Solver() {

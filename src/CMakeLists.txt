@@ -1,4 +1,4 @@
-set(KERNEL_HEADERS kernels/init_grid.h kernels/set_ic.h kernels/calc_dt.h kernels/lift_drag.h kernels/init_nodes.h)
+set(KERNEL_HEADERS kernels/init_grid.h kernels/set_ic.h kernels/calc_dt.h kernels/lift_drag.h kernels/init_nodes.h kernels/save_values.h)
 list(APPEND KERNEL_HEADERS kernels/init_cubature.h kernels/init_cubature_grad.h kernels/init_cubature_OP.h)
 list(APPEND KERNEL_HEADERS kernels/gauss_tau.h kernels/gauss_tau_bc.h kernels/init_gauss.h kernels/init_gauss_grad.h kernels/init_gauss_grad_neighbour.h kernels/gauss_grad_faces.h kernels/init_gauss_grad2.h kernels/gauss_op.h kernels/gauss_gfi_faces.h kernels/gauss_reverse.h)
 list(APPEND KERNEL_HEADERS kernels/div.h kernels/curl.h kernels/grad.h)
@@ -17,8 +17,8 @@ list(APPEND CUBLAS_SRC cuBLAS_op/init_gauss_op.cu cuBLAS_op/init_gauss_grad_op.c
 #list(APPEND CUBLAS_SRC cuBLAS_op/poisson_mf2_op.cu)
 
 set(COMMON_SRC solver_op.cpp operators_op.cpp poisson_op.cpp poisson_m_op.cpp poisson_mf2_op.cpp ins_data_op.cpp timing_op.cpp)
-set(CPU_SRC poisson_copy_op.cpp constants.cpp)
-set(GPU_SRC poisson_copy_op.cu constants.cu)
+set(CPU_SRC poisson_copy_op.cpp constants.cpp utils_op.cpp)
+set(GPU_SRC poisson_copy_op.cu constants.cu utils_op.cu)
 set(SN_SRC save_solution_op.cpp load_mesh.cpp)
 set(MPI_SRC save_solution_mpi_op.cpp load_mesh_mpi.cpp mpi_helper_func.cpp)
 
