@@ -108,7 +108,6 @@ void Poisson_M::setGlbInd() {
   int global_ind = 0;
   #ifdef INS_MPI
   global_ind = get_global_start_index(glb_ind->set);
-  std::cout << "GLOBAL IND: " << global_ind << std::endl;
   #endif
   op_arg args[] = {
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE)
