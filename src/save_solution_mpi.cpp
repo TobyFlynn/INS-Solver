@@ -235,22 +235,14 @@ void get_cells(vector<double> &x_v, vector<double> &y_v, vector<cgsize_t> &cells
   }
 }
 
-/*
-void save_solution_iter(std::string filename, INSData *data, int ind, int iter) {
-  int numCells = op_get_size(data->cells);
-  vector<double> x_v;
-  vector<double> y_v;
-  vector<double> u_v;
-  vector<double> v_v;
-  vector<double> pr_v;
-  vector<double> vort_v;
-  vector<cgsize_t> cells(3 * numCells * 16);
 
-  get_data_vectors(data, ind, x_v, y_v, u_v, v_v, pr_v, vort_v, cells);
+void save_solution_iter(std::string filename, INSData *data, int ind, int iter) {
+  // Calculate vorticity
+  curl(data, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
   int file;
-  if (cg_open(filename.c_str(), CG_MODE_MODIFY, &file)) {
-    cg_error_exit();
+  if (cgp_open(filename.c_str(), CG_MODE_MODIFY, &file)) {
+    cgp_error_exit();
   }
   int baseIndex = 1;
   int zoneIndex = 1;
@@ -258,23 +250,51 @@ void save_solution_iter(std::string filename, INSData *data, int ind, int iter) 
   int flowIndex;
   string flowName = "FlowSolution" + to_string(iter);
   // Create flow solution node
-  cg_sol_write(file, baseIndex, zoneIndex, flowName.c_str(), CGNS_ENUMV(Vertex), &flowIndex);
+  cg_sol_write(file, baseIndex, zoneIndex, flowName.c_str(), CGNS_ENUMV(CellCenter), &flowIndex);
 
-  // Write velocity x
+  cgsize_t numCells = data->cells->size * 16;
+  cgsize_t minCell = 16 * get_global_start_index(data->cells) + 1;
+  cgsize_t maxCell = minCell + numCells - 1;
+
+  op_par_loop(save_values, "save_values", data->cells,
+              op_arg_dat(data->Q[ind][0], -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+
   int velXIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityX", u_v.data(), &velXIndex);
+  double *velX_data = getOP2Array(data->save_temp);
+  cgp_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityX", &velXIndex);
+  cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, velXIndex, &minCell, &maxCell, velX_data);
+  free(velX_data);
 
-  // Write velocity y
+  op_par_loop(save_values, "save_values", data->cells,
+              op_arg_dat(data->Q[ind][1], -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+
   int velYIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityY", v_v.data(), &velYIndex);
+  double *velY_data = getOP2Array(data->save_temp);
+  cgp_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VelocityY", &velYIndex);
+  cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, velYIndex, &minCell, &maxCell, velY_data);
+  free(velY_data);
 
-  // Write pressure
+  op_par_loop(save_values, "save_values", data->cells,
+              op_arg_dat(data->p, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+
   int pIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Pressure", pr_v.data(), &pIndex);
+  double *p_data = getOP2Array(data->save_temp);
+  cgp_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Pressure", &pIndex);
+  cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, pIndex, &minCell, &maxCell, p_data);
+  free(p_data);
 
-  // Write vorticity
+  op_par_loop(save_values, "save_values", data->cells,
+              op_arg_dat(data->vorticity, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+
   int vortIndex;
-  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VorticityMagnitude", vort_v.data(), &vortIndex);
+  double *vort_data = getOP2Array(data->save_temp);
+  cgp_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VorticityMagnitude", &vortIndex);
+  cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, vortIndex, &minCell, &maxCell, vort_data);
+  free(vort_data);
 
   float exp[5];
   cg_goto(file, baseIndex, "end");
@@ -297,9 +317,9 @@ void save_solution_iter(std::string filename, INSData *data, int ind, int iter) 
   cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", vortIndex, "end");
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
-  cg_close(file);
+  cgp_close(file);
 }
-*/
+
 void save_solution_init(std::string filename, INSData *data) {
   // Calculate vorticity
   curl(data, data->Q[0][0], data->Q[0][1], data->vorticity);
@@ -466,8 +486,13 @@ void save_solution_init(std::string filename, INSData *data) {
     free(y_g);
   }
 }
-/*
+
 void save_solution_finalise(std::string filename, INSData *data, int numIter, double dt) {
+  int rank;
+  int comm_size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+
   vector<double> times;
   char flowPtrs[numIter][32];
 
@@ -478,8 +503,8 @@ void save_solution_finalise(std::string filename, INSData *data, int numIter, do
   }
 
   int file;
-  if (cg_open(filename.c_str(), CG_MODE_MODIFY, &file)) {
-    cg_error_exit();
+  if (cgp_open(filename.c_str(), CG_MODE_MODIFY, &file)) {
+    cgp_error_exit();
   }
   int baseIndex = 1;
   int zoneIndex = 1;
@@ -489,19 +514,38 @@ void save_solution_finalise(std::string filename, INSData *data, int numIter, do
   // Store time values of each iteration
   cg_gopath(file, "/Base/BaseIter");
   cgsize_t timeDims[1] = {times.size()};
-  cg_array_write("TimeValues", CGNS_ENUMV(RealDouble), 1, timeDims, times.data());
+  int timeIndex;
+  cgp_array_write("TimeValues", CGNS_ENUMV(RealDouble), 1, timeDims, &timeIndex);
+  if(rank == 0) {
+    cgsize_t min = 1;
+    cgsize_t max = times.size();
+    cgp_array_write_data(timeIndex, &min, &max, times.data());
+  } else {
+    cgsize_t min = 0;
+    cgsize_t max = 0;
+    cgp_array_write_data(timeIndex, &min, &max, NULL);
+  }
 
   // Create zone iteration node
   cg_ziter_write(file, baseIndex, zoneIndex, "ZoneIter");
   cg_gopath(file, "/Base/Zone/ZoneIter");
   cgsize_t flowPtrsDim[2] = {32, numIter};
-  cg_array_write("FlowSolutionPointers", CGNS_ENUMV(Character), 2, flowPtrsDim, flowPtrs);
+  int flowPtrIndex;
+  cgp_array_write("FlowSolutionPointers", CGNS_ENUMV(Character), 2, flowPtrsDim, &flowPtrIndex);
+  if(rank == 0) {
+    cgsize_t min[] = {1, 1};
+    cgp_array_write_data(flowPtrIndex, min, flowPtrsDim, flowPtrs);
+  } else {
+    cgsize_t min[] = {0, 0};
+    cgsize_t max[] = {0, 0};
+    cgp_array_write_data(flowPtrIndex, min, max, NULL);
+  }
 
   cg_simulation_type_write(file, baseIndex, CGNS_ENUMV(TimeAccurate));
 
-  cg_close(file);
+  cgp_close(file);
 }
-*/
+
 
 void save_solution(std::string filename, INSData *data, int ind, double finalTime, double nu) {
   // Calculate vorticity

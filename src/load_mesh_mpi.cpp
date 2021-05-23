@@ -1,6 +1,6 @@
 #include "load_mesh.h"
 
-#include "cgnslib.h"
+#include "pcgnslib.h"
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -19,8 +19,7 @@ void cgns_load_cells(int file, int baseIndex, int zoneIndex, int *cgnsCells, int
 template<>
 void cgns_load_cells<int>(int file, int baseIndex, int zoneIndex, int *cgnsCells, int start, int end) {
   std::vector<cgsize_t> cells((end - start + 1) * 3);
-  cgsize_t parentData;
-  cg_elements_partial_read(file, baseIndex, zoneIndex, 1, start, end, cells.data(), &parentData);
+  cgp_elements_read_data(file, baseIndex, zoneIndex, 1, start, end, cells.data());
   // CGNS starts numbering from 1 but OP2 starts from 0
   std::transform(cells.begin(), cells.end(), cgnsCells, [](int x) { return x - 1;});
 }
@@ -29,7 +28,7 @@ template<>
 void cgns_load_cells<long>(int file, int baseIndex, int zoneIndex, int *cgnsCells, int start, int end) {
   std::vector<cgsize_t> cells((end - start + 1) * 3);
   cgsize_t parentData;
-  cg_elements_partial_read(file, baseIndex, zoneIndex, 1, start, end, cells.data(), &parentData);
+  cgp_elements_read_data(file, baseIndex, zoneIndex, 1, start, end, cells.data());
   // CGNS starts numbering from 1 but OP2 starts from 0
   std::transform(cells.begin(), cells.end(), cgnsCells, [](long x) { return (int)x - 1;});
 }
@@ -39,13 +38,13 @@ void load_mesh(std::string filename, INSData *data) {
   int comm_size;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
-  
+
   int *bcs_g = (int *)malloc(12 * sizeof(int));
 
   // Read CGNS grid
   int file;
-  if(cg_open(filename.c_str(), CG_MODE_READ, &file)) {
-    cg_error_exit();
+  if(cgp_open(filename.c_str(), CG_MODE_READ, &file)) {
+    cgp_error_exit();
   }
 
   int baseIndex = 1;
@@ -62,10 +61,8 @@ void load_mesh(std::string filename, INSData *data) {
   std::vector<double> y(data->numNodes);
   cgsize_t minVertex = compute_global_start(data->numNodes_g, comm_size, rank) + 1;
   cgsize_t maxVertex = minVertex + data->numNodes - 1;
-  cg_coord_read(file, baseIndex, zoneIndex, "CoordinateX",
-                CGNS_ENUMV(RealDouble), &minVertex, &maxVertex, x.data());
-  cg_coord_read(file, baseIndex, zoneIndex, "CoordinateY",
-                CGNS_ENUMV(RealDouble), &minVertex, &maxVertex, y.data());
+  cgp_coord_read_data(file, baseIndex, zoneIndex, 1, &minVertex, &maxVertex, x.data());
+  cgp_coord_read_data(file, baseIndex, zoneIndex, 2, &minVertex, &maxVertex, y.data());
 
   data->coords = (double *)malloc(2 * data->numNodes * sizeof(double));
   for(int i = 0; i < x.size(); i++) {
@@ -108,10 +105,7 @@ void load_mesh(std::string filename, INSData *data) {
   std::vector<int> edgeData(arrayDims[0] * data->numEdges);
   cgsize_t edgeStart[] = {1, compute_global_start(data->numEdges_g, comm_size, rank) + 1};
   cgsize_t edgeEnd []  = {arrayDims[0], edgeStart[1] + data->numEdges - 1};
-  cgsize_t memDim   = arrayDims[0] * data->numEdges;
-  cgsize_t memStart = 1;
-  cgsize_t memEnd   = arrayDims[0] * data->numEdges;
-  cg_array_general_read(1, edgeStart, edgeEnd, CGNS_ENUMV(Integer), 1, &memDim, &memStart, &memEnd, edgeData.data());
+  cgp_array_read_data(1, edgeStart, edgeEnd, edgeData.data());
 
   for(int i = 0; i < data->numEdges; i++) {
     // - 1 as CGNS counts points from 1 but OP2 counts from 0
@@ -140,10 +134,7 @@ void load_mesh(std::string filename, INSData *data) {
   std::vector<int> bedgeData(barrayDims[0] * data->numBoundaryEdges);
   cgsize_t bedgeStart[] = {1, compute_global_start(data->numBoundaryEdges_g, comm_size, rank) + 1};
   cgsize_t bedgeEnd []  = {barrayDims[0], bedgeStart[1] + data->numBoundaryEdges - 1};
-  cgsize_t bmemDim   = barrayDims[0] * data->numBoundaryEdges;
-  cgsize_t bmemStart = 1;
-  cgsize_t bmemEnd   = barrayDims[0] * data->numBoundaryEdges;
-  cg_array_general_read(1, bedgeStart, bedgeEnd, CGNS_ENUMV(Integer), 1, &bmemDim, &bmemStart, &bmemEnd, bedgeData.data());
+  cgp_array_read_data(1, bedgeStart, bedgeEnd, bedgeData.data());
 
   for(int i = 0; i < data->numBoundaryEdges; i++) {
     // - 1 as CGNS counts points from 1 but OP2 counts from 0
@@ -163,7 +154,8 @@ void load_mesh(std::string filename, INSData *data) {
   int bcarrayRank;
   cgsize_t bcarrayDims[2];
   cg_array_info(1, bcarrayName, &bcarrayDataType, &bcarrayRank, bcarrayDims);
-  cg_array_read(1, bcs_g);
+  cgsize_t bcStart[] = {1, 1};
+  cgp_array_read_data(1, bcStart, bcarrayDims, bcs_g);
 
   cg_close(file);
 
