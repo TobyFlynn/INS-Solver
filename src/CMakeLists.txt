@@ -7,7 +7,8 @@ list(APPEND KERNEL_HEADERS kernels/pressure_bc.h kernels/pressure_bc2.h kernels/
 list(APPEND KERNEL_HEADERS kernels/viscosity_rhs.h kernels/viscosity_reset_bc.h kernels/viscosity_bc.h)
 list(APPEND KERNEL_HEADERS kernels/poisson_test_init.h kernels/poisson_test_bc.h kernels/poisson_test_error.h)
 list(APPEND KERNEL_HEADERS kernels/poisson_mf2.h kernels/poisson_mf2_mass.h kernels/poisson_mf2_faces.h kernels/poisson_mf2_op.h kernels/poisson_mf2_opf.h  kernels/poisson_mf2_opbf.h kernels/poisson_mf2_bc.h kernels/poisson_mf2_apply_bc)
-list(APPEND KERNEL_HEADERS kernels/init_surface.h)
+list(APPEND KERNEL_HEADERS kernels/init_surface.h kernels/set_rkQ.h kernels/update_Q.h)
+list(APPEND KERNEL_HEADERS kernels/ls_advec_edges.h kernels/ls_advec_bedges.h kernels/ls_advec_flux.h kernels/ls_advec_rhs.h)
 
 set(OPENBLAS_SRC openBLAS_op/init_grid_op.cpp openBLAS_op/op2_gemv_op.cpp openBLAS_op/op2_gemm_op.cpp openBLAS_op/op2_gemv_batch_op.cpp openBLAS_op/op2_gemm_batch_op.cpp)
 list(APPEND OPENBLAS_SRC openBLAS_op/init_gauss_op.cpp openBLAS_op/init_gauss_grad_op.cpp openBLAS_op/init_gauss_grad_neighbour_op.cpp)

@@ -52,6 +52,12 @@
 #define op_par_loop_lift_drag op_par_loop_lift_drag_gpu
 #define op_par_loop_save_values op_par_loop_save_values_gpu
 #define op_par_loop_init_surface op_par_loop_init_surface_gpu
+#define op_par_loop_set_rkQ op_par_loop_set_rkQ_gpu
+#define op_par_loop_update_Q op_par_loop_update_Q_gpu
+#define op_par_loop_ls_advec_edges op_par_loop_ls_advec_edges_gpu
+#define op_par_loop_ls_advec_bedges op_par_loop_ls_advec_bedges_gpu
+#define op_par_loop_ls_advec_flux op_par_loop_ls_advec_flux_gpu
+#define op_par_loop_ls_advec_rhs op_par_loop_ls_advec_rhs_gpu
 #include "ins_kernels.cu"
 #undef op_par_loop_init_nodes
 #undef op_par_loop_init_grid
@@ -101,6 +107,12 @@
 #undef op_par_loop_lift_drag
 #undef op_par_loop_save_values
 #undef op_par_loop_init_surface
+#undef op_par_loop_set_rkQ
+#undef op_par_loop_update_Q
+#undef op_par_loop_ls_advec_edges
+#undef op_par_loop_ls_advec_bedges
+#undef op_par_loop_ls_advec_flux
+#undef op_par_loop_ls_advec_rhs
 #else
 #define op_par_loop_init_nodes op_par_loop_init_nodes_cpu
 #define op_par_loop_init_grid op_par_loop_init_grid_cpu
@@ -150,6 +162,12 @@
 #define op_par_loop_lift_drag op_par_loop_lift_drag_cpu
 #define op_par_loop_save_values op_par_loop_save_values_cpu
 #define op_par_loop_init_surface op_par_loop_init_surface_cpu
+#define op_par_loop_set_rkQ op_par_loop_set_rkQ_cpu
+#define op_par_loop_update_Q op_par_loop_update_Q_cpu
+#define op_par_loop_ls_advec_edges op_par_loop_ls_advec_edges_cpu
+#define op_par_loop_ls_advec_bedges op_par_loop_ls_advec_bedges_cpu
+#define op_par_loop_ls_advec_flux op_par_loop_ls_advec_flux_cpu
+#define op_par_loop_ls_advec_rhs op_par_loop_ls_advec_rhs_cpu
 #include "../openmp/ins_kernels.cpp"
 #undef op_par_loop_init_nodes
 #undef op_par_loop_init_grid
@@ -199,6 +217,12 @@
 #undef op_par_loop_lift_drag
 #undef op_par_loop_save_values
 #undef op_par_loop_init_surface
+#undef op_par_loop_set_rkQ
+#undef op_par_loop_update_Q
+#undef op_par_loop_ls_advec_edges
+#undef op_par_loop_ls_advec_bedges
+#undef op_par_loop_ls_advec_flux
+#undef op_par_loop_ls_advec_rhs
 
 //user kernel files
 
@@ -3342,6 +3366,402 @@ void op_par_loop_init_surface(char const *name, op_set set,
     arg0,
     arg1,
     arg2);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_set_rkQ_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_set_rkQ(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_set_rkQ_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+    }else{
+    op_par_loop_set_rkQ_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+  }
+}
+#else
+void op_par_loop_set_rkQ(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  op_par_loop_set_rkQ_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_update_Q_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_update_Q(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_update_Q_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4);
+
+    }else{
+    op_par_loop_update_Q_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4);
+
+  }
+}
+#else
+void op_par_loop_update_Q(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
+
+  op_par_loop_update_Q_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_ls_advec_edges_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_ls_advec_edges(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_ls_advec_edges_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4);
+
+    }else{
+    op_par_loop_ls_advec_edges_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4);
+
+  }
+}
+#else
+void op_par_loop_ls_advec_edges(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
+
+  op_par_loop_ls_advec_edges_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_ls_advec_bedges_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_ls_advec_bedges(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_ls_advec_bedges_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+    }else{
+    op_par_loop_ls_advec_bedges_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+  }
+}
+#else
+void op_par_loop_ls_advec_bedges(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  op_par_loop_ls_advec_bedges_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_ls_advec_flux_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_ls_advec_flux(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_ls_advec_flux_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4);
+
+    }else{
+    op_par_loop_ls_advec_flux_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4);
+
+  }
+}
+#else
+void op_par_loop_ls_advec_flux(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4){
+
+  op_par_loop_ls_advec_flux_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_ls_advec_rhs_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10,
+  op_arg arg11,
+  op_arg arg12,
+  op_arg arg13,
+  op_arg arg14,
+  op_arg arg15,
+  op_arg arg16);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_ls_advec_rhs(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10,
+  op_arg arg11,
+  op_arg arg12,
+  op_arg arg13,
+  op_arg arg14,
+  op_arg arg15,
+  op_arg arg16){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_ls_advec_rhs_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6,
+      arg7,
+      arg8,
+      arg9,
+      arg10,
+      arg11,
+      arg12,
+      arg13,
+      arg14,
+      arg15,
+      arg16);
+
+    }else{
+    op_par_loop_ls_advec_rhs_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5,
+      arg6,
+      arg7,
+      arg8,
+      arg9,
+      arg10,
+      arg11,
+      arg12,
+      arg13,
+      arg14,
+      arg15,
+      arg16);
+
+  }
+}
+#else
+void op_par_loop_ls_advec_rhs(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10,
+  op_arg arg11,
+  op_arg arg12,
+  op_arg arg13,
+  op_arg arg14,
+  op_arg arg15,
+  op_arg arg16){
+
+  op_par_loop_ls_advec_rhs_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5,
+    arg6,
+    arg7,
+    arg8,
+    arg9,
+    arg10,
+    arg11,
+    arg12,
+    arg13,
+    arg14,
+    arg15,
+    arg16);
 
   }
 #endif //OP_HYBRID_GPU

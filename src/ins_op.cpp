@@ -190,6 +190,8 @@ int main(int argc, char **argv) {
     }
     timer->endViscosity();
 
+    solver->update_surface(currentIter % 2);
+
     currentIter++;
     time += solver->dt;
 

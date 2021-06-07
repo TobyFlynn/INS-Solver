@@ -12,18 +12,20 @@ public:
 
   void init();
 
-  // void setVelField(op_dat u1, op_dat v1);
-  // void step(double dt);
+  void setVelField(op_dat u1, op_dat v1);
+  void step(double dt);
 
   INSData *data;
   op_dat u, v;
   op_dat s; //, s_bc;
   op_dat rk[3], rkQ;
+  op_dat F, G, dFdr, dFds, dGdr, dGds, nFlux, exAdvec;
   /*
   op_dat dsdx, dsdy, sign, dsldx, dsrdx, dsldy, dsrdy, dpldx, dprdx, dpldy, dprdy;
   op_dat sigmax, sigmay, sigmaFx, sigmaFy, diff, diffF, tau;
   */
 private:
+  void advec_step(op_dat input, op_dat output);
   /*
   void calc_sigma(double epsilon);
   void calc_diff(double epsilon);
@@ -41,6 +43,15 @@ private:
   double *s_bc_data;
   double *rk_data[3];
   double *rkQ_data;
+
+  double *F_data;
+  double *G_data;
+  double *dFdr_data;
+  double *dFds_data;
+  double *dGdr_data;
+  double *dGds_data;
+  double *nFlux_data;
+  double *exAdvec_data;
   /*
   double *dsdx_data;
   double *dsdy_data;

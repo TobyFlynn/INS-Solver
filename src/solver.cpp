@@ -301,6 +301,13 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   return convergedX && convergedY;
 }
 
+void Solver::update_surface(int currentInd) {
+  if(ls) {
+    ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
+    ls->step(dt);
+  }
+}
+
 // Function to calculate lift and drag coefficients of the cylinder
 void Solver::lift_drag_coeff(double *lift, double *drag, int ind) {
   *lift = 0.0;

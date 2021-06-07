@@ -21,6 +21,8 @@ public:
   bool viscosity(int currentInd, double a0, double a1, double b0, double b1,
                  double g0, double t);
 
+  void update_surface(int currentInd);
+
   void lift_drag_coeff(double *lift, double *drag, int ind);
 
   double getAvgPressureConvergance();
