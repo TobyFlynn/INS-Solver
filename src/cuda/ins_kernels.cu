@@ -244,3 +244,4 @@ int size, char *dat, char const *name){
 #include "viscosity_reset_bc_kernel.cu"
 #include "lift_drag_kernel.cu"
 #include "save_values_kernel.cu"
+#include "init_surface_kernel.cu"

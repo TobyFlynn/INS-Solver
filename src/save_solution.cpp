@@ -13,6 +13,7 @@
 #include <cmath>
 
 #include "ins_data.h"
+#include "ls.h"
 #include "operators.h"
 
 using namespace std;
@@ -24,6 +25,7 @@ struct Point {
   double v;
   double pr;
   double vort;
+  double s;
   vector<int> cells;
   vector<int> pointNum;
   int counter;
@@ -40,9 +42,11 @@ struct cmpCoords {
     }
 };
 
-void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double> &y_v,
-                      vector<double> &u_v, vector<double> &v_v, vector<double> &pr_v,
-                      vector<double> &vort_v, vector<cgsize_t> &cells) {
+void get_data_vectors(INSData *data, int ind, LS *ls, vector<double> &x_v,
+                      vector<double> &y_v, vector<double> &u_v,
+                      vector<double> &v_v, vector<double> &pr_v,
+                      vector<double> &vort_v, vector<double> &s_v,
+                      vector<cgsize_t> &cells) {
   // Calculate vorticity
   curl(data, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
@@ -54,6 +58,7 @@ void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double
   double *vort = (double *)malloc(15 * numCells * sizeof(double));
   double *x    = (double *)malloc(15 * numCells * sizeof(double));
   double *y    = (double *)malloc(15 * numCells * sizeof(double));
+  double *s    = (double *)calloc(15 * numCells, sizeof(double));
 
   op_fetch_data(data->Q[ind][0], Ux);
   op_fetch_data(data->Q[ind][1], Uy);
@@ -61,6 +66,10 @@ void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double
   op_fetch_data(data->vorticity, vort);
   op_fetch_data(data->x, x);
   op_fetch_data(data->y, y);
+  if(ls) {
+    op_fetch_data(ls->s, s);
+  }
+
   // Maps points to sub elements that they are part of.
   // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
   // -1 is just padding to get each line to 6
@@ -115,6 +124,7 @@ void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double
         res.first->second->v    = Uy[ind + p];
         res.first->second->pr   = pr[ind + p];
         res.first->second->vort = vort[ind + p];
+        res.first->second->s    = s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
@@ -129,6 +139,7 @@ void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double
         res.first->second->v    += Uy[ind + p];
         res.first->second->pr   += pr[ind + p];
         res.first->second->vort += vort[ind + p];
+        res.first->second->s    += s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
@@ -151,12 +162,14 @@ void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double
     v_v.push_back(p.second->v / p.second->counter);
     pr_v.push_back(p.second->pr / p.second->counter);
     vort_v.push_back(p.second->vort / p.second->counter);
+    s_v.push_back(p.second->s / p.second->counter);
     for(int i = 0; i < p.second->cells.size(); i++) {
       cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
     }
     index++;
   }
 
+  free(s);
   free(Ux);
   free(Uy);
   free(pr);
@@ -165,7 +178,7 @@ void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double
   free(y);
 }
 
-void save_solution_iter(std::string filename, INSData *data, int ind, int iter) {
+void save_solution_iter(std::string filename, INSData *data, int ind, LS *ls, int iter) {
   int numCells = op_get_size(data->cells);
   vector<double> x_v;
   vector<double> y_v;
@@ -173,9 +186,10 @@ void save_solution_iter(std::string filename, INSData *data, int ind, int iter) 
   vector<double> v_v;
   vector<double> pr_v;
   vector<double> vort_v;
+  vector<double> s_v;
   vector<cgsize_t> cells(3 * numCells * 16);
 
-  get_data_vectors(data, ind, x_v, y_v, u_v, v_v, pr_v, vort_v, cells);
+  get_data_vectors(data, ind, ls, x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells);
 
   int file;
   if (cg_open(filename.c_str(), CG_MODE_MODIFY, &file)) {
@@ -205,6 +219,10 @@ void save_solution_iter(std::string filename, INSData *data, int ind, int iter) 
   int vortIndex;
   cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VorticityMagnitude", vort_v.data(), &vortIndex);
 
+  // Write surface
+  int sIndex;
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Surface", s_v.data(), &sIndex);
+
   float exp[5];
   cg_goto(file, baseIndex, "end");
   cg_dataclass_write(CGNS_ENUMV(Dimensional));
@@ -226,10 +244,14 @@ void save_solution_iter(std::string filename, INSData *data, int ind, int iter) 
   cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", vortIndex, "end");
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
+  exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = 0.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", sIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+
   cg_close(file);
 }
 
-void save_solution_init(std::string filename, INSData *data) {
+void save_solution_init(std::string filename, INSData *data, LS *ls) {
   int numCells = op_get_size(data->cells);
   vector<double> x_v;
   vector<double> y_v;
@@ -237,9 +259,10 @@ void save_solution_init(std::string filename, INSData *data) {
   vector<double> v_v;
   vector<double> pr_v;
   vector<double> vort_v;
+  vector<double> s_v;
   vector<cgsize_t> cells(3 * numCells * 16);
 
-  get_data_vectors(data, 0, x_v, y_v, u_v, v_v, pr_v, vort_v, cells);
+  get_data_vectors(data, 0, ls, x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells);
 
   int file;
   if (cg_open(filename.c_str(), CG_MODE_WRITE, &file)) {
@@ -296,6 +319,10 @@ void save_solution_init(std::string filename, INSData *data) {
   int vortIndex;
   cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VorticityMagnitude", vort_v.data(), &vortIndex);
 
+  // Write surface
+  int sIndex;
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Surface", s_v.data(), &sIndex);
+
   float exp[5];
   cg_goto(file, baseIndex, "end");
   cg_dataclass_write(CGNS_ENUMV(Dimensional));
@@ -317,10 +344,14 @@ void save_solution_init(std::string filename, INSData *data) {
   cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", vortIndex, "end");
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
+  exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = 0.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", sIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+
   cg_close(file);
 }
 
-void save_solution_finalise(std::string filename, INSData *data, int numIter, double dt) {
+void save_solution_finalise(std::string filename, int numIter, double dt) {
   vector<double> times;
   char flowPtrs[numIter][32];
 
@@ -355,7 +386,7 @@ void save_solution_finalise(std::string filename, INSData *data, int numIter, do
   cg_close(file);
 }
 
-void save_solution(std::string filename, INSData *data, int ind, double finalTime, double nu) {
+void save_solution(std::string filename, INSData *data, int ind, LS *ls, double finalTime, double nu) {
   int numCells = op_get_size(data->cells);
   vector<double> x_v;
   vector<double> y_v;
@@ -363,9 +394,10 @@ void save_solution(std::string filename, INSData *data, int ind, double finalTim
   vector<double> v_v;
   vector<double> pr_v;
   vector<double> vort_v;
+  vector<double> s_v;
   vector<cgsize_t> cells(3 * numCells * 16);
 
-  get_data_vectors(data, ind, x_v, y_v, u_v, v_v, pr_v, vort_v, cells);
+  get_data_vectors(data, ind, ls, x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells);
 
   int file;
   if (cg_open(filename.c_str(), CG_MODE_WRITE, &file)) {
@@ -423,6 +455,10 @@ void save_solution(std::string filename, INSData *data, int ind, double finalTim
   int vortIndex;
   cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "VorticityMagnitude", vort_v.data(), &vortIndex);
 
+  // Write surface
+  int sIndex;
+  cg_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Surface", s_v.data(), &sIndex);
+
   float exp[5];
   cg_goto(file, baseIndex, "end");
   cg_dataclass_write(CGNS_ENUMV(Dimensional));
@@ -442,6 +478,10 @@ void save_solution(std::string filename, INSData *data, int ind, double finalTim
 
   exp[0] = 0.0f; exp[1] = 0.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
   cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", vortIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+
+  exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = 0.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", sIndex, "end");
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
   cgsize_t dim[2] = {1, 2};

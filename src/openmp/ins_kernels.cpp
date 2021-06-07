@@ -94,3 +94,4 @@ extern double lift_drag_vec[5];
 #include "viscosity_reset_bc_kernel.cpp"
 #include "lift_drag_kernel.cpp"
 #include "save_values_kernel.cpp"
+#include "init_surface_kernel.cpp"

@@ -112,6 +112,10 @@ int main(int argc, char **argv) {
   int problem = 0;
   PetscOptionsGetInt(NULL, NULL, "-problem", &problem, &found);
 
+  int temp = 0;
+  PetscOptionsGetInt(NULL, NULL, "-multiphase", &temp, &found);
+  bool multiphase = (temp == 1);
+
   char inputFile[255];
   PetscOptionsGetString(NULL, NULL, "-input", inputFile, 255, &found);
   if(!found) {
@@ -135,7 +139,7 @@ int main(int argc, char **argv) {
 
   bc_alpha = 0.0;
 
-  Solver *solver = new Solver(filename, pmethod, problem);
+  Solver *solver = new Solver(filename, pmethod, problem, multiphase);
 
   double a0 = 1.0;
   double a1 = 0.0;
@@ -146,7 +150,7 @@ int main(int argc, char **argv) {
   double time = 0.0;
 
   if(save != -1) {
-    save_solution_init(outputDir + "sol.cgns", solver->data);
+    save_solution_init(outputDir + "sol.cgns", solver->data, solver->ls);
     // export_data_init(outputDir + "data.csv");
   }
 
@@ -199,17 +203,17 @@ int main(int argc, char **argv) {
       // timer->endLiftDrag();
 
       timer->startSave();
-      save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, (i + 1) / save);
+      save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, solver->ls, (i + 1) / save);
       timer->endSave();
     }
   }
   timer->endMainLoop();
 
   if(save != -1)
-    save_solution_finalise(outputDir + "sol.cgns", solver->data, (iter / save) + 1, solver->dt * save);
+    save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
 
   // Save solution to CGNS file
-  save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, time, nu);
+  save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, solver->ls, time, nu);
 
   timer->endWallTime();
   timer->exportTimings(outputDir + "timings.csv", iter, time);
@@ -220,7 +224,7 @@ int main(int argc, char **argv) {
   op_printf("Time to simulate 1 second: %g\n", timer->getWallTime() / time);
   op_printf("Average number of iterations to pressure convergance: %g\n", solver->getAvgPressureConvergance());
   op_printf("Average number of iterations to viscosity convergance: %g\n", solver->getAvgViscosityConvergance());
-  
+
   string op_out_file = outputDir + "op2_timings.csv";
   op_timings_to_csv(op_out_file.c_str());
 

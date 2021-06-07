@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
               op_arg_dat(data->p, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->Q[0][0], -1, OP_ID, 15, "double", OP_WRITE));
 
-  save_solution("end.cgns", data, 0);
+  save_solution("end.cgns", data, 0, NULL);
 
   free(rhs_data);
   free(bc_data);

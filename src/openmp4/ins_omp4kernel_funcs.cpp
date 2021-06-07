@@ -199,3 +199,4 @@ void op_decl_const_char(int dim, char const *type,
 #include "viscosity_reset_bc_omp4kernel_func.cpp"
 #include "lift_drag_omp4kernel_func.cpp"
 #include "save_values_omp4kernel_func.cpp"
+#include "init_surface_omp4kernel_func.cpp"

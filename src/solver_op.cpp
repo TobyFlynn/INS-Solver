@@ -209,11 +209,15 @@ extern Constants *constants;
 
 using namespace std;
 
-Solver::Solver(std::string filename, int pmethod, int prob) {
+Solver::Solver(std::string filename, int pmethod, int prob, bool multi) {
   problem = prob;
+  multiphase = multi;
   data = new INSData(filename);
   cubatureData = new CubatureData(data);
   gaussData = new GaussData(data);
+  if(multiphase) {
+    ls = new LS(data);
+  }
 
   if(pmethod == 0) {
     Poisson_M *pressureM = new Poisson_M(data, cubatureData, gaussData);
@@ -240,6 +244,9 @@ Solver::Solver(std::string filename, int pmethod, int prob) {
   data->init();
   cubatureData->init();
   gaussData->init();
+  if(multiphase) {
+    ls->init();
+  }
   pressurePoisson->init();
   viscosityPoisson->init();
 
@@ -263,6 +270,9 @@ Solver::Solver(std::string filename, int pmethod, int prob) {
 Solver::~Solver() {
   delete viscosityPoisson;
   delete pressurePoisson;
+  if(multiphase) {
+    delete ls;
+  }
   delete gaussData;
   delete cubatureData;
   delete data;

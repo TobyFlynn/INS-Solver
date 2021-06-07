@@ -51,6 +51,7 @@
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_gpu
 #define op_par_loop_lift_drag op_par_loop_lift_drag_gpu
 #define op_par_loop_save_values op_par_loop_save_values_gpu
+#define op_par_loop_init_surface op_par_loop_init_surface_gpu
 #include "ins_kernels.cu"
 #undef op_par_loop_init_nodes
 #undef op_par_loop_init_grid
@@ -99,6 +100,7 @@
 #undef op_par_loop_viscosity_reset_bc
 #undef op_par_loop_lift_drag
 #undef op_par_loop_save_values
+#undef op_par_loop_init_surface
 #else
 #define op_par_loop_init_nodes op_par_loop_init_nodes_cpu
 #define op_par_loop_init_grid op_par_loop_init_grid_cpu
@@ -147,6 +149,7 @@
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_cpu
 #define op_par_loop_lift_drag op_par_loop_lift_drag_cpu
 #define op_par_loop_save_values op_par_loop_save_values_cpu
+#define op_par_loop_init_surface op_par_loop_init_surface_cpu
 #include "../openmp/ins_kernels.cpp"
 #undef op_par_loop_init_nodes
 #undef op_par_loop_init_grid
@@ -195,6 +198,7 @@
 #undef op_par_loop_viscosity_reset_bc
 #undef op_par_loop_lift_drag
 #undef op_par_loop_save_values
+#undef op_par_loop_init_surface
 
 //user kernel files
 
@@ -3298,6 +3302,46 @@ void op_par_loop_save_values(char const *name, op_set set,
   op_par_loop_save_values_gpu(name, set,
     arg0,
     arg1);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_init_surface_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_init_surface(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_init_surface_gpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+    }else{
+    op_par_loop_init_surface_cpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+  }
+}
+#else
+void op_par_loop_init_surface(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  op_par_loop_init_surface_gpu(name, set,
+    arg0,
+    arg1,
+    arg2);
 
   }
 #endif //OP_HYBRID_GPU
