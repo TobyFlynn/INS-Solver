@@ -15,6 +15,11 @@ extern "C" {
 #endif
 #endif
 
+void op_par_loop_calc_h(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg );
+
 void op_par_loop_init_surface(char const *, op_set,
   op_arg,
   op_arg,
@@ -75,6 +80,61 @@ void op_par_loop_ls_advec_rhs(char const *, op_set,
   op_arg,
   op_arg,
   op_arg );
+
+void op_par_loop_ls_sign(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
+void op_par_loop_ls_flux(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
+void op_par_loop_ls_bflux(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
+void op_par_loop_ls_copy(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
+void op_par_loop_ls_rhs(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
+void op_par_loop_ls_add_diff(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -82,19 +142,34 @@ void op_par_loop_ls_advec_rhs(char const *, op_set,
 #endif
 
 
+#include <limits>
+
 #include "constants.h"
 #include "blas_calls.h"
+#include "operators.h"
 
 #include "kernels/init_surface.h"
+#include "kernels/calc_h.h"
+
 #include "kernels/set_rkQ.h"
 #include "kernels/update_Q.h"
+
 #include "kernels/ls_advec_edges.h"
 #include "kernels/ls_advec_bedges.h"
 #include "kernels/ls_advec_flux.h"
 #include "kernels/ls_advec_rhs.h"
 
-LS::LS(INSData *d) {
+#include "kernels/ls_sign.h"
+#include "kernels/ls_flux.h"
+#include "kernels/ls_bflux.h"
+#include "kernels/ls_copy.h"
+#include "kernels/ls_rhs.h"
+#include "kernels/ls_add_diff.h"
+
+LS::LS(INSData *d, CubatureData *c, GaussData *g) {
   data = d;
+  cData = c;
+  gData = g;
 
   s_data = (double *)calloc(15 * data->numCells, sizeof(double));
 
@@ -112,6 +187,21 @@ LS::LS(INSData *d) {
   nFlux_data   = (double *)calloc(15 * data->numCells, sizeof(double));
   exAdvec_data = (double *)calloc(15 * data->numCells, sizeof(double));
 
+  dsdx_data   = (double *)calloc(15 * data->numCells, sizeof(double));
+  dsdy_data   = (double *)calloc(15 * data->numCells, sizeof(double));
+  sign_data   = (double *)calloc(15 * data->numCells, sizeof(double));
+  gS_data     = (double *)calloc(21 * data->numCells, sizeof(double));
+  dsldx_data  = (double *)calloc(21 * data->numCells, sizeof(double));
+  dsrdx_data  = (double *)calloc(21 * data->numCells, sizeof(double));
+  dsldy_data  = (double *)calloc(21 * data->numCells, sizeof(double));
+  dsrdy_data  = (double *)calloc(21 * data->numCells, sizeof(double));
+  dpldx_data  = (double *)calloc(15 * data->numCells, sizeof(double));
+  dprdx_data  = (double *)calloc(15 * data->numCells, sizeof(double));
+  dpldy_data  = (double *)calloc(15 * data->numCells, sizeof(double));
+  dprdy_data  = (double *)calloc(15 * data->numCells, sizeof(double));
+
+  diff_data    = (double *)calloc(15 * data->numCells, sizeof(double));
+
   s = op_decl_dat(data->cells, 15, "double", s_data, "s");
 
   rk[0] = op_decl_dat(data->cells, 15, "double", rk_data[0], "rk0");
@@ -127,6 +217,21 @@ LS::LS(INSData *d) {
   dGds    = op_decl_dat(data->cells, 15, "double", dGds_data, "dGds");
   nFlux   = op_decl_dat(data->cells, 15, "double", nFlux_data, "nFlux");
   exAdvec = op_decl_dat(data->cells, 15, "double", exAdvec_data, "exAdvec");
+
+  dsdx   = op_decl_dat(data->cells, 15, "double", dsdx_data, "dsdx");
+  dsdy   = op_decl_dat(data->cells, 15, "double", dsdy_data, "dsdy");
+  sign   = op_decl_dat(data->cells, 15, "double", sign_data, "sign");
+  gS     = op_decl_dat(data->cells, 21, "double", gS_data, "gS");
+  dsldx  = op_decl_dat(data->cells, 21, "double", dsldx_data, "dsldx");
+  dsrdx  = op_decl_dat(data->cells, 21, "double", dsrdx_data, "dsrdx");
+  dsldy  = op_decl_dat(data->cells, 21, "double", dsldy_data, "dsldy");
+  dsrdy  = op_decl_dat(data->cells, 21, "double", dsrdy_data, "dsrdy");
+  dpldx  = op_decl_dat(data->cells, 15, "double", dpldx_data, "dpldx");
+  dprdx  = op_decl_dat(data->cells, 15, "double", dprdx_data, "dprdx");
+  dpldy  = op_decl_dat(data->cells, 15, "double", dpldy_data, "dpldy");
+  dprdy  = op_decl_dat(data->cells, 15, "double", dprdy_data, "dprdy");
+
+  diff    = op_decl_dat(data->cells, 15, "double", diff_data, "diff");
 }
 
 LS::~LS() {
@@ -145,9 +250,30 @@ LS::~LS() {
   free(dGds_data);
   free(nFlux_data);
   free(exAdvec_data);
+
+  free(dsdx_data);
+  free(dsdy_data);
+  free(sign_data);
+  free(gS_data);
+  free(dsldx_data);
+  free(dsrdx_data);
+  free(dsldy_data);
+  free(dsrdy_data);
+  free(dpldx_data);
+  free(dprdx_data);
+  free(dpldy_data);
+  free(dprdy_data);
+
+  free(diff_data);
 }
 
 void LS::init() {
+  h = std::numeric_limits<double>::max();
+  op_par_loop_calc_h("calc_h",data->cells,
+              op_arg_dat(data->nodeX,-1,OP_ID,3,"double",OP_READ),
+              op_arg_dat(data->nodeY,-1,OP_ID,3,"double",OP_READ),
+              op_arg_gbl(&h,1,"double",OP_MIN));
+
   op_par_loop_init_surface("init_surface",data->cells,
               op_arg_dat(data->x,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->y,-1,OP_ID,15,"double",OP_READ),
@@ -242,4 +368,113 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(output,-1,OP_ID,15,"double",OP_WRITE));
 
   op2_gemv(true, 15, 15, -1.0, constants->get_ptr(Constants::LIFT), 15, nFlux, 1.0, output);
+}
+
+void LS::reinit_ls() {
+  double alpha = 2.0 * h / 4.0;
+  double epsilon = h / 4.0;
+  double dt = 1.0 / ((16.0 / h) + epsilon * ((16.0*16.0)/(h*h)));
+
+  grad(data, s, dsdx, dsdy);
+  op_par_loop_ls_sign("ls_sign",data->cells,
+              op_arg_gbl(&alpha,1,"double",OP_READ),
+              op_arg_dat(s,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(dsdx,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(dsdy,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(sign,-1,OP_ID,15,"double",OP_WRITE));
+
+  double t = 0.0;
+  while(t < alpha * 1.5) {
+    int x = -1;
+    op_par_loop_set_rkQ("set_rkQ",data->cells,
+                op_arg_gbl(&x,1,"int",OP_READ),
+                op_arg_gbl(&dt,1,"double",OP_READ),
+                op_arg_dat(s,-1,OP_ID,15,"double",OP_READ),
+                op_arg_dat(rk[0],-1,OP_ID,15,"double",OP_READ),
+                op_arg_dat(rk[1],-1,OP_ID,15,"double",OP_READ),
+                op_arg_dat(rkQ,-1,OP_ID,15,"double",OP_RW));
+
+    for(int j = 0; j < 3; j++) {
+      op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, rkQ, 0.0, gS);
+
+      op_par_loop_ls_flux("ls_flux",data->edges,
+                  op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
+                  op_arg_dat(data->nodeX,-2,data->edge2cells,3,"double",OP_READ),
+                  op_arg_dat(data->nodeY,-2,data->edge2cells,3,"double",OP_READ),
+                  op_arg_dat(gData->sJ,-2,data->edge2cells,21,"double",OP_READ),
+                  op_arg_dat(gData->nx,-2,data->edge2cells,21,"double",OP_READ),
+                  op_arg_dat(gData->ny,-2,data->edge2cells,21,"double",OP_READ),
+                  op_arg_dat(gS,-2,data->edge2cells,21,"double",OP_READ),
+                  op_arg_dat(dsldx,-2,data->edge2cells,21,"double",OP_INC),
+                  op_arg_dat(dsrdx,-2,data->edge2cells,21,"double",OP_INC),
+                  op_arg_dat(dsldy,-2,data->edge2cells,21,"double",OP_INC),
+                  op_arg_dat(dsrdy,-2,data->edge2cells,21,"double",OP_INC));
+
+      op_par_loop_ls_bflux("ls_bflux",data->bedges,
+                  op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
+                  op_arg_dat(gData->sJ,0,data->bedge2cells,21,"double",OP_READ),
+                  op_arg_dat(gData->nx,0,data->bedge2cells,21,"double",OP_READ),
+                  op_arg_dat(gData->ny,0,data->bedge2cells,21,"double",OP_READ),
+                  op_arg_dat(gS,0,data->bedge2cells,21,"double",OP_READ),
+                  op_arg_dat(dsldx,0,data->bedge2cells,21,"double",OP_INC),
+                  op_arg_dat(dsrdx,0,data->bedge2cells,21,"double",OP_INC),
+                  op_arg_dat(dsldy,0,data->bedge2cells,21,"double",OP_INC),
+                  op_arg_dat(dsrdy,0,data->bedge2cells,21,"double",OP_INC));
+
+      cub_grad_weak(data, cData, rkQ, dsdx, dsdy);
+
+      op_par_loop_ls_copy("ls_copy",data->cells,
+                  op_arg_dat(dsdx,-1,OP_ID,15,"double",OP_READ),
+                  op_arg_dat(dsdy,-1,OP_ID,15,"double",OP_READ),
+                  op_arg_dat(dpldx,-1,OP_ID,15,"double",OP_WRITE),
+                  op_arg_dat(dprdx,-1,OP_ID,15,"double",OP_WRITE),
+                  op_arg_dat(dpldy,-1,OP_ID,15,"double",OP_WRITE),
+                  op_arg_dat(dprdy,-1,OP_ID,15,"double",OP_WRITE));
+
+      op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, dsldx, 1.0, dpldx);
+      op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, dsrdx, 1.0, dprdx);
+      op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, dsldy, 1.0, dpldy);
+      op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, dsrdy, 1.0, dprdy);
+
+      op_par_loop_ls_rhs("ls_rhs",data->cells,
+                  op_arg_dat(sign,-1,OP_ID,15,"double",OP_READ),
+                  op_arg_dat(dpldx,-1,OP_ID,15,"double",OP_READ),
+                  op_arg_dat(dprdx,-1,OP_ID,15,"double",OP_READ),
+                  op_arg_dat(dpldy,-1,OP_ID,15,"double",OP_READ),
+                  op_arg_dat(dprdy,-1,OP_ID,15,"double",OP_READ),
+                  op_arg_dat(rk[j],-1,OP_ID,15,"double",OP_WRITE));
+
+      calc_diff(epsilon);
+
+      op_par_loop_ls_add_diff("ls_add_diff",data->cells,
+                  op_arg_dat(diff,-1,OP_ID,15,"double",OP_READ),
+                  op_arg_dat(rk[j],-1,OP_ID,15,"double",OP_RW),
+                  op_arg_dat(dsldx,-1,OP_ID,21,"double",OP_WRITE),
+                  op_arg_dat(dsrdx,-1,OP_ID,21,"double",OP_WRITE),
+                  op_arg_dat(dsldy,-1,OP_ID,21,"double",OP_WRITE),
+                  op_arg_dat(dsrdy,-1,OP_ID,21,"double",OP_WRITE));
+
+      if(j != 2) {
+        op_par_loop_set_rkQ("set_rkQ",data->cells,
+                    op_arg_gbl(&j,1,"int",OP_READ),
+                    op_arg_gbl(&dt,1,"double",OP_READ),
+                    op_arg_dat(s,-1,OP_ID,15,"double",OP_READ),
+                    op_arg_dat(rk[0],-1,OP_ID,15,"double",OP_READ),
+                    op_arg_dat(rk[1],-1,OP_ID,15,"double",OP_READ),
+                    op_arg_dat(rkQ,-1,OP_ID,15,"double",OP_RW));
+      }
+    }
+    op_par_loop_update_Q("update_Q",data->cells,
+                op_arg_gbl(&dt,1,"double",OP_READ),
+                op_arg_dat(s,-1,OP_ID,15,"double",OP_RW),
+                op_arg_dat(rk[0],-1,OP_ID,15,"double",OP_READ),
+                op_arg_dat(rk[1],-1,OP_ID,15,"double",OP_READ),
+                op_arg_dat(rk[2],-1,OP_ID,15,"double",OP_READ));
+
+    t += dt;
+  }
+}
+
+void LS::calc_diff(double epsilon) {
+
 }

@@ -10,4 +10,6 @@ void curl(INSData *data, op_dat u, op_dat v, op_dat res);
 
 void grad(INSData *data, op_dat u, op_dat ux, op_dat uy);
 
+void cub_grad_weak(INSData *data, CubatureData *cData, op_dat u, op_dat ux, op_dat uy);
+
 #endif

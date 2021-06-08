@@ -7,7 +7,7 @@
 
 class LS {
 public:
-  LS(INSData *d);
+  LS(INSData *d, CubatureData *c, GaussData *g);
   ~LS();
 
   void init();
@@ -16,28 +16,26 @@ public:
   void step(double dt);
 
   INSData *data;
+  CubatureData *cData;
+  GaussData *gData;
+
   op_dat u, v;
   op_dat s; //, s_bc;
   op_dat rk[3], rkQ;
   op_dat F, G, dFdr, dFds, dGdr, dGds, nFlux, exAdvec;
-  /*
-  op_dat dsdx, dsdy, sign, dsldx, dsrdx, dsldy, dsrdy, dpldx, dprdx, dpldy, dprdy;
-  op_dat sigmax, sigmay, sigmaFx, sigmaFy, diff, diffF, tau;
-  */
+
+  op_dat dsdx, dsdy, sign, gS, dsldx, dsrdx, dsldy, dsrdy, dpldx, dprdx, dpldy, dprdy;
+  // op_dat sigmax, sigmay, sigmaFx, sigmaFy, diff, diffF, tau;
+  op_dat diff;
 private:
   void advec_step(op_dat input, op_dat output);
-  /*
-  void calc_sigma(double epsilon);
+
+  // void calc_sigma(double epsilon);
   void calc_diff(double epsilon);
-  double get_residual();
+  // double get_residual();
   void reinit_ls();
 
-
   double h;
-  double tol;
-  int maxIter;
-  double prev_res;
-  */
 
   double *s_data;
   double *s_bc_data;
@@ -52,10 +50,11 @@ private:
   double *dGds_data;
   double *nFlux_data;
   double *exAdvec_data;
-  /*
+
   double *dsdx_data;
   double *dsdy_data;
   double *sign_data;
+  double *gS_data;
   double *dsldx_data;
   double *dsrdx_data;
   double *dsldy_data;
@@ -64,6 +63,9 @@ private:
   double *dprdx_data;
   double *dpldy_data;
   double *dprdy_data;
+
+  double *diff_data;
+  /*
   double *sigmax_data;
   double *sigmay_data;
   double *sigmaFx_data;

@@ -216,7 +216,7 @@ Solver::Solver(std::string filename, int pmethod, int prob, bool multi) {
   cubatureData = new CubatureData(data);
   gaussData = new GaussData(data);
   if(multiphase) {
-    ls = new LS(data);
+    ls = new LS(data, cubatureData, gaussData);
   }
 
   if(pmethod == 0) {
