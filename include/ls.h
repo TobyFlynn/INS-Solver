@@ -25,8 +25,7 @@ public:
   op_dat F, G, dFdr, dFds, dGdr, dGds, nFlux, exAdvec;
 
   op_dat dsdx, dsdy, sign, gS, dsldx, dsrdx, dsldy, dsrdy, dpldx, dprdx, dpldy, dprdy;
-  // op_dat sigmax, sigmay, sigmaFx, sigmaFy, diff, diffF, tau;
-  op_dat diff;
+  op_dat sigmax, sigmay, sigmaFx, sigmaFy, gSigmax, gSigmay, diff, diffF;
 private:
   void advec_step(op_dat input, op_dat output);
 
@@ -36,6 +35,7 @@ private:
   void reinit_ls();
 
   double h;
+  int counter;
 
   double *s_data;
   double *s_bc_data;
@@ -64,16 +64,14 @@ private:
   double *dpldy_data;
   double *dprdy_data;
 
-  double *diff_data;
-  /*
   double *sigmax_data;
   double *sigmay_data;
   double *sigmaFx_data;
   double *sigmaFy_data;
+  double *gSigmax_data;
+  double *gSigmay_data;
   double *diff_data;
   double *diffF_data;
-  double *tau_data;
-  */
 };
 
 #endif

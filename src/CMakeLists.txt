@@ -1,7 +1,7 @@
 set(KERNEL_HEADERS kernels/init_grid.h kernels/set_ic.h kernels/calc_dt.h kernels/lift_drag.h kernels/init_nodes.h kernels/save_values.h)
 list(APPEND KERNEL_HEADERS kernels/init_cubature.h kernels/init_cubature_grad.h kernels/init_cubature_OP.h)
 list(APPEND KERNEL_HEADERS kernels/gauss_tau.h kernels/gauss_tau_bc.h kernels/init_gauss.h kernels/init_gauss_grad.h kernels/init_gauss_grad_neighbour.h kernels/gauss_grad_faces.h kernels/init_gauss_grad2.h kernels/gauss_op.h kernels/gauss_gfi_faces.h kernels/gauss_reverse.h)
-list(APPEND KERNEL_HEADERS kernels/div.h kernels/curl.h kernels/grad.h kernels/cub_grad_weak.h)
+list(APPEND KERNEL_HEADERS kernels/div.h kernels/curl.h kernels/grad.h kernels/cub_grad.h kernels/cub_grad_weak.h kernels/cub_div_weak.h kernels/inv_J.h)
 list(APPEND KERNEL_HEADERS kernels/advection_flux.h kernels/advection_faces.h kernels/advection_bc.h kernels/advection_numerical_flux.h kernels/advection_intermediate_vel.h)
 list(APPEND KERNEL_HEADERS kernels/pressure_bc.h kernels/pressure_bc2.h kernels/pressure_rhs.h kernels/pressure_update_vel.h)
 list(APPEND KERNEL_HEADERS kernels/viscosity_rhs.h kernels/viscosity_reset_bc.h kernels/viscosity_bc.h)
@@ -10,6 +10,7 @@ list(APPEND KERNEL_HEADERS kernels/poisson_mf2.h kernels/poisson_mf2_mass.h kern
 list(APPEND KERNEL_HEADERS kernels/init_surface.h kernels/calc_h.h kernels/set_rkQ.h kernels/update_Q.h)
 list(APPEND KERNEL_HEADERS kernels/ls_advec_edges.h kernels/ls_advec_bedges.h kernels/ls_advec_flux.h kernels/ls_advec_rhs.h)
 list(APPEND KERNEL_HEADERS kernels/ls_sign.h kernels/ls_flux.h kernels/ls_bflux.h kernels/ls_copy.h kernels/ls_rhs.h kernels/ls_add_diff.h)
+list(APPEND KERNEL_HEADERS kernels/sigma_flux.h kernels/sigma_bflux.h kernels/sigma_mult.h kernels/diff_flux.h kernels/diff_bflux.h)
 
 set(OPENBLAS_SRC openBLAS_op/init_grid_op.cpp openBLAS_op/op2_gemv_op.cpp openBLAS_op/op2_gemm_op.cpp openBLAS_op/op2_gemv_batch_op.cpp openBLAS_op/op2_gemm_batch_op.cpp)
 list(APPEND OPENBLAS_SRC openBLAS_op/init_gauss_op.cpp openBLAS_op/init_gauss_grad_op.cpp openBLAS_op/init_gauss_grad_neighbour_op.cpp)

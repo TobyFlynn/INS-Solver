@@ -52,7 +52,7 @@ inline void ls_flux_openacc( const int *edgeNum, const double **x, const double 
     int rInd;
     int lInd = exIndL + i;
     if(reverse) {
-      rInd = exIndR + 7 + i - 1;
+      rInd = exIndR + 7 - i - 1;
     } else {
       rInd = exIndR + i;
     }
@@ -78,7 +78,7 @@ inline void ls_flux_openacc( const int *edgeNum, const double **x, const double 
     int lInd;
     int rInd = exIndR + i;
     if(reverse) {
-      lInd = exIndL + 7 + i - 1;
+      lInd = exIndL + 7 - i - 1;
     } else {
       lInd = exIndL + i;
     }
@@ -182,10 +182,10 @@ void op_par_loop_ls_flux(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(57);
+  op_timing_realloc(60);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[57].name      = name;
-  OP_kernels[57].count    += 1;
+  OP_kernels[60].name      = name;
+  OP_kernels[60].count    += 1;
 
   int  ninds   = 10;
   int  inds[21] = {-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9};
@@ -195,8 +195,8 @@ void op_par_loop_ls_flux(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_57
-    int part_size = OP_PART_SIZE_57;
+  #ifdef OP_PART_SIZE_60
+    int part_size = OP_PART_SIZE_60;
   #else
     int part_size = OP_part_size;
   #endif
@@ -291,8 +291,8 @@ void op_par_loop_ls_flux(char const *name, op_set set,
       }
 
     }
-    OP_kernels[57].transfer  += Plan->transfer;
-    OP_kernels[57].transfer2 += Plan->transfer2;
+    OP_kernels[60].transfer  += Plan->transfer;
+    OP_kernels[60].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -303,5 +303,5 @@ void op_par_loop_ls_flux(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[57].time     += wall_t2 - wall_t1;
+  OP_kernels[60].time     += wall_t2 - wall_t1;
 }

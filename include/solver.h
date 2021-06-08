@@ -29,10 +29,11 @@ public:
   double getAvgViscosityConvergance();
 
   INSData *data;
+  CubatureData *cubatureData;
   LS *ls;
   double dt;
 private:
-  CubatureData *cubatureData;
+  // CubatureData *cubatureData;
   GaussData *gaussData;
   Poisson *pressurePoisson;
   Poisson *viscosityPoisson;

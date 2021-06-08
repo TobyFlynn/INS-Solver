@@ -26,10 +26,18 @@
 #include "kernels/ls_rhs.h"
 #include "kernels/ls_add_diff.h"
 
+#include "kernels/sigma_flux.h"
+#include "kernels/sigma_bflux.h"
+#include "kernels/sigma_mult.h"
+#include "kernels/diff_flux.h"
+#include "kernels/diff_bflux.h"
+
 LS::LS(INSData *d, CubatureData *c, GaussData *g) {
   data = d;
   cData = c;
   gData = g;
+
+  counter = 0;
 
   s_data = (double *)calloc(15 * data->numCells, sizeof(double));
 
@@ -60,7 +68,14 @@ LS::LS(INSData *d, CubatureData *c, GaussData *g) {
   dpldy_data  = (double *)calloc(15 * data->numCells, sizeof(double));
   dprdy_data  = (double *)calloc(15 * data->numCells, sizeof(double));
 
+  sigmax_data  = (double *)calloc(15 * data->numCells, sizeof(double));
+  sigmay_data  = (double *)calloc(15 * data->numCells, sizeof(double));
+  sigmaFx_data = (double *)calloc(21 * data->numCells, sizeof(double));
+  sigmaFy_data = (double *)calloc(21 * data->numCells, sizeof(double));
+  gSigmax_data = (double *)calloc(21 * data->numCells, sizeof(double));
+  gSigmay_data = (double *)calloc(21 * data->numCells, sizeof(double));
   diff_data    = (double *)calloc(15 * data->numCells, sizeof(double));
+  diffF_data   = (double *)calloc(21 * data->numCells, sizeof(double));
 
   s = op_decl_dat(data->cells, 15, "double", s_data, "s");
 
@@ -91,7 +106,14 @@ LS::LS(INSData *d, CubatureData *c, GaussData *g) {
   dpldy  = op_decl_dat(data->cells, 15, "double", dpldy_data, "dpldy");
   dprdy  = op_decl_dat(data->cells, 15, "double", dprdy_data, "dprdy");
 
+  sigmax  = op_decl_dat(data->cells, 15, "double", sigmax_data, "sigmax");
+  sigmay  = op_decl_dat(data->cells, 15, "double", sigmay_data, "sigmay");
+  sigmaFx = op_decl_dat(data->cells, 21, "double", sigmaFx_data, "sigmaFx");
+  sigmaFy = op_decl_dat(data->cells, 21, "double", sigmaFy_data, "sigmaFy");
+  gSigmax = op_decl_dat(data->cells, 21, "double", gSigmax_data, "gSigmax");
+  gSigmay = op_decl_dat(data->cells, 21, "double", gSigmay_data, "gSigmay");
   diff    = op_decl_dat(data->cells, 15, "double", diff_data, "diff");
+  diffF   = op_decl_dat(data->cells, 21, "double", diffF_data, "diffF");
 }
 
 LS::~LS() {
@@ -124,7 +146,14 @@ LS::~LS() {
   free(dpldy_data);
   free(dprdy_data);
 
+  free(sigmax_data);
+  free(sigmay_data);
+  free(sigmaFx_data);
+  free(sigmaFy_data);
+  free(gSigmax_data);
+  free(gSigmay_data);
   free(diff_data);
+  free(diffF_data);
 }
 
 void LS::init() {
@@ -175,6 +204,11 @@ void LS::step(double dt) {
               op_arg_dat(rk[0], -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(rk[1], -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(rk[2], -1, OP_ID, 15, "double", OP_READ));
+
+  if(counter % 10 == 0)
+    reinit_ls();
+
+  counter++;
 }
 
 void LS::advec_step(op_dat input, op_dat output) {
@@ -235,7 +269,7 @@ void LS::reinit_ls() {
   double epsilon = h / 4.0;
   double dt = 1.0 / ((16.0 / h) + epsilon * ((16.0*16.0)/(h*h)));
 
-  grad(data, s, dsdx, dsdy);
+  cub_grad(data, cData, s, dsdx, dsdy);
   op_par_loop(ls_sign, "ls_sign", data->cells,
               op_arg_gbl(&alpha, 1, "double", OP_READ),
               op_arg_dat(s, -1, OP_ID, 15, "double", OP_READ),
@@ -296,6 +330,11 @@ void LS::reinit_ls() {
       op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, dsldy, 1.0, dpldy);
       op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, dsrdy, 1.0, dprdy);
 
+      inv_mass(data, dpldx);
+      inv_mass(data, dprdx);
+      inv_mass(data, dpldy);
+      inv_mass(data, dprdy);
+
       op_par_loop(ls_rhs, "ls_rhs", data->cells,
                   op_arg_dat(sign, -1, OP_ID, 15, "double", OP_READ),
                   op_arg_dat(dpldx, -1, OP_ID, 15, "double", OP_READ),
@@ -336,5 +375,70 @@ void LS::reinit_ls() {
 }
 
 void LS::calc_diff(double epsilon) {
+  // Calculate sigma
+  cub_grad_weak(data, cData, rkQ, sigmax, sigmay);
 
+  op_par_loop(sigma_flux, "sigma_flux", data->edges,
+              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(gData->sJ, -2, data->edge2cells, 21, "double", OP_READ),
+              op_arg_dat(gData->nx, -2, data->edge2cells, 21, "double", OP_READ),
+              op_arg_dat(gData->ny, -2, data->edge2cells, 21, "double", OP_READ),
+              op_arg_dat(gS, -2, data->edge2cells, 21, "double", OP_READ),
+              op_arg_dat(sigmaFx, -2, data->edge2cells, 21, "double", OP_INC),
+              op_arg_dat(sigmaFy, -2, data->edge2cells, 21, "double", OP_INC));
+
+  op_par_loop(sigma_bflux, "sigma_bflux", data->bedges,
+              op_arg_dat(data->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(gData->sJ, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(gData->nx, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(gData->ny, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(gS, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(sigmaFx, 0, data->bedge2cells, 21, "double", OP_INC),
+              op_arg_dat(sigmaFy, 0, data->bedge2cells, 21, "double", OP_INC));
+
+  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, sigmaFx, 1.0, sigmax);
+  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, sigmaFy, 1.0, sigmay);
+
+  inv_mass(data, sigmax);
+  inv_mass(data, sigmay);
+
+  op_par_loop(sigma_mult, "sigma_mult", data->cells,
+              op_arg_gbl(&epsilon, 1, "double", OP_READ),
+              op_arg_dat(sigmax, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(sigmay, -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(sigmaFx, -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(sigmaFy, -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(diffF, -1, OP_ID, 21, "double", OP_WRITE));
+
+  // Calculate diffusion
+  cub_div_weak(data, cData, sigmax, sigmay, diff);
+
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, sigmax, 0.0, gSigmax);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, sigmay, 0.0, gSigmay);
+
+  op_par_loop(diff_flux, "diff_flux", data->edges,
+              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(gData->sJ, -2, data->edge2cells, 21, "double", OP_READ),
+              op_arg_dat(gData->nx, -2, data->edge2cells, 21, "double", OP_READ),
+              op_arg_dat(gData->ny, -2, data->edge2cells, 21, "double", OP_READ),
+              op_arg_dat(gSigmax, -2, data->edge2cells, 21, "double", OP_READ),
+              op_arg_dat(gSigmay, -2, data->edge2cells, 21, "double", OP_READ),
+              op_arg_dat(diffF, -2, data->edge2cells, 21, "double", OP_INC));
+
+  op_par_loop(diff_bflux, "diff_bflux", data->bedges,
+              op_arg_dat(data->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(gData->sJ, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(gData->nx, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(gData->ny, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(gSigmax, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(gSigmax, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(diffF, 0, data->bedge2cells, 21, "double", OP_INC));
+
+  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, diffF, 1.0, diff);
+
+  inv_mass(data, diff);
 }

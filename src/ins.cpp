@@ -18,6 +18,8 @@
 #include "timing.h"
 #include "solver.h"
 
+#include "operators.h"
+
 using namespace std;
 
 void export_data_init(string filename) {

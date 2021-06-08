@@ -46,7 +46,7 @@ inline void ls_flux(const int *edgeNum, const double **x, const double **y,
     int rInd;
     int lInd = exIndL + i;
     if(reverse) {
-      rInd = exIndR + 7 + i - 1;
+      rInd = exIndR + 7 - i - 1;
     } else {
       rInd = exIndR + i;
     }
@@ -72,7 +72,7 @@ inline void ls_flux(const int *edgeNum, const double **x, const double **y,
     int lInd;
     int rInd = exIndR + i;
     if(reverse) {
-      lInd = exIndL + 7 + i - 1;
+      lInd = exIndL + 7 - i - 1;
     } else {
       lInd = exIndL + i;
     }

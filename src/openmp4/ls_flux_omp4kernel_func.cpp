@@ -133,7 +133,7 @@ void ls_flux_omp4_kernel(
       int rInd;
       int lInd = exIndL + i;
       if(reverse) {
-        rInd = exIndR + 7 + i - 1;
+        rInd = exIndR + 7 - i - 1;
       } else {
         rInd = exIndR + i;
       }
@@ -159,7 +159,7 @@ void ls_flux_omp4_kernel(
       int lInd;
       int rInd = exIndR + i;
       if(reverse) {
-        lInd = exIndL + 7 + i - 1;
+        lInd = exIndL + 7 - i - 1;
       } else {
         lInd = exIndL + i;
       }

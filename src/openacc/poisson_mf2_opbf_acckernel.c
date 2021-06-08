@@ -79,10 +79,10 @@ void op_par_loop_poisson_mf2_opbf(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(23);
+  op_timing_realloc(26);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[23].name      = name;
-  OP_kernels[23].count    += 1;
+  OP_kernels[26].name      = name;
+  OP_kernels[26].count    += 1;
 
   int  ninds   = 4;
   int  inds[10] = {-1,-1,-1,-1,-1,-1,0,1,2,3};
@@ -92,8 +92,8 @@ void op_par_loop_poisson_mf2_opbf(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_23
-    int part_size = OP_PART_SIZE_23;
+  #ifdef OP_PART_SIZE_26
+    int part_size = OP_PART_SIZE_26;
   #else
     int part_size = OP_part_size;
   #endif
@@ -154,8 +154,8 @@ void op_par_loop_poisson_mf2_opbf(char const *name, op_set set,
       }
 
     }
-    OP_kernels[23].transfer  += Plan->transfer;
-    OP_kernels[23].transfer2 += Plan->transfer2;
+    OP_kernels[26].transfer  += Plan->transfer;
+    OP_kernels[26].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -166,5 +166,5 @@ void op_par_loop_poisson_mf2_opbf(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[23].time     += wall_t2 - wall_t1;
+  OP_kernels[26].time     += wall_t2 - wall_t1;
 }
