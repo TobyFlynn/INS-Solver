@@ -47,6 +47,7 @@ int size, char *dat, char const *name){}
 // user kernel files
 #include "init_nodes_acckernel.c"
 #include "init_grid_acckernel.c"
+#include "init_edges_acckernel.c"
 #include "init_cubature_grad_acckernel.c"
 #include "init_cubature_acckernel.c"
 #include "init_cubature_OP_acckernel.c"

@@ -62,7 +62,7 @@ public:
   op_set nodes, cells, edges, bedges;
   op_map cell2nodes, edge2nodes, edge2cells, bedge2nodes, bedge2cells;
   op_dat node_coords, nodeX, nodeY, x, y, rx, ry, sx, sy, nx,
-         ny, J, sJ, fscale, bedge_type, edgeNum, bedgeNum;
+         ny, J, sJ, fscale, bedge_type, edgeNum, bedgeNum, reverse;
   op_dat Q[2][2], exQ[2], F[4], N[2][2], flux[2], QT[2], QTT[2];
   op_dat div[4];
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, pRHSex, p, dpdx, dpdy;
@@ -91,6 +91,7 @@ private:
   double *J_data;
   double *sJ_data;
   double *fscale_data;
+  bool *reverse_data;
   double *Q_data[2][2];
   double *exQ_data[2];
   double *F_data[4];
