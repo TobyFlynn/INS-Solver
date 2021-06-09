@@ -27,6 +27,9 @@ public:
   void startViscosity();
   void endViscosity();
 
+  void startSurface();
+  void endSurface();
+
   void startLiftDrag();
   void endLiftDrag();
 
@@ -74,6 +77,9 @@ private:
 
   double totalViscosity = 0.0;
   double viscosity1, viscosity2;
+
+  double totalSurface = 0.0;
+  double surface1, surface2;
 
   double totalLiftDrag = 0.0;
   double liftDrag1, liftDrag2;

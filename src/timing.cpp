@@ -20,6 +20,7 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << "Advection" << ",";
   file << "Pressure" << ",";
   file << "Viscosity" << ",";
+  file << "Surface" << ",";
   file << "Lift/Drag" << ",";
   file << "Save" << ",";
   file << "Pressure Setup" << ",";
@@ -40,6 +41,7 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << to_string(totalAdvection) << ",";
   file << to_string(totalPressure) << ",";
   file << to_string(totalViscosity) << ",";
+  file << to_string(totalSurface) << ",";
   file << to_string(totalLiftDrag) << ",";
   file << to_string(totalSave) << ",";
   file << to_string(totalPressureSetup) << ",";
@@ -60,7 +62,7 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if(rank != 0)
     return;
-    
+
   ofstream file(filename);
 
   // Create first row of csv file (headers of columns)
@@ -72,6 +74,7 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << "Advection" << ",";
   file << "Pressure" << ",";
   file << "Viscosity" << ",";
+  file << "Surface" << ",";
   file << "Lift/Drag" << ",";
   file << "Save" << ",";
   file << "Pressure Setup" << ",";
@@ -92,6 +95,7 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << to_string(totalAdvection) << ",";
   file << to_string(totalPressure) << ",";
   file << to_string(totalViscosity) << ",";
+  file << to_string(totalSurface) << ",";
   file << to_string(totalLiftDrag) << ",";
   file << to_string(totalSave) << ",";
   file << to_string(totalPressureSetup) << ",";
@@ -161,6 +165,14 @@ void Timing::startViscosity() {
 void Timing::endViscosity() {
   op_timers(&cpu2, &viscosity2);
   totalViscosity += viscosity2 - viscosity1;
+}
+
+void Timing::startSurface() {
+  op_timers(&cpu1, &surface1);
+}
+void Timing::endSurface() {
+  op_timers(&cpu2, &surface2);
+  totalSurface += surface2 - surface1;
 }
 
 void Timing::startLiftDrag() {
