@@ -118,3 +118,4 @@ extern double lift_drag_vec[5];
 #include "sigma_mult_kernel.cpp"
 #include "diff_flux_kernel.cpp"
 #include "diff_bflux_kernel.cpp"
+#include "ls_reinit_check_kernel.cpp"

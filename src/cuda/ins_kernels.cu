@@ -268,3 +268,4 @@ int size, char *dat, char const *name){
 #include "sigma_mult_kernel.cu"
 #include "diff_flux_kernel.cu"
 #include "diff_bflux_kernel.cu"
+#include "ls_reinit_check_kernel.cu"

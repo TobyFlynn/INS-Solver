@@ -75,6 +75,7 @@
 #define op_par_loop_sigma_mult op_par_loop_sigma_mult_gpu
 #define op_par_loop_diff_flux op_par_loop_diff_flux_gpu
 #define op_par_loop_diff_bflux op_par_loop_diff_bflux_gpu
+#define op_par_loop_ls_reinit_check op_par_loop_ls_reinit_check_gpu
 #include "ins_kernels.cu"
 #undef op_par_loop_init_nodes
 #undef op_par_loop_init_grid
@@ -147,6 +148,7 @@
 #undef op_par_loop_sigma_mult
 #undef op_par_loop_diff_flux
 #undef op_par_loop_diff_bflux
+#undef op_par_loop_ls_reinit_check
 #else
 #define op_par_loop_init_nodes op_par_loop_init_nodes_cpu
 #define op_par_loop_init_grid op_par_loop_init_grid_cpu
@@ -219,6 +221,7 @@
 #define op_par_loop_sigma_mult op_par_loop_sigma_mult_cpu
 #define op_par_loop_diff_flux op_par_loop_diff_flux_cpu
 #define op_par_loop_diff_bflux op_par_loop_diff_bflux_cpu
+#define op_par_loop_ls_reinit_check op_par_loop_ls_reinit_check_cpu
 #include "../openmp/ins_kernels.cpp"
 #undef op_par_loop_init_nodes
 #undef op_par_loop_init_grid
@@ -291,6 +294,7 @@
 #undef op_par_loop_sigma_mult
 #undef op_par_loop_diff_flux
 #undef op_par_loop_diff_bflux
+#undef op_par_loop_ls_reinit_check
 
 //user kernel files
 
@@ -4864,6 +4868,64 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
     arg4,
     arg5,
     arg6);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_ls_reinit_check_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_ls_reinit_check(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_ls_reinit_check_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+    }else{
+    op_par_loop_ls_reinit_check_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+  }
+}
+#else
+void op_par_loop_ls_reinit_check(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  op_par_loop_ls_reinit_check_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5);
 
   }
 #endif //OP_HYBRID_GPU

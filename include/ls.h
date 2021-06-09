@@ -20,7 +20,7 @@ public:
   GaussData *gData;
 
   op_dat u, v;
-  op_dat s; //, s_bc;
+  op_dat s;
   op_dat rk[3], rkQ;
   op_dat F, G, dFdr, dFds, dGdr, dGds, nFlux, exAdvec;
 
@@ -28,18 +28,15 @@ public:
   op_dat sigmax, sigmay, sigmaFx, sigmaFy, gSigmax, gSigmay, diff, diffF;
 private:
   void advec_step(op_dat input, op_dat output);
-
-  // void calc_sigma(double epsilon);
-  void calc_diff(double epsilon);
-  // double get_residual();
   void reinit_ls();
+  void calc_diff();
+  bool reinit_needed();
 
   double h;
   double alpha;
   double epsilon;
   double reinit_dt;
   int numSteps;
-  int counter;
 
   double *s_data;
   double *s_bc_data;

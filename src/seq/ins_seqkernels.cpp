@@ -114,3 +114,4 @@ extern double lift_drag_vec[5];
 #include "sigma_mult_seqkernel.cpp"
 #include "diff_flux_seqkernel.cpp"
 #include "diff_bflux_seqkernel.cpp"
+#include "ls_reinit_check_seqkernel.cpp"

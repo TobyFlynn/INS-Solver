@@ -4,6 +4,7 @@
 
 #include <limits>
 #include <cmath>
+// #include <iostream>
 
 #include "constants.h"
 #include "blas_calls.h"
@@ -33,12 +34,12 @@
 #include "kernels/diff_flux.h"
 #include "kernels/diff_bflux.h"
 
+#include "kernels/ls_reinit_check.h"
+
 LS::LS(INSData *d, CubatureData *c, GaussData *g) {
   data = d;
   cData = c;
   gData = g;
-
-  counter = 0;
 
   s_data = (double *)calloc(15 * data->numCells, sizeof(double));
 
@@ -211,10 +212,8 @@ void LS::step(double dt) {
               op_arg_dat(rk[1], -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(rk[2], -1, OP_ID, 15, "double", OP_READ));
 
-  if(counter % 10 == 0)
+  if(reinit_needed())
     reinit_ls();
-
-  counter++;
 }
 
 void LS::advec_step(op_dat input, op_dat output) {
@@ -342,7 +341,7 @@ void LS::reinit_ls() {
                   op_arg_dat(dprdy, -1, OP_ID, 15, "double", OP_READ),
                   op_arg_dat(rk[j], -1, OP_ID, 15, "double", OP_WRITE));
 
-      calc_diff(epsilon);
+      calc_diff();
 
       op_par_loop(ls_add_diff, "ls_add_diff", data->cells,
                   op_arg_dat(diff, -1, OP_ID, 15, "double", OP_READ),
@@ -371,7 +370,7 @@ void LS::reinit_ls() {
   }
 }
 
-void LS::calc_diff(double epsilon) {
+void LS::calc_diff() {
   // Calculate sigma
   cub_grad_weak(data, cData, rkQ, sigmax, sigmay);
 
@@ -436,4 +435,21 @@ void LS::calc_diff(double epsilon) {
   op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, diffF, 1.0, diff);
 
   inv_mass(data, diff);
+}
+
+bool LS::reinit_needed() {
+  double res = 0.0;
+  int count = 0;
+  grad(data, s, dsdx, dsdy);
+  op_par_loop(ls_reinit_check, "ls_reinit_check", data->cells,
+              op_arg_gbl(&alpha, 1, "double", OP_READ),
+              op_arg_dat(s, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(dsdx, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(dsdy, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_gbl(&res, 1, "double", OP_INC),
+              op_arg_gbl(&count, 1, "int", OP_INC));
+
+  res = res / (double)count;
+  // std::cout << "LS residual: " << res << " " << abs(1.0 - res) << std::endl;
+  return abs(1.0 - res) > 0.001;
 }
