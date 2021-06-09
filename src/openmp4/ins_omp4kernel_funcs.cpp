@@ -224,3 +224,4 @@ void op_decl_const_char(int dim, char const *type,
 #include "diff_flux_omp4kernel_func.cpp"
 #include "diff_bflux_omp4kernel_func.cpp"
 #include "ls_reinit_check_omp4kernel_func.cpp"
+#include "ls_step_omp4kernel_func.cpp"

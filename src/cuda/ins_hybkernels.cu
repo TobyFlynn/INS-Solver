@@ -76,6 +76,7 @@
 #define op_par_loop_diff_flux op_par_loop_diff_flux_gpu
 #define op_par_loop_diff_bflux op_par_loop_diff_bflux_gpu
 #define op_par_loop_ls_reinit_check op_par_loop_ls_reinit_check_gpu
+#define op_par_loop_ls_step op_par_loop_ls_step_gpu
 #include "ins_kernels.cu"
 #undef op_par_loop_init_nodes
 #undef op_par_loop_init_grid
@@ -149,6 +150,7 @@
 #undef op_par_loop_diff_flux
 #undef op_par_loop_diff_bflux
 #undef op_par_loop_ls_reinit_check
+#undef op_par_loop_ls_step
 #else
 #define op_par_loop_init_nodes op_par_loop_init_nodes_cpu
 #define op_par_loop_init_grid op_par_loop_init_grid_cpu
@@ -222,6 +224,7 @@
 #define op_par_loop_diff_flux op_par_loop_diff_flux_cpu
 #define op_par_loop_diff_bflux op_par_loop_diff_bflux_cpu
 #define op_par_loop_ls_reinit_check op_par_loop_ls_reinit_check_cpu
+#define op_par_loop_ls_step op_par_loop_ls_step_cpu
 #include "../openmp/ins_kernels.cpp"
 #undef op_par_loop_init_nodes
 #undef op_par_loop_init_grid
@@ -295,6 +298,7 @@
 #undef op_par_loop_diff_flux
 #undef op_par_loop_diff_bflux
 #undef op_par_loop_ls_reinit_check
+#undef op_par_loop_ls_step
 
 //user kernel files
 
@@ -4926,6 +4930,46 @@ void op_par_loop_ls_reinit_check(char const *name, op_set set,
     arg3,
     arg4,
     arg5);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_ls_step_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_ls_step(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_ls_step_gpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+    }else{
+    op_par_loop_ls_step_cpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+  }
+}
+#else
+void op_par_loop_ls_step(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  op_par_loop_ls_step_gpu(name, set,
+    arg0,
+    arg1,
+    arg2);
 
   }
 #endif //OP_HYBRID_GPU

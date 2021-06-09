@@ -187,6 +187,11 @@ void op_par_loop_ls_reinit_check(char const *, op_set,
   op_arg,
   op_arg,
   op_arg );
+
+void op_par_loop_ls_step(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -228,12 +233,18 @@ void op_par_loop_ls_reinit_check(char const *, op_set,
 
 #include "kernels/ls_reinit_check.h"
 
+#include "kernels/ls_step.h"
+
 LS::LS(INSData *d, CubatureData *c, GaussData *g) {
   data = d;
   cData = c;
   gData = g;
 
-  s_data = (double *)calloc(15 * data->numCells, sizeof(double));
+  s_data      = (double *)calloc(15 * data->numCells, sizeof(double));
+  step_s_data = (double *)calloc(15 * data->numCells, sizeof(double));
+  nx_data     = (double *)calloc(15 * data->numCells, sizeof(double));
+  ny_data     = (double *)calloc(15 * data->numCells, sizeof(double));
+  curv_data   = (double *)calloc(15 * data->numCells, sizeof(double));
 
   rk_data[0] = (double *)calloc(15 * data->numCells, sizeof(double));
   rk_data[1] = (double *)calloc(15 * data->numCells, sizeof(double));
@@ -271,7 +282,11 @@ LS::LS(INSData *d, CubatureData *c, GaussData *g) {
   diff_data    = (double *)calloc(15 * data->numCells, sizeof(double));
   diffF_data   = (double *)calloc(21 * data->numCells, sizeof(double));
 
-  s = op_decl_dat(data->cells, 15, "double", s_data, "s");
+  s      = op_decl_dat(data->cells, 15, "double", s_data, "s");
+  step_s = op_decl_dat(data->cells, 15, "double", step_s_data, "step");
+  nx     = op_decl_dat(data->cells, 15, "double", nx_data, "ls-nx");
+  ny     = op_decl_dat(data->cells, 15, "double", ny_data, "ls-ny");
+  curv   = op_decl_dat(data->cells, 15, "double", curv_data, "curv");
 
   rk[0] = op_decl_dat(data->cells, 15, "double", rk_data[0], "rk0");
   rk[1] = op_decl_dat(data->cells, 15, "double", rk_data[1], "rk1");
@@ -312,6 +327,10 @@ LS::LS(INSData *d, CubatureData *c, GaussData *g) {
 
 LS::~LS() {
   free(s_data);
+  free(step_s_data);
+  free(nx_data);
+  free(ny_data);
+  free(curv_data);
 
   free(rk_data[0]);
   free(rk_data[1]);
@@ -406,6 +425,8 @@ void LS::step(double dt) {
 
   if(reinit_needed())
     reinit_ls();
+
+  update_values();
 }
 
 void LS::advec_step(op_dat input, op_dat output) {
@@ -644,4 +665,15 @@ bool LS::reinit_needed() {
   res = res / (double)count;
   // std::cout << "LS residual: " << res << " " << abs(1.0 - res) << std::endl;
   return abs(1.0 - res) > 0.001;
+}
+
+void LS::update_values() {
+  op_par_loop_ls_step("ls_step",data->cells,
+              op_arg_gbl(&alpha,1,"double",OP_READ),
+              op_arg_dat(s,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(step_s,-1,OP_ID,15,"double",OP_WRITE));
+
+  // Assume | grad s | is approx 1 so this is sufficient for getting normals
+  grad(data, s, nx, ny);
+  div(data, nx, ny, curv);
 }

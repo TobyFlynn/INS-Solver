@@ -20,7 +20,7 @@ public:
   GaussData *gData;
 
   op_dat u, v;
-  op_dat s;
+  op_dat s, step_s, nx, ny, curv;
   op_dat rk[3], rkQ;
   op_dat F, G, dFdr, dFds, dGdr, dGds, nFlux, exAdvec;
 
@@ -31,6 +31,7 @@ private:
   void reinit_ls();
   void calc_diff();
   bool reinit_needed();
+  void update_values();
 
   double h;
   double alpha;
@@ -39,7 +40,11 @@ private:
   int numSteps;
 
   double *s_data;
-  double *s_bc_data;
+  double *step_s_data;
+  double *nx_data;
+  double *ny_data;
+  double *curv_data;
+
   double *rk_data[3];
   double *rkQ_data;
 

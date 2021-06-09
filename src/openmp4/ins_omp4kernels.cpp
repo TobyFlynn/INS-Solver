@@ -78,3 +78,4 @@
 #include "diff_flux_omp4kernel.cpp"
 #include "diff_bflux_omp4kernel.cpp"
 #include "ls_reinit_check_omp4kernel.cpp"
+#include "ls_step_omp4kernel.cpp"
