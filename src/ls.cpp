@@ -3,6 +3,7 @@
 #include "op_seq.h"
 
 #include <limits>
+#include <cmath>
 
 #include "constants.h"
 #include "blas_calls.h"
@@ -163,6 +164,11 @@ void LS::init() {
               op_arg_dat(data->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_gbl(&h, 1, "double", OP_MIN));
 
+  alpha = 2.0 * h / 4.0;
+  epsilon = h / 4.0;
+  reinit_dt = 1.0 / ((16.0 / h) + epsilon * ((16.0*16.0)/(h*h)));
+  numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
+
   op_par_loop(init_surface, "init_surface", data->cells,
               op_arg_dat(data->x, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->y, -1, OP_ID, 15, "double", OP_READ),
@@ -265,10 +271,6 @@ void LS::advec_step(op_dat input, op_dat output) {
 }
 
 void LS::reinit_ls() {
-  double alpha = 2.0 * h / 4.0;
-  double epsilon = h / 4.0;
-  double dt = 1.0 / ((16.0 / h) + epsilon * ((16.0*16.0)/(h*h)));
-
   cub_grad(data, cData, s, dsdx, dsdy);
   op_par_loop(ls_sign, "ls_sign", data->cells,
               op_arg_gbl(&alpha, 1, "double", OP_READ),
@@ -277,12 +279,11 @@ void LS::reinit_ls() {
               op_arg_dat(dsdy, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(sign, -1, OP_ID, 15, "double", OP_WRITE));
 
-  double t = 0.0;
-  while(t < alpha * 1.5) {
+  for(int i = 0; i < numSteps; i++) {
     int x = -1;
     op_par_loop(set_rkQ, "set_rkQ", data->cells,
                 op_arg_gbl(&x, 1, "int", OP_READ),
-                op_arg_gbl(&dt, 1, "double", OP_READ),
+                op_arg_gbl(&reinit_dt, 1, "double", OP_READ),
                 op_arg_dat(s, -1, OP_ID, 15, "double", OP_READ),
                 op_arg_dat(rk[0], -1, OP_ID, 15, "double", OP_READ),
                 op_arg_dat(rk[1], -1, OP_ID, 15, "double", OP_READ),
@@ -356,7 +357,7 @@ void LS::reinit_ls() {
       if(j != 2) {
         op_par_loop(set_rkQ, "set_rkQ", data->cells,
                     op_arg_gbl(&j, 1, "int", OP_READ),
-                    op_arg_gbl(&dt, 1, "double", OP_READ),
+                    op_arg_gbl(&reinit_dt, 1, "double", OP_READ),
                     op_arg_dat(s, -1, OP_ID, 15, "double", OP_READ),
                     op_arg_dat(rk[0], -1, OP_ID, 15, "double", OP_READ),
                     op_arg_dat(rk[1], -1, OP_ID, 15, "double", OP_READ),
@@ -364,13 +365,11 @@ void LS::reinit_ls() {
       }
     }
     op_par_loop(update_Q, "update_Q", data->cells,
-                op_arg_gbl(&dt, 1, "double", OP_READ),
+                op_arg_gbl(&reinit_dt, 1, "double", OP_READ),
                 op_arg_dat(s, -1, OP_ID, 15, "double", OP_RW),
                 op_arg_dat(rk[0], -1, OP_ID, 15, "double", OP_READ),
                 op_arg_dat(rk[1], -1, OP_ID, 15, "double", OP_READ),
                 op_arg_dat(rk[2], -1, OP_ID, 15, "double", OP_READ));
-
-    t += dt;
   }
 }
 

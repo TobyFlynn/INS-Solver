@@ -35,6 +35,10 @@ private:
   void reinit_ls();
 
   double h;
+  double alpha;
+  double epsilon;
+  double reinit_dt;
+  int numSteps;
   int counter;
 
   double *s_data;
