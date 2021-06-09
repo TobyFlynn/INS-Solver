@@ -26,9 +26,9 @@ void op_par_loop_advection_flux(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(37);
-  OP_kernels[37].name      = name;
-  OP_kernels[37].count    += 1;
+  op_timing_realloc(38);
+  OP_kernels[38].name      = name;
+  OP_kernels[38].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
 
@@ -68,11 +68,11 @@ void op_par_loop_advection_flux(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[37].time     += wall_t2 - wall_t1;
-  OP_kernels[37].transfer += (float)set->size * arg0.size;
-  OP_kernels[37].transfer += (float)set->size * arg1.size;
-  OP_kernels[37].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[37].transfer += (float)set->size * arg3.size * 2.0f;
-  OP_kernels[37].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[37].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[38].time     += wall_t2 - wall_t1;
+  OP_kernels[38].transfer += (float)set->size * arg0.size;
+  OP_kernels[38].transfer += (float)set->size * arg1.size;
+  OP_kernels[38].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[38].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[38].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[38].transfer += (float)set->size * arg5.size * 2.0f;
 }

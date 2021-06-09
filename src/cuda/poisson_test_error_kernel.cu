@@ -57,10 +57,10 @@ void op_par_loop_poisson_test_error(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(34);
+  op_timing_realloc(35);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[34].name      = name;
-  OP_kernels[34].count    += 1;
+  OP_kernels[35].name      = name;
+  OP_kernels[35].count    += 1;
 
 
   if (OP_diags>2) {
@@ -71,8 +71,8 @@ void op_par_loop_poisson_test_error(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_34
-      int nthread = OP_BLOCK_SIZE_34;
+    #ifdef OP_BLOCK_SIZE_35
+      int nthread = OP_BLOCK_SIZE_35;
     #else
       int nthread = OP_block_size;
     #endif
@@ -90,9 +90,9 @@ void op_par_loop_poisson_test_error(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[34].time     += wall_t2 - wall_t1;
-  OP_kernels[34].transfer += (float)set->size * arg0.size;
-  OP_kernels[34].transfer += (float)set->size * arg1.size;
-  OP_kernels[34].transfer += (float)set->size * arg2.size;
-  OP_kernels[34].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[35].time     += wall_t2 - wall_t1;
+  OP_kernels[35].transfer += (float)set->size * arg0.size;
+  OP_kernels[35].transfer += (float)set->size * arg1.size;
+  OP_kernels[35].transfer += (float)set->size * arg2.size;
+  OP_kernels[35].transfer += (float)set->size * arg3.size * 2.0f;
 }

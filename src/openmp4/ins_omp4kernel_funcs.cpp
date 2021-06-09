@@ -154,6 +154,7 @@ void op_decl_const_char(int dim, char const *type,
 // user kernel files
 #include "init_nodes_omp4kernel_func.cpp"
 #include "init_grid_omp4kernel_func.cpp"
+#include "init_edges_omp4kernel_func.cpp"
 #include "init_cubature_grad_omp4kernel_func.cpp"
 #include "init_cubature_omp4kernel_func.cpp"
 #include "init_cubature_OP_omp4kernel_func.cpp"

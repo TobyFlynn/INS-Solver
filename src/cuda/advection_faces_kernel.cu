@@ -3,39 +3,12 @@
 //
 
 //user function
-__device__ void advection_faces_gpu( const int *edgeNum, const double **x,
-                            const double **y, const double **q0,
+__device__ void advection_faces_gpu( const int *edgeNum, const bool *rev, const double **q0,
                             const double **q1, double **exQ0, double **exQ1) {
 
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
-  bool reverse;
-
-  if(edgeR == 0) {
-    if(edgeL == 0) {
-      reverse = !(x[0][0] == x[1][0] && y[0][0] == y[1][0]);
-    } else if(edgeL == 1) {
-      reverse = !(x[0][1] == x[1][0] && y[0][1] == y[1][0]);
-    } else {
-      reverse = !(x[0][2] == x[1][0] && y[0][2] == y[1][0]);
-    }
-  } else if(edgeR == 1) {
-    if(edgeL == 0) {
-      reverse = !(x[0][0] == x[1][1] && y[0][0] == y[1][1]);
-    } else if(edgeL == 1) {
-      reverse = !(x[0][1] == x[1][1] && y[0][1] == y[1][1]);
-    } else {
-      reverse = !(x[0][2] == x[1][1] && y[0][2] == y[1][1]);
-    }
-  } else {
-    if(edgeL == 0) {
-      reverse = !(x[0][0] == x[1][2] && y[0][0] == y[1][2]);
-    } else if(edgeL == 1) {
-      reverse = !(x[0][1] == x[1][2] && y[0][1] == y[1][2]);
-    } else {
-      reverse = !(x[0][2] == x[1][2] && y[0][2] == y[1][2]);
-    }
-  }
+  bool reverse = *rev;
 
   int exInd = 0;
   if(edgeL == 1) exInd = 5;
@@ -91,138 +64,130 @@ __device__ void advection_faces_gpu( const int *edgeNum, const double **x,
 __global__ void op_cuda_advection_faces(
   const double *__restrict ind_arg0,
   const double *__restrict ind_arg1,
-  const double *__restrict ind_arg2,
-  const double *__restrict ind_arg3,
-  double *__restrict ind_arg4,
-  double *__restrict ind_arg5,
-  const int *__restrict opDat1Map,
+  double *__restrict ind_arg2,
+  double *__restrict ind_arg3,
+  const int *__restrict opDat2Map,
   const int *__restrict arg0,
+  const bool *__restrict arg1,
   int start,
   int end,
   int   set_size) {
+  double arg6_l[15];
+  double arg7_l[15];
+  double arg8_l[15];
   double arg9_l[15];
-  double arg10_l[15];
-  double arg11_l[15];
-  double arg12_l[15];
-  double *arg9_vec[2] = {
-    arg9_l,
-    arg10_l,
+  double *arg6_vec[2] = {
+    arg6_l,
+    arg7_l,
   };
-  double *arg11_vec[2] = {
-    arg11_l,
-    arg12_l,
+  double *arg8_vec[2] = {
+    arg8_l,
+    arg9_l,
   };
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
+    double arg6_l[15];
+    for ( int d=0; d<15; d++ ){
+      arg6_l[d] = ZERO_double;
+    }
+    double arg7_l[15];
+    for ( int d=0; d<15; d++ ){
+      arg7_l[d] = ZERO_double;
+    }
+    double arg8_l[15];
+    for ( int d=0; d<15; d++ ){
+      arg8_l[d] = ZERO_double;
+    }
     double arg9_l[15];
     for ( int d=0; d<15; d++ ){
       arg9_l[d] = ZERO_double;
     }
-    double arg10_l[15];
-    for ( int d=0; d<15; d++ ){
-      arg10_l[d] = ZERO_double;
-    }
-    double arg11_l[15];
-    for ( int d=0; d<15; d++ ){
-      arg11_l[d] = ZERO_double;
-    }
-    double arg12_l[15];
-    for ( int d=0; d<15; d++ ){
-      arg12_l[d] = ZERO_double;
-    }
-    int map1idx;
     int map2idx;
-    map1idx = opDat1Map[n + set_size * 0];
-    map2idx = opDat1Map[n + set_size * 1];
-    const double* arg1_vec[] = {
-       &ind_arg0[3 * map1idx],
-       &ind_arg0[3 * map2idx]};
-    const double* arg3_vec[] = {
-       &ind_arg1[3 * map1idx],
-       &ind_arg1[3 * map2idx]};
-    const double* arg5_vec[] = {
-       &ind_arg2[15 * map1idx],
-       &ind_arg2[15 * map2idx]};
-    const double* arg7_vec[] = {
-       &ind_arg3[15 * map1idx],
-       &ind_arg3[15 * map2idx]};
-    double* arg9_vec[] = {
-       &ind_arg4[15 * map1idx],
-       &ind_arg4[15 * map2idx]};
-    double* arg11_vec[] = {
-       &ind_arg5[15 * map1idx],
-       &ind_arg5[15 * map2idx]};
+    int map3idx;
+    map2idx = opDat2Map[n + set_size * 0];
+    map3idx = opDat2Map[n + set_size * 1];
+    const double* arg2_vec[] = {
+       &ind_arg0[15 * map2idx],
+       &ind_arg0[15 * map3idx]};
+    const double* arg4_vec[] = {
+       &ind_arg1[15 * map2idx],
+       &ind_arg1[15 * map3idx]};
+    double* arg6_vec[] = {
+       &ind_arg2[15 * map2idx],
+       &ind_arg2[15 * map3idx]};
+    double* arg8_vec[] = {
+       &ind_arg3[15 * map2idx],
+       &ind_arg3[15 * map3idx]};
 
     //user-supplied kernel call
     advection_faces_gpu(arg0+n*2,
-                    arg1_vec,
-                    arg3_vec,
-                    arg5_vec,
-                    arg7_vec,
-                    arg9_vec,
-                    arg11_vec);
-    atomicAdd(&ind_arg4[0+map1idx*15],arg9_l[0]);
-    atomicAdd(&ind_arg4[1+map1idx*15],arg9_l[1]);
-    atomicAdd(&ind_arg4[2+map1idx*15],arg9_l[2]);
-    atomicAdd(&ind_arg4[3+map1idx*15],arg9_l[3]);
-    atomicAdd(&ind_arg4[4+map1idx*15],arg9_l[4]);
-    atomicAdd(&ind_arg4[5+map1idx*15],arg9_l[5]);
-    atomicAdd(&ind_arg4[6+map1idx*15],arg9_l[6]);
-    atomicAdd(&ind_arg4[7+map1idx*15],arg9_l[7]);
-    atomicAdd(&ind_arg4[8+map1idx*15],arg9_l[8]);
-    atomicAdd(&ind_arg4[9+map1idx*15],arg9_l[9]);
-    atomicAdd(&ind_arg4[10+map1idx*15],arg9_l[10]);
-    atomicAdd(&ind_arg4[11+map1idx*15],arg9_l[11]);
-    atomicAdd(&ind_arg4[12+map1idx*15],arg9_l[12]);
-    atomicAdd(&ind_arg4[13+map1idx*15],arg9_l[13]);
-    atomicAdd(&ind_arg4[14+map1idx*15],arg9_l[14]);
-    atomicAdd(&ind_arg4[0+map2idx*15],arg10_l[0]);
-    atomicAdd(&ind_arg4[1+map2idx*15],arg10_l[1]);
-    atomicAdd(&ind_arg4[2+map2idx*15],arg10_l[2]);
-    atomicAdd(&ind_arg4[3+map2idx*15],arg10_l[3]);
-    atomicAdd(&ind_arg4[4+map2idx*15],arg10_l[4]);
-    atomicAdd(&ind_arg4[5+map2idx*15],arg10_l[5]);
-    atomicAdd(&ind_arg4[6+map2idx*15],arg10_l[6]);
-    atomicAdd(&ind_arg4[7+map2idx*15],arg10_l[7]);
-    atomicAdd(&ind_arg4[8+map2idx*15],arg10_l[8]);
-    atomicAdd(&ind_arg4[9+map2idx*15],arg10_l[9]);
-    atomicAdd(&ind_arg4[10+map2idx*15],arg10_l[10]);
-    atomicAdd(&ind_arg4[11+map2idx*15],arg10_l[11]);
-    atomicAdd(&ind_arg4[12+map2idx*15],arg10_l[12]);
-    atomicAdd(&ind_arg4[13+map2idx*15],arg10_l[13]);
-    atomicAdd(&ind_arg4[14+map2idx*15],arg10_l[14]);
-    atomicAdd(&ind_arg5[0+map1idx*15],arg11_l[0]);
-    atomicAdd(&ind_arg5[1+map1idx*15],arg11_l[1]);
-    atomicAdd(&ind_arg5[2+map1idx*15],arg11_l[2]);
-    atomicAdd(&ind_arg5[3+map1idx*15],arg11_l[3]);
-    atomicAdd(&ind_arg5[4+map1idx*15],arg11_l[4]);
-    atomicAdd(&ind_arg5[5+map1idx*15],arg11_l[5]);
-    atomicAdd(&ind_arg5[6+map1idx*15],arg11_l[6]);
-    atomicAdd(&ind_arg5[7+map1idx*15],arg11_l[7]);
-    atomicAdd(&ind_arg5[8+map1idx*15],arg11_l[8]);
-    atomicAdd(&ind_arg5[9+map1idx*15],arg11_l[9]);
-    atomicAdd(&ind_arg5[10+map1idx*15],arg11_l[10]);
-    atomicAdd(&ind_arg5[11+map1idx*15],arg11_l[11]);
-    atomicAdd(&ind_arg5[12+map1idx*15],arg11_l[12]);
-    atomicAdd(&ind_arg5[13+map1idx*15],arg11_l[13]);
-    atomicAdd(&ind_arg5[14+map1idx*15],arg11_l[14]);
-    atomicAdd(&ind_arg5[0+map2idx*15],arg12_l[0]);
-    atomicAdd(&ind_arg5[1+map2idx*15],arg12_l[1]);
-    atomicAdd(&ind_arg5[2+map2idx*15],arg12_l[2]);
-    atomicAdd(&ind_arg5[3+map2idx*15],arg12_l[3]);
-    atomicAdd(&ind_arg5[4+map2idx*15],arg12_l[4]);
-    atomicAdd(&ind_arg5[5+map2idx*15],arg12_l[5]);
-    atomicAdd(&ind_arg5[6+map2idx*15],arg12_l[6]);
-    atomicAdd(&ind_arg5[7+map2idx*15],arg12_l[7]);
-    atomicAdd(&ind_arg5[8+map2idx*15],arg12_l[8]);
-    atomicAdd(&ind_arg5[9+map2idx*15],arg12_l[9]);
-    atomicAdd(&ind_arg5[10+map2idx*15],arg12_l[10]);
-    atomicAdd(&ind_arg5[11+map2idx*15],arg12_l[11]);
-    atomicAdd(&ind_arg5[12+map2idx*15],arg12_l[12]);
-    atomicAdd(&ind_arg5[13+map2idx*15],arg12_l[13]);
-    atomicAdd(&ind_arg5[14+map2idx*15],arg12_l[14]);
+                    arg1+n*1,
+                    arg2_vec,
+                    arg4_vec,
+                    arg6_vec,
+                    arg8_vec);
+    atomicAdd(&ind_arg2[0+map2idx*15],arg6_l[0]);
+    atomicAdd(&ind_arg2[1+map2idx*15],arg6_l[1]);
+    atomicAdd(&ind_arg2[2+map2idx*15],arg6_l[2]);
+    atomicAdd(&ind_arg2[3+map2idx*15],arg6_l[3]);
+    atomicAdd(&ind_arg2[4+map2idx*15],arg6_l[4]);
+    atomicAdd(&ind_arg2[5+map2idx*15],arg6_l[5]);
+    atomicAdd(&ind_arg2[6+map2idx*15],arg6_l[6]);
+    atomicAdd(&ind_arg2[7+map2idx*15],arg6_l[7]);
+    atomicAdd(&ind_arg2[8+map2idx*15],arg6_l[8]);
+    atomicAdd(&ind_arg2[9+map2idx*15],arg6_l[9]);
+    atomicAdd(&ind_arg2[10+map2idx*15],arg6_l[10]);
+    atomicAdd(&ind_arg2[11+map2idx*15],arg6_l[11]);
+    atomicAdd(&ind_arg2[12+map2idx*15],arg6_l[12]);
+    atomicAdd(&ind_arg2[13+map2idx*15],arg6_l[13]);
+    atomicAdd(&ind_arg2[14+map2idx*15],arg6_l[14]);
+    atomicAdd(&ind_arg2[0+map3idx*15],arg7_l[0]);
+    atomicAdd(&ind_arg2[1+map3idx*15],arg7_l[1]);
+    atomicAdd(&ind_arg2[2+map3idx*15],arg7_l[2]);
+    atomicAdd(&ind_arg2[3+map3idx*15],arg7_l[3]);
+    atomicAdd(&ind_arg2[4+map3idx*15],arg7_l[4]);
+    atomicAdd(&ind_arg2[5+map3idx*15],arg7_l[5]);
+    atomicAdd(&ind_arg2[6+map3idx*15],arg7_l[6]);
+    atomicAdd(&ind_arg2[7+map3idx*15],arg7_l[7]);
+    atomicAdd(&ind_arg2[8+map3idx*15],arg7_l[8]);
+    atomicAdd(&ind_arg2[9+map3idx*15],arg7_l[9]);
+    atomicAdd(&ind_arg2[10+map3idx*15],arg7_l[10]);
+    atomicAdd(&ind_arg2[11+map3idx*15],arg7_l[11]);
+    atomicAdd(&ind_arg2[12+map3idx*15],arg7_l[12]);
+    atomicAdd(&ind_arg2[13+map3idx*15],arg7_l[13]);
+    atomicAdd(&ind_arg2[14+map3idx*15],arg7_l[14]);
+    atomicAdd(&ind_arg3[0+map2idx*15],arg8_l[0]);
+    atomicAdd(&ind_arg3[1+map2idx*15],arg8_l[1]);
+    atomicAdd(&ind_arg3[2+map2idx*15],arg8_l[2]);
+    atomicAdd(&ind_arg3[3+map2idx*15],arg8_l[3]);
+    atomicAdd(&ind_arg3[4+map2idx*15],arg8_l[4]);
+    atomicAdd(&ind_arg3[5+map2idx*15],arg8_l[5]);
+    atomicAdd(&ind_arg3[6+map2idx*15],arg8_l[6]);
+    atomicAdd(&ind_arg3[7+map2idx*15],arg8_l[7]);
+    atomicAdd(&ind_arg3[8+map2idx*15],arg8_l[8]);
+    atomicAdd(&ind_arg3[9+map2idx*15],arg8_l[9]);
+    atomicAdd(&ind_arg3[10+map2idx*15],arg8_l[10]);
+    atomicAdd(&ind_arg3[11+map2idx*15],arg8_l[11]);
+    atomicAdd(&ind_arg3[12+map2idx*15],arg8_l[12]);
+    atomicAdd(&ind_arg3[13+map2idx*15],arg8_l[13]);
+    atomicAdd(&ind_arg3[14+map2idx*15],arg8_l[14]);
+    atomicAdd(&ind_arg3[0+map3idx*15],arg9_l[0]);
+    atomicAdd(&ind_arg3[1+map3idx*15],arg9_l[1]);
+    atomicAdd(&ind_arg3[2+map3idx*15],arg9_l[2]);
+    atomicAdd(&ind_arg3[3+map3idx*15],arg9_l[3]);
+    atomicAdd(&ind_arg3[4+map3idx*15],arg9_l[4]);
+    atomicAdd(&ind_arg3[5+map3idx*15],arg9_l[5]);
+    atomicAdd(&ind_arg3[6+map3idx*15],arg9_l[6]);
+    atomicAdd(&ind_arg3[7+map3idx*15],arg9_l[7]);
+    atomicAdd(&ind_arg3[8+map3idx*15],arg9_l[8]);
+    atomicAdd(&ind_arg3[9+map3idx*15],arg9_l[9]);
+    atomicAdd(&ind_arg3[10+map3idx*15],arg9_l[10]);
+    atomicAdd(&ind_arg3[11+map3idx*15],arg9_l[11]);
+    atomicAdd(&ind_arg3[12+map3idx*15],arg9_l[12]);
+    atomicAdd(&ind_arg3[13+map3idx*15],arg9_l[13]);
+    atomicAdd(&ind_arg3[14+map3idx*15],arg9_l[14]);
   }
 }
 
@@ -231,63 +196,51 @@ __global__ void op_cuda_advection_faces(
 void op_par_loop_advection_faces(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg3,
-  op_arg arg5,
-  op_arg arg7,
-  op_arg arg9,
-  op_arg arg11){
+  op_arg arg2,
+  op_arg arg4,
+  op_arg arg6,
+  op_arg arg8){
 
-  int nargs = 13;
-  op_arg args[13];
+  int nargs = 10;
+  op_arg args[10];
 
   args[0] = arg0;
-  arg1.idx = 0;
   args[1] = arg1;
+  arg2.idx = 0;
+  args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 3, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 15, "double", OP_READ);
   }
 
-  arg3.idx = 0;
-  args[3] = arg3;
+  arg4.idx = 0;
+  args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 3, "double", OP_READ);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 15, "double", OP_READ);
   }
 
-  arg5.idx = 0;
-  args[5] = arg5;
+  arg6.idx = 0;
+  args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[5 + v] = op_arg_dat(arg5.dat, v, arg5.map, 15, "double", OP_READ);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 15, "double", OP_INC);
   }
 
-  arg7.idx = 0;
-  args[7] = arg7;
+  arg8.idx = 0;
+  args[8] = arg8;
   for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 15, "double", OP_READ);
-  }
-
-  arg9.idx = 0;
-  args[9] = arg9;
-  for ( int v=1; v<2; v++ ){
-    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 15, "double", OP_INC);
-  }
-
-  arg11.idx = 0;
-  args[11] = arg11;
-  for ( int v=1; v<2; v++ ){
-    args[11 + v] = op_arg_dat(arg11.dat, v, arg11.map, 15, "double", OP_INC);
+    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 15, "double", OP_INC);
   }
 
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(38);
+  op_timing_realloc(39);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[38].name      = name;
-  OP_kernels[38].count    += 1;
+  OP_kernels[39].name      = name;
+  OP_kernels[39].count    += 1;
 
 
-  int    ninds   = 6;
-  int    inds[13] = {-1,0,0,1,1,2,2,3,3,4,4,5,5};
+  int    ninds   = 4;
+  int    inds[10] = {-1,-1,0,0,1,1,2,2,3,3};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: advection_faces\n");
@@ -296,8 +249,8 @@ void op_par_loop_advection_faces(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_38
-      int nthread = OP_BLOCK_SIZE_38;
+    #ifdef OP_BLOCK_SIZE_39
+      int nthread = OP_BLOCK_SIZE_39;
     #else
       int nthread = OP_block_size;
     #endif
@@ -311,14 +264,13 @@ void op_par_loop_advection_faces(char const *name, op_set set,
       if (end-start>0) {
         int nblocks = (end-start-1)/nthread+1;
         op_cuda_advection_faces<<<nblocks,nthread>>>(
-        (double *)arg1.data_d,
-        (double *)arg3.data_d,
-        (double *)arg5.data_d,
-        (double *)arg7.data_d,
-        (double *)arg9.data_d,
-        (double *)arg11.data_d,
-        arg1.map_data_d,
+        (double *)arg2.data_d,
+        (double *)arg4.data_d,
+        (double *)arg6.data_d,
+        (double *)arg8.data_d,
+        arg2.map_data_d,
         (int*)arg0.data_d,
+        (bool*)arg1.data_d,
         start,end,set->size+set->exec_size);
       }
     }
@@ -327,5 +279,5 @@ void op_par_loop_advection_faces(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[38].time     += wall_t2 - wall_t1;
+  OP_kernels[39].time     += wall_t2 - wall_t1;
 }

@@ -10,6 +10,7 @@
 
 #include "kernels/init_grid.h"
 #include "kernels/init_nodes.h"
+#include "kernels/init_edges.h"
 
 #include "kernels/init_cubature_grad.h"
 #include "kernels/init_cubature.h"
@@ -45,6 +46,7 @@ INSData::INSData(std::string filename) {
   J_data      = (double *)calloc(15 * numCells, sizeof(double));
   sJ_data     = (double *)calloc(15 * numCells, sizeof(double));
   fscale_data = (double *)calloc(15 * numCells, sizeof(double));
+  reverse_data = (bool *)calloc(numEdges, sizeof(bool));
   for(int i = 0; i < 4; i++) {
     F_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
     div_data[i] = (double *)calloc(15 * numCells, sizeof(double));
@@ -114,6 +116,7 @@ INSData::INSData(std::string filename) {
   bedge_type = op_decl_dat(bedges, 1, "int", bedge_type_data, "bedge_type");
   edgeNum    = op_decl_dat(edges, 2, "int", edgeNum_data, "edgeNum");
   bedgeNum   = op_decl_dat(bedges, 1, "int", bedgeNum_data, "bedgeNum");
+  reverse    = op_decl_dat(edges, 1, "bool", reverse_data, "reverse");
   for(int i = 0; i < 4; i++) {
     string Fname = "F" + to_string(i);
     F[i] = op_decl_dat(cells, 15, "double", F_data[i], Fname.c_str());
@@ -222,6 +225,7 @@ INSData::~INSData() {
   free(J_data);
   free(sJ_data);
   free(fscale_data);
+  free(reverse_data);
   for(int i = 0; i < 4; i++) {
     free(F_data[i]);
     free(div_data[i]);
@@ -274,6 +278,12 @@ void INSData::init() {
               op_arg_dat(J,  -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(sJ, -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(fscale, -1, OP_ID, 15, "double", OP_WRITE));
+
+  op_par_loop(init_edges, "init_edges", edges,
+              op_arg_dat(edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(nodeX, -2, edge2cells, 3, "double", OP_READ),
+              op_arg_dat(nodeY, -2, edge2cells, 3, "double", OP_READ),
+              op_arg_dat(reverse, -1, OP_ID, 1, "bool", OP_WRITE));
 }
 
 CubatureData::CubatureData(INSData *dat) {
@@ -610,8 +620,7 @@ void GaussData::init() {
   // Calculate Gauss OPf for each face (contribution to neighbouring element in Poisson matrix)
   op_par_loop(gauss_gfi_faces, "gauss_gfi_faces", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(data->reverse, -1, OP_ID, 1, "bool", OP_READ),
               op_arg_dat(pDy[0], -2, data->edge2cells, 7 * 15, "double", OP_INC),
               op_arg_dat(pDy[1], -2, data->edge2cells, 7 * 15, "double", OP_INC),
               op_arg_dat(pDy[2], -2, data->edge2cells, 7 * 15, "double", OP_INC));

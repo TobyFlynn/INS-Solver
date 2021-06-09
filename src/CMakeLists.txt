@@ -1,4 +1,4 @@
-set(KERNEL_HEADERS kernels/init_grid.h kernels/set_ic.h kernels/calc_dt.h kernels/lift_drag.h kernels/init_nodes.h kernels/save_values.h)
+set(KERNEL_HEADERS kernels/init_grid.h kernels/init_edges.h kernels/set_ic.h kernels/calc_dt.h kernels/lift_drag.h kernels/init_nodes.h kernels/save_values.h)
 list(APPEND KERNEL_HEADERS kernels/init_cubature.h kernels/init_cubature_grad.h kernels/init_cubature_OP.h)
 list(APPEND KERNEL_HEADERS kernels/gauss_tau.h kernels/gauss_tau_bc.h kernels/init_gauss.h kernels/init_gauss_grad.h kernels/init_gauss_grad_neighbour.h kernels/gauss_grad_faces.h kernels/init_gauss_grad2.h kernels/gauss_op.h kernels/gauss_gfi_faces.h kernels/gauss_reverse.h)
 list(APPEND KERNEL_HEADERS kernels/div.h kernels/curl.h kernels/grad.h kernels/cub_grad.h kernels/cub_grad_weak.h kernels/cub_div_weak.h kernels/inv_J.h)
