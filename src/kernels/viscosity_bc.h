@@ -1,7 +1,7 @@
 inline void viscosity_bc(const int *bedge_type, const int *bedgeNum,
                          const double *t, const int *problem, const double *x,
                          const double *y, const double *nx, const double *ny,
-                         double *exQ0, double *exQ1) {
+                         const double *nu, double *exQ0, double *exQ1) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 7;
@@ -34,8 +34,8 @@ inline void viscosity_bc(const int *bedge_type, const int *bedgeNum,
       for(int i = 0; i < 7; i++) {
         double y1 = y[exInd + i];
         double x1 = x[exInd + i];
-        exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu * 4.0 * PI * PI * *t);
-        exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu * 4.0 * PI * PI * *t);
+        exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
+        exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
       }
     }
 
@@ -46,8 +46,8 @@ inline void viscosity_bc(const int *bedge_type, const int *bedgeNum,
         double x1  = x[exInd + i];
         double ny1 = ny[exInd + i];
         double nx1 = nx[exInd + i];
-        exQ0[exInd + i] += ny1 * 2.0 * PI * (-cos(2.0 * PI * y1)) * exp(-nu * 4.0 * PI * PI * *t);
-        exQ1[exInd + i] += nx1 * 2.0 * PI * cos(2.0 * PI * x1) * exp(-nu * 4.0 * PI * PI * *t);
+        exQ0[exInd + i] += ny1 * 2.0 * PI * (-cos(2.0 * PI * y1)) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
+        exQ1[exInd + i] += nx1 * 2.0 * PI * cos(2.0 * PI * x1) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
       }
     }
   }

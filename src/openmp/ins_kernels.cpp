@@ -9,7 +9,8 @@
 // global constants
 extern double gam;
 extern double mu;
-extern double nu;
+extern double nu0;
+extern double nu1;
 extern double bc_mach;
 extern double bc_alpha;
 extern double bc_p;

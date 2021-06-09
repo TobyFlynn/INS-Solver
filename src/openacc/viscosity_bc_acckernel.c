@@ -8,7 +8,7 @@
 inline void viscosity_bc_openacc( const int *bedge_type, const int *bedgeNum,
                          const double *t, const int *problem, const double *x,
                          const double *y, const double *nx, const double *ny,
-                         double *exQ0, double *exQ1) {
+                         const double *nu, double *exQ0, double *exQ1) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 7;
@@ -41,8 +41,8 @@ inline void viscosity_bc_openacc( const int *bedge_type, const int *bedgeNum,
       for(int i = 0; i < 7; i++) {
         double y1 = y[exInd + i];
         double x1 = x[exInd + i];
-        exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu * 4.0 * PI * PI * *t);
-        exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu * 4.0 * PI * PI * *t);
+        exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
+        exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
       }
     }
 
@@ -53,8 +53,8 @@ inline void viscosity_bc_openacc( const int *bedge_type, const int *bedgeNum,
         double x1  = x[exInd + i];
         double ny1 = ny[exInd + i];
         double nx1 = nx[exInd + i];
-        exQ0[exInd + i] += ny1 * 2.0 * PI * (-cos(2.0 * PI * y1)) * exp(-nu * 4.0 * PI * PI * *t);
-        exQ1[exInd + i] += nx1 * 2.0 * PI * cos(2.0 * PI * x1) * exp(-nu * 4.0 * PI * PI * *t);
+        exQ0[exInd + i] += ny1 * 2.0 * PI * (-cos(2.0 * PI * y1)) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
+        exQ1[exInd + i] += nx1 * 2.0 * PI * cos(2.0 * PI * x1) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
       }
     }
   }
@@ -71,12 +71,13 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9){
+  op_arg arg9,
+  op_arg arg10){
 
   double*arg2h = (double *)arg2.data;
   int*arg3h = (int *)arg3.data;
-  int nargs = 10;
-  op_arg args[10];
+  int nargs = 11;
+  op_arg args[11];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -88,6 +89,7 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   args[7] = arg7;
   args[8] = arg8;
   args[9] = arg9;
+  args[10] = arg10;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -96,8 +98,8 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   OP_kernels[47].name      = name;
   OP_kernels[47].count    += 1;
 
-  int  ninds   = 6;
-  int  inds[10] = {-1,-1,-1,-1,0,1,2,3,4,5};
+  int  ninds   = 7;
+  int  inds[11] = {-1,-1,-1,-1,0,1,2,3,4,5,6};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: viscosity_bc\n");
@@ -131,6 +133,7 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
     double *data7 = (double *)arg7.data_d;
     double *data8 = (double *)arg8.data_d;
     double *data9 = (double *)arg9.data_d;
+    double *data10 = (double *)arg10.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -145,7 +148,7 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map4,data0,data1,data4,data5,data6,data7,data8,data9)
+      #pragma acc parallel loop independent deviceptr(col_reord,map4,data0,data1,data4,data5,data6,data7,data8,data9,data10)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map4idx;
@@ -162,7 +165,8 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
           &data6[21 * map4idx],
           &data7[21 * map4idx],
           &data8[21 * map4idx],
-          &data9[21 * map4idx]);
+          &data9[21 * map4idx],
+          &data10[21 * map4idx]);
       }
 
     }

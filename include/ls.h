@@ -5,6 +5,9 @@
 
 #include "ins_data.h"
 
+extern double nu0;
+extern double nu1;
+
 class LS {
 public:
   LS(INSData *d, CubatureData *c, GaussData *g);

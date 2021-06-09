@@ -188,6 +188,8 @@ void LS::init() {
               op_arg_dat(data->x, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->y, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(s, -1, OP_ID, 15, "double", OP_WRITE));
+
+  update_values();
 }
 
 void LS::setVelField(op_dat u1, op_dat v1) {
@@ -474,7 +476,10 @@ void LS::update_values() {
   op_par_loop(ls_step, "ls_step", data->cells,
               op_arg_gbl(&alpha, 1, "double", OP_READ),
               op_arg_dat(s, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(step_s, -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(step_s, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->nu, -1, OP_ID, 15, "double", OP_WRITE));
+
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, data->nu, 0.0, data->gNu);
 
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
   grad(data, s, nx, ny);

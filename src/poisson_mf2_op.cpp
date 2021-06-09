@@ -208,6 +208,10 @@ bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor)
   return converged;
 }
 
+bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, op_dat factor) {
+  return false;
+}
+
 void Poisson_MF2::calc_rhs(const double *u_d, double *rhs_d) {
   // Copy u to OP2 dat
   copy_u(u_d);

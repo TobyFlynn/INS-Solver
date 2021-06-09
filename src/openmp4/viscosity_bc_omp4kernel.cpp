@@ -26,6 +26,8 @@ void viscosity_bc_omp4_kernel(
   int dat8size,
   double *data9,
   int dat9size,
+  double *data10,
+  int dat10size,
   int *col_reord,
   int set_size1,
   int start,
@@ -44,12 +46,13 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9){
+  op_arg arg9,
+  op_arg arg10){
 
   double*arg2h = (double *)arg2.data;
   int*arg3h = (int *)arg3.data;
-  int nargs = 10;
-  op_arg args[10];
+  int nargs = 11;
+  op_arg args[11];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -61,6 +64,7 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   args[7] = arg7;
   args[8] = arg8;
   args[9] = arg9;
+  args[10] = arg10;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -69,8 +73,8 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   OP_kernels[47].name      = name;
   OP_kernels[47].count    += 1;
 
-  int  ninds   = 6;
-  int  inds[10] = {-1,-1,-1,-1,0,1,2,3,4,5};
+  int  ninds   = 7;
+  int  inds[11] = {-1,-1,-1,-1,0,1,2,3,4,5,6};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: viscosity_bc\n");
@@ -118,6 +122,8 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
     int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
     double *data9 = (double *)arg9.data_d;
     int dat9size = getSetSizeFromOpArg(&arg9) * arg9.dat->dim;
+    double *data10 = (double *)arg10.data_d;
+    int dat10size = getSetSizeFromOpArg(&arg10) * arg10.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -152,6 +158,8 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
         dat8size,
         data9,
         dat9size,
+        data10,
+        dat10size,
         col_reord,
         set_size1,
         start,

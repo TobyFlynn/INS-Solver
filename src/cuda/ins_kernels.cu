@@ -9,7 +9,8 @@
 
 __constant__ double gam_cuda;
 __constant__ double mu_cuda;
-__constant__ double nu_cuda;
+__constant__ double nu0_cuda;
+__constant__ double nu1_cuda;
 __constant__ double bc_mach_cuda;
 __constant__ double bc_alpha_cuda;
 __constant__ double bc_p_cuda;
@@ -59,8 +60,12 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(mu_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"nu")) {
-    cutilSafeCall(cudaMemcpyToSymbol(nu_cuda, dat, dim*size));
+  if (!strcmp(name,"nu0")) {
+    cutilSafeCall(cudaMemcpyToSymbol(nu0_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"nu1")) {
+    cutilSafeCall(cudaMemcpyToSymbol(nu1_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"bc_mach")) {

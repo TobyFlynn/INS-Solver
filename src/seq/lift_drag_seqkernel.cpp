@@ -18,10 +18,11 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   op_arg arg8,
   op_arg arg9,
   op_arg arg10,
-  op_arg arg11){
+  op_arg arg11,
+  op_arg arg12){
 
-  int nargs = 12;
-  op_arg args[12];
+  int nargs = 13;
+  op_arg args[13];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -35,6 +36,7 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   args[9] = arg9;
   args[10] = arg10;
   args[11] = arg11;
+  args[12] = arg12;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -68,8 +70,9 @@ void op_par_loop_lift_drag(char const *name, op_set set,
         &((double*)arg7.data)[15 * map2idx],
         &((double*)arg8.data)[15 * map2idx],
         &((double*)arg9.data)[15 * map2idx],
-        (double*)arg10.data,
-        (double*)arg11.data);
+        &((double*)arg10.data)[15 * map2idx],
+        (double*)arg11.data,
+        (double*)arg12.data);
     }
   }
 
@@ -77,8 +80,8 @@ void op_par_loop_lift_drag(char const *name, op_set set,
     op_mpi_wait_all(nargs, args);
   }
   // combine reduction data
-  op_mpi_reduce_double(&arg10,(double*)arg10.data);
   op_mpi_reduce_double(&arg11,(double*)arg11.data);
+  op_mpi_reduce_double(&arg12,(double*)arg12.data);
   op_mpi_set_dirtybit(nargs, args);
 
   // update kernel record
@@ -94,9 +97,10 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   OP_kernels[50].transfer += (float)set->size * arg7.size;
   OP_kernels[50].transfer += (float)set->size * arg8.size;
   OP_kernels[50].transfer += (float)set->size * arg9.size;
+  OP_kernels[50].transfer += (float)set->size * arg10.size;
   OP_kernels[50].transfer += (float)set->size * arg0.size;
   OP_kernels[50].transfer += (float)set->size * arg1.size;
-  OP_kernels[50].transfer += (float)set->size * arg10.size * 2.0f;
   OP_kernels[50].transfer += (float)set->size * arg11.size * 2.0f;
+  OP_kernels[50].transfer += (float)set->size * arg12.size * 2.0f;
   OP_kernels[50].transfer += (float)set->size * arg2.map->dim * 4.0f;
 }

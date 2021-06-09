@@ -140,6 +140,10 @@ bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor) {
   return converged;
 }
 
+bool Poisson_M::solve(op_dat b_dat, op_dat x_dat, bool addMass, op_dat factor) {
+  return false;
+}
+
 void Poisson_M::setOp() {
   double tol = 1e-15;
 

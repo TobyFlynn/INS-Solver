@@ -9,8 +9,8 @@ void lift_drag_omp4_kernel(
   int dat1size,
   int *map2,
   int map2size,
-  double *arg10,
   double *arg11,
+  double *arg12,
   double *data2,
   int dat2size,
   double *data3,
@@ -27,6 +27,8 @@ void lift_drag_omp4_kernel(
   int dat8size,
   double *data9,
   int dat9size,
+  double *data10,
+  int dat10size,
   int *col_reord,
   int set_size1,
   int start,
@@ -34,13 +36,13 @@ void lift_drag_omp4_kernel(
   int num_teams,
   int nthread){
 
-  double arg10_l = *arg10;
   double arg11_l = *arg11;
+  double arg12_l = *arg12;
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: nu_ompkernel, FMASK_ompkernel[:15], lift_drag_vec_ompkernel[:5])\
-    map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size])\
-    map(tofrom: arg10_l, arg11_l) reduction(+:arg10_l) reduction(+:arg11_l)
-  #pragma omp distribute parallel for schedule(static,1) reduction(+:arg10_l) reduction(+:arg11_l)
+    map(to: FMASK_ompkernel[:15], lift_drag_vec_ompkernel[:5])\
+    map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size])\
+    map(tofrom: arg11_l, arg12_l) reduction(+:arg11_l) reduction(+:arg12_l)
+  #pragma omp distribute parallel for schedule(static,1) reduction(+:arg11_l) reduction(+:arg12_l)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
     int map2idx;
@@ -57,8 +59,9 @@ void lift_drag_omp4_kernel(
     const double *nx = &data7[15 * map2idx];
     const double *ny = &data8[15 * map2idx];
     const double *sJ = &data9[15 * map2idx];
-    double *cd = &arg10_l;
-    double *cl = &arg11_l;
+    const double *nu = &data10[15 * map2idx];
+    double *cd = &arg11_l;
+    double *cl = &arg12_l;
 
     //inline function
     
@@ -81,13 +84,13 @@ void lift_drag_omp4_kernel(
 
     if(*bedge_type == 2) {
       for(int i = 0; i < 5; i++) {
-        *cd += lift_drag_vec_ompkernel[i] * sJ[exInd + i] * (-p[fmask[i]] * nx[exInd + i] + nu_ompkernel * (nx[exInd + i] * 2.0 * dQ0dx[fmask[i]] + ny[exInd + i] * (dQ1dx[fmask[i]] + dQ0dy[fmask[i]])));
-        *cl += lift_drag_vec_ompkernel[i] * sJ[exInd + i] * (-p[fmask[i]] * ny[exInd + i] + nu_ompkernel * (nx[exInd + i] * (dQ1dx[fmask[i]] + dQ0dy[fmask[i]]) + ny[exInd + i] * 2.0 * dQ1dy[fmask[i]]));
+        *cd += lift_drag_vec_ompkernel[i] * sJ[exInd + i] * (-p[fmask[i]] * nx[exInd + i] + nu[fmask[i]] * (nx[exInd + i] * 2.0 * dQ0dx[fmask[i]] + ny[exInd + i] * (dQ1dx[fmask[i]] + dQ0dy[fmask[i]])));
+        *cl += lift_drag_vec_ompkernel[i] * sJ[exInd + i] * (-p[fmask[i]] * ny[exInd + i] + nu[fmask[i]] * (nx[exInd + i] * (dQ1dx[fmask[i]] + dQ0dy[fmask[i]]) + ny[exInd + i] * 2.0 * dQ1dy[fmask[i]]));
       }
     }
     //end inline func
   }
 
-  *arg10 = arg10_l;
   *arg11 = arg11_l;
+  *arg12 = arg12_l;
 }

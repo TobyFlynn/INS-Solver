@@ -5,7 +5,8 @@
 // global constants
 double gam_ompkernel;
 double mu_ompkernel;
-double nu_ompkernel;
+double nu0_ompkernel;
+double nu1_ompkernel;
 double bc_mach_ompkernel;
 double bc_alpha_ompkernel;
 double bc_p_ompkernel;
@@ -50,9 +51,12 @@ void op_decl_const_char(int dim, char const *type,
   } else if(!strcmp(name, "mu")) {
     memcpy(&mu_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:mu_ompkernel)
-  } else if(!strcmp(name, "nu")) {
-    memcpy(&nu_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:nu_ompkernel)
+  } else if(!strcmp(name, "nu0")) {
+    memcpy(&nu0_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:nu0_ompkernel)
+  } else if(!strcmp(name, "nu1")) {
+    memcpy(&nu1_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:nu1_ompkernel)
   } else if(!strcmp(name, "bc_mach")) {
     memcpy(&bc_mach_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:bc_mach_ompkernel)

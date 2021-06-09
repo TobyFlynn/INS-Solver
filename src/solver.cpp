@@ -82,6 +82,7 @@ Solver::Solver(std::string filename, int pmethod, int prob, bool multi) {
               op_arg_gbl(&problem, 1, "int", OP_READ),
               op_arg_dat(data->x,   -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->y,   -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->nu,  -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->Q[0][0],   -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->Q[0][1],   -1, OP_ID, 15, "double", OP_WRITE));
 
@@ -136,6 +137,7 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_gbl(&problem, 1, "int", OP_READ),
               op_arg_dat(data->x, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->y, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->nu, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->Q[currentInd][0], 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->Q[currentInd][1], 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->exQ[0], 0, data->bedge2cells, 15, "double", OP_INC),
@@ -193,6 +195,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->y, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->nx, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->ny, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->nu, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->N[currentInd][0], 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->N[currentInd][1], 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->gradCurlVel[0], 0, data->bedge2cells, 15, "double", OP_READ),
@@ -207,6 +210,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
                 op_arg_gbl(&problem, 1, "int", OP_READ),
                 op_arg_dat(gaussData->x, 0, data->bedge2cells, 21, "double", OP_READ),
                 op_arg_dat(gaussData->y, 0, data->bedge2cells, 21, "double", OP_READ),
+                op_arg_dat(data->gNu, 0, data->bedge2cells, 21, "double", OP_READ),
                 op_arg_dat(data->prBC, 0, data->bedge2cells, 21, "double", OP_INC));
   }
 
@@ -265,6 +269,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(gaussData->y, 0, data->bedge2cells, 21, "double", OP_READ),
               op_arg_dat(gaussData->nx, 0, data->bedge2cells, 21, "double", OP_READ),
               op_arg_dat(gaussData->ny, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(data->gNu, 0, data->bedge2cells, 21, "double", OP_READ),
               op_arg_dat(data->visBC[0], 0, data->bedge2cells, 21, "double", OP_INC),
               op_arg_dat(data->visBC[1], 0, data->bedge2cells, 21, "double", OP_INC));
 
@@ -272,24 +277,24 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[0], 0.0, data->visRHS[0]);
   op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[1], 0.0, data->visRHS[1]);
 
-  double factor = g0 / (nu * dt);
+  // double factor = g0 / (nu * dt);
+  double factor = g0 / dt;
   op_par_loop(viscosity_rhs, "viscosity_rhs", data->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
-              op_arg_dat(data->J, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->nu, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->visRHS[0], -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(data->visRHS[1], -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(data->visBC[0], -1, OP_ID, 21, "double", OP_RW),
-              op_arg_dat(data->visBC[1], -1, OP_ID, 21, "double", OP_RW));
+              op_arg_dat(data->vFactor, -1, OP_ID, 15, "double", OP_WRITE));
 
   timer->endViscositySetup();
 
   // Call PETSc linear solver
   timer->startViscosityLinearSolve();
   viscosityPoisson->setBCValues(data->visBC[0]);
-  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
+  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, data->vFactor);
 
   viscosityPoisson->setBCValues(data->visBC[1]);
-  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
+  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, data->vFactor);
   timer->endViscosityLinearSolve();
 
   // Reset BC dats ready for next iteration
@@ -328,6 +333,7 @@ void Solver::lift_drag_coeff(double *lift, double *drag, int ind) {
               op_arg_dat(data->nx, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->ny, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_dat(data->sJ, 0, data->bedge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->nu, 0, data->bedge2cells, 15, "double", OP_READ),
               op_arg_gbl(drag, 1, "double", OP_INC),
               op_arg_gbl(lift, 1, "double", OP_INC));
 

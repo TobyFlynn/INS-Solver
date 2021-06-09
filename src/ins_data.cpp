@@ -77,6 +77,9 @@ INSData::INSData(std::string filename) {
   prBC_data      = (double *)calloc(21 * numCells, sizeof(double));
   vorticity_data = (double *)calloc(15 * numCells, sizeof(double));
   save_temp_data = (double *)calloc(16 * numCells, sizeof(double));
+  nu_data        = (double *)calloc(15 * numCells, sizeof(double));
+  gNu_data       = (double *)calloc(21 * numCells, sizeof(double));
+  vFactor_data   = (double *)calloc(15 * numCells, sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -163,10 +166,14 @@ INSData::INSData(std::string filename) {
   prBC      = op_decl_dat(cells, 21, "double", prBC_data, "prBC");
   vorticity = op_decl_dat(cells, 15, "double", vorticity_data, "vorticity");
   save_temp = op_decl_dat(cells, 16, "double", save_temp_data, "save_temp");
+  nu        = op_decl_dat(cells, 15, "double", nu_data, "nu");
+  gNu       = op_decl_dat(cells, 21, "double", gNu_data, "gNu");
+  vFactor   = op_decl_dat(cells, 15, "double", vFactor_data, "vFactor");
 
   op_decl_const(1, "double", &gam);
   op_decl_const(1, "double", &mu);
-  op_decl_const(1, "double", &nu);
+  op_decl_const(1, "double", &nu0);
+  op_decl_const(1, "double", &nu1);
   op_decl_const(1, "double", &bc_mach);
   op_decl_const(1, "double", &bc_alpha);
   op_decl_const(1, "double", &bc_p);
@@ -257,6 +264,9 @@ INSData::~INSData() {
   free(prBC_data);
   free(vorticity_data);
   free(save_temp_data);
+  free(nu_data);
+  free(gNu_data);
+  free(vFactor_data);
 }
 
 void INSData::init() {
@@ -336,7 +346,7 @@ CubatureData::~CubatureData() {
   free(OP_data);
   free(temp_data);
   free(temp2_data);
-  
+
   free(op_temps_data[0]);
   free(op_temps_data[1]);
   free(op_temps_data[2]);

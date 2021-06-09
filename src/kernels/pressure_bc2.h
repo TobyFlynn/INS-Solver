@@ -1,6 +1,6 @@
 inline void pressure_bc2(const int *bedge_type, const int *bedgeNum,
                          const double *t, const int *problem, const double *x,
-                         const double *y, double *prBC) {
+                         const double *y, const double *nu, double *prBC) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 7;
@@ -16,7 +16,7 @@ inline void pressure_bc2(const int *bedge_type, const int *bedgeNum,
       for(int i = 0; i < 7; i++) {
         double y1 = y[exInd + i];
         double x1 = x[exInd + i];
-        prBC[exInd + i] += -cos(2.0 * PI * x1) * cos(2.0 * PI * y1) * exp(-nu * 8.0 * PI * PI * *t);
+        prBC[exInd + i] += -cos(2.0 * PI * x1) * cos(2.0 * PI * y1) * exp(-nu[exInd + i] * 8.0 * PI * PI * *t);
       }
     }
   }

@@ -71,7 +71,8 @@ int main(int argc, char **argv) {
 
   gam = 1.4;
   mu = 1e-2;
-  nu = 1e-3;
+  nu0 = 1e-3;
+  nu1 = 2e-3;
   bc_u = 1e-6;
   bc_v = 0.0;
   ic_u = 0.0;
@@ -79,7 +80,8 @@ int main(int argc, char **argv) {
 
   op_printf("gam: %g\n", gam);
   op_printf("mu: %g\n", mu);
-  op_printf("nu: %g\n", nu);
+  op_printf("nu0: %g\n", nu0);
+  op_printf("nu1: %g\n", nu1);
 
   // Get input from args
   int iter = 1;
@@ -198,7 +200,7 @@ int main(int argc, char **argv) {
     save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
 
   // Save solution to CGNS file
-  save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, solver->ls, time, nu);
+  save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, solver->ls, time, nu0);
 
   timer->endWallTime();
   timer->exportTimings(outputDir + "timings.csv", iter, time);

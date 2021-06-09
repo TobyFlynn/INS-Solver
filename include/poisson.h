@@ -19,6 +19,7 @@ public:
   ~Poisson();
 
   virtual bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0) = 0;
+  virtual bool solve(op_dat b_dat, op_dat x_dat, bool addMass, op_dat factor) = 0;
   virtual void init() = 0;
 
   double getAverageConvergeIter();
@@ -55,6 +56,7 @@ public:
   ~Poisson_M();
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
+  bool solve(op_dat b_dat, op_dat x_dat, bool addMass, op_dat factor);
   void init();
 
   op_dat glb_ind, glb_indL, glb_indR, glb_indBC, op1, op2[2], op_bc;
@@ -89,6 +91,7 @@ public:
   ~Poisson_MF2();
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
+  bool solve(op_dat b_dat, op_dat x_dat, bool addMass, op_dat factor);
   void calc_rhs(const double *u_d, double *rhs_d);
   void init();
 
