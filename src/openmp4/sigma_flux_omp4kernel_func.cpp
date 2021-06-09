@@ -5,24 +5,22 @@
 void sigma_flux_omp4_kernel(
   int *data0,
   int dat0size,
-  int *map1,
-  int map1size,
-  double *data1,
+  bool *data1,
   int dat1size,
-  double *data3,
-  int dat3size,
-  double *data5,
-  int dat5size,
-  double *data7,
-  int dat7size,
-  double *data9,
-  int dat9size,
-  double *data11,
-  int dat11size,
-  double *data13,
-  int dat13size,
-  double *data15,
-  int dat15size,
+  int *map2,
+  int map2size,
+  double *data2,
+  int dat2size,
+  double *data4,
+  int dat4size,
+  double *data6,
+  int dat6size,
+  double *data8,
+  int dat8size,
+  double *data10,
+  int dat10size,
+  double *data12,
+  int dat12size,
   int *col_reord,
   int set_size1,
   int start,
@@ -30,84 +28,51 @@ void sigma_flux_omp4_kernel(
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size]) \
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
     map(to: gaussW_g_ompkernel[:7])\
-    map(to:col_reord[0:set_size1],map1[0:map1size],data1[0:dat1size],data3[0:dat3size],data5[0:dat5size],data7[0:dat7size],data9[0:dat9size],data11[0:dat11size],data13[0:dat13size],data15[0:dat15size])
+    map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data4[0:dat4size],data6[0:dat6size],data8[0:dat8size],data10[0:dat10size],data12[0:dat12size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
-    int map1idx;
     int map2idx;
-    map1idx = map1[n_op + set_size1 * 0];
-    map2idx = map1[n_op + set_size1 * 1];
+    int map3idx;
+    map2idx = map2[n_op + set_size1 * 0];
+    map3idx = map2[n_op + set_size1 * 1];
 
-    const double* arg1_vec[] = {
-       &data1[3 * map1idx],
-       &data1[3 * map2idx]};
-    const double* arg3_vec[] = {
-       &data3[3 * map1idx],
-       &data3[3 * map2idx]};
-    const double* arg5_vec[] = {
-       &data5[21 * map1idx],
-       &data5[21 * map2idx]};
-    const double* arg7_vec[] = {
-       &data7[21 * map1idx],
-       &data7[21 * map2idx]};
-    const double* arg9_vec[] = {
-       &data9[21 * map1idx],
-       &data9[21 * map2idx]};
-    const double* arg11_vec[] = {
-       &data11[21 * map1idx],
-       &data11[21 * map2idx]};
-    double* arg13_vec[] = {
-       &data13[21 * map1idx],
-       &data13[21 * map2idx]};
-    double* arg15_vec[] = {
-       &data15[21 * map1idx],
-       &data15[21 * map2idx]};
+    const double* arg2_vec[] = {
+       &data2[21 * map2idx],
+       &data2[21 * map3idx]};
+    const double* arg4_vec[] = {
+       &data4[21 * map2idx],
+       &data4[21 * map3idx]};
+    const double* arg6_vec[] = {
+       &data6[21 * map2idx],
+       &data6[21 * map3idx]};
+    const double* arg8_vec[] = {
+       &data8[21 * map2idx],
+       &data8[21 * map3idx]};
+    double* arg10_vec[] = {
+       &data10[21 * map2idx],
+       &data10[21 * map3idx]};
+    double* arg12_vec[] = {
+       &data12[21 * map2idx],
+       &data12[21 * map3idx]};
     //variable mapping
     const int *edgeNum = &data0[2*n_op];
-    const double **x = arg1_vec;
-    const double **y = arg3_vec;
-    const double **sJ = arg5_vec;
-    const double **nx = arg7_vec;
-    const double **ny = arg9_vec;
-    const double **s = arg11_vec;
-    double **sigFx = arg13_vec;
-    double **sigFy = arg15_vec;
+    const bool *rev = &data1[1*n_op];
+    const double **sJ = arg2_vec;
+    const double **nx = arg4_vec;
+    const double **ny = arg6_vec;
+    const double **s = arg8_vec;
+    double **sigFx = arg10_vec;
+    double **sigFy = arg12_vec;
 
     //inline function
     
 
     int edgeL = edgeNum[0];
     int edgeR = edgeNum[1];
-    bool reverse;
-
-    if(edgeR == 0) {
-      if(edgeL == 0) {
-        reverse = !(x[0][0] == x[1][0] && y[0][0] == y[1][0]);
-      } else if(edgeL == 1) {
-        reverse = !(x[0][1] == x[1][0] && y[0][1] == y[1][0]);
-      } else {
-        reverse = !(x[0][2] == x[1][0] && y[0][2] == y[1][0]);
-      }
-    } else if(edgeR == 1) {
-      if(edgeL == 0) {
-        reverse = !(x[0][0] == x[1][1] && y[0][0] == y[1][1]);
-      } else if(edgeL == 1) {
-        reverse = !(x[0][1] == x[1][1] && y[0][1] == y[1][1]);
-      } else {
-        reverse = !(x[0][2] == x[1][1] && y[0][2] == y[1][1]);
-      }
-    } else {
-      if(edgeL == 0) {
-        reverse = !(x[0][0] == x[1][2] && y[0][0] == y[1][2]);
-      } else if(edgeL == 1) {
-        reverse = !(x[0][1] == x[1][2] && y[0][1] == y[1][2]);
-      } else {
-        reverse = !(x[0][2] == x[1][2] && y[0][2] == y[1][2]);
-      }
-    }
+    bool reverse = *rev;
 
     int exIndL = 0;
     if(edgeL == 1) exIndL = 7;

@@ -5,39 +5,13 @@
 //user function
 //user function
 //#pragma acc routine
-inline void sigma_flux_openacc( const int *edgeNum, const double **x, const double **y,
-                       const double **sJ, const double **nx, const double **ny,
-                       const double **s, double **sigFx, double **sigFy) {
+inline void sigma_flux_openacc( const int *edgeNum, const bool *rev, const double **sJ,
+                       const double **nx, const double **ny, const double **s,
+                       double **sigFx, double **sigFy) {
 
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
-  bool reverse;
-
-  if(edgeR == 0) {
-    if(edgeL == 0) {
-      reverse = !(x[0][0] == x[1][0] && y[0][0] == y[1][0]);
-    } else if(edgeL == 1) {
-      reverse = !(x[0][1] == x[1][0] && y[0][1] == y[1][0]);
-    } else {
-      reverse = !(x[0][2] == x[1][0] && y[0][2] == y[1][0]);
-    }
-  } else if(edgeR == 1) {
-    if(edgeL == 0) {
-      reverse = !(x[0][0] == x[1][1] && y[0][0] == y[1][1]);
-    } else if(edgeL == 1) {
-      reverse = !(x[0][1] == x[1][1] && y[0][1] == y[1][1]);
-    } else {
-      reverse = !(x[0][2] == x[1][1] && y[0][2] == y[1][1]);
-    }
-  } else {
-    if(edgeL == 0) {
-      reverse = !(x[0][0] == x[1][2] && y[0][0] == y[1][2]);
-    } else if(edgeL == 1) {
-      reverse = !(x[0][1] == x[1][2] && y[0][1] == y[1][2]);
-    } else {
-      reverse = !(x[0][2] == x[1][2] && y[0][2] == y[1][2]);
-    }
-  }
+  bool reverse = *rev;
 
   int exIndL = 0;
   if(edgeL == 1) exIndL = 7;
@@ -78,64 +52,52 @@ inline void sigma_flux_openacc( const int *edgeNum, const double **x, const doub
 void op_par_loop_sigma_flux(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg3,
-  op_arg arg5,
-  op_arg arg7,
-  op_arg arg9,
-  op_arg arg11,
-  op_arg arg13,
-  op_arg arg15){
+  op_arg arg2,
+  op_arg arg4,
+  op_arg arg6,
+  op_arg arg8,
+  op_arg arg10,
+  op_arg arg12){
 
-  int nargs = 17;
-  op_arg args[17];
+  int nargs = 14;
+  op_arg args[14];
 
   args[0] = arg0;
-  arg1.idx = 0;
   args[1] = arg1;
+  arg2.idx = 0;
+  args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 3, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 21, "double", OP_READ);
   }
 
-  arg3.idx = 0;
-  args[3] = arg3;
+  arg4.idx = 0;
+  args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 3, "double", OP_READ);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 21, "double", OP_READ);
   }
 
-  arg5.idx = 0;
-  args[5] = arg5;
+  arg6.idx = 0;
+  args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[5 + v] = op_arg_dat(arg5.dat, v, arg5.map, 21, "double", OP_READ);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 21, "double", OP_READ);
   }
 
-  arg7.idx = 0;
-  args[7] = arg7;
+  arg8.idx = 0;
+  args[8] = arg8;
   for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 21, "double", OP_READ);
+    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 21, "double", OP_READ);
   }
 
-  arg9.idx = 0;
-  args[9] = arg9;
+  arg10.idx = 0;
+  args[10] = arg10;
   for ( int v=1; v<2; v++ ){
-    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 21, "double", OP_READ);
+    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 21, "double", OP_INC);
   }
 
-  arg11.idx = 0;
-  args[11] = arg11;
+  arg12.idx = 0;
+  args[12] = arg12;
   for ( int v=1; v<2; v++ ){
-    args[11 + v] = op_arg_dat(arg11.dat, v, arg11.map, 21, "double", OP_READ);
-  }
-
-  arg13.idx = 0;
-  args[13] = arg13;
-  for ( int v=1; v<2; v++ ){
-    args[13 + v] = op_arg_dat(arg13.dat, v, arg13.map, 21, "double", OP_INC);
-  }
-
-  arg15.idx = 0;
-  args[15] = arg15;
-  for ( int v=1; v<2; v++ ){
-    args[15 + v] = op_arg_dat(arg15.dat, v, arg15.map, 21, "double", OP_INC);
+    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 21, "double", OP_INC);
   }
 
 
@@ -146,8 +108,8 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   OP_kernels[66].name      = name;
   OP_kernels[66].count    += 1;
 
-  int  ninds   = 8;
-  int  inds[17] = {-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7};
+  int  ninds   = 6;
+  int  inds[14] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: sigma_flux\n");
@@ -169,17 +131,16 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
 
 
     //Set up typed device pointers for OpenACC
-    int *map1 = arg1.map_data_d;
+    int *map2 = arg2.map_data_d;
 
     int* data0 = (int*)arg0.data_d;
-    double *data1 = (double *)arg1.data_d;
-    double *data3 = (double *)arg3.data_d;
-    double *data5 = (double *)arg5.data_d;
-    double *data7 = (double *)arg7.data_d;
-    double *data9 = (double *)arg9.data_d;
-    double *data11 = (double *)arg11.data_d;
-    double *data13 = (double *)arg13.data_d;
-    double *data15 = (double *)arg15.data_d;
+    bool* data1 = (bool*)arg1.data_d;
+    double *data2 = (double *)arg2.data_d;
+    double *data4 = (double *)arg4.data_d;
+    double *data6 = (double *)arg6.data_d;
+    double *data8 = (double *)arg8.data_d;
+    double *data10 = (double *)arg10.data_d;
+    double *data12 = (double *)arg12.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -194,49 +155,42 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map1,data0,data1,data3,data5,data7,data9,data11,data13,data15)
+      #pragma acc parallel loop independent deviceptr(col_reord,map2,data0,data1,data2,data4,data6,data8,data10,data12)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
-        int map1idx;
         int map2idx;
-        map1idx = map1[n + set_size1 * 0];
-        map2idx = map1[n + set_size1 * 1];
+        int map3idx;
+        map2idx = map2[n + set_size1 * 0];
+        map3idx = map2[n + set_size1 * 1];
 
-        const double* arg1_vec[] = {
-           &data1[3 * map1idx],
-           &data1[3 * map2idx]};
-        const double* arg3_vec[] = {
-           &data3[3 * map1idx],
-           &data3[3 * map2idx]};
-        const double* arg5_vec[] = {
-           &data5[21 * map1idx],
-           &data5[21 * map2idx]};
-        const double* arg7_vec[] = {
-           &data7[21 * map1idx],
-           &data7[21 * map2idx]};
-        const double* arg9_vec[] = {
-           &data9[21 * map1idx],
-           &data9[21 * map2idx]};
-        const double* arg11_vec[] = {
-           &data11[21 * map1idx],
-           &data11[21 * map2idx]};
-        double* arg13_vec[] = {
-           &data13[21 * map1idx],
-           &data13[21 * map2idx]};
-        double* arg15_vec[] = {
-           &data15[21 * map1idx],
-           &data15[21 * map2idx]};
+        const double* arg2_vec[] = {
+           &data2[21 * map2idx],
+           &data2[21 * map3idx]};
+        const double* arg4_vec[] = {
+           &data4[21 * map2idx],
+           &data4[21 * map3idx]};
+        const double* arg6_vec[] = {
+           &data6[21 * map2idx],
+           &data6[21 * map3idx]};
+        const double* arg8_vec[] = {
+           &data8[21 * map2idx],
+           &data8[21 * map3idx]};
+        double* arg10_vec[] = {
+           &data10[21 * map2idx],
+           &data10[21 * map3idx]};
+        double* arg12_vec[] = {
+           &data12[21 * map2idx],
+           &data12[21 * map3idx]};
 
         sigma_flux_openacc(
           &data0[2 * n],
-          arg1_vec,
-          arg3_vec,
-          arg5_vec,
-          arg7_vec,
-          arg9_vec,
-          arg11_vec,
-          arg13_vec,
-          arg15_vec);
+          &data1[1 * n],
+          arg2_vec,
+          arg4_vec,
+          arg6_vec,
+          arg8_vec,
+          arg10_vec,
+          arg12_vec);
       }
 
     }

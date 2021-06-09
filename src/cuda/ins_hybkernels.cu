@@ -3882,8 +3882,7 @@ void op_par_loop_ls_advec_edges_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3,
-  op_arg arg4);
+  op_arg arg3);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -3891,24 +3890,21 @@ void op_par_loop_ls_advec_edges(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3,
-  op_arg arg4){
+  op_arg arg3){
 
   if (OP_hybrid_gpu) {
     op_par_loop_ls_advec_edges_gpu(name, set,
       arg0,
       arg1,
       arg2,
-      arg3,
-      arg4);
+      arg3);
 
     }else{
     op_par_loop_ls_advec_edges_cpu(name, set,
       arg0,
       arg1,
       arg2,
-      arg3,
-      arg4);
+      arg3);
 
   }
 }
@@ -3917,15 +3913,13 @@ void op_par_loop_ls_advec_edges(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3,
-  op_arg arg4){
+  op_arg arg3){
 
   op_par_loop_ls_advec_edges_gpu(name, set,
     arg0,
     arg1,
     arg2,
-    arg3,
-    arg4);
+    arg3);
 
   }
 #endif //OP_HYBRID_GPU
@@ -4226,8 +4220,7 @@ void op_par_loop_ls_flux_gpu(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9,
-  op_arg arg10);
+  op_arg arg9);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -4241,8 +4234,7 @@ void op_par_loop_ls_flux(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9,
-  op_arg arg10){
+  op_arg arg9){
 
   if (OP_hybrid_gpu) {
     op_par_loop_ls_flux_gpu(name, set,
@@ -4255,8 +4247,7 @@ void op_par_loop_ls_flux(char const *name, op_set set,
       arg6,
       arg7,
       arg8,
-      arg9,
-      arg10);
+      arg9);
 
     }else{
     op_par_loop_ls_flux_cpu(name, set,
@@ -4269,8 +4260,7 @@ void op_par_loop_ls_flux(char const *name, op_set set,
       arg6,
       arg7,
       arg8,
-      arg9,
-      arg10);
+      arg9);
 
   }
 }
@@ -4285,8 +4275,7 @@ void op_par_loop_ls_flux(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9,
-  op_arg arg10){
+  op_arg arg9){
 
   op_par_loop_ls_flux_gpu(name, set,
     arg0,
@@ -4298,8 +4287,7 @@ void op_par_loop_ls_flux(char const *name, op_set set,
     arg6,
     arg7,
     arg8,
-    arg9,
-    arg10);
+    arg9);
 
   }
 #endif //OP_HYBRID_GPU
@@ -4562,8 +4550,7 @@ void op_par_loop_sigma_flux_gpu(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7,
-  op_arg arg8);
+  op_arg arg7);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -4575,8 +4562,7 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
+  op_arg arg7){
 
   if (OP_hybrid_gpu) {
     op_par_loop_sigma_flux_gpu(name, set,
@@ -4587,8 +4573,7 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
       arg4,
       arg5,
       arg6,
-      arg7,
-      arg8);
+      arg7);
 
     }else{
     op_par_loop_sigma_flux_cpu(name, set,
@@ -4599,8 +4584,7 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
       arg4,
       arg5,
       arg6,
-      arg7,
-      arg8);
+      arg7);
 
   }
 }
@@ -4613,8 +4597,7 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
+  op_arg arg7){
 
   op_par_loop_sigma_flux_gpu(name, set,
     arg0,
@@ -4624,8 +4607,7 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
     arg4,
     arg5,
     arg6,
-    arg7,
-    arg8);
+    arg7);
 
   }
 #endif //OP_HYBRID_GPU
@@ -4760,8 +4742,7 @@ void op_par_loop_diff_flux_gpu(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7,
-  op_arg arg8);
+  op_arg arg7);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -4773,8 +4754,7 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
+  op_arg arg7){
 
   if (OP_hybrid_gpu) {
     op_par_loop_diff_flux_gpu(name, set,
@@ -4785,8 +4765,7 @@ void op_par_loop_diff_flux(char const *name, op_set set,
       arg4,
       arg5,
       arg6,
-      arg7,
-      arg8);
+      arg7);
 
     }else{
     op_par_loop_diff_flux_cpu(name, set,
@@ -4797,8 +4776,7 @@ void op_par_loop_diff_flux(char const *name, op_set set,
       arg4,
       arg5,
       arg6,
-      arg7,
-      arg8);
+      arg7);
 
   }
 }
@@ -4811,8 +4789,7 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
+  op_arg arg7){
 
   op_par_loop_diff_flux_gpu(name, set,
     arg0,
@@ -4822,8 +4799,7 @@ void op_par_loop_diff_flux(char const *name, op_set set,
     arg4,
     arg5,
     arg6,
-    arg7,
-    arg8);
+    arg7);
 
   }
 #endif //OP_HYBRID_GPU

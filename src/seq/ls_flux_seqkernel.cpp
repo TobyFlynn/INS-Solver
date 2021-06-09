@@ -9,78 +9,66 @@
 void op_par_loop_ls_flux(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg3,
-  op_arg arg5,
-  op_arg arg7,
-  op_arg arg9,
-  op_arg arg11,
-  op_arg arg13,
-  op_arg arg15,
-  op_arg arg17,
-  op_arg arg19){
+  op_arg arg2,
+  op_arg arg4,
+  op_arg arg6,
+  op_arg arg8,
+  op_arg arg10,
+  op_arg arg12,
+  op_arg arg14,
+  op_arg arg16){
 
-  int nargs = 21;
-  op_arg args[21];
+  int nargs = 18;
+  op_arg args[18];
 
   args[0] = arg0;
-  arg1.idx = 0;
   args[1] = arg1;
+  arg2.idx = 0;
+  args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 3, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 21, "double", OP_READ);
   }
 
-  arg3.idx = 0;
-  args[3] = arg3;
+  arg4.idx = 0;
+  args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 3, "double", OP_READ);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 21, "double", OP_READ);
   }
 
-  arg5.idx = 0;
-  args[5] = arg5;
+  arg6.idx = 0;
+  args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[5 + v] = op_arg_dat(arg5.dat, v, arg5.map, 21, "double", OP_READ);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 21, "double", OP_READ);
   }
 
-  arg7.idx = 0;
-  args[7] = arg7;
+  arg8.idx = 0;
+  args[8] = arg8;
   for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 21, "double", OP_READ);
+    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 21, "double", OP_READ);
   }
 
-  arg9.idx = 0;
-  args[9] = arg9;
+  arg10.idx = 0;
+  args[10] = arg10;
   for ( int v=1; v<2; v++ ){
-    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 21, "double", OP_READ);
+    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 21, "double", OP_INC);
   }
 
-  arg11.idx = 0;
-  args[11] = arg11;
+  arg12.idx = 0;
+  args[12] = arg12;
   for ( int v=1; v<2; v++ ){
-    args[11 + v] = op_arg_dat(arg11.dat, v, arg11.map, 21, "double", OP_READ);
+    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 21, "double", OP_INC);
   }
 
-  arg13.idx = 0;
-  args[13] = arg13;
+  arg14.idx = 0;
+  args[14] = arg14;
   for ( int v=1; v<2; v++ ){
-    args[13 + v] = op_arg_dat(arg13.dat, v, arg13.map, 21, "double", OP_INC);
+    args[14 + v] = op_arg_dat(arg14.dat, v, arg14.map, 21, "double", OP_INC);
   }
 
-  arg15.idx = 0;
-  args[15] = arg15;
+  arg16.idx = 0;
+  args[16] = arg16;
   for ( int v=1; v<2; v++ ){
-    args[15 + v] = op_arg_dat(arg15.dat, v, arg15.map, 21, "double", OP_INC);
-  }
-
-  arg17.idx = 0;
-  args[17] = arg17;
-  for ( int v=1; v<2; v++ ){
-    args[17 + v] = op_arg_dat(arg17.dat, v, arg17.map, 21, "double", OP_INC);
-  }
-
-  arg19.idx = 0;
-  args[19] = arg19;
-  for ( int v=1; v<2; v++ ){
-    args[19 + v] = op_arg_dat(arg19.dat, v, arg19.map, 21, "double", OP_INC);
+    args[16 + v] = op_arg_dat(arg16.dat, v, arg16.map, 21, "double", OP_INC);
   }
 
 
@@ -101,54 +89,47 @@ void op_par_loop_ls_flux(char const *name, op_set set,
       if (n==set->core_size) {
         op_mpi_wait_all(nargs, args);
       }
-      int map1idx;
       int map2idx;
-      map1idx = arg1.map_data[n * arg1.map->dim + 0];
-      map2idx = arg1.map_data[n * arg1.map->dim + 1];
+      int map3idx;
+      map2idx = arg2.map_data[n * arg2.map->dim + 0];
+      map3idx = arg2.map_data[n * arg2.map->dim + 1];
 
-      const double* arg1_vec[] = {
-         &((double*)arg1.data)[3 * map1idx],
-         &((double*)arg1.data)[3 * map2idx]};
-      const double* arg3_vec[] = {
-         &((double*)arg3.data)[3 * map1idx],
-         &((double*)arg3.data)[3 * map2idx]};
-      const double* arg5_vec[] = {
-         &((double*)arg5.data)[21 * map1idx],
-         &((double*)arg5.data)[21 * map2idx]};
-      const double* arg7_vec[] = {
-         &((double*)arg7.data)[21 * map1idx],
-         &((double*)arg7.data)[21 * map2idx]};
-      const double* arg9_vec[] = {
-         &((double*)arg9.data)[21 * map1idx],
-         &((double*)arg9.data)[21 * map2idx]};
-      const double* arg11_vec[] = {
-         &((double*)arg11.data)[21 * map1idx],
-         &((double*)arg11.data)[21 * map2idx]};
-      double* arg13_vec[] = {
-         &((double*)arg13.data)[21 * map1idx],
-         &((double*)arg13.data)[21 * map2idx]};
-      double* arg15_vec[] = {
-         &((double*)arg15.data)[21 * map1idx],
-         &((double*)arg15.data)[21 * map2idx]};
-      double* arg17_vec[] = {
-         &((double*)arg17.data)[21 * map1idx],
-         &((double*)arg17.data)[21 * map2idx]};
-      double* arg19_vec[] = {
-         &((double*)arg19.data)[21 * map1idx],
-         &((double*)arg19.data)[21 * map2idx]};
+      const double* arg2_vec[] = {
+         &((double*)arg2.data)[21 * map2idx],
+         &((double*)arg2.data)[21 * map3idx]};
+      const double* arg4_vec[] = {
+         &((double*)arg4.data)[21 * map2idx],
+         &((double*)arg4.data)[21 * map3idx]};
+      const double* arg6_vec[] = {
+         &((double*)arg6.data)[21 * map2idx],
+         &((double*)arg6.data)[21 * map3idx]};
+      const double* arg8_vec[] = {
+         &((double*)arg8.data)[21 * map2idx],
+         &((double*)arg8.data)[21 * map3idx]};
+      double* arg10_vec[] = {
+         &((double*)arg10.data)[21 * map2idx],
+         &((double*)arg10.data)[21 * map3idx]};
+      double* arg12_vec[] = {
+         &((double*)arg12.data)[21 * map2idx],
+         &((double*)arg12.data)[21 * map3idx]};
+      double* arg14_vec[] = {
+         &((double*)arg14.data)[21 * map2idx],
+         &((double*)arg14.data)[21 * map3idx]};
+      double* arg16_vec[] = {
+         &((double*)arg16.data)[21 * map2idx],
+         &((double*)arg16.data)[21 * map3idx]};
 
       ls_flux(
         &((int*)arg0.data)[2 * n],
-        arg1_vec,
-        arg3_vec,
-        arg5_vec,
-        arg7_vec,
-        arg9_vec,
-        arg11_vec,
-        arg13_vec,
-        arg15_vec,
-        arg17_vec,
-        arg19_vec);
+        &((bool*)arg1.data)[1 * n],
+        arg2_vec,
+        arg4_vec,
+        arg6_vec,
+        arg8_vec,
+        arg10_vec,
+        arg12_vec,
+        arg14_vec,
+        arg16_vec);
     }
   }
 
@@ -163,16 +144,15 @@ void op_par_loop_ls_flux(char const *name, op_set set,
   OP_kernels[61].name      = name;
   OP_kernels[61].count    += 1;
   OP_kernels[61].time     += wall_t2 - wall_t1;
-  OP_kernels[61].transfer += (float)set->size * arg1.size;
-  OP_kernels[61].transfer += (float)set->size * arg3.size;
-  OP_kernels[61].transfer += (float)set->size * arg5.size;
-  OP_kernels[61].transfer += (float)set->size * arg7.size;
-  OP_kernels[61].transfer += (float)set->size * arg9.size;
-  OP_kernels[61].transfer += (float)set->size * arg11.size;
-  OP_kernels[61].transfer += (float)set->size * arg13.size * 2.0f;
-  OP_kernels[61].transfer += (float)set->size * arg15.size * 2.0f;
-  OP_kernels[61].transfer += (float)set->size * arg17.size * 2.0f;
-  OP_kernels[61].transfer += (float)set->size * arg19.size * 2.0f;
+  OP_kernels[61].transfer += (float)set->size * arg2.size;
+  OP_kernels[61].transfer += (float)set->size * arg4.size;
+  OP_kernels[61].transfer += (float)set->size * arg6.size;
+  OP_kernels[61].transfer += (float)set->size * arg8.size;
+  OP_kernels[61].transfer += (float)set->size * arg10.size * 2.0f;
+  OP_kernels[61].transfer += (float)set->size * arg12.size * 2.0f;
+  OP_kernels[61].transfer += (float)set->size * arg14.size * 2.0f;
+  OP_kernels[61].transfer += (float)set->size * arg16.size * 2.0f;
   OP_kernels[61].transfer += (float)set->size * arg0.size;
-  OP_kernels[61].transfer += (float)set->size * arg1.map->dim * 4.0f;
+  OP_kernels[61].transfer += (float)set->size * arg1.size;
+  OP_kernels[61].transfer += (float)set->size * arg2.map->dim * 4.0f;
 }

@@ -8,24 +8,22 @@
 void diff_flux_omp4_kernel(
   int *data0,
   int dat0size,
-  int *map1,
-  int map1size,
-  double *data1,
+  bool *data1,
   int dat1size,
-  double *data3,
-  int dat3size,
-  double *data5,
-  int dat5size,
-  double *data7,
-  int dat7size,
-  double *data9,
-  int dat9size,
-  double *data11,
-  int dat11size,
-  double *data13,
-  int dat13size,
-  double *data15,
-  int dat15size,
+  int *map2,
+  int map2size,
+  double *data2,
+  int dat2size,
+  double *data4,
+  int dat4size,
+  double *data6,
+  int dat6size,
+  double *data8,
+  int dat8size,
+  double *data10,
+  int dat10size,
+  double *data12,
+  int dat12size,
   int *col_reord,
   int set_size1,
   int start,
@@ -37,64 +35,52 @@ void diff_flux_omp4_kernel(
 void op_par_loop_diff_flux(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg3,
-  op_arg arg5,
-  op_arg arg7,
-  op_arg arg9,
-  op_arg arg11,
-  op_arg arg13,
-  op_arg arg15){
+  op_arg arg2,
+  op_arg arg4,
+  op_arg arg6,
+  op_arg arg8,
+  op_arg arg10,
+  op_arg arg12){
 
-  int nargs = 17;
-  op_arg args[17];
+  int nargs = 14;
+  op_arg args[14];
 
   args[0] = arg0;
-  arg1.idx = 0;
   args[1] = arg1;
+  arg2.idx = 0;
+  args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 3, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 21, "double", OP_READ);
   }
 
-  arg3.idx = 0;
-  args[3] = arg3;
+  arg4.idx = 0;
+  args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 3, "double", OP_READ);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 21, "double", OP_READ);
   }
 
-  arg5.idx = 0;
-  args[5] = arg5;
+  arg6.idx = 0;
+  args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[5 + v] = op_arg_dat(arg5.dat, v, arg5.map, 21, "double", OP_READ);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 21, "double", OP_READ);
   }
 
-  arg7.idx = 0;
-  args[7] = arg7;
+  arg8.idx = 0;
+  args[8] = arg8;
   for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 21, "double", OP_READ);
+    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 21, "double", OP_READ);
   }
 
-  arg9.idx = 0;
-  args[9] = arg9;
+  arg10.idx = 0;
+  args[10] = arg10;
   for ( int v=1; v<2; v++ ){
-    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 21, "double", OP_READ);
+    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 21, "double", OP_READ);
   }
 
-  arg11.idx = 0;
-  args[11] = arg11;
+  arg12.idx = 0;
+  args[12] = arg12;
   for ( int v=1; v<2; v++ ){
-    args[11 + v] = op_arg_dat(arg11.dat, v, arg11.map, 21, "double", OP_READ);
-  }
-
-  arg13.idx = 0;
-  args[13] = arg13;
-  for ( int v=1; v<2; v++ ){
-    args[13 + v] = op_arg_dat(arg13.dat, v, arg13.map, 21, "double", OP_READ);
-  }
-
-  arg15.idx = 0;
-  args[15] = arg15;
-  for ( int v=1; v<2; v++ ){
-    args[15 + v] = op_arg_dat(arg15.dat, v, arg15.map, 21, "double", OP_INC);
+    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 21, "double", OP_INC);
   }
 
 
@@ -105,8 +91,8 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   OP_kernels[69].name      = name;
   OP_kernels[69].count    += 1;
 
-  int  ninds   = 8;
-  int  inds[17] = {-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7};
+  int  ninds   = 6;
+  int  inds[14] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: diff_flux\n");
@@ -133,27 +119,25 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   if (set_size >0) {
 
     //Set up typed device pointers for OpenMP
-    int *map1 = arg1.map_data_d;
-     int map1size = arg1.map->dim * set_size1;
+    int *map2 = arg2.map_data_d;
+     int map2size = arg2.map->dim * set_size1;
 
     int* data0 = (int*)arg0.data_d;
     int dat0size = getSetSizeFromOpArg(&arg0) * arg0.dat->dim;
-    double *data1 = (double *)arg1.data_d;
+    bool* data1 = (bool*)arg1.data_d;
     int dat1size = getSetSizeFromOpArg(&arg1) * arg1.dat->dim;
-    double *data3 = (double *)arg3.data_d;
-    int dat3size = getSetSizeFromOpArg(&arg3) * arg3.dat->dim;
-    double *data5 = (double *)arg5.data_d;
-    int dat5size = getSetSizeFromOpArg(&arg5) * arg5.dat->dim;
-    double *data7 = (double *)arg7.data_d;
-    int dat7size = getSetSizeFromOpArg(&arg7) * arg7.dat->dim;
-    double *data9 = (double *)arg9.data_d;
-    int dat9size = getSetSizeFromOpArg(&arg9) * arg9.dat->dim;
-    double *data11 = (double *)arg11.data_d;
-    int dat11size = getSetSizeFromOpArg(&arg11) * arg11.dat->dim;
-    double *data13 = (double *)arg13.data_d;
-    int dat13size = getSetSizeFromOpArg(&arg13) * arg13.dat->dim;
-    double *data15 = (double *)arg15.data_d;
-    int dat15size = getSetSizeFromOpArg(&arg15) * arg15.dat->dim;
+    double *data2 = (double *)arg2.data_d;
+    int dat2size = getSetSizeFromOpArg(&arg2) * arg2.dat->dim;
+    double *data4 = (double *)arg4.data_d;
+    int dat4size = getSetSizeFromOpArg(&arg4) * arg4.dat->dim;
+    double *data6 = (double *)arg6.data_d;
+    int dat6size = getSetSizeFromOpArg(&arg6) * arg6.dat->dim;
+    double *data8 = (double *)arg8.data_d;
+    int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
+    double *data10 = (double *)arg10.data_d;
+    int dat10size = getSetSizeFromOpArg(&arg10) * arg10.dat->dim;
+    double *data12 = (double *)arg12.data_d;
+    int dat12size = getSetSizeFromOpArg(&arg12) * arg12.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -170,24 +154,22 @@ void op_par_loop_diff_flux(char const *name, op_set set,
       diff_flux_omp4_kernel(
         data0,
         dat0size,
-        map1,
-        map1size,
         data1,
         dat1size,
-        data3,
-        dat3size,
-        data5,
-        dat5size,
-        data7,
-        dat7size,
-        data9,
-        dat9size,
-        data11,
-        dat11size,
-        data13,
-        dat13size,
-        data15,
-        dat15size,
+        map2,
+        map2size,
+        data2,
+        dat2size,
+        data4,
+        dat4size,
+        data6,
+        dat6size,
+        data8,
+        dat8size,
+        data10,
+        dat10size,
+        data12,
+        dat12size,
         col_reord,
         set_size1,
         start,

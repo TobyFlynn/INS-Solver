@@ -44,7 +44,6 @@ void op_par_loop_ls_advec_edges(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
-  op_arg,
   op_arg );
 
 void op_par_loop_ls_advec_bedges(char const *, op_set,
@@ -89,7 +88,6 @@ void op_par_loop_ls_sign(char const *, op_set,
   op_arg );
 
 void op_par_loop_ls_flux(char const *, op_set,
-  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -144,7 +142,6 @@ void op_par_loop_sigma_flux(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
-  op_arg,
   op_arg );
 
 void op_par_loop_sigma_bflux(char const *, op_set,
@@ -165,7 +162,6 @@ void op_par_loop_sigma_mult(char const *, op_set,
   op_arg );
 
 void op_par_loop_diff_flux(char const *, op_set,
-  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -409,8 +405,7 @@ void LS::advec_step(op_dat input, op_dat output) {
   // Get neighbouring values of q on internal edges
   op_par_loop_ls_advec_edges("ls_advec_edges",data->edges,
               op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
-              op_arg_dat(data->nodeX,-2,data->edge2cells,3,"double",OP_READ),
-              op_arg_dat(data->nodeY,-2,data->edge2cells,3,"double",OP_READ),
+              op_arg_dat(data->reverse,-1,OP_ID,1,"bool",OP_READ),
               op_arg_dat(input,-2,data->edge2cells,15,"double",OP_READ),
               op_arg_dat(exAdvec,-2,data->edge2cells,15,"double",OP_INC));
 
@@ -482,8 +477,7 @@ void LS::reinit_ls() {
 
       op_par_loop_ls_flux("ls_flux",data->edges,
                   op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
-                  op_arg_dat(data->nodeX,-2,data->edge2cells,3,"double",OP_READ),
-                  op_arg_dat(data->nodeY,-2,data->edge2cells,3,"double",OP_READ),
+                  op_arg_dat(data->reverse,-1,OP_ID,1,"bool",OP_READ),
                   op_arg_dat(gData->sJ,-2,data->edge2cells,21,"double",OP_READ),
                   op_arg_dat(gData->nx,-2,data->edge2cells,21,"double",OP_READ),
                   op_arg_dat(gData->ny,-2,data->edge2cells,21,"double",OP_READ),
@@ -567,8 +561,7 @@ void LS::calc_diff(double epsilon) {
 
   op_par_loop_sigma_flux("sigma_flux",data->edges,
               op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
-              op_arg_dat(data->nodeX,-2,data->edge2cells,3,"double",OP_READ),
-              op_arg_dat(data->nodeY,-2,data->edge2cells,3,"double",OP_READ),
+              op_arg_dat(data->reverse,-1,OP_ID,1,"bool",OP_READ),
               op_arg_dat(gData->sJ,-2,data->edge2cells,21,"double",OP_READ),
               op_arg_dat(gData->nx,-2,data->edge2cells,21,"double",OP_READ),
               op_arg_dat(gData->ny,-2,data->edge2cells,21,"double",OP_READ),
@@ -607,8 +600,7 @@ void LS::calc_diff(double epsilon) {
 
   op_par_loop_diff_flux("diff_flux",data->edges,
               op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
-              op_arg_dat(data->nodeX,-2,data->edge2cells,3,"double",OP_READ),
-              op_arg_dat(data->nodeY,-2,data->edge2cells,3,"double",OP_READ),
+              op_arg_dat(data->reverse,-1,OP_ID,1,"bool",OP_READ),
               op_arg_dat(gData->sJ,-2,data->edge2cells,21,"double",OP_READ),
               op_arg_dat(gData->nx,-2,data->edge2cells,21,"double",OP_READ),
               op_arg_dat(gData->ny,-2,data->edge2cells,21,"double",OP_READ),

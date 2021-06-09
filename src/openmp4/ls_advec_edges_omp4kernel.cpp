@@ -8,16 +8,14 @@
 void ls_advec_edges_omp4_kernel(
   int *data0,
   int dat0size,
-  int *map1,
-  int map1size,
-  double *data1,
+  bool *data1,
   int dat1size,
-  double *data3,
-  int dat3size,
-  double *data5,
-  int dat5size,
-  double *data7,
-  int dat7size,
+  int *map2,
+  int map2size,
+  double *data2,
+  int dat2size,
+  double *data4,
+  int dat4size,
   int *col_reord,
   int set_size1,
   int start,
@@ -29,36 +27,24 @@ void ls_advec_edges_omp4_kernel(
 void op_par_loop_ls_advec_edges(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg3,
-  op_arg arg5,
-  op_arg arg7){
+  op_arg arg2,
+  op_arg arg4){
 
-  int nargs = 9;
-  op_arg args[9];
+  int nargs = 6;
+  op_arg args[6];
 
   args[0] = arg0;
-  arg1.idx = 0;
   args[1] = arg1;
+  arg2.idx = 0;
+  args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 3, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 15, "double", OP_READ);
   }
 
-  arg3.idx = 0;
-  args[3] = arg3;
+  arg4.idx = 0;
+  args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 3, "double", OP_READ);
-  }
-
-  arg5.idx = 0;
-  args[5] = arg5;
-  for ( int v=1; v<2; v++ ){
-    args[5 + v] = op_arg_dat(arg5.dat, v, arg5.map, 15, "double", OP_READ);
-  }
-
-  arg7.idx = 0;
-  args[7] = arg7;
-  for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 15, "double", OP_INC);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 15, "double", OP_INC);
   }
 
 
@@ -69,8 +55,8 @@ void op_par_loop_ls_advec_edges(char const *name, op_set set,
   OP_kernels[56].name      = name;
   OP_kernels[56].count    += 1;
 
-  int  ninds   = 4;
-  int  inds[9] = {-1,0,0,1,1,2,2,3,3};
+  int  ninds   = 2;
+  int  inds[6] = {-1,-1,0,0,1,1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: ls_advec_edges\n");
@@ -97,19 +83,17 @@ void op_par_loop_ls_advec_edges(char const *name, op_set set,
   if (set_size >0) {
 
     //Set up typed device pointers for OpenMP
-    int *map1 = arg1.map_data_d;
-     int map1size = arg1.map->dim * set_size1;
+    int *map2 = arg2.map_data_d;
+     int map2size = arg2.map->dim * set_size1;
 
     int* data0 = (int*)arg0.data_d;
     int dat0size = getSetSizeFromOpArg(&arg0) * arg0.dat->dim;
-    double *data1 = (double *)arg1.data_d;
+    bool* data1 = (bool*)arg1.data_d;
     int dat1size = getSetSizeFromOpArg(&arg1) * arg1.dat->dim;
-    double *data3 = (double *)arg3.data_d;
-    int dat3size = getSetSizeFromOpArg(&arg3) * arg3.dat->dim;
-    double *data5 = (double *)arg5.data_d;
-    int dat5size = getSetSizeFromOpArg(&arg5) * arg5.dat->dim;
-    double *data7 = (double *)arg7.data_d;
-    int dat7size = getSetSizeFromOpArg(&arg7) * arg7.dat->dim;
+    double *data2 = (double *)arg2.data_d;
+    int dat2size = getSetSizeFromOpArg(&arg2) * arg2.dat->dim;
+    double *data4 = (double *)arg4.data_d;
+    int dat4size = getSetSizeFromOpArg(&arg4) * arg4.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -126,16 +110,14 @@ void op_par_loop_ls_advec_edges(char const *name, op_set set,
       ls_advec_edges_omp4_kernel(
         data0,
         dat0size,
-        map1,
-        map1size,
         data1,
         dat1size,
-        data3,
-        dat3size,
-        data5,
-        dat5size,
-        data7,
-        dat7size,
+        map2,
+        map2size,
+        data2,
+        dat2size,
+        data4,
+        dat4size,
         col_reord,
         set_size1,
         start,
