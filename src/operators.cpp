@@ -4,16 +4,6 @@
 #include "ins_data.h"
 #include "blas_calls.h"
 
-#include "kernels/div.h"
-#include "kernels/curl.h"
-#include "kernels/grad.h"
-
-#include "kernels/cub_grad.h"
-#include "kernels/cub_grad_weak.h"
-#include "kernels/cub_div_weak.h"
-
-#include "kernels/inv_J.h"
-
 void div(INSData *data, op_dat u, op_dat v, op_dat res) {
   op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DR), 15, u, 0.0, data->div[0]);
   op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DS), 15, u, 0.0, data->div[1]);

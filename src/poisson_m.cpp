@@ -5,12 +5,6 @@
 
 #include "op_seq.h"
 
-#include "kernels/poisson_mf2_op.h"
-#include "kernels/poisson_mf2_opf.h"
-#include "kernels/poisson_mf2_opbf.h"
-#include "kernels/glb_ind_kernel.h"
-#include "kernels/glb_ind_kernelBC.h"
-
 using namespace std;
 
 Poisson_M::Poisson_M(INSData *data, CubatureData *cubData, GaussData *gaussData) : Poisson(data, cubData, gaussData) {

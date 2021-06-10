@@ -9,20 +9,17 @@ void poisson_mf2_omp4_kernel(
   int dat1size,
   double *data2,
   int dat2size,
-  double *data3,
-  int dat3size,
   int count,
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *nu = &data0[15*n_op];
-    const double *u = &data1[15*n_op];
-    const double *op = &data2[225*n_op];
-    double *rhs = &data3[15*n_op];
+    const double *u = &data0[15*n_op];
+    const double *op = &data1[225*n_op];
+    double *rhs = &data2[15*n_op];
 
     //inline function
     
@@ -32,7 +29,7 @@ void poisson_mf2_omp4_kernel(
       for(int n = 0; n < 15; n++) {
         val += op[ind + n] * u[n];
       }
-      rhs[m] += nu[m] * val;
+      rhs[m] = val;
     }
     //end inline func
   }

@@ -187,27 +187,6 @@ void op_par_loop_lift_drag(char const *, op_set,
 #include "blas_calls.h"
 #include "operators.h"
 
-// Kernels
-#include "kernels/set_ic.h"
-#include "kernels/calc_dt.h"
-
-#include "kernels/advection_flux.h"
-#include "kernels/advection_faces.h"
-#include "kernels/advection_bc.h"
-#include "kernels/advection_numerical_flux.h"
-#include "kernels/advection_intermediate_vel.h"
-
-#include "kernels/pressure_bc.h"
-#include "kernels/pressure_bc2.h"
-#include "kernels/pressure_rhs.h"
-#include "kernels/pressure_update_vel.h"
-
-#include "kernels/viscosity_rhs.h"
-#include "kernels/viscosity_reset_bc.h"
-#include "kernels/viscosity_bc.h"
-
-#include "kernels/lift_drag.h"
-
 extern Timing *timer;
 extern Constants *constants;
 
@@ -233,14 +212,10 @@ Solver::Solver(std::string filename, int pmethod, int prob, bool multi) {
     viscosityM->setNeumannBCs(data->viscosity_neumann);
     viscosityPoisson = viscosityM;
   } else {
-    // Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubatureData, gaussData);
-    // pressureMF2->setDirichletBCs(data->pressure_dirichlet);
-    // pressureMF2->setNeumannBCs(data->pressure_neumann);
-    // pressurePoisson = pressureMF2;
-    Poisson_M *pressureM = new Poisson_M(data, cubatureData, gaussData);
-    pressureM->setDirichletBCs(data->pressure_dirichlet);
-    pressureM->setNeumannBCs(data->pressure_neumann);
-    pressurePoisson = pressureM;
+    Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubatureData, gaussData);
+    pressureMF2->setDirichletBCs(data->pressure_dirichlet);
+    pressureMF2->setNeumannBCs(data->pressure_neumann);
+    pressurePoisson = pressureMF2;
     Poisson_MF2 *viscosityMF2 = new Poisson_MF2(data, cubatureData, gaussData);
     viscosityMF2->setDirichletBCs(data->viscosity_dirichlet);
     viscosityMF2->setNeumannBCs(data->viscosity_neumann);

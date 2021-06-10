@@ -71,8 +71,10 @@ int main(int argc, char **argv) {
 
   gam = 1.4;
   mu = 1e-2;
+  // Phi > 0
   nu0 = 1e-3;
-  nu1 = 2e-3;
+  // Phi < 0
+  nu1 = 1e-2;
   bc_u = 1e-6;
   bc_v = 0.0;
   ic_u = 0.0;

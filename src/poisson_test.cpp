@@ -10,11 +10,6 @@
 #include "timing.h"
 #include "blas_calls.h"
 
-#include "kernels/poisson_test_init.h"
-#include "kernels/poisson_test_bc.h"
-#include "kernels/poisson_test_error.h"
-#include "kernels/poisson_test_tmp.h"
-
 using namespace std;
 
 Timing *timer;

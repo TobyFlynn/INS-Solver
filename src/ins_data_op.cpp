@@ -176,25 +176,6 @@ void op_par_loop_gauss_gfi_faces(char const *, op_set,
 #include "blas_calls.h"
 #include "load_mesh.h"
 
-#include "kernels/init_grid.h"
-#include "kernels/init_nodes.h"
-#include "kernels/init_edges.h"
-
-#include "kernels/init_cubature_grad.h"
-#include "kernels/init_cubature.h"
-#include "kernels/init_cubature_OP.h"
-
-#include "kernels/gauss_reverse.h"
-#include "kernels/gauss_tau.h"
-#include "kernels/gauss_tau_bc.h"
-#include "kernels/init_gauss_grad.h"
-#include "kernels/gauss_grad_faces.h"
-#include "kernels/init_gauss_grad2.h"
-#include "kernels/init_gauss.h"
-#include "kernels/gauss_op.h"
-#include "kernels/gauss_gfi_faces.h"
-#include "kernels/init_gauss_grad_neighbour.h"
-
 using namespace std;
 
 INSData::INSData(std::string filename) {

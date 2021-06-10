@@ -8,16 +8,14 @@
 void poisson_mf2_faces_omp4_kernel(
   int *map0,
   int map0size,
-  double *data2,
-  int dat2size,
-  double *data6,
-  int dat6size,
-  double *data0,
-  int dat0size,
   double *data1,
   int dat1size,
-  double *data3,
-  int dat3size,
+  double *data4,
+  int dat4size,
+  double *data0,
+  int dat0size,
+  double *data2,
+  int dat2size,
   int *col_reord,
   int set_size1,
   int start,
@@ -32,12 +30,10 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7){
+  op_arg arg5){
 
-  int nargs = 8;
-  op_arg args[8];
+  int nargs = 6;
+  op_arg args[6];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -45,18 +41,16 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   args[3] = arg3;
   args[4] = arg4;
   args[5] = arg5;
-  args[6] = arg6;
-  args[7] = arg7;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(33);
+  op_timing_realloc(35);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[33].name      = name;
-  OP_kernels[33].count    += 1;
+  OP_kernels[35].name      = name;
+  OP_kernels[35].count    += 1;
 
-  int  ninds   = 3;
-  int  inds[8] = {0,1,-1,2,0,1,-1,2};
+  int  ninds   = 2;
+  int  inds[6] = {0,-1,1,0,-1,1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_mf2_faces\n");
@@ -65,13 +59,13 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_33
-    int part_size = OP_PART_SIZE_33;
+  #ifdef OP_PART_SIZE_35
+    int part_size = OP_PART_SIZE_35;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_33
-    int nthread = OP_BLOCK_SIZE_33;
+  #ifdef OP_BLOCK_SIZE_35
+    int nthread = OP_BLOCK_SIZE_35;
   #else
     int nthread = OP_block_size;
   #endif
@@ -86,16 +80,14 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
     int *map0 = arg0.map_data_d;
      int map0size = arg0.map->dim * set_size1;
 
-    double* data2 = (double*)arg2.data_d;
-    int dat2size = getSetSizeFromOpArg(&arg2) * arg2.dat->dim;
-    double* data6 = (double*)arg6.data_d;
-    int dat6size = getSetSizeFromOpArg(&arg6) * arg6.dat->dim;
+    double* data1 = (double*)arg1.data_d;
+    int dat1size = getSetSizeFromOpArg(&arg1) * arg1.dat->dim;
+    double* data4 = (double*)arg4.data_d;
+    int dat4size = getSetSizeFromOpArg(&arg4) * arg4.dat->dim;
     double *data0 = (double *)arg0.data_d;
     int dat0size = getSetSizeFromOpArg(&arg0) * arg0.dat->dim;
-    double *data1 = (double *)arg1.data_d;
-    int dat1size = getSetSizeFromOpArg(&arg1) * arg1.dat->dim;
-    double *data3 = (double *)arg3.data_d;
-    int dat3size = getSetSizeFromOpArg(&arg3) * arg3.dat->dim;
+    double *data2 = (double *)arg2.data_d;
+    int dat2size = getSetSizeFromOpArg(&arg2) * arg2.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -112,16 +104,14 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
       poisson_mf2_faces_omp4_kernel(
         map0,
         map0size,
-        data2,
-        dat2size,
-        data6,
-        dat6size,
-        data0,
-        dat0size,
         data1,
         dat1size,
-        data3,
-        dat3size,
+        data4,
+        dat4size,
+        data0,
+        dat0size,
+        data2,
+        dat2size,
         col_reord,
         set_size1,
         start,
@@ -130,8 +120,8 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
         nthread);
 
     }
-    OP_kernels[33].transfer  += Plan->transfer;
-    OP_kernels[33].transfer2 += Plan->transfer2;
+    OP_kernels[35].transfer  += Plan->transfer;
+    OP_kernels[35].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -143,5 +133,5 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[33].time     += wall_t2 - wall_t1;
+  OP_kernels[35].time     += wall_t2 - wall_t1;
 }

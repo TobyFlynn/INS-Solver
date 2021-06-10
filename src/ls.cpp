@@ -10,34 +10,6 @@
 #include "blas_calls.h"
 #include "operators.h"
 
-#include "kernels/init_surface.h"
-#include "kernels/calc_h.h"
-
-#include "kernels/set_rkQ.h"
-#include "kernels/update_Q.h"
-
-#include "kernels/ls_advec_edges.h"
-#include "kernels/ls_advec_bedges.h"
-#include "kernels/ls_advec_flux.h"
-#include "kernels/ls_advec_rhs.h"
-
-#include "kernels/ls_sign.h"
-#include "kernels/ls_flux.h"
-#include "kernels/ls_bflux.h"
-#include "kernels/ls_copy.h"
-#include "kernels/ls_rhs.h"
-#include "kernels/ls_add_diff.h"
-
-#include "kernels/sigma_flux.h"
-#include "kernels/sigma_bflux.h"
-#include "kernels/sigma_mult.h"
-#include "kernels/diff_flux.h"
-#include "kernels/diff_bflux.h"
-
-#include "kernels/ls_reinit_check.h"
-
-#include "kernels/ls_step.h"
-
 LS::LS(INSData *d, CubatureData *c, GaussData *g) {
   data = d;
   cData = c;

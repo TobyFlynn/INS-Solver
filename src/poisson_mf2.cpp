@@ -8,16 +8,6 @@
 #include "blas_calls.h"
 #include "operators.h"
 
-#include "kernels/poisson_mf2.h"
-#include "kernels/poisson_mf2_mass.h"
-#include "kernels/poisson_mf2_mass2.h"
-#include "kernels/poisson_mf2_faces.h"
-#include "kernels/poisson_mf2_op.h"
-#include "kernels/poisson_mf2_opf.h"
-#include "kernels/poisson_mf2_opbf.h"
-#include "kernels/poisson_mf2_bc.h"
-#include "kernels/poisson_mf2_apply_bc.h"
-
 using namespace std;
 
 Poisson_MF2::Poisson_MF2(INSData *nsData, CubatureData *cubData, GaussData *gaussData) : Poisson(nsData, cubData, gaussData) {
@@ -67,7 +57,7 @@ void Poisson_MF2::init() {
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPCG);
   KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e4);
+  KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 2e4);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
 }
 
@@ -76,12 +66,22 @@ bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor)
   massFactor = factor;
   scalarFactor = true;
 
-  op_par_loop(poisson_mf2_apply_bc, "poisson_mf2_apply_bc", data->bedges,
-              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(op_bc, -1, OP_ID, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->nu, 0, data->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(bc_dat, 0, data->bedge2cells, 21, "double", OP_READ),
-              op_arg_dat(b_dat, 0, data->bedge2cells, 15, "double", OP_INC));
+  if(massMat) {
+    // Viscosity Linear solve
+    op_par_loop(poisson_mf2_apply_bc_vis, "poisson_mf2_apply_bc_vis", data->bedges,
+                op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(op_bc, -1, OP_ID, 7 * 15, "double", OP_READ),
+                op_arg_dat(data->nu, 0, data->bedge2cells, 15, "double", OP_READ),
+                op_arg_dat(bc_dat, 0, data->bedge2cells, 21, "double", OP_READ),
+                op_arg_dat(b_dat, 0, data->bedge2cells, 15, "double", OP_INC));
+  } else {
+    // Pressure Linear solve
+    op_par_loop(poisson_mf2_apply_bc, "poisson_mf2_apply_bc", data->bedges,
+                op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(op_bc, -1, OP_ID, 7 * 15, "double", OP_READ),
+                op_arg_dat(bc_dat, 0, data->bedge2cells, 21, "double", OP_READ),
+                op_arg_dat(b_dat, 0, data->bedge2cells, 15, "double", OP_INC));
+  }
 
   load_vec(&b, b_dat);
 
@@ -121,39 +121,42 @@ void Poisson_MF2::calc_rhs(const double *u_d, double *rhs_d) {
 
   timer->startLinearSolveMFRHS();
 
-  /* if(massMat) {
-    if(scalarFactor) { */
-      op_par_loop(poisson_mf2_mass, "poisson_mf2_mass", data->cells,
-                  op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
-                  op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
-                  op_arg_gbl(&massFactor, 1, "double", OP_READ),
-                  op_arg_dat(cData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
-                  op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE));
-    /* } else {
-      op_par_loop(poisson_mf2_mass2, "poisson_mf2_mass2", data->cells,
-                  op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
-                  op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
-                  op_arg_dat(massFactorDat, -1, OP_ID, 15, "double", OP_READ),
-                  op_arg_dat(cData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
-                  op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE));
-    }
-  }*/
+  if(massMat) {
+    op_par_loop(poisson_mf2_mass, "poisson_mf2_mass", data->cells,
+                op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
+                op_arg_gbl(&massFactor, 1, "double", OP_READ),
+                op_arg_dat(cData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
+                op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE));
 
-  op_par_loop(poisson_mf2, "poisson_mf2", data->cells,
-              op_arg_dat(data->nu, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
-              op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_RW));
+    op_par_loop(poisson_mf2_vis, "poisson_mf2_vis", data->cells,
+                op_arg_dat(data->nu, -1, OP_ID, 15, "double", OP_READ),
+                op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
+                op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
+                op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_RW));
 
-  op_par_loop(poisson_mf2_faces, "poisson_mf2_faces", data->edges,
-              op_arg_dat(data->nu, 0, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(u, 0, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(op2[0], -1, OP_ID, 15 * 15, "double", OP_READ),
-              op_arg_dat(rhs, 0, data->edge2cells, 15, "double", OP_INC),
-              op_arg_dat(data->nu, 1, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(u, 1, data->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
-              op_arg_dat(rhs, 1, data->edge2cells, 15, "double", OP_INC));
+    op_par_loop(poisson_mf2_faces_vis, "poisson_mf2_faces_vis", data->edges,
+                op_arg_dat(data->nu, 0, data->edge2cells, 15, "double", OP_READ),
+                op_arg_dat(u, 0, data->edge2cells, 15, "double", OP_READ),
+                op_arg_dat(op2[0], -1, OP_ID, 15 * 15, "double", OP_READ),
+                op_arg_dat(rhs, 0, data->edge2cells, 15, "double", OP_INC),
+                op_arg_dat(data->nu, 1, data->edge2cells, 15, "double", OP_READ),
+                op_arg_dat(u, 1, data->edge2cells, 15, "double", OP_READ),
+                op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
+                op_arg_dat(rhs, 1, data->edge2cells, 15, "double", OP_INC));
+  } else {
+    op_par_loop(poisson_mf2, "poisson_mf2", data->cells,
+                op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
+                op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
+                op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE));
+
+    op_par_loop(poisson_mf2_faces, "poisson_mf2_faces", data->edges,
+                op_arg_dat(u, 0, data->edge2cells, 15, "double", OP_READ),
+                op_arg_dat(op2[0], -1, OP_ID, 15 * 15, "double", OP_READ),
+                op_arg_dat(rhs, 0, data->edge2cells, 15, "double", OP_INC),
+                op_arg_dat(u, 1, data->edge2cells, 15, "double", OP_READ),
+                op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
+                op_arg_dat(rhs, 1, data->edge2cells, 15, "double", OP_INC));
+  }
 
   timer->endLinearSolveMFRHS();
 

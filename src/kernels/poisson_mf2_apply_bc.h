@@ -1,6 +1,5 @@
 inline void poisson_mf2_apply_bc(const int *bedgeNum, const double *op,
-                                 const double *nu, const double *bc,
-                                 double *rhs) {
+                                 const double *bc, double *rhs) {
   int exInd = 0;
   if(*bedgeNum == 1) exInd = 7;
   else if(*bedgeNum == 2) exInd = 14;
@@ -11,6 +10,6 @@ inline void poisson_mf2_apply_bc(const int *bedgeNum, const double *op,
     for(int n = 0; n < 7; n++) {
       val += op[ind + n] * bc[exInd + n];
     }
-    rhs[m] += nu[m] * val;
+    rhs[m] += val;
   }
 }

@@ -43,8 +43,6 @@ void op_par_loop_save_values(char const *, op_set,
 #include "operators.h"
 #include "utils.h"
 
-#include "kernels/save_values.h"
-
 using namespace std;
 
 struct Point {

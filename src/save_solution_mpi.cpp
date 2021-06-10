@@ -20,8 +20,6 @@
 #include "operators.h"
 #include "utils.h"
 
-#include "kernels/save_values.h"
-
 using namespace std;
 
 struct Point {

@@ -10,21 +10,19 @@ void op_par_loop_poisson_mf2_mass(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3,
-  op_arg arg4){
+  op_arg arg3){
 
-  int nargs = 5;
-  op_arg args[5];
+  int nargs = 4;
+  op_arg args[4];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
   args[3] = arg3;
-  args[4] = arg4;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(30);
+  op_timing_realloc(31);
   op_timers_core(&cpu_t1, &wall_t1);
 
 
@@ -39,10 +37,9 @@ void op_par_loop_poisson_mf2_mass(char const *name, op_set set,
     for ( int n=0; n<set_size; n++ ){
       poisson_mf2_mass(
         &((double*)arg0.data)[15*n],
-        &((double*)arg1.data)[225*n],
-        (double*)arg2.data,
-        &((double*)arg3.data)[225*n],
-        &((double*)arg4.data)[15*n]);
+        (double*)arg1.data,
+        &((double*)arg2.data)[225*n],
+        &((double*)arg3.data)[15*n]);
     }
   }
 
@@ -51,11 +48,10 @@ void op_par_loop_poisson_mf2_mass(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[30].name      = name;
-  OP_kernels[30].count    += 1;
-  OP_kernels[30].time     += wall_t2 - wall_t1;
-  OP_kernels[30].transfer += (float)set->size * arg0.size;
-  OP_kernels[30].transfer += (float)set->size * arg1.size;
-  OP_kernels[30].transfer += (float)set->size * arg3.size;
-  OP_kernels[30].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[31].name      = name;
+  OP_kernels[31].count    += 1;
+  OP_kernels[31].time     += wall_t2 - wall_t1;
+  OP_kernels[31].transfer += (float)set->size * arg0.size;
+  OP_kernels[31].transfer += (float)set->size * arg2.size;
+  OP_kernels[31].transfer += (float)set->size * arg3.size * 2.0f;
 }

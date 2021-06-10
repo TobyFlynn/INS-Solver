@@ -3,14 +3,13 @@
 //
 
 //user function
-__device__ void poisson_mf2_mass_gpu( const double *u, const double *op, const double *factor,
+__device__ void poisson_mf2_mass_gpu( const double *u, const double *factor,
                              const double *mm, double *rhs) {
   double mFactor = *factor;
   for(int m = 0; m < 15; m++) {
     int ind = m * 15;
     double val = 0.0;
     for(int n = 0; n < 15; n++) {
-
 
       val += (mm[n * 15 + m] * mFactor) * u[n];
     }
@@ -22,10 +21,9 @@ __device__ void poisson_mf2_mass_gpu( const double *u, const double *op, const d
 // CUDA kernel function
 __global__ void op_cuda_poisson_mf2_mass(
   const double *__restrict arg0,
-  const double *__restrict arg1,
-  const double *arg2,
-  const double *__restrict arg3,
-  double *arg4,
+  const double *arg1,
+  const double *__restrict arg2,
+  double *arg3,
   int   set_size ) {
 
 
@@ -34,10 +32,9 @@ __global__ void op_cuda_poisson_mf2_mass(
 
     //user-supplied kernel call
     poisson_mf2_mass_gpu(arg0+n*15,
-                     arg1+n*225,
-                     arg2,
-                     arg3+n*225,
-                     arg4+n*15);
+                     arg1,
+                     arg2+n*225,
+                     arg3+n*15);
   }
 }
 
@@ -47,25 +44,23 @@ void op_par_loop_poisson_mf2_mass(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3,
-  op_arg arg4){
+  op_arg arg3){
 
-  double*arg2h = (double *)arg2.data;
-  int nargs = 5;
-  op_arg args[5];
+  double*arg1h = (double *)arg1.data;
+  int nargs = 4;
+  op_arg args[4];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
   args[3] = arg3;
-  args[4] = arg4;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(30);
+  op_timing_realloc(31);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[30].name      = name;
-  OP_kernels[30].count    += 1;
+  OP_kernels[31].name      = name;
+  OP_kernels[31].count    += 1;
 
 
   if (OP_diags>2) {
@@ -80,17 +75,17 @@ void op_par_loop_poisson_mf2_mass(char const *name, op_set set,
     consts_bytes += ROUND_UP(1*sizeof(double));
     reallocConstArrays(consts_bytes);
     consts_bytes = 0;
-    arg2.data   = OP_consts_h + consts_bytes;
-    arg2.data_d = OP_consts_d + consts_bytes;
+    arg1.data   = OP_consts_h + consts_bytes;
+    arg1.data_d = OP_consts_d + consts_bytes;
     for ( int d=0; d<1; d++ ){
-      ((double *)arg2.data)[d] = arg2h[d];
+      ((double *)arg1.data)[d] = arg1h[d];
     }
     consts_bytes += ROUND_UP(1*sizeof(double));
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_30
-      int nthread = OP_BLOCK_SIZE_30;
+    #ifdef OP_BLOCK_SIZE_31
+      int nthread = OP_BLOCK_SIZE_31;
     #else
       int nthread = OP_block_size;
     #endif
@@ -102,16 +97,14 @@ void op_par_loop_poisson_mf2_mass(char const *name, op_set set,
       (double *) arg1.data_d,
       (double *) arg2.data_d,
       (double *) arg3.data_d,
-      (double *) arg4.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[30].time     += wall_t2 - wall_t1;
-  OP_kernels[30].transfer += (float)set->size * arg0.size;
-  OP_kernels[30].transfer += (float)set->size * arg1.size;
-  OP_kernels[30].transfer += (float)set->size * arg3.size;
-  OP_kernels[30].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[31].time     += wall_t2 - wall_t1;
+  OP_kernels[31].transfer += (float)set->size * arg0.size;
+  OP_kernels[31].transfer += (float)set->size * arg2.size;
+  OP_kernels[31].transfer += (float)set->size * arg3.size * 2.0f;
 }
