@@ -75,6 +75,7 @@ extern double lift_drag_vec[5];
 #include "poisson_mf2_bc_seqkernel.cpp"
 #include "poisson_mf2_apply_bc_seqkernel.cpp"
 #include "poisson_mf2_mass_seqkernel.cpp"
+#include "poisson_mf2_mass2_seqkernel.cpp"
 #include "poisson_mf2_seqkernel.cpp"
 #include "poisson_mf2_faces_seqkernel.cpp"
 #include "poisson_test_init_seqkernel.cpp"

@@ -5,14 +5,15 @@
 //user function
 //user function
 //#pragma acc routine
-inline void poisson_mf2_openacc( const double *u, const double *op, double *rhs) {
+inline void poisson_mf2_openacc( const double *nu, const double *u, const double *op,
+                        double *rhs) {
   for(int m = 0; m < 15; m++) {
     int ind = m * 15;
     double val = 0.0;
     for(int n = 0; n < 15; n++) {
       val += op[ind + n] * u[n];
     }
-    rhs[m] = val;
+    rhs[m] += nu[m] * val;
   }
 }
 
@@ -20,21 +21,23 @@ inline void poisson_mf2_openacc( const double *u, const double *op, double *rhs)
 void op_par_loop_poisson_mf2(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2){
+  op_arg arg2,
+  op_arg arg3){
 
-  int nargs = 3;
-  op_arg args[3];
+  int nargs = 4;
+  op_arg args[4];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
+  args[3] = arg3;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(31);
+  op_timing_realloc(32);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[31].name      = name;
-  OP_kernels[31].count    += 1;
+  OP_kernels[32].name      = name;
+  OP_kernels[32].count    += 1;
 
 
   if (OP_diags>2) {
@@ -52,12 +55,14 @@ void op_par_loop_poisson_mf2(char const *name, op_set set,
     double* data0 = (double*)arg0.data_d;
     double* data1 = (double*)arg1.data_d;
     double* data2 = (double*)arg2.data_d;
-    #pragma acc parallel loop independent deviceptr(data0,data1,data2)
+    double* data3 = (double*)arg3.data_d;
+    #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3)
     for ( int n=0; n<set->size; n++ ){
       poisson_mf2_openacc(
         &data0[15*n],
-        &data1[225*n],
-        &data2[15*n]);
+        &data1[15*n],
+        &data2[225*n],
+        &data3[15*n]);
     }
   }
 
@@ -66,8 +71,9 @@ void op_par_loop_poisson_mf2(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[31].time     += wall_t2 - wall_t1;
-  OP_kernels[31].transfer += (float)set->size * arg0.size;
-  OP_kernels[31].transfer += (float)set->size * arg1.size;
-  OP_kernels[31].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[32].time     += wall_t2 - wall_t1;
+  OP_kernels[32].transfer += (float)set->size * arg0.size;
+  OP_kernels[32].transfer += (float)set->size * arg1.size;
+  OP_kernels[32].transfer += (float)set->size * arg2.size;
+  OP_kernels[32].transfer += (float)set->size * arg3.size * 2.0f;
 }

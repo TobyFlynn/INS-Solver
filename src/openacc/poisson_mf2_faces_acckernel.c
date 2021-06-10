@@ -5,15 +5,17 @@
 //user function
 //user function
 //#pragma acc routine
-inline void poisson_mf2_faces_openacc( const double *uL, const double *opL, double *rhsL,
-                              const double *uR, const double *opR, double *rhsR) {
+inline void poisson_mf2_faces_openacc( const double *nuL, const double *uL,
+                              const double *opL, double *rhsL,
+                              const double *nuR, const double *uR,
+                              const double *opR, double *rhsR) {
   for(int m = 0; m < 15; m++) {
     int ind = m * 15;
     double val = 0.0;
     for(int n = 0; n < 15; n++) {
       val += opL[ind + n] * uR[n];
     }
-    rhsL[m] += val;
+    rhsL[m] += nuL[m] * val;
   }
 
   for(int m = 0; m < 15; m++) {
@@ -22,7 +24,7 @@ inline void poisson_mf2_faces_openacc( const double *uL, const double *opL, doub
     for(int n = 0; n < 15; n++) {
       val += opR[ind + n] * uL[n];
     }
-    rhsR[m] += val;
+    rhsR[m] += nuR[m] * val;
   }
 }
 
@@ -33,10 +35,12 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5){
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7){
 
-  int nargs = 6;
-  op_arg args[6];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -44,24 +48,26 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   args[3] = arg3;
   args[4] = arg4;
   args[5] = arg5;
+  args[6] = arg6;
+  args[7] = arg7;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(32);
+  op_timing_realloc(33);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[32].name      = name;
-  OP_kernels[32].count    += 1;
+  OP_kernels[33].name      = name;
+  OP_kernels[33].count    += 1;
 
-  int  ninds   = 2;
-  int  inds[6] = {0,-1,1,0,-1,1};
+  int  ninds   = 3;
+  int  inds[8] = {0,1,-1,2,0,1,-1,2};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_mf2_faces\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_32
-    int part_size = OP_PART_SIZE_32;
+  #ifdef OP_PART_SIZE_33
+    int part_size = OP_PART_SIZE_33;
   #else
     int part_size = OP_part_size;
   #endif
@@ -77,10 +83,11 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
     //Set up typed device pointers for OpenACC
     int *map0 = arg0.map_data_d;
 
-    double* data1 = (double*)arg1.data_d;
-    double* data4 = (double*)arg4.data_d;
+    double* data2 = (double*)arg2.data_d;
+    double* data6 = (double*)arg6.data_d;
     double *data0 = (double *)arg0.data_d;
-    double *data2 = (double *)arg2.data_d;
+    double *data1 = (double *)arg1.data_d;
+    double *data3 = (double *)arg3.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -95,27 +102,29 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map0,data1,data4,data0,data2)
+      #pragma acc parallel loop independent deviceptr(col_reord,map0,data2,data6,data0,data1,data3)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map0idx;
-        int map3idx;
+        int map4idx;
         map0idx = map0[n + set_size1 * 0];
-        map3idx = map0[n + set_size1 * 1];
+        map4idx = map0[n + set_size1 * 1];
 
 
         poisson_mf2_faces_openacc(
           &data0[15 * map0idx],
-          &data1[225 * n],
-          &data2[15 * map0idx],
-          &data0[15 * map3idx],
-          &data4[225 * n],
-          &data2[15 * map3idx]);
+          &data1[15 * map0idx],
+          &data2[225 * n],
+          &data3[15 * map0idx],
+          &data0[15 * map4idx],
+          &data1[15 * map4idx],
+          &data6[225 * n],
+          &data3[15 * map4idx]);
       }
 
     }
-    OP_kernels[32].transfer  += Plan->transfer;
-    OP_kernels[32].transfer2 += Plan->transfer2;
+    OP_kernels[33].transfer  += Plan->transfer;
+    OP_kernels[33].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -126,5 +135,5 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[32].time     += wall_t2 - wall_t1;
+  OP_kernels[33].time     += wall_t2 - wall_t1;
 }

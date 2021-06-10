@@ -30,7 +30,8 @@ void viscosity_rhs_omp4_kernel(
     //inline function
     
     for(int i = 0; i < 15; i++) {
-      vFactor[i] = (*factor) / nu[i];
+
+      vFactor[i] = (*factor);
       vRHS0[i] = vFactor[i] * vRHS0[i];
       vRHS1[i] = vFactor[i] * vRHS1[i];
     }

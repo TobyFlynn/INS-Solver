@@ -37,6 +37,7 @@
 #include "poisson_mf2_bc_omp4kernel.cpp"
 #include "poisson_mf2_apply_bc_omp4kernel.cpp"
 #include "poisson_mf2_mass_omp4kernel.cpp"
+#include "poisson_mf2_mass2_omp4kernel.cpp"
 #include "poisson_mf2_omp4kernel.cpp"
 #include "poisson_mf2_faces_omp4kernel.cpp"
 #include "poisson_test_init_omp4kernel.cpp"

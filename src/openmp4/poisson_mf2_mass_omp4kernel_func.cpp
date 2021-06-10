@@ -35,7 +35,8 @@ void poisson_mf2_mass_omp4_kernel(
       double val = 0.0;
       for(int n = 0; n < 15; n++) {
 
-        val += (op[ind + n] + mm[n * 15 + m] * mFactor) * u[n];
+
+        val += (mm[n * 15 + m] * mFactor) * u[n];
       }
       rhs[m] = val;
     }

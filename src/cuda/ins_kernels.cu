@@ -233,6 +233,7 @@ int size, char *dat, char const *name){
 #include "poisson_mf2_bc_kernel.cu"
 #include "poisson_mf2_apply_bc_kernel.cu"
 #include "poisson_mf2_mass_kernel.cu"
+#include "poisson_mf2_mass2_kernel.cu"
 #include "poisson_mf2_kernel.cu"
 #include "poisson_mf2_faces_kernel.cu"
 #include "poisson_test_init_kernel.cu"

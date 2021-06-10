@@ -77,6 +77,7 @@ int size, char *dat, char const *name){}
 #include "poisson_mf2_bc_acckernel.c"
 #include "poisson_mf2_apply_bc_acckernel.c"
 #include "poisson_mf2_mass_acckernel.c"
+#include "poisson_mf2_mass2_acckernel.c"
 #include "poisson_mf2_acckernel.c"
 #include "poisson_mf2_faces_acckernel.c"
 #include "poisson_test_init_acckernel.c"

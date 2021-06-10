@@ -6,7 +6,8 @@
 //user function
 //#pragma acc routine
 inline void poisson_mf2_apply_bc_openacc( const int *bedgeNum, const double *op,
-                                 const double *bc, double *rhs) {
+                                 const double *nu, const double *bc,
+                                 double *rhs) {
   int exInd = 0;
   if(*bedgeNum == 1) exInd = 7;
   else if(*bedgeNum == 2) exInd = 14;
@@ -17,7 +18,7 @@ inline void poisson_mf2_apply_bc_openacc( const int *bedgeNum, const double *op,
     for(int n = 0; n < 7; n++) {
       val += op[ind + n] * bc[exInd + n];
     }
-    rhs[m] += val;
+    rhs[m] += nu[m] * val;
   }
 }
 
@@ -26,15 +27,17 @@ void op_par_loop_poisson_mf2_apply_bc(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3){
+  op_arg arg3,
+  op_arg arg4){
 
-  int nargs = 4;
-  op_arg args[4];
+  int nargs = 5;
+  op_arg args[5];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
   args[3] = arg3;
+  args[4] = arg4;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -43,8 +46,8 @@ void op_par_loop_poisson_mf2_apply_bc(char const *name, op_set set,
   OP_kernels[29].name      = name;
   OP_kernels[29].count    += 1;
 
-  int  ninds   = 2;
-  int  inds[4] = {-1,-1,0,1};
+  int  ninds   = 3;
+  int  inds[5] = {-1,-1,0,1,2};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_mf2_apply_bc\n");
@@ -72,6 +75,7 @@ void op_par_loop_poisson_mf2_apply_bc(char const *name, op_set set,
     double* data1 = (double*)arg1.data_d;
     double *data2 = (double *)arg2.data_d;
     double *data3 = (double *)arg3.data_d;
+    double *data4 = (double *)arg4.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -86,7 +90,7 @@ void op_par_loop_poisson_mf2_apply_bc(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map2,data0,data1,data2,data3)
+      #pragma acc parallel loop independent deviceptr(col_reord,map2,data0,data1,data2,data3,data4)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map2idx;
@@ -96,8 +100,9 @@ void op_par_loop_poisson_mf2_apply_bc(char const *name, op_set set,
         poisson_mf2_apply_bc_openacc(
           &data0[1 * n],
           &data1[105 * n],
-          &data2[21 * map2idx],
-          &data3[15 * map2idx]);
+          &data2[15 * map2idx],
+          &data3[21 * map2idx],
+          &data4[15 * map2idx]);
       }
 
     }

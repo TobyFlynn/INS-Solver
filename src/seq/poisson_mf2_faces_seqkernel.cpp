@@ -12,10 +12,12 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5){
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7){
 
-  int nargs = 6;
-  op_arg args[6];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -23,10 +25,12 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   args[3] = arg3;
   args[4] = arg4;
   args[5] = arg5;
+  args[6] = arg6;
+  args[7] = arg7;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(32);
+  op_timing_realloc(33);
   op_timers_core(&cpu_t1, &wall_t1);
 
   if (OP_diags>2) {
@@ -42,18 +46,20 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
         op_mpi_wait_all(nargs, args);
       }
       int map0idx;
-      int map3idx;
+      int map4idx;
       map0idx = arg0.map_data[n * arg0.map->dim + 0];
-      map3idx = arg0.map_data[n * arg0.map->dim + 1];
+      map4idx = arg0.map_data[n * arg0.map->dim + 1];
 
 
       poisson_mf2_faces(
         &((double*)arg0.data)[15 * map0idx],
-        &((double*)arg1.data)[225 * n],
-        &((double*)arg2.data)[15 * map0idx],
-        &((double*)arg0.data)[15 * map3idx],
-        &((double*)arg4.data)[225 * n],
-        &((double*)arg2.data)[15 * map3idx]);
+        &((double*)arg1.data)[15 * map0idx],
+        &((double*)arg2.data)[225 * n],
+        &((double*)arg3.data)[15 * map0idx],
+        &((double*)arg0.data)[15 * map4idx],
+        &((double*)arg1.data)[15 * map4idx],
+        &((double*)arg6.data)[225 * n],
+        &((double*)arg3.data)[15 * map4idx]);
     }
   }
 
@@ -65,12 +71,13 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[32].name      = name;
-  OP_kernels[32].count    += 1;
-  OP_kernels[32].time     += wall_t2 - wall_t1;
-  OP_kernels[32].transfer += (float)set->size * arg0.size;
-  OP_kernels[32].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[32].transfer += (float)set->size * arg1.size;
-  OP_kernels[32].transfer += (float)set->size * arg4.size;
-  OP_kernels[32].transfer += (float)set->size * arg0.map->dim * 4.0f;
+  OP_kernels[33].name      = name;
+  OP_kernels[33].count    += 1;
+  OP_kernels[33].time     += wall_t2 - wall_t1;
+  OP_kernels[33].transfer += (float)set->size * arg0.size;
+  OP_kernels[33].transfer += (float)set->size * arg1.size;
+  OP_kernels[33].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[33].transfer += (float)set->size * arg2.size;
+  OP_kernels[33].transfer += (float)set->size * arg6.size;
+  OP_kernels[33].transfer += (float)set->size * arg0.map->dim * 4.0f;
 }

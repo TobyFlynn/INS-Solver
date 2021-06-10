@@ -79,6 +79,7 @@ extern double lift_drag_vec[5];
 #include "poisson_mf2_bc_kernel.cpp"
 #include "poisson_mf2_apply_bc_kernel.cpp"
 #include "poisson_mf2_mass_kernel.cpp"
+#include "poisson_mf2_mass2_kernel.cpp"
 #include "poisson_mf2_kernel.cpp"
 #include "poisson_mf2_faces_kernel.cpp"
 #include "poisson_test_init_kernel.cpp"

@@ -6,7 +6,8 @@ inline void poisson_mf2_mass(const double *u, const double *op, const double *fa
     double val = 0.0;
     for(int n = 0; n < 15; n++) {
       // mm is in column major format while op is in row major
-      val += (op[ind + n] + mm[n * 15 + m] * mFactor) * u[n];
+      // val += (op[ind + n] + mm[n * 15 + m] * mFactor) * u[n];
+      val += (mm[n * 15 + m] * mFactor) * u[n];
     }
     rhs[m] = val;
   }

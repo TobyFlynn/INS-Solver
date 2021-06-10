@@ -233,10 +233,14 @@ Solver::Solver(std::string filename, int pmethod, int prob, bool multi) {
     viscosityM->setNeumannBCs(data->viscosity_neumann);
     viscosityPoisson = viscosityM;
   } else {
-    Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubatureData, gaussData);
-    pressureMF2->setDirichletBCs(data->pressure_dirichlet);
-    pressureMF2->setNeumannBCs(data->pressure_neumann);
-    pressurePoisson = pressureMF2;
+    // Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubatureData, gaussData);
+    // pressureMF2->setDirichletBCs(data->pressure_dirichlet);
+    // pressureMF2->setNeumannBCs(data->pressure_neumann);
+    // pressurePoisson = pressureMF2;
+    Poisson_M *pressureM = new Poisson_M(data, cubatureData, gaussData);
+    pressureM->setDirichletBCs(data->pressure_dirichlet);
+    pressureM->setNeumannBCs(data->pressure_neumann);
+    pressurePoisson = pressureM;
     Poisson_MF2 *viscosityMF2 = new Poisson_MF2(data, cubatureData, gaussData);
     viscosityMF2->setDirichletBCs(data->viscosity_dirichlet);
     viscosityMF2->setNeumannBCs(data->viscosity_neumann);
@@ -454,7 +458,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[0], 0.0, data->visRHS[0]);
   op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[1], 0.0, data->visRHS[1]);
 
-  // double factor = g0 / (nu * dt);
+  // double factor = g0 / (nu0 * dt);
   double factor = g0 / dt;
   op_par_loop_viscosity_rhs("viscosity_rhs",data->cells,
               op_arg_gbl(&factor,1,"double",OP_READ),
@@ -465,13 +469,17 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
   timer->endViscositySetup();
 
+  // factor = g0 / dt;
+
   // Call PETSc linear solver
   timer->startViscosityLinearSolve();
   viscosityPoisson->setBCValues(data->visBC[0]);
-  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, data->vFactor);
+  // bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, data->vFactor);
+  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
 
   viscosityPoisson->setBCValues(data->visBC[1]);
-  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, data->vFactor);
+  // bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, data->vFactor);
+  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
   timer->endViscosityLinearSolve();
 
   // Reset BC dats ready for next iteration
