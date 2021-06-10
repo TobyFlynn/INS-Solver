@@ -5,13 +5,10 @@
 //user function
 //user function
 //#pragma acc routine
-inline void viscosity_rhs_openacc( const double *factor, const double *nu, double *vRHS0,
-                          double *vRHS1, double *vFactor) {
+inline void viscosity_rhs_openacc( const double *factor, double *vRHS0, double *vRHS1) {
   for(int i = 0; i < 15; i++) {
-
-    vFactor[i] = (*factor);
-    vRHS0[i] = vFactor[i] * vRHS0[i];
-    vRHS1[i] = vFactor[i] * vRHS1[i];
+    vRHS0[i] = (*factor) * vRHS0[i];
+    vRHS1[i] = (*factor) * vRHS1[i];
   }
 }
 
@@ -19,19 +16,15 @@ inline void viscosity_rhs_openacc( const double *factor, const double *nu, doubl
 void op_par_loop_viscosity_rhs(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4){
+  op_arg arg2){
 
   double*arg0h = (double *)arg0.data;
-  int nargs = 5;
-  op_arg args[5];
+  int nargs = 3;
+  op_arg args[3];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
-  args[3] = arg3;
-  args[4] = arg4;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -56,16 +49,12 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
 
     double* data1 = (double*)arg1.data_d;
     double* data2 = (double*)arg2.data_d;
-    double* data3 = (double*)arg3.data_d;
-    double* data4 = (double*)arg4.data_d;
-    #pragma acc parallel loop independent deviceptr(data1,data2,data3,data4)
+    #pragma acc parallel loop independent deviceptr(data1,data2)
     for ( int n=0; n<set->size; n++ ){
       viscosity_rhs_openacc(
         &arg0_l,
         &data1[15*n],
-        &data2[15*n],
-        &data3[15*n],
-        &data4[15*n]);
+        &data2[15*n]);
     }
   }
 
@@ -75,8 +64,6 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
   OP_kernels[51].time     += wall_t2 - wall_t1;
-  OP_kernels[51].transfer += (float)set->size * arg1.size;
+  OP_kernels[51].transfer += (float)set->size * arg1.size * 2.0f;
   OP_kernels[51].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[51].transfer += (float)set->size * arg3.size * 2.0f;
-  OP_kernels[51].transfer += (float)set->size * arg4.size * 2.0f;
 }

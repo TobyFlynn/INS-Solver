@@ -23,6 +23,7 @@ void op_par_loop_poisson_mf2_apply_bc_vis(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_poisson_mf2_apply_bc(char const *, op_set,
@@ -41,9 +42,12 @@ void op_par_loop_poisson_mf2_vis(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_poisson_mf2_faces_vis(char const *, op_set,
+  op_arg,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -190,6 +194,7 @@ bool Poisson_MF2::solve(op_dat b_dat, op_dat x_dat, bool addMass, double factor)
                 op_arg_dat(data->bedgeNum,-1,OP_ID,1,"int",OP_READ),
                 op_arg_dat(op_bc,-1,OP_ID,105,"double",OP_READ),
                 op_arg_dat(data->nu,0,data->bedge2cells,15,"double",OP_READ),
+                op_arg_dat(data->rho,0,data->bedge2cells,15,"double",OP_READ),
                 op_arg_dat(bc_dat,0,data->bedge2cells,21,"double",OP_READ),
                 op_arg_dat(b_dat,0,data->bedge2cells,15,"double",OP_INC));
   } else {
@@ -248,16 +253,19 @@ void Poisson_MF2::calc_rhs(const double *u_d, double *rhs_d) {
 
     op_par_loop_poisson_mf2_vis("poisson_mf2_vis",data->cells,
                 op_arg_dat(data->nu,-1,OP_ID,15,"double",OP_READ),
+                op_arg_dat(data->rho,-1,OP_ID,15,"double",OP_READ),
                 op_arg_dat(u,-1,OP_ID,15,"double",OP_READ),
                 op_arg_dat(op1,-1,OP_ID,225,"double",OP_READ),
                 op_arg_dat(rhs,-1,OP_ID,15,"double",OP_RW));
 
     op_par_loop_poisson_mf2_faces_vis("poisson_mf2_faces_vis",data->edges,
                 op_arg_dat(data->nu,0,data->edge2cells,15,"double",OP_READ),
+                op_arg_dat(data->rho,0,data->edge2cells,15,"double",OP_READ),
                 op_arg_dat(u,0,data->edge2cells,15,"double",OP_READ),
                 op_arg_dat(op2[0],-1,OP_ID,225,"double",OP_READ),
                 op_arg_dat(rhs,0,data->edge2cells,15,"double",OP_INC),
                 op_arg_dat(data->nu,1,data->edge2cells,15,"double",OP_READ),
+                op_arg_dat(data->rho,1,data->edge2cells,15,"double",OP_READ),
                 op_arg_dat(u,1,data->edge2cells,15,"double",OP_READ),
                 op_arg_dat(op2[1],-1,OP_ID,225,"double",OP_READ),
                 op_arg_dat(rhs,1,data->edge2cells,15,"double",OP_INC));

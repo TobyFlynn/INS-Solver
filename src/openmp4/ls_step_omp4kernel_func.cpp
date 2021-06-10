@@ -10,13 +10,15 @@ void ls_step_omp4_kernel(
   int dat2size,
   double *data3,
   int dat3size,
+  double *data4,
+  int dat4size,
   int count,
   int num_teams,
   int nthread){
 
   double arg0_l = *arg0;
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size],data2[0:dat2size],data3[0:dat3size]) \
-    map(to: nu0_ompkernel, nu1_ompkernel)
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size]) \
+    map(to: nu0_ompkernel, nu1_ompkernel, rho0_ompkernel, rho1_ompkernel)
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
@@ -24,6 +26,7 @@ void ls_step_omp4_kernel(
     const double *s = &data1[15*n_op];
     double *step = &data2[15*n_op];
     double *nu = &data3[15*n_op];
+    double *rho = &data4[15*n_op];
 
     //inline function
     
@@ -31,6 +34,7 @@ void ls_step_omp4_kernel(
     for(int i = 0; i < 15; i++) {
       step[i] = tanh(PI * s[i] / *alpha);
       nu[i] = nu0_ompkernel * step[i] + nu1_ompkernel * (1.0 - step[i]);
+      rho[i] = rho0_ompkernel * step[i] + rho1_ompkernel * (1.0 - step[i]);
     }
     //end inline func
   }

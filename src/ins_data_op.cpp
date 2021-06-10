@@ -228,7 +228,7 @@ INSData::INSData(std::string filename) {
   save_temp_data = (double *)calloc(16 * numCells, sizeof(double));
   nu_data        = (double *)calloc(15 * numCells, sizeof(double));
   gNu_data       = (double *)calloc(21 * numCells, sizeof(double));
-  vFactor_data   = (double *)calloc(15 * numCells, sizeof(double));
+  rho_data       = (double *)calloc(15 * numCells, sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -317,12 +317,14 @@ INSData::INSData(std::string filename) {
   save_temp = op_decl_dat(cells, 16, "double", save_temp_data, "save_temp");
   nu        = op_decl_dat(cells, 15, "double", nu_data, "nu");
   gNu       = op_decl_dat(cells, 21, "double", gNu_data, "gNu");
-  vFactor   = op_decl_dat(cells, 15, "double", vFactor_data, "vFactor");
+  rho       = op_decl_dat(cells, 15, "double", rho_data, "rho");
 
   op_decl_const2("gam",1,"double",&gam);
   op_decl_const2("mu",1,"double",&mu);
   op_decl_const2("nu0",1,"double",&nu0);
   op_decl_const2("nu1",1,"double",&nu1);
+  op_decl_const2("rho0",1,"double",&rho0);
+  op_decl_const2("rho1",1,"double",&rho1);
   op_decl_const2("bc_mach",1,"double",&bc_mach);
   op_decl_const2("bc_alpha",1,"double",&bc_alpha);
   op_decl_const2("bc_p",1,"double",&bc_p);
@@ -415,7 +417,7 @@ INSData::~INSData() {
   free(save_temp_data);
   free(nu_data);
   free(gNu_data);
-  free(vFactor_data);
+  free(rho_data);
 }
 
 void INSData::init() {

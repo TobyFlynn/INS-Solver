@@ -15,6 +15,8 @@ void poisson_mf2_apply_bc_vis_omp4_kernel(
   int dat3size,
   double *data4,
   int dat4size,
+  double *data5,
+  int dat5size,
   int *col_reord,
   int set_size1,
   int start,
@@ -23,7 +25,7 @@ void poisson_mf2_apply_bc_vis_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size])\
-    map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size])
+    map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
@@ -34,8 +36,9 @@ void poisson_mf2_apply_bc_vis_omp4_kernel(
     const int *bedgeNum = &data0[1*n_op];
     const double *op = &data1[105*n_op];
     const double *nu = &data2[15 * map2idx];
-    const double *bc = &data3[21 * map2idx];
-    double *rhs = &data4[15 * map2idx];
+    const double *rho = &data3[15 * map2idx];
+    const double *bc = &data4[21 * map2idx];
+    double *rhs = &data5[15 * map2idx];
 
     //inline function
     
@@ -49,7 +52,7 @@ void poisson_mf2_apply_bc_vis_omp4_kernel(
       for(int n = 0; n < 7; n++) {
         val += op[ind + n] * bc[exInd + n];
       }
-      rhs[m] += nu[m] * val;
+      rhs[m] += nu[m] * val / rho[m];
     }
     //end inline func
   }

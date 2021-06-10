@@ -11,16 +11,18 @@ void op_par_loop_poisson_mf2_apply_bc_vis(char const *name, op_set set,
   op_arg arg1,
   op_arg arg2,
   op_arg arg3,
-  op_arg arg4){
+  op_arg arg4,
+  op_arg arg5){
 
-  int nargs = 5;
-  op_arg args[5];
+  int nargs = 6;
+  op_arg args[6];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
   args[3] = arg3;
   args[4] = arg4;
+  args[5] = arg5;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -29,8 +31,8 @@ void op_par_loop_poisson_mf2_apply_bc_vis(char const *name, op_set set,
   OP_kernels[29].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 3;
-  int  inds[5] = {-1,-1,0,1,2};
+  int  ninds   = 4;
+  int  inds[6] = {-1,-1,0,1,2,3};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_mf2_apply_bc_vis\n");
@@ -71,8 +73,9 @@ void op_par_loop_poisson_mf2_apply_bc_vis(char const *name, op_set set,
             &((int*)arg0.data)[1 * n],
             &((double*)arg1.data)[105 * n],
             &((double*)arg2.data)[15 * map2idx],
-            &((double*)arg3.data)[21 * map2idx],
-            &((double*)arg4.data)[15 * map2idx]);
+            &((double*)arg3.data)[15 * map2idx],
+            &((double*)arg4.data)[21 * map2idx],
+            &((double*)arg5.data)[15 * map2idx]);
         }
       }
 

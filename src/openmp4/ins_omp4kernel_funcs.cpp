@@ -7,6 +7,8 @@ double gam_ompkernel;
 double mu_ompkernel;
 double nu0_ompkernel;
 double nu1_ompkernel;
+double rho0_ompkernel;
+double rho1_ompkernel;
 double bc_mach_ompkernel;
 double bc_alpha_ompkernel;
 double bc_p_ompkernel;
@@ -57,6 +59,12 @@ void op_decl_const_char(int dim, char const *type,
   } else if(!strcmp(name, "nu1")) {
     memcpy(&nu1_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:nu1_ompkernel)
+  } else if(!strcmp(name, "rho0")) {
+    memcpy(&rho0_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:rho0_ompkernel)
+  } else if(!strcmp(name, "rho1")) {
+    memcpy(&rho1_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:rho1_ompkernel)
   } else if(!strcmp(name, "bc_mach")) {
     memcpy(&bc_mach_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:bc_mach_ompkernel)

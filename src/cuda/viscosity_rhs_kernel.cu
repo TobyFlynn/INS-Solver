@@ -3,13 +3,10 @@
 //
 
 //user function
-__device__ void viscosity_rhs_gpu( const double *factor, const double *nu, double *vRHS0,
-                          double *vRHS1, double *vFactor) {
+__device__ void viscosity_rhs_gpu( const double *factor, double *vRHS0, double *vRHS1) {
   for(int i = 0; i < 15; i++) {
-
-    vFactor[i] = (*factor);
-    vRHS0[i] = vFactor[i] * vRHS0[i];
-    vRHS1[i] = vFactor[i] * vRHS1[i];
+    vRHS0[i] = (*factor) * vRHS0[i];
+    vRHS1[i] = (*factor) * vRHS1[i];
   }
 
 }
@@ -17,10 +14,8 @@ __device__ void viscosity_rhs_gpu( const double *factor, const double *nu, doubl
 // CUDA kernel function
 __global__ void op_cuda_viscosity_rhs(
   const double *arg0,
-  const double *__restrict arg1,
+  double *arg1,
   double *arg2,
-  double *arg3,
-  double *arg4,
   int   set_size ) {
 
 
@@ -30,9 +25,7 @@ __global__ void op_cuda_viscosity_rhs(
     //user-supplied kernel call
     viscosity_rhs_gpu(arg0,
                   arg1+n*15,
-                  arg2+n*15,
-                  arg3+n*15,
-                  arg4+n*15);
+                  arg2+n*15);
   }
 }
 
@@ -41,19 +34,15 @@ __global__ void op_cuda_viscosity_rhs(
 void op_par_loop_viscosity_rhs(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4){
+  op_arg arg2){
 
   double*arg0h = (double *)arg0.data;
-  int nargs = 5;
-  op_arg args[5];
+  int nargs = 3;
+  op_arg args[3];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
-  args[3] = arg3;
-  args[4] = arg4;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -96,8 +85,6 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
       (double *) arg0.data_d,
       (double *) arg1.data_d,
       (double *) arg2.data_d,
-      (double *) arg3.data_d,
-      (double *) arg4.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
@@ -105,8 +92,6 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
   OP_kernels[51].time     += wall_t2 - wall_t1;
-  OP_kernels[51].transfer += (float)set->size * arg1.size;
+  OP_kernels[51].transfer += (float)set->size * arg1.size * 2.0f;
   OP_kernels[51].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[51].transfer += (float)set->size * arg3.size * 2.0f;
-  OP_kernels[51].transfer += (float)set->size * arg4.size * 2.0f;
 }

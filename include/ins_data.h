@@ -9,6 +9,8 @@ extern double gam;
 extern double mu;
 extern double nu0;
 extern double nu1;
+extern double rho0;
+extern double rho1;
 extern double bc_mach;
 extern double bc_alpha;
 extern double bc_p;
@@ -72,7 +74,7 @@ public:
   op_dat dQdx[2], dQdy[2];
   op_dat vorticity;
   op_dat save_temp;
-  op_dat nu, gNu, vFactor;
+  op_dat nu, gNu, rho;
 
   int pressure_dirichlet[3];
   int pressure_neumann[3];
@@ -120,7 +122,7 @@ private:
   double *save_temp_data;
   double *nu_data;
   double *gNu_data;
-  double *vFactor_data;
+  double *rho_data;
 };
 
 class CubatureData {

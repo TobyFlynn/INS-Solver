@@ -1,4 +1,4 @@
-inline void poisson_mf2_vis(const double *nu, const double *u, const double *op,
+inline void poisson_mf2_vis(const double *nu, const double *rho, const double *u, const double *op,
                             double *rhs) {
   for(int m = 0; m < 15; m++) {
     int ind = m * 15;
@@ -6,6 +6,6 @@ inline void poisson_mf2_vis(const double *nu, const double *u, const double *op,
     for(int n = 0; n < 15; n++) {
       val += op[ind + n] * u[n];
     }
-    rhs[m] += nu[m] * val;
+    rhs[m] += nu[m] * val / rho[m];
   }
 }

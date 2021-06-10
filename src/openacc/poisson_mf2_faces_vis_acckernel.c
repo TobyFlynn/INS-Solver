@@ -5,9 +5,9 @@
 //user function
 //user function
 //#pragma acc routine
-inline void poisson_mf2_faces_vis_openacc( const double *nuL, const double *uL,
+inline void poisson_mf2_faces_vis_openacc( const double *nuL, const double *rhoL, const double *uL,
                                   const double *opL, double *rhsL,
-                                  const double *nuR, const double *uR,
+                                  const double *nuR, const double *rhoR, const double *uR,
                                   const double *opR, double *rhsR) {
   for(int m = 0; m < 15; m++) {
     int ind = m * 15;
@@ -15,7 +15,7 @@ inline void poisson_mf2_faces_vis_openacc( const double *nuL, const double *uL,
     for(int n = 0; n < 15; n++) {
       val += opL[ind + n] * uR[n];
     }
-    rhsL[m] += nuL[m] * val;
+    rhsL[m] += nuL[m] * val / rhoL[m];
   }
 
   for(int m = 0; m < 15; m++) {
@@ -24,7 +24,7 @@ inline void poisson_mf2_faces_vis_openacc( const double *nuL, const double *uL,
     for(int n = 0; n < 15; n++) {
       val += opR[ind + n] * uL[n];
     }
-    rhsR[m] += nuR[m] * val;
+    rhsR[m] += nuR[m] * val / rhoR[m];
   }
 }
 
@@ -37,10 +37,12 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7){
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9){
 
-  int nargs = 8;
-  op_arg args[8];
+  int nargs = 10;
+  op_arg args[10];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -50,6 +52,8 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
   args[5] = arg5;
   args[6] = arg6;
   args[7] = arg7;
+  args[8] = arg8;
+  args[9] = arg9;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -58,8 +62,8 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
   OP_kernels[33].name      = name;
   OP_kernels[33].count    += 1;
 
-  int  ninds   = 3;
-  int  inds[8] = {0,1,-1,2,0,1,-1,2};
+  int  ninds   = 4;
+  int  inds[10] = {0,1,2,-1,3,0,1,2,-1,3};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_mf2_faces_vis\n");
@@ -83,11 +87,12 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
     //Set up typed device pointers for OpenACC
     int *map0 = arg0.map_data_d;
 
-    double* data2 = (double*)arg2.data_d;
-    double* data6 = (double*)arg6.data_d;
+    double* data3 = (double*)arg3.data_d;
+    double* data8 = (double*)arg8.data_d;
     double *data0 = (double *)arg0.data_d;
     double *data1 = (double *)arg1.data_d;
-    double *data3 = (double *)arg3.data_d;
+    double *data2 = (double *)arg2.data_d;
+    double *data4 = (double *)arg4.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -102,24 +107,26 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map0,data2,data6,data0,data1,data3)
+      #pragma acc parallel loop independent deviceptr(col_reord,map0,data3,data8,data0,data1,data2,data4)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map0idx;
-        int map4idx;
+        int map5idx;
         map0idx = map0[n + set_size1 * 0];
-        map4idx = map0[n + set_size1 * 1];
+        map5idx = map0[n + set_size1 * 1];
 
 
         poisson_mf2_faces_vis_openacc(
           &data0[15 * map0idx],
           &data1[15 * map0idx],
-          &data2[225 * n],
-          &data3[15 * map0idx],
-          &data0[15 * map4idx],
-          &data1[15 * map4idx],
-          &data6[225 * n],
-          &data3[15 * map4idx]);
+          &data2[15 * map0idx],
+          &data3[225 * n],
+          &data4[15 * map0idx],
+          &data0[15 * map5idx],
+          &data1[15 * map5idx],
+          &data2[15 * map5idx],
+          &data8[225 * n],
+          &data4[15 * map5idx]);
       }
 
     }

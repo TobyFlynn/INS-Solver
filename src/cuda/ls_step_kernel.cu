@@ -4,11 +4,12 @@
 
 //user function
 __device__ void ls_step_gpu( const double *alpha, const double *s, double *step,
-                    double *nu) {
+                    double *nu, double *rho) {
   const double PI = 3.141592653589793238463;
   for(int i = 0; i < 15; i++) {
     step[i] = tanh(PI * s[i] / *alpha);
     nu[i] = nu0_cuda * step[i] + nu1_cuda * (1.0 - step[i]);
+    rho[i] = rho0_cuda * step[i] + rho1_cuda * (1.0 - step[i]);
   }
 
 }
@@ -19,6 +20,7 @@ __global__ void op_cuda_ls_step(
   const double *__restrict arg1,
   double *arg2,
   double *arg3,
+  double *arg4,
   int   set_size ) {
 
 
@@ -29,7 +31,8 @@ __global__ void op_cuda_ls_step(
     ls_step_gpu(arg0,
             arg1+n*15,
             arg2+n*15,
-            arg3+n*15);
+            arg3+n*15,
+            arg4+n*15);
   }
 }
 
@@ -39,16 +42,18 @@ void op_par_loop_ls_step(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3){
+  op_arg arg3,
+  op_arg arg4){
 
   double*arg0h = (double *)arg0.data;
-  int nargs = 4;
-  op_arg args[4];
+  int nargs = 5;
+  op_arg args[5];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
   args[3] = arg3;
+  args[4] = arg4;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -92,6 +97,7 @@ void op_par_loop_ls_step(char const *name, op_set set,
       (double *) arg1.data_d,
       (double *) arg2.data_d,
       (double *) arg3.data_d,
+      (double *) arg4.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
@@ -102,4 +108,5 @@ void op_par_loop_ls_step(char const *name, op_set set,
   OP_kernels[75].transfer += (float)set->size * arg1.size;
   OP_kernels[75].transfer += (float)set->size * arg2.size * 2.0f;
   OP_kernels[75].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[75].transfer += (float)set->size * arg4.size * 2.0f;
 }

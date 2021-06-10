@@ -5,16 +5,18 @@
 void poisson_mf2_faces_vis_omp4_kernel(
   int *map0,
   int map0size,
-  double *data2,
-  int dat2size,
-  double *data6,
-  int dat6size,
+  double *data3,
+  int dat3size,
+  double *data8,
+  int dat8size,
   double *data0,
   int dat0size,
   double *data1,
   int dat1size,
-  double *data3,
-  int dat3size,
+  double *data2,
+  int dat2size,
+  double *data4,
+  int dat4size,
   int *col_reord,
   int set_size1,
   int start,
@@ -22,25 +24,27 @@ void poisson_mf2_faces_vis_omp4_kernel(
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data2[0:dat2size],data6[0:dat6size])\
-    map(to:col_reord[0:set_size1],map0[0:map0size],data0[0:dat0size],data1[0:dat1size],data3[0:dat3size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data3[0:dat3size],data8[0:dat8size])\
+    map(to:col_reord[0:set_size1],map0[0:map0size],data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data4[0:dat4size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
     int map0idx;
-    int map4idx;
+    int map5idx;
     map0idx = map0[n_op + set_size1 * 0];
-    map4idx = map0[n_op + set_size1 * 1];
+    map5idx = map0[n_op + set_size1 * 1];
 
     //variable mapping
     const double *nuL = &data0[15 * map0idx];
-    const double *uL = &data1[15 * map0idx];
-    const double *opL = &data2[225*n_op];
-    double *rhsL = &data3[15 * map0idx];
-    const double *nuR = &data0[15 * map4idx];
-    const double *uR = &data1[15 * map4idx];
-    const double *opR = &data6[225*n_op];
-    double *rhsR = &data3[15 * map4idx];
+    const double *rhoL = &data1[15 * map0idx];
+    const double *uL = &data2[15 * map0idx];
+    const double *opL = &data3[225*n_op];
+    double *rhsL = &data4[15 * map0idx];
+    const double *nuR = &data0[15 * map5idx];
+    const double *rhoR = &data1[15 * map5idx];
+    const double *uR = &data2[15 * map5idx];
+    const double *opR = &data8[225*n_op];
+    double *rhsR = &data4[15 * map5idx];
 
     //inline function
     
@@ -50,7 +54,7 @@ void poisson_mf2_faces_vis_omp4_kernel(
       for(int n = 0; n < 15; n++) {
         val += opL[ind + n] * uR[n];
       }
-      rhsL[m] += nuL[m] * val;
+      rhsL[m] += nuL[m] * val / rhoL[m];
     }
 
     for(int m = 0; m < 15; m++) {
@@ -59,7 +63,7 @@ void poisson_mf2_faces_vis_omp4_kernel(
       for(int n = 0; n < 15; n++) {
         val += opR[ind + n] * uL[n];
       }
-      rhsR[m] += nuR[m] * val;
+      rhsR[m] += nuR[m] * val / rhoR[m];
     }
     //end inline func
   }

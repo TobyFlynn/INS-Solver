@@ -14,10 +14,12 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7){
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9){
 
-  int nargs = 8;
-  op_arg args[8];
+  int nargs = 10;
+  op_arg args[10];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -27,6 +29,8 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
   args[5] = arg5;
   args[6] = arg6;
   args[7] = arg7;
+  args[8] = arg8;
+  args[9] = arg9;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -46,20 +50,22 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
         op_mpi_wait_all(nargs, args);
       }
       int map0idx;
-      int map4idx;
+      int map5idx;
       map0idx = arg0.map_data[n * arg0.map->dim + 0];
-      map4idx = arg0.map_data[n * arg0.map->dim + 1];
+      map5idx = arg0.map_data[n * arg0.map->dim + 1];
 
 
       poisson_mf2_faces_vis(
         &((double*)arg0.data)[15 * map0idx],
         &((double*)arg1.data)[15 * map0idx],
-        &((double*)arg2.data)[225 * n],
-        &((double*)arg3.data)[15 * map0idx],
-        &((double*)arg0.data)[15 * map4idx],
-        &((double*)arg1.data)[15 * map4idx],
-        &((double*)arg6.data)[225 * n],
-        &((double*)arg3.data)[15 * map4idx]);
+        &((double*)arg2.data)[15 * map0idx],
+        &((double*)arg3.data)[225 * n],
+        &((double*)arg4.data)[15 * map0idx],
+        &((double*)arg0.data)[15 * map5idx],
+        &((double*)arg1.data)[15 * map5idx],
+        &((double*)arg2.data)[15 * map5idx],
+        &((double*)arg8.data)[225 * n],
+        &((double*)arg4.data)[15 * map5idx]);
     }
   }
 
@@ -76,8 +82,9 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
   OP_kernels[33].time     += wall_t2 - wall_t1;
   OP_kernels[33].transfer += (float)set->size * arg0.size;
   OP_kernels[33].transfer += (float)set->size * arg1.size;
-  OP_kernels[33].transfer += (float)set->size * arg3.size * 2.0f;
   OP_kernels[33].transfer += (float)set->size * arg2.size;
-  OP_kernels[33].transfer += (float)set->size * arg6.size;
+  OP_kernels[33].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[33].transfer += (float)set->size * arg3.size;
+  OP_kernels[33].transfer += (float)set->size * arg8.size;
   OP_kernels[33].transfer += (float)set->size * arg0.map->dim * 4.0f;
 }

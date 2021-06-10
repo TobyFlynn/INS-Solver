@@ -14,10 +14,12 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
   op_arg arg4,
   op_arg arg5,
   op_arg arg6,
-  op_arg arg7){
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9){
 
-  int nargs = 8;
-  op_arg args[8];
+  int nargs = 10;
+  op_arg args[10];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -27,6 +29,8 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
   args[5] = arg5;
   args[6] = arg6;
   args[7] = arg7;
+  args[8] = arg8;
+  args[9] = arg9;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -35,8 +39,8 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
   OP_kernels[33].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 3;
-  int  inds[8] = {0,1,-1,2,0,1,-1,2};
+  int  ninds   = 4;
+  int  inds[10] = {0,1,2,-1,3,0,1,2,-1,3};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_mf2_faces_vis\n");
@@ -70,20 +74,22 @@ void op_par_loop_poisson_mf2_faces_vis(char const *name, op_set set,
         int offset_b = Plan->offset[blockId];
         for ( int n=offset_b; n<offset_b+nelem; n++ ){
           int map0idx;
-          int map4idx;
+          int map5idx;
           map0idx = arg0.map_data[n * arg0.map->dim + 0];
-          map4idx = arg0.map_data[n * arg0.map->dim + 1];
+          map5idx = arg0.map_data[n * arg0.map->dim + 1];
 
 
           poisson_mf2_faces_vis(
             &((double*)arg0.data)[15 * map0idx],
             &((double*)arg1.data)[15 * map0idx],
-            &((double*)arg2.data)[225 * n],
-            &((double*)arg3.data)[15 * map0idx],
-            &((double*)arg0.data)[15 * map4idx],
-            &((double*)arg1.data)[15 * map4idx],
-            &((double*)arg6.data)[225 * n],
-            &((double*)arg3.data)[15 * map4idx]);
+            &((double*)arg2.data)[15 * map0idx],
+            &((double*)arg3.data)[225 * n],
+            &((double*)arg4.data)[15 * map0idx],
+            &((double*)arg0.data)[15 * map5idx],
+            &((double*)arg1.data)[15 * map5idx],
+            &((double*)arg2.data)[15 * map5idx],
+            &((double*)arg8.data)[225 * n],
+            &((double*)arg4.data)[15 * map5idx]);
         }
       }
 
