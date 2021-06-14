@@ -26,9 +26,9 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(35);
-  OP_kernels[35].name      = name;
-  OP_kernels[35].count    += 1;
+  op_timing_realloc(40);
+  OP_kernels[40].name      = name;
+  OP_kernels[40].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
   int  ninds   = 2;
@@ -39,8 +39,8 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_35
-    int part_size = OP_PART_SIZE_35;
+  #ifdef OP_PART_SIZE_40
+    int part_size = OP_PART_SIZE_40;
   #else
     int part_size = OP_part_size;
   #endif
@@ -83,8 +83,8 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
 
       block_offset += nblocks;
     }
-    OP_kernels[35].transfer  += Plan->transfer;
-    OP_kernels[35].transfer2 += Plan->transfer2;
+    OP_kernels[40].transfer  += Plan->transfer;
+    OP_kernels[40].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -95,5 +95,5 @@ void op_par_loop_poisson_mf2_faces(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[35].time     += wall_t2 - wall_t1;
+  OP_kernels[40].time     += wall_t2 - wall_t1;
 }

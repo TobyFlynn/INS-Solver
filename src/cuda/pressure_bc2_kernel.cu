@@ -115,10 +115,10 @@ void op_par_loop_pressure_bc2(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(47);
+  op_timing_realloc(52);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[47].name      = name;
-  OP_kernels[47].count    += 1;
+  OP_kernels[52].name      = name;
+  OP_kernels[52].count    += 1;
 
 
   int    ninds   = 4;
@@ -151,8 +151,8 @@ void op_par_loop_pressure_bc2(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_47
-      int nthread = OP_BLOCK_SIZE_47;
+    #ifdef OP_BLOCK_SIZE_52
+      int nthread = OP_BLOCK_SIZE_52;
     #else
       int nthread = OP_block_size;
     #endif
@@ -183,5 +183,5 @@ void op_par_loop_pressure_bc2(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[47].time     += wall_t2 - wall_t1;
+  OP_kernels[52].time     += wall_t2 - wall_t1;
 }

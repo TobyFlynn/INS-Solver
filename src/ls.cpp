@@ -260,6 +260,8 @@ void LS::advec_step(op_dat input, op_dat output) {
 
 void LS::reinit_ls() {
   cub_grad(data, cData, s, dsdx, dsdy);
+  inv_mass(data, dsdx);
+  inv_mass(data, dsdy);
   op_par_loop(ls_sign, "ls_sign", data->cells,
               op_arg_gbl(&alpha, 1, "double", OP_READ),
               op_arg_dat(s, -1, OP_ID, 15, "double", OP_READ),

@@ -85,6 +85,42 @@ private:
   double *op_bc_data;
 };
 
+class Poisson_MF : public Poisson {
+public:
+  Poisson_MF(INSData *data, CubatureData *cubData, GaussData *gaussData);
+  ~Poisson_MF();
+
+  bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
+  void calc_rhs(const double *u_d, double *rhs_d);
+  void init();
+
+  op_dat u, rhs, gU, gDudx, gDudy, fluxX, fluxY, flux, dudx, dudy, qx, qy;
+
+private:
+  void create_shell_mat(Mat *m);
+  void copy_u(const double *u_d);
+  void copy_rhs(double *rhs_d);
+
+  void apply_bc(op_dat b);
+
+  double *u_data;
+  double *rhs_data;
+  double *gU_data;
+  double *gDudx_data;
+  double *gDudy_data;
+  double *fluxX_data;
+  double *fluxY_data;
+  double *flux_data;
+  double *dudx_data;
+  double *dudy_data;
+  double *qx_data;
+  double *qy_data;
+
+  Mat Amat;
+  KSP ksp;
+  Vec b, x;
+};
+
 class Poisson_MF2 : public Poisson {
 public:
   Poisson_MF2(INSData *data, CubatureData *cubData, GaussData *gaussData);
