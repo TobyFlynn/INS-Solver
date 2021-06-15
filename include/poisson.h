@@ -94,7 +94,7 @@ public:
   void calc_rhs(const double *u_d, double *rhs_d);
   void init();
 
-  op_dat u, rhs, gU, gDudx, gDudy, fluxX, fluxY, flux, dudx, dudy, qx, qy;
+  op_dat u, rhs, gU, gDudx, gDudy, fluxX, fluxY, flux, dudx, dudy, qx, qy, tmp_u;
 
 private:
   void create_shell_mat(Mat *m);
@@ -115,6 +115,7 @@ private:
   double *dudy_data;
   double *qx_data;
   double *qy_data;
+  double *tmp_u_data;
 
   Mat Amat;
   KSP ksp;

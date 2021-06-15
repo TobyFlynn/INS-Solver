@@ -216,10 +216,10 @@ void op_par_loop_diff_flux(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(79);
+  op_timing_realloc(83);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[79].name      = name;
-  OP_kernels[79].count    += 1;
+  OP_kernels[83].name      = name;
+  OP_kernels[83].count    += 1;
 
 
   int    ninds   = 6;
@@ -232,8 +232,8 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_79
-      int nthread = OP_BLOCK_SIZE_79;
+    #ifdef OP_BLOCK_SIZE_83
+      int nthread = OP_BLOCK_SIZE_83;
     #else
       int nthread = OP_block_size;
     #endif
@@ -264,5 +264,5 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[79].time     += wall_t2 - wall_t1;
+  OP_kernels[83].time     += wall_t2 - wall_t1;
 }

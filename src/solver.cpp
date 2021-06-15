@@ -268,7 +268,8 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
   double factor;
   if(multiphase) {
-    factor = g0 / dt;
+    // factor = g0 / dt;
+    factor = g0 / (nu0 * dt);
   } else {
     factor = g0 / (nu0 * dt);
   }
@@ -277,6 +278,14 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_gbl(&factor, 1, "double", OP_READ),
               op_arg_dat(data->visRHS[0], -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(data->visRHS[1], -1, OP_ID, 15, "double", OP_RW));
+
+  if(multiphase) {
+    op_par_loop(viscosity_rhs_rho, "viscosity_rhs_rho", data->cells,
+                op_arg_dat(data->rho, -1, OP_ID, 15, "double", OP_READ),
+                op_arg_dat(data->nu, -1, OP_ID, 15, "double", OP_RW),
+                op_arg_dat(data->visRHS[0], -1, OP_ID, 15, "double", OP_RW),
+                op_arg_dat(data->visRHS[1], -1, OP_ID, 15, "double", OP_RW));
+  }
 
   timer->endViscositySetup();
 

@@ -35,9 +35,12 @@
 #define op_par_loop_poisson_mf2_opf op_par_loop_poisson_mf2_opf_gpu
 #define op_par_loop_poisson_mf2_opbf op_par_loop_poisson_mf2_opbf_gpu
 #define op_par_loop_poisson_mf2_bc op_par_loop_poisson_mf2_bc_gpu
+#define op_par_loop_poisson_mf_nu op_par_loop_poisson_mf_nu_gpu
+#define op_par_loop_poisson_mf_rho op_par_loop_poisson_mf_rho_gpu
 #define op_par_loop_poisson_mf_edges op_par_loop_poisson_mf_edges_gpu
 #define op_par_loop_poisson_mf_bedges op_par_loop_poisson_mf_bedges_gpu
 #define op_par_loop_poisson_mf_zero op_par_loop_poisson_mf_zero_gpu
+#define op_par_loop_poisson_mf_mm_rho op_par_loop_poisson_mf_mm_rho_gpu
 #define op_par_loop_poisson_mf_bc0 op_par_loop_poisson_mf_bc0_gpu
 #define op_par_loop_poisson_mf_bc1 op_par_loop_poisson_mf_bc1_gpu
 #define op_par_loop_poisson_mf2_apply_bc_vis op_par_loop_poisson_mf2_apply_bc_vis_gpu
@@ -63,6 +66,7 @@
 #define op_par_loop_pressure_update_vel op_par_loop_pressure_update_vel_gpu
 #define op_par_loop_viscosity_bc op_par_loop_viscosity_bc_gpu
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_gpu
+#define op_par_loop_viscosity_rhs_rho op_par_loop_viscosity_rhs_rho_gpu
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_gpu
 #define op_par_loop_lift_drag op_par_loop_lift_drag_gpu
 #define op_par_loop_save_values op_par_loop_save_values_gpu
@@ -119,9 +123,12 @@
 #undef op_par_loop_poisson_mf2_opf
 #undef op_par_loop_poisson_mf2_opbf
 #undef op_par_loop_poisson_mf2_bc
+#undef op_par_loop_poisson_mf_nu
+#undef op_par_loop_poisson_mf_rho
 #undef op_par_loop_poisson_mf_edges
 #undef op_par_loop_poisson_mf_bedges
 #undef op_par_loop_poisson_mf_zero
+#undef op_par_loop_poisson_mf_mm_rho
 #undef op_par_loop_poisson_mf_bc0
 #undef op_par_loop_poisson_mf_bc1
 #undef op_par_loop_poisson_mf2_apply_bc_vis
@@ -147,6 +154,7 @@
 #undef op_par_loop_pressure_update_vel
 #undef op_par_loop_viscosity_bc
 #undef op_par_loop_viscosity_rhs
+#undef op_par_loop_viscosity_rhs_rho
 #undef op_par_loop_viscosity_reset_bc
 #undef op_par_loop_lift_drag
 #undef op_par_loop_save_values
@@ -203,9 +211,12 @@
 #define op_par_loop_poisson_mf2_opf op_par_loop_poisson_mf2_opf_cpu
 #define op_par_loop_poisson_mf2_opbf op_par_loop_poisson_mf2_opbf_cpu
 #define op_par_loop_poisson_mf2_bc op_par_loop_poisson_mf2_bc_cpu
+#define op_par_loop_poisson_mf_nu op_par_loop_poisson_mf_nu_cpu
+#define op_par_loop_poisson_mf_rho op_par_loop_poisson_mf_rho_cpu
 #define op_par_loop_poisson_mf_edges op_par_loop_poisson_mf_edges_cpu
 #define op_par_loop_poisson_mf_bedges op_par_loop_poisson_mf_bedges_cpu
 #define op_par_loop_poisson_mf_zero op_par_loop_poisson_mf_zero_cpu
+#define op_par_loop_poisson_mf_mm_rho op_par_loop_poisson_mf_mm_rho_cpu
 #define op_par_loop_poisson_mf_bc0 op_par_loop_poisson_mf_bc0_cpu
 #define op_par_loop_poisson_mf_bc1 op_par_loop_poisson_mf_bc1_cpu
 #define op_par_loop_poisson_mf2_apply_bc_vis op_par_loop_poisson_mf2_apply_bc_vis_cpu
@@ -231,6 +242,7 @@
 #define op_par_loop_pressure_update_vel op_par_loop_pressure_update_vel_cpu
 #define op_par_loop_viscosity_bc op_par_loop_viscosity_bc_cpu
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_cpu
+#define op_par_loop_viscosity_rhs_rho op_par_loop_viscosity_rhs_rho_cpu
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_cpu
 #define op_par_loop_lift_drag op_par_loop_lift_drag_cpu
 #define op_par_loop_save_values op_par_loop_save_values_cpu
@@ -287,9 +299,12 @@
 #undef op_par_loop_poisson_mf2_opf
 #undef op_par_loop_poisson_mf2_opbf
 #undef op_par_loop_poisson_mf2_bc
+#undef op_par_loop_poisson_mf_nu
+#undef op_par_loop_poisson_mf_rho
 #undef op_par_loop_poisson_mf_edges
 #undef op_par_loop_poisson_mf_bedges
 #undef op_par_loop_poisson_mf_zero
+#undef op_par_loop_poisson_mf_mm_rho
 #undef op_par_loop_poisson_mf_bc0
 #undef op_par_loop_poisson_mf_bc1
 #undef op_par_loop_poisson_mf2_apply_bc_vis
@@ -315,6 +330,7 @@
 #undef op_par_loop_pressure_update_vel
 #undef op_par_loop_viscosity_bc
 #undef op_par_loop_viscosity_rhs
+#undef op_par_loop_viscosity_rhs_rho
 #undef op_par_loop_viscosity_reset_bc
 #undef op_par_loop_lift_drag
 #undef op_par_loop_save_values
@@ -2404,6 +2420,86 @@ void op_par_loop_poisson_mf2_bc(char const *name, op_set set,
   }
 #endif //OP_HYBRID_GPU
 
+void op_par_loop_poisson_mf_nu_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_poisson_mf_nu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_poisson_mf_nu_gpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+    }else{
+    op_par_loop_poisson_mf_nu_cpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+  }
+}
+#else
+void op_par_loop_poisson_mf_nu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  op_par_loop_poisson_mf_nu_gpu(name, set,
+    arg0,
+    arg1,
+    arg2);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_poisson_mf_rho_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_poisson_mf_rho(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_poisson_mf_rho_gpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+    }else{
+    op_par_loop_poisson_mf_rho_cpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+  }
+}
+#else
+void op_par_loop_poisson_mf_rho(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  op_par_loop_poisson_mf_rho_gpu(name, set,
+    arg0,
+    arg1,
+    arg2);
+
+  }
+#endif //OP_HYBRID_GPU
+
 void op_par_loop_poisson_mf_edges_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
@@ -2643,6 +2739,46 @@ void op_par_loop_poisson_mf_zero(char const *name, op_set set,
   op_arg arg2){
 
   op_par_loop_poisson_mf_zero_gpu(name, set,
+    arg0,
+    arg1,
+    arg2);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_poisson_mf_mm_rho_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_poisson_mf_mm_rho(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_poisson_mf_mm_rho_gpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+    }else{
+    op_par_loop_poisson_mf_mm_rho_cpu(name, set,
+      arg0,
+      arg1,
+      arg2);
+
+  }
+}
+#else
+void op_par_loop_poisson_mf_mm_rho(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2){
+
+  op_par_loop_poisson_mf_mm_rho_gpu(name, set,
     arg0,
     arg1,
     arg2);
@@ -4246,6 +4382,52 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
     arg0,
     arg1,
     arg2);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_viscosity_rhs_rho_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_viscosity_rhs_rho(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_viscosity_rhs_rho_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3);
+
+    }else{
+    op_par_loop_viscosity_rhs_rho_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3);
+
+  }
+}
+#else
+void op_par_loop_viscosity_rhs_rho(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3){
+
+  op_par_loop_viscosity_rhs_rho_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3);
 
   }
 #endif //OP_HYBRID_GPU
