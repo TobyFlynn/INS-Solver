@@ -184,10 +184,10 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(59);
+  op_timing_realloc(57);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[59].name      = name;
-  OP_kernels[59].count    += 1;
+  OP_kernels[57].name      = name;
+  OP_kernels[57].count    += 1;
 
 
   int    ninds   = 7;
@@ -220,8 +220,8 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_59
-      int nthread = OP_BLOCK_SIZE_59;
+    #ifdef OP_BLOCK_SIZE_57
+      int nthread = OP_BLOCK_SIZE_57;
     #else
       int nthread = OP_block_size;
     #endif
@@ -255,5 +255,5 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[59].time     += wall_t2 - wall_t1;
+  OP_kernels[57].time     += wall_t2 - wall_t1;
 }
