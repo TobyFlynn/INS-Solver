@@ -32,7 +32,8 @@ __device__ void poisson_mf_bc_gpu( const int *bedgeType, const int *bedgeNum,
         mD = mD2[indT];
       }
       val -= mD * gaussW_g_cuda[j % 7] * sJ[*bedgeNum * 7 + (j % 7)];
-      op[row * 7 + col] += val;
+
+        op[row * 7 + col] += val;
     }
 
     for(int m = 0; m < 15; m++) {
@@ -57,7 +58,8 @@ __device__ void poisson_mf_bc_gpu( const int *bedgeType, const int *bedgeNum,
       } else {
         val *= gFInterp2_g_cuda[indT];
       }
-      op[row * 7 + col] += val;
+
+        op[row * 7 + col] += val;
     }
 
     for(int m = 0; m < 15; m++) {
@@ -170,10 +172,10 @@ void op_par_loop_poisson_mf_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(33);
+  op_timing_realloc(37);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[33].name      = name;
-  OP_kernels[33].count    += 1;
+  OP_kernels[37].name      = name;
+  OP_kernels[37].count    += 1;
 
 
   int    ninds   = 7;
@@ -213,8 +215,8 @@ void op_par_loop_poisson_mf_bc(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_33
-      int nthread = OP_BLOCK_SIZE_33;
+    #ifdef OP_BLOCK_SIZE_37
+      int nthread = OP_BLOCK_SIZE_37;
     #else
       int nthread = OP_block_size;
     #endif
@@ -249,5 +251,5 @@ void op_par_loop_poisson_mf_bc(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[33].time     += wall_t2 - wall_t1;
+  OP_kernels[37].time     += wall_t2 - wall_t1;
 }

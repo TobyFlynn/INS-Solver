@@ -210,6 +210,15 @@ Solver::Solver(std::string filename, int pmethod, int prob, bool multi) {
     viscosityM->setDirichletBCs(data->viscosity_dirichlet);
     viscosityM->setNeumannBCs(data->viscosity_neumann);
     viscosityPoisson = viscosityM;
+  } else if(pmethod == 1) {
+    Poisson_MF *pressureMF = new Poisson_MF(data, cubatureData, gaussData);
+    pressureMF->setDirichletBCs(data->pressure_dirichlet);
+    pressureMF->setNeumannBCs(data->pressure_neumann);
+    pressurePoisson = pressureMF;
+    Poisson_MF *viscosityMF = new Poisson_MF(data, cubatureData, gaussData);
+    viscosityMF->setDirichletBCs(data->viscosity_dirichlet);
+    viscosityMF->setNeumannBCs(data->viscosity_neumann);
+    viscosityPoisson = viscosityMF;
   } else {
     Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubatureData, gaussData);
     pressureMF2->setDirichletBCs(data->pressure_dirichlet);
@@ -433,16 +442,19 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[0], 0.0, data->visRHS[0]);
   op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[1], 0.0, data->visRHS[1]);
 
-  // double factor = g0 / (nu0 * dt);
-  double factor = g0 / dt;
+  double factor;
+  if(multiphase) {
+    factor = g0 / dt;
+  } else {
+    factor = g0 / (nu0 * dt);
+  }
+
   op_par_loop_viscosity_rhs("viscosity_rhs",data->cells,
               op_arg_gbl(&factor,1,"double",OP_READ),
               op_arg_dat(data->visRHS[0],-1,OP_ID,15,"double",OP_RW),
               op_arg_dat(data->visRHS[1],-1,OP_ID,15,"double",OP_RW));
 
   timer->endViscositySetup();
-
-  // factor = g0 / dt;
 
   // Call PETSc linear solver
   timer->startViscosityLinearSolve();
@@ -463,7 +475,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
 void Solver::update_surface(int currentInd) {
   timer->startSurface();
-  if(ls) {
+  if(multiphase) {
     ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
     ls->step(dt);
   }

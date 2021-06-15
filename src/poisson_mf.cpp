@@ -170,12 +170,51 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(fluxY, -1, OP_ID, 21, "double", OP_WRITE),
               op_arg_dat(flux, -1, OP_ID, 21, "double", OP_WRITE));
 
+  if(massMat) {
+    /*
+    op_par_loop(poisson_mf_mm, "poisson_mf_mm", data->cells,
+                op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
+                op_arg_gbl(&massFactor, 1, "double", OP_READ),
+                op_arg_dat(cData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
+                op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_RW));
+    */
+    op2_gemv_batch(false, 15, 15, massFactor, cData->mm, 15, u, 1.0, rhs);
+  }
+
   timer->endLinearSolveMFRHS();
 
   copy_rhs(rhs_d);
 }
 
 void Poisson_MF::apply_bc(op_dat b) {
+  op_par_loop(poisson_mf_bc0, "poisson_mf_bc0", data->bedges,
+              op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(gData->sJ, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(gData->nx, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(gData->ny, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(gData->tau, 0, data->bedge2cells, 3, "double", OP_READ),
+              op_arg_dat(bc_dat, 0, data->bedge2cells, 21, "double", OP_READ),
+              op_arg_dat(fluxX, 0, data->bedge2cells, 21, "double", OP_INC),
+              op_arg_dat(fluxY, 0, data->bedge2cells, 21, "double", OP_INC),
+              op_arg_dat(flux, 0, data->bedge2cells, 21, "double", OP_INC));
+
+  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, fluxX, 0.0, qx);
+  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, fluxY, 0.0, qy);
+
+  cub_div_weak(data, cData, qx, qy, rhs);
+
+  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, flux, 1.0, rhs);
+
+  op_par_loop(poisson_mf_bc1, "poisson_mf_bc1", data->cells,
+              op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(b, -1, OP_ID, 15, "double", OP_RW));
+
+  op_par_loop(poisson_mf_zero, "poisson_mf_zero", data->cells,
+              op_arg_dat(fluxX, -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(fluxY, -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(flux, -1, OP_ID, 21, "double", OP_WRITE));
+  /*
   op_par_loop(poisson_mf_bc, "poisson_mf_bc", data->bedges,
               op_arg_dat(data->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
@@ -189,4 +228,5 @@ void Poisson_MF::apply_bc(op_dat b) {
               op_arg_dat(gData->tau, 0, data->bedge2cells, 3, "double", OP_READ),
               op_arg_dat(bc_dat, 0, data->bedge2cells, 21, "double", OP_READ),
               op_arg_dat(b, 0, data->bedge2cells, 15, "double", OP_INC));
+  */
 }

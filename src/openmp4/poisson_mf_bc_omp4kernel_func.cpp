@@ -85,7 +85,8 @@ void poisson_mf_bc_omp4_kernel(
           mD = mD2[indT];
         }
         val -= mD * gaussW_g_ompkernel[j % 7] * sJ[*bedgeNum * 7 + (j % 7)];
-        op[row * 7 + col] += val;
+
+          op[row * 7 + col] += val;
       }
 
       for(int m = 0; m < 15; m++) {
@@ -110,7 +111,8 @@ void poisson_mf_bc_omp4_kernel(
         } else {
           val *= gFInterp2_g_ompkernel[indT];
         }
-        op[row * 7 + col] += val;
+
+          op[row * 7 + col] += val;
       }
 
       for(int m = 0; m < 15; m++) {

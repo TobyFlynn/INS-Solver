@@ -27,7 +27,8 @@ inline void poisson_mf_bc(const int *bedgeType, const int *bedgeNum,
         mD = mD2[indT];
       }
       val -= mD * gaussW_g[j % 7] * sJ[*bedgeNum * 7 + (j % 7)];
-      op[row * 7 + col] += val;
+      // if(fabs(val) > 1e-15)
+        op[row * 7 + col] += val;
     }
 
     for(int m = 0; m < 15; m++) {
@@ -52,7 +53,8 @@ inline void poisson_mf_bc(const int *bedgeType, const int *bedgeNum,
       } else {
         val *= gFInterp2_g[indT];
       }
-      op[row * 7 + col] += val;
+      // if(fabs(val) > 1e-15)
+        op[row * 7 + col] += val;
     }
 
     for(int m = 0; m < 15; m++) {

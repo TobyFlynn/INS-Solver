@@ -277,6 +277,12 @@ void INSData::init() {
               op_arg_dat(nodeX, -2, edge2cells, 3, "double", OP_READ),
               op_arg_dat(nodeY, -2, edge2cells, 3, "double", OP_READ),
               op_arg_dat(reverse, -1, OP_ID, 1, "bool", OP_WRITE));
+
+  op_par_loop(init_nu_rho, "init_nu_rho", cells,
+              op_arg_dat(nu, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(rho, -1, OP_ID, 15, "double", OP_WRITE));
+
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, nu, 0.0, gNu);
 }
 
 CubatureData::CubatureData(INSData *dat) {

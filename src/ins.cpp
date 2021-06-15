@@ -140,7 +140,11 @@ int main(int argc, char **argv) {
   double time = 0.0;
 
   if(save != -1) {
-    save_solution_init(outputDir + "sol.cgns", solver->data, solver->ls);
+    if(multiphase) {
+      save_solution_init(outputDir + "sol.cgns", solver->data, solver->ls);
+    } else {
+      save_solution_init(outputDir + "sol.cgns", solver->data, nullptr);
+    }
     // export_data_init(outputDir + "data.csv");
   }
 
@@ -195,7 +199,11 @@ int main(int argc, char **argv) {
       // timer->endLiftDrag();
 
       timer->startSave();
-      save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, solver->ls, (i + 1) / save);
+      if(multiphase) {
+        save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, solver->ls, (i + 1) / save);
+      } else {
+        save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, nullptr, (i + 1) / save);
+      }
       timer->endSave();
     }
   }
@@ -205,7 +213,11 @@ int main(int argc, char **argv) {
     save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
 
   // Save solution to CGNS file
-  save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, solver->ls, time, nu0);
+  if(multiphase) {
+    save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, solver->ls, time, nu0);
+  } else {
+    save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, nullptr, time, nu0);
+  }
 
   timer->endWallTime();
   timer->exportTimings(outputDir + "timings.csv", iter, time);
