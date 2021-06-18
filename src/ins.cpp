@@ -10,7 +10,7 @@
 #include <cmath>
 #include <limits>
 
-#include "constants.h"
+#include "dg_constants.h"
 #include "ins_data.h"
 #include "save_solution.h"
 #include "poisson.h"
@@ -51,7 +51,7 @@ void export_data(string filename, int iter, double time, double drag,
 }
 
 Timing *timer;
-Constants *constants;
+DGConstants *constants;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 2);
@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
   timer = new Timing();
   timer->startWallTime();
   timer->startSetup();
-  constants = new Constants();
+  constants = new DGConstants();
 
   char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);

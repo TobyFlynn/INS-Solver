@@ -2,8 +2,7 @@
 
 #include <iostream>
 
-#include "constants/all_constants.h"
-#include "constants.h"
+#include "dg_constants.h"
 #include "ins_data.h"
 #include "save_solution.h"
 #include "poisson.h"
@@ -13,7 +12,7 @@
 using namespace std;
 
 Timing *timer;
-Constants *constants;
+DGConstants *constants;
 
 int main(int argc, char **argv) {
   // Initialise OP2
@@ -22,7 +21,7 @@ int main(int argc, char **argv) {
   timer = new Timing();
   timer->startWallTime();
   timer->startSetup();
-  constants = new Constants();
+  constants = new DGConstants();
 
   string filename = "./grid.cgns";
   char help[] = "TODO\n";
@@ -90,7 +89,7 @@ int main(int argc, char **argv) {
               op_arg_dat(gaussData->y, 0, data->bedge2cells, 21, "double", OP_READ),
               op_arg_dat(bc, 0, data->bedge2cells, 21, "double", OP_INC));
 
-  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::MASS), 15, tmp, 0.0, rhs);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(DGConstants::MASS), 15, tmp, 0.0, rhs);
 
   poisson->setBCValues(bc);
   poisson->solve(rhs, data->p);

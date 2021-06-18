@@ -205,7 +205,7 @@ void op_par_loop_ls_step(char const *, op_set,
 #include <cmath>
 // #include <iostream>
 
-#include "constants.h"
+#include "dg_constants.h"
 #include "blas_calls.h"
 #include "operators.h"
 
@@ -429,10 +429,10 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(F,-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(G,-1,OP_ID,15,"double",OP_WRITE));
 
-  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DRW), 15, F, 0.0, dFdr);
-  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DSW), 15, F, 0.0, dFds);
-  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DRW), 15, G, 0.0, dGdr);
-  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::DSW), 15, G, 0.0, dGds);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(DGConstants::DRW), 15, F, 0.0, dFdr);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(DGConstants::DSW), 15, F, 0.0, dFds);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(DGConstants::DRW), 15, G, 0.0, dGdr);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(DGConstants::DSW), 15, G, 0.0, dGds);
 
   // Calculate vectors F an G from q for each cell
   op_par_loop_ls_advec_rhs("ls_advec_rhs",data->cells,
@@ -454,7 +454,7 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(nFlux,-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(output,-1,OP_ID,15,"double",OP_WRITE));
 
-  op2_gemv(true, 15, 15, -1.0, constants->get_ptr(Constants::LIFT), 15, nFlux, 1.0, output);
+  op2_gemv(true, 15, 15, -1.0, constants->get_ptr(DGConstants::LIFT), 15, nFlux, 1.0, output);
 }
 
 void LS::reinit_ls() {
@@ -479,7 +479,7 @@ void LS::reinit_ls() {
                 op_arg_dat(rkQ,-1,OP_ID,15,"double",OP_RW));
 
     for(int j = 0; j < 3; j++) {
-      op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, rkQ, 0.0, gS);
+      op2_gemv(true, 21, 15, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, rkQ, 0.0, gS);
 
       op_par_loop_ls_flux("ls_flux",data->edges,
                   op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
@@ -514,10 +514,10 @@ void LS::reinit_ls() {
                   op_arg_dat(dpldy,-1,OP_ID,15,"double",OP_WRITE),
                   op_arg_dat(dprdy,-1,OP_ID,15,"double",OP_WRITE));
 
-      op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, dsldx, 1.0, dpldx);
-      op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, dsrdx, 1.0, dprdx);
-      op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, dsldy, 1.0, dpldy);
-      op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, dsrdy, 1.0, dprdy);
+      op2_gemv(false, 15, 21, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, dsldx, 1.0, dpldx);
+      op2_gemv(false, 15, 21, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, dsrdx, 1.0, dprdx);
+      op2_gemv(false, 15, 21, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, dsldy, 1.0, dpldy);
+      op2_gemv(false, 15, 21, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, dsrdy, 1.0, dprdy);
 
       inv_mass(data, dpldx);
       inv_mass(data, dprdx);
@@ -584,8 +584,8 @@ void LS::calc_diff() {
               op_arg_dat(sigmaFx,0,data->bedge2cells,21,"double",OP_INC),
               op_arg_dat(sigmaFy,0,data->bedge2cells,21,"double",OP_INC));
 
-  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, sigmaFx, 1.0, sigmax);
-  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, sigmaFy, 1.0, sigmay);
+  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, sigmaFx, 1.0, sigmax);
+  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, sigmaFy, 1.0, sigmay);
 
   inv_mass(data, sigmax);
   inv_mass(data, sigmay);
@@ -601,8 +601,8 @@ void LS::calc_diff() {
   // Calculate diffusion
   cub_div_weak(data, cData, sigmax, sigmay, diff);
 
-  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, sigmax, 0.0, gSigmax);
-  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, sigmay, 0.0, gSigmay);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, sigmax, 0.0, gSigmax);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, sigmay, 0.0, gSigmay);
 
   op_par_loop_diff_flux("diff_flux",data->edges,
               op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
@@ -623,7 +623,7 @@ void LS::calc_diff() {
               op_arg_dat(gSigmax,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(diffF,0,data->bedge2cells,21,"double",OP_INC));
 
-  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, diffF, 1.0, diff);
+  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, diffF, 1.0, diff);
 
   inv_mass(data, diff);
 }
@@ -653,7 +653,7 @@ void LS::update_values() {
               op_arg_dat(data->nu,-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->rho,-1,OP_ID,15,"double",OP_WRITE));
 
-  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, data->nu, 0.0, data->gNu);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, data->nu, 0.0, data->gNu);
 
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
   grad(data, s, nx, ny);

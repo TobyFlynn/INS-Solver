@@ -115,7 +115,7 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
 
   timer->startLinearSolveMFRHS();
 
-  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, u, 0.0, gU);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, u, 0.0, gU);
 
   cub_grad(data, cData, u, dudx, dudy);
   inv_mass(data, dudx);
@@ -133,8 +133,8 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
                 op_arg_dat(dudy, -1, OP_ID, 15, "double", OP_RW));
   }
 
-  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, dudx, 0.0, gDudx);
-  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, dudy, 0.0, gDudy);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, dudx, 0.0, gDudx);
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, dudy, 0.0, gDudy);
 
   op_par_loop(poisson_mf_edges, "poisson_mf_edges", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
@@ -169,8 +169,8 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
 
   cub_grad_weak(data, cData, u, qx, qy);
 
-  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, fluxX, -1.0, qx);
-  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, fluxY, -1.0, qy);
+  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, fluxX, -1.0, qx);
+  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, fluxY, -1.0, qy);
 
   inv_mass(data, qx);
   inv_mass(data, qy);
@@ -189,7 +189,7 @@ void Poisson_MF::calc_rhs(const double *u_d, double *rhs_d) {
 
   cub_div_weak(data, cData, qx, qy, rhs);
 
-  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, flux, 1.0, rhs);
+  op2_gemv(false, 15, 21, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, flux, 1.0, rhs);
 
   op_par_loop(poisson_mf_zero, "poisson_mf_zero", data->cells,
               op_arg_dat(fluxX, -1, OP_ID, 21, "double", OP_WRITE),
@@ -223,8 +223,8 @@ void Poisson_MF::apply_bc(op_dat b) {
               op_arg_dat(fluxY, 0, data->bedge2cells, 21, "double", OP_INC),
               op_arg_dat(flux, 0, data->bedge2cells, 21, "double", OP_INC));
 
-  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, fluxX, 0.0, qx);
-  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, fluxY, 0.0, qy);
+  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, fluxX, 0.0, qx);
+  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, fluxY, 0.0, qy);
 
   if(massMat) {
     op_par_loop(poisson_mf_nu, "poisson_mf_nu", data->cells,
@@ -240,7 +240,7 @@ void Poisson_MF::apply_bc(op_dat b) {
 
   cub_div_weak(data, cData, qx, qy, rhs);
 
-  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, flux, 1.0, rhs);
+  op2_gemv(false, 15, 21, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, flux, 1.0, rhs);
 
   op_par_loop(poisson_mf_bc1, "poisson_mf_bc1", data->cells,
               op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_READ),

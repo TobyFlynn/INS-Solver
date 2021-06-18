@@ -4,9 +4,9 @@
 #include "op_seq.h"
 #include "ins_data.h"
 #include "poisson.h"
-#include "constants.h"
+#include "dg_constants.h"
 
-extern Constants *constants;
+extern DGConstants *constants;
 
 void init_gauss_grad_blas(INSData *nsData, GaussData *gaussData);
 

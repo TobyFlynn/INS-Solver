@@ -188,12 +188,12 @@ void op_par_loop_lift_drag(char const *, op_set,
 #include <iostream>
 #include <limits>
 
-#include "constants.h"
+#include "dg_constants.h"
 #include "blas_calls.h"
 #include "operators.h"
 
 extern Timing *timer;
-extern Constants *constants;
+extern DGConstants *constants;
 
 using namespace std;
 
@@ -325,8 +325,8 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->flux[0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->flux[1],-1,OP_ID,15,"double",OP_WRITE));
 
-  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::LIFT), 15, data->flux[0], 1.0, data->N[currentInd][0]);
-  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::LIFT), 15, data->flux[1], 1.0, data->N[currentInd][1]);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(DGConstants::LIFT), 15, data->flux[0], 1.0, data->N[currentInd][0]);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(DGConstants::LIFT), 15, data->flux[1], 1.0, data->N[currentInd][1]);
 
   // Calculate the intermediate velocity values
   op_par_loop_advection_intermediate_vel("advection_intermediate_vel",data->cells,
@@ -396,8 +396,8 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->dPdN[(currentInd + 1) % 2],-1,OP_ID,15,"double",OP_RW),
               op_arg_dat(data->divVelT,-1,OP_ID,15,"double",OP_RW));
 
-  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::LIFT), 15, data->dPdN[(currentInd + 1) % 2], 1.0, data->divVelT);
-  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(Constants::MASS), 15, data->divVelT, 0.0, data->pRHS);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(DGConstants::LIFT), 15, data->dPdN[(currentInd + 1) % 2], 1.0, data->divVelT);
+  op2_gemv(true, 15, 15, 1.0, constants->get_ptr(DGConstants::MASS), 15, data->divVelT, 0.0, data->pRHS);
   timer->endPressureSetup();
 
   // Call PETSc linear solver
