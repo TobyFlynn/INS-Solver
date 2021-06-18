@@ -10,7 +10,6 @@
 #include <cmath>
 #include <limits>
 
-#include "constants/all_constants.h"
 #include "constants.h"
 #include "ins_data.h"
 #include "save_solution.h"
@@ -72,7 +71,7 @@ int main(int argc, char **argv) {
   gam = 1.4;
   mu = 1e-2;
   // Phi > 0
-  nu0 = 2e-3;
+  nu0 = 1e-3;
   rho0 = 1.0;
   // Phi < 0
   // nu1 = 5.4e-2;
