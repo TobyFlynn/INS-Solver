@@ -7,6 +7,8 @@
 #include "poisson.h"
 #include "ls.h"
 
+#include "dg_mesh.h"
+
 class Solver {
 public:
   Solver(std::string filename, int pmethod, int prob, bool multi);
@@ -29,12 +31,10 @@ public:
   double getAvgViscosityConvergance();
 
   INSData *data;
-  CubatureData *cubatureData;
+  DGMesh *mesh;
   LS *ls;
   double dt;
 private:
-  // CubatureData *cubatureData;
-  GaussData *gaussData;
   Poisson *pressurePoisson;
   Poisson *viscosityPoisson;
 

@@ -26,10 +26,9 @@ extern "C" {
 
 using namespace std;
 
-Poisson::Poisson(INSData *nsData, CubatureData *cubData, GaussData *gaussData) {
-  data = nsData;
-  cData = cubData;
-  gData = gaussData;
+Poisson::Poisson(DGMesh *m, INSData *d) {
+  mesh = m;
+  data = d;
 }
 
 Poisson::~Poisson() {
@@ -37,11 +36,15 @@ Poisson::~Poisson() {
 }
 
 void Poisson::setDirichletBCs(int *d) {
-  dirichlet = d;
+  dirichlet[0] = d[0];
+  dirichlet[1] = d[1];
+  dirichlet[2] = d[2];
 }
 
 void Poisson::setNeumannBCs(int *n) {
-  neumann = n;
+  neumann[0] = n[0];
+  neumann[1] = n[1];
+  neumann[2] = n[2];
 }
 
 void Poisson::setBCValues(op_dat bc) {

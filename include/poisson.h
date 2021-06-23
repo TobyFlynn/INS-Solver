@@ -7,15 +7,14 @@
 #include "petscksp.h"
 #include "timing.h"
 
-extern double gFInterp0_g[7 * 15];
-extern double gFInterp1_g[7 * 15];
-extern double gFInterp2_g[7 * 15];
-extern double gaussW_g[7];
+#include "dg_global_constants.h"
+#include "dg_mesh.h"
+
 extern Timing *timer;
 
 class Poisson {
 public:
-  Poisson(INSData *nsData, CubatureData *cubData, GaussData *gaussData);
+  Poisson(DGMesh *m, INSData *d);
   ~Poisson();
 
   virtual bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0) = 0;
@@ -35,12 +34,11 @@ protected:
   void load_vec(Vec *v, op_dat v_dat, int size = 15);
   void store_vec(Vec *v, op_dat v_dat);
   void create_mat(Mat *m, int row, int col, int prealloc0, int prealloc1 = 0);
+  DGMesh *mesh;
   INSData *data;
-  CubatureData *cData;
-  GaussData *gData;
 
-  int *dirichlet;
-  int *neumann;
+  int dirichlet[3];
+  int neumann[3];
 
   bool massMat;
   double massFactor;
@@ -53,7 +51,7 @@ protected:
 
 class Poisson_M : public Poisson {
 public:
-  Poisson_M(INSData *data, CubatureData *cubData, GaussData *gaussData);
+  Poisson_M(DGMesh *m, INSData *d);
   ~Poisson_M();
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
@@ -76,18 +74,13 @@ private:
   bool pMMatInit = false;
   bool pBCMatInit = false;
 
-  int *glb_ind_data;
-  int *glb_indL_data;
-  int *glb_indR_data;
-  int *glb_indBC_data;
-  double *op1_data;
-  double *op2_data[2];
-  double *op_bc_data;
+  int *glb_ind_data, *glb_indL_data, *glb_indR_data, *glb_indBC_data;
+  double *op1_data, *op2_data[2], *op_bc_data;
 };
 
 class Poisson_MF : public Poisson {
 public:
-  Poisson_MF(INSData *data, CubatureData *cubData, GaussData *gaussData);
+  Poisson_MF(DGMesh *m, INSData *d);
   ~Poisson_MF();
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
@@ -103,19 +96,9 @@ private:
 
   void apply_bc(op_dat b);
 
-  double *u_data;
-  double *rhs_data;
-  double *gU_data;
-  double *gDudx_data;
-  double *gDudy_data;
-  double *fluxX_data;
-  double *fluxY_data;
-  double *flux_data;
-  double *dudx_data;
-  double *dudy_data;
-  double *qx_data;
-  double *qy_data;
-  double *tmp_u_data;
+  double *u_data, *rhs_data, *gU_data, *gDudx_data, *gDudy_data;
+  double *fluxX_data, *fluxY_data, *flux_data, *dudx_data, *dudy_data;
+  double *qx_data, *qy_data, *tmp_u_data;
 
   Mat Amat;
   KSP ksp;
@@ -124,7 +107,7 @@ private:
 
 class Poisson_MF2 : public Poisson {
 public:
-  Poisson_MF2(INSData *data, CubatureData *cubData, GaussData *gaussData);
+  Poisson_MF2(DGMesh *m, INSData *d);
   ~Poisson_MF2();
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
@@ -140,13 +123,8 @@ private:
   void copy_u(const double *u_d);
   void copy_rhs(double *rhs_d);
 
-  double *u_data;
-  double *rhs_data;
-  double *op1_data;
-  double *op2_data[2];
-  double *op_bc_data;
-  double *u_t_data;
-  double *rhs_t_data;
+  double *u_data, *rhs_data, *op1_data, *op2_data[2], *op_bc_data;
+  double *u_t_data, *rhs_t_data;
 
   Mat Amat;
   KSP ksp;

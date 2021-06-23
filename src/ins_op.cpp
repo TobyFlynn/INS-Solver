@@ -36,8 +36,6 @@ extern "C" {
 #include "timing.h"
 #include "solver.h"
 
-#include "operators.h"
-
 using namespace std;
 
 void export_data_init(string filename) {
@@ -161,9 +159,9 @@ int main(int argc, char **argv) {
 
   if(save != -1) {
     if(multiphase) {
-      save_solution_init(outputDir + "sol.cgns", solver->data, solver->ls);
+      save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);
     } else {
-      save_solution_init(outputDir + "sol.cgns", solver->data, nullptr);
+      save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, nullptr);
     }
     // export_data_init(outputDir + "data.csv");
   }
@@ -220,9 +218,9 @@ int main(int argc, char **argv) {
 
       timer->startSave();
       if(multiphase) {
-        save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, solver->ls, (i + 1) / save);
+        save_solution_iter(outputDir + "sol.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, (i + 1) / save);
       } else {
-        save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, nullptr, (i + 1) / save);
+        save_solution_iter(outputDir + "sol.cgns", solver->mesh, solver->data, currentIter % 2, nullptr, (i + 1) / save);
       }
       timer->endSave();
     }
@@ -234,9 +232,9 @@ int main(int argc, char **argv) {
 
   // Save solution to CGNS file
   if(multiphase) {
-    save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, solver->ls, time, nu0);
+    save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, time, nu0);
   } else {
-    save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, nullptr, time, nu0);
+    save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, nullptr, time, nu0);
   }
 
   timer->endWallTime();
