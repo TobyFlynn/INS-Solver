@@ -19,8 +19,8 @@ list(APPEND CUBLAS_SRC cuBLAS_op/init_gauss_op.cu cuBLAS_op/init_gauss_grad_op.c
 #list(APPEND CUBLAS_SRC cuBLAS_op/poisson_mf2_op.cu)
 
 set(COMMON_SRC solver_op.cpp operators_op.cpp ins_data_op.cpp timing_op.cpp ls_op.cpp pressure_solve_op.cpp viscosity_solve_op.cpp)
-set(CPU_SRC constants.cpp utils_op.cpp)
-set(GPU_SRC constants.cu utils_op.cu)
+set(CPU_SRC constants.cpp utils_op.cpp poisson_cpu_op.cpp)
+set(GPU_SRC constants.cu utils_op.cu poisson_gpu_op.cu)
 set(SN_SRC save_solution_op.cpp load_mesh.cpp)
 set(MPI_SRC save_solution_mpi_op.cpp load_mesh_mpi.cpp mpi_helper_func.cpp)
 
