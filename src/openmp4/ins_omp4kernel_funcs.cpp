@@ -189,6 +189,7 @@ void op_decl_const_char(int dim, char const *type,
 #include "cub_grad_weak_omp4kernel_func.cpp"
 #include "cub_div_weak_omp4kernel_func.cpp"
 #include "inv_J_omp4kernel_func.cpp"
+#include "pressure_solve_0_omp4kernel_func.cpp"
 #include "set_ic_omp4kernel_func.cpp"
 #include "calc_dt_omp4kernel_func.cpp"
 #include "advection_flux_omp4kernel_func.cpp"

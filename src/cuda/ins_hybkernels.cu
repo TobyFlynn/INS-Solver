@@ -29,6 +29,7 @@
 #define op_par_loop_cub_grad_weak op_par_loop_cub_grad_weak_gpu
 #define op_par_loop_cub_div_weak op_par_loop_cub_div_weak_gpu
 #define op_par_loop_inv_J op_par_loop_inv_J_gpu
+#define op_par_loop_pressure_solve_0 op_par_loop_pressure_solve_0_gpu
 #define op_par_loop_set_ic op_par_loop_set_ic_gpu
 #define op_par_loop_calc_dt op_par_loop_calc_dt_gpu
 #define op_par_loop_advection_flux op_par_loop_advection_flux_gpu
@@ -93,6 +94,7 @@
 #undef op_par_loop_cub_grad_weak
 #undef op_par_loop_cub_div_weak
 #undef op_par_loop_inv_J
+#undef op_par_loop_pressure_solve_0
 #undef op_par_loop_set_ic
 #undef op_par_loop_calc_dt
 #undef op_par_loop_advection_flux
@@ -157,6 +159,7 @@
 #define op_par_loop_cub_grad_weak op_par_loop_cub_grad_weak_cpu
 #define op_par_loop_cub_div_weak op_par_loop_cub_div_weak_cpu
 #define op_par_loop_inv_J op_par_loop_inv_J_cpu
+#define op_par_loop_pressure_solve_0 op_par_loop_pressure_solve_0_cpu
 #define op_par_loop_set_ic op_par_loop_set_ic_cpu
 #define op_par_loop_calc_dt op_par_loop_calc_dt_cpu
 #define op_par_loop_advection_flux op_par_loop_advection_flux_cpu
@@ -221,6 +224,7 @@
 #undef op_par_loop_cub_grad_weak
 #undef op_par_loop_cub_div_weak
 #undef op_par_loop_inv_J
+#undef op_par_loop_pressure_solve_0
 #undef op_par_loop_set_ic
 #undef op_par_loop_calc_dt
 #undef op_par_loop_advection_flux
@@ -1900,6 +1904,64 @@ void op_par_loop_inv_J(char const *name, op_set set,
     arg0,
     arg1,
     arg2);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_pressure_solve_0_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_pressure_solve_0(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_pressure_solve_0_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+    }else{
+    op_par_loop_pressure_solve_0_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3,
+      arg4,
+      arg5);
+
+  }
+}
+#else
+void op_par_loop_pressure_solve_0(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5){
+
+  op_par_loop_pressure_solve_0_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5);
 
   }
 #endif //OP_HYBRID_GPU

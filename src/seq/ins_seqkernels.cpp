@@ -71,6 +71,7 @@ extern double lift_drag_vec[5];
 #include "cub_grad_weak_seqkernel.cpp"
 #include "cub_div_weak_seqkernel.cpp"
 #include "inv_J_seqkernel.cpp"
+#include "pressure_solve_0_seqkernel.cpp"
 #include "set_ic_seqkernel.cpp"
 #include "calc_dt_seqkernel.cpp"
 #include "advection_flux_seqkernel.cpp"

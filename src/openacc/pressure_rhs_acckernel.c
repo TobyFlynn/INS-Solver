@@ -46,10 +46,10 @@ void op_par_loop_pressure_rhs(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(34);
+  op_timing_realloc(35);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[34].name      = name;
-  OP_kernels[34].count    += 1;
+  OP_kernels[35].name      = name;
+  OP_kernels[35].count    += 1;
 
 
   if (OP_diags>2) {
@@ -93,10 +93,10 @@ void op_par_loop_pressure_rhs(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[34].time     += wall_t2 - wall_t1;
-  OP_kernels[34].transfer += (float)set->size * arg4.size;
-  OP_kernels[34].transfer += (float)set->size * arg5.size;
-  OP_kernels[34].transfer += (float)set->size * arg6.size;
-  OP_kernels[34].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[34].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[35].time     += wall_t2 - wall_t1;
+  OP_kernels[35].transfer += (float)set->size * arg4.size;
+  OP_kernels[35].transfer += (float)set->size * arg5.size;
+  OP_kernels[35].transfer += (float)set->size * arg6.size;
+  OP_kernels[35].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[35].transfer += (float)set->size * arg8.size * 2.0f;
 }

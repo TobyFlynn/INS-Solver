@@ -14,6 +14,14 @@
 extern "C" {
 #endif
 #endif
+
+void op_par_loop_pressure_solve_0(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -82,7 +90,13 @@ void PressureSolve::calc_rhs(const double *u_d, double *rhs_d) {
   // Copy u to OP2 dat
   copy_u(u_d);
 
-  
+  op_par_loop_pressure_solve_0("pressure_solve_0",data->cells,
+              op_arg_dat(cData->J,-1,OP_ID,46,"double",OP_READ),
+              op_arg_dat(cData->Dx,-1,OP_ID,690,"double",OP_READ),
+              op_arg_dat(cData->Dy,-1,OP_ID,690,"double",OP_READ),
+              op_arg_dat(data->rho,-1,OP_ID,690,"double",OP_READ),
+              op_arg_dat(u,-1,OP_ID,690,"double",OP_READ),
+              op_arg_dat(rhs,-1,OP_ID,690,"double",OP_WRITE));
 
   copy_rhs(rhs_d);
 }

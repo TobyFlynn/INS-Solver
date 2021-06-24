@@ -63,7 +63,13 @@ void PressureSolve::calc_rhs(const double *u_d, double *rhs_d) {
   // Copy u to OP2 dat
   copy_u(u_d);
 
-  
+  op_par_loop(pressure_solve_0, "pressure_solve_0", data->cells,
+              op_arg_dat(cData->J,  -1, OP_ID, 46, "double", OP_READ),
+              op_arg_dat(cData->Dx, -1, OP_ID, 46 * 15, "double", OP_READ),
+              op_arg_dat(cData->Dy, -1, OP_ID, 46 * 15, "double", OP_READ),
+              op_arg_dat(data->rho, -1, OP_ID, 46 * 15, "double", OP_READ),
+              op_arg_dat(u, -1, OP_ID, 46 * 15, "double", OP_READ),
+              op_arg_dat(rhs, -1, OP_ID, 46 * 15, "double", OP_WRITE));
 
   copy_rhs(rhs_d);
 }
