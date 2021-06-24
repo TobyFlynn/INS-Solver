@@ -18,7 +18,7 @@ set(CUBLAS_SRC cuBLAS_op/init_grid_op.cu cuBLAS_op/op2_gemv_op.cu cuBLAS_op/op2_
 list(APPEND CUBLAS_SRC cuBLAS_op/init_gauss_op.cu cuBLAS_op/init_gauss_grad_op.cu cuBLAS_op/init_gauss_grad_neighbour_op.cu)
 #list(APPEND CUBLAS_SRC cuBLAS_op/poisson_mf2_op.cu)
 
-set(COMMON_SRC solver_op.cpp operators_op.cpp ins_data_op.cpp timing_op.cpp ls_op.cpp)
+set(COMMON_SRC solver_op.cpp operators_op.cpp ins_data_op.cpp timing_op.cpp ls_op.cpp pressure_solve_op.cpp viscosity_solve_op.cpp)
 set(CPU_SRC constants.cpp utils_op.cpp)
 set(GPU_SRC constants.cu utils_op.cu)
 set(SN_SRC save_solution_op.cpp load_mesh.cpp)

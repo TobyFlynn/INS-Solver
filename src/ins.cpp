@@ -14,11 +14,13 @@
 #include "constants.h"
 #include "ins_data.h"
 #include "save_solution.h"
-#include "poisson.h"
 #include "timing.h"
 #include "solver.h"
 
 #include "operators.h"
+
+#include "petscvec.h"
+#include "petscksp.h"
 
 using namespace std;
 

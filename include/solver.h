@@ -4,7 +4,8 @@
 #include <string>
 
 #include "ins_data.h"
-#include "poisson.h"
+#include "pressure_solve.h"
+#include "viscosity_solve.h"
 #include "ls.h"
 
 class Solver {
@@ -35,8 +36,8 @@ public:
 private:
   // CubatureData *cubatureData;
   GaussData *gaussData;
-  Poisson *pressurePoisson;
-  Poisson *viscosityPoisson;
+  PressureSolve *pressurePoisson;
+  ViscositySolve *viscosityPoisson;
 
   int problem;
   bool multiphase;

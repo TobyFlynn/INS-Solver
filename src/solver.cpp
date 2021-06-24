@@ -9,6 +9,7 @@
 #include "constants.h"
 #include "blas_calls.h"
 #include "operators.h"
+#include "timing.h"
 
 extern Timing *timer;
 extern Constants *constants;
@@ -25,34 +26,12 @@ Solver::Solver(std::string filename, int pmethod, int prob, bool multi) {
     ls = new LS(data, cubatureData, gaussData);
   }
 
-  if(pmethod == 0) {
-    Poisson_M *pressureM = new Poisson_M(data, cubatureData, gaussData);
-    pressureM->setDirichletBCs(data->pressure_dirichlet);
-    pressureM->setNeumannBCs(data->pressure_neumann);
-    pressurePoisson = pressureM;
-    Poisson_M *viscosityM = new Poisson_M(data, cubatureData, gaussData);
-    viscosityM->setDirichletBCs(data->viscosity_dirichlet);
-    viscosityM->setNeumannBCs(data->viscosity_neumann);
-    viscosityPoisson = viscosityM;
-  } else if(pmethod == 1) {
-    Poisson_MF *pressureMF = new Poisson_MF(data, cubatureData, gaussData);
-    pressureMF->setDirichletBCs(data->pressure_dirichlet);
-    pressureMF->setNeumannBCs(data->pressure_neumann);
-    pressurePoisson = pressureMF;
-    Poisson_MF *viscosityMF = new Poisson_MF(data, cubatureData, gaussData);
-    viscosityMF->setDirichletBCs(data->viscosity_dirichlet);
-    viscosityMF->setNeumannBCs(data->viscosity_neumann);
-    viscosityPoisson = viscosityMF;
-  } else {
-    Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubatureData, gaussData);
-    pressureMF2->setDirichletBCs(data->pressure_dirichlet);
-    pressureMF2->setNeumannBCs(data->pressure_neumann);
-    pressurePoisson = pressureMF2;
-    Poisson_MF2 *viscosityMF2 = new Poisson_MF2(data, cubatureData, gaussData);
-    viscosityMF2->setDirichletBCs(data->viscosity_dirichlet);
-    viscosityMF2->setNeumannBCs(data->viscosity_neumann);
-    viscosityPoisson = viscosityMF2;
-  }
+  pressurePoisson = new PressureSolve(data, cubatureData, gaussData);
+  pressurePoisson->setDirichletBCs(data->pressure_dirichlet);
+  pressurePoisson->setNeumannBCs(data->pressure_neumann);
+  viscosityPoisson = new ViscositySolve(data, cubatureData, gaussData);
+  viscosityPoisson->setDirichletBCs(data->viscosity_dirichlet);
+  viscosityPoisson->setNeumannBCs(data->viscosity_neumann);
 
   op_partition("PARMETIS", "KWAY", data->cells, data->edge2cells, NULL);
 
@@ -292,10 +271,12 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   // Call PETSc linear solver
   timer->startViscosityLinearSolve();
   viscosityPoisson->setBCValues(data->visBC[0]);
-  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
+  // bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
+  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0]);
 
   viscosityPoisson->setBCValues(data->visBC[1]);
-  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
+  // bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
+  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1]);
   timer->endViscosityLinearSolve();
 
   // Reset BC dats ready for next iteration
