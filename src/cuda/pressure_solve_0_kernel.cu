@@ -26,7 +26,7 @@ __device__ void pressure_solve_0_gpu( const double *J, const double *Dx,
 
         int b_ind = k * 15 + j;
 
-        int a_ind = (b_ind % 46) * 15 + b_ind / 46;
+        int a_ind = k * 15 + i;
         op[c_ind] += Dx[a_ind] * tmpX[b_ind] + Dy[a_ind] * tmpY[b_ind];
       }
     }
@@ -60,9 +60,9 @@ __global__ void op_cuda_pressure_solve_0(
     pressure_solve_0_gpu(arg0+n*46,
                      arg1+n*690,
                      arg2+n*690,
-                     arg3+n*690,
-                     arg4+n*690,
-                     arg5+n*690);
+                     arg3+n*46,
+                     arg4+n*15,
+                     arg5+n*15);
   }
 }
 
@@ -88,10 +88,10 @@ void op_par_loop_pressure_solve_0(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(25);
+  op_timing_realloc(27);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[25].name      = name;
-  OP_kernels[25].count    += 1;
+  OP_kernels[27].name      = name;
+  OP_kernels[27].count    += 1;
 
 
   if (OP_diags>2) {
@@ -102,8 +102,8 @@ void op_par_loop_pressure_solve_0(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_25
-      int nthread = OP_BLOCK_SIZE_25;
+    #ifdef OP_BLOCK_SIZE_27
+      int nthread = OP_BLOCK_SIZE_27;
     #else
       int nthread = OP_block_size;
     #endif
@@ -123,11 +123,11 @@ void op_par_loop_pressure_solve_0(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[25].time     += wall_t2 - wall_t1;
-  OP_kernels[25].transfer += (float)set->size * arg0.size;
-  OP_kernels[25].transfer += (float)set->size * arg1.size;
-  OP_kernels[25].transfer += (float)set->size * arg2.size;
-  OP_kernels[25].transfer += (float)set->size * arg3.size;
-  OP_kernels[25].transfer += (float)set->size * arg4.size;
-  OP_kernels[25].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[27].time     += wall_t2 - wall_t1;
+  OP_kernels[27].transfer += (float)set->size * arg0.size;
+  OP_kernels[27].transfer += (float)set->size * arg1.size;
+  OP_kernels[27].transfer += (float)set->size * arg2.size;
+  OP_kernels[27].transfer += (float)set->size * arg3.size;
+  OP_kernels[27].transfer += (float)set->size * arg4.size;
+  OP_kernels[27].transfer += (float)set->size * arg5.size * 2.0f;
 }

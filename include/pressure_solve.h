@@ -20,7 +20,7 @@ public:
   void setBCValues(op_dat bc);
   double getAverageConvergeIter();
 
-  op_dat u, rhs;
+  op_dat u, rhs, cRho, gRho, h, op1, op2[2];
 
 private:
   void create_vec(Vec *v, int size = 15);
@@ -46,7 +46,7 @@ private:
   KSP ksp;
   Vec b, x;
 
-  double *u_data, *rhs_data;
+  double *u_data, *rhs_data, *cRho_data, *gRho_data, *h_data, *op1_data, *op2_data[2];
 };
 
 #endif

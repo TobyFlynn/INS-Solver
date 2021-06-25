@@ -21,7 +21,7 @@ inline void pressure_solve_0(const double *J, const double *Dx,
         // tmpX and tmpY
         int b_ind = k * 15 + j;
         // Transpose of Dx and Dy
-        int a_ind = (b_ind % 46) * 15 + b_ind / 46;
+        int a_ind = k * 15 + i;
         op[c_ind] += Dx[a_ind] * tmpX[b_ind] + Dy[a_ind] * tmpY[b_ind];
       }
     }

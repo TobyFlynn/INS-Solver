@@ -27,9 +27,9 @@ void pressure_solve_0_omp4_kernel(
     const double *J = &data0[46*n_op];
     const double *Dx = &data1[690*n_op];
     const double *Dy = &data2[690*n_op];
-    const double *rho = &data3[690*n_op];
-    const double *u = &data4[690*n_op];
-    double *rhs = &data5[690*n_op];
+    const double *rho = &data3[46*n_op];
+    const double *u = &data4[15*n_op];
+    double *rhs = &data5[15*n_op];
 
     //inline function
     
@@ -53,7 +53,7 @@ void pressure_solve_0_omp4_kernel(
 
           int b_ind = k * 15 + j;
 
-          int a_ind = (b_ind % 46) * 15 + b_ind / 46;
+          int a_ind = k * 15 + i;
           op[c_ind] += Dx[a_ind] * tmpX[b_ind] + Dy[a_ind] * tmpY[b_ind];
         }
       }

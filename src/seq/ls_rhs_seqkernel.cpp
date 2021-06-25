@@ -26,7 +26,7 @@ void op_par_loop_ls_rhs(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(55);
+  op_timing_realloc(59);
   op_timers_core(&cpu_t1, &wall_t1);
 
 
@@ -54,13 +54,13 @@ void op_par_loop_ls_rhs(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[55].name      = name;
-  OP_kernels[55].count    += 1;
-  OP_kernels[55].time     += wall_t2 - wall_t1;
-  OP_kernels[55].transfer += (float)set->size * arg0.size;
-  OP_kernels[55].transfer += (float)set->size * arg1.size;
-  OP_kernels[55].transfer += (float)set->size * arg2.size;
-  OP_kernels[55].transfer += (float)set->size * arg3.size;
-  OP_kernels[55].transfer += (float)set->size * arg4.size;
-  OP_kernels[55].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[59].name      = name;
+  OP_kernels[59].count    += 1;
+  OP_kernels[59].time     += wall_t2 - wall_t1;
+  OP_kernels[59].transfer += (float)set->size * arg0.size;
+  OP_kernels[59].transfer += (float)set->size * arg1.size;
+  OP_kernels[59].transfer += (float)set->size * arg2.size;
+  OP_kernels[59].transfer += (float)set->size * arg3.size;
+  OP_kernels[59].transfer += (float)set->size * arg4.size;
+  OP_kernels[59].transfer += (float)set->size * arg5.size * 2.0f;
 }
