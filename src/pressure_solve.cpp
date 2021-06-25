@@ -98,7 +98,7 @@ bool PressureSolve::solve(op_dat b_dat, op_dat x_dat) {
               op_arg_dat(bc_dat, 0, data->bedge2cells, 21, "double", OP_READ),
               op_arg_dat(b_dat, 0, data->bedge2cells, 15, "double", OP_INC));
 
-  op2_gemv(true, 15, 15, -1.0, constants->get_ptr(Constants::MASS), 15, data->J, 0.0, b_dat);
+  // op2_gemv(true, 15, 15, -1.0, constants->get_ptr(Constants::MASS), 15, data->J, 0.0, b_dat);
 
   load_vec(&b, b_dat);
   load_vec(&x, x_dat);

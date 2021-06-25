@@ -25,6 +25,11 @@ __device__ void pressure_solve_apply_bc_gpu( const int *edgeType, const int *edg
     gVM = gFInterp2_g_cuda;
   }
 
+  double tauA[7];
+  for(int i = 0; i < 7; i++) {
+    int ind = *edgeNum  * 7 + i;
+    tauA[i] = 10 * 0.5 * 5 * 6 * (*h / rho[ind]);
+  }
 
   double op[7 * 15];
 
@@ -33,10 +38,10 @@ __device__ void pressure_solve_apply_bc_gpu( const int *edgeType, const int *edg
     int indT = (i % 7) * 15 + i / 7;
     int indSJ = *edgeNum * 7 + (i % 7);
     int indRho = *edgeNum * 7 + (i / 7);
-
-
-    op[i] = gVM[indT] * gaussW_g_cuda[i % 7] * sJ[indSJ] * tau[*edgeNum]
+    op[i] = gVM[indT] * gaussW_g_cuda[i % 7] * sJ[indSJ] * tauA[i % 7]
             - (1.0 / rho[indRho]) * mD[indT] * gaussW_g_cuda[i % 7] * sJ[indSJ];
+
+
   }
 
   for(int i = 0; i < 15; i++) {

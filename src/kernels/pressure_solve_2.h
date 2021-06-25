@@ -4,8 +4,8 @@ inline void pressure_solve_2(const int *edgeType, const int *edgeNum,
                              const double *mD2, const double *sJ,
                              const double *h, const double *tau, const double *rho,
                              const double *u, double *rhs) {
-  // if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2)
-  //   return;
+  if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2)
+    return;
   // Get right matrices for this edge
   // (TODO switch matrices to be defined on edge set instead of cell set)
   const double *mD, *gVM;

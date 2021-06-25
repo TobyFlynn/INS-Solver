@@ -19,14 +19,14 @@ inline void pressure_solve_apply_bc(const int *edgeType, const int *edgeNum,
     mD  = mD2;
     gVM = gFInterp2_g;
   }
-  /*
+
   // Calculate penalty parameter
-  double tau[7];
+  double tauA[7];
   for(int i = 0; i < 7; i++) {
     int ind = *edgeNum  * 7 + i;
-    tau[i] = 0.5 * 5 * 6 * (*h / rho[ind]);
+    tauA[i] = 10 * 0.5 * 5 * 6 * (*h / rho[ind]);
   }
-  */
+
 
   double op[7 * 15];
   // First edge term
@@ -35,10 +35,10 @@ inline void pressure_solve_apply_bc(const int *edgeType, const int *edgeNum,
     int indT = (i % 7) * 15 + i / 7;
     int indSJ = *edgeNum * 7 + (i % 7);
     int indRho = *edgeNum * 7 + (i / 7);
-    // op[i] = gVM[indT] * gaussW_g[i % 7] * sJ[indSJ] * tau[i % 7]
-    //         - (1.0 / rho[indRho]) * mD[indT] * gaussW_g[i % 7] * sJ[indSJ];
-    op[i] = gVM[indT] * gaussW_g[i % 7] * sJ[indSJ] * tau[*edgeNum]
+    op[i] = gVM[indT] * gaussW_g[i % 7] * sJ[indSJ] * tauA[i % 7]
             - (1.0 / rho[indRho]) * mD[indT] * gaussW_g[i % 7] * sJ[indSJ];
+    // op[i] = gVM[indT] * gaussW_g[i % 7] * sJ[indSJ] * tau[*edgeNum]
+    //         - (1.0 / rho[indRho]) * mD[indT] * gaussW_g[i % 7] * sJ[indSJ];
   }
 
   // Multiply u by ops and add to rhs

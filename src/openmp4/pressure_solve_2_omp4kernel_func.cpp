@@ -67,8 +67,8 @@ void pressure_solve_2_omp4_kernel(
 
     //inline function
     
-
-
+    if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2)
+      return;
 
 
     const double *mD, *gVM;
