@@ -195,6 +195,7 @@ void op_par_loop_lift_drag(char const *, op_set,
 
 extern Timing *timer;
 extern Constants *constants;
+extern double re;
 
 using namespace std;
 
@@ -429,8 +430,8 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
   double factor;
   if(multiphase) {
-    // factor = g0 / dt;
-    factor = g0 / (nu0 * dt);
+    factor = re * g0 / dt;
+    // factor = g0 / (nu0 * dt);
   } else {
     factor = g0 / (nu0 * dt);
   }
@@ -454,11 +455,11 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   timer->startViscosityLinearSolve();
   viscosityPoisson->setBCValues(data->visBC[0]);
   // bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
-  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0]);
+  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], factor);
 
   viscosityPoisson->setBCValues(data->visBC[1]);
   // bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
-  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1]);
+  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], factor);
   timer->endViscosityLinearSolve();
 
   // Reset BC dats ready for next iteration

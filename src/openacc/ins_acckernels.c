@@ -4,7 +4,6 @@
 
 // global constants
 extern double gam;
-extern double mu;
 extern double nu0;
 extern double nu1;
 extern double rho0;
@@ -78,6 +77,10 @@ int size, char *dat, char const *name){}
 #include "pressure_solve_0_acckernel.c"
 #include "pressure_solve_1_acckernel.c"
 #include "pressure_solve_2_acckernel.c"
+#include "viscosity_solve_apply_bc_acckernel.c"
+#include "viscosity_solve_0_acckernel.c"
+#include "viscosity_solve_1_acckernel.c"
+#include "viscosity_solve_2_acckernel.c"
 #include "set_ic_acckernel.c"
 #include "calc_dt_acckernel.c"
 #include "advection_flux_acckernel.c"

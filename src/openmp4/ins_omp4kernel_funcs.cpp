@@ -4,7 +4,7 @@
 
 // global constants
 double gam_ompkernel;
-double mu_ompkernel;
+double re_ompkernel;
 double nu0_ompkernel;
 double nu1_ompkernel;
 double rho0_ompkernel;
@@ -50,9 +50,9 @@ void op_decl_const_char(int dim, char const *type,
   if(!strcmp(name, "gam")) {
     memcpy(&gam_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:gam_ompkernel)
-  } else if(!strcmp(name, "mu")) {
-    memcpy(&mu_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:mu_ompkernel)
+  } else if(!strcmp(name, "re")) {
+    memcpy(&re_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:re_ompkernel)
   } else if(!strcmp(name, "nu0")) {
     memcpy(&nu0_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:nu0_ompkernel)
@@ -194,6 +194,10 @@ void op_decl_const_char(int dim, char const *type,
 #include "pressure_solve_0_omp4kernel_func.cpp"
 #include "pressure_solve_1_omp4kernel_func.cpp"
 #include "pressure_solve_2_omp4kernel_func.cpp"
+#include "viscosity_solve_apply_bc_omp4kernel_func.cpp"
+#include "viscosity_solve_0_omp4kernel_func.cpp"
+#include "viscosity_solve_1_omp4kernel_func.cpp"
+#include "viscosity_solve_2_omp4kernel_func.cpp"
 #include "set_ic_omp4kernel_func.cpp"
 #include "calc_dt_omp4kernel_func.cpp"
 #include "advection_flux_omp4kernel_func.cpp"

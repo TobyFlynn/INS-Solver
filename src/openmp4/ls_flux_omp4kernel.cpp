@@ -104,10 +104,10 @@ void op_par_loop_ls_flux(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(56);
+  op_timing_realloc(60);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[56].name      = name;
-  OP_kernels[56].count    += 1;
+  OP_kernels[60].name      = name;
+  OP_kernels[60].count    += 1;
 
   int  ninds   = 8;
   int  inds[18] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7};
@@ -119,13 +119,13 @@ void op_par_loop_ls_flux(char const *name, op_set set,
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_56
-    int part_size = OP_PART_SIZE_56;
+  #ifdef OP_PART_SIZE_60
+    int part_size = OP_PART_SIZE_60;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_56
-    int nthread = OP_BLOCK_SIZE_56;
+  #ifdef OP_BLOCK_SIZE_60
+    int nthread = OP_BLOCK_SIZE_60;
   #else
     int nthread = OP_block_size;
   #endif
@@ -204,8 +204,8 @@ void op_par_loop_ls_flux(char const *name, op_set set,
         nthread);
 
     }
-    OP_kernels[56].transfer  += Plan->transfer;
-    OP_kernels[56].transfer2 += Plan->transfer2;
+    OP_kernels[60].transfer  += Plan->transfer;
+    OP_kernels[60].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -217,5 +217,5 @@ void op_par_loop_ls_flux(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[56].time     += wall_t2 - wall_t1;
+  OP_kernels[60].time     += wall_t2 - wall_t1;
 }

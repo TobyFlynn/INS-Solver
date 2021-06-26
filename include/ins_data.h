@@ -6,6 +6,7 @@
 #include <string>
 
 extern double gam;
+extern double re;
 extern double mu;
 extern double nu0;
 extern double nu1;

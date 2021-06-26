@@ -8,7 +8,6 @@
 
 // global constants
 extern double gam;
-extern double mu;
 extern double nu0;
 extern double nu1;
 extern double rho0;
@@ -80,6 +79,10 @@ extern double lift_drag_vec[5];
 #include "pressure_solve_0_kernel.cpp"
 #include "pressure_solve_1_kernel.cpp"
 #include "pressure_solve_2_kernel.cpp"
+#include "viscosity_solve_apply_bc_kernel.cpp"
+#include "viscosity_solve_0_kernel.cpp"
+#include "viscosity_solve_1_kernel.cpp"
+#include "viscosity_solve_2_kernel.cpp"
 #include "set_ic_kernel.cpp"
 #include "calc_dt_kernel.cpp"
 #include "advection_flux_kernel.cpp"

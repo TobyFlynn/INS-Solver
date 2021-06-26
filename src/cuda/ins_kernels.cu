@@ -8,7 +8,7 @@
 #endif
 
 __constant__ double gam_cuda;
-__constant__ double mu_cuda;
+__constant__ double re_cuda;
 __constant__ double nu0_cuda;
 __constant__ double nu1_cuda;
 __constant__ double rho0_cuda;
@@ -58,8 +58,8 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(gam_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"mu")) {
-    cutilSafeCall(cudaMemcpyToSymbol(mu_cuda, dat, dim*size));
+  if (!strcmp(name,"re")) {
+    cutilSafeCall(cudaMemcpyToSymbol(re_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"nu0")) {
@@ -242,6 +242,10 @@ int size, char *dat, char const *name){
 #include "pressure_solve_0_kernel.cu"
 #include "pressure_solve_1_kernel.cu"
 #include "pressure_solve_2_kernel.cu"
+#include "viscosity_solve_apply_bc_kernel.cu"
+#include "viscosity_solve_0_kernel.cu"
+#include "viscosity_solve_1_kernel.cu"
+#include "viscosity_solve_2_kernel.cu"
 #include "set_ic_kernel.cu"
 #include "calc_dt_kernel.cu"
 #include "advection_flux_kernel.cu"

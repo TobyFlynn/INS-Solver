@@ -69,7 +69,7 @@ void PressureSolve::init() {
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPCG);
   KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 1e4);
+  KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 5e4);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
 
   op_par_loop(poisson_h, "poisson_h", data->cells,
@@ -97,8 +97,6 @@ bool PressureSolve::solve(op_dat b_dat, op_dat x_dat) {
               op_arg_dat(gRho, 0, data->bedge2cells, 21, "double", OP_READ),
               op_arg_dat(bc_dat, 0, data->bedge2cells, 21, "double", OP_READ),
               op_arg_dat(b_dat, 0, data->bedge2cells, 15, "double", OP_INC));
-
-  // op2_gemv(true, 15, 15, -1.0, constants->get_ptr(Constants::MASS), 15, data->J, 0.0, b_dat);
 
   load_vec(&b, b_dat);
   load_vec(&x, x_dat);
