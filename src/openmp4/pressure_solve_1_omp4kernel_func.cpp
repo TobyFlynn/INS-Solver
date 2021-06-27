@@ -39,6 +39,8 @@ void pressure_solve_1_omp4_kernel(
   int dat28size,
   double *data30,
   int dat30size,
+  double *data32,
+  int dat32size,
   int *col_reord,
   int set_size1,
   int start,
@@ -48,7 +50,7 @@ void pressure_solve_1_omp4_kernel(
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
     map(to: gaussW_g_ompkernel[:7], gFInterp0_g_ompkernel[:105], gFInterp1_g_ompkernel[:105], gFInterp2_g_ompkernel[:105])\
-    map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data4[0:dat4size],data6[0:dat6size],data8[0:dat8size],data10[0:dat10size],data12[0:dat12size],data14[0:dat14size],data16[0:dat16size],data18[0:dat18size],data20[0:dat20size],data22[0:dat22size],data24[0:dat24size],data26[0:dat26size],data28[0:dat28size],data30[0:dat30size])
+    map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data4[0:dat4size],data6[0:dat6size],data8[0:dat8size],data10[0:dat10size],data12[0:dat12size],data14[0:dat14size],data16[0:dat16size],data18[0:dat18size],data20[0:dat20size],data22[0:dat22size],data24[0:dat24size],data26[0:dat26size],data28[0:dat28size],data30[0:dat30size],data32[0:dat32size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
@@ -99,6 +101,9 @@ void pressure_solve_1_omp4_kernel(
     const double* arg28_vec[] = {
        &data28[15 * map2idx],
        &data28[15 * map3idx]};
+    const double* arg30_vec[] = {
+       &data30[15 * map2idx],
+       &data30[15 * map3idx]};
     //variable mapping
     const int *edgeNum = &data0[2*n_op];
     const bool *rev = &data1[1*n_op];
@@ -114,10 +119,11 @@ void pressure_solve_1_omp4_kernel(
     const double **sJ = arg20_vec;
     const double **h = arg22_vec;
     const double **tau = arg24_vec;
-    const double **rho = arg26_vec;
-    const double **u = arg28_vec;
-    double *rhsL = &data30[15 * map2idx];
-    double *rhsR = &data30[15 * map3idx];
+    const double **gRho = arg26_vec;
+    const double **rho = arg28_vec;
+    const double **u = arg30_vec;
+    double *rhsL = &data32[15 * map2idx];
+    double *rhsR = &data32[15 * map3idx];
 
     //inline function
     
@@ -188,14 +194,14 @@ void pressure_solve_1_omp4_kernel(
           int factors_indR = edgeR * 7 + k;
 
           op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJ[0][factors_indL]
-                         * (1.0 / rho[0][factors_indL]) * mDL[b_ind];
+                         * (1.0 / gRho[0][factors_indL]) * mDL[b_ind];
           op1R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g_ompkernel[k] * sJ[1][factors_indR]
-                         * (1.0 / rho[1][factors_indR]) * mDR[b_ind];
+                         * (1.0 / gRho[1][factors_indR]) * mDR[b_ind];
 
           op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJ[0][factors_indL]
-                         * (1.0 / rho[0][factors_indL]) * pDL[b_ind];
+                         * (1.0 / gRho[0][factors_indL]) * pDL[b_ind];
           op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g_ompkernel[k] * sJ[1][factors_indR]
-                         * (1.0 / rho[1][factors_indR]) * pDR[b_ind];
+                         * (1.0 / gRho[1][factors_indR]) * pDR[b_ind];
         }
       }
     }
@@ -224,14 +230,23 @@ void pressure_solve_1_omp4_kernel(
 
 
 
-          op1L[c_ind] += -(1.0 / rho[0][factors_indL]) * mDL[a_ind] * gaussW_g_ompkernel[k]
+
+
+
+
+
+
+
+
+
+          op1L[c_ind] += -(1.0 / rho[0][i]) * mDL[a_ind] * gaussW_g_ompkernel[k]
                          * sJ[0][factors_indL] * gVML[b_ind];
-          op1R[c_ind] += -(1.0 / rho[1][factors_indR]) * mDR[a_ind] * gaussW_g_ompkernel[k]
+          op1R[c_ind] += -(1.0 / rho[1][i]) * mDR[a_ind] * gaussW_g_ompkernel[k]
                          * sJ[1][factors_indR] * gVMR[b_ind];
 
-          op2L[c_ind] += (1.0 / rho[0][factors_indL]) * mDL[a_ind] * gaussW_g_ompkernel[k]
+          op2L[c_ind] += (1.0 / rho[0][i]) * mDL[a_ind] * gaussW_g_ompkernel[k]
                          * sJ[0][factors_indL] * gVPL[b_ind];
-          op2R[c_ind] += (1.0 / rho[1][factors_indR]) * mDR[a_ind] * gaussW_g_ompkernel[k]
+          op2R[c_ind] += (1.0 / rho[1][i]) * mDR[a_ind] * gaussW_g_ompkernel[k]
                          * sJ[1][factors_indR] * gVPR[b_ind];
         }
       }
@@ -246,7 +261,7 @@ void pressure_solve_1_omp4_kernel(
         indR = edgeR * 7 + 6 - i;
       else
         indR = edgeR * 7 + i;
-      tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / rho[0][indL], *(h[1]) / rho[1][indR]);
+      tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / gRho[0][indL], *(h[1]) / gRho[1][indR]);
     }
     for(int i = 0; i < 7; i++) {
       int indL;
@@ -255,7 +270,7 @@ void pressure_solve_1_omp4_kernel(
         indL = edgeL * 7 + 6 - i;
       else
         indL = edgeL * 7 + i;
-      tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / rho[0][indL], *(h[1]) / rho[1][indR]);
+      tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / gRho[0][indL], *(h[1]) / gRho[1][indR]);
     }
 
 

@@ -7,8 +7,7 @@
 #define MAX_CONST_SIZE 128
 #endif
 
-__constant__ double gam_cuda;
-__constant__ double re_cuda;
+__constant__ double ren_cuda;
 __constant__ double nu0_cuda;
 __constant__ double nu1_cuda;
 __constant__ double rho0_cuda;
@@ -54,12 +53,8 @@ __constant__ double lift_drag_vec_cuda[5];
 void op_decl_const_char(int dim, char const *type,
 int size, char *dat, char const *name){
   if (!OP_hybrid_gpu) return;
-  if (!strcmp(name,"gam")) {
-    cutilSafeCall(cudaMemcpyToSymbol(gam_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"re")) {
-    cutilSafeCall(cudaMemcpyToSymbol(re_cuda, dat, dim*size));
+  if (!strcmp(name,"ren")) {
+    cutilSafeCall(cudaMemcpyToSymbol(ren_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"nu0")) {
@@ -253,6 +248,7 @@ int size, char *dat, char const *name){
 #include "advection_bc_kernel.cu"
 #include "advection_numerical_flux_kernel.cu"
 #include "advection_intermediate_vel_kernel.cu"
+#include "pressure_mu_kernel.cu"
 #include "pressure_bc_kernel.cu"
 #include "pressure_bc2_kernel.cu"
 #include "pressure_rhs_kernel.cu"

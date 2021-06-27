@@ -42,6 +42,8 @@ void pressure_solve_1_omp4_kernel(
   int dat28size,
   double *data30,
   int dat30size,
+  double *data32,
+  int dat32size,
   int *col_reord,
   int set_size1,
   int start,
@@ -68,10 +70,11 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
   op_arg arg26,
   op_arg arg28,
   op_arg arg30,
-  op_arg arg31){
+  op_arg arg32,
+  op_arg arg33){
 
-  int nargs = 32;
-  op_arg args[32];
+  int nargs = 34;
+  op_arg args[34];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -159,8 +162,14 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
     args[28 + v] = op_arg_dat(arg28.dat, v, arg28.map, 15, "double", OP_READ);
   }
 
+  arg30.idx = 0;
   args[30] = arg30;
-  args[31] = arg31;
+  for ( int v=1; v<2; v++ ){
+    args[30 + v] = op_arg_dat(arg30.dat, v, arg30.map, 15, "double", OP_READ);
+  }
+
+  args[32] = arg32;
+  args[33] = arg33;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -169,8 +178,8 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
   OP_kernels[28].name      = name;
   OP_kernels[28].count    += 1;
 
-  int  ninds   = 15;
-  int  inds[32] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,14,14};
+  int  ninds   = 16;
+  int  inds[34] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,14,14,15,15};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: pressure_solve_1\n");
@@ -234,6 +243,8 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
     int dat28size = getSetSizeFromOpArg(&arg28) * arg28.dat->dim;
     double *data30 = (double *)arg30.data_d;
     int dat30size = getSetSizeFromOpArg(&arg30) * arg30.dat->dim;
+    double *data32 = (double *)arg32.data_d;
+    int dat32size = getSetSizeFromOpArg(&arg32) * arg32.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -284,6 +295,8 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
         dat28size,
         data30,
         dat30size,
+        data32,
+        dat32size,
         col_reord,
         set_size1,
         start,

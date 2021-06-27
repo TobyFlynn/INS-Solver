@@ -35,6 +35,8 @@ void viscosity_solve_2_omp4_kernel(
   int dat13size,
   double *data14,
   int dat14size,
+  double *data15,
+  int dat15size,
   int *col_reord,
   int set_size1,
   int start,
@@ -58,13 +60,14 @@ void op_par_loop_viscosity_solve_2(char const *name, op_set set,
   op_arg arg11,
   op_arg arg12,
   op_arg arg13,
-  op_arg arg14){
+  op_arg arg14,
+  op_arg arg15){
 
   int*arg2h = (int *)arg2.data;
   int*arg3h = (int *)arg3.data;
   int*arg4h = (int *)arg4.data;
-  int nargs = 15;
-  op_arg args[15];
+  int nargs = 16;
+  op_arg args[16];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -81,6 +84,7 @@ void op_par_loop_viscosity_solve_2(char const *name, op_set set,
   args[12] = arg12;
   args[13] = arg13;
   args[14] = arg14;
+  args[15] = arg15;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -89,8 +93,8 @@ void op_par_loop_viscosity_solve_2(char const *name, op_set set,
   OP_kernels[33].name      = name;
   OP_kernels[33].count    += 1;
 
-  int  ninds   = 10;
-  int  inds[15] = {-1,-1,-1,-1,-1,0,1,2,3,4,5,6,7,8,9};
+  int  ninds   = 11;
+  int  inds[16] = {-1,-1,-1,-1,-1,0,1,2,3,4,5,6,7,8,9,10};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: viscosity_solve_2\n");
@@ -147,6 +151,8 @@ void op_par_loop_viscosity_solve_2(char const *name, op_set set,
     int dat13size = getSetSizeFromOpArg(&arg13) * arg13.dat->dim;
     double *data14 = (double *)arg14.data_d;
     int dat14size = getSetSizeFromOpArg(&arg14) * arg14.dat->dim;
+    double *data15 = (double *)arg15.data_d;
+    int dat15size = getSetSizeFromOpArg(&arg15) * arg15.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -190,6 +196,8 @@ void op_par_loop_viscosity_solve_2(char const *name, op_set set,
         dat13size,
         data14,
         dat14size,
+        data15,
+        dat15size,
         col_reord,
         set_size1,
         start,

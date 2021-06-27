@@ -9,7 +9,7 @@ inline void pressure_solve_apply_bc_openacc( const int *edgeType, const int *edg
                              const int *d0, const int *d1, const int *d2,
                              const double *mD0, const double *mD1,
                              const double *mD2, const double *sJ,
-                             const double *h, const double *tau, const double *rho,
+                             const double *h, const double *tau, const double *gRho, const double *rho,
                              const double *bc, double *b) {
   if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2)
     return;
@@ -30,7 +30,7 @@ inline void pressure_solve_apply_bc_openacc( const int *edgeType, const int *edg
   double tauA[7];
   for(int i = 0; i < 7; i++) {
     int ind = *edgeNum  * 7 + i;
-    tauA[i] = 10 * 0.5 * 5 * 6 * (*h / rho[ind]);
+    tauA[i] = 10 * 0.5 * 5 * 6 * (*h / gRho[ind]);
   }
 
   double op[7 * 15];
@@ -39,11 +39,15 @@ inline void pressure_solve_apply_bc_openacc( const int *edgeType, const int *edg
   for(int i = 0; i < 7 * 15; i++) {
     int indT = (i % 7) * 15 + i / 7;
     int indSJ = *edgeNum * 7 + (i % 7);
-    int indRho = *edgeNum * 7 + (i / 7);
+
+    int indRho = (i / 7);
+
+
+
+
+
     op[i] = gVM[indT] * gaussW_g[i % 7] * sJ[indSJ] * tauA[i % 7]
             - (1.0 / rho[indRho]) * mD[indT] * gaussW_g[i % 7] * sJ[indSJ];
-
-
   }
 
   for(int i = 0; i < 15; i++) {
@@ -70,13 +74,14 @@ void op_par_loop_pressure_solve_apply_bc(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13){
+  op_arg arg13,
+  op_arg arg14){
 
   int*arg2h = (int *)arg2.data;
   int*arg3h = (int *)arg3.data;
   int*arg4h = (int *)arg4.data;
-  int nargs = 14;
-  op_arg args[14];
+  int nargs = 15;
+  op_arg args[15];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -92,6 +97,7 @@ void op_par_loop_pressure_solve_apply_bc(char const *name, op_set set,
   args[11] = arg11;
   args[12] = arg12;
   args[13] = arg13;
+  args[14] = arg14;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -100,8 +106,8 @@ void op_par_loop_pressure_solve_apply_bc(char const *name, op_set set,
   OP_kernels[26].name      = name;
   OP_kernels[26].count    += 1;
 
-  int  ninds   = 9;
-  int  inds[14] = {-1,-1,-1,-1,-1,0,1,2,3,4,5,6,7,8};
+  int  ninds   = 10;
+  int  inds[15] = {-1,-1,-1,-1,-1,0,1,2,3,4,5,6,7,8,9};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: pressure_solve_apply_bc\n");
@@ -139,6 +145,7 @@ void op_par_loop_pressure_solve_apply_bc(char const *name, op_set set,
     double *data11 = (double *)arg11.data_d;
     double *data12 = (double *)arg12.data_d;
     double *data13 = (double *)arg13.data_d;
+    double *data14 = (double *)arg14.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -153,7 +160,7 @@ void op_par_loop_pressure_solve_apply_bc(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map5,data0,data1,data5,data6,data7,data8,data9,data10,data11,data12,data13)
+      #pragma acc parallel loop independent deviceptr(col_reord,map5,data0,data1,data5,data6,data7,data8,data9,data10,data11,data12,data13,data14)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map5idx;
@@ -173,8 +180,9 @@ void op_par_loop_pressure_solve_apply_bc(char const *name, op_set set,
           &data9[1 * map5idx],
           &data10[3 * map5idx],
           &data11[21 * map5idx],
-          &data12[21 * map5idx],
-          &data13[15 * map5idx]);
+          &data12[15 * map5idx],
+          &data13[21 * map5idx],
+          &data14[15 * map5idx]);
       }
 
     }

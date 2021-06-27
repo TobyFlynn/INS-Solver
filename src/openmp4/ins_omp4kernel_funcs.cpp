@@ -3,8 +3,7 @@
 //
 
 // global constants
-double gam_ompkernel;
-double re_ompkernel;
+double ren_ompkernel;
 double nu0_ompkernel;
 double nu1_ompkernel;
 double rho0_ompkernel;
@@ -47,12 +46,9 @@ double lift_drag_vec_ompkernel[5];
 
 void op_decl_const_char(int dim, char const *type,
   int size, char *dat, char const *name){
-  if(!strcmp(name, "gam")) {
-    memcpy(&gam_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gam_ompkernel)
-  } else if(!strcmp(name, "re")) {
-    memcpy(&re_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:re_ompkernel)
+  if(!strcmp(name, "ren")) {
+    memcpy(&ren_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:ren_ompkernel)
   } else if(!strcmp(name, "nu0")) {
     memcpy(&nu0_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:nu0_ompkernel)
@@ -205,6 +201,7 @@ void op_decl_const_char(int dim, char const *type,
 #include "advection_bc_omp4kernel_func.cpp"
 #include "advection_numerical_flux_omp4kernel_func.cpp"
 #include "advection_intermediate_vel_omp4kernel_func.cpp"
+#include "pressure_mu_omp4kernel_func.cpp"
 #include "pressure_bc_omp4kernel_func.cpp"
 #include "pressure_bc2_omp4kernel_func.cpp"
 #include "pressure_rhs_omp4kernel_func.cpp"

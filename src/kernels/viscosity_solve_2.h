@@ -2,7 +2,7 @@ inline void viscosity_solve_2(const int *edgeType, const int *edgeNum,
                               const int *d0, const int *d1, const int *d2,
                               const double *mD0, const double *mD1,
                               const double *mD2, const double *sJ,
-                              const double *h, const double *tau, const double *mu, const double *rho,
+                              const double *h, const double *tau, const double *gMu, const double *mu, const double *rho,
                               const double *u, double *rhs) {
   if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2)
     return;
@@ -36,7 +36,7 @@ inline void viscosity_solve_2(const int *edgeType, const int *edgeNum,
         // Rho and sJ ind
         int factors_ind = *edgeNum * 7 + k;
         op1[c_ind] += -0.5 * gVM[a_ind] * gaussW_g[k] * sJ[factors_ind]
-                      * mu[factors_ind] * mD[b_ind];
+                      * gMu[factors_ind] * mD[b_ind];
       }
     }
   }
@@ -54,7 +54,9 @@ inline void viscosity_solve_2(const int *edgeType, const int *edgeNum,
         int a_ind = ((ind * 15) % (15 * 7)) + (ind / 7);
         // Rho and sJ ind
         int factors_ind = *edgeNum * 7 + k;
-        op1[c_ind] += -mu[factors_ind] * mD[a_ind] * gaussW_g[k]
+        // op1[c_ind] += -mu[factors_ind] * mD[a_ind] * gaussW_g[k]
+        //               * sJ[factors_ind] * gVM[b_ind];
+        op1[c_ind] += -mu[i] * mD[a_ind] * gaussW_g[k]
                       * sJ[factors_ind] * gVM[b_ind];
       }
     }

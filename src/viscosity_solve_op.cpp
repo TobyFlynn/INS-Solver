@@ -35,6 +35,7 @@ void op_par_loop_viscosity_solve_apply_bc(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_viscosity_solve_0(char const *, op_set,
@@ -67,9 +68,11 @@ void op_par_loop_viscosity_solve_1(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_viscosity_solve_2(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -195,6 +198,7 @@ bool ViscositySolve::solve(op_dat b_dat, op_dat x_dat, double factor) {
               op_arg_dat(h,0,data->bedge2cells,1,"double",OP_READ),
               op_arg_dat(gData->tau,0,data->bedge2cells,3,"double",OP_READ),
               op_arg_dat(gMu,0,data->bedge2cells,21,"double",OP_READ),
+              op_arg_dat(data->nu,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(gRho,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(bc_dat,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(b_dat,0,data->bedge2cells,15,"double",OP_INC));
@@ -261,6 +265,7 @@ void ViscositySolve::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(h,-2,data->edge2cells,1,"double",OP_READ),
               op_arg_dat(gData->tau,-2,data->edge2cells,3,"double",OP_READ),
               op_arg_dat(gMu,-2,data->edge2cells,21,"double",OP_READ),
+              op_arg_dat(data->nu,-2,data->edge2cells,15,"double",OP_READ),
               op_arg_dat(gRho,-2,data->edge2cells,21,"double",OP_READ),
               op_arg_dat(u,-2,data->edge2cells,15,"double",OP_READ),
               op_arg_dat(rhs,0,data->edge2cells,15,"double",OP_INC),
@@ -279,6 +284,7 @@ void ViscositySolve::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(h,0,data->bedge2cells,1,"double",OP_READ),
               op_arg_dat(gData->tau,0,data->bedge2cells,3,"double",OP_READ),
               op_arg_dat(gMu,0,data->bedge2cells,21,"double",OP_READ),
+              op_arg_dat(data->nu,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(gRho,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(u,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(rhs,0,data->bedge2cells,15,"double",OP_INC));

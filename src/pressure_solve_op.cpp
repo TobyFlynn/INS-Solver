@@ -34,6 +34,7 @@ void op_par_loop_pressure_solve_apply_bc(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_pressure_solve_0(char const *, op_set,
@@ -62,9 +63,11 @@ void op_par_loop_pressure_solve_1(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_pressure_solve_2(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -153,7 +156,7 @@ void PressureSolve::init() {
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPCG);
   KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 5e4);
+  KSPSetTolerances(ksp, 1e-6, 1e-50, 1e5, 5e4);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
 
   op_par_loop_poisson_h("poisson_h",data->cells,
@@ -179,6 +182,7 @@ bool PressureSolve::solve(op_dat b_dat, op_dat x_dat) {
               op_arg_dat(h,0,data->bedge2cells,1,"double",OP_READ),
               op_arg_dat(gData->tau,0,data->bedge2cells,3,"double",OP_READ),
               op_arg_dat(gRho,0,data->bedge2cells,21,"double",OP_READ),
+              op_arg_dat(data->rho,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(bc_dat,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(b_dat,0,data->bedge2cells,15,"double",OP_INC));
 
@@ -240,6 +244,7 @@ void PressureSolve::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(h,-2,data->edge2cells,1,"double",OP_READ),
               op_arg_dat(gData->tau,-2,data->edge2cells,3,"double",OP_READ),
               op_arg_dat(gRho,-2,data->edge2cells,21,"double",OP_READ),
+              op_arg_dat(data->rho,-2,data->edge2cells,15,"double",OP_READ),
               op_arg_dat(u,-2,data->edge2cells,15,"double",OP_READ),
               op_arg_dat(rhs,0,data->edge2cells,15,"double",OP_INC),
               op_arg_dat(rhs,1,data->edge2cells,15,"double",OP_INC));
@@ -257,6 +262,7 @@ void PressureSolve::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(h,0,data->bedge2cells,1,"double",OP_READ),
               op_arg_dat(gData->tau,0,data->bedge2cells,3,"double",OP_READ),
               op_arg_dat(gRho,0,data->bedge2cells,21,"double",OP_READ),
+              op_arg_dat(data->rho,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(u,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(rhs,0,data->bedge2cells,15,"double",OP_INC));
 

@@ -350,7 +350,8 @@ void LS::init() {
               op_arg_dat(data->nodeY,-1,OP_ID,3,"double",OP_READ),
               op_arg_gbl(&h,1,"double",OP_MIN));
 
-  alpha = 2.0 * h / 4.0;
+  alpha = 8.0 * h / 4.0;
+  printf("Alpha %g\n", alpha);
   epsilon = h / 4.0;
   reinit_dt = 1.0 / ((16.0 / h) + epsilon * ((16.0*16.0)/(h*h)));
   numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);

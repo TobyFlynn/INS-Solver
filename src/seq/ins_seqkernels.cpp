@@ -3,7 +3,7 @@
 //
 
 // global constants
-extern double gam;
+extern double ren;
 extern double nu0;
 extern double nu1;
 extern double rho0;
@@ -86,6 +86,7 @@ extern double lift_drag_vec[5];
 #include "advection_bc_seqkernel.cpp"
 #include "advection_numerical_flux_seqkernel.cpp"
 #include "advection_intermediate_vel_seqkernel.cpp"
+#include "pressure_mu_seqkernel.cpp"
 #include "pressure_bc_seqkernel.cpp"
 #include "pressure_bc2_seqkernel.cpp"
 #include "pressure_rhs_seqkernel.cpp"

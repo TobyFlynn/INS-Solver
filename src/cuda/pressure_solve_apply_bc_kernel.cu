@@ -7,7 +7,7 @@ __device__ void pressure_solve_apply_bc_gpu( const int *edgeType, const int *edg
                              const int *d0, const int *d1, const int *d2,
                              const double *mD0, const double *mD1,
                              const double *mD2, const double *sJ,
-                             const double *h, const double *tau, const double *rho,
+                             const double *h, const double *tau, const double *gRho, const double *rho,
                              const double *bc, double *b) {
   if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2)
     return;
@@ -28,7 +28,7 @@ __device__ void pressure_solve_apply_bc_gpu( const int *edgeType, const int *edg
   double tauA[7];
   for(int i = 0; i < 7; i++) {
     int ind = *edgeNum  * 7 + i;
-    tauA[i] = 10 * 0.5 * 5 * 6 * (*h / rho[ind]);
+    tauA[i] = 10 * 0.5 * 5 * 6 * (*h / gRho[ind]);
   }
 
   double op[7 * 15];
@@ -37,11 +37,15 @@ __device__ void pressure_solve_apply_bc_gpu( const int *edgeType, const int *edg
   for(int i = 0; i < 7 * 15; i++) {
     int indT = (i % 7) * 15 + i / 7;
     int indSJ = *edgeNum * 7 + (i % 7);
-    int indRho = *edgeNum * 7 + (i / 7);
+
+    int indRho = (i / 7);
+
+
+
+
+
     op[i] = gVM[indT] * gaussW_g_cuda[i % 7] * sJ[indSJ] * tauA[i % 7]
             - (1.0 / rho[indRho]) * mD[indT] * gaussW_g_cuda[i % 7] * sJ[indSJ];
-
-
   }
 
   for(int i = 0; i < 15; i++) {
@@ -64,7 +68,8 @@ __global__ void op_cuda_pressure_solve_apply_bc(
   const double *__restrict ind_arg5,
   const double *__restrict ind_arg6,
   const double *__restrict ind_arg7,
-  double *__restrict ind_arg8,
+  const double *__restrict ind_arg8,
+  double *__restrict ind_arg9,
   const int *__restrict opDat5Map,
   const int *__restrict arg0,
   const int *__restrict arg1,
@@ -74,14 +79,14 @@ __global__ void op_cuda_pressure_solve_apply_bc(
   int start,
   int end,
   int   set_size) {
-  double arg13_l[15];
+  double arg14_l[15];
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg13_l[15];
+    double arg14_l[15];
     for ( int d=0; d<15; d++ ){
-      arg13_l[d] = ZERO_double;
+      arg14_l[d] = ZERO_double;
     }
     int map5idx;
     map5idx = opDat5Map[n + set_size * 0];
@@ -99,23 +104,24 @@ __global__ void op_cuda_pressure_solve_apply_bc(
                             ind_arg4+map5idx*1,
                             ind_arg5+map5idx*3,
                             ind_arg6+map5idx*21,
-                            ind_arg7+map5idx*21,
-                            arg13_l);
-    atomicAdd(&ind_arg8[0+map5idx*15],arg13_l[0]);
-    atomicAdd(&ind_arg8[1+map5idx*15],arg13_l[1]);
-    atomicAdd(&ind_arg8[2+map5idx*15],arg13_l[2]);
-    atomicAdd(&ind_arg8[3+map5idx*15],arg13_l[3]);
-    atomicAdd(&ind_arg8[4+map5idx*15],arg13_l[4]);
-    atomicAdd(&ind_arg8[5+map5idx*15],arg13_l[5]);
-    atomicAdd(&ind_arg8[6+map5idx*15],arg13_l[6]);
-    atomicAdd(&ind_arg8[7+map5idx*15],arg13_l[7]);
-    atomicAdd(&ind_arg8[8+map5idx*15],arg13_l[8]);
-    atomicAdd(&ind_arg8[9+map5idx*15],arg13_l[9]);
-    atomicAdd(&ind_arg8[10+map5idx*15],arg13_l[10]);
-    atomicAdd(&ind_arg8[11+map5idx*15],arg13_l[11]);
-    atomicAdd(&ind_arg8[12+map5idx*15],arg13_l[12]);
-    atomicAdd(&ind_arg8[13+map5idx*15],arg13_l[13]);
-    atomicAdd(&ind_arg8[14+map5idx*15],arg13_l[14]);
+                            ind_arg7+map5idx*15,
+                            ind_arg8+map5idx*21,
+                            arg14_l);
+    atomicAdd(&ind_arg9[0+map5idx*15],arg14_l[0]);
+    atomicAdd(&ind_arg9[1+map5idx*15],arg14_l[1]);
+    atomicAdd(&ind_arg9[2+map5idx*15],arg14_l[2]);
+    atomicAdd(&ind_arg9[3+map5idx*15],arg14_l[3]);
+    atomicAdd(&ind_arg9[4+map5idx*15],arg14_l[4]);
+    atomicAdd(&ind_arg9[5+map5idx*15],arg14_l[5]);
+    atomicAdd(&ind_arg9[6+map5idx*15],arg14_l[6]);
+    atomicAdd(&ind_arg9[7+map5idx*15],arg14_l[7]);
+    atomicAdd(&ind_arg9[8+map5idx*15],arg14_l[8]);
+    atomicAdd(&ind_arg9[9+map5idx*15],arg14_l[9]);
+    atomicAdd(&ind_arg9[10+map5idx*15],arg14_l[10]);
+    atomicAdd(&ind_arg9[11+map5idx*15],arg14_l[11]);
+    atomicAdd(&ind_arg9[12+map5idx*15],arg14_l[12]);
+    atomicAdd(&ind_arg9[13+map5idx*15],arg14_l[13]);
+    atomicAdd(&ind_arg9[14+map5idx*15],arg14_l[14]);
   }
 }
 
@@ -135,13 +141,14 @@ void op_par_loop_pressure_solve_apply_bc(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13){
+  op_arg arg13,
+  op_arg arg14){
 
   int*arg2h = (int *)arg2.data;
   int*arg3h = (int *)arg3.data;
   int*arg4h = (int *)arg4.data;
-  int nargs = 14;
-  op_arg args[14];
+  int nargs = 15;
+  op_arg args[15];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -157,6 +164,7 @@ void op_par_loop_pressure_solve_apply_bc(char const *name, op_set set,
   args[11] = arg11;
   args[12] = arg12;
   args[13] = arg13;
+  args[14] = arg14;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -166,8 +174,8 @@ void op_par_loop_pressure_solve_apply_bc(char const *name, op_set set,
   OP_kernels[26].count    += 1;
 
 
-  int    ninds   = 9;
-  int    inds[14] = {-1,-1,-1,-1,-1,0,1,2,3,4,5,6,7,8};
+  int    ninds   = 10;
+  int    inds[15] = {-1,-1,-1,-1,-1,0,1,2,3,4,5,6,7,8,9};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: pressure_solve_apply_bc\n");
@@ -227,6 +235,7 @@ void op_par_loop_pressure_solve_apply_bc(char const *name, op_set set,
         (double *)arg11.data_d,
         (double *)arg12.data_d,
         (double *)arg13.data_d,
+        (double *)arg14.data_d,
         arg5.map_data_d,
         (int*)arg0.data_d,
         (int*)arg1.data_d,

@@ -21,10 +21,11 @@ void op_par_loop_viscosity_solve_apply_bc(char const *name, op_set set,
   op_arg arg11,
   op_arg arg12,
   op_arg arg13,
-  op_arg arg14){
+  op_arg arg14,
+  op_arg arg15){
 
-  int nargs = 15;
-  op_arg args[15];
+  int nargs = 16;
+  op_arg args[16];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -41,6 +42,7 @@ void op_par_loop_viscosity_solve_apply_bc(char const *name, op_set set,
   args[12] = arg12;
   args[13] = arg13;
   args[14] = arg14;
+  args[15] = arg15;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -49,8 +51,8 @@ void op_par_loop_viscosity_solve_apply_bc(char const *name, op_set set,
   OP_kernels[30].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 10;
-  int  inds[15] = {-1,-1,-1,-1,-1,0,1,2,3,4,5,6,7,8,9};
+  int  ninds   = 11;
+  int  inds[16] = {-1,-1,-1,-1,-1,0,1,2,3,4,5,6,7,8,9,10};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: viscosity_solve_apply_bc\n");
@@ -100,9 +102,10 @@ void op_par_loop_viscosity_solve_apply_bc(char const *name, op_set set,
             &((double*)arg9.data)[1 * map5idx],
             &((double*)arg10.data)[3 * map5idx],
             &((double*)arg11.data)[21 * map5idx],
-            &((double*)arg12.data)[21 * map5idx],
+            &((double*)arg12.data)[15 * map5idx],
             &((double*)arg13.data)[21 * map5idx],
-            &((double*)arg14.data)[15 * map5idx]);
+            &((double*)arg14.data)[21 * map5idx],
+            &((double*)arg15.data)[15 * map5idx]);
         }
       }
 

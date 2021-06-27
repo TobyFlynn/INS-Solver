@@ -20,10 +20,11 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13){
+  op_arg arg13,
+  op_arg arg14){
 
-  int nargs = 14;
-  op_arg args[14];
+  int nargs = 15;
+  op_arg args[15];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -39,24 +40,25 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   args[11] = arg11;
   args[12] = arg12;
   args[13] = arg13;
+  args[14] = arg14;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(41);
-  OP_kernels[41].name      = name;
-  OP_kernels[41].count    += 1;
+  op_timing_realloc(42);
+  OP_kernels[42].name      = name;
+  OP_kernels[42].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 10;
-  int  inds[14] = {-1,-1,-1,-1,0,1,2,3,4,5,6,7,8,9};
+  int  ninds   = 11;
+  int  inds[15] = {-1,-1,-1,-1,0,1,2,3,4,5,6,7,8,9,10};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: pressure_bc\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_41
-    int part_size = OP_PART_SIZE_41;
+  #ifdef OP_PART_SIZE_42
+    int part_size = OP_PART_SIZE_42;
   #else
     int part_size = OP_part_size;
   #endif
@@ -99,14 +101,15 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
             &((double*)arg10.data)[15 * map4idx],
             &((double*)arg11.data)[15 * map4idx],
             &((double*)arg12.data)[15 * map4idx],
-            &((double*)arg13.data)[15 * map4idx]);
+            &((double*)arg13.data)[15 * map4idx],
+            &((double*)arg14.data)[15 * map4idx]);
         }
       }
 
       block_offset += nblocks;
     }
-    OP_kernels[41].transfer  += Plan->transfer;
-    OP_kernels[41].transfer2 += Plan->transfer2;
+    OP_kernels[42].transfer  += Plan->transfer;
+    OP_kernels[42].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -117,5 +120,5 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[41].time     += wall_t2 - wall_t1;
+  OP_kernels[42].time     += wall_t2 - wall_t1;
 }

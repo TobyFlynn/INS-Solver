@@ -7,7 +7,7 @@
 #endif
 
 // global constants
-extern double gam;
+extern double ren;
 extern double nu0;
 extern double nu1;
 extern double rho0;
@@ -90,6 +90,7 @@ extern double lift_drag_vec[5];
 #include "advection_bc_kernel.cpp"
 #include "advection_numerical_flux_kernel.cpp"
 #include "advection_intermediate_vel_kernel.cpp"
+#include "pressure_mu_kernel.cpp"
 #include "pressure_bc_kernel.cpp"
 #include "pressure_bc2_kernel.cpp"
 #include "pressure_rhs_kernel.cpp"

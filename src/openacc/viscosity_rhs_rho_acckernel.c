@@ -8,7 +8,7 @@
 inline void viscosity_rhs_rho_openacc( const double *rho, double *nu, double *vRHS0,
                               double *vRHS1) {
   for(int i = 0; i < 15; i++) {
-    nu[i] = nu[i] / nu0;
+
     vRHS0[i] = rho[i] * vRHS0[i];
     vRHS1[i] = rho[i] * vRHS1[i];
   }
@@ -31,10 +31,10 @@ void op_par_loop_viscosity_rhs_rho(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(47);
+  op_timing_realloc(48);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[47].name      = name;
-  OP_kernels[47].count    += 1;
+  OP_kernels[48].name      = name;
+  OP_kernels[48].count    += 1;
 
 
   if (OP_diags>2) {
@@ -68,9 +68,9 @@ void op_par_loop_viscosity_rhs_rho(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[47].time     += wall_t2 - wall_t1;
-  OP_kernels[47].transfer += (float)set->size * arg0.size;
-  OP_kernels[47].transfer += (float)set->size * arg1.size * 2.0f;
-  OP_kernels[47].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[47].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[48].time     += wall_t2 - wall_t1;
+  OP_kernels[48].transfer += (float)set->size * arg0.size;
+  OP_kernels[48].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[48].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[48].transfer += (float)set->size * arg3.size * 2.0f;
 }

@@ -151,8 +151,7 @@ INSData::INSData(std::string filename) {
   gNu       = op_decl_dat(cells, 21, "double", gNu_data, "gNu");
   rho       = op_decl_dat(cells, 15, "double", rho_data, "rho");
 
-  op_decl_const(1, "double", &gam);
-  op_decl_const(1, "double", &re);
+  op_decl_const(1, "double", &ren);
   op_decl_const(1, "double", &nu0);
   op_decl_const(1, "double", &nu1);
   op_decl_const(1, "double", &rho0);

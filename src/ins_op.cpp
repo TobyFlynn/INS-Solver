@@ -94,25 +94,19 @@ int main(int argc, char **argv) {
   mu = 1e-2;
   // Phi > 0
   nu0 = 1.0;
+  // rho0 = 0.9;
   rho0 = 1.0;
   // Phi < 0
-  // nu1 = 5.4e-2;
-  // nu1 = 1e-2;
-  // rho1 = 0.92;
-  nu1 = 0.1;
-  rho1 = 0.9;
+  // nu1 = 1.9;
+  nu1 = 1.0;
+  rho1 = 1.0;
   bc_u = 1e-6;
   bc_v = 0.0;
   ic_u = 0.0;
   ic_v = 0.0;
 
   // Set Reynolds number
-  re = 1.0 * 1.0 * 1.0 / 1e-3;
-
-  op_printf("gam: %g\n", gam);
-  op_printf("mu: %g\n", mu);
-  op_printf("nu0: %g\n", nu0);
-  op_printf("nu1: %g\n", nu1);
+  ren = 1.0 * 1.0 * 1.0 / 1e-3;
 
   // Get input from args
   int iter = 1;
@@ -152,6 +146,17 @@ int main(int argc, char **argv) {
   if(outputDir.back() != '/') {
     outputDir += "/";
   }
+
+  PetscOptionsGetReal(NULL, NULL, "-mu0", &nu0, &found);
+  PetscOptionsGetReal(NULL, NULL, "-mu1", &nu1, &found);
+  PetscOptionsGetReal(NULL, NULL, "-rho0", &rho0, &found);
+  PetscOptionsGetReal(NULL, NULL, "-rho1", &rho1, &found);
+
+  op_printf("nu0: %g\n", nu0);
+  op_printf("nu1: %g\n", nu1);
+  op_printf("rho0: %g\n", rho0);
+  op_printf("rho1: %g\n", rho1);
+  op_printf("ren: %g\n", ren);
 
   bc_alpha = 0.0;
 

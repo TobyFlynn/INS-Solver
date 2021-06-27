@@ -24,10 +24,11 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
   op_arg arg26,
   op_arg arg28,
   op_arg arg30,
-  op_arg arg31){
+  op_arg arg32,
+  op_arg arg33){
 
-  int nargs = 32;
-  op_arg args[32];
+  int nargs = 34;
+  op_arg args[34];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -115,8 +116,14 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
     args[28 + v] = op_arg_dat(arg28.dat, v, arg28.map, 15, "double", OP_READ);
   }
 
+  arg30.idx = 0;
   args[30] = arg30;
-  args[31] = arg31;
+  for ( int v=1; v<2; v++ ){
+    args[30 + v] = op_arg_dat(arg30.dat, v, arg30.map, 15, "double", OP_READ);
+  }
+
+  args[32] = arg32;
+  args[33] = arg33;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -182,6 +189,9 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
       const double* arg28_vec[] = {
          &((double*)arg28.data)[15 * map2idx],
          &((double*)arg28.data)[15 * map3idx]};
+      const double* arg30_vec[] = {
+         &((double*)arg30.data)[15 * map2idx],
+         &((double*)arg30.data)[15 * map3idx]};
 
       pressure_solve_1(
         &((int*)arg0.data)[2 * n],
@@ -200,8 +210,9 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
         arg24_vec,
         arg26_vec,
         arg28_vec,
-        &((double*)arg30.data)[15 * map2idx],
-        &((double*)arg30.data)[15 * map3idx]);
+        arg30_vec,
+        &((double*)arg32.data)[15 * map2idx],
+        &((double*)arg32.data)[15 * map3idx]);
     }
   }
 
@@ -230,7 +241,8 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
   OP_kernels[28].transfer += (float)set->size * arg24.size;
   OP_kernels[28].transfer += (float)set->size * arg26.size;
   OP_kernels[28].transfer += (float)set->size * arg28.size;
-  OP_kernels[28].transfer += (float)set->size * arg30.size * 2.0f;
+  OP_kernels[28].transfer += (float)set->size * arg30.size;
+  OP_kernels[28].transfer += (float)set->size * arg32.size * 2.0f;
   OP_kernels[28].transfer += (float)set->size * arg0.size;
   OP_kernels[28].transfer += (float)set->size * arg1.size;
   OP_kernels[28].transfer += (float)set->size * arg2.map->dim * 4.0f;

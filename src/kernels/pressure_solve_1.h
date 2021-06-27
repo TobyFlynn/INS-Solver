@@ -4,7 +4,7 @@ inline void pressure_solve_1(const int *edgeNum, const bool *rev,
                              const double **pD1, const double **pD2,
                              const double **gVP0, const double **gVP1,
                              const double **gVP2, const double **sJ,
-                             const double **h, const double **tau, const double **rho,
+                             const double **h, const double **tau, const double **gRho, const double **rho,
                              const double **u, double *rhsL, double *rhsR) {
   // Work out which edge for each element
   int edgeL = edgeNum[0];
@@ -75,14 +75,14 @@ inline void pressure_solve_1(const int *edgeNum, const bool *rev,
         int factors_indR = edgeR * 7 + k;
 
         op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
-                       * (1.0 / rho[0][factors_indL]) * mDL[b_ind];
+                       * (1.0 / gRho[0][factors_indL]) * mDL[b_ind];
         op1R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
-                       * (1.0 / rho[1][factors_indR]) * mDR[b_ind];
+                       * (1.0 / gRho[1][factors_indR]) * mDR[b_ind];
 
         op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
-                       * (1.0 / rho[0][factors_indL]) * pDL[b_ind];
+                       * (1.0 / gRho[0][factors_indL]) * pDL[b_ind];
         op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
-                       * (1.0 / rho[1][factors_indR]) * pDR[b_ind];
+                       * (1.0 / gRho[1][factors_indR]) * pDR[b_ind];
       }
     }
   }
@@ -113,14 +113,24 @@ inline void pressure_solve_1(const int *edgeNum, const bool *rev,
         // op2R[c_ind] += 0.5 * (1.0 / rho[1][factors_indR]) * mDR[a_ind] * gaussW_g[k]
         //                * sJ[1][factors_indR] * gVPR[b_ind];
 
-        op1L[c_ind] += -(1.0 / rho[0][factors_indL]) * mDL[a_ind] * gaussW_g[k]
+        // op1L[c_ind] += -(1.0 / rho[0][factors_indL]) * mDL[a_ind] * gaussW_g[k]
+        //                * sJ[0][factors_indL] * gVML[b_ind];
+        // op1R[c_ind] += -(1.0 / rho[1][factors_indR]) * mDR[a_ind] * gaussW_g[k]
+        //                * sJ[1][factors_indR] * gVMR[b_ind];
+        //
+        // op2L[c_ind] += (1.0 / rho[0][factors_indL]) * mDL[a_ind] * gaussW_g[k]
+        //                * sJ[0][factors_indL] * gVPL[b_ind];
+        // op2R[c_ind] += (1.0 / rho[1][factors_indR]) * mDR[a_ind] * gaussW_g[k]
+        //                * sJ[1][factors_indR] * gVPR[b_ind];
+
+        op1L[c_ind] += -(1.0 / rho[0][i]) * mDL[a_ind] * gaussW_g[k]
                        * sJ[0][factors_indL] * gVML[b_ind];
-        op1R[c_ind] += -(1.0 / rho[1][factors_indR]) * mDR[a_ind] * gaussW_g[k]
+        op1R[c_ind] += -(1.0 / rho[1][i]) * mDR[a_ind] * gaussW_g[k]
                        * sJ[1][factors_indR] * gVMR[b_ind];
 
-        op2L[c_ind] += (1.0 / rho[0][factors_indL]) * mDL[a_ind] * gaussW_g[k]
+        op2L[c_ind] += (1.0 / rho[0][i]) * mDL[a_ind] * gaussW_g[k]
                        * sJ[0][factors_indL] * gVPL[b_ind];
-        op2R[c_ind] += (1.0 / rho[1][factors_indR]) * mDR[a_ind] * gaussW_g[k]
+        op2R[c_ind] += (1.0 / rho[1][i]) * mDR[a_ind] * gaussW_g[k]
                        * sJ[1][factors_indR] * gVPR[b_ind];
       }
     }
@@ -136,7 +146,7 @@ inline void pressure_solve_1(const int *edgeNum, const bool *rev,
       indR = edgeR * 7 + 6 - i;
     else
       indR = edgeR * 7 + i;
-    tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / rho[0][indL], *(h[1]) / rho[1][indR]);
+    tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / gRho[0][indL], *(h[1]) / gRho[1][indR]);
   }
   for(int i = 0; i < 7; i++) {
     int indL;
@@ -145,7 +155,7 @@ inline void pressure_solve_1(const int *edgeNum, const bool *rev,
       indL = edgeL * 7 + 6 - i;
     else
       indL = edgeL * 7 + i;
-    tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / rho[0][indL], *(h[1]) / rho[1][indR]);
+    tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / gRho[0][indL], *(h[1]) / gRho[1][indR]);
   }
 
   // Third edge term

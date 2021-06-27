@@ -87,7 +87,12 @@ void op_par_loop_advection_intermediate_vel(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_pressure_mu(char const *, op_set,
+  op_arg,
+  op_arg );
+
 void op_par_loop_pressure_bc(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -333,6 +338,12 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   timer->startPressureSetup();
   div(data, data->QT[0], data->QT[1], data->divVelT);
   curl(data, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
+
+  // Mult by mu here?
+  op_par_loop_pressure_mu("pressure_mu",data->cells,
+              op_arg_dat(data->nu,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->curlVel,-1,OP_ID,15,"double",OP_RW));
+
   grad(data, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
 
   // Apply pressure boundary conditions
@@ -346,6 +357,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->nx,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->ny,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->nu,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->rho,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->N[currentInd][0],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->N[currentInd][1],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->gradCurlVel[0],0,data->bedge2cells,15,"double",OP_READ),
@@ -430,7 +442,8 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
   double factor;
   if(multiphase) {
-    factor = re * g0 / dt;
+    // factor = ren * g0 / dt;
+    factor = ren / dt;
     // factor = g0 / (nu0 * dt);
   } else {
     factor = g0 / (nu0 * dt);
@@ -447,6 +460,10 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
                 op_arg_dat(data->nu,-1,OP_ID,15,"double",OP_RW),
                 op_arg_dat(data->visRHS[0],-1,OP_ID,15,"double",OP_RW),
                 op_arg_dat(data->visRHS[1],-1,OP_ID,15,"double",OP_RW));
+  }
+
+  if(multiphase) {
+    factor = ren * g0 / dt;
   }
 
   timer->endViscositySetup();

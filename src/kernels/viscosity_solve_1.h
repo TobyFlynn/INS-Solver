@@ -4,7 +4,7 @@ inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
                               const double **pD1, const double **pD2,
                               const double **gVP0, const double **gVP1,
                               const double **gVP2, const double **sJ,
-                              const double **h, const double **tau, const double **mu, const double **rho,
+                              const double **h, const double **tau, const double **gMu, const double **mu, const double **rho,
                               const double **u, double *rhsL, double *rhsR) {
   // Work out which edge for each element
   int edgeL = edgeNum[0];
@@ -75,14 +75,14 @@ inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
         int factors_indR = edgeR * 7 + k;
 
         op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
-                       * mu[0][factors_indL] * mDL[b_ind];
+                       * gMu[0][factors_indL] * mDL[b_ind];
         op1R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
-                       * mu[1][factors_indR] * mDR[b_ind];
+                       * gMu[1][factors_indR] * mDR[b_ind];
 
         op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
-                       * mu[0][factors_indL] * pDL[b_ind];
+                       * gMu[0][factors_indL] * pDL[b_ind];
         op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
-                       * mu[1][factors_indR] * pDR[b_ind];
+                       * gMu[1][factors_indR] * pDR[b_ind];
       }
     }
   }
@@ -113,14 +113,24 @@ inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
         // op2R[c_ind] += 0.5 * (1.0 / rho[1][factors_indR]) * mDR[a_ind] * gaussW_g[k]
         //                * sJ[1][factors_indR] * gVPR[b_ind];
 
-        op1L[c_ind] += -mu[0][factors_indL] * mDL[a_ind] * gaussW_g[k]
+        // op1L[c_ind] += -mu[0][factors_indL] * mDL[a_ind] * gaussW_g[k]
+        //                * sJ[0][factors_indL] * gVML[b_ind];
+        // op1R[c_ind] += -mu[1][factors_indR] * mDR[a_ind] * gaussW_g[k]
+        //                * sJ[1][factors_indR] * gVMR[b_ind];
+        //
+        // op2L[c_ind] += mu[0][factors_indL] * mDL[a_ind] * gaussW_g[k]
+        //                * sJ[0][factors_indL] * gVPL[b_ind];
+        // op2R[c_ind] += mu[1][factors_indR] * mDR[a_ind] * gaussW_g[k]
+        //                * sJ[1][factors_indR] * gVPR[b_ind];
+
+        op1L[c_ind] += -mu[0][i] * mDL[a_ind] * gaussW_g[k]
                        * sJ[0][factors_indL] * gVML[b_ind];
-        op1R[c_ind] += -mu[1][factors_indR] * mDR[a_ind] * gaussW_g[k]
+        op1R[c_ind] += -mu[1][i] * mDR[a_ind] * gaussW_g[k]
                        * sJ[1][factors_indR] * gVMR[b_ind];
 
-        op2L[c_ind] += mu[0][factors_indL] * mDL[a_ind] * gaussW_g[k]
+        op2L[c_ind] += mu[0][i] * mDL[a_ind] * gaussW_g[k]
                        * sJ[0][factors_indL] * gVPL[b_ind];
-        op2R[c_ind] += mu[1][factors_indR] * mDR[a_ind] * gaussW_g[k]
+        op2R[c_ind] += mu[1][i] * mDR[a_ind] * gaussW_g[k]
                        * sJ[1][factors_indR] * gVPR[b_ind];
       }
     }

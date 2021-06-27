@@ -30,6 +30,8 @@ void pressure_solve_2_omp4_kernel(
   int dat12size,
   double *data13,
   int dat13size,
+  double *data14,
+  int dat14size,
   int *col_reord,
   int set_size1,
   int start,
@@ -42,7 +44,7 @@ void pressure_solve_2_omp4_kernel(
   int arg4_l = *arg4;
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
     map(to: gaussW_g_ompkernel[:7], gFInterp0_g_ompkernel[:105], gFInterp1_g_ompkernel[:105], gFInterp2_g_ompkernel[:105])\
-    map(to:col_reord[0:set_size1],map5[0:map5size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size])
+    map(to:col_reord[0:set_size1],map5[0:map5size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
@@ -61,9 +63,10 @@ void pressure_solve_2_omp4_kernel(
     const double *sJ = &data8[21 * map5idx];
     const double *h = &data9[1 * map5idx];
     const double *tau = &data10[3 * map5idx];
-    const double *rho = &data11[21 * map5idx];
-    const double *u = &data12[15 * map5idx];
-    double *rhs = &data13[15 * map5idx];
+    const double *gRho = &data11[21 * map5idx];
+    const double *rho = &data12[15 * map5idx];
+    const double *u = &data13[15 * map5idx];
+    double *rhs = &data14[15 * map5idx];
 
     //inline function
     
@@ -99,7 +102,7 @@ void pressure_solve_2_omp4_kernel(
 
           int factors_ind = *edgeNum * 7 + k;
           op1[c_ind] += -0.5 * gVM[a_ind] * gaussW_g_ompkernel[k] * sJ[factors_ind]
-                        * (1.0 / rho[factors_ind]) * mD[b_ind];
+                        * (1.0 / gRho[factors_ind]) * mD[b_ind];
         }
       }
     }
@@ -116,7 +119,10 @@ void pressure_solve_2_omp4_kernel(
           int a_ind = ((ind * 15) % (15 * 7)) + (ind / 7);
 
           int factors_ind = *edgeNum * 7 + k;
-          op1[c_ind] += -(1.0 / rho[factors_ind]) * mD[a_ind] * gaussW_g_ompkernel[k]
+
+
+
+          op1[c_ind] += -(1.0 / rho[i]) * mD[a_ind] * gaussW_g_ompkernel[k]
                         * sJ[factors_ind] * gVM[b_ind];
         }
       }
@@ -126,7 +132,7 @@ void pressure_solve_2_omp4_kernel(
     double tauA[7];
     for(int i = 0; i < 7; i++) {
       int ind = *edgeNum  * 7 + i;
-      tauA[i] = 10 * 0.5 * 5 * 6 * (*h / rho[ind]);
+      tauA[i] = 10 * 0.5 * 5 * 6 * (*h / gRho[ind]);
     }
 
 

@@ -11,7 +11,7 @@ inline void pressure_solve_1_openacc( const int *edgeNum, const bool *rev,
                              const double **pD1, const double **pD2,
                              const double **gVP0, const double **gVP1,
                              const double **gVP2, const double **sJ,
-                             const double **h, const double **tau, const double **rho,
+                             const double **h, const double **tau, const double **gRho, const double **rho,
                              const double **u, double *rhsL, double *rhsR) {
 
   int edgeL = edgeNum[0];
@@ -80,14 +80,14 @@ inline void pressure_solve_1_openacc( const int *edgeNum, const bool *rev,
         int factors_indR = edgeR * 7 + k;
 
         op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
-                       * (1.0 / rho[0][factors_indL]) * mDL[b_ind];
+                       * (1.0 / gRho[0][factors_indL]) * mDL[b_ind];
         op1R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
-                       * (1.0 / rho[1][factors_indR]) * mDR[b_ind];
+                       * (1.0 / gRho[1][factors_indR]) * mDR[b_ind];
 
         op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
-                       * (1.0 / rho[0][factors_indL]) * pDL[b_ind];
+                       * (1.0 / gRho[0][factors_indL]) * pDL[b_ind];
         op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
-                       * (1.0 / rho[1][factors_indR]) * pDR[b_ind];
+                       * (1.0 / gRho[1][factors_indR]) * pDR[b_ind];
       }
     }
   }
@@ -116,14 +116,23 @@ inline void pressure_solve_1_openacc( const int *edgeNum, const bool *rev,
 
 
 
-        op1L[c_ind] += -(1.0 / rho[0][factors_indL]) * mDL[a_ind] * gaussW_g[k]
+
+
+
+
+
+
+
+
+
+        op1L[c_ind] += -(1.0 / rho[0][i]) * mDL[a_ind] * gaussW_g[k]
                        * sJ[0][factors_indL] * gVML[b_ind];
-        op1R[c_ind] += -(1.0 / rho[1][factors_indR]) * mDR[a_ind] * gaussW_g[k]
+        op1R[c_ind] += -(1.0 / rho[1][i]) * mDR[a_ind] * gaussW_g[k]
                        * sJ[1][factors_indR] * gVMR[b_ind];
 
-        op2L[c_ind] += (1.0 / rho[0][factors_indL]) * mDL[a_ind] * gaussW_g[k]
+        op2L[c_ind] += (1.0 / rho[0][i]) * mDL[a_ind] * gaussW_g[k]
                        * sJ[0][factors_indL] * gVPL[b_ind];
-        op2R[c_ind] += (1.0 / rho[1][factors_indR]) * mDR[a_ind] * gaussW_g[k]
+        op2R[c_ind] += (1.0 / rho[1][i]) * mDR[a_ind] * gaussW_g[k]
                        * sJ[1][factors_indR] * gVPR[b_ind];
       }
     }
@@ -138,7 +147,7 @@ inline void pressure_solve_1_openacc( const int *edgeNum, const bool *rev,
       indR = edgeR * 7 + 6 - i;
     else
       indR = edgeR * 7 + i;
-    tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / rho[0][indL], *(h[1]) / rho[1][indR]);
+    tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / gRho[0][indL], *(h[1]) / gRho[1][indR]);
   }
   for(int i = 0; i < 7; i++) {
     int indL;
@@ -147,7 +156,7 @@ inline void pressure_solve_1_openacc( const int *edgeNum, const bool *rev,
       indL = edgeL * 7 + 6 - i;
     else
       indL = edgeL * 7 + i;
-    tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / rho[0][indL], *(h[1]) / rho[1][indR]);
+    tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / gRho[0][indL], *(h[1]) / gRho[1][indR]);
   }
 
 
@@ -216,10 +225,11 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
   op_arg arg26,
   op_arg arg28,
   op_arg arg30,
-  op_arg arg31){
+  op_arg arg32,
+  op_arg arg33){
 
-  int nargs = 32;
-  op_arg args[32];
+  int nargs = 34;
+  op_arg args[34];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -307,8 +317,14 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
     args[28 + v] = op_arg_dat(arg28.dat, v, arg28.map, 15, "double", OP_READ);
   }
 
+  arg30.idx = 0;
   args[30] = arg30;
-  args[31] = arg31;
+  for ( int v=1; v<2; v++ ){
+    args[30 + v] = op_arg_dat(arg30.dat, v, arg30.map, 15, "double", OP_READ);
+  }
+
+  args[32] = arg32;
+  args[33] = arg33;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -317,8 +333,8 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
   OP_kernels[28].name      = name;
   OP_kernels[28].count    += 1;
 
-  int  ninds   = 15;
-  int  inds[32] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,14,14};
+  int  ninds   = 16;
+  int  inds[34] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,14,14,15,15};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: pressure_solve_1\n");
@@ -359,6 +375,7 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
     double *data26 = (double *)arg26.data_d;
     double *data28 = (double *)arg28.data_d;
     double *data30 = (double *)arg30.data_d;
+    double *data32 = (double *)arg32.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -373,7 +390,7 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map2,data0,data1,data2,data4,data6,data8,data10,data12,data14,data16,data18,data20,data22,data24,data26,data28,data30)
+      #pragma acc parallel loop independent deviceptr(col_reord,map2,data0,data1,data2,data4,data6,data8,data10,data12,data14,data16,data18,data20,data22,data24,data26,data28,data30,data32)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map2idx;
@@ -423,6 +440,9 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
         const double* arg28_vec[] = {
            &data28[15 * map2idx],
            &data28[15 * map3idx]};
+        const double* arg30_vec[] = {
+           &data30[15 * map2idx],
+           &data30[15 * map3idx]};
 
         pressure_solve_1_openacc(
           &data0[2 * n],
@@ -441,8 +461,9 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
           arg24_vec,
           arg26_vec,
           arg28_vec,
-          &data30[15 * map2idx],
-          &data30[15 * map3idx]);
+          arg30_vec,
+          &data32[15 * map2idx],
+          &data32[15 * map3idx]);
       }
 
     }

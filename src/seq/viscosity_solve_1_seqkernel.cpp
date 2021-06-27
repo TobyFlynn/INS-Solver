@@ -25,10 +25,11 @@ void op_par_loop_viscosity_solve_1(char const *name, op_set set,
   op_arg arg28,
   op_arg arg30,
   op_arg arg32,
-  op_arg arg33){
+  op_arg arg34,
+  op_arg arg35){
 
-  int nargs = 34;
-  op_arg args[34];
+  int nargs = 36;
+  op_arg args[36];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -113,17 +114,23 @@ void op_par_loop_viscosity_solve_1(char const *name, op_set set,
   arg28.idx = 0;
   args[28] = arg28;
   for ( int v=1; v<2; v++ ){
-    args[28 + v] = op_arg_dat(arg28.dat, v, arg28.map, 21, "double", OP_READ);
+    args[28 + v] = op_arg_dat(arg28.dat, v, arg28.map, 15, "double", OP_READ);
   }
 
   arg30.idx = 0;
   args[30] = arg30;
   for ( int v=1; v<2; v++ ){
-    args[30 + v] = op_arg_dat(arg30.dat, v, arg30.map, 15, "double", OP_READ);
+    args[30 + v] = op_arg_dat(arg30.dat, v, arg30.map, 21, "double", OP_READ);
   }
 
+  arg32.idx = 0;
   args[32] = arg32;
-  args[33] = arg33;
+  for ( int v=1; v<2; v++ ){
+    args[32 + v] = op_arg_dat(arg32.dat, v, arg32.map, 15, "double", OP_READ);
+  }
+
+  args[34] = arg34;
+  args[35] = arg35;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -187,11 +194,14 @@ void op_par_loop_viscosity_solve_1(char const *name, op_set set,
          &((double*)arg26.data)[21 * map2idx],
          &((double*)arg26.data)[21 * map3idx]};
       const double* arg28_vec[] = {
-         &((double*)arg28.data)[21 * map2idx],
-         &((double*)arg28.data)[21 * map3idx]};
+         &((double*)arg28.data)[15 * map2idx],
+         &((double*)arg28.data)[15 * map3idx]};
       const double* arg30_vec[] = {
-         &((double*)arg30.data)[15 * map2idx],
-         &((double*)arg30.data)[15 * map3idx]};
+         &((double*)arg30.data)[21 * map2idx],
+         &((double*)arg30.data)[21 * map3idx]};
+      const double* arg32_vec[] = {
+         &((double*)arg32.data)[15 * map2idx],
+         &((double*)arg32.data)[15 * map3idx]};
 
       viscosity_solve_1(
         &((int*)arg0.data)[2 * n],
@@ -211,8 +221,9 @@ void op_par_loop_viscosity_solve_1(char const *name, op_set set,
         arg26_vec,
         arg28_vec,
         arg30_vec,
-        &((double*)arg32.data)[15 * map2idx],
-        &((double*)arg32.data)[15 * map3idx]);
+        arg32_vec,
+        &((double*)arg34.data)[15 * map2idx],
+        &((double*)arg34.data)[15 * map3idx]);
     }
   }
 
@@ -242,7 +253,8 @@ void op_par_loop_viscosity_solve_1(char const *name, op_set set,
   OP_kernels[32].transfer += (float)set->size * arg26.size;
   OP_kernels[32].transfer += (float)set->size * arg28.size;
   OP_kernels[32].transfer += (float)set->size * arg30.size;
-  OP_kernels[32].transfer += (float)set->size * arg32.size * 2.0f;
+  OP_kernels[32].transfer += (float)set->size * arg32.size;
+  OP_kernels[32].transfer += (float)set->size * arg34.size * 2.0f;
   OP_kernels[32].transfer += (float)set->size * arg0.size;
   OP_kernels[32].transfer += (float)set->size * arg1.size;
   OP_kernels[32].transfer += (float)set->size * arg2.map->dim * 4.0f;

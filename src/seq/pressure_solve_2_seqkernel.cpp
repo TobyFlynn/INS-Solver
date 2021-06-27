@@ -20,10 +20,11 @@ void op_par_loop_pressure_solve_2(char const *name, op_set set,
   op_arg arg10,
   op_arg arg11,
   op_arg arg12,
-  op_arg arg13){
+  op_arg arg13,
+  op_arg arg14){
 
-  int nargs = 14;
-  op_arg args[14];
+  int nargs = 15;
+  op_arg args[15];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -39,6 +40,7 @@ void op_par_loop_pressure_solve_2(char const *name, op_set set,
   args[11] = arg11;
   args[12] = arg12;
   args[13] = arg13;
+  args[14] = arg14;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -75,7 +77,8 @@ void op_par_loop_pressure_solve_2(char const *name, op_set set,
         &((double*)arg10.data)[3 * map5idx],
         &((double*)arg11.data)[21 * map5idx],
         &((double*)arg12.data)[15 * map5idx],
-        &((double*)arg13.data)[15 * map5idx]);
+        &((double*)arg13.data)[15 * map5idx],
+        &((double*)arg14.data)[15 * map5idx]);
     }
   }
 
@@ -98,7 +101,8 @@ void op_par_loop_pressure_solve_2(char const *name, op_set set,
   OP_kernels[29].transfer += (float)set->size * arg10.size;
   OP_kernels[29].transfer += (float)set->size * arg11.size;
   OP_kernels[29].transfer += (float)set->size * arg12.size;
-  OP_kernels[29].transfer += (float)set->size * arg13.size * 2.0f;
+  OP_kernels[29].transfer += (float)set->size * arg13.size;
+  OP_kernels[29].transfer += (float)set->size * arg14.size * 2.0f;
   OP_kernels[29].transfer += (float)set->size * arg0.size;
   OP_kernels[29].transfer += (float)set->size * arg1.size;
   OP_kernels[29].transfer += (float)set->size * arg2.size;

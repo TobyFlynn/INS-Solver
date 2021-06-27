@@ -32,6 +32,8 @@ void viscosity_solve_apply_bc_omp4_kernel(
   int dat13size,
   double *data14,
   int dat14size,
+  double *data15,
+  int dat15size,
   int *col_reord,
   int set_size1,
   int start,
@@ -44,7 +46,7 @@ void viscosity_solve_apply_bc_omp4_kernel(
   int arg4_l = *arg4;
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
     map(to: gaussW_g_ompkernel[:7], gFInterp0_g_ompkernel[:105], gFInterp1_g_ompkernel[:105], gFInterp2_g_ompkernel[:105])\
-    map(to:col_reord[0:set_size1],map5[0:map5size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size])
+    map(to:col_reord[0:set_size1],map5[0:map5size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size],data15[0:dat15size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
@@ -63,15 +65,14 @@ void viscosity_solve_apply_bc_omp4_kernel(
     const double *sJ = &data8[21 * map5idx];
     const double *h = &data9[1 * map5idx];
     const double *tau = &data10[3 * map5idx];
-    const double *mu = &data11[21 * map5idx];
-    const double *rho = &data12[21 * map5idx];
-    const double *bc = &data13[21 * map5idx];
-    double *b = &data14[15 * map5idx];
+    const double *gMu = &data11[21 * map5idx];
+    const double *mu = &data12[15 * map5idx];
+    const double *rho = &data13[21 * map5idx];
+    const double *bc = &data14[21 * map5idx];
+    double *b = &data15[15 * map5idx];
 
     //inline function
     
-    if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2)
-      return;
 
 
     const double *mD, *gVM;
@@ -86,30 +87,54 @@ void viscosity_solve_apply_bc_omp4_kernel(
       gVM = gFInterp2_g_ompkernel;
     }
 
-    double tauA[7];
-    for(int i = 0; i < 7; i++) {
-      int ind = *edgeNum  * 7 + i;
-      tauA[i] = 10 * 0.5 * 5 * 6 * (*h / rho[ind]);
-    }
-
-    double op[7 * 15];
+    if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2) {
+      double op[7 * 15];
 
 
-    for(int i = 0; i < 7 * 15; i++) {
-      int indT = (i % 7) * 15 + i / 7;
-      int indSJ = *edgeNum * 7 + (i % 7);
-      int indRho = *edgeNum * 7 + (i / 7);
-      op[i] = gVM[indT] * gaussW_g_ompkernel[i % 7] * sJ[indSJ] * tauA[i % 7]
-              - mu[indRho] * mD[indT] * gaussW_g_ompkernel[i % 7] * sJ[indSJ];
+      for(int i = 0; i < 7 * 15; i++) {
+        int indT = (i % 7) * 15 + i / 7;
+        int indSJ = *edgeNum * 7 + (i % 7);
+        int indRho = *edgeNum * 7 + (i / 7);
+        op[i] = gVM[indT] * gaussW_g_ompkernel[i % 7] * sJ[indSJ];
+      }
+
+      for(int i = 0; i < 15; i++) {
+        for(int j = 0; j < 7; j++) {
+          int op_ind = i * 7 + j;
+          int bc_ind = *edgeNum * 7 + j;
+          b[i] += op[op_ind] * bc[bc_ind];
+        }
+      }
+    } else {
+
+      double tauA[7];
+      for(int i = 0; i < 7; i++) {
+        int ind = *edgeNum  * 7 + i;
+        tauA[i] = 10 * 0.5 * 5 * 6 * (*h / rho[ind]);
+      }
+
+      double op[7 * 15];
 
 
-    }
+      for(int i = 0; i < 7 * 15; i++) {
+        int indT = (i % 7) * 15 + i / 7;
+        int indSJ = *edgeNum * 7 + (i % 7);
 
-    for(int i = 0; i < 15; i++) {
-      for(int j = 0; j < 7; j++) {
-        int op_ind = i * 7 + j;
-        int bc_ind = *edgeNum * 7 + j;
-        b[i] += op[op_ind] * bc[bc_ind];
+        int indRho = (i / 7);
+
+
+
+
+        op[i] = gVM[indT] * gaussW_g_ompkernel[i % 7] * sJ[indSJ] * tauA[i % 7]
+                - mu[indRho] * mD[indT] * gaussW_g_ompkernel[i % 7] * sJ[indSJ];
+      }
+
+      for(int i = 0; i < 15; i++) {
+        for(int j = 0; j < 7; j++) {
+          int op_ind = i * 7 + j;
+          int bc_ind = *edgeNum * 7 + j;
+          b[i] += op[op_ind] * bc[bc_ind];
+        }
       }
     }
     //end inline func
