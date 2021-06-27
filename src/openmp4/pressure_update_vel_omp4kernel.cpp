@@ -23,6 +23,8 @@ void pressure_update_vel_omp4_kernel(
   int dat7size,
   double *data8,
   int dat8size,
+  double *data9,
+  int dat9size,
   int count,
   int num_teams,
   int nthread);
@@ -37,11 +39,12 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8){
+  op_arg arg8,
+  op_arg arg9){
 
   double*arg0h = (double *)arg0.data;
-  int nargs = 9;
-  op_arg args[9];
+  int nargs = 10;
+  op_arg args[10];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -52,13 +55,14 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   args[6] = arg6;
   args[7] = arg7;
   args[8] = arg8;
+  args[9] = arg9;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(41);
+  op_timing_realloc(45);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[41].name      = name;
-  OP_kernels[41].count    += 1;
+  OP_kernels[45].name      = name;
+  OP_kernels[45].count    += 1;
 
 
   if (OP_diags>2) {
@@ -67,13 +71,13 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_41
-    int part_size = OP_PART_SIZE_41;
+  #ifdef OP_PART_SIZE_45
+    int part_size = OP_PART_SIZE_45;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_41
-    int nthread = OP_BLOCK_SIZE_41;
+  #ifdef OP_BLOCK_SIZE_45
+    int nthread = OP_BLOCK_SIZE_45;
   #else
     int nthread = OP_block_size;
   #endif
@@ -100,6 +104,8 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
     int dat7size = getSetSizeFromOpArg(&arg7) * arg7.dat->dim;
     double* data8 = (double*)arg8.data_d;
     int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
+    double* data9 = (double*)arg9.data_d;
+    int dat9size = getSetSizeFromOpArg(&arg9) * arg9.dat->dim;
     pressure_update_vel_omp4_kernel(
       &arg0_l,
       data1,
@@ -118,6 +124,8 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
       dat7size,
       data8,
       dat8size,
+      data9,
+      dat9size,
       set->size,
       part_size!=0?(set->size-1)/part_size+1:(set->size-1)/nthread,
       nthread);
@@ -130,13 +138,14 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[41].time     += wall_t2 - wall_t1;
-  OP_kernels[41].transfer += (float)set->size * arg1.size;
-  OP_kernels[41].transfer += (float)set->size * arg2.size;
-  OP_kernels[41].transfer += (float)set->size * arg3.size;
-  OP_kernels[41].transfer += (float)set->size * arg4.size;
-  OP_kernels[41].transfer += (float)set->size * arg5.size * 2.0f;
-  OP_kernels[41].transfer += (float)set->size * arg6.size * 2.0f;
-  OP_kernels[41].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[41].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[45].time     += wall_t2 - wall_t1;
+  OP_kernels[45].transfer += (float)set->size * arg1.size;
+  OP_kernels[45].transfer += (float)set->size * arg2.size;
+  OP_kernels[45].transfer += (float)set->size * arg3.size;
+  OP_kernels[45].transfer += (float)set->size * arg4.size;
+  OP_kernels[45].transfer += (float)set->size * arg5.size;
+  OP_kernels[45].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[45].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[45].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[45].transfer += (float)set->size * arg9.size * 2.0f;
 }

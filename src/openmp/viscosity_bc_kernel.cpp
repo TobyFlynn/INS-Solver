@@ -16,10 +16,11 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9){
+  op_arg arg9,
+  op_arg arg10){
 
-  int nargs = 10;
-  op_arg args[10];
+  int nargs = 11;
+  op_arg args[11];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -31,24 +32,25 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   args[7] = arg7;
   args[8] = arg8;
   args[9] = arg9;
+  args[10] = arg10;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(42);
-  OP_kernels[42].name      = name;
-  OP_kernels[42].count    += 1;
+  op_timing_realloc(46);
+  OP_kernels[46].name      = name;
+  OP_kernels[46].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 6;
-  int  inds[10] = {-1,-1,-1,-1,0,1,2,3,4,5};
+  int  ninds   = 7;
+  int  inds[11] = {-1,-1,-1,-1,0,1,2,3,4,5,6};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: viscosity_bc\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_42
-    int part_size = OP_PART_SIZE_42;
+  #ifdef OP_PART_SIZE_46
+    int part_size = OP_PART_SIZE_46;
   #else
     int part_size = OP_part_size;
   #endif
@@ -87,14 +89,15 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
             &((double*)arg6.data)[21 * map4idx],
             &((double*)arg7.data)[21 * map4idx],
             &((double*)arg8.data)[21 * map4idx],
-            &((double*)arg9.data)[21 * map4idx]);
+            &((double*)arg9.data)[21 * map4idx],
+            &((double*)arg10.data)[21 * map4idx]);
         }
       }
 
       block_offset += nblocks;
     }
-    OP_kernels[42].transfer  += Plan->transfer;
-    OP_kernels[42].transfer2 += Plan->transfer2;
+    OP_kernels[46].transfer  += Plan->transfer;
+    OP_kernels[46].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -105,5 +108,5 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[42].time     += wall_t2 - wall_t1;
+  OP_kernels[46].time     += wall_t2 - wall_t1;
 }

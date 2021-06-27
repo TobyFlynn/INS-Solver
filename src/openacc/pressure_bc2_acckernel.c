@@ -7,7 +7,7 @@
 //#pragma acc routine
 inline void pressure_bc2_openacc( const int *bedge_type, const int *bedgeNum,
                          const double *t, const int *problem, const double *x,
-                         const double *y, double *prBC) {
+                         const double *y, const double *nu, double *prBC) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 7;
@@ -23,7 +23,7 @@ inline void pressure_bc2_openacc( const int *bedge_type, const int *bedgeNum,
       for(int i = 0; i < 7; i++) {
         double y1 = y[exInd + i];
         double x1 = x[exInd + i];
-        prBC[exInd + i] += -cos(2.0 * PI * x1) * cos(2.0 * PI * y1) * exp(-nu * 8.0 * PI * PI * *t);
+        prBC[exInd + i] += -cos(2.0 * PI * x1) * cos(2.0 * PI * y1) * exp(-nu[exInd + i] * 8.0 * PI * PI * *t);
       }
     }
   }
@@ -37,12 +37,13 @@ void op_par_loop_pressure_bc2(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6){
+  op_arg arg6,
+  op_arg arg7){
 
   double*arg2h = (double *)arg2.data;
   int*arg3h = (int *)arg3.data;
-  int nargs = 7;
-  op_arg args[7];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -51,24 +52,25 @@ void op_par_loop_pressure_bc2(char const *name, op_set set,
   args[4] = arg4;
   args[5] = arg5;
   args[6] = arg6;
+  args[7] = arg7;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(39);
+  op_timing_realloc(43);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[39].name      = name;
-  OP_kernels[39].count    += 1;
+  OP_kernels[43].name      = name;
+  OP_kernels[43].count    += 1;
 
-  int  ninds   = 3;
-  int  inds[7] = {-1,-1,-1,-1,0,1,2};
+  int  ninds   = 4;
+  int  inds[8] = {-1,-1,-1,-1,0,1,2,3};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: pressure_bc2\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_39
-    int part_size = OP_PART_SIZE_39;
+  #ifdef OP_PART_SIZE_43
+    int part_size = OP_PART_SIZE_43;
   #else
     int part_size = OP_part_size;
   #endif
@@ -91,6 +93,7 @@ void op_par_loop_pressure_bc2(char const *name, op_set set,
     double *data4 = (double *)arg4.data_d;
     double *data5 = (double *)arg5.data_d;
     double *data6 = (double *)arg6.data_d;
+    double *data7 = (double *)arg7.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -105,7 +108,7 @@ void op_par_loop_pressure_bc2(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map4,data0,data1,data4,data5,data6)
+      #pragma acc parallel loop independent deviceptr(col_reord,map4,data0,data1,data4,data5,data6,data7)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map4idx;
@@ -119,12 +122,13 @@ void op_par_loop_pressure_bc2(char const *name, op_set set,
           &arg3_l,
           &data4[21 * map4idx],
           &data5[21 * map4idx],
-          &data6[21 * map4idx]);
+          &data6[21 * map4idx],
+          &data7[21 * map4idx]);
       }
 
     }
-    OP_kernels[39].transfer  += Plan->transfer;
-    OP_kernels[39].transfer2 += Plan->transfer2;
+    OP_kernels[43].transfer  += Plan->transfer;
+    OP_kernels[43].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -135,5 +139,5 @@ void op_par_loop_pressure_bc2(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[39].time     += wall_t2 - wall_t1;
+  OP_kernels[43].time     += wall_t2 - wall_t1;
 }

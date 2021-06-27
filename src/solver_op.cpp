@@ -21,6 +21,7 @@ void op_par_loop_set_ic(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_calc_dt(char const *, op_set,
@@ -42,10 +43,10 @@ void op_par_loop_advection_faces(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
-  op_arg,
   op_arg );
 
 void op_par_loop_advection_bc(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -86,7 +87,13 @@ void op_par_loop_advection_intermediate_vel(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_pressure_mu(char const *, op_set,
+  op_arg,
+  op_arg );
+
 void op_par_loop_pressure_bc(char const *, op_set,
+  op_arg,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -102,6 +109,7 @@ void op_par_loop_pressure_bc(char const *, op_set,
   op_arg );
 
 void op_par_loop_pressure_bc2(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -130,9 +138,11 @@ void op_par_loop_pressure_update_vel(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_viscosity_bc(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -147,6 +157,9 @@ void op_par_loop_viscosity_bc(char const *, op_set,
 void op_par_loop_viscosity_rhs(char const *, op_set,
   op_arg,
   op_arg,
+  op_arg );
+
+void op_par_loop_viscosity_rhs_rho(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
@@ -157,6 +170,7 @@ void op_par_loop_viscosity_reset_bc(char const *, op_set,
   op_arg );
 
 void op_par_loop_lift_drag(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -182,64 +196,39 @@ void op_par_loop_lift_drag(char const *, op_set,
 #include "constants.h"
 #include "blas_calls.h"
 #include "operators.h"
-
-// Kernels
-#include "kernels/set_ic.h"
-#include "kernels/calc_dt.h"
-
-#include "kernels/advection_flux.h"
-#include "kernels/advection_faces.h"
-#include "kernels/advection_bc.h"
-#include "kernels/advection_numerical_flux.h"
-#include "kernels/advection_intermediate_vel.h"
-
-#include "kernels/pressure_bc.h"
-#include "kernels/pressure_bc2.h"
-#include "kernels/pressure_rhs.h"
-#include "kernels/pressure_update_vel.h"
-
-#include "kernels/viscosity_rhs.h"
-#include "kernels/viscosity_reset_bc.h"
-#include "kernels/viscosity_bc.h"
-
-#include "kernels/lift_drag.h"
+#include "timing.h"
 
 extern Timing *timer;
 extern Constants *constants;
+extern double re;
 
 using namespace std;
 
-Solver::Solver(std::string filename, int pmethod, int prob) {
+Solver::Solver(std::string filename, int pmethod, int prob, bool multi) {
   problem = prob;
+  multiphase = multi;
   data = new INSData(filename);
   cubatureData = new CubatureData(data);
   gaussData = new GaussData(data);
-
-  if(pmethod == 0) {
-    Poisson_M *pressureM = new Poisson_M(data, cubatureData, gaussData);
-    pressureM->setDirichletBCs(data->pressure_dirichlet);
-    pressureM->setNeumannBCs(data->pressure_neumann);
-    pressurePoisson = pressureM;
-    Poisson_M *viscosityM = new Poisson_M(data, cubatureData, gaussData);
-    viscosityM->setDirichletBCs(data->viscosity_dirichlet);
-    viscosityM->setNeumannBCs(data->viscosity_neumann);
-    viscosityPoisson = viscosityM;
-  } else {
-    Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubatureData, gaussData);
-    pressureMF2->setDirichletBCs(data->pressure_dirichlet);
-    pressureMF2->setNeumannBCs(data->pressure_neumann);
-    pressurePoisson = pressureMF2;
-    Poisson_MF2 *viscosityMF2 = new Poisson_MF2(data, cubatureData, gaussData);
-    viscosityMF2->setDirichletBCs(data->viscosity_dirichlet);
-    viscosityMF2->setNeumannBCs(data->viscosity_neumann);
-    viscosityPoisson = viscosityMF2;
+  if(multiphase) {
+    ls = new LS(data, cubatureData, gaussData);
   }
 
-  op_partition("PTSCOTCH", "KWAY", data->cells, data->edge2cells, NULL);
+  pressurePoisson = new PressureSolve(data, cubatureData, gaussData);
+  pressurePoisson->setDirichletBCs(data->pressure_dirichlet);
+  pressurePoisson->setNeumannBCs(data->pressure_neumann);
+  viscosityPoisson = new ViscositySolve(data, cubatureData, gaussData);
+  viscosityPoisson->setDirichletBCs(data->viscosity_dirichlet);
+  viscosityPoisson->setNeumannBCs(data->viscosity_neumann);
+
+  op_partition("PARMETIS", "KWAY", data->cells, data->edge2cells, NULL);
 
   data->init();
   cubatureData->init();
   gaussData->init();
+  if(multiphase) {
+    ls->init();
+  }
   pressurePoisson->init();
   viscosityPoisson->init();
 
@@ -248,6 +237,7 @@ Solver::Solver(std::string filename, int pmethod, int prob) {
               op_arg_gbl(&problem,1,"int",OP_READ),
               op_arg_dat(data->x,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->y,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->nu,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->Q[0][0],-1,OP_ID,15,"double",OP_WRITE),
               op_arg_dat(data->Q[0][1],-1,OP_ID,15,"double",OP_WRITE));
 
@@ -263,6 +253,9 @@ Solver::Solver(std::string filename, int pmethod, int prob) {
 Solver::~Solver() {
   delete viscosityPoisson;
   delete pressurePoisson;
+  if(multiphase) {
+    delete ls;
+  }
   delete gaussData;
   delete cubatureData;
   delete data;
@@ -285,8 +278,7 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
   // Exchange values on edges between elements
   op_par_loop_advection_faces("advection_faces",data->edges,
               op_arg_dat(data->edgeNum,-1,OP_ID,2,"int",OP_READ),
-              op_arg_dat(data->nodeX,-2,data->edge2cells,3,"double",OP_READ),
-              op_arg_dat(data->nodeY,-2,data->edge2cells,3,"double",OP_READ),
+              op_arg_dat(data->reverse,-1,OP_ID,1,"bool",OP_READ),
               op_arg_dat(data->Q[currentInd][0],-2,data->edge2cells,15,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][1],-2,data->edge2cells,15,"double",OP_READ),
               op_arg_dat(data->exQ[0],-2,data->edge2cells,15,"double",OP_INC),
@@ -300,6 +292,7 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_gbl(&problem,1,"int",OP_READ),
               op_arg_dat(data->x,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->y,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->nu,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][0],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][1],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->exQ[0],0,data->bedge2cells,15,"double",OP_INC),
@@ -345,6 +338,12 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   timer->startPressureSetup();
   div(data, data->QT[0], data->QT[1], data->divVelT);
   curl(data, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
+
+  // Mult by mu here?
+  op_par_loop_pressure_mu("pressure_mu",data->cells,
+              op_arg_dat(data->nu,-1,OP_ID,15,"double",OP_READ),
+              op_arg_dat(data->curlVel,-1,OP_ID,15,"double",OP_RW));
+
   grad(data, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
 
   // Apply pressure boundary conditions
@@ -357,6 +356,8 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->y,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->nx,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->ny,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->nu,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->rho,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->N[currentInd][0],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->N[currentInd][1],0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->gradCurlVel[0],0,data->bedge2cells,15,"double",OP_READ),
@@ -371,6 +372,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
                 op_arg_gbl(&problem,1,"int",OP_READ),
                 op_arg_dat(gaussData->x,0,data->bedge2cells,21,"double",OP_READ),
                 op_arg_dat(gaussData->y,0,data->bedge2cells,21,"double",OP_READ),
+                op_arg_dat(data->gNu,0,data->bedge2cells,21,"double",OP_READ),
                 op_arg_dat(data->prBC,0,data->bedge2cells,21,"double",OP_INC));
   }
 
@@ -403,6 +405,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   double factor = dt / g0;
   op_par_loop_pressure_update_vel("pressure_update_vel",data->cells,
               op_arg_gbl(&factor,1,"double",OP_READ),
+              op_arg_dat(data->rho,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->dpdx,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->dpdy,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->QT[0],-1,OP_ID,15,"double",OP_READ),
@@ -429,6 +432,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(gaussData->y,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(gaussData->nx,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(gaussData->ny,0,data->bedge2cells,21,"double",OP_READ),
+              op_arg_dat(data->gNu,0,data->bedge2cells,21,"double",OP_READ),
               op_arg_dat(data->visBC[0],0,data->bedge2cells,21,"double",OP_INC),
               op_arg_dat(data->visBC[1],0,data->bedge2cells,21,"double",OP_INC));
 
@@ -436,24 +440,43 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[0], 0.0, data->visRHS[0]);
   op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[1], 0.0, data->visRHS[1]);
 
-  double factor = g0 / (nu * dt);
+  double factor;
+  if(multiphase) {
+    // factor = ren * g0 / dt;
+    factor = ren / dt;
+    // factor = g0 / (nu0 * dt);
+  } else {
+    factor = g0 / (nu0 * dt);
+  }
+
   op_par_loop_viscosity_rhs("viscosity_rhs",data->cells,
               op_arg_gbl(&factor,1,"double",OP_READ),
-              op_arg_dat(data->J,-1,OP_ID,15,"double",OP_READ),
               op_arg_dat(data->visRHS[0],-1,OP_ID,15,"double",OP_RW),
-              op_arg_dat(data->visRHS[1],-1,OP_ID,15,"double",OP_RW),
-              op_arg_dat(data->visBC[0],-1,OP_ID,21,"double",OP_RW),
-              op_arg_dat(data->visBC[1],-1,OP_ID,21,"double",OP_RW));
+              op_arg_dat(data->visRHS[1],-1,OP_ID,15,"double",OP_RW));
+
+  if(multiphase) {
+    op_par_loop_viscosity_rhs_rho("viscosity_rhs_rho",data->cells,
+                op_arg_dat(data->rho,-1,OP_ID,15,"double",OP_READ),
+                op_arg_dat(data->nu,-1,OP_ID,15,"double",OP_RW),
+                op_arg_dat(data->visRHS[0],-1,OP_ID,15,"double",OP_RW),
+                op_arg_dat(data->visRHS[1],-1,OP_ID,15,"double",OP_RW));
+  }
+
+  if(multiphase) {
+    factor = ren * g0 / dt;
+  }
 
   timer->endViscositySetup();
 
   // Call PETSc linear solver
   timer->startViscosityLinearSolve();
   viscosityPoisson->setBCValues(data->visBC[0]);
-  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
+  // bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
+  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], factor);
 
   viscosityPoisson->setBCValues(data->visBC[1]);
-  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
+  // bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
+  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], factor);
   timer->endViscosityLinearSolve();
 
   // Reset BC dats ready for next iteration
@@ -462,6 +485,15 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->visBC[1],-1,OP_ID,21,"double",OP_WRITE));
 
   return convergedX && convergedY;
+}
+
+void Solver::update_surface(int currentInd) {
+  timer->startSurface();
+  if(multiphase) {
+    ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
+    ls->step(dt);
+  }
+  timer->endSurface();
 }
 
 // Function to calculate lift and drag coefficients of the cylinder
@@ -483,6 +515,7 @@ void Solver::lift_drag_coeff(double *lift, double *drag, int ind) {
               op_arg_dat(data->nx,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->ny,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_dat(data->sJ,0,data->bedge2cells,15,"double",OP_READ),
+              op_arg_dat(data->nu,0,data->bedge2cells,15,"double",OP_READ),
               op_arg_gbl(drag,1,"double",OP_INC),
               op_arg_gbl(lift,1,"double",OP_INC));
 

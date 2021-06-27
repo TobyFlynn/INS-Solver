@@ -8,7 +8,7 @@
 inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
                         const double *t, const int *problem, const double *x,
                         const double *y, const double *nx, const double *ny,
-                        const double *N0, const double *N1,
+                        const double *nu, const double *rho, const double *N0, const double *N1,
                         const double *gradCurlVel0, const double *gradCurlVel1,
                         double *dPdN) {
   int exInd = 0;
@@ -35,8 +35,10 @@ inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
 
       for(int i = 0; i < 5; i++) {
         int fInd = fmask[i];
-        double res1 = -N0[fInd] - nu * gradCurlVel1[fInd];
-        double res2 = -N1[fInd] + nu * gradCurlVel0[fInd];
+
+
+        double res1 = -N0[fInd] - gradCurlVel1[fInd] / (ren * rho[fInd]);
+        double res2 = -N1[fInd] + gradCurlVel0[fInd] / (ren * rho[fInd]);
         dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
       }
     }
@@ -54,16 +56,16 @@ inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
 
       for(int i = 0; i < 5; i++) {
         int fInd = fmask[i];
-        double res1 = -N0[fInd] - nu * gradCurlVel1[fInd];
-        double res2 = -N1[fInd] + nu * gradCurlVel0[fInd];
+        double res1 = -N0[fInd] - nu[fInd] * gradCurlVel1[fInd];
+        double res2 = -N1[fInd] + nu[fInd] * gradCurlVel0[fInd];
         dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
 
         double y1 = y[fmask[i]];
         double x1 = x[fmask[i]];
         double nx1 = nx[exInd + i];
         double ny1 = ny[exInd + i];
-        double bcdUndt = -nu * 4.0 * PI * PI * (-nx1 * sin(2.0 * PI * y1) + ny1 * sin(2.0 * PI * x1))
-                          * exp(-nu * 4.0 * PI * PI * *t);
+        double bcdUndt = -nu[fInd] * 4.0 * PI * PI * (-nx1 * sin(2.0 * PI * y1) + ny1 * sin(2.0 * PI * x1))
+                          * exp(-nu[fInd] * 4.0 * PI * PI * *t);
         dPdN[exInd + i] -= bcdUndt;
       }
     }
@@ -84,12 +86,14 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   op_arg arg9,
   op_arg arg10,
   op_arg arg11,
-  op_arg arg12){
+  op_arg arg12,
+  op_arg arg13,
+  op_arg arg14){
 
   double*arg2h = (double *)arg2.data;
   int*arg3h = (int *)arg3.data;
-  int nargs = 13;
-  op_arg args[13];
+  int nargs = 15;
+  op_arg args[15];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -104,24 +108,26 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   args[10] = arg10;
   args[11] = arg11;
   args[12] = arg12;
+  args[13] = arg13;
+  args[14] = arg14;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(38);
+  op_timing_realloc(42);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[38].name      = name;
-  OP_kernels[38].count    += 1;
+  OP_kernels[42].name      = name;
+  OP_kernels[42].count    += 1;
 
-  int  ninds   = 9;
-  int  inds[13] = {-1,-1,-1,-1,0,1,2,3,4,5,6,7,8};
+  int  ninds   = 11;
+  int  inds[15] = {-1,-1,-1,-1,0,1,2,3,4,5,6,7,8,9,10};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: pressure_bc\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_38
-    int part_size = OP_PART_SIZE_38;
+  #ifdef OP_PART_SIZE_42
+    int part_size = OP_PART_SIZE_42;
   #else
     int part_size = OP_part_size;
   #endif
@@ -150,6 +156,8 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
     double *data10 = (double *)arg10.data_d;
     double *data11 = (double *)arg11.data_d;
     double *data12 = (double *)arg12.data_d;
+    double *data13 = (double *)arg13.data_d;
+    double *data14 = (double *)arg14.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -164,7 +172,7 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map4,data0,data1,data4,data5,data6,data7,data8,data9,data10,data11,data12)
+      #pragma acc parallel loop independent deviceptr(col_reord,map4,data0,data1,data4,data5,data6,data7,data8,data9,data10,data11,data12,data13,data14)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map4idx;
@@ -184,12 +192,14 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
           &data9[15 * map4idx],
           &data10[15 * map4idx],
           &data11[15 * map4idx],
-          &data12[15 * map4idx]);
+          &data12[15 * map4idx],
+          &data13[15 * map4idx],
+          &data14[15 * map4idx]);
       }
 
     }
-    OP_kernels[38].transfer  += Plan->transfer;
-    OP_kernels[38].transfer2 += Plan->transfer2;
+    OP_kernels[42].transfer  += Plan->transfer;
+    OP_kernels[42].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -200,5 +210,5 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[38].time     += wall_t2 - wall_t1;
+  OP_kernels[42].time     += wall_t2 - wall_t1;
 }

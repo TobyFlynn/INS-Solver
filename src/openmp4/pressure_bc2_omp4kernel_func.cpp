@@ -17,6 +17,8 @@ void pressure_bc2_omp4_kernel(
   int dat5size,
   double *data6,
   int dat6size,
+  double *data7,
+  int dat7size,
   int *col_reord,
   int set_size1,
   int start,
@@ -26,9 +28,8 @@ void pressure_bc2_omp4_kernel(
 
   double arg2_l = *arg2;
   int arg3_l = *arg3;
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: nu_ompkernel)\
-    map(to:col_reord[0:set_size1],map4[0:map4size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size])\
+    map(to:col_reord[0:set_size1],map4[0:map4size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
@@ -42,7 +43,8 @@ void pressure_bc2_omp4_kernel(
     const int *problem = &arg3_l;
     const double *x = &data4[21 * map4idx];
     const double *y = &data5[21 * map4idx];
-    double *prBC = &data6[21 * map4idx];
+    const double *nu = &data6[21 * map4idx];
+    double *prBC = &data7[21 * map4idx];
 
     //inline function
     
@@ -61,7 +63,7 @@ void pressure_bc2_omp4_kernel(
         for(int i = 0; i < 7; i++) {
           double y1 = y[exInd + i];
           double x1 = x[exInd + i];
-          prBC[exInd + i] += -cos(2.0 * PI * x1) * cos(2.0 * PI * y1) * exp(-nu_ompkernel * 8.0 * PI * PI * *t);
+          prBC[exInd + i] += -cos(2.0 * PI * x1) * cos(2.0 * PI * y1) * exp(-nu[exInd + i] * 8.0 * PI * PI * *t);
         }
       }
     }

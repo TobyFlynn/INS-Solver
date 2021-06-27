@@ -23,6 +23,8 @@ void viscosity_bc_omp4_kernel(
   int dat8size,
   double *data9,
   int dat9size,
+  double *data10,
+  int dat10size,
   int *col_reord,
   int set_size1,
   int start,
@@ -32,9 +34,8 @@ void viscosity_bc_omp4_kernel(
 
   double arg2_l = *arg2;
   int arg3_l = *arg3;
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: nu_ompkernel)\
-    map(to:col_reord[0:set_size1],map4[0:map4size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size])\
+    map(to:col_reord[0:set_size1],map4[0:map4size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
@@ -50,8 +51,9 @@ void viscosity_bc_omp4_kernel(
     const double *y = &data5[21 * map4idx];
     const double *nx = &data6[21 * map4idx];
     const double *ny = &data7[21 * map4idx];
-    double *exQ0 = &data8[21 * map4idx];
-    double *exQ1 = &data9[21 * map4idx];
+    const double *nu = &data8[21 * map4idx];
+    double *exQ0 = &data9[21 * map4idx];
+    double *exQ1 = &data10[21 * map4idx];
 
     //inline function
     
@@ -87,8 +89,8 @@ void viscosity_bc_omp4_kernel(
         for(int i = 0; i < 7; i++) {
           double y1 = y[exInd + i];
           double x1 = x[exInd + i];
-          exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu_ompkernel * 4.0 * PI * PI * *t);
-          exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu_ompkernel * 4.0 * PI * PI * *t);
+          exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
+          exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
         }
       }
 
@@ -99,8 +101,8 @@ void viscosity_bc_omp4_kernel(
           double x1  = x[exInd + i];
           double ny1 = ny[exInd + i];
           double nx1 = nx[exInd + i];
-          exQ0[exInd + i] += ny1 * 2.0 * PI * (-cos(2.0 * PI * y1)) * exp(-nu_ompkernel * 4.0 * PI * PI * *t);
-          exQ1[exInd + i] += nx1 * 2.0 * PI * cos(2.0 * PI * x1) * exp(-nu_ompkernel * 4.0 * PI * PI * *t);
+          exQ0[exInd + i] += ny1 * 2.0 * PI * (-cos(2.0 * PI * y1)) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
+          exQ1[exInd + i] += nx1 * 2.0 * PI * cos(2.0 * PI * x1) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
         }
       }
     }

@@ -12,8 +12,8 @@ void lift_drag_omp4_kernel(
   int dat1size,
   int *map2,
   int map2size,
-  double *arg10,
   double *arg11,
+  double *arg12,
   double *data2,
   int dat2size,
   double *data3,
@@ -30,6 +30,8 @@ void lift_drag_omp4_kernel(
   int dat8size,
   double *data9,
   int dat9size,
+  double *data10,
+  int dat10size,
   int *col_reord,
   int set_size1,
   int start,
@@ -50,12 +52,13 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   op_arg arg8,
   op_arg arg9,
   op_arg arg10,
-  op_arg arg11){
+  op_arg arg11,
+  op_arg arg12){
 
-  double*arg10h = (double *)arg10.data;
   double*arg11h = (double *)arg11.data;
-  int nargs = 12;
-  op_arg args[12];
+  double*arg12h = (double *)arg12.data;
+  int nargs = 13;
+  op_arg args[13];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -69,16 +72,17 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   args[9] = arg9;
   args[10] = arg10;
   args[11] = arg11;
+  args[12] = arg12;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(45);
+  op_timing_realloc(50);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[45].name      = name;
-  OP_kernels[45].count    += 1;
+  OP_kernels[50].name      = name;
+  OP_kernels[50].count    += 1;
 
-  int  ninds   = 8;
-  int  inds[12] = {-1,-1,0,1,2,3,4,5,6,7,-1,-1};
+  int  ninds   = 9;
+  int  inds[13] = {-1,-1,0,1,2,3,4,5,6,7,8,-1,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: lift_drag\n");
@@ -87,19 +91,19 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_45
-    int part_size = OP_PART_SIZE_45;
+  #ifdef OP_PART_SIZE_50
+    int part_size = OP_PART_SIZE_50;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_45
-    int nthread = OP_BLOCK_SIZE_45;
+  #ifdef OP_BLOCK_SIZE_50
+    int nthread = OP_BLOCK_SIZE_50;
   #else
     int nthread = OP_block_size;
   #endif
 
-  double arg10_l = arg10h[0];
   double arg11_l = arg11h[0];
+  double arg12_l = arg12h[0];
 
   int ncolors = 0;
   int set_size1 = set->size + set->exec_size;
@@ -130,6 +134,8 @@ void op_par_loop_lift_drag(char const *name, op_set set,
     int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
     double *data9 = (double *)arg9.data_d;
     int dat9size = getSetSizeFromOpArg(&arg9) * arg9.dat->dim;
+    double *data10 = (double *)arg10.data_d;
+    int dat10size = getSetSizeFromOpArg(&arg10) * arg10.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -150,8 +156,8 @@ void op_par_loop_lift_drag(char const *name, op_set set,
         dat1size,
         map2,
         map2size,
-        &arg10_l,
         &arg11_l,
+        &arg12_l,
         data2,
         dat2size,
         data3,
@@ -168,6 +174,8 @@ void op_par_loop_lift_drag(char const *name, op_set set,
         dat8size,
         data9,
         dat9size,
+        data10,
+        dat10size,
         col_reord,
         set_size1,
         start,
@@ -177,24 +185,24 @@ void op_par_loop_lift_drag(char const *name, op_set set,
 
       // combine reduction data
       if (col == Plan->ncolors_owned-1) {
-        arg10h[0] = arg10_l;
         arg11h[0] = arg11_l;
+        arg12h[0] = arg12_l;
       }
     }
-    OP_kernels[45].transfer  += Plan->transfer;
-    OP_kernels[45].transfer2 += Plan->transfer2;
+    OP_kernels[50].transfer  += Plan->transfer;
+    OP_kernels[50].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
     op_mpi_wait_all_cuda(nargs, args);
   }
   // combine reduction data
-  op_mpi_reduce_double(&arg10,arg10h);
   op_mpi_reduce_double(&arg11,arg11h);
+  op_mpi_reduce_double(&arg12,arg12h);
   op_mpi_set_dirtybit_cuda(nargs, args);
 
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[45].time     += wall_t2 - wall_t1;
+  OP_kernels[50].time     += wall_t2 - wall_t1;
 }

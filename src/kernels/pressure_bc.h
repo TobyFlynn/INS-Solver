@@ -1,7 +1,7 @@
 inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
                         const double *t, const int *problem, const double *x,
                         const double *y, const double *nx, const double *ny,
-                        const double *N0, const double *N1,
+                        const double *nu, const double *rho, const double *N0, const double *N1,
                         const double *gradCurlVel0, const double *gradCurlVel1,
                         double *dPdN) {
   int exInd = 0;
@@ -28,8 +28,10 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
       // Inflow or Wall
       for(int i = 0; i < 5; i++) {
         int fInd = fmask[i];
-        double res1 = -N0[fInd] - nu * gradCurlVel1[fInd];
-        double res2 = -N1[fInd] + nu * gradCurlVel0[fInd];
+        // double res1 = -N0[fInd] - nu[fInd] * gradCurlVel1[fInd];
+        // double res2 = -N1[fInd] + nu[fInd] * gradCurlVel0[fInd];
+        double res1 = -N0[fInd] - gradCurlVel1[fInd] / (ren * rho[fInd]);
+        double res2 = -N1[fInd] + gradCurlVel0[fInd] / (ren * rho[fInd]);
         dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
       }
     }
@@ -47,16 +49,16 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
       // Inflow
       for(int i = 0; i < 5; i++) {
         int fInd = fmask[i];
-        double res1 = -N0[fInd] - nu * gradCurlVel1[fInd];
-        double res2 = -N1[fInd] + nu * gradCurlVel0[fInd];
+        double res1 = -N0[fInd] - nu[fInd] * gradCurlVel1[fInd];
+        double res2 = -N1[fInd] + nu[fInd] * gradCurlVel0[fInd];
         dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
 
         double y1 = y[fmask[i]];
         double x1 = x[fmask[i]];
         double nx1 = nx[exInd + i];
         double ny1 = ny[exInd + i];
-        double bcdUndt = -nu * 4.0 * PI * PI * (-nx1 * sin(2.0 * PI * y1) + ny1 * sin(2.0 * PI * x1))
-                          * exp(-nu * 4.0 * PI * PI * *t);
+        double bcdUndt = -nu[fInd] * 4.0 * PI * PI * (-nx1 * sin(2.0 * PI * y1) + ny1 * sin(2.0 * PI * x1))
+                          * exp(-nu[fInd] * 4.0 * PI * PI * *t);
         dPdN[exInd + i] -= bcdUndt;
       }
     }

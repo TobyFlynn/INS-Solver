@@ -9,7 +9,7 @@ inline void lift_drag_openacc( const int *bedge_type, const int *bedgeNum, const
                       const double *dQ0dx, const double *dQ0dy,
                       const double *dQ1dx, const double *dQ1dy,
                       const double *nx, const double *ny, const double *sJ,
-                      double *cd, double *cl) {
+                      const double *nu, double *cd, double *cl) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 5;
@@ -29,8 +29,8 @@ inline void lift_drag_openacc( const int *bedge_type, const int *bedgeNum, const
 
   if(*bedge_type == 2) {
     for(int i = 0; i < 5; i++) {
-      *cd += lift_drag_vec[i] * sJ[exInd + i] * (-p[fmask[i]] * nx[exInd + i] + nu * (nx[exInd + i] * 2.0 * dQ0dx[fmask[i]] + ny[exInd + i] * (dQ1dx[fmask[i]] + dQ0dy[fmask[i]])));
-      *cl += lift_drag_vec[i] * sJ[exInd + i] * (-p[fmask[i]] * ny[exInd + i] + nu * (nx[exInd + i] * (dQ1dx[fmask[i]] + dQ0dy[fmask[i]]) + ny[exInd + i] * 2.0 * dQ1dy[fmask[i]]));
+      *cd += lift_drag_vec[i] * sJ[exInd + i] * (-p[fmask[i]] * nx[exInd + i] + nu[fmask[i]] * (nx[exInd + i] * 2.0 * dQ0dx[fmask[i]] + ny[exInd + i] * (dQ1dx[fmask[i]] + dQ0dy[fmask[i]])));
+      *cl += lift_drag_vec[i] * sJ[exInd + i] * (-p[fmask[i]] * ny[exInd + i] + nu[fmask[i]] * (nx[exInd + i] * (dQ1dx[fmask[i]] + dQ0dy[fmask[i]]) + ny[exInd + i] * 2.0 * dQ1dy[fmask[i]]));
     }
   }
 }
@@ -48,12 +48,13 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   op_arg arg8,
   op_arg arg9,
   op_arg arg10,
-  op_arg arg11){
+  op_arg arg11,
+  op_arg arg12){
 
-  double*arg10h = (double *)arg10.data;
   double*arg11h = (double *)arg11.data;
-  int nargs = 12;
-  op_arg args[12];
+  double*arg12h = (double *)arg12.data;
+  int nargs = 13;
+  op_arg args[13];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -67,32 +68,33 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   args[9] = arg9;
   args[10] = arg10;
   args[11] = arg11;
+  args[12] = arg12;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(45);
+  op_timing_realloc(50);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[45].name      = name;
-  OP_kernels[45].count    += 1;
+  OP_kernels[50].name      = name;
+  OP_kernels[50].count    += 1;
 
-  int  ninds   = 8;
-  int  inds[12] = {-1,-1,0,1,2,3,4,5,6,7,-1,-1};
+  int  ninds   = 9;
+  int  inds[13] = {-1,-1,0,1,2,3,4,5,6,7,8,-1,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: lift_drag\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_45
-    int part_size = OP_PART_SIZE_45;
+  #ifdef OP_PART_SIZE_50
+    int part_size = OP_PART_SIZE_50;
   #else
     int part_size = OP_part_size;
   #endif
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  double arg10_l = arg10h[0];
   double arg11_l = arg11h[0];
+  double arg12_l = arg12h[0];
 
   int ncolors = 0;
 
@@ -112,6 +114,7 @@ void op_par_loop_lift_drag(char const *name, op_set set,
     double *data7 = (double *)arg7.data_d;
     double *data8 = (double *)arg8.data_d;
     double *data9 = (double *)arg9.data_d;
+    double *data10 = (double *)arg10.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -126,7 +129,7 @@ void op_par_loop_lift_drag(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map2,data0,data1,data2,data3,data4,data5,data6,data7,data8,data9) reduction(+:arg10_l) reduction(+:arg11_l)
+      #pragma acc parallel loop independent deviceptr(col_reord,map2,data0,data1,data2,data3,data4,data5,data6,data7,data8,data9,data10) reduction(+:arg11_l) reduction(+:arg12_l)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map2idx;
@@ -144,31 +147,32 @@ void op_par_loop_lift_drag(char const *name, op_set set,
           &data7[15 * map2idx],
           &data8[15 * map2idx],
           &data9[15 * map2idx],
-          &arg10_l,
-          &arg11_l);
+          &data10[15 * map2idx],
+          &arg11_l,
+          &arg12_l);
       }
 
       // combine reduction data
       if (col == Plan->ncolors_owned-1) {
-        arg10h[0] = arg10_l;
+        arg11h[0] = arg11_l;
       }
-      arg11h[0] = arg11_l;
+      arg12h[0] = arg12_l;
     }
   }
 }
-OP_kernels[45].transfer  += Plan->transfer;
-OP_kernels[45].transfer2 += Plan->transfer2;
+OP_kernels[50].transfer  += Plan->transfer;
+OP_kernels[50].transfer2 += Plan->transfer2;
 }
 
 if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
 op_mpi_wait_all_cuda(nargs, args);
 }
 // combine reduction data
-op_mpi_reduce_double(&arg10,arg10h);
 op_mpi_reduce_double(&arg11,arg11h);
+op_mpi_reduce_double(&arg12,arg12h);
 op_mpi_set_dirtybit_cuda(nargs, args);
 
 // update kernel record
 op_timers_core(&cpu_t2, &wall_t2);
-OP_kernels[45].time     += wall_t2 - wall_t1;
+OP_kernels[50].time     += wall_t2 - wall_t1;
 }

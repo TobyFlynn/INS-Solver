@@ -3,9 +3,11 @@
 //
 
 // global constants
-double gam_ompkernel;
-double mu_ompkernel;
-double nu_ompkernel;
+double ren_ompkernel;
+double nu0_ompkernel;
+double nu1_ompkernel;
+double rho0_ompkernel;
+double rho1_ompkernel;
 double bc_mach_ompkernel;
 double bc_alpha_ompkernel;
 double bc_p_ompkernel;
@@ -44,15 +46,21 @@ double lift_drag_vec_ompkernel[5];
 
 void op_decl_const_char(int dim, char const *type,
   int size, char *dat, char const *name){
-  if(!strcmp(name, "gam")) {
-    memcpy(&gam_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:gam_ompkernel)
-  } else if(!strcmp(name, "mu")) {
-    memcpy(&mu_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:mu_ompkernel)
-  } else if(!strcmp(name, "nu")) {
-    memcpy(&nu_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:nu_ompkernel)
+  if(!strcmp(name, "ren")) {
+    memcpy(&ren_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:ren_ompkernel)
+  } else if(!strcmp(name, "nu0")) {
+    memcpy(&nu0_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:nu0_ompkernel)
+  } else if(!strcmp(name, "nu1")) {
+    memcpy(&nu1_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:nu1_ompkernel)
+  } else if(!strcmp(name, "rho0")) {
+    memcpy(&rho0_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:rho0_ompkernel)
+  } else if(!strcmp(name, "rho1")) {
+    memcpy(&rho1_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:rho1_ompkernel)
   } else if(!strcmp(name, "bc_mach")) {
     memcpy(&bc_mach_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:bc_mach_ompkernel)
@@ -154,6 +162,8 @@ void op_decl_const_char(int dim, char const *type,
 // user kernel files
 #include "init_nodes_omp4kernel_func.cpp"
 #include "init_grid_omp4kernel_func.cpp"
+#include "init_edges_omp4kernel_func.cpp"
+#include "init_nu_rho_omp4kernel_func.cpp"
 #include "init_cubature_grad_omp4kernel_func.cpp"
 #include "init_cubature_omp4kernel_func.cpp"
 #include "init_cubature_OP_omp4kernel_func.cpp"
@@ -170,19 +180,20 @@ void op_decl_const_char(int dim, char const *type,
 #include "div_omp4kernel_func.cpp"
 #include "curl_omp4kernel_func.cpp"
 #include "grad_omp4kernel_func.cpp"
-#include "glb_ind_kernel_omp4kernel_func.cpp"
-#include "glb_ind_kernelBC_omp4kernel_func.cpp"
-#include "poisson_mf2_op_omp4kernel_func.cpp"
-#include "poisson_mf2_opf_omp4kernel_func.cpp"
-#include "poisson_mf2_opbf_omp4kernel_func.cpp"
-#include "poisson_mf2_bc_omp4kernel_func.cpp"
-#include "poisson_mf2_apply_bc_omp4kernel_func.cpp"
-#include "poisson_mf2_mass_omp4kernel_func.cpp"
-#include "poisson_mf2_omp4kernel_func.cpp"
-#include "poisson_mf2_faces_omp4kernel_func.cpp"
-#include "poisson_test_init_omp4kernel_func.cpp"
-#include "poisson_test_bc_omp4kernel_func.cpp"
-#include "poisson_test_error_omp4kernel_func.cpp"
+#include "cub_grad_omp4kernel_func.cpp"
+#include "cub_div_omp4kernel_func.cpp"
+#include "cub_grad_weak_omp4kernel_func.cpp"
+#include "cub_div_weak_omp4kernel_func.cpp"
+#include "inv_J_omp4kernel_func.cpp"
+#include "poisson_h_omp4kernel_func.cpp"
+#include "pressure_solve_apply_bc_omp4kernel_func.cpp"
+#include "pressure_solve_0_omp4kernel_func.cpp"
+#include "pressure_solve_1_omp4kernel_func.cpp"
+#include "pressure_solve_2_omp4kernel_func.cpp"
+#include "viscosity_solve_apply_bc_omp4kernel_func.cpp"
+#include "viscosity_solve_0_omp4kernel_func.cpp"
+#include "viscosity_solve_1_omp4kernel_func.cpp"
+#include "viscosity_solve_2_omp4kernel_func.cpp"
 #include "set_ic_omp4kernel_func.cpp"
 #include "calc_dt_omp4kernel_func.cpp"
 #include "advection_flux_omp4kernel_func.cpp"
@@ -190,12 +201,35 @@ void op_decl_const_char(int dim, char const *type,
 #include "advection_bc_omp4kernel_func.cpp"
 #include "advection_numerical_flux_omp4kernel_func.cpp"
 #include "advection_intermediate_vel_omp4kernel_func.cpp"
+#include "pressure_mu_omp4kernel_func.cpp"
 #include "pressure_bc_omp4kernel_func.cpp"
 #include "pressure_bc2_omp4kernel_func.cpp"
 #include "pressure_rhs_omp4kernel_func.cpp"
 #include "pressure_update_vel_omp4kernel_func.cpp"
 #include "viscosity_bc_omp4kernel_func.cpp"
 #include "viscosity_rhs_omp4kernel_func.cpp"
+#include "viscosity_rhs_rho_omp4kernel_func.cpp"
 #include "viscosity_reset_bc_omp4kernel_func.cpp"
 #include "lift_drag_omp4kernel_func.cpp"
 #include "save_values_omp4kernel_func.cpp"
+#include "calc_h_omp4kernel_func.cpp"
+#include "init_surface_omp4kernel_func.cpp"
+#include "set_rkQ_omp4kernel_func.cpp"
+#include "update_Q_omp4kernel_func.cpp"
+#include "ls_advec_edges_omp4kernel_func.cpp"
+#include "ls_advec_bedges_omp4kernel_func.cpp"
+#include "ls_advec_flux_omp4kernel_func.cpp"
+#include "ls_advec_rhs_omp4kernel_func.cpp"
+#include "ls_sign_omp4kernel_func.cpp"
+#include "ls_flux_omp4kernel_func.cpp"
+#include "ls_bflux_omp4kernel_func.cpp"
+#include "ls_copy_omp4kernel_func.cpp"
+#include "ls_rhs_omp4kernel_func.cpp"
+#include "ls_add_diff_omp4kernel_func.cpp"
+#include "sigma_flux_omp4kernel_func.cpp"
+#include "sigma_bflux_omp4kernel_func.cpp"
+#include "sigma_mult_omp4kernel_func.cpp"
+#include "diff_flux_omp4kernel_func.cpp"
+#include "diff_bflux_omp4kernel_func.cpp"
+#include "ls_reinit_check_omp4kernel_func.cpp"
+#include "ls_step_omp4kernel_func.cpp"

@@ -3,39 +3,12 @@
 //
 
 //user function
-__device__ void gauss_gfi_faces_gpu( const int *edgeNum, const double **x,
-                            const double **y, double **gf0, double **gf1,
-                            double **gf2) {
+__device__ void gauss_gfi_faces_gpu( const int *edgeNum, const bool *rev,
+                            double **gf0, double **gf1, double **gf2) {
 
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
-  bool reverse;
-
-  if(edgeR == 0) {
-    if(edgeL == 0) {
-      reverse = !(x[0][0] == x[1][0] && y[0][0] == y[1][0]);
-    } else if(edgeL == 1) {
-      reverse = !(x[0][1] == x[1][0] && y[0][1] == y[1][0]);
-    } else {
-      reverse = !(x[0][2] == x[1][0] && y[0][2] == y[1][0]);
-    }
-  } else if(edgeR == 1) {
-    if(edgeL == 0) {
-      reverse = !(x[0][0] == x[1][1] && y[0][0] == y[1][1]);
-    } else if(edgeL == 1) {
-      reverse = !(x[0][1] == x[1][1] && y[0][1] == y[1][1]);
-    } else {
-      reverse = !(x[0][2] == x[1][1] && y[0][2] == y[1][1]);
-    }
-  } else {
-    if(edgeL == 0) {
-      reverse = !(x[0][0] == x[1][2] && y[0][0] == y[1][2]);
-    } else if(edgeL == 1) {
-      reverse = !(x[0][1] == x[1][2] && y[0][1] == y[1][2]);
-    } else {
-      reverse = !(x[0][2] == x[1][2] && y[0][2] == y[1][2]);
-    }
-  }
+  bool reverse = *rev;
 
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
@@ -89,38 +62,49 @@ __device__ void gauss_gfi_faces_gpu( const int *edgeNum, const double **x,
 
 // CUDA kernel function
 __global__ void op_cuda_gauss_gfi_faces(
-  const double *__restrict ind_arg0,
-  const double *__restrict ind_arg1,
+  double *__restrict ind_arg0,
+  double *__restrict ind_arg1,
   double *__restrict ind_arg2,
-  double *__restrict ind_arg3,
-  double *__restrict ind_arg4,
-  const int *__restrict opDat1Map,
+  const int *__restrict opDat2Map,
   const int *__restrict arg0,
+  const bool *__restrict arg1,
   int start,
   int end,
   int   set_size) {
+  double arg2_l[105];
+  double arg3_l[105];
+  double arg4_l[105];
   double arg5_l[105];
   double arg6_l[105];
   double arg7_l[105];
-  double arg8_l[105];
-  double arg9_l[105];
-  double arg10_l[105];
-  double *arg5_vec[2] = {
+  double *arg2_vec[2] = {
+    arg2_l,
+    arg3_l,
+  };
+  double *arg4_vec[2] = {
+    arg4_l,
     arg5_l,
+  };
+  double *arg6_vec[2] = {
     arg6_l,
-  };
-  double *arg7_vec[2] = {
     arg7_l,
-    arg8_l,
-  };
-  double *arg9_vec[2] = {
-    arg9_l,
-    arg10_l,
   };
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
+    double arg2_l[105];
+    for ( int d=0; d<105; d++ ){
+      arg2_l[d] = ZERO_double;
+    }
+    double arg3_l[105];
+    for ( int d=0; d<105; d++ ){
+      arg3_l[d] = ZERO_double;
+    }
+    double arg4_l[105];
+    for ( int d=0; d<105; d++ ){
+      arg4_l[d] = ZERO_double;
+    }
     double arg5_l[105];
     for ( int d=0; d<105; d++ ){
       arg5_l[d] = ZERO_double;
@@ -133,150 +117,446 @@ __global__ void op_cuda_gauss_gfi_faces(
     for ( int d=0; d<105; d++ ){
       arg7_l[d] = ZERO_double;
     }
-    double arg8_l[105];
-    for ( int d=0; d<105; d++ ){
-      arg8_l[d] = ZERO_double;
-    }
-    double arg9_l[105];
-    for ( int d=0; d<105; d++ ){
-      arg9_l[d] = ZERO_double;
-    }
-    double arg10_l[105];
-    for ( int d=0; d<105; d++ ){
-      arg10_l[d] = ZERO_double;
-    }
-    int map1idx;
     int map2idx;
-    map1idx = opDat1Map[n + set_size * 0];
-    map2idx = opDat1Map[n + set_size * 1];
-    const double* arg1_vec[] = {
-       &ind_arg0[3 * map1idx],
-       &ind_arg0[3 * map2idx]};
-    const double* arg3_vec[] = {
-       &ind_arg1[3 * map1idx],
-       &ind_arg1[3 * map2idx]};
-    double* arg5_vec[] = {
-       &ind_arg2[105 * map1idx],
-       &ind_arg2[105 * map2idx]};
-    double* arg7_vec[] = {
-       &ind_arg3[105 * map1idx],
-       &ind_arg3[105 * map2idx]};
-    double* arg9_vec[] = {
-       &ind_arg4[105 * map1idx],
-       &ind_arg4[105 * map2idx]};
+    int map3idx;
+    map2idx = opDat2Map[n + set_size * 0];
+    map3idx = opDat2Map[n + set_size * 1];
+    double* arg2_vec[] = {
+       &ind_arg0[105 * map2idx],
+       &ind_arg0[105 * map3idx]};
+    double* arg4_vec[] = {
+       &ind_arg1[105 * map2idx],
+       &ind_arg1[105 * map3idx]};
+    double* arg6_vec[] = {
+       &ind_arg2[105 * map2idx],
+       &ind_arg2[105 * map3idx]};
 
     //user-supplied kernel call
     gauss_gfi_faces_gpu(arg0+n*2,
-                    arg1_vec,
-                    arg3_vec,
-                    arg5_vec,
-                    arg7_vec,
-                    arg9_vec);
-    atomicAdd(&ind_arg2[0+map1idx*105],arg5_l[0]);
-    atomicAdd(&ind_arg2[1+map1idx*105],arg5_l[1]);
-    atomicAdd(&ind_arg2[2+map1idx*105],arg5_l[2]);
-    atomicAdd(&ind_arg2[3+map1idx*105],arg5_l[3]);
-    atomicAdd(&ind_arg2[4+map1idx*105],arg5_l[4]);
-    atomicAdd(&ind_arg2[5+map1idx*105],arg5_l[5]);
-    atomicAdd(&ind_arg2[6+map1idx*105],arg5_l[6]);
-    atomicAdd(&ind_arg2[7+map1idx*105],arg5_l[7]);
-    atomicAdd(&ind_arg2[8+map1idx*105],arg5_l[8]);
-    atomicAdd(&ind_arg2[9+map1idx*105],arg5_l[9]);
-    atomicAdd(&ind_arg2[10+map1idx*105],arg5_l[10]);
-    atomicAdd(&ind_arg2[11+map1idx*105],arg5_l[11]);
-    atomicAdd(&ind_arg2[12+map1idx*105],arg5_l[12]);
-    atomicAdd(&ind_arg2[13+map1idx*105],arg5_l[13]);
-    atomicAdd(&ind_arg2[14+map1idx*105],arg5_l[14]);
-    atomicAdd(&ind_arg2[15+map1idx*105],arg5_l[15]);
-    atomicAdd(&ind_arg2[16+map1idx*105],arg5_l[16]);
-    atomicAdd(&ind_arg2[17+map1idx*105],arg5_l[17]);
-    atomicAdd(&ind_arg2[18+map1idx*105],arg5_l[18]);
-    atomicAdd(&ind_arg2[19+map1idx*105],arg5_l[19]);
-    atomicAdd(&ind_arg2[20+map1idx*105],arg5_l[20]);
-    atomicAdd(&ind_arg2[21+map1idx*105],arg5_l[21]);
-    atomicAdd(&ind_arg2[22+map1idx*105],arg5_l[22]);
-    atomicAdd(&ind_arg2[23+map1idx*105],arg5_l[23]);
-    atomicAdd(&ind_arg2[24+map1idx*105],arg5_l[24]);
-    atomicAdd(&ind_arg2[25+map1idx*105],arg5_l[25]);
-    atomicAdd(&ind_arg2[26+map1idx*105],arg5_l[26]);
-    atomicAdd(&ind_arg2[27+map1idx*105],arg5_l[27]);
-    atomicAdd(&ind_arg2[28+map1idx*105],arg5_l[28]);
-    atomicAdd(&ind_arg2[29+map1idx*105],arg5_l[29]);
-    atomicAdd(&ind_arg2[30+map1idx*105],arg5_l[30]);
-    atomicAdd(&ind_arg2[31+map1idx*105],arg5_l[31]);
-    atomicAdd(&ind_arg2[32+map1idx*105],arg5_l[32]);
-    atomicAdd(&ind_arg2[33+map1idx*105],arg5_l[33]);
-    atomicAdd(&ind_arg2[34+map1idx*105],arg5_l[34]);
-    atomicAdd(&ind_arg2[35+map1idx*105],arg5_l[35]);
-    atomicAdd(&ind_arg2[36+map1idx*105],arg5_l[36]);
-    atomicAdd(&ind_arg2[37+map1idx*105],arg5_l[37]);
-    atomicAdd(&ind_arg2[38+map1idx*105],arg5_l[38]);
-    atomicAdd(&ind_arg2[39+map1idx*105],arg5_l[39]);
-    atomicAdd(&ind_arg2[40+map1idx*105],arg5_l[40]);
-    atomicAdd(&ind_arg2[41+map1idx*105],arg5_l[41]);
-    atomicAdd(&ind_arg2[42+map1idx*105],arg5_l[42]);
-    atomicAdd(&ind_arg2[43+map1idx*105],arg5_l[43]);
-    atomicAdd(&ind_arg2[44+map1idx*105],arg5_l[44]);
-    atomicAdd(&ind_arg2[45+map1idx*105],arg5_l[45]);
-    atomicAdd(&ind_arg2[46+map1idx*105],arg5_l[46]);
-    atomicAdd(&ind_arg2[47+map1idx*105],arg5_l[47]);
-    atomicAdd(&ind_arg2[48+map1idx*105],arg5_l[48]);
-    atomicAdd(&ind_arg2[49+map1idx*105],arg5_l[49]);
-    atomicAdd(&ind_arg2[50+map1idx*105],arg5_l[50]);
-    atomicAdd(&ind_arg2[51+map1idx*105],arg5_l[51]);
-    atomicAdd(&ind_arg2[52+map1idx*105],arg5_l[52]);
-    atomicAdd(&ind_arg2[53+map1idx*105],arg5_l[53]);
-    atomicAdd(&ind_arg2[54+map1idx*105],arg5_l[54]);
-    atomicAdd(&ind_arg2[55+map1idx*105],arg5_l[55]);
-    atomicAdd(&ind_arg2[56+map1idx*105],arg5_l[56]);
-    atomicAdd(&ind_arg2[57+map1idx*105],arg5_l[57]);
-    atomicAdd(&ind_arg2[58+map1idx*105],arg5_l[58]);
-    atomicAdd(&ind_arg2[59+map1idx*105],arg5_l[59]);
-    atomicAdd(&ind_arg2[60+map1idx*105],arg5_l[60]);
-    atomicAdd(&ind_arg2[61+map1idx*105],arg5_l[61]);
-    atomicAdd(&ind_arg2[62+map1idx*105],arg5_l[62]);
-    atomicAdd(&ind_arg2[63+map1idx*105],arg5_l[63]);
-    atomicAdd(&ind_arg2[64+map1idx*105],arg5_l[64]);
-    atomicAdd(&ind_arg2[65+map1idx*105],arg5_l[65]);
-    atomicAdd(&ind_arg2[66+map1idx*105],arg5_l[66]);
-    atomicAdd(&ind_arg2[67+map1idx*105],arg5_l[67]);
-    atomicAdd(&ind_arg2[68+map1idx*105],arg5_l[68]);
-    atomicAdd(&ind_arg2[69+map1idx*105],arg5_l[69]);
-    atomicAdd(&ind_arg2[70+map1idx*105],arg5_l[70]);
-    atomicAdd(&ind_arg2[71+map1idx*105],arg5_l[71]);
-    atomicAdd(&ind_arg2[72+map1idx*105],arg5_l[72]);
-    atomicAdd(&ind_arg2[73+map1idx*105],arg5_l[73]);
-    atomicAdd(&ind_arg2[74+map1idx*105],arg5_l[74]);
-    atomicAdd(&ind_arg2[75+map1idx*105],arg5_l[75]);
-    atomicAdd(&ind_arg2[76+map1idx*105],arg5_l[76]);
-    atomicAdd(&ind_arg2[77+map1idx*105],arg5_l[77]);
-    atomicAdd(&ind_arg2[78+map1idx*105],arg5_l[78]);
-    atomicAdd(&ind_arg2[79+map1idx*105],arg5_l[79]);
-    atomicAdd(&ind_arg2[80+map1idx*105],arg5_l[80]);
-    atomicAdd(&ind_arg2[81+map1idx*105],arg5_l[81]);
-    atomicAdd(&ind_arg2[82+map1idx*105],arg5_l[82]);
-    atomicAdd(&ind_arg2[83+map1idx*105],arg5_l[83]);
-    atomicAdd(&ind_arg2[84+map1idx*105],arg5_l[84]);
-    atomicAdd(&ind_arg2[85+map1idx*105],arg5_l[85]);
-    atomicAdd(&ind_arg2[86+map1idx*105],arg5_l[86]);
-    atomicAdd(&ind_arg2[87+map1idx*105],arg5_l[87]);
-    atomicAdd(&ind_arg2[88+map1idx*105],arg5_l[88]);
-    atomicAdd(&ind_arg2[89+map1idx*105],arg5_l[89]);
-    atomicAdd(&ind_arg2[90+map1idx*105],arg5_l[90]);
-    atomicAdd(&ind_arg2[91+map1idx*105],arg5_l[91]);
-    atomicAdd(&ind_arg2[92+map1idx*105],arg5_l[92]);
-    atomicAdd(&ind_arg2[93+map1idx*105],arg5_l[93]);
-    atomicAdd(&ind_arg2[94+map1idx*105],arg5_l[94]);
-    atomicAdd(&ind_arg2[95+map1idx*105],arg5_l[95]);
-    atomicAdd(&ind_arg2[96+map1idx*105],arg5_l[96]);
-    atomicAdd(&ind_arg2[97+map1idx*105],arg5_l[97]);
-    atomicAdd(&ind_arg2[98+map1idx*105],arg5_l[98]);
-    atomicAdd(&ind_arg2[99+map1idx*105],arg5_l[99]);
-    atomicAdd(&ind_arg2[100+map1idx*105],arg5_l[100]);
-    atomicAdd(&ind_arg2[101+map1idx*105],arg5_l[101]);
-    atomicAdd(&ind_arg2[102+map1idx*105],arg5_l[102]);
-    atomicAdd(&ind_arg2[103+map1idx*105],arg5_l[103]);
-    atomicAdd(&ind_arg2[104+map1idx*105],arg5_l[104]);
+                    arg1+n*1,
+                    arg2_vec,
+                    arg4_vec,
+                    arg6_vec);
+    atomicAdd(&ind_arg0[0+map2idx*105],arg2_l[0]);
+    atomicAdd(&ind_arg0[1+map2idx*105],arg2_l[1]);
+    atomicAdd(&ind_arg0[2+map2idx*105],arg2_l[2]);
+    atomicAdd(&ind_arg0[3+map2idx*105],arg2_l[3]);
+    atomicAdd(&ind_arg0[4+map2idx*105],arg2_l[4]);
+    atomicAdd(&ind_arg0[5+map2idx*105],arg2_l[5]);
+    atomicAdd(&ind_arg0[6+map2idx*105],arg2_l[6]);
+    atomicAdd(&ind_arg0[7+map2idx*105],arg2_l[7]);
+    atomicAdd(&ind_arg0[8+map2idx*105],arg2_l[8]);
+    atomicAdd(&ind_arg0[9+map2idx*105],arg2_l[9]);
+    atomicAdd(&ind_arg0[10+map2idx*105],arg2_l[10]);
+    atomicAdd(&ind_arg0[11+map2idx*105],arg2_l[11]);
+    atomicAdd(&ind_arg0[12+map2idx*105],arg2_l[12]);
+    atomicAdd(&ind_arg0[13+map2idx*105],arg2_l[13]);
+    atomicAdd(&ind_arg0[14+map2idx*105],arg2_l[14]);
+    atomicAdd(&ind_arg0[15+map2idx*105],arg2_l[15]);
+    atomicAdd(&ind_arg0[16+map2idx*105],arg2_l[16]);
+    atomicAdd(&ind_arg0[17+map2idx*105],arg2_l[17]);
+    atomicAdd(&ind_arg0[18+map2idx*105],arg2_l[18]);
+    atomicAdd(&ind_arg0[19+map2idx*105],arg2_l[19]);
+    atomicAdd(&ind_arg0[20+map2idx*105],arg2_l[20]);
+    atomicAdd(&ind_arg0[21+map2idx*105],arg2_l[21]);
+    atomicAdd(&ind_arg0[22+map2idx*105],arg2_l[22]);
+    atomicAdd(&ind_arg0[23+map2idx*105],arg2_l[23]);
+    atomicAdd(&ind_arg0[24+map2idx*105],arg2_l[24]);
+    atomicAdd(&ind_arg0[25+map2idx*105],arg2_l[25]);
+    atomicAdd(&ind_arg0[26+map2idx*105],arg2_l[26]);
+    atomicAdd(&ind_arg0[27+map2idx*105],arg2_l[27]);
+    atomicAdd(&ind_arg0[28+map2idx*105],arg2_l[28]);
+    atomicAdd(&ind_arg0[29+map2idx*105],arg2_l[29]);
+    atomicAdd(&ind_arg0[30+map2idx*105],arg2_l[30]);
+    atomicAdd(&ind_arg0[31+map2idx*105],arg2_l[31]);
+    atomicAdd(&ind_arg0[32+map2idx*105],arg2_l[32]);
+    atomicAdd(&ind_arg0[33+map2idx*105],arg2_l[33]);
+    atomicAdd(&ind_arg0[34+map2idx*105],arg2_l[34]);
+    atomicAdd(&ind_arg0[35+map2idx*105],arg2_l[35]);
+    atomicAdd(&ind_arg0[36+map2idx*105],arg2_l[36]);
+    atomicAdd(&ind_arg0[37+map2idx*105],arg2_l[37]);
+    atomicAdd(&ind_arg0[38+map2idx*105],arg2_l[38]);
+    atomicAdd(&ind_arg0[39+map2idx*105],arg2_l[39]);
+    atomicAdd(&ind_arg0[40+map2idx*105],arg2_l[40]);
+    atomicAdd(&ind_arg0[41+map2idx*105],arg2_l[41]);
+    atomicAdd(&ind_arg0[42+map2idx*105],arg2_l[42]);
+    atomicAdd(&ind_arg0[43+map2idx*105],arg2_l[43]);
+    atomicAdd(&ind_arg0[44+map2idx*105],arg2_l[44]);
+    atomicAdd(&ind_arg0[45+map2idx*105],arg2_l[45]);
+    atomicAdd(&ind_arg0[46+map2idx*105],arg2_l[46]);
+    atomicAdd(&ind_arg0[47+map2idx*105],arg2_l[47]);
+    atomicAdd(&ind_arg0[48+map2idx*105],arg2_l[48]);
+    atomicAdd(&ind_arg0[49+map2idx*105],arg2_l[49]);
+    atomicAdd(&ind_arg0[50+map2idx*105],arg2_l[50]);
+    atomicAdd(&ind_arg0[51+map2idx*105],arg2_l[51]);
+    atomicAdd(&ind_arg0[52+map2idx*105],arg2_l[52]);
+    atomicAdd(&ind_arg0[53+map2idx*105],arg2_l[53]);
+    atomicAdd(&ind_arg0[54+map2idx*105],arg2_l[54]);
+    atomicAdd(&ind_arg0[55+map2idx*105],arg2_l[55]);
+    atomicAdd(&ind_arg0[56+map2idx*105],arg2_l[56]);
+    atomicAdd(&ind_arg0[57+map2idx*105],arg2_l[57]);
+    atomicAdd(&ind_arg0[58+map2idx*105],arg2_l[58]);
+    atomicAdd(&ind_arg0[59+map2idx*105],arg2_l[59]);
+    atomicAdd(&ind_arg0[60+map2idx*105],arg2_l[60]);
+    atomicAdd(&ind_arg0[61+map2idx*105],arg2_l[61]);
+    atomicAdd(&ind_arg0[62+map2idx*105],arg2_l[62]);
+    atomicAdd(&ind_arg0[63+map2idx*105],arg2_l[63]);
+    atomicAdd(&ind_arg0[64+map2idx*105],arg2_l[64]);
+    atomicAdd(&ind_arg0[65+map2idx*105],arg2_l[65]);
+    atomicAdd(&ind_arg0[66+map2idx*105],arg2_l[66]);
+    atomicAdd(&ind_arg0[67+map2idx*105],arg2_l[67]);
+    atomicAdd(&ind_arg0[68+map2idx*105],arg2_l[68]);
+    atomicAdd(&ind_arg0[69+map2idx*105],arg2_l[69]);
+    atomicAdd(&ind_arg0[70+map2idx*105],arg2_l[70]);
+    atomicAdd(&ind_arg0[71+map2idx*105],arg2_l[71]);
+    atomicAdd(&ind_arg0[72+map2idx*105],arg2_l[72]);
+    atomicAdd(&ind_arg0[73+map2idx*105],arg2_l[73]);
+    atomicAdd(&ind_arg0[74+map2idx*105],arg2_l[74]);
+    atomicAdd(&ind_arg0[75+map2idx*105],arg2_l[75]);
+    atomicAdd(&ind_arg0[76+map2idx*105],arg2_l[76]);
+    atomicAdd(&ind_arg0[77+map2idx*105],arg2_l[77]);
+    atomicAdd(&ind_arg0[78+map2idx*105],arg2_l[78]);
+    atomicAdd(&ind_arg0[79+map2idx*105],arg2_l[79]);
+    atomicAdd(&ind_arg0[80+map2idx*105],arg2_l[80]);
+    atomicAdd(&ind_arg0[81+map2idx*105],arg2_l[81]);
+    atomicAdd(&ind_arg0[82+map2idx*105],arg2_l[82]);
+    atomicAdd(&ind_arg0[83+map2idx*105],arg2_l[83]);
+    atomicAdd(&ind_arg0[84+map2idx*105],arg2_l[84]);
+    atomicAdd(&ind_arg0[85+map2idx*105],arg2_l[85]);
+    atomicAdd(&ind_arg0[86+map2idx*105],arg2_l[86]);
+    atomicAdd(&ind_arg0[87+map2idx*105],arg2_l[87]);
+    atomicAdd(&ind_arg0[88+map2idx*105],arg2_l[88]);
+    atomicAdd(&ind_arg0[89+map2idx*105],arg2_l[89]);
+    atomicAdd(&ind_arg0[90+map2idx*105],arg2_l[90]);
+    atomicAdd(&ind_arg0[91+map2idx*105],arg2_l[91]);
+    atomicAdd(&ind_arg0[92+map2idx*105],arg2_l[92]);
+    atomicAdd(&ind_arg0[93+map2idx*105],arg2_l[93]);
+    atomicAdd(&ind_arg0[94+map2idx*105],arg2_l[94]);
+    atomicAdd(&ind_arg0[95+map2idx*105],arg2_l[95]);
+    atomicAdd(&ind_arg0[96+map2idx*105],arg2_l[96]);
+    atomicAdd(&ind_arg0[97+map2idx*105],arg2_l[97]);
+    atomicAdd(&ind_arg0[98+map2idx*105],arg2_l[98]);
+    atomicAdd(&ind_arg0[99+map2idx*105],arg2_l[99]);
+    atomicAdd(&ind_arg0[100+map2idx*105],arg2_l[100]);
+    atomicAdd(&ind_arg0[101+map2idx*105],arg2_l[101]);
+    atomicAdd(&ind_arg0[102+map2idx*105],arg2_l[102]);
+    atomicAdd(&ind_arg0[103+map2idx*105],arg2_l[103]);
+    atomicAdd(&ind_arg0[104+map2idx*105],arg2_l[104]);
+    atomicAdd(&ind_arg0[0+map3idx*105],arg3_l[0]);
+    atomicAdd(&ind_arg0[1+map3idx*105],arg3_l[1]);
+    atomicAdd(&ind_arg0[2+map3idx*105],arg3_l[2]);
+    atomicAdd(&ind_arg0[3+map3idx*105],arg3_l[3]);
+    atomicAdd(&ind_arg0[4+map3idx*105],arg3_l[4]);
+    atomicAdd(&ind_arg0[5+map3idx*105],arg3_l[5]);
+    atomicAdd(&ind_arg0[6+map3idx*105],arg3_l[6]);
+    atomicAdd(&ind_arg0[7+map3idx*105],arg3_l[7]);
+    atomicAdd(&ind_arg0[8+map3idx*105],arg3_l[8]);
+    atomicAdd(&ind_arg0[9+map3idx*105],arg3_l[9]);
+    atomicAdd(&ind_arg0[10+map3idx*105],arg3_l[10]);
+    atomicAdd(&ind_arg0[11+map3idx*105],arg3_l[11]);
+    atomicAdd(&ind_arg0[12+map3idx*105],arg3_l[12]);
+    atomicAdd(&ind_arg0[13+map3idx*105],arg3_l[13]);
+    atomicAdd(&ind_arg0[14+map3idx*105],arg3_l[14]);
+    atomicAdd(&ind_arg0[15+map3idx*105],arg3_l[15]);
+    atomicAdd(&ind_arg0[16+map3idx*105],arg3_l[16]);
+    atomicAdd(&ind_arg0[17+map3idx*105],arg3_l[17]);
+    atomicAdd(&ind_arg0[18+map3idx*105],arg3_l[18]);
+    atomicAdd(&ind_arg0[19+map3idx*105],arg3_l[19]);
+    atomicAdd(&ind_arg0[20+map3idx*105],arg3_l[20]);
+    atomicAdd(&ind_arg0[21+map3idx*105],arg3_l[21]);
+    atomicAdd(&ind_arg0[22+map3idx*105],arg3_l[22]);
+    atomicAdd(&ind_arg0[23+map3idx*105],arg3_l[23]);
+    atomicAdd(&ind_arg0[24+map3idx*105],arg3_l[24]);
+    atomicAdd(&ind_arg0[25+map3idx*105],arg3_l[25]);
+    atomicAdd(&ind_arg0[26+map3idx*105],arg3_l[26]);
+    atomicAdd(&ind_arg0[27+map3idx*105],arg3_l[27]);
+    atomicAdd(&ind_arg0[28+map3idx*105],arg3_l[28]);
+    atomicAdd(&ind_arg0[29+map3idx*105],arg3_l[29]);
+    atomicAdd(&ind_arg0[30+map3idx*105],arg3_l[30]);
+    atomicAdd(&ind_arg0[31+map3idx*105],arg3_l[31]);
+    atomicAdd(&ind_arg0[32+map3idx*105],arg3_l[32]);
+    atomicAdd(&ind_arg0[33+map3idx*105],arg3_l[33]);
+    atomicAdd(&ind_arg0[34+map3idx*105],arg3_l[34]);
+    atomicAdd(&ind_arg0[35+map3idx*105],arg3_l[35]);
+    atomicAdd(&ind_arg0[36+map3idx*105],arg3_l[36]);
+    atomicAdd(&ind_arg0[37+map3idx*105],arg3_l[37]);
+    atomicAdd(&ind_arg0[38+map3idx*105],arg3_l[38]);
+    atomicAdd(&ind_arg0[39+map3idx*105],arg3_l[39]);
+    atomicAdd(&ind_arg0[40+map3idx*105],arg3_l[40]);
+    atomicAdd(&ind_arg0[41+map3idx*105],arg3_l[41]);
+    atomicAdd(&ind_arg0[42+map3idx*105],arg3_l[42]);
+    atomicAdd(&ind_arg0[43+map3idx*105],arg3_l[43]);
+    atomicAdd(&ind_arg0[44+map3idx*105],arg3_l[44]);
+    atomicAdd(&ind_arg0[45+map3idx*105],arg3_l[45]);
+    atomicAdd(&ind_arg0[46+map3idx*105],arg3_l[46]);
+    atomicAdd(&ind_arg0[47+map3idx*105],arg3_l[47]);
+    atomicAdd(&ind_arg0[48+map3idx*105],arg3_l[48]);
+    atomicAdd(&ind_arg0[49+map3idx*105],arg3_l[49]);
+    atomicAdd(&ind_arg0[50+map3idx*105],arg3_l[50]);
+    atomicAdd(&ind_arg0[51+map3idx*105],arg3_l[51]);
+    atomicAdd(&ind_arg0[52+map3idx*105],arg3_l[52]);
+    atomicAdd(&ind_arg0[53+map3idx*105],arg3_l[53]);
+    atomicAdd(&ind_arg0[54+map3idx*105],arg3_l[54]);
+    atomicAdd(&ind_arg0[55+map3idx*105],arg3_l[55]);
+    atomicAdd(&ind_arg0[56+map3idx*105],arg3_l[56]);
+    atomicAdd(&ind_arg0[57+map3idx*105],arg3_l[57]);
+    atomicAdd(&ind_arg0[58+map3idx*105],arg3_l[58]);
+    atomicAdd(&ind_arg0[59+map3idx*105],arg3_l[59]);
+    atomicAdd(&ind_arg0[60+map3idx*105],arg3_l[60]);
+    atomicAdd(&ind_arg0[61+map3idx*105],arg3_l[61]);
+    atomicAdd(&ind_arg0[62+map3idx*105],arg3_l[62]);
+    atomicAdd(&ind_arg0[63+map3idx*105],arg3_l[63]);
+    atomicAdd(&ind_arg0[64+map3idx*105],arg3_l[64]);
+    atomicAdd(&ind_arg0[65+map3idx*105],arg3_l[65]);
+    atomicAdd(&ind_arg0[66+map3idx*105],arg3_l[66]);
+    atomicAdd(&ind_arg0[67+map3idx*105],arg3_l[67]);
+    atomicAdd(&ind_arg0[68+map3idx*105],arg3_l[68]);
+    atomicAdd(&ind_arg0[69+map3idx*105],arg3_l[69]);
+    atomicAdd(&ind_arg0[70+map3idx*105],arg3_l[70]);
+    atomicAdd(&ind_arg0[71+map3idx*105],arg3_l[71]);
+    atomicAdd(&ind_arg0[72+map3idx*105],arg3_l[72]);
+    atomicAdd(&ind_arg0[73+map3idx*105],arg3_l[73]);
+    atomicAdd(&ind_arg0[74+map3idx*105],arg3_l[74]);
+    atomicAdd(&ind_arg0[75+map3idx*105],arg3_l[75]);
+    atomicAdd(&ind_arg0[76+map3idx*105],arg3_l[76]);
+    atomicAdd(&ind_arg0[77+map3idx*105],arg3_l[77]);
+    atomicAdd(&ind_arg0[78+map3idx*105],arg3_l[78]);
+    atomicAdd(&ind_arg0[79+map3idx*105],arg3_l[79]);
+    atomicAdd(&ind_arg0[80+map3idx*105],arg3_l[80]);
+    atomicAdd(&ind_arg0[81+map3idx*105],arg3_l[81]);
+    atomicAdd(&ind_arg0[82+map3idx*105],arg3_l[82]);
+    atomicAdd(&ind_arg0[83+map3idx*105],arg3_l[83]);
+    atomicAdd(&ind_arg0[84+map3idx*105],arg3_l[84]);
+    atomicAdd(&ind_arg0[85+map3idx*105],arg3_l[85]);
+    atomicAdd(&ind_arg0[86+map3idx*105],arg3_l[86]);
+    atomicAdd(&ind_arg0[87+map3idx*105],arg3_l[87]);
+    atomicAdd(&ind_arg0[88+map3idx*105],arg3_l[88]);
+    atomicAdd(&ind_arg0[89+map3idx*105],arg3_l[89]);
+    atomicAdd(&ind_arg0[90+map3idx*105],arg3_l[90]);
+    atomicAdd(&ind_arg0[91+map3idx*105],arg3_l[91]);
+    atomicAdd(&ind_arg0[92+map3idx*105],arg3_l[92]);
+    atomicAdd(&ind_arg0[93+map3idx*105],arg3_l[93]);
+    atomicAdd(&ind_arg0[94+map3idx*105],arg3_l[94]);
+    atomicAdd(&ind_arg0[95+map3idx*105],arg3_l[95]);
+    atomicAdd(&ind_arg0[96+map3idx*105],arg3_l[96]);
+    atomicAdd(&ind_arg0[97+map3idx*105],arg3_l[97]);
+    atomicAdd(&ind_arg0[98+map3idx*105],arg3_l[98]);
+    atomicAdd(&ind_arg0[99+map3idx*105],arg3_l[99]);
+    atomicAdd(&ind_arg0[100+map3idx*105],arg3_l[100]);
+    atomicAdd(&ind_arg0[101+map3idx*105],arg3_l[101]);
+    atomicAdd(&ind_arg0[102+map3idx*105],arg3_l[102]);
+    atomicAdd(&ind_arg0[103+map3idx*105],arg3_l[103]);
+    atomicAdd(&ind_arg0[104+map3idx*105],arg3_l[104]);
+    atomicAdd(&ind_arg1[0+map2idx*105],arg4_l[0]);
+    atomicAdd(&ind_arg1[1+map2idx*105],arg4_l[1]);
+    atomicAdd(&ind_arg1[2+map2idx*105],arg4_l[2]);
+    atomicAdd(&ind_arg1[3+map2idx*105],arg4_l[3]);
+    atomicAdd(&ind_arg1[4+map2idx*105],arg4_l[4]);
+    atomicAdd(&ind_arg1[5+map2idx*105],arg4_l[5]);
+    atomicAdd(&ind_arg1[6+map2idx*105],arg4_l[6]);
+    atomicAdd(&ind_arg1[7+map2idx*105],arg4_l[7]);
+    atomicAdd(&ind_arg1[8+map2idx*105],arg4_l[8]);
+    atomicAdd(&ind_arg1[9+map2idx*105],arg4_l[9]);
+    atomicAdd(&ind_arg1[10+map2idx*105],arg4_l[10]);
+    atomicAdd(&ind_arg1[11+map2idx*105],arg4_l[11]);
+    atomicAdd(&ind_arg1[12+map2idx*105],arg4_l[12]);
+    atomicAdd(&ind_arg1[13+map2idx*105],arg4_l[13]);
+    atomicAdd(&ind_arg1[14+map2idx*105],arg4_l[14]);
+    atomicAdd(&ind_arg1[15+map2idx*105],arg4_l[15]);
+    atomicAdd(&ind_arg1[16+map2idx*105],arg4_l[16]);
+    atomicAdd(&ind_arg1[17+map2idx*105],arg4_l[17]);
+    atomicAdd(&ind_arg1[18+map2idx*105],arg4_l[18]);
+    atomicAdd(&ind_arg1[19+map2idx*105],arg4_l[19]);
+    atomicAdd(&ind_arg1[20+map2idx*105],arg4_l[20]);
+    atomicAdd(&ind_arg1[21+map2idx*105],arg4_l[21]);
+    atomicAdd(&ind_arg1[22+map2idx*105],arg4_l[22]);
+    atomicAdd(&ind_arg1[23+map2idx*105],arg4_l[23]);
+    atomicAdd(&ind_arg1[24+map2idx*105],arg4_l[24]);
+    atomicAdd(&ind_arg1[25+map2idx*105],arg4_l[25]);
+    atomicAdd(&ind_arg1[26+map2idx*105],arg4_l[26]);
+    atomicAdd(&ind_arg1[27+map2idx*105],arg4_l[27]);
+    atomicAdd(&ind_arg1[28+map2idx*105],arg4_l[28]);
+    atomicAdd(&ind_arg1[29+map2idx*105],arg4_l[29]);
+    atomicAdd(&ind_arg1[30+map2idx*105],arg4_l[30]);
+    atomicAdd(&ind_arg1[31+map2idx*105],arg4_l[31]);
+    atomicAdd(&ind_arg1[32+map2idx*105],arg4_l[32]);
+    atomicAdd(&ind_arg1[33+map2idx*105],arg4_l[33]);
+    atomicAdd(&ind_arg1[34+map2idx*105],arg4_l[34]);
+    atomicAdd(&ind_arg1[35+map2idx*105],arg4_l[35]);
+    atomicAdd(&ind_arg1[36+map2idx*105],arg4_l[36]);
+    atomicAdd(&ind_arg1[37+map2idx*105],arg4_l[37]);
+    atomicAdd(&ind_arg1[38+map2idx*105],arg4_l[38]);
+    atomicAdd(&ind_arg1[39+map2idx*105],arg4_l[39]);
+    atomicAdd(&ind_arg1[40+map2idx*105],arg4_l[40]);
+    atomicAdd(&ind_arg1[41+map2idx*105],arg4_l[41]);
+    atomicAdd(&ind_arg1[42+map2idx*105],arg4_l[42]);
+    atomicAdd(&ind_arg1[43+map2idx*105],arg4_l[43]);
+    atomicAdd(&ind_arg1[44+map2idx*105],arg4_l[44]);
+    atomicAdd(&ind_arg1[45+map2idx*105],arg4_l[45]);
+    atomicAdd(&ind_arg1[46+map2idx*105],arg4_l[46]);
+    atomicAdd(&ind_arg1[47+map2idx*105],arg4_l[47]);
+    atomicAdd(&ind_arg1[48+map2idx*105],arg4_l[48]);
+    atomicAdd(&ind_arg1[49+map2idx*105],arg4_l[49]);
+    atomicAdd(&ind_arg1[50+map2idx*105],arg4_l[50]);
+    atomicAdd(&ind_arg1[51+map2idx*105],arg4_l[51]);
+    atomicAdd(&ind_arg1[52+map2idx*105],arg4_l[52]);
+    atomicAdd(&ind_arg1[53+map2idx*105],arg4_l[53]);
+    atomicAdd(&ind_arg1[54+map2idx*105],arg4_l[54]);
+    atomicAdd(&ind_arg1[55+map2idx*105],arg4_l[55]);
+    atomicAdd(&ind_arg1[56+map2idx*105],arg4_l[56]);
+    atomicAdd(&ind_arg1[57+map2idx*105],arg4_l[57]);
+    atomicAdd(&ind_arg1[58+map2idx*105],arg4_l[58]);
+    atomicAdd(&ind_arg1[59+map2idx*105],arg4_l[59]);
+    atomicAdd(&ind_arg1[60+map2idx*105],arg4_l[60]);
+    atomicAdd(&ind_arg1[61+map2idx*105],arg4_l[61]);
+    atomicAdd(&ind_arg1[62+map2idx*105],arg4_l[62]);
+    atomicAdd(&ind_arg1[63+map2idx*105],arg4_l[63]);
+    atomicAdd(&ind_arg1[64+map2idx*105],arg4_l[64]);
+    atomicAdd(&ind_arg1[65+map2idx*105],arg4_l[65]);
+    atomicAdd(&ind_arg1[66+map2idx*105],arg4_l[66]);
+    atomicAdd(&ind_arg1[67+map2idx*105],arg4_l[67]);
+    atomicAdd(&ind_arg1[68+map2idx*105],arg4_l[68]);
+    atomicAdd(&ind_arg1[69+map2idx*105],arg4_l[69]);
+    atomicAdd(&ind_arg1[70+map2idx*105],arg4_l[70]);
+    atomicAdd(&ind_arg1[71+map2idx*105],arg4_l[71]);
+    atomicAdd(&ind_arg1[72+map2idx*105],arg4_l[72]);
+    atomicAdd(&ind_arg1[73+map2idx*105],arg4_l[73]);
+    atomicAdd(&ind_arg1[74+map2idx*105],arg4_l[74]);
+    atomicAdd(&ind_arg1[75+map2idx*105],arg4_l[75]);
+    atomicAdd(&ind_arg1[76+map2idx*105],arg4_l[76]);
+    atomicAdd(&ind_arg1[77+map2idx*105],arg4_l[77]);
+    atomicAdd(&ind_arg1[78+map2idx*105],arg4_l[78]);
+    atomicAdd(&ind_arg1[79+map2idx*105],arg4_l[79]);
+    atomicAdd(&ind_arg1[80+map2idx*105],arg4_l[80]);
+    atomicAdd(&ind_arg1[81+map2idx*105],arg4_l[81]);
+    atomicAdd(&ind_arg1[82+map2idx*105],arg4_l[82]);
+    atomicAdd(&ind_arg1[83+map2idx*105],arg4_l[83]);
+    atomicAdd(&ind_arg1[84+map2idx*105],arg4_l[84]);
+    atomicAdd(&ind_arg1[85+map2idx*105],arg4_l[85]);
+    atomicAdd(&ind_arg1[86+map2idx*105],arg4_l[86]);
+    atomicAdd(&ind_arg1[87+map2idx*105],arg4_l[87]);
+    atomicAdd(&ind_arg1[88+map2idx*105],arg4_l[88]);
+    atomicAdd(&ind_arg1[89+map2idx*105],arg4_l[89]);
+    atomicAdd(&ind_arg1[90+map2idx*105],arg4_l[90]);
+    atomicAdd(&ind_arg1[91+map2idx*105],arg4_l[91]);
+    atomicAdd(&ind_arg1[92+map2idx*105],arg4_l[92]);
+    atomicAdd(&ind_arg1[93+map2idx*105],arg4_l[93]);
+    atomicAdd(&ind_arg1[94+map2idx*105],arg4_l[94]);
+    atomicAdd(&ind_arg1[95+map2idx*105],arg4_l[95]);
+    atomicAdd(&ind_arg1[96+map2idx*105],arg4_l[96]);
+    atomicAdd(&ind_arg1[97+map2idx*105],arg4_l[97]);
+    atomicAdd(&ind_arg1[98+map2idx*105],arg4_l[98]);
+    atomicAdd(&ind_arg1[99+map2idx*105],arg4_l[99]);
+    atomicAdd(&ind_arg1[100+map2idx*105],arg4_l[100]);
+    atomicAdd(&ind_arg1[101+map2idx*105],arg4_l[101]);
+    atomicAdd(&ind_arg1[102+map2idx*105],arg4_l[102]);
+    atomicAdd(&ind_arg1[103+map2idx*105],arg4_l[103]);
+    atomicAdd(&ind_arg1[104+map2idx*105],arg4_l[104]);
+    atomicAdd(&ind_arg1[0+map3idx*105],arg5_l[0]);
+    atomicAdd(&ind_arg1[1+map3idx*105],arg5_l[1]);
+    atomicAdd(&ind_arg1[2+map3idx*105],arg5_l[2]);
+    atomicAdd(&ind_arg1[3+map3idx*105],arg5_l[3]);
+    atomicAdd(&ind_arg1[4+map3idx*105],arg5_l[4]);
+    atomicAdd(&ind_arg1[5+map3idx*105],arg5_l[5]);
+    atomicAdd(&ind_arg1[6+map3idx*105],arg5_l[6]);
+    atomicAdd(&ind_arg1[7+map3idx*105],arg5_l[7]);
+    atomicAdd(&ind_arg1[8+map3idx*105],arg5_l[8]);
+    atomicAdd(&ind_arg1[9+map3idx*105],arg5_l[9]);
+    atomicAdd(&ind_arg1[10+map3idx*105],arg5_l[10]);
+    atomicAdd(&ind_arg1[11+map3idx*105],arg5_l[11]);
+    atomicAdd(&ind_arg1[12+map3idx*105],arg5_l[12]);
+    atomicAdd(&ind_arg1[13+map3idx*105],arg5_l[13]);
+    atomicAdd(&ind_arg1[14+map3idx*105],arg5_l[14]);
+    atomicAdd(&ind_arg1[15+map3idx*105],arg5_l[15]);
+    atomicAdd(&ind_arg1[16+map3idx*105],arg5_l[16]);
+    atomicAdd(&ind_arg1[17+map3idx*105],arg5_l[17]);
+    atomicAdd(&ind_arg1[18+map3idx*105],arg5_l[18]);
+    atomicAdd(&ind_arg1[19+map3idx*105],arg5_l[19]);
+    atomicAdd(&ind_arg1[20+map3idx*105],arg5_l[20]);
+    atomicAdd(&ind_arg1[21+map3idx*105],arg5_l[21]);
+    atomicAdd(&ind_arg1[22+map3idx*105],arg5_l[22]);
+    atomicAdd(&ind_arg1[23+map3idx*105],arg5_l[23]);
+    atomicAdd(&ind_arg1[24+map3idx*105],arg5_l[24]);
+    atomicAdd(&ind_arg1[25+map3idx*105],arg5_l[25]);
+    atomicAdd(&ind_arg1[26+map3idx*105],arg5_l[26]);
+    atomicAdd(&ind_arg1[27+map3idx*105],arg5_l[27]);
+    atomicAdd(&ind_arg1[28+map3idx*105],arg5_l[28]);
+    atomicAdd(&ind_arg1[29+map3idx*105],arg5_l[29]);
+    atomicAdd(&ind_arg1[30+map3idx*105],arg5_l[30]);
+    atomicAdd(&ind_arg1[31+map3idx*105],arg5_l[31]);
+    atomicAdd(&ind_arg1[32+map3idx*105],arg5_l[32]);
+    atomicAdd(&ind_arg1[33+map3idx*105],arg5_l[33]);
+    atomicAdd(&ind_arg1[34+map3idx*105],arg5_l[34]);
+    atomicAdd(&ind_arg1[35+map3idx*105],arg5_l[35]);
+    atomicAdd(&ind_arg1[36+map3idx*105],arg5_l[36]);
+    atomicAdd(&ind_arg1[37+map3idx*105],arg5_l[37]);
+    atomicAdd(&ind_arg1[38+map3idx*105],arg5_l[38]);
+    atomicAdd(&ind_arg1[39+map3idx*105],arg5_l[39]);
+    atomicAdd(&ind_arg1[40+map3idx*105],arg5_l[40]);
+    atomicAdd(&ind_arg1[41+map3idx*105],arg5_l[41]);
+    atomicAdd(&ind_arg1[42+map3idx*105],arg5_l[42]);
+    atomicAdd(&ind_arg1[43+map3idx*105],arg5_l[43]);
+    atomicAdd(&ind_arg1[44+map3idx*105],arg5_l[44]);
+    atomicAdd(&ind_arg1[45+map3idx*105],arg5_l[45]);
+    atomicAdd(&ind_arg1[46+map3idx*105],arg5_l[46]);
+    atomicAdd(&ind_arg1[47+map3idx*105],arg5_l[47]);
+    atomicAdd(&ind_arg1[48+map3idx*105],arg5_l[48]);
+    atomicAdd(&ind_arg1[49+map3idx*105],arg5_l[49]);
+    atomicAdd(&ind_arg1[50+map3idx*105],arg5_l[50]);
+    atomicAdd(&ind_arg1[51+map3idx*105],arg5_l[51]);
+    atomicAdd(&ind_arg1[52+map3idx*105],arg5_l[52]);
+    atomicAdd(&ind_arg1[53+map3idx*105],arg5_l[53]);
+    atomicAdd(&ind_arg1[54+map3idx*105],arg5_l[54]);
+    atomicAdd(&ind_arg1[55+map3idx*105],arg5_l[55]);
+    atomicAdd(&ind_arg1[56+map3idx*105],arg5_l[56]);
+    atomicAdd(&ind_arg1[57+map3idx*105],arg5_l[57]);
+    atomicAdd(&ind_arg1[58+map3idx*105],arg5_l[58]);
+    atomicAdd(&ind_arg1[59+map3idx*105],arg5_l[59]);
+    atomicAdd(&ind_arg1[60+map3idx*105],arg5_l[60]);
+    atomicAdd(&ind_arg1[61+map3idx*105],arg5_l[61]);
+    atomicAdd(&ind_arg1[62+map3idx*105],arg5_l[62]);
+    atomicAdd(&ind_arg1[63+map3idx*105],arg5_l[63]);
+    atomicAdd(&ind_arg1[64+map3idx*105],arg5_l[64]);
+    atomicAdd(&ind_arg1[65+map3idx*105],arg5_l[65]);
+    atomicAdd(&ind_arg1[66+map3idx*105],arg5_l[66]);
+    atomicAdd(&ind_arg1[67+map3idx*105],arg5_l[67]);
+    atomicAdd(&ind_arg1[68+map3idx*105],arg5_l[68]);
+    atomicAdd(&ind_arg1[69+map3idx*105],arg5_l[69]);
+    atomicAdd(&ind_arg1[70+map3idx*105],arg5_l[70]);
+    atomicAdd(&ind_arg1[71+map3idx*105],arg5_l[71]);
+    atomicAdd(&ind_arg1[72+map3idx*105],arg5_l[72]);
+    atomicAdd(&ind_arg1[73+map3idx*105],arg5_l[73]);
+    atomicAdd(&ind_arg1[74+map3idx*105],arg5_l[74]);
+    atomicAdd(&ind_arg1[75+map3idx*105],arg5_l[75]);
+    atomicAdd(&ind_arg1[76+map3idx*105],arg5_l[76]);
+    atomicAdd(&ind_arg1[77+map3idx*105],arg5_l[77]);
+    atomicAdd(&ind_arg1[78+map3idx*105],arg5_l[78]);
+    atomicAdd(&ind_arg1[79+map3idx*105],arg5_l[79]);
+    atomicAdd(&ind_arg1[80+map3idx*105],arg5_l[80]);
+    atomicAdd(&ind_arg1[81+map3idx*105],arg5_l[81]);
+    atomicAdd(&ind_arg1[82+map3idx*105],arg5_l[82]);
+    atomicAdd(&ind_arg1[83+map3idx*105],arg5_l[83]);
+    atomicAdd(&ind_arg1[84+map3idx*105],arg5_l[84]);
+    atomicAdd(&ind_arg1[85+map3idx*105],arg5_l[85]);
+    atomicAdd(&ind_arg1[86+map3idx*105],arg5_l[86]);
+    atomicAdd(&ind_arg1[87+map3idx*105],arg5_l[87]);
+    atomicAdd(&ind_arg1[88+map3idx*105],arg5_l[88]);
+    atomicAdd(&ind_arg1[89+map3idx*105],arg5_l[89]);
+    atomicAdd(&ind_arg1[90+map3idx*105],arg5_l[90]);
+    atomicAdd(&ind_arg1[91+map3idx*105],arg5_l[91]);
+    atomicAdd(&ind_arg1[92+map3idx*105],arg5_l[92]);
+    atomicAdd(&ind_arg1[93+map3idx*105],arg5_l[93]);
+    atomicAdd(&ind_arg1[94+map3idx*105],arg5_l[94]);
+    atomicAdd(&ind_arg1[95+map3idx*105],arg5_l[95]);
+    atomicAdd(&ind_arg1[96+map3idx*105],arg5_l[96]);
+    atomicAdd(&ind_arg1[97+map3idx*105],arg5_l[97]);
+    atomicAdd(&ind_arg1[98+map3idx*105],arg5_l[98]);
+    atomicAdd(&ind_arg1[99+map3idx*105],arg5_l[99]);
+    atomicAdd(&ind_arg1[100+map3idx*105],arg5_l[100]);
+    atomicAdd(&ind_arg1[101+map3idx*105],arg5_l[101]);
+    atomicAdd(&ind_arg1[102+map3idx*105],arg5_l[102]);
+    atomicAdd(&ind_arg1[103+map3idx*105],arg5_l[103]);
+    atomicAdd(&ind_arg1[104+map3idx*105],arg5_l[104]);
     atomicAdd(&ind_arg2[0+map2idx*105],arg6_l[0]);
     atomicAdd(&ind_arg2[1+map2idx*105],arg6_l[1]);
     atomicAdd(&ind_arg2[2+map2idx*105],arg6_l[2]);
@@ -382,426 +662,111 @@ __global__ void op_cuda_gauss_gfi_faces(
     atomicAdd(&ind_arg2[102+map2idx*105],arg6_l[102]);
     atomicAdd(&ind_arg2[103+map2idx*105],arg6_l[103]);
     atomicAdd(&ind_arg2[104+map2idx*105],arg6_l[104]);
-    atomicAdd(&ind_arg3[0+map1idx*105],arg7_l[0]);
-    atomicAdd(&ind_arg3[1+map1idx*105],arg7_l[1]);
-    atomicAdd(&ind_arg3[2+map1idx*105],arg7_l[2]);
-    atomicAdd(&ind_arg3[3+map1idx*105],arg7_l[3]);
-    atomicAdd(&ind_arg3[4+map1idx*105],arg7_l[4]);
-    atomicAdd(&ind_arg3[5+map1idx*105],arg7_l[5]);
-    atomicAdd(&ind_arg3[6+map1idx*105],arg7_l[6]);
-    atomicAdd(&ind_arg3[7+map1idx*105],arg7_l[7]);
-    atomicAdd(&ind_arg3[8+map1idx*105],arg7_l[8]);
-    atomicAdd(&ind_arg3[9+map1idx*105],arg7_l[9]);
-    atomicAdd(&ind_arg3[10+map1idx*105],arg7_l[10]);
-    atomicAdd(&ind_arg3[11+map1idx*105],arg7_l[11]);
-    atomicAdd(&ind_arg3[12+map1idx*105],arg7_l[12]);
-    atomicAdd(&ind_arg3[13+map1idx*105],arg7_l[13]);
-    atomicAdd(&ind_arg3[14+map1idx*105],arg7_l[14]);
-    atomicAdd(&ind_arg3[15+map1idx*105],arg7_l[15]);
-    atomicAdd(&ind_arg3[16+map1idx*105],arg7_l[16]);
-    atomicAdd(&ind_arg3[17+map1idx*105],arg7_l[17]);
-    atomicAdd(&ind_arg3[18+map1idx*105],arg7_l[18]);
-    atomicAdd(&ind_arg3[19+map1idx*105],arg7_l[19]);
-    atomicAdd(&ind_arg3[20+map1idx*105],arg7_l[20]);
-    atomicAdd(&ind_arg3[21+map1idx*105],arg7_l[21]);
-    atomicAdd(&ind_arg3[22+map1idx*105],arg7_l[22]);
-    atomicAdd(&ind_arg3[23+map1idx*105],arg7_l[23]);
-    atomicAdd(&ind_arg3[24+map1idx*105],arg7_l[24]);
-    atomicAdd(&ind_arg3[25+map1idx*105],arg7_l[25]);
-    atomicAdd(&ind_arg3[26+map1idx*105],arg7_l[26]);
-    atomicAdd(&ind_arg3[27+map1idx*105],arg7_l[27]);
-    atomicAdd(&ind_arg3[28+map1idx*105],arg7_l[28]);
-    atomicAdd(&ind_arg3[29+map1idx*105],arg7_l[29]);
-    atomicAdd(&ind_arg3[30+map1idx*105],arg7_l[30]);
-    atomicAdd(&ind_arg3[31+map1idx*105],arg7_l[31]);
-    atomicAdd(&ind_arg3[32+map1idx*105],arg7_l[32]);
-    atomicAdd(&ind_arg3[33+map1idx*105],arg7_l[33]);
-    atomicAdd(&ind_arg3[34+map1idx*105],arg7_l[34]);
-    atomicAdd(&ind_arg3[35+map1idx*105],arg7_l[35]);
-    atomicAdd(&ind_arg3[36+map1idx*105],arg7_l[36]);
-    atomicAdd(&ind_arg3[37+map1idx*105],arg7_l[37]);
-    atomicAdd(&ind_arg3[38+map1idx*105],arg7_l[38]);
-    atomicAdd(&ind_arg3[39+map1idx*105],arg7_l[39]);
-    atomicAdd(&ind_arg3[40+map1idx*105],arg7_l[40]);
-    atomicAdd(&ind_arg3[41+map1idx*105],arg7_l[41]);
-    atomicAdd(&ind_arg3[42+map1idx*105],arg7_l[42]);
-    atomicAdd(&ind_arg3[43+map1idx*105],arg7_l[43]);
-    atomicAdd(&ind_arg3[44+map1idx*105],arg7_l[44]);
-    atomicAdd(&ind_arg3[45+map1idx*105],arg7_l[45]);
-    atomicAdd(&ind_arg3[46+map1idx*105],arg7_l[46]);
-    atomicAdd(&ind_arg3[47+map1idx*105],arg7_l[47]);
-    atomicAdd(&ind_arg3[48+map1idx*105],arg7_l[48]);
-    atomicAdd(&ind_arg3[49+map1idx*105],arg7_l[49]);
-    atomicAdd(&ind_arg3[50+map1idx*105],arg7_l[50]);
-    atomicAdd(&ind_arg3[51+map1idx*105],arg7_l[51]);
-    atomicAdd(&ind_arg3[52+map1idx*105],arg7_l[52]);
-    atomicAdd(&ind_arg3[53+map1idx*105],arg7_l[53]);
-    atomicAdd(&ind_arg3[54+map1idx*105],arg7_l[54]);
-    atomicAdd(&ind_arg3[55+map1idx*105],arg7_l[55]);
-    atomicAdd(&ind_arg3[56+map1idx*105],arg7_l[56]);
-    atomicAdd(&ind_arg3[57+map1idx*105],arg7_l[57]);
-    atomicAdd(&ind_arg3[58+map1idx*105],arg7_l[58]);
-    atomicAdd(&ind_arg3[59+map1idx*105],arg7_l[59]);
-    atomicAdd(&ind_arg3[60+map1idx*105],arg7_l[60]);
-    atomicAdd(&ind_arg3[61+map1idx*105],arg7_l[61]);
-    atomicAdd(&ind_arg3[62+map1idx*105],arg7_l[62]);
-    atomicAdd(&ind_arg3[63+map1idx*105],arg7_l[63]);
-    atomicAdd(&ind_arg3[64+map1idx*105],arg7_l[64]);
-    atomicAdd(&ind_arg3[65+map1idx*105],arg7_l[65]);
-    atomicAdd(&ind_arg3[66+map1idx*105],arg7_l[66]);
-    atomicAdd(&ind_arg3[67+map1idx*105],arg7_l[67]);
-    atomicAdd(&ind_arg3[68+map1idx*105],arg7_l[68]);
-    atomicAdd(&ind_arg3[69+map1idx*105],arg7_l[69]);
-    atomicAdd(&ind_arg3[70+map1idx*105],arg7_l[70]);
-    atomicAdd(&ind_arg3[71+map1idx*105],arg7_l[71]);
-    atomicAdd(&ind_arg3[72+map1idx*105],arg7_l[72]);
-    atomicAdd(&ind_arg3[73+map1idx*105],arg7_l[73]);
-    atomicAdd(&ind_arg3[74+map1idx*105],arg7_l[74]);
-    atomicAdd(&ind_arg3[75+map1idx*105],arg7_l[75]);
-    atomicAdd(&ind_arg3[76+map1idx*105],arg7_l[76]);
-    atomicAdd(&ind_arg3[77+map1idx*105],arg7_l[77]);
-    atomicAdd(&ind_arg3[78+map1idx*105],arg7_l[78]);
-    atomicAdd(&ind_arg3[79+map1idx*105],arg7_l[79]);
-    atomicAdd(&ind_arg3[80+map1idx*105],arg7_l[80]);
-    atomicAdd(&ind_arg3[81+map1idx*105],arg7_l[81]);
-    atomicAdd(&ind_arg3[82+map1idx*105],arg7_l[82]);
-    atomicAdd(&ind_arg3[83+map1idx*105],arg7_l[83]);
-    atomicAdd(&ind_arg3[84+map1idx*105],arg7_l[84]);
-    atomicAdd(&ind_arg3[85+map1idx*105],arg7_l[85]);
-    atomicAdd(&ind_arg3[86+map1idx*105],arg7_l[86]);
-    atomicAdd(&ind_arg3[87+map1idx*105],arg7_l[87]);
-    atomicAdd(&ind_arg3[88+map1idx*105],arg7_l[88]);
-    atomicAdd(&ind_arg3[89+map1idx*105],arg7_l[89]);
-    atomicAdd(&ind_arg3[90+map1idx*105],arg7_l[90]);
-    atomicAdd(&ind_arg3[91+map1idx*105],arg7_l[91]);
-    atomicAdd(&ind_arg3[92+map1idx*105],arg7_l[92]);
-    atomicAdd(&ind_arg3[93+map1idx*105],arg7_l[93]);
-    atomicAdd(&ind_arg3[94+map1idx*105],arg7_l[94]);
-    atomicAdd(&ind_arg3[95+map1idx*105],arg7_l[95]);
-    atomicAdd(&ind_arg3[96+map1idx*105],arg7_l[96]);
-    atomicAdd(&ind_arg3[97+map1idx*105],arg7_l[97]);
-    atomicAdd(&ind_arg3[98+map1idx*105],arg7_l[98]);
-    atomicAdd(&ind_arg3[99+map1idx*105],arg7_l[99]);
-    atomicAdd(&ind_arg3[100+map1idx*105],arg7_l[100]);
-    atomicAdd(&ind_arg3[101+map1idx*105],arg7_l[101]);
-    atomicAdd(&ind_arg3[102+map1idx*105],arg7_l[102]);
-    atomicAdd(&ind_arg3[103+map1idx*105],arg7_l[103]);
-    atomicAdd(&ind_arg3[104+map1idx*105],arg7_l[104]);
-    atomicAdd(&ind_arg3[0+map2idx*105],arg8_l[0]);
-    atomicAdd(&ind_arg3[1+map2idx*105],arg8_l[1]);
-    atomicAdd(&ind_arg3[2+map2idx*105],arg8_l[2]);
-    atomicAdd(&ind_arg3[3+map2idx*105],arg8_l[3]);
-    atomicAdd(&ind_arg3[4+map2idx*105],arg8_l[4]);
-    atomicAdd(&ind_arg3[5+map2idx*105],arg8_l[5]);
-    atomicAdd(&ind_arg3[6+map2idx*105],arg8_l[6]);
-    atomicAdd(&ind_arg3[7+map2idx*105],arg8_l[7]);
-    atomicAdd(&ind_arg3[8+map2idx*105],arg8_l[8]);
-    atomicAdd(&ind_arg3[9+map2idx*105],arg8_l[9]);
-    atomicAdd(&ind_arg3[10+map2idx*105],arg8_l[10]);
-    atomicAdd(&ind_arg3[11+map2idx*105],arg8_l[11]);
-    atomicAdd(&ind_arg3[12+map2idx*105],arg8_l[12]);
-    atomicAdd(&ind_arg3[13+map2idx*105],arg8_l[13]);
-    atomicAdd(&ind_arg3[14+map2idx*105],arg8_l[14]);
-    atomicAdd(&ind_arg3[15+map2idx*105],arg8_l[15]);
-    atomicAdd(&ind_arg3[16+map2idx*105],arg8_l[16]);
-    atomicAdd(&ind_arg3[17+map2idx*105],arg8_l[17]);
-    atomicAdd(&ind_arg3[18+map2idx*105],arg8_l[18]);
-    atomicAdd(&ind_arg3[19+map2idx*105],arg8_l[19]);
-    atomicAdd(&ind_arg3[20+map2idx*105],arg8_l[20]);
-    atomicAdd(&ind_arg3[21+map2idx*105],arg8_l[21]);
-    atomicAdd(&ind_arg3[22+map2idx*105],arg8_l[22]);
-    atomicAdd(&ind_arg3[23+map2idx*105],arg8_l[23]);
-    atomicAdd(&ind_arg3[24+map2idx*105],arg8_l[24]);
-    atomicAdd(&ind_arg3[25+map2idx*105],arg8_l[25]);
-    atomicAdd(&ind_arg3[26+map2idx*105],arg8_l[26]);
-    atomicAdd(&ind_arg3[27+map2idx*105],arg8_l[27]);
-    atomicAdd(&ind_arg3[28+map2idx*105],arg8_l[28]);
-    atomicAdd(&ind_arg3[29+map2idx*105],arg8_l[29]);
-    atomicAdd(&ind_arg3[30+map2idx*105],arg8_l[30]);
-    atomicAdd(&ind_arg3[31+map2idx*105],arg8_l[31]);
-    atomicAdd(&ind_arg3[32+map2idx*105],arg8_l[32]);
-    atomicAdd(&ind_arg3[33+map2idx*105],arg8_l[33]);
-    atomicAdd(&ind_arg3[34+map2idx*105],arg8_l[34]);
-    atomicAdd(&ind_arg3[35+map2idx*105],arg8_l[35]);
-    atomicAdd(&ind_arg3[36+map2idx*105],arg8_l[36]);
-    atomicAdd(&ind_arg3[37+map2idx*105],arg8_l[37]);
-    atomicAdd(&ind_arg3[38+map2idx*105],arg8_l[38]);
-    atomicAdd(&ind_arg3[39+map2idx*105],arg8_l[39]);
-    atomicAdd(&ind_arg3[40+map2idx*105],arg8_l[40]);
-    atomicAdd(&ind_arg3[41+map2idx*105],arg8_l[41]);
-    atomicAdd(&ind_arg3[42+map2idx*105],arg8_l[42]);
-    atomicAdd(&ind_arg3[43+map2idx*105],arg8_l[43]);
-    atomicAdd(&ind_arg3[44+map2idx*105],arg8_l[44]);
-    atomicAdd(&ind_arg3[45+map2idx*105],arg8_l[45]);
-    atomicAdd(&ind_arg3[46+map2idx*105],arg8_l[46]);
-    atomicAdd(&ind_arg3[47+map2idx*105],arg8_l[47]);
-    atomicAdd(&ind_arg3[48+map2idx*105],arg8_l[48]);
-    atomicAdd(&ind_arg3[49+map2idx*105],arg8_l[49]);
-    atomicAdd(&ind_arg3[50+map2idx*105],arg8_l[50]);
-    atomicAdd(&ind_arg3[51+map2idx*105],arg8_l[51]);
-    atomicAdd(&ind_arg3[52+map2idx*105],arg8_l[52]);
-    atomicAdd(&ind_arg3[53+map2idx*105],arg8_l[53]);
-    atomicAdd(&ind_arg3[54+map2idx*105],arg8_l[54]);
-    atomicAdd(&ind_arg3[55+map2idx*105],arg8_l[55]);
-    atomicAdd(&ind_arg3[56+map2idx*105],arg8_l[56]);
-    atomicAdd(&ind_arg3[57+map2idx*105],arg8_l[57]);
-    atomicAdd(&ind_arg3[58+map2idx*105],arg8_l[58]);
-    atomicAdd(&ind_arg3[59+map2idx*105],arg8_l[59]);
-    atomicAdd(&ind_arg3[60+map2idx*105],arg8_l[60]);
-    atomicAdd(&ind_arg3[61+map2idx*105],arg8_l[61]);
-    atomicAdd(&ind_arg3[62+map2idx*105],arg8_l[62]);
-    atomicAdd(&ind_arg3[63+map2idx*105],arg8_l[63]);
-    atomicAdd(&ind_arg3[64+map2idx*105],arg8_l[64]);
-    atomicAdd(&ind_arg3[65+map2idx*105],arg8_l[65]);
-    atomicAdd(&ind_arg3[66+map2idx*105],arg8_l[66]);
-    atomicAdd(&ind_arg3[67+map2idx*105],arg8_l[67]);
-    atomicAdd(&ind_arg3[68+map2idx*105],arg8_l[68]);
-    atomicAdd(&ind_arg3[69+map2idx*105],arg8_l[69]);
-    atomicAdd(&ind_arg3[70+map2idx*105],arg8_l[70]);
-    atomicAdd(&ind_arg3[71+map2idx*105],arg8_l[71]);
-    atomicAdd(&ind_arg3[72+map2idx*105],arg8_l[72]);
-    atomicAdd(&ind_arg3[73+map2idx*105],arg8_l[73]);
-    atomicAdd(&ind_arg3[74+map2idx*105],arg8_l[74]);
-    atomicAdd(&ind_arg3[75+map2idx*105],arg8_l[75]);
-    atomicAdd(&ind_arg3[76+map2idx*105],arg8_l[76]);
-    atomicAdd(&ind_arg3[77+map2idx*105],arg8_l[77]);
-    atomicAdd(&ind_arg3[78+map2idx*105],arg8_l[78]);
-    atomicAdd(&ind_arg3[79+map2idx*105],arg8_l[79]);
-    atomicAdd(&ind_arg3[80+map2idx*105],arg8_l[80]);
-    atomicAdd(&ind_arg3[81+map2idx*105],arg8_l[81]);
-    atomicAdd(&ind_arg3[82+map2idx*105],arg8_l[82]);
-    atomicAdd(&ind_arg3[83+map2idx*105],arg8_l[83]);
-    atomicAdd(&ind_arg3[84+map2idx*105],arg8_l[84]);
-    atomicAdd(&ind_arg3[85+map2idx*105],arg8_l[85]);
-    atomicAdd(&ind_arg3[86+map2idx*105],arg8_l[86]);
-    atomicAdd(&ind_arg3[87+map2idx*105],arg8_l[87]);
-    atomicAdd(&ind_arg3[88+map2idx*105],arg8_l[88]);
-    atomicAdd(&ind_arg3[89+map2idx*105],arg8_l[89]);
-    atomicAdd(&ind_arg3[90+map2idx*105],arg8_l[90]);
-    atomicAdd(&ind_arg3[91+map2idx*105],arg8_l[91]);
-    atomicAdd(&ind_arg3[92+map2idx*105],arg8_l[92]);
-    atomicAdd(&ind_arg3[93+map2idx*105],arg8_l[93]);
-    atomicAdd(&ind_arg3[94+map2idx*105],arg8_l[94]);
-    atomicAdd(&ind_arg3[95+map2idx*105],arg8_l[95]);
-    atomicAdd(&ind_arg3[96+map2idx*105],arg8_l[96]);
-    atomicAdd(&ind_arg3[97+map2idx*105],arg8_l[97]);
-    atomicAdd(&ind_arg3[98+map2idx*105],arg8_l[98]);
-    atomicAdd(&ind_arg3[99+map2idx*105],arg8_l[99]);
-    atomicAdd(&ind_arg3[100+map2idx*105],arg8_l[100]);
-    atomicAdd(&ind_arg3[101+map2idx*105],arg8_l[101]);
-    atomicAdd(&ind_arg3[102+map2idx*105],arg8_l[102]);
-    atomicAdd(&ind_arg3[103+map2idx*105],arg8_l[103]);
-    atomicAdd(&ind_arg3[104+map2idx*105],arg8_l[104]);
-    atomicAdd(&ind_arg4[0+map1idx*105],arg9_l[0]);
-    atomicAdd(&ind_arg4[1+map1idx*105],arg9_l[1]);
-    atomicAdd(&ind_arg4[2+map1idx*105],arg9_l[2]);
-    atomicAdd(&ind_arg4[3+map1idx*105],arg9_l[3]);
-    atomicAdd(&ind_arg4[4+map1idx*105],arg9_l[4]);
-    atomicAdd(&ind_arg4[5+map1idx*105],arg9_l[5]);
-    atomicAdd(&ind_arg4[6+map1idx*105],arg9_l[6]);
-    atomicAdd(&ind_arg4[7+map1idx*105],arg9_l[7]);
-    atomicAdd(&ind_arg4[8+map1idx*105],arg9_l[8]);
-    atomicAdd(&ind_arg4[9+map1idx*105],arg9_l[9]);
-    atomicAdd(&ind_arg4[10+map1idx*105],arg9_l[10]);
-    atomicAdd(&ind_arg4[11+map1idx*105],arg9_l[11]);
-    atomicAdd(&ind_arg4[12+map1idx*105],arg9_l[12]);
-    atomicAdd(&ind_arg4[13+map1idx*105],arg9_l[13]);
-    atomicAdd(&ind_arg4[14+map1idx*105],arg9_l[14]);
-    atomicAdd(&ind_arg4[15+map1idx*105],arg9_l[15]);
-    atomicAdd(&ind_arg4[16+map1idx*105],arg9_l[16]);
-    atomicAdd(&ind_arg4[17+map1idx*105],arg9_l[17]);
-    atomicAdd(&ind_arg4[18+map1idx*105],arg9_l[18]);
-    atomicAdd(&ind_arg4[19+map1idx*105],arg9_l[19]);
-    atomicAdd(&ind_arg4[20+map1idx*105],arg9_l[20]);
-    atomicAdd(&ind_arg4[21+map1idx*105],arg9_l[21]);
-    atomicAdd(&ind_arg4[22+map1idx*105],arg9_l[22]);
-    atomicAdd(&ind_arg4[23+map1idx*105],arg9_l[23]);
-    atomicAdd(&ind_arg4[24+map1idx*105],arg9_l[24]);
-    atomicAdd(&ind_arg4[25+map1idx*105],arg9_l[25]);
-    atomicAdd(&ind_arg4[26+map1idx*105],arg9_l[26]);
-    atomicAdd(&ind_arg4[27+map1idx*105],arg9_l[27]);
-    atomicAdd(&ind_arg4[28+map1idx*105],arg9_l[28]);
-    atomicAdd(&ind_arg4[29+map1idx*105],arg9_l[29]);
-    atomicAdd(&ind_arg4[30+map1idx*105],arg9_l[30]);
-    atomicAdd(&ind_arg4[31+map1idx*105],arg9_l[31]);
-    atomicAdd(&ind_arg4[32+map1idx*105],arg9_l[32]);
-    atomicAdd(&ind_arg4[33+map1idx*105],arg9_l[33]);
-    atomicAdd(&ind_arg4[34+map1idx*105],arg9_l[34]);
-    atomicAdd(&ind_arg4[35+map1idx*105],arg9_l[35]);
-    atomicAdd(&ind_arg4[36+map1idx*105],arg9_l[36]);
-    atomicAdd(&ind_arg4[37+map1idx*105],arg9_l[37]);
-    atomicAdd(&ind_arg4[38+map1idx*105],arg9_l[38]);
-    atomicAdd(&ind_arg4[39+map1idx*105],arg9_l[39]);
-    atomicAdd(&ind_arg4[40+map1idx*105],arg9_l[40]);
-    atomicAdd(&ind_arg4[41+map1idx*105],arg9_l[41]);
-    atomicAdd(&ind_arg4[42+map1idx*105],arg9_l[42]);
-    atomicAdd(&ind_arg4[43+map1idx*105],arg9_l[43]);
-    atomicAdd(&ind_arg4[44+map1idx*105],arg9_l[44]);
-    atomicAdd(&ind_arg4[45+map1idx*105],arg9_l[45]);
-    atomicAdd(&ind_arg4[46+map1idx*105],arg9_l[46]);
-    atomicAdd(&ind_arg4[47+map1idx*105],arg9_l[47]);
-    atomicAdd(&ind_arg4[48+map1idx*105],arg9_l[48]);
-    atomicAdd(&ind_arg4[49+map1idx*105],arg9_l[49]);
-    atomicAdd(&ind_arg4[50+map1idx*105],arg9_l[50]);
-    atomicAdd(&ind_arg4[51+map1idx*105],arg9_l[51]);
-    atomicAdd(&ind_arg4[52+map1idx*105],arg9_l[52]);
-    atomicAdd(&ind_arg4[53+map1idx*105],arg9_l[53]);
-    atomicAdd(&ind_arg4[54+map1idx*105],arg9_l[54]);
-    atomicAdd(&ind_arg4[55+map1idx*105],arg9_l[55]);
-    atomicAdd(&ind_arg4[56+map1idx*105],arg9_l[56]);
-    atomicAdd(&ind_arg4[57+map1idx*105],arg9_l[57]);
-    atomicAdd(&ind_arg4[58+map1idx*105],arg9_l[58]);
-    atomicAdd(&ind_arg4[59+map1idx*105],arg9_l[59]);
-    atomicAdd(&ind_arg4[60+map1idx*105],arg9_l[60]);
-    atomicAdd(&ind_arg4[61+map1idx*105],arg9_l[61]);
-    atomicAdd(&ind_arg4[62+map1idx*105],arg9_l[62]);
-    atomicAdd(&ind_arg4[63+map1idx*105],arg9_l[63]);
-    atomicAdd(&ind_arg4[64+map1idx*105],arg9_l[64]);
-    atomicAdd(&ind_arg4[65+map1idx*105],arg9_l[65]);
-    atomicAdd(&ind_arg4[66+map1idx*105],arg9_l[66]);
-    atomicAdd(&ind_arg4[67+map1idx*105],arg9_l[67]);
-    atomicAdd(&ind_arg4[68+map1idx*105],arg9_l[68]);
-    atomicAdd(&ind_arg4[69+map1idx*105],arg9_l[69]);
-    atomicAdd(&ind_arg4[70+map1idx*105],arg9_l[70]);
-    atomicAdd(&ind_arg4[71+map1idx*105],arg9_l[71]);
-    atomicAdd(&ind_arg4[72+map1idx*105],arg9_l[72]);
-    atomicAdd(&ind_arg4[73+map1idx*105],arg9_l[73]);
-    atomicAdd(&ind_arg4[74+map1idx*105],arg9_l[74]);
-    atomicAdd(&ind_arg4[75+map1idx*105],arg9_l[75]);
-    atomicAdd(&ind_arg4[76+map1idx*105],arg9_l[76]);
-    atomicAdd(&ind_arg4[77+map1idx*105],arg9_l[77]);
-    atomicAdd(&ind_arg4[78+map1idx*105],arg9_l[78]);
-    atomicAdd(&ind_arg4[79+map1idx*105],arg9_l[79]);
-    atomicAdd(&ind_arg4[80+map1idx*105],arg9_l[80]);
-    atomicAdd(&ind_arg4[81+map1idx*105],arg9_l[81]);
-    atomicAdd(&ind_arg4[82+map1idx*105],arg9_l[82]);
-    atomicAdd(&ind_arg4[83+map1idx*105],arg9_l[83]);
-    atomicAdd(&ind_arg4[84+map1idx*105],arg9_l[84]);
-    atomicAdd(&ind_arg4[85+map1idx*105],arg9_l[85]);
-    atomicAdd(&ind_arg4[86+map1idx*105],arg9_l[86]);
-    atomicAdd(&ind_arg4[87+map1idx*105],arg9_l[87]);
-    atomicAdd(&ind_arg4[88+map1idx*105],arg9_l[88]);
-    atomicAdd(&ind_arg4[89+map1idx*105],arg9_l[89]);
-    atomicAdd(&ind_arg4[90+map1idx*105],arg9_l[90]);
-    atomicAdd(&ind_arg4[91+map1idx*105],arg9_l[91]);
-    atomicAdd(&ind_arg4[92+map1idx*105],arg9_l[92]);
-    atomicAdd(&ind_arg4[93+map1idx*105],arg9_l[93]);
-    atomicAdd(&ind_arg4[94+map1idx*105],arg9_l[94]);
-    atomicAdd(&ind_arg4[95+map1idx*105],arg9_l[95]);
-    atomicAdd(&ind_arg4[96+map1idx*105],arg9_l[96]);
-    atomicAdd(&ind_arg4[97+map1idx*105],arg9_l[97]);
-    atomicAdd(&ind_arg4[98+map1idx*105],arg9_l[98]);
-    atomicAdd(&ind_arg4[99+map1idx*105],arg9_l[99]);
-    atomicAdd(&ind_arg4[100+map1idx*105],arg9_l[100]);
-    atomicAdd(&ind_arg4[101+map1idx*105],arg9_l[101]);
-    atomicAdd(&ind_arg4[102+map1idx*105],arg9_l[102]);
-    atomicAdd(&ind_arg4[103+map1idx*105],arg9_l[103]);
-    atomicAdd(&ind_arg4[104+map1idx*105],arg9_l[104]);
-    atomicAdd(&ind_arg4[0+map2idx*105],arg10_l[0]);
-    atomicAdd(&ind_arg4[1+map2idx*105],arg10_l[1]);
-    atomicAdd(&ind_arg4[2+map2idx*105],arg10_l[2]);
-    atomicAdd(&ind_arg4[3+map2idx*105],arg10_l[3]);
-    atomicAdd(&ind_arg4[4+map2idx*105],arg10_l[4]);
-    atomicAdd(&ind_arg4[5+map2idx*105],arg10_l[5]);
-    atomicAdd(&ind_arg4[6+map2idx*105],arg10_l[6]);
-    atomicAdd(&ind_arg4[7+map2idx*105],arg10_l[7]);
-    atomicAdd(&ind_arg4[8+map2idx*105],arg10_l[8]);
-    atomicAdd(&ind_arg4[9+map2idx*105],arg10_l[9]);
-    atomicAdd(&ind_arg4[10+map2idx*105],arg10_l[10]);
-    atomicAdd(&ind_arg4[11+map2idx*105],arg10_l[11]);
-    atomicAdd(&ind_arg4[12+map2idx*105],arg10_l[12]);
-    atomicAdd(&ind_arg4[13+map2idx*105],arg10_l[13]);
-    atomicAdd(&ind_arg4[14+map2idx*105],arg10_l[14]);
-    atomicAdd(&ind_arg4[15+map2idx*105],arg10_l[15]);
-    atomicAdd(&ind_arg4[16+map2idx*105],arg10_l[16]);
-    atomicAdd(&ind_arg4[17+map2idx*105],arg10_l[17]);
-    atomicAdd(&ind_arg4[18+map2idx*105],arg10_l[18]);
-    atomicAdd(&ind_arg4[19+map2idx*105],arg10_l[19]);
-    atomicAdd(&ind_arg4[20+map2idx*105],arg10_l[20]);
-    atomicAdd(&ind_arg4[21+map2idx*105],arg10_l[21]);
-    atomicAdd(&ind_arg4[22+map2idx*105],arg10_l[22]);
-    atomicAdd(&ind_arg4[23+map2idx*105],arg10_l[23]);
-    atomicAdd(&ind_arg4[24+map2idx*105],arg10_l[24]);
-    atomicAdd(&ind_arg4[25+map2idx*105],arg10_l[25]);
-    atomicAdd(&ind_arg4[26+map2idx*105],arg10_l[26]);
-    atomicAdd(&ind_arg4[27+map2idx*105],arg10_l[27]);
-    atomicAdd(&ind_arg4[28+map2idx*105],arg10_l[28]);
-    atomicAdd(&ind_arg4[29+map2idx*105],arg10_l[29]);
-    atomicAdd(&ind_arg4[30+map2idx*105],arg10_l[30]);
-    atomicAdd(&ind_arg4[31+map2idx*105],arg10_l[31]);
-    atomicAdd(&ind_arg4[32+map2idx*105],arg10_l[32]);
-    atomicAdd(&ind_arg4[33+map2idx*105],arg10_l[33]);
-    atomicAdd(&ind_arg4[34+map2idx*105],arg10_l[34]);
-    atomicAdd(&ind_arg4[35+map2idx*105],arg10_l[35]);
-    atomicAdd(&ind_arg4[36+map2idx*105],arg10_l[36]);
-    atomicAdd(&ind_arg4[37+map2idx*105],arg10_l[37]);
-    atomicAdd(&ind_arg4[38+map2idx*105],arg10_l[38]);
-    atomicAdd(&ind_arg4[39+map2idx*105],arg10_l[39]);
-    atomicAdd(&ind_arg4[40+map2idx*105],arg10_l[40]);
-    atomicAdd(&ind_arg4[41+map2idx*105],arg10_l[41]);
-    atomicAdd(&ind_arg4[42+map2idx*105],arg10_l[42]);
-    atomicAdd(&ind_arg4[43+map2idx*105],arg10_l[43]);
-    atomicAdd(&ind_arg4[44+map2idx*105],arg10_l[44]);
-    atomicAdd(&ind_arg4[45+map2idx*105],arg10_l[45]);
-    atomicAdd(&ind_arg4[46+map2idx*105],arg10_l[46]);
-    atomicAdd(&ind_arg4[47+map2idx*105],arg10_l[47]);
-    atomicAdd(&ind_arg4[48+map2idx*105],arg10_l[48]);
-    atomicAdd(&ind_arg4[49+map2idx*105],arg10_l[49]);
-    atomicAdd(&ind_arg4[50+map2idx*105],arg10_l[50]);
-    atomicAdd(&ind_arg4[51+map2idx*105],arg10_l[51]);
-    atomicAdd(&ind_arg4[52+map2idx*105],arg10_l[52]);
-    atomicAdd(&ind_arg4[53+map2idx*105],arg10_l[53]);
-    atomicAdd(&ind_arg4[54+map2idx*105],arg10_l[54]);
-    atomicAdd(&ind_arg4[55+map2idx*105],arg10_l[55]);
-    atomicAdd(&ind_arg4[56+map2idx*105],arg10_l[56]);
-    atomicAdd(&ind_arg4[57+map2idx*105],arg10_l[57]);
-    atomicAdd(&ind_arg4[58+map2idx*105],arg10_l[58]);
-    atomicAdd(&ind_arg4[59+map2idx*105],arg10_l[59]);
-    atomicAdd(&ind_arg4[60+map2idx*105],arg10_l[60]);
-    atomicAdd(&ind_arg4[61+map2idx*105],arg10_l[61]);
-    atomicAdd(&ind_arg4[62+map2idx*105],arg10_l[62]);
-    atomicAdd(&ind_arg4[63+map2idx*105],arg10_l[63]);
-    atomicAdd(&ind_arg4[64+map2idx*105],arg10_l[64]);
-    atomicAdd(&ind_arg4[65+map2idx*105],arg10_l[65]);
-    atomicAdd(&ind_arg4[66+map2idx*105],arg10_l[66]);
-    atomicAdd(&ind_arg4[67+map2idx*105],arg10_l[67]);
-    atomicAdd(&ind_arg4[68+map2idx*105],arg10_l[68]);
-    atomicAdd(&ind_arg4[69+map2idx*105],arg10_l[69]);
-    atomicAdd(&ind_arg4[70+map2idx*105],arg10_l[70]);
-    atomicAdd(&ind_arg4[71+map2idx*105],arg10_l[71]);
-    atomicAdd(&ind_arg4[72+map2idx*105],arg10_l[72]);
-    atomicAdd(&ind_arg4[73+map2idx*105],arg10_l[73]);
-    atomicAdd(&ind_arg4[74+map2idx*105],arg10_l[74]);
-    atomicAdd(&ind_arg4[75+map2idx*105],arg10_l[75]);
-    atomicAdd(&ind_arg4[76+map2idx*105],arg10_l[76]);
-    atomicAdd(&ind_arg4[77+map2idx*105],arg10_l[77]);
-    atomicAdd(&ind_arg4[78+map2idx*105],arg10_l[78]);
-    atomicAdd(&ind_arg4[79+map2idx*105],arg10_l[79]);
-    atomicAdd(&ind_arg4[80+map2idx*105],arg10_l[80]);
-    atomicAdd(&ind_arg4[81+map2idx*105],arg10_l[81]);
-    atomicAdd(&ind_arg4[82+map2idx*105],arg10_l[82]);
-    atomicAdd(&ind_arg4[83+map2idx*105],arg10_l[83]);
-    atomicAdd(&ind_arg4[84+map2idx*105],arg10_l[84]);
-    atomicAdd(&ind_arg4[85+map2idx*105],arg10_l[85]);
-    atomicAdd(&ind_arg4[86+map2idx*105],arg10_l[86]);
-    atomicAdd(&ind_arg4[87+map2idx*105],arg10_l[87]);
-    atomicAdd(&ind_arg4[88+map2idx*105],arg10_l[88]);
-    atomicAdd(&ind_arg4[89+map2idx*105],arg10_l[89]);
-    atomicAdd(&ind_arg4[90+map2idx*105],arg10_l[90]);
-    atomicAdd(&ind_arg4[91+map2idx*105],arg10_l[91]);
-    atomicAdd(&ind_arg4[92+map2idx*105],arg10_l[92]);
-    atomicAdd(&ind_arg4[93+map2idx*105],arg10_l[93]);
-    atomicAdd(&ind_arg4[94+map2idx*105],arg10_l[94]);
-    atomicAdd(&ind_arg4[95+map2idx*105],arg10_l[95]);
-    atomicAdd(&ind_arg4[96+map2idx*105],arg10_l[96]);
-    atomicAdd(&ind_arg4[97+map2idx*105],arg10_l[97]);
-    atomicAdd(&ind_arg4[98+map2idx*105],arg10_l[98]);
-    atomicAdd(&ind_arg4[99+map2idx*105],arg10_l[99]);
-    atomicAdd(&ind_arg4[100+map2idx*105],arg10_l[100]);
-    atomicAdd(&ind_arg4[101+map2idx*105],arg10_l[101]);
-    atomicAdd(&ind_arg4[102+map2idx*105],arg10_l[102]);
-    atomicAdd(&ind_arg4[103+map2idx*105],arg10_l[103]);
-    atomicAdd(&ind_arg4[104+map2idx*105],arg10_l[104]);
+    atomicAdd(&ind_arg2[0+map3idx*105],arg7_l[0]);
+    atomicAdd(&ind_arg2[1+map3idx*105],arg7_l[1]);
+    atomicAdd(&ind_arg2[2+map3idx*105],arg7_l[2]);
+    atomicAdd(&ind_arg2[3+map3idx*105],arg7_l[3]);
+    atomicAdd(&ind_arg2[4+map3idx*105],arg7_l[4]);
+    atomicAdd(&ind_arg2[5+map3idx*105],arg7_l[5]);
+    atomicAdd(&ind_arg2[6+map3idx*105],arg7_l[6]);
+    atomicAdd(&ind_arg2[7+map3idx*105],arg7_l[7]);
+    atomicAdd(&ind_arg2[8+map3idx*105],arg7_l[8]);
+    atomicAdd(&ind_arg2[9+map3idx*105],arg7_l[9]);
+    atomicAdd(&ind_arg2[10+map3idx*105],arg7_l[10]);
+    atomicAdd(&ind_arg2[11+map3idx*105],arg7_l[11]);
+    atomicAdd(&ind_arg2[12+map3idx*105],arg7_l[12]);
+    atomicAdd(&ind_arg2[13+map3idx*105],arg7_l[13]);
+    atomicAdd(&ind_arg2[14+map3idx*105],arg7_l[14]);
+    atomicAdd(&ind_arg2[15+map3idx*105],arg7_l[15]);
+    atomicAdd(&ind_arg2[16+map3idx*105],arg7_l[16]);
+    atomicAdd(&ind_arg2[17+map3idx*105],arg7_l[17]);
+    atomicAdd(&ind_arg2[18+map3idx*105],arg7_l[18]);
+    atomicAdd(&ind_arg2[19+map3idx*105],arg7_l[19]);
+    atomicAdd(&ind_arg2[20+map3idx*105],arg7_l[20]);
+    atomicAdd(&ind_arg2[21+map3idx*105],arg7_l[21]);
+    atomicAdd(&ind_arg2[22+map3idx*105],arg7_l[22]);
+    atomicAdd(&ind_arg2[23+map3idx*105],arg7_l[23]);
+    atomicAdd(&ind_arg2[24+map3idx*105],arg7_l[24]);
+    atomicAdd(&ind_arg2[25+map3idx*105],arg7_l[25]);
+    atomicAdd(&ind_arg2[26+map3idx*105],arg7_l[26]);
+    atomicAdd(&ind_arg2[27+map3idx*105],arg7_l[27]);
+    atomicAdd(&ind_arg2[28+map3idx*105],arg7_l[28]);
+    atomicAdd(&ind_arg2[29+map3idx*105],arg7_l[29]);
+    atomicAdd(&ind_arg2[30+map3idx*105],arg7_l[30]);
+    atomicAdd(&ind_arg2[31+map3idx*105],arg7_l[31]);
+    atomicAdd(&ind_arg2[32+map3idx*105],arg7_l[32]);
+    atomicAdd(&ind_arg2[33+map3idx*105],arg7_l[33]);
+    atomicAdd(&ind_arg2[34+map3idx*105],arg7_l[34]);
+    atomicAdd(&ind_arg2[35+map3idx*105],arg7_l[35]);
+    atomicAdd(&ind_arg2[36+map3idx*105],arg7_l[36]);
+    atomicAdd(&ind_arg2[37+map3idx*105],arg7_l[37]);
+    atomicAdd(&ind_arg2[38+map3idx*105],arg7_l[38]);
+    atomicAdd(&ind_arg2[39+map3idx*105],arg7_l[39]);
+    atomicAdd(&ind_arg2[40+map3idx*105],arg7_l[40]);
+    atomicAdd(&ind_arg2[41+map3idx*105],arg7_l[41]);
+    atomicAdd(&ind_arg2[42+map3idx*105],arg7_l[42]);
+    atomicAdd(&ind_arg2[43+map3idx*105],arg7_l[43]);
+    atomicAdd(&ind_arg2[44+map3idx*105],arg7_l[44]);
+    atomicAdd(&ind_arg2[45+map3idx*105],arg7_l[45]);
+    atomicAdd(&ind_arg2[46+map3idx*105],arg7_l[46]);
+    atomicAdd(&ind_arg2[47+map3idx*105],arg7_l[47]);
+    atomicAdd(&ind_arg2[48+map3idx*105],arg7_l[48]);
+    atomicAdd(&ind_arg2[49+map3idx*105],arg7_l[49]);
+    atomicAdd(&ind_arg2[50+map3idx*105],arg7_l[50]);
+    atomicAdd(&ind_arg2[51+map3idx*105],arg7_l[51]);
+    atomicAdd(&ind_arg2[52+map3idx*105],arg7_l[52]);
+    atomicAdd(&ind_arg2[53+map3idx*105],arg7_l[53]);
+    atomicAdd(&ind_arg2[54+map3idx*105],arg7_l[54]);
+    atomicAdd(&ind_arg2[55+map3idx*105],arg7_l[55]);
+    atomicAdd(&ind_arg2[56+map3idx*105],arg7_l[56]);
+    atomicAdd(&ind_arg2[57+map3idx*105],arg7_l[57]);
+    atomicAdd(&ind_arg2[58+map3idx*105],arg7_l[58]);
+    atomicAdd(&ind_arg2[59+map3idx*105],arg7_l[59]);
+    atomicAdd(&ind_arg2[60+map3idx*105],arg7_l[60]);
+    atomicAdd(&ind_arg2[61+map3idx*105],arg7_l[61]);
+    atomicAdd(&ind_arg2[62+map3idx*105],arg7_l[62]);
+    atomicAdd(&ind_arg2[63+map3idx*105],arg7_l[63]);
+    atomicAdd(&ind_arg2[64+map3idx*105],arg7_l[64]);
+    atomicAdd(&ind_arg2[65+map3idx*105],arg7_l[65]);
+    atomicAdd(&ind_arg2[66+map3idx*105],arg7_l[66]);
+    atomicAdd(&ind_arg2[67+map3idx*105],arg7_l[67]);
+    atomicAdd(&ind_arg2[68+map3idx*105],arg7_l[68]);
+    atomicAdd(&ind_arg2[69+map3idx*105],arg7_l[69]);
+    atomicAdd(&ind_arg2[70+map3idx*105],arg7_l[70]);
+    atomicAdd(&ind_arg2[71+map3idx*105],arg7_l[71]);
+    atomicAdd(&ind_arg2[72+map3idx*105],arg7_l[72]);
+    atomicAdd(&ind_arg2[73+map3idx*105],arg7_l[73]);
+    atomicAdd(&ind_arg2[74+map3idx*105],arg7_l[74]);
+    atomicAdd(&ind_arg2[75+map3idx*105],arg7_l[75]);
+    atomicAdd(&ind_arg2[76+map3idx*105],arg7_l[76]);
+    atomicAdd(&ind_arg2[77+map3idx*105],arg7_l[77]);
+    atomicAdd(&ind_arg2[78+map3idx*105],arg7_l[78]);
+    atomicAdd(&ind_arg2[79+map3idx*105],arg7_l[79]);
+    atomicAdd(&ind_arg2[80+map3idx*105],arg7_l[80]);
+    atomicAdd(&ind_arg2[81+map3idx*105],arg7_l[81]);
+    atomicAdd(&ind_arg2[82+map3idx*105],arg7_l[82]);
+    atomicAdd(&ind_arg2[83+map3idx*105],arg7_l[83]);
+    atomicAdd(&ind_arg2[84+map3idx*105],arg7_l[84]);
+    atomicAdd(&ind_arg2[85+map3idx*105],arg7_l[85]);
+    atomicAdd(&ind_arg2[86+map3idx*105],arg7_l[86]);
+    atomicAdd(&ind_arg2[87+map3idx*105],arg7_l[87]);
+    atomicAdd(&ind_arg2[88+map3idx*105],arg7_l[88]);
+    atomicAdd(&ind_arg2[89+map3idx*105],arg7_l[89]);
+    atomicAdd(&ind_arg2[90+map3idx*105],arg7_l[90]);
+    atomicAdd(&ind_arg2[91+map3idx*105],arg7_l[91]);
+    atomicAdd(&ind_arg2[92+map3idx*105],arg7_l[92]);
+    atomicAdd(&ind_arg2[93+map3idx*105],arg7_l[93]);
+    atomicAdd(&ind_arg2[94+map3idx*105],arg7_l[94]);
+    atomicAdd(&ind_arg2[95+map3idx*105],arg7_l[95]);
+    atomicAdd(&ind_arg2[96+map3idx*105],arg7_l[96]);
+    atomicAdd(&ind_arg2[97+map3idx*105],arg7_l[97]);
+    atomicAdd(&ind_arg2[98+map3idx*105],arg7_l[98]);
+    atomicAdd(&ind_arg2[99+map3idx*105],arg7_l[99]);
+    atomicAdd(&ind_arg2[100+map3idx*105],arg7_l[100]);
+    atomicAdd(&ind_arg2[101+map3idx*105],arg7_l[101]);
+    atomicAdd(&ind_arg2[102+map3idx*105],arg7_l[102]);
+    atomicAdd(&ind_arg2[103+map3idx*105],arg7_l[103]);
+    atomicAdd(&ind_arg2[104+map3idx*105],arg7_l[104]);
   }
 }
 
@@ -810,56 +775,44 @@ __global__ void op_cuda_gauss_gfi_faces(
 void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg3,
-  op_arg arg5,
-  op_arg arg7,
-  op_arg arg9){
+  op_arg arg2,
+  op_arg arg4,
+  op_arg arg6){
 
-  int nargs = 11;
-  op_arg args[11];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
-  arg1.idx = 0;
   args[1] = arg1;
+  arg2.idx = 0;
+  args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 3, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 105, "double", OP_INC);
   }
 
-  arg3.idx = 0;
-  args[3] = arg3;
+  arg4.idx = 0;
+  args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 3, "double", OP_READ);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 105, "double", OP_INC);
   }
 
-  arg5.idx = 0;
-  args[5] = arg5;
+  arg6.idx = 0;
+  args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[5 + v] = op_arg_dat(arg5.dat, v, arg5.map, 105, "double", OP_INC);
-  }
-
-  arg7.idx = 0;
-  args[7] = arg7;
-  for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 105, "double", OP_INC);
-  }
-
-  arg9.idx = 0;
-  args[9] = arg9;
-  for ( int v=1; v<2; v++ ){
-    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 105, "double", OP_INC);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 105, "double", OP_INC);
   }
 
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(14);
+  op_timing_realloc(16);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[14].name      = name;
-  OP_kernels[14].count    += 1;
+  OP_kernels[16].name      = name;
+  OP_kernels[16].count    += 1;
 
 
-  int    ninds   = 5;
-  int    inds[11] = {-1,0,0,1,1,2,2,3,3,4,4};
+  int    ninds   = 3;
+  int    inds[8] = {-1,-1,0,0,1,1,2,2};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: gauss_gfi_faces\n");
@@ -868,8 +821,8 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_14
-      int nthread = OP_BLOCK_SIZE_14;
+    #ifdef OP_BLOCK_SIZE_16
+      int nthread = OP_BLOCK_SIZE_16;
     #else
       int nthread = OP_block_size;
     #endif
@@ -883,13 +836,12 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
       if (end-start>0) {
         int nblocks = (end-start-1)/nthread+1;
         op_cuda_gauss_gfi_faces<<<nblocks,nthread>>>(
-        (double *)arg1.data_d,
-        (double *)arg3.data_d,
-        (double *)arg5.data_d,
-        (double *)arg7.data_d,
-        (double *)arg9.data_d,
-        arg1.map_data_d,
+        (double *)arg2.data_d,
+        (double *)arg4.data_d,
+        (double *)arg6.data_d,
+        arg2.map_data_d,
         (int*)arg0.data_d,
+        (bool*)arg1.data_d,
         start,end,set->size+set->exec_size);
       }
     }
@@ -898,5 +850,5 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[14].time     += wall_t2 - wall_t1;
+  OP_kernels[16].time     += wall_t2 - wall_t1;
 }

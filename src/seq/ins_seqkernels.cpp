@@ -3,9 +3,11 @@
 //
 
 // global constants
-extern double gam;
-extern double mu;
-extern double nu;
+extern double ren;
+extern double nu0;
+extern double nu1;
+extern double rho0;
+extern double rho1;
 extern double bc_mach;
 extern double bc_alpha;
 extern double bc_p;
@@ -45,6 +47,8 @@ extern double lift_drag_vec[5];
 // user kernel files
 #include "init_nodes_seqkernel.cpp"
 #include "init_grid_seqkernel.cpp"
+#include "init_edges_seqkernel.cpp"
+#include "init_nu_rho_seqkernel.cpp"
 #include "init_cubature_grad_seqkernel.cpp"
 #include "init_cubature_seqkernel.cpp"
 #include "init_cubature_OP_seqkernel.cpp"
@@ -61,19 +65,20 @@ extern double lift_drag_vec[5];
 #include "div_seqkernel.cpp"
 #include "curl_seqkernel.cpp"
 #include "grad_seqkernel.cpp"
-#include "glb_ind_kernel_seqkernel.cpp"
-#include "glb_ind_kernelBC_seqkernel.cpp"
-#include "poisson_mf2_op_seqkernel.cpp"
-#include "poisson_mf2_opf_seqkernel.cpp"
-#include "poisson_mf2_opbf_seqkernel.cpp"
-#include "poisson_mf2_bc_seqkernel.cpp"
-#include "poisson_mf2_apply_bc_seqkernel.cpp"
-#include "poisson_mf2_mass_seqkernel.cpp"
-#include "poisson_mf2_seqkernel.cpp"
-#include "poisson_mf2_faces_seqkernel.cpp"
-#include "poisson_test_init_seqkernel.cpp"
-#include "poisson_test_bc_seqkernel.cpp"
-#include "poisson_test_error_seqkernel.cpp"
+#include "cub_grad_seqkernel.cpp"
+#include "cub_div_seqkernel.cpp"
+#include "cub_grad_weak_seqkernel.cpp"
+#include "cub_div_weak_seqkernel.cpp"
+#include "inv_J_seqkernel.cpp"
+#include "poisson_h_seqkernel.cpp"
+#include "pressure_solve_apply_bc_seqkernel.cpp"
+#include "pressure_solve_0_seqkernel.cpp"
+#include "pressure_solve_1_seqkernel.cpp"
+#include "pressure_solve_2_seqkernel.cpp"
+#include "viscosity_solve_apply_bc_seqkernel.cpp"
+#include "viscosity_solve_0_seqkernel.cpp"
+#include "viscosity_solve_1_seqkernel.cpp"
+#include "viscosity_solve_2_seqkernel.cpp"
 #include "set_ic_seqkernel.cpp"
 #include "calc_dt_seqkernel.cpp"
 #include "advection_flux_seqkernel.cpp"
@@ -81,12 +86,35 @@ extern double lift_drag_vec[5];
 #include "advection_bc_seqkernel.cpp"
 #include "advection_numerical_flux_seqkernel.cpp"
 #include "advection_intermediate_vel_seqkernel.cpp"
+#include "pressure_mu_seqkernel.cpp"
 #include "pressure_bc_seqkernel.cpp"
 #include "pressure_bc2_seqkernel.cpp"
 #include "pressure_rhs_seqkernel.cpp"
 #include "pressure_update_vel_seqkernel.cpp"
 #include "viscosity_bc_seqkernel.cpp"
 #include "viscosity_rhs_seqkernel.cpp"
+#include "viscosity_rhs_rho_seqkernel.cpp"
 #include "viscosity_reset_bc_seqkernel.cpp"
 #include "lift_drag_seqkernel.cpp"
 #include "save_values_seqkernel.cpp"
+#include "calc_h_seqkernel.cpp"
+#include "init_surface_seqkernel.cpp"
+#include "set_rkQ_seqkernel.cpp"
+#include "update_Q_seqkernel.cpp"
+#include "ls_advec_edges_seqkernel.cpp"
+#include "ls_advec_bedges_seqkernel.cpp"
+#include "ls_advec_flux_seqkernel.cpp"
+#include "ls_advec_rhs_seqkernel.cpp"
+#include "ls_sign_seqkernel.cpp"
+#include "ls_flux_seqkernel.cpp"
+#include "ls_bflux_seqkernel.cpp"
+#include "ls_copy_seqkernel.cpp"
+#include "ls_rhs_seqkernel.cpp"
+#include "ls_add_diff_seqkernel.cpp"
+#include "sigma_flux_seqkernel.cpp"
+#include "sigma_bflux_seqkernel.cpp"
+#include "sigma_mult_seqkernel.cpp"
+#include "diff_flux_seqkernel.cpp"
+#include "diff_bflux_seqkernel.cpp"
+#include "ls_reinit_check_seqkernel.cpp"
+#include "ls_step_seqkernel.cpp"

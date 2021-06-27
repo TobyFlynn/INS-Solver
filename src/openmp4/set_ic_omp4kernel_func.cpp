@@ -12,21 +12,23 @@ void set_ic_omp4_kernel(
   int dat3size,
   double *data4,
   int dat4size,
+  double *data5,
+  int dat5size,
   int count,
   int num_teams,
   int nthread){
 
   int arg0_l = *arg0;
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size]) \
-    map(to: nu_ompkernel)
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const int *problem = &arg0_l;
     const double *x = &data1[15*n_op];
     const double *y = &data2[15*n_op];
-    double *q0 = &data3[15*n_op];
-    double *q1 = &data4[15*n_op];
+    const double *nu = &data3[15*n_op];
+    double *q0 = &data4[15*n_op];
+    double *q1 = &data5[15*n_op];
 
     //inline function
     
@@ -38,8 +40,8 @@ void set_ic_omp4_kernel(
       }
     } else {
       for(int i = 0; i < 15; i++) {
-        q0[i] = -sin(2.0 * PI * y[i]) * exp(-nu_ompkernel * 4.0 * PI * PI * 0.0);
-        q1[i] = sin(2.0 * PI * x[i]) * exp(-nu_ompkernel * 4.0 * PI * PI * 0.0);
+        q0[i] = -sin(2.0 * PI * y[i]) * exp(-nu[i] * 4.0 * PI * PI * 0.0);
+        q1[i] = sin(2.0 * PI * x[i]) * exp(-nu[i] * 4.0 * PI * PI * 0.0);
       }
     }
     //end inline func

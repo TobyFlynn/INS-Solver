@@ -14,9 +14,13 @@
 #include "constants.h"
 #include "ins_data.h"
 #include "save_solution.h"
-#include "poisson.h"
 #include "timing.h"
 #include "solver.h"
+
+#include "operators.h"
+
+#include "petscvec.h"
+#include "petscksp.h"
 
 using namespace std;
 
@@ -69,15 +73,21 @@ int main(int argc, char **argv) {
 
   gam = 1.4;
   mu = 1e-2;
-  nu = 1e-3;
+  // Phi > 0
+  nu0 = 1.0;
+  // rho0 = 0.9;
+  rho0 = 1.0;
+  // Phi < 0
+  // nu1 = 1.9;
+  nu1 = 1.0;
+  rho1 = 1.0;
   bc_u = 1e-6;
   bc_v = 0.0;
   ic_u = 0.0;
   ic_v = 0.0;
 
-  op_printf("gam: %g\n", gam);
-  op_printf("mu: %g\n", mu);
-  op_printf("nu: %g\n", nu);
+  // Set Reynolds number
+  ren = 1.0 * 1.0 * 1.0 / 1e-3;
 
   // Get input from args
   int iter = 1;
@@ -92,6 +102,10 @@ int main(int argc, char **argv) {
 
   int problem = 0;
   PetscOptionsGetInt(NULL, NULL, "-problem", &problem, &found);
+
+  int temp = 0;
+  PetscOptionsGetInt(NULL, NULL, "-multiphase", &temp, &found);
+  bool multiphase = (temp == 1);
 
   char inputFile[255];
   PetscOptionsGetString(NULL, NULL, "-input", inputFile, 255, &found);
@@ -114,9 +128,20 @@ int main(int argc, char **argv) {
     outputDir += "/";
   }
 
+  PetscOptionsGetReal(NULL, NULL, "-mu0", &nu0, &found);
+  PetscOptionsGetReal(NULL, NULL, "-mu1", &nu1, &found);
+  PetscOptionsGetReal(NULL, NULL, "-rho0", &rho0, &found);
+  PetscOptionsGetReal(NULL, NULL, "-rho1", &rho1, &found);
+
+  op_printf("nu0: %g\n", nu0);
+  op_printf("nu1: %g\n", nu1);
+  op_printf("rho0: %g\n", rho0);
+  op_printf("rho1: %g\n", rho1);
+  op_printf("ren: %g\n", ren);
+
   bc_alpha = 0.0;
 
-  Solver *solver = new Solver(filename, pmethod, problem);
+  Solver *solver = new Solver(filename, pmethod, problem, multiphase);
 
   double a0 = 1.0;
   double a1 = 0.0;
@@ -127,7 +152,11 @@ int main(int argc, char **argv) {
   double time = 0.0;
 
   if(save != -1) {
-    save_solution_init(outputDir + "sol.cgns", solver->data);
+    if(multiphase) {
+      save_solution_init(outputDir + "sol.cgns", solver->data, solver->ls);
+    } else {
+      save_solution_init(outputDir + "sol.cgns", solver->data, nullptr);
+    }
     // export_data_init(outputDir + "data.csv");
   }
 
@@ -167,6 +196,8 @@ int main(int argc, char **argv) {
     }
     timer->endViscosity();
 
+    solver->update_surface(currentIter % 2);
+
     currentIter++;
     time += solver->dt;
 
@@ -180,17 +211,25 @@ int main(int argc, char **argv) {
       // timer->endLiftDrag();
 
       timer->startSave();
-      save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, (i + 1) / save);
+      if(multiphase) {
+        save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, solver->ls, (i + 1) / save);
+      } else {
+        save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, nullptr, (i + 1) / save);
+      }
       timer->endSave();
     }
   }
   timer->endMainLoop();
 
   if(save != -1)
-    save_solution_finalise(outputDir + "sol.cgns", solver->data, (iter / save) + 1, solver->dt * save);
+    save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
 
   // Save solution to CGNS file
-  save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, time, nu);
+  if(multiphase) {
+    save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, solver->ls, time, nu0);
+  } else {
+    save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, nullptr, time, nu0);
+  }
 
   timer->endWallTime();
   timer->exportTimings(outputDir + "timings.csv", iter, time);
@@ -201,7 +240,7 @@ int main(int argc, char **argv) {
   op_printf("Time to simulate 1 second: %g\n", timer->getWallTime() / time);
   op_printf("Average number of iterations to pressure convergance: %g\n", solver->getAvgPressureConvergance());
   op_printf("Average number of iterations to viscosity convergance: %g\n", solver->getAvgViscosityConvergance());
-  
+
   string op_out_file = outputDir + "op2_timings.csv";
   op_timings_to_csv(op_out_file.c_str());
 

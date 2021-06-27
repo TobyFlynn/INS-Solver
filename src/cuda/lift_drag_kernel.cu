@@ -7,7 +7,7 @@ __device__ void lift_drag_gpu( const int *bedge_type, const int *bedgeNum, const
                       const double *dQ0dx, const double *dQ0dy,
                       const double *dQ1dx, const double *dQ1dy,
                       const double *nx, const double *ny, const double *sJ,
-                      double *cd, double *cl) {
+                      const double *nu, double *cd, double *cl) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 5;
@@ -27,8 +27,8 @@ __device__ void lift_drag_gpu( const int *bedge_type, const int *bedgeNum, const
 
   if(*bedge_type == 2) {
     for(int i = 0; i < 5; i++) {
-      *cd += lift_drag_vec_cuda[i] * sJ[exInd + i] * (-p[fmask[i]] * nx[exInd + i] + nu_cuda * (nx[exInd + i] * 2.0 * dQ0dx[fmask[i]] + ny[exInd + i] * (dQ1dx[fmask[i]] + dQ0dy[fmask[i]])));
-      *cl += lift_drag_vec_cuda[i] * sJ[exInd + i] * (-p[fmask[i]] * ny[exInd + i] + nu_cuda * (nx[exInd + i] * (dQ1dx[fmask[i]] + dQ0dy[fmask[i]]) + ny[exInd + i] * 2.0 * dQ1dy[fmask[i]]));
+      *cd += lift_drag_vec_cuda[i] * sJ[exInd + i] * (-p[fmask[i]] * nx[exInd + i] + nu[fmask[i]] * (nx[exInd + i] * 2.0 * dQ0dx[fmask[i]] + ny[exInd + i] * (dQ1dx[fmask[i]] + dQ0dy[fmask[i]])));
+      *cl += lift_drag_vec_cuda[i] * sJ[exInd + i] * (-p[fmask[i]] * ny[exInd + i] + nu[fmask[i]] * (nx[exInd + i] * (dQ1dx[fmask[i]] + dQ0dy[fmask[i]]) + ny[exInd + i] * 2.0 * dQ1dy[fmask[i]]));
     }
   }
 
@@ -44,21 +44,22 @@ __global__ void op_cuda_lift_drag(
   const double *__restrict ind_arg5,
   const double *__restrict ind_arg6,
   const double *__restrict ind_arg7,
+  const double *__restrict ind_arg8,
   const int *__restrict opDat2Map,
   const int *__restrict arg0,
   const int *__restrict arg1,
-  double *arg10,
   double *arg11,
+  double *arg12,
   int start,
   int end,
   int   set_size) {
-  double arg10_l[1];
-  for ( int d=0; d<1; d++ ){
-    arg10_l[d]=ZERO_double;
-  }
   double arg11_l[1];
   for ( int d=0; d<1; d++ ){
     arg11_l[d]=ZERO_double;
+  }
+  double arg12_l[1];
+  for ( int d=0; d<1; d++ ){
+    arg12_l[d]=ZERO_double;
   }
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
@@ -78,17 +79,18 @@ __global__ void op_cuda_lift_drag(
               ind_arg5+map2idx*15,
               ind_arg6+map2idx*15,
               ind_arg7+map2idx*15,
-              arg10_l,
-              arg11_l);
+              ind_arg8+map2idx*15,
+              arg11_l,
+              arg12_l);
   }
 
   //global reductions
 
   for ( int d=0; d<1; d++ ){
-    op_reduction<OP_INC>(&arg10[d+blockIdx.x*1],arg10_l[d]);
+    op_reduction<OP_INC>(&arg11[d+blockIdx.x*1],arg11_l[d]);
   }
   for ( int d=0; d<1; d++ ){
-    op_reduction<OP_INC>(&arg11[d+blockIdx.x*1],arg11_l[d]);
+    op_reduction<OP_INC>(&arg12[d+blockIdx.x*1],arg12_l[d]);
   }
 }
 
@@ -106,12 +108,13 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   op_arg arg8,
   op_arg arg9,
   op_arg arg10,
-  op_arg arg11){
+  op_arg arg11,
+  op_arg arg12){
 
-  double*arg10h = (double *)arg10.data;
   double*arg11h = (double *)arg11.data;
-  int nargs = 12;
-  op_arg args[12];
+  double*arg12h = (double *)arg12.data;
+  int nargs = 13;
+  op_arg args[13];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -125,17 +128,18 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   args[9] = arg9;
   args[10] = arg10;
   args[11] = arg11;
+  args[12] = arg12;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(45);
+  op_timing_realloc(50);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[45].name      = name;
-  OP_kernels[45].count    += 1;
+  OP_kernels[50].name      = name;
+  OP_kernels[50].count    += 1;
 
 
-  int    ninds   = 8;
-  int    inds[12] = {-1,-1,0,1,2,3,4,5,6,7,-1,-1};
+  int    ninds   = 9;
+  int    inds[13] = {-1,-1,0,1,2,3,4,5,6,7,8,-1,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: lift_drag\n");
@@ -144,8 +148,8 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_45
-      int nthread = OP_BLOCK_SIZE_45;
+    #ifdef OP_BLOCK_SIZE_50
+      int nthread = OP_BLOCK_SIZE_50;
     #else
       int nthread = OP_block_size;
     #endif
@@ -160,19 +164,19 @@ void op_par_loop_lift_drag(char const *name, op_set set,
     reduct_size   = MAX(reduct_size,sizeof(double));
     reallocReductArrays(reduct_bytes);
     reduct_bytes = 0;
-    arg10.data   = OP_reduct_h + reduct_bytes;
-    arg10.data_d = OP_reduct_d + reduct_bytes;
-    for ( int b=0; b<maxblocks; b++ ){
-      for ( int d=0; d<1; d++ ){
-        ((double *)arg10.data)[d+b*1] = ZERO_double;
-      }
-    }
-    reduct_bytes += ROUND_UP(maxblocks*1*sizeof(double));
     arg11.data   = OP_reduct_h + reduct_bytes;
     arg11.data_d = OP_reduct_d + reduct_bytes;
     for ( int b=0; b<maxblocks; b++ ){
       for ( int d=0; d<1; d++ ){
         ((double *)arg11.data)[d+b*1] = ZERO_double;
+      }
+    }
+    reduct_bytes += ROUND_UP(maxblocks*1*sizeof(double));
+    arg12.data   = OP_reduct_h + reduct_bytes;
+    arg12.data_d = OP_reduct_d + reduct_bytes;
+    for ( int b=0; b<maxblocks; b++ ){
+      for ( int d=0; d<1; d++ ){
+        ((double *)arg12.data)[d+b*1] = ZERO_double;
       }
     }
     reduct_bytes += ROUND_UP(maxblocks*1*sizeof(double));
@@ -196,22 +200,16 @@ void op_par_loop_lift_drag(char const *name, op_set set,
         (double *)arg7.data_d,
         (double *)arg8.data_d,
         (double *)arg9.data_d,
+        (double *)arg10.data_d,
         arg2.map_data_d,
         (int*)arg0.data_d,
         (int*)arg1.data_d,
-        (double*)arg10.data_d,
         (double*)arg11.data_d,
+        (double*)arg12.data_d,
         start,end,set->size+set->exec_size);
       }
       if (round==1) mvReductArraysToHost(reduct_bytes);
     }
-    for ( int b=0; b<maxblocks; b++ ){
-      for ( int d=0; d<1; d++ ){
-        arg10h[d] = arg10h[d] + ((double *)arg10.data)[d+b*1];
-      }
-    }
-    arg10.data = (char *)arg10h;
-    op_mpi_reduce(&arg10,arg10h);
     for ( int b=0; b<maxblocks; b++ ){
       for ( int d=0; d<1; d++ ){
         arg11h[d] = arg11h[d] + ((double *)arg11.data)[d+b*1];
@@ -219,10 +217,17 @@ void op_par_loop_lift_drag(char const *name, op_set set,
     }
     arg11.data = (char *)arg11h;
     op_mpi_reduce(&arg11,arg11h);
+    for ( int b=0; b<maxblocks; b++ ){
+      for ( int d=0; d<1; d++ ){
+        arg12h[d] = arg12h[d] + ((double *)arg12.data)[d+b*1];
+      }
+    }
+    arg12.data = (char *)arg12h;
+    op_mpi_reduce(&arg12,arg12h);
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[45].time     += wall_t2 - wall_t1;
+  OP_kernels[50].time     += wall_t2 - wall_t1;
 }

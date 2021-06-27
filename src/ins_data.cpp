@@ -8,24 +8,6 @@
 #include "blas_calls.h"
 #include "load_mesh.h"
 
-#include "kernels/init_grid.h"
-#include "kernels/init_nodes.h"
-
-#include "kernels/init_cubature_grad.h"
-#include "kernels/init_cubature.h"
-#include "kernels/init_cubature_OP.h"
-
-#include "kernels/gauss_reverse.h"
-#include "kernels/gauss_tau.h"
-#include "kernels/gauss_tau_bc.h"
-#include "kernels/init_gauss_grad.h"
-#include "kernels/gauss_grad_faces.h"
-#include "kernels/init_gauss_grad2.h"
-#include "kernels/init_gauss.h"
-#include "kernels/gauss_op.h"
-#include "kernels/gauss_gfi_faces.h"
-#include "kernels/init_gauss_grad_neighbour.h"
-
 using namespace std;
 
 INSData::INSData(std::string filename) {
@@ -45,6 +27,7 @@ INSData::INSData(std::string filename) {
   J_data      = (double *)calloc(15 * numCells, sizeof(double));
   sJ_data     = (double *)calloc(15 * numCells, sizeof(double));
   fscale_data = (double *)calloc(15 * numCells, sizeof(double));
+  reverse_data = (bool *)calloc(numEdges, sizeof(bool));
   for(int i = 0; i < 4; i++) {
     F_data[i]   = (double *)calloc(15 * numCells, sizeof(double));
     div_data[i] = (double *)calloc(15 * numCells, sizeof(double));
@@ -75,6 +58,9 @@ INSData::INSData(std::string filename) {
   prBC_data      = (double *)calloc(21 * numCells, sizeof(double));
   vorticity_data = (double *)calloc(15 * numCells, sizeof(double));
   save_temp_data = (double *)calloc(16 * numCells, sizeof(double));
+  nu_data        = (double *)calloc(15 * numCells, sizeof(double));
+  gNu_data       = (double *)calloc(21 * numCells, sizeof(double));
+  rho_data       = (double *)calloc(15 * numCells, sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -114,6 +100,7 @@ INSData::INSData(std::string filename) {
   bedge_type = op_decl_dat(bedges, 1, "int", bedge_type_data, "bedge_type");
   edgeNum    = op_decl_dat(edges, 2, "int", edgeNum_data, "edgeNum");
   bedgeNum   = op_decl_dat(bedges, 1, "int", bedgeNum_data, "bedgeNum");
+  reverse    = op_decl_dat(edges, 1, "bool", reverse_data, "reverse");
   for(int i = 0; i < 4; i++) {
     string Fname = "F" + to_string(i);
     F[i] = op_decl_dat(cells, 15, "double", F_data[i], Fname.c_str());
@@ -160,10 +147,15 @@ INSData::INSData(std::string filename) {
   prBC      = op_decl_dat(cells, 21, "double", prBC_data, "prBC");
   vorticity = op_decl_dat(cells, 15, "double", vorticity_data, "vorticity");
   save_temp = op_decl_dat(cells, 16, "double", save_temp_data, "save_temp");
+  nu        = op_decl_dat(cells, 15, "double", nu_data, "nu");
+  gNu       = op_decl_dat(cells, 21, "double", gNu_data, "gNu");
+  rho       = op_decl_dat(cells, 15, "double", rho_data, "rho");
 
-  op_decl_const(1, "double", &gam);
-  op_decl_const(1, "double", &mu);
-  op_decl_const(1, "double", &nu);
+  op_decl_const(1, "double", &ren);
+  op_decl_const(1, "double", &nu0);
+  op_decl_const(1, "double", &nu1);
+  op_decl_const(1, "double", &rho0);
+  op_decl_const(1, "double", &rho1);
   op_decl_const(1, "double", &bc_mach);
   op_decl_const(1, "double", &bc_alpha);
   op_decl_const(1, "double", &bc_p);
@@ -222,6 +214,7 @@ INSData::~INSData() {
   free(J_data);
   free(sJ_data);
   free(fscale_data);
+  free(reverse_data);
   for(int i = 0; i < 4; i++) {
     free(F_data[i]);
     free(div_data[i]);
@@ -253,6 +246,9 @@ INSData::~INSData() {
   free(prBC_data);
   free(vorticity_data);
   free(save_temp_data);
+  free(nu_data);
+  free(gNu_data);
+  free(rho_data);
 }
 
 void INSData::init() {
@@ -274,6 +270,18 @@ void INSData::init() {
               op_arg_dat(J,  -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(sJ, -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(fscale, -1, OP_ID, 15, "double", OP_WRITE));
+
+  op_par_loop(init_edges, "init_edges", edges,
+              op_arg_dat(edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(nodeX, -2, edge2cells, 3, "double", OP_READ),
+              op_arg_dat(nodeY, -2, edge2cells, 3, "double", OP_READ),
+              op_arg_dat(reverse, -1, OP_ID, 1, "bool", OP_WRITE));
+
+  op_par_loop(init_nu_rho, "init_nu_rho", cells,
+              op_arg_dat(nu, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(rho, -1, OP_ID, 15, "double", OP_WRITE));
+
+  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(Constants::GAUSS_INTERP), 15, nu, 0.0, gNu);
 }
 
 CubatureData::CubatureData(INSData *dat) {
@@ -291,6 +299,11 @@ CubatureData::CubatureData(INSData *dat) {
   temp_data  = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
   temp2_data = (double *)calloc(46 * 15 * data->numCells, sizeof(double));
 
+  op_temps_data[0] = (double *)calloc(46 * data->numCells, sizeof(double));
+  op_temps_data[1] = (double *)calloc(46 * data->numCells, sizeof(double));
+  op_temps_data[2] = (double *)calloc(46 * data->numCells, sizeof(double));
+  op_temps_data[3] = (double *)calloc(46 * data->numCells, sizeof(double));
+
   rx    = op_decl_dat(data->cells, 46, "double", rx_data, "cub-rx");
   sx    = op_decl_dat(data->cells, 46, "double", sx_data, "cub-sx");
   ry    = op_decl_dat(data->cells, 46, "double", ry_data, "cub-ry");
@@ -302,6 +315,11 @@ CubatureData::CubatureData(INSData *dat) {
   OP    = op_decl_dat(data->cells, 15 * 15, "double", OP_data, "cub-OP");
   temp  = op_decl_dat(data->cells, 46 * 15, "double", temp_data, "cub-temp");
   temp2 = op_decl_dat(data->cells, 46 * 15, "double", temp2_data, "cub-temp2");
+
+  op_temps[0] = op_decl_dat(data->cells, 46, "double", op_temps_data[0], "cub-op-temp0");
+  op_temps[1] = op_decl_dat(data->cells, 46, "double", op_temps_data[1], "cub-op-temp1");
+  op_temps[2] = op_decl_dat(data->cells, 46, "double", op_temps_data[2], "cub-op-temp2");
+  op_temps[3] = op_decl_dat(data->cells, 46, "double", op_temps_data[3], "cub-op-temp3");
 }
 
 CubatureData::~CubatureData() {
@@ -316,6 +334,11 @@ CubatureData::~CubatureData() {
   free(OP_data);
   free(temp_data);
   free(temp2_data);
+
+  free(op_temps_data[0]);
+  free(op_temps_data[1]);
+  free(op_temps_data[2]);
+  free(op_temps_data[3]);
 }
 
 void CubatureData::init() {
@@ -595,8 +618,7 @@ void GaussData::init() {
   // Calculate Gauss OPf for each face (contribution to neighbouring element in Poisson matrix)
   op_par_loop(gauss_gfi_faces, "gauss_gfi_faces", data->edges,
               op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(data->nodeX, -2, data->edge2cells, 3, "double", OP_READ),
-              op_arg_dat(data->nodeY, -2, data->edge2cells, 3, "double", OP_READ),
+              op_arg_dat(data->reverse, -1, OP_ID, 1, "bool", OP_READ),
               op_arg_dat(pDy[0], -2, data->edge2cells, 7 * 15, "double", OP_INC),
               op_arg_dat(pDy[1], -2, data->edge2cells, 7 * 15, "double", OP_INC),
               op_arg_dat(pDy[2], -2, data->edge2cells, 7 * 15, "double", OP_INC));

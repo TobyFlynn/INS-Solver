@@ -9,63 +9,51 @@
 void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg3,
-  op_arg arg5,
-  op_arg arg7,
-  op_arg arg9){
+  op_arg arg2,
+  op_arg arg4,
+  op_arg arg6){
 
-  int nargs = 11;
-  op_arg args[11];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
-  arg1.idx = 0;
   args[1] = arg1;
+  arg2.idx = 0;
+  args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 3, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 105, "double", OP_INC);
   }
 
-  arg3.idx = 0;
-  args[3] = arg3;
+  arg4.idx = 0;
+  args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 3, "double", OP_READ);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 105, "double", OP_INC);
   }
 
-  arg5.idx = 0;
-  args[5] = arg5;
+  arg6.idx = 0;
+  args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[5 + v] = op_arg_dat(arg5.dat, v, arg5.map, 105, "double", OP_INC);
-  }
-
-  arg7.idx = 0;
-  args[7] = arg7;
-  for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 105, "double", OP_INC);
-  }
-
-  arg9.idx = 0;
-  args[9] = arg9;
-  for ( int v=1; v<2; v++ ){
-    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 105, "double", OP_INC);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 105, "double", OP_INC);
   }
 
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(14);
-  OP_kernels[14].name      = name;
-  OP_kernels[14].count    += 1;
+  op_timing_realloc(16);
+  OP_kernels[16].name      = name;
+  OP_kernels[16].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 5;
-  int  inds[11] = {-1,0,0,1,1,2,2,3,3,4,4};
+  int  ninds   = 3;
+  int  inds[8] = {-1,-1,0,0,1,1,2,2};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: gauss_gfi_faces\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_14
-    int part_size = OP_PART_SIZE_14;
+  #ifdef OP_PART_SIZE_16
+    int part_size = OP_PART_SIZE_16;
   #else
     int part_size = OP_part_size;
   #endif
@@ -90,41 +78,34 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
         int nelem    = Plan->nelems[blockId];
         int offset_b = Plan->offset[blockId];
         for ( int n=offset_b; n<offset_b+nelem; n++ ){
-          int map1idx;
           int map2idx;
-          map1idx = arg1.map_data[n * arg1.map->dim + 0];
-          map2idx = arg1.map_data[n * arg1.map->dim + 1];
+          int map3idx;
+          map2idx = arg2.map_data[n * arg2.map->dim + 0];
+          map3idx = arg2.map_data[n * arg2.map->dim + 1];
 
-          const double* arg1_vec[] = {
-             &((double*)arg1.data)[3 * map1idx],
-             &((double*)arg1.data)[3 * map2idx]};
-          const double* arg3_vec[] = {
-             &((double*)arg3.data)[3 * map1idx],
-             &((double*)arg3.data)[3 * map2idx]};
-          double* arg5_vec[] = {
-             &((double*)arg5.data)[105 * map1idx],
-             &((double*)arg5.data)[105 * map2idx]};
-          double* arg7_vec[] = {
-             &((double*)arg7.data)[105 * map1idx],
-             &((double*)arg7.data)[105 * map2idx]};
-          double* arg9_vec[] = {
-             &((double*)arg9.data)[105 * map1idx],
-             &((double*)arg9.data)[105 * map2idx]};
+          double* arg2_vec[] = {
+             &((double*)arg2.data)[105 * map2idx],
+             &((double*)arg2.data)[105 * map3idx]};
+          double* arg4_vec[] = {
+             &((double*)arg4.data)[105 * map2idx],
+             &((double*)arg4.data)[105 * map3idx]};
+          double* arg6_vec[] = {
+             &((double*)arg6.data)[105 * map2idx],
+             &((double*)arg6.data)[105 * map3idx]};
 
           gauss_gfi_faces(
             &((int*)arg0.data)[2 * n],
-            arg1_vec,
-            arg3_vec,
-            arg5_vec,
-            arg7_vec,
-            arg9_vec);
+            &((bool*)arg1.data)[1 * n],
+            arg2_vec,
+            arg4_vec,
+            arg6_vec);
         }
       }
 
       block_offset += nblocks;
     }
-    OP_kernels[14].transfer  += Plan->transfer;
-    OP_kernels[14].transfer2 += Plan->transfer2;
+    OP_kernels[16].transfer  += Plan->transfer;
+    OP_kernels[16].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -135,5 +116,5 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[14].time     += wall_t2 - wall_t1;
+  OP_kernels[16].time     += wall_t2 - wall_t1;
 }

@@ -52,6 +52,7 @@ You can then use Paraview to view the end result which is stored in `end.cgns`. 
 - `-output` the output directory (by default the same directory as the executable)
 - `-save` save the flow every `x` iterations (currently only on the single node solvers)
 - `-problem` the problem that the solver is solving (`0` for the cylinder problem, `1` for the vortex problem)
+- `-multiphase` whether this is a one fluid (set flag to `0`, the default) or two fluid (set flag to `1`) problem
 
 To run the vortex error checker:
 ```

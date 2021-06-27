@@ -6,8 +6,12 @@
 #include <string>
 
 extern double gam;
+extern double ren;
 extern double mu;
-extern double nu;
+extern double nu0;
+extern double nu1;
+extern double rho0;
+extern double rho1;
 extern double bc_mach;
 extern double bc_alpha;
 extern double bc_p;
@@ -62,7 +66,7 @@ public:
   op_set nodes, cells, edges, bedges;
   op_map cell2nodes, edge2nodes, edge2cells, bedge2nodes, bedge2cells;
   op_dat node_coords, nodeX, nodeY, x, y, rx, ry, sx, sy, nx,
-         ny, J, sJ, fscale, bedge_type, edgeNum, bedgeNum;
+         ny, J, sJ, fscale, bedge_type, edgeNum, bedgeNum, reverse;
   op_dat Q[2][2], exQ[2], F[4], N[2][2], flux[2], QT[2], QTT[2];
   op_dat div[4];
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, pRHSex, p, dpdx, dpdy;
@@ -71,6 +75,7 @@ public:
   op_dat dQdx[2], dQdy[2];
   op_dat vorticity;
   op_dat save_temp;
+  op_dat nu, gNu, rho;
 
   int pressure_dirichlet[3];
   int pressure_neumann[3];
@@ -91,6 +96,7 @@ private:
   double *J_data;
   double *sJ_data;
   double *fscale_data;
+  bool *reverse_data;
   double *Q_data[2][2];
   double *exQ_data[2];
   double *F_data[4];
@@ -115,6 +121,9 @@ private:
   double *dQdy_data[2];
   double *vorticity_data;
   double *save_temp_data;
+  double *nu_data;
+  double *gNu_data;
+  double *rho_data;
 };
 
 class CubatureData {
@@ -127,6 +136,7 @@ public:
   // OP is the local stiffness matrix used by the Poisson solver
   op_dat rx, sx, ry, sy, J, mm, Dx, Dy, OP;
   op_dat temp, temp2;
+  op_dat op_temps[4];
 
 private:
   INSData *data;
@@ -142,6 +152,7 @@ private:
   double *OP_data;
   double *temp_data;
   double *temp2_data;
+  double *op_temps_data[4];
 };
 
 class GaussData {

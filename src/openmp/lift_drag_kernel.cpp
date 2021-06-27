@@ -18,12 +18,13 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   op_arg arg8,
   op_arg arg9,
   op_arg arg10,
-  op_arg arg11){
+  op_arg arg11,
+  op_arg arg12){
 
-  double*arg10h = (double *)arg10.data;
   double*arg11h = (double *)arg11.data;
-  int nargs = 12;
-  op_arg args[12];
+  double*arg12h = (double *)arg12.data;
+  int nargs = 13;
+  op_arg args[13];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -37,24 +38,25 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   args[9] = arg9;
   args[10] = arg10;
   args[11] = arg11;
+  args[12] = arg12;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(45);
-  OP_kernels[45].name      = name;
-  OP_kernels[45].count    += 1;
+  op_timing_realloc(50);
+  OP_kernels[50].name      = name;
+  OP_kernels[50].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 8;
-  int  inds[12] = {-1,-1,0,1,2,3,4,5,6,7,-1,-1};
+  int  ninds   = 9;
+  int  inds[13] = {-1,-1,0,1,2,3,4,5,6,7,8,-1,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: lift_drag\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_45
-    int part_size = OP_PART_SIZE_45;
+  #ifdef OP_PART_SIZE_50
+    int part_size = OP_PART_SIZE_50;
   #else
     int part_size = OP_part_size;
   #endif
@@ -68,16 +70,16 @@ void op_par_loop_lift_drag(char const *name, op_set set,
   #endif
 
   // allocate and initialise arrays for global reduction
-  double arg10_l[nthreads*64];
-  for ( int thr=0; thr<nthreads; thr++ ){
-    for ( int d=0; d<1; d++ ){
-      arg10_l[d+thr*64]=ZERO_double;
-    }
-  }
   double arg11_l[nthreads*64];
   for ( int thr=0; thr<nthreads; thr++ ){
     for ( int d=0; d<1; d++ ){
       arg11_l[d+thr*64]=ZERO_double;
+    }
+  }
+  double arg12_l[nthreads*64];
+  for ( int thr=0; thr<nthreads; thr++ ){
+    for ( int d=0; d<1; d++ ){
+      arg12_l[d+thr*64]=ZERO_double;
     }
   }
 
@@ -114,8 +116,9 @@ void op_par_loop_lift_drag(char const *name, op_set set,
             &((double*)arg7.data)[15 * map2idx],
             &((double*)arg8.data)[15 * map2idx],
             &((double*)arg9.data)[15 * map2idx],
-            &arg10_l[64*omp_get_thread_num()],
-            &arg11_l[64*omp_get_thread_num()]);
+            &((double*)arg10.data)[15 * map2idx],
+            &arg11_l[64*omp_get_thread_num()],
+            &arg12_l[64*omp_get_thread_num()]);
         }
       }
 
@@ -123,30 +126,30 @@ void op_par_loop_lift_drag(char const *name, op_set set,
       if (col == Plan->ncolors_owned-1) {
         for ( int thr=0; thr<nthreads; thr++ ){
           for ( int d=0; d<1; d++ ){
-            arg11h[d] += arg11_l[d+thr*64];
+            arg12h[d] += arg12_l[d+thr*64];
           }
         }
         for ( int thr=0; thr<nthreads; thr++ ){
           for ( int d=0; d<1; d++ ){
-            arg11h[d] += arg11_l[d+thr*64];
+            arg12h[d] += arg12_l[d+thr*64];
           }
         }
       }
       block_offset += nblocks;
     }
-    OP_kernels[45].transfer  += Plan->transfer;
-    OP_kernels[45].transfer2 += Plan->transfer2;
+    OP_kernels[50].transfer  += Plan->transfer;
+    OP_kernels[50].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
     op_mpi_wait_all(nargs, args);
   }
   // combine reduction data
-  op_mpi_reduce(&arg10,arg10h);
   op_mpi_reduce(&arg11,arg11h);
+  op_mpi_reduce(&arg12,arg12h);
   op_mpi_set_dirtybit(nargs, args);
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[45].time     += wall_t2 - wall_t1;
+  OP_kernels[50].time     += wall_t2 - wall_t1;
 }

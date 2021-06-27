@@ -1,8 +1,9 @@
 // TODO double check these
 inline void advection_bc(const int *bedge_type, const int *bedgeNum,
                          const double *t, const int *problem,
-                         const double *x, const double *y, const double *q0,
-                         const double *q1, double *exQ0, double *exQ1) {
+                         const double *x, const double *y, const double *nu,
+                         const double *q0, const double *q1, double *exQ0,
+                         double *exQ1) {
   int exInd = 0;
   if(*bedgeNum == 1) {
     exInd = 5;
@@ -48,8 +49,8 @@ inline void advection_bc(const int *bedge_type, const int *bedgeNum,
         int qInd = fmask[i];
         double y1 = y[qInd];
         double x1 = x[qInd];
-        exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu * 4.0 * PI * PI * *t);
-        exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu * 4.0 * PI * PI * *t);
+        exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu[qInd] * 4.0 * PI * PI * *t);
+        exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu[qInd] * 4.0 * PI * PI * *t);
       }
     }
 
@@ -57,12 +58,12 @@ inline void advection_bc(const int *bedge_type, const int *bedgeNum,
       // Outflow - BC function dependant on time
       for(int i = 0; i < 5; i++) {
         int qInd = fmask[i];
-        exQ0[exInd + i] += q0[qInd];
-        exQ1[exInd + i] += q1[qInd];
-        // double y1 = y[qInd];
-        // double x1 = x[qInd];
-        // exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu * 4.0 * PI * PI * *t);
-        // exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu * 4.0 * PI * PI * *t);
+        // exQ0[exInd + i] += q0[qInd];
+        // exQ1[exInd + i] += q1[qInd];
+        double y1 = y[qInd];
+        double x1 = x[qInd];
+        exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu[qInd] * 4.0 * PI * PI * *t);
+        exQ1[exInd + i] += sin(2.0 * PI * x1) * exp(-nu[qInd] * 4.0 * PI * PI * *t);
       }
     }
   }
