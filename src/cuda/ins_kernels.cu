@@ -252,6 +252,7 @@ int size, char *dat, char const *name){
 #include "pressure_bc_kernel.cu"
 #include "pressure_bc2_kernel.cu"
 #include "pressure_rhs_kernel.cu"
+#include "pressure_grad_flux_kernel.cu"
 #include "pressure_update_vel_kernel.cu"
 #include "viscosity_bc_kernel.cu"
 #include "viscosity_rhs_kernel.cu"

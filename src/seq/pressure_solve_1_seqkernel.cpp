@@ -10,20 +10,35 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
+  op_arg arg3,
   op_arg arg4,
+  op_arg arg5,
   op_arg arg6,
+  op_arg arg7,
   op_arg arg8,
+  op_arg arg9,
   op_arg arg10,
+  op_arg arg11,
   op_arg arg12,
+  op_arg arg13,
   op_arg arg14,
+  op_arg arg15,
   op_arg arg16,
+  op_arg arg17,
   op_arg arg18,
+  op_arg arg19,
   op_arg arg20,
+  op_arg arg21,
   op_arg arg22,
+  op_arg arg23,
   op_arg arg24,
+  op_arg arg25,
   op_arg arg26,
+  op_arg arg27,
   op_arg arg28,
+  op_arg arg29,
   op_arg arg30,
+  op_arg arg31,
   op_arg arg32,
   op_arg arg33){
 
@@ -32,96 +47,36 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
 
   args[0] = arg0;
   args[1] = arg1;
-  arg2.idx = 0;
   args[2] = arg2;
-  for ( int v=1; v<2; v++ ){
-    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 105, "double", OP_READ);
-  }
-
-  arg4.idx = 0;
+  args[3] = arg3;
   args[4] = arg4;
-  for ( int v=1; v<2; v++ ){
-    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 105, "double", OP_READ);
-  }
-
-  arg6.idx = 0;
+  args[5] = arg5;
   args[6] = arg6;
-  for ( int v=1; v<2; v++ ){
-    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 105, "double", OP_READ);
-  }
-
-  arg8.idx = 0;
+  args[7] = arg7;
   args[8] = arg8;
-  for ( int v=1; v<2; v++ ){
-    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 105, "double", OP_READ);
-  }
-
-  arg10.idx = 0;
+  args[9] = arg9;
   args[10] = arg10;
-  for ( int v=1; v<2; v++ ){
-    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 105, "double", OP_READ);
-  }
-
-  arg12.idx = 0;
+  args[11] = arg11;
   args[12] = arg12;
-  for ( int v=1; v<2; v++ ){
-    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 105, "double", OP_READ);
-  }
-
-  arg14.idx = 0;
+  args[13] = arg13;
   args[14] = arg14;
-  for ( int v=1; v<2; v++ ){
-    args[14 + v] = op_arg_dat(arg14.dat, v, arg14.map, 105, "double", OP_READ);
-  }
-
-  arg16.idx = 0;
+  args[15] = arg15;
   args[16] = arg16;
-  for ( int v=1; v<2; v++ ){
-    args[16 + v] = op_arg_dat(arg16.dat, v, arg16.map, 105, "double", OP_READ);
-  }
-
-  arg18.idx = 0;
+  args[17] = arg17;
   args[18] = arg18;
-  for ( int v=1; v<2; v++ ){
-    args[18 + v] = op_arg_dat(arg18.dat, v, arg18.map, 105, "double", OP_READ);
-  }
-
-  arg20.idx = 0;
+  args[19] = arg19;
   args[20] = arg20;
-  for ( int v=1; v<2; v++ ){
-    args[20 + v] = op_arg_dat(arg20.dat, v, arg20.map, 21, "double", OP_READ);
-  }
-
-  arg22.idx = 0;
+  args[21] = arg21;
   args[22] = arg22;
-  for ( int v=1; v<2; v++ ){
-    args[22 + v] = op_arg_dat(arg22.dat, v, arg22.map, 1, "double", OP_READ);
-  }
-
-  arg24.idx = 0;
+  args[23] = arg23;
   args[24] = arg24;
-  for ( int v=1; v<2; v++ ){
-    args[24 + v] = op_arg_dat(arg24.dat, v, arg24.map, 3, "double", OP_READ);
-  }
-
-  arg26.idx = 0;
+  args[25] = arg25;
   args[26] = arg26;
-  for ( int v=1; v<2; v++ ){
-    args[26 + v] = op_arg_dat(arg26.dat, v, arg26.map, 21, "double", OP_READ);
-  }
-
-  arg28.idx = 0;
+  args[27] = arg27;
   args[28] = arg28;
-  for ( int v=1; v<2; v++ ){
-    args[28 + v] = op_arg_dat(arg28.dat, v, arg28.map, 15, "double", OP_READ);
-  }
-
-  arg30.idx = 0;
+  args[29] = arg29;
   args[30] = arg30;
-  for ( int v=1; v<2; v++ ){
-    args[30 + v] = op_arg_dat(arg30.dat, v, arg30.map, 15, "double", OP_READ);
-  }
-
+  args[31] = arg31;
   args[32] = arg32;
   args[33] = arg33;
 
@@ -147,70 +102,40 @@ void op_par_loop_pressure_solve_1(char const *name, op_set set,
       map2idx = arg2.map_data[n * arg2.map->dim + 0];
       map3idx = arg2.map_data[n * arg2.map->dim + 1];
 
-      const double* arg2_vec[] = {
-         &((double*)arg2.data)[105 * map2idx],
-         &((double*)arg2.data)[105 * map3idx]};
-      const double* arg4_vec[] = {
-         &((double*)arg4.data)[105 * map2idx],
-         &((double*)arg4.data)[105 * map3idx]};
-      const double* arg6_vec[] = {
-         &((double*)arg6.data)[105 * map2idx],
-         &((double*)arg6.data)[105 * map3idx]};
-      const double* arg8_vec[] = {
-         &((double*)arg8.data)[105 * map2idx],
-         &((double*)arg8.data)[105 * map3idx]};
-      const double* arg10_vec[] = {
-         &((double*)arg10.data)[105 * map2idx],
-         &((double*)arg10.data)[105 * map3idx]};
-      const double* arg12_vec[] = {
-         &((double*)arg12.data)[105 * map2idx],
-         &((double*)arg12.data)[105 * map3idx]};
-      const double* arg14_vec[] = {
-         &((double*)arg14.data)[105 * map2idx],
-         &((double*)arg14.data)[105 * map3idx]};
-      const double* arg16_vec[] = {
-         &((double*)arg16.data)[105 * map2idx],
-         &((double*)arg16.data)[105 * map3idx]};
-      const double* arg18_vec[] = {
-         &((double*)arg18.data)[105 * map2idx],
-         &((double*)arg18.data)[105 * map3idx]};
-      const double* arg20_vec[] = {
-         &((double*)arg20.data)[21 * map2idx],
-         &((double*)arg20.data)[21 * map3idx]};
-      const double* arg22_vec[] = {
-         &((double*)arg22.data)[1 * map2idx],
-         &((double*)arg22.data)[1 * map3idx]};
-      const double* arg24_vec[] = {
-         &((double*)arg24.data)[3 * map2idx],
-         &((double*)arg24.data)[3 * map3idx]};
-      const double* arg26_vec[] = {
-         &((double*)arg26.data)[21 * map2idx],
-         &((double*)arg26.data)[21 * map3idx]};
-      const double* arg28_vec[] = {
-         &((double*)arg28.data)[15 * map2idx],
-         &((double*)arg28.data)[15 * map3idx]};
-      const double* arg30_vec[] = {
-         &((double*)arg30.data)[15 * map2idx],
-         &((double*)arg30.data)[15 * map3idx]};
 
       pressure_solve_1(
         &((int*)arg0.data)[2 * n],
         &((bool*)arg1.data)[1 * n],
-        arg2_vec,
-        arg4_vec,
-        arg6_vec,
-        arg8_vec,
-        arg10_vec,
-        arg12_vec,
-        arg14_vec,
-        arg16_vec,
-        arg18_vec,
-        arg20_vec,
-        arg22_vec,
-        arg24_vec,
-        arg26_vec,
-        arg28_vec,
-        arg30_vec,
+        &((double*)arg2.data)[105 * map2idx],
+        &((double*)arg2.data)[105 * map3idx],
+        &((double*)arg4.data)[105 * map2idx],
+        &((double*)arg4.data)[105 * map3idx],
+        &((double*)arg6.data)[105 * map2idx],
+        &((double*)arg6.data)[105 * map3idx],
+        &((double*)arg8.data)[105 * map2idx],
+        &((double*)arg8.data)[105 * map3idx],
+        &((double*)arg10.data)[105 * map2idx],
+        &((double*)arg10.data)[105 * map3idx],
+        &((double*)arg12.data)[105 * map2idx],
+        &((double*)arg12.data)[105 * map3idx],
+        &((double*)arg14.data)[105 * map2idx],
+        &((double*)arg14.data)[105 * map3idx],
+        &((double*)arg16.data)[105 * map2idx],
+        &((double*)arg16.data)[105 * map3idx],
+        &((double*)arg18.data)[105 * map2idx],
+        &((double*)arg18.data)[105 * map3idx],
+        &((double*)arg20.data)[21 * map2idx],
+        &((double*)arg20.data)[21 * map3idx],
+        &((double*)arg22.data)[1 * map2idx],
+        &((double*)arg22.data)[1 * map3idx],
+        &((double*)arg24.data)[3 * map2idx],
+        &((double*)arg24.data)[3 * map3idx],
+        &((double*)arg26.data)[21 * map2idx],
+        &((double*)arg26.data)[21 * map3idx],
+        &((double*)arg28.data)[15 * map2idx],
+        &((double*)arg28.data)[15 * map3idx],
+        &((double*)arg30.data)[15 * map2idx],
+        &((double*)arg30.data)[15 * map3idx],
         &((double*)arg32.data)[15 * map2idx],
         &((double*)arg32.data)[15 * map3idx]);
     }

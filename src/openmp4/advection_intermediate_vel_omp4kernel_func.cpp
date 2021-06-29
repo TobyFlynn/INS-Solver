@@ -65,8 +65,10 @@ void advection_intermediate_vel_omp4_kernel(
     for(int i = 0; i < 15; i++) {
 
 
-      q0T[i] = ((*a0 * q0[i] + *a1 * q0Old[i]) - *dt * (*b0 * N0[i] + *b1 * N0Old[i]));
-      q1T[i] = ((*a0 * q1[i] + *a1 * q1Old[i]) - *dt * (*b0 * N1[i] + *b1 * N1Old[i]));
+
+
+      q0T[i] = *a0 * q0[i] + *a1 * q0Old[i] + *dt * (*b0 * N0[i] + *b1 * N0Old[i]);
+      q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * N1[i] + *b1 * N1Old[i]);
     }
     //end inline func
   }

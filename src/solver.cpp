@@ -214,8 +214,22 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   // Calculate gradient of pressure
   grad(data, data->p, data->dpdx, data->dpdy);
 
+  op_par_loop(pressure_grad_flux, "pressure_grad_flux", data->edges,
+              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(data->reverse, -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(data->nx, -2, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->ny, -2, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->fscale, -2, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->p, -2, data->edge2cells, 15, "double", OP_READ),
+              op_arg_dat(data->pFluxX, -2, data->edge2cells, 15, "double", OP_INC),
+              op_arg_dat(data->pFluxY, -2, data->edge2cells, 15, "double", OP_INC));
+
+  op2_gemv(true, 15, 15, -1.0, constants->get_ptr(Constants::LIFT), 15, data->pFluxX, 1.0, data->dpdx);
+  op2_gemv(true, 15, 15, -1.0, constants->get_ptr(Constants::LIFT), 15, data->pFluxY, 1.0, data->dpdy);
+
   // Calculate new velocity intermediate values
-  double factor = dt / g0;
+  // double factor = dt / g0;
+  double factor = dt;
   op_par_loop(pressure_update_vel, "pressure_update_vel", data->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
               op_arg_dat(data->rho, -1, OP_ID, 15, "double", OP_READ),
@@ -226,7 +240,9 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->prBC, -1, OP_ID, 21, "double", OP_WRITE));
+              op_arg_dat(data->prBC, -1, OP_ID, 21, "double", OP_WRITE),
+              op_arg_dat(data->pFluxX, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->pFluxY, -1, OP_ID, 15, "double", OP_WRITE),);
 
   return converged;
 }

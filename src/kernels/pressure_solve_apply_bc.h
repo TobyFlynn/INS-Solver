@@ -36,11 +36,11 @@ inline void pressure_solve_apply_bc(const int *edgeType, const int *edgeNum,
     int indSJ = *edgeNum * 7 + (i % 7);
     int indRho = (i / 7);
 
-    // op[i] = gVM[indT] * gaussW_g[i % 7] * sJ[indSJ] * tauA[i % 7]
-    //         - (1.0 / rho[indRho]) * mD[indT] * gaussW_g[i % 7] * sJ[indSJ];
-
     op[i] = gVM[indT] * gaussW_g[i % 7] * sJ[indSJ] * tauA[i % 7]
-            - (1.0 / gRho[indSJ]) * mD[indT] * gaussW_g[i % 7] * sJ[indSJ];
+            - (1.0 / rho[indRho]) * mD[indT] * gaussW_g[i % 7] * sJ[indSJ];
+
+    // op[i] = gVM[indT] * gaussW_g[i % 7] * sJ[indSJ] * tauA[i % 7]
+    //         - (1.0 / gRho[indSJ]) * mD[indT] * gaussW_g[i % 7] * sJ[indSJ];
 
     // op[i] = gVM[indT] * gaussW_g[i % 7] * sJ[indSJ] * tau[*edgeNum]
     //         - (1.0 / rho[indRho]) * mD[indT] * gaussW_g[i % 7] * sJ[indSJ];

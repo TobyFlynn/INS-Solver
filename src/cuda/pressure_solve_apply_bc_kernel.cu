@@ -39,10 +39,10 @@ __device__ void pressure_solve_apply_bc_gpu( const int *edgeType, const int *edg
     int indSJ = *edgeNum * 7 + (i % 7);
     int indRho = (i / 7);
 
-
-
     op[i] = gVM[indT] * gaussW_g_cuda[i % 7] * sJ[indSJ] * tauA[i % 7]
-            - (1.0 / gRho[indSJ]) * mD[indT] * gaussW_g_cuda[i % 7] * sJ[indSJ];
+            - (1.0 / rho[indRho]) * mD[indT] * gaussW_g_cuda[i % 7] * sJ[indSJ];
+
+
 
 
   }

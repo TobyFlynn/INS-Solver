@@ -102,10 +102,10 @@ void pressure_solve_2_omp4_kernel(
 
           int factors_ind = *edgeNum * 7 + k;
 
+
+
           op1[c_ind] += -0.5 * gVM[a_ind] * gaussW_g_ompkernel[k] * sJ[factors_ind]
                         * (1.0 / gRho[factors_ind]) * mD[b_ind];
-
-
         }
       }
     }
@@ -123,7 +123,9 @@ void pressure_solve_2_omp4_kernel(
 
           int factors_ind = *edgeNum * 7 + k;
 
-          op1[c_ind] += -(1.0 / gRho[factors_ind]) * mD[a_ind] * gaussW_g_ompkernel[k]
+
+
+          op1[c_ind] += -(1.0 / rho[i]) * mD[a_ind] * gaussW_g_ompkernel[k]
                         * sJ[factors_ind] * gVM[b_ind];
         }
       }

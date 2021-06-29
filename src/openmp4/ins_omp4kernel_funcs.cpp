@@ -205,6 +205,7 @@ void op_decl_const_char(int dim, char const *type,
 #include "pressure_bc_omp4kernel_func.cpp"
 #include "pressure_bc2_omp4kernel_func.cpp"
 #include "pressure_rhs_omp4kernel_func.cpp"
+#include "pressure_grad_flux_omp4kernel_func.cpp"
 #include "pressure_update_vel_omp4kernel_func.cpp"
 #include "viscosity_bc_omp4kernel_func.cpp"
 #include "viscosity_rhs_omp4kernel_func.cpp"

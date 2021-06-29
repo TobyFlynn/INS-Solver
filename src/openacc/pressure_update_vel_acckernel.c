@@ -8,15 +8,22 @@
 inline void pressure_update_vel_openacc( const double *factor, const double *rho, const double *dpdx,
                                 const double *dpdy, const double *qt0,
                                 const double *qt1, double *qtt0, double *qtt1,
-                                double *dpdn, double *prBC) {
+                                double *dpdn, double *prBC, double *pX, double *pY) {
   for(int i = 0; i < 15; i++) {
     qtt0[i] = qt0[i] - *factor * dpdx[i] / rho[i];
     qtt1[i] = qt1[i] - *factor * dpdy[i] / rho[i];
+
+
     dpdn[i] = 0.0;
   }
 
   for(int i = 0; i < 21; i++) {
     prBC[i] = 0.0;
+  }
+
+  for(int i = 0; i < 15; i++) {
+    pX[i] = 0.0;
+    pY[i] = 0.0;
   }
 }
 
@@ -31,11 +38,13 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9){
+  op_arg arg9,
+  op_arg arg10,
+  op_arg arg11){
 
   double*arg0h = (double *)arg0.data;
-  int nargs = 10;
-  op_arg args[10];
+  int nargs = 12;
+  op_arg args[12];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -47,13 +56,15 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   args[7] = arg7;
   args[8] = arg8;
   args[9] = arg9;
+  args[10] = arg10;
+  args[11] = arg11;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(45);
+  op_timing_realloc(46);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[45].name      = name;
-  OP_kernels[45].count    += 1;
+  OP_kernels[46].name      = name;
+  OP_kernels[46].count    += 1;
 
 
   if (OP_diags>2) {
@@ -78,7 +89,9 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
     double* data7 = (double*)arg7.data_d;
     double* data8 = (double*)arg8.data_d;
     double* data9 = (double*)arg9.data_d;
-    #pragma acc parallel loop independent deviceptr(data1,data2,data3,data4,data5,data6,data7,data8,data9)
+    double* data10 = (double*)arg10.data_d;
+    double* data11 = (double*)arg11.data_d;
+    #pragma acc parallel loop independent deviceptr(data1,data2,data3,data4,data5,data6,data7,data8,data9,data10,data11)
     for ( int n=0; n<set->size; n++ ){
       pressure_update_vel_openacc(
         &arg0_l,
@@ -90,7 +103,9 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
         &data6[15*n],
         &data7[15*n],
         &data8[15*n],
-        &data9[21*n]);
+        &data9[21*n],
+        &data10[15*n],
+        &data11[15*n]);
     }
   }
 
@@ -99,14 +114,16 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[45].time     += wall_t2 - wall_t1;
-  OP_kernels[45].transfer += (float)set->size * arg1.size;
-  OP_kernels[45].transfer += (float)set->size * arg2.size;
-  OP_kernels[45].transfer += (float)set->size * arg3.size;
-  OP_kernels[45].transfer += (float)set->size * arg4.size;
-  OP_kernels[45].transfer += (float)set->size * arg5.size;
-  OP_kernels[45].transfer += (float)set->size * arg6.size * 2.0f;
-  OP_kernels[45].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[45].transfer += (float)set->size * arg8.size * 2.0f;
-  OP_kernels[45].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[46].time     += wall_t2 - wall_t1;
+  OP_kernels[46].transfer += (float)set->size * arg1.size;
+  OP_kernels[46].transfer += (float)set->size * arg2.size;
+  OP_kernels[46].transfer += (float)set->size * arg3.size;
+  OP_kernels[46].transfer += (float)set->size * arg4.size;
+  OP_kernels[46].transfer += (float)set->size * arg5.size;
+  OP_kernels[46].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[46].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[46].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[46].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[46].transfer += (float)set->size * arg10.size * 2.0f;
+  OP_kernels[46].transfer += (float)set->size * arg11.size * 2.0f;
 }

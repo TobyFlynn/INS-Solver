@@ -63,11 +63,13 @@ void get_data_vectors(INSData *data, int ind, LS *ls, vector<double> &x_v,
   op_fetch_data(data->Q[ind][0], Ux);
   op_fetch_data(data->Q[ind][1], Uy);
   op_fetch_data(data->p, pr);
-  op_fetch_data(data->vorticity, vort);
+  // op_fetch_data(data->vorticity, vort);
+  op_fetch_data(data->QTT[0], vort);
   op_fetch_data(data->x, x);
   op_fetch_data(data->y, y);
   if(ls) {
-    op_fetch_data(ls->s, s);
+    // op_fetch_data(ls->s, s);
+    op_fetch_data(data->rho, s);
   }
 
   // Maps points to sub elements that they are part of.

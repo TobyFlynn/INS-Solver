@@ -61,73 +61,41 @@ void viscosity_solve_1_omp4_kernel(
     map2idx = map2[n_op + set_size1 * 0];
     map3idx = map2[n_op + set_size1 * 1];
 
-    const double* arg2_vec[] = {
-       &data2[105 * map2idx],
-       &data2[105 * map3idx]};
-    const double* arg4_vec[] = {
-       &data4[105 * map2idx],
-       &data4[105 * map3idx]};
-    const double* arg6_vec[] = {
-       &data6[105 * map2idx],
-       &data6[105 * map3idx]};
-    const double* arg8_vec[] = {
-       &data8[105 * map2idx],
-       &data8[105 * map3idx]};
-    const double* arg10_vec[] = {
-       &data10[105 * map2idx],
-       &data10[105 * map3idx]};
-    const double* arg12_vec[] = {
-       &data12[105 * map2idx],
-       &data12[105 * map3idx]};
-    const double* arg14_vec[] = {
-       &data14[105 * map2idx],
-       &data14[105 * map3idx]};
-    const double* arg16_vec[] = {
-       &data16[105 * map2idx],
-       &data16[105 * map3idx]};
-    const double* arg18_vec[] = {
-       &data18[105 * map2idx],
-       &data18[105 * map3idx]};
-    const double* arg20_vec[] = {
-       &data20[21 * map2idx],
-       &data20[21 * map3idx]};
-    const double* arg22_vec[] = {
-       &data22[1 * map2idx],
-       &data22[1 * map3idx]};
-    const double* arg24_vec[] = {
-       &data24[3 * map2idx],
-       &data24[3 * map3idx]};
-    const double* arg26_vec[] = {
-       &data26[21 * map2idx],
-       &data26[21 * map3idx]};
-    const double* arg28_vec[] = {
-       &data28[15 * map2idx],
-       &data28[15 * map3idx]};
-    const double* arg30_vec[] = {
-       &data30[21 * map2idx],
-       &data30[21 * map3idx]};
-    const double* arg32_vec[] = {
-       &data32[15 * map2idx],
-       &data32[15 * map3idx]};
     //variable mapping
     const int *edgeNum = &data0[2*n_op];
     const bool *rev = &data1[1*n_op];
-    const double **mD0 = arg2_vec;
-    const double **mD1 = arg4_vec;
-    const double **mD2 = arg6_vec;
-    const double **pD0 = arg8_vec;
-    const double **pD1 = arg10_vec;
-    const double **pD2 = arg12_vec;
-    const double **gVP0 = arg14_vec;
-    const double **gVP1 = arg16_vec;
-    const double **gVP2 = arg18_vec;
-    const double **sJ = arg20_vec;
-    const double **h = arg22_vec;
-    const double **tau = arg24_vec;
-    const double **gMu = arg26_vec;
-    const double **mu = arg28_vec;
-    const double **rho = arg30_vec;
-    const double **u = arg32_vec;
+    const double *mD0L = &data2[105 * map2idx];
+    const double *mD0R = &data2[105 * map3idx];
+    const double *mD1L = &data4[105 * map2idx];
+    const double *mD1R = &data4[105 * map3idx];
+    const double *mD2L = &data6[105 * map2idx];
+    const double *mD2R = &data6[105 * map3idx];
+    const double *pD0L = &data8[105 * map2idx];
+    const double *pD0R = &data8[105 * map3idx];
+    const double *pD1L = &data10[105 * map2idx];
+    const double *pD1R = &data10[105 * map3idx];
+    const double *pD2L = &data12[105 * map2idx];
+    const double *pD2R = &data12[105 * map3idx];
+    const double *gVP0L = &data14[105 * map2idx];
+    const double *gVP0R = &data14[105 * map3idx];
+    const double *gVP1L = &data16[105 * map2idx];
+    const double *gVP1R = &data16[105 * map3idx];
+    const double *gVP2L = &data18[105 * map2idx];
+    const double *gVP2R = &data18[105 * map3idx];
+    const double *sJL = &data20[21 * map2idx];
+    const double *sJR = &data20[21 * map3idx];
+    const double *hL = &data22[1 * map2idx];
+    const double *hR = &data22[1 * map3idx];
+    const double *tauOL = &data24[3 * map2idx];
+    const double *tauOR = &data24[3 * map3idx];
+    const double *gMuL = &data26[21 * map2idx];
+    const double *gMuR = &data26[21 * map3idx];
+    const double *muL = &data28[15 * map2idx];
+    const double *muR = &data28[15 * map3idx];
+    const double *rhoL = &data30[21 * map2idx];
+    const double *rhoR = &data30[21 * map3idx];
+    const double *uL = &data32[15 * map2idx];
+    const double *uR = &data32[15 * map3idx];
     double *rhsL = &data34[15 * map2idx];
     double *rhsR = &data34[15 * map3idx];
 
@@ -141,37 +109,37 @@ void viscosity_solve_1_omp4_kernel(
 
     const double *mDL, *mDR, *pDL, *pDR, *gVML, *gVMR, *gVPL, *gVPR;
     if(edgeL == 0) {
-      mDL  = mD0[0];
-      pDL  = pD0[0];
+      mDL  = mD0L;
+      pDL  = pD0L;
       gVML = gFInterp0_g_ompkernel;
-      gVPL = gVP0[0];
+      gVPL = gVP0L;
     } else if(edgeL == 1) {
-      mDL  = mD1[0];
-      pDL  = pD1[0];
+      mDL  = mD1L;
+      pDL  = pD1L;
       gVML = gFInterp1_g_ompkernel;
-      gVPL = gVP1[0];
+      gVPL = gVP1L;
     } else {
-      mDL  = mD2[0];
-      pDL  = pD2[0];
+      mDL  = mD2L;
+      pDL  = pD2L;
       gVML = gFInterp2_g_ompkernel;
-      gVPL = gVP2[0];
+      gVPL = gVP2L;
     }
 
     if(edgeR == 0) {
-      mDR  = mD0[1];
-      pDR  = pD0[1];
+      mDR  = mD0R;
+      pDR  = pD0R;
       gVMR = gFInterp0_g_ompkernel;
-      gVPR = gVP0[1];
+      gVPR = gVP0R;
     } else if(edgeR == 1) {
-      mDR  = mD1[1];
-      pDR  = pD1[1];
+      mDR  = mD1R;
+      pDR  = pD1R;
       gVMR = gFInterp1_g_ompkernel;
-      gVPR = gVP1[1];
+      gVPR = gVP1R;
     } else {
-      mDR  = mD2[1];
-      pDR  = pD2[1];
+      mDR  = mD2R;
+      pDR  = pD2R;
       gVMR = gFInterp2_g_ompkernel;
-      gVPR = gVP2[1];
+      gVPR = gVP2R;
     }
 
     double op1L[15 * 15];
@@ -208,23 +176,16 @@ void viscosity_solve_1_omp4_kernel(
             factors_indRR = edgeR * 7 + k;
           }
 
-          op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJ[0][factors_indL]
-                         * gMu[0][factors_indL] * mDL[b_ind];
-          op1R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g_ompkernel[k] * sJ[1][factors_indR]
-                         * gMu[1][factors_indR] * mDR[b_ind];
 
-          op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJ[0][factors_indL]
-                         * gMu[1][factors_indRR] * pDL[b_ind];
-          op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g_ompkernel[k] * sJ[1][factors_indR]
-                         * gMu[0][factors_indLR] * pDR[b_ind];
+          op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJL[factors_indL]
+                         * gMuL[factors_indL] * mDL[b_ind];
+          op1R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g_ompkernel[k] * sJR[factors_indR]
+                         * gMuR[factors_indR] * mDR[b_ind];
 
-
-
-
-
-
-
-
+          op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJL[factors_indL]
+                         * gMuR[factors_indRR] * pDL[b_ind];
+          op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g_ompkernel[k] * sJR[factors_indR]
+                         * gMuL[factors_indLR] * pDR[b_ind];
 
         }
       }
@@ -245,32 +206,15 @@ void viscosity_solve_1_omp4_kernel(
           int factors_indL = edgeL * 7 + k;
           int factors_indR = edgeR * 7 + k;
 
+          op1L[c_ind] += -muL[i] * mDL[a_ind] * gaussW_g_ompkernel[k]
+                         * sJL[factors_indL] * gVML[b_ind];
+          op1R[c_ind] += -muR[i] * mDR[a_ind] * gaussW_g_ompkernel[k]
+                         * sJR[factors_indR] * gVMR[b_ind];
 
-
-
-
-
-
-
-
-
-          op1L[c_ind] += -gMu[0][factors_indL] * mDL[a_ind] * gaussW_g_ompkernel[k]
-                         * sJ[0][factors_indL] * gVML[b_ind];
-          op1R[c_ind] += -gMu[1][factors_indR] * mDR[a_ind] * gaussW_g_ompkernel[k]
-                         * sJ[1][factors_indR] * gVMR[b_ind];
-
-          op2L[c_ind] += gMu[0][factors_indL] * mDL[a_ind] * gaussW_g_ompkernel[k]
-                         * sJ[0][factors_indL] * gVPL[b_ind];
-          op2R[c_ind] += gMu[1][factors_indR] * mDR[a_ind] * gaussW_g_ompkernel[k]
-                         * sJ[1][factors_indR] * gVPR[b_ind];
-
-
-
-
-
-
-
-
+          op2L[c_ind] += muL[i] * mDL[a_ind] * gaussW_g_ompkernel[k]
+                         * sJL[factors_indL] * gVPL[b_ind];
+          op2R[c_ind] += muR[i] * mDR[a_ind] * gaussW_g_ompkernel[k]
+                         * sJR[factors_indR] * gVPR[b_ind];
 
         }
       }
@@ -287,7 +231,8 @@ void viscosity_solve_1_omp4_kernel(
         indR = edgeR * 7 + 6 - i;
       else
         indR = edgeR * 7 + i;
-      tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / rho[0][indL], *(h[1]) / rho[1][indR]);
+
+      tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*hL * gMuL[indL], *hR * gMuR[indR]);
       if(maxL < tauL[i]) {
         maxL = tauL[i];
       }
@@ -299,7 +244,8 @@ void viscosity_solve_1_omp4_kernel(
         indL = edgeL * 7 + 6 - i;
       else
         indL = edgeL * 7 + i;
-      tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / rho[0][indL], *(h[1]) / rho[1][indR]);
+
+      tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*hL * gMuL[indL], *hR * gMuR[indR]);
       if(maxR < tauR[i]) {
         maxR = tauR[i];
       }
@@ -325,23 +271,15 @@ void viscosity_solve_1_omp4_kernel(
           int factors_indL = edgeL * 7 + k;
           int factors_indR = edgeR * 7 + k;
 
-          op1L[c_ind] += gVML[a_ind] * gaussW_g_ompkernel[k] * sJ[0][factors_indL]
+          op1L[c_ind] += gVML[a_ind] * gaussW_g_ompkernel[k] * sJL[factors_indL]
                          * tauL[k] * gVML[b_ind];
-          op1R[c_ind] += gVMR[a_ind] * gaussW_g_ompkernel[k] * sJ[1][factors_indR]
+          op1R[c_ind] += gVMR[a_ind] * gaussW_g_ompkernel[k] * sJR[factors_indR]
                          * tauR[k] * gVMR[b_ind];
 
-          op2L[c_ind] += -gVML[a_ind] * gaussW_g_ompkernel[k] * sJ[0][factors_indL]
+          op2L[c_ind] += -gVML[a_ind] * gaussW_g_ompkernel[k] * sJL[factors_indL]
                          * tauL[k] * gVPL[b_ind];
-          op2R[c_ind] += -gVMR[a_ind] * gaussW_g_ompkernel[k] * sJ[1][factors_indR]
+          op2R[c_ind] += -gVMR[a_ind] * gaussW_g_ompkernel[k] * sJR[factors_indR]
                          * tauR[k] * gVPR[b_ind];
-
-
-
-
-
-
-
-
 
         }
       }
@@ -351,8 +289,8 @@ void viscosity_solve_1_omp4_kernel(
     for(int i = 0; i < 15; i++) {
       for(int j = 0; j < 15; j++) {
         int op_ind = i * 15 + j;
-        rhsL[i] += op1L[op_ind] * u[0][j] + op2L[op_ind] * u[1][j];
-        rhsR[i] += op1R[op_ind] * u[1][j] + op2R[op_ind] * u[0][j];
+        rhsL[i] += op1L[op_ind] * uL[j] + op2L[op_ind] * uR[j];
+        rhsR[i] += op1R[op_ind] * uR[j] + op2R[op_ind] * uL[j];
       }
     }
     //end inline func

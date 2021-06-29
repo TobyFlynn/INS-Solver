@@ -39,6 +39,7 @@ __device__ void viscosity_solve_0_gpu( const double *J, const double *Dx,
       int op_ind = i * 15 + j;
       rhs[i] += op[op_ind] * u[j];
       rhs[i] += mm[op_ind] * u[j] * rho[j] * (*factor);
+
     }
   }
 
@@ -66,7 +67,7 @@ __global__ void op_cuda_viscosity_solve_0(
                       arg1+n*690,
                       arg2+n*690,
                       arg3+n*46,
-                      arg4+n*46,
+                      arg4+n*15,
                       arg5,
                       arg6+n*225,
                       arg7+n*15,

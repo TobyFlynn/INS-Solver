@@ -92,6 +92,7 @@ int size, char *dat, char const *name){}
 #include "pressure_bc_acckernel.c"
 #include "pressure_bc2_acckernel.c"
 #include "pressure_rhs_acckernel.c"
+#include "pressure_grad_flux_acckernel.c"
 #include "pressure_update_vel_acckernel.c"
 #include "viscosity_bc_acckernel.c"
 #include "viscosity_rhs_acckernel.c"

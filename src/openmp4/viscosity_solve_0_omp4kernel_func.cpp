@@ -34,7 +34,7 @@ void viscosity_solve_0_omp4_kernel(
     const double *Dx = &data1[690*n_op];
     const double *Dy = &data2[690*n_op];
     const double *mu = &data3[46*n_op];
-    const double *rho = &data4[46*n_op];
+    const double *rho = &data4[15*n_op];
     const double *factor = &arg5_l;
     const double *mm = &data6[225*n_op];
     const double *u = &data7[15*n_op];
@@ -74,6 +74,7 @@ void viscosity_solve_0_omp4_kernel(
         int op_ind = i * 15 + j;
         rhs[i] += op[op_ind] * u[j];
         rhs[i] += mm[op_ind] * u[j] * rho[j] * (*factor);
+
       }
     }
     //end inline func
