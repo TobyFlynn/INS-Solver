@@ -39,7 +39,7 @@ inline void viscosity_solve_2(const int *edgeType, const int *edgeNum,
         // op1[c_ind] += -0.5 * gVM[a_ind] * gaussW_g[k] * sJ[factors_ind]
         //               * gMu[factors_ind] * mD[b_ind];
 
-        op1[c_ind] += -gVM[a_ind] * gaussW_g[k] * sJ[factors_ind]
+        op1[c_ind] += -0.5 * gVM[a_ind] * gaussW_g[k] * sJ[factors_ind]
                       * gMu[factors_ind] * mD[b_ind];
       }
     }
@@ -59,7 +59,10 @@ inline void viscosity_solve_2(const int *edgeType, const int *edgeNum,
         // Rho and sJ ind
         int factors_ind = *edgeNum * 7 + k;
 
-        op1[c_ind] += -gMu[factors_ind] * mD[a_ind] * gaussW_g[k]
+        // op1[c_ind] += -gMu[factors_ind] * mD[a_ind] * gaussW_g[k]
+        //               * sJ[factors_ind] * gVM[b_ind];
+
+        op1[c_ind] += -mu[i] * mD[a_ind] * gaussW_g[k]
                       * sJ[factors_ind] * gVM[b_ind];
       }
     }
@@ -70,7 +73,8 @@ inline void viscosity_solve_2(const int *edgeType, const int *edgeNum,
   double tauA[7];
   for(int i = 0; i < 7; i++) {
     int ind = *edgeNum  * 7 + i;
-    tauA[i] = 10 * 0.5 * 5 * 6 * (*h / rho[ind]);
+    // tauA[i] = 10 * 0.5 * 5 * 6 * (*h / rho[ind]);
+    tauA[i] = 10 * 0.5 * 5 * 6 * (*h * gMu[ind]);
   }
 
 

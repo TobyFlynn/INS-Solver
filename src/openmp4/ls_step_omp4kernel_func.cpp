@@ -33,8 +33,8 @@ void ls_step_omp4_kernel(
     const double PI = 3.141592653589793238463;
     for(int i = 0; i < 15; i++) {
       step[i] = tanh(PI * s[i] / *alpha);
-      nu[i] = nu0_ompkernel * step[i] + nu1_ompkernel * (1.0 - step[i]);
-      rho[i] = rho0_ompkernel * step[i] + rho1_ompkernel * (1.0 - step[i]);
+      nu[i] = 0.5 * nu0_ompkernel * (1.0 + step[i]) + 0.5 * nu1_ompkernel * (1.0 - step[i]);
+      rho[i] = 0.5 * rho0_ompkernel * (1.0 + step[i]) + 0.5 * rho1_ompkernel * (1.0 - step[i]);
     }
     //end inline func
   }

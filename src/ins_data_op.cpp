@@ -233,6 +233,8 @@ INSData::INSData(std::string filename) {
   nu_data        = (double *)calloc(15 * numCells, sizeof(double));
   gNu_data       = (double *)calloc(21 * numCells, sizeof(double));
   rho_data       = (double *)calloc(15 * numCells, sizeof(double));
+  pFluxX_data    = (double *)calloc(15 * numCells, sizeof(double));
+  pFluxY_data    = (double *)calloc(15 * numCells, sizeof(double));
 
   // Initialise OP2
   // Declare OP2 sets
@@ -322,6 +324,8 @@ INSData::INSData(std::string filename) {
   nu        = op_decl_dat(cells, 15, "double", nu_data, "nu");
   gNu       = op_decl_dat(cells, 21, "double", gNu_data, "gNu");
   rho       = op_decl_dat(cells, 15, "double", rho_data, "rho");
+  pFluxX    = op_decl_dat(cells, 15, "double", pFluxX_data, "pX");
+  pFluxY    = op_decl_dat(cells, 15, "double", pFluxY_data, "pY");
 
   op_decl_const2("ren",1,"double",&ren);
   op_decl_const2("nu0",1,"double",&nu0);
@@ -421,6 +425,8 @@ INSData::~INSData() {
   free(nu_data);
   free(gNu_data);
   free(rho_data);
+  free(pFluxX_data);
+  free(pFluxY_data);
 }
 
 void INSData::init() {

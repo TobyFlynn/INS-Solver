@@ -34,6 +34,7 @@ inline void viscosity_solve_0(const double *J, const double *Dx,
       int op_ind = i * 15 + j;
       rhs[i] += op[op_ind] * u[j];
       rhs[i] += mm[op_ind] * u[j] * rho[j] * (*factor);
+      // rhs[i] += mm[op_ind] * u[j] * (*factor);
     }
   }
 }

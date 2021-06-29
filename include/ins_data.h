@@ -76,6 +76,7 @@ public:
   op_dat vorticity;
   op_dat save_temp;
   op_dat nu, gNu, rho;
+  op_dat pFluxX, pFluxY;
 
   int pressure_dirichlet[3];
   int pressure_neumann[3];
@@ -124,6 +125,7 @@ private:
   double *nu_data;
   double *gNu_data;
   double *rho_data;
+  double *pFluxX_data, *pFluxY_data;
 };
 
 class CubatureData {

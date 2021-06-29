@@ -1,11 +1,21 @@
 inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
-                              const double **mD0, const double **mD1,
-                              const double **mD2, const double **pD0,
-                              const double **pD1, const double **pD2,
-                              const double **gVP0, const double **gVP1,
-                              const double **gVP2, const double **sJ,
-                              const double **h, const double **tau, const double **gMu, const double **mu, const double **rho,
-                              const double **u, double *rhsL, double *rhsR) {
+                              const double *mD0L, const double *mD0R,
+                              const double *mD1L, const double *mD1R,
+                              const double *mD2L, const double *mD2R,
+                              const double *pD0L, const double *pD0R,
+                              const double *pD1L, const double *pD1R,
+                              const double *pD2L, const double *pD2R,
+                              const double *gVP0L, const double *gVP0R,
+                              const double *gVP1L, const double *gVP1R,
+                              const double *gVP2L, const double *gVP2R,
+                              const double *sJL, const double *sJR,
+                              const double *hL, const double *hR,
+                              const double *tauOL, const double *tauOR,
+                              const double *gMuL, const double *gMuR,
+                              const double *muL, const double *muR,
+                              const double *rhoL, const double *rhoR,
+                              const double *uL, const double *uR,
+                              double *rhsL, double *rhsR) {
   // Work out which edge for each element
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
@@ -15,37 +25,37 @@ inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
   // (TODO switch matrices to be defined on edge set instead of cell set)
   const double *mDL, *mDR, *pDL, *pDR, *gVML, *gVMR, *gVPL, *gVPR;
   if(edgeL == 0) {
-    mDL  = mD0[0];
-    pDL  = pD0[0];
+    mDL  = mD0L;
+    pDL  = pD0L;
     gVML = gFInterp0_g;
-    gVPL = gVP0[0];
+    gVPL = gVP0L;
   } else if(edgeL == 1) {
-    mDL  = mD1[0];
-    pDL  = pD1[0];
+    mDL  = mD1L;
+    pDL  = pD1L;
     gVML = gFInterp1_g;
-    gVPL = gVP1[0];
+    gVPL = gVP1L;
   } else {
-    mDL  = mD2[0];
-    pDL  = pD2[0];
+    mDL  = mD2L;
+    pDL  = pD2L;
     gVML = gFInterp2_g;
-    gVPL = gVP2[0];
+    gVPL = gVP2L;
   }
 
   if(edgeR == 0) {
-    mDR  = mD0[1];
-    pDR  = pD0[1];
+    mDR  = mD0R;
+    pDR  = pD0R;
     gVMR = gFInterp0_g;
-    gVPR = gVP0[1];
+    gVPR = gVP0R;
   } else if(edgeR == 1) {
-    mDR  = mD1[1];
-    pDR  = pD1[1];
+    mDR  = mD1R;
+    pDR  = pD1R;
     gVMR = gFInterp1_g;
-    gVPR = gVP1[1];
+    gVPR = gVP1R;
   } else {
-    mDR  = mD2[1];
-    pDR  = pD2[1];
+    mDR  = mD2R;
+    pDR  = pD2R;
     gVMR = gFInterp2_g;
-    gVPR = gVP2[1];
+    gVPR = gVP2R;
   }
 
   double op1L[15 * 15];
@@ -82,7 +92,7 @@ inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
           factors_indLR = edgeL * 7 + k;
           factors_indRR = edgeR * 7 + k;
         }
-
+        /*
         op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
                        * gMu[0][factors_indL] * mDL[b_ind];
         op1R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
@@ -92,16 +102,29 @@ inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
                        * gMu[1][factors_indRR] * pDL[b_ind];
         op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
                        * gMu[0][factors_indLR] * pDR[b_ind];
+        */
 
-        // op1L[c_ind] += -0.5 * mu[0][i] * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
-        //                * mDL[b_ind];
-        // op1R[c_ind] += -0.5 * mu[1][i] * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
-        //                * mDR[b_ind];
-        //
-        // op2L[c_ind] += -0.5 * mu[0][i] * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
-        //                * pDL[b_ind];
-        // op2R[c_ind] += -0.5 * mu[1][i] * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
-        //                * pDR[b_ind];
+        op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
+                       * gMuL[factors_indL] * mDL[b_ind];
+        op1R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
+                       * gMuR[factors_indR] * mDR[b_ind];
+
+        op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
+                       * gMuR[factors_indRR] * pDL[b_ind];
+        op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
+                       * gMuL[factors_indLR] * pDR[b_ind];
+
+        /*
+        op1L[c_ind] += -0.5 * mu[0][i] * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
+                       * mDL[b_ind];
+        op1R[c_ind] += -0.5 * mu[1][i] * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
+                       * mDR[b_ind];
+
+        op2L[c_ind] += -0.5 * mu[0][i] * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
+                       * pDL[b_ind];
+        op2R[c_ind] += -0.5 * mu[1][i] * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
+                       * pDR[b_ind];
+        */
       }
     }
   }
@@ -122,16 +145,17 @@ inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
         int factors_indL = edgeL * 7 + k;
         int factors_indR = edgeR * 7 + k;
 
-        // op1L[c_ind] += -mu[0][i] * mDL[a_ind] * gaussW_g[k]
-        //                * sJ[0][factors_indL] * gVML[b_ind];
-        // op1R[c_ind] += -mu[1][i] * mDR[a_ind] * gaussW_g[k]
-        //                * sJ[1][factors_indR] * gVMR[b_ind];
-        //
-        // op2L[c_ind] += mu[0][i] * mDL[a_ind] * gaussW_g[k]
-        //                * sJ[0][factors_indL] * gVPL[b_ind];
-        // op2R[c_ind] += mu[1][i] * mDR[a_ind] * gaussW_g[k]
-        //                * sJ[1][factors_indR] * gVPR[b_ind];
+        op1L[c_ind] += -muL[i] * mDL[a_ind] * gaussW_g[k]
+                       * sJL[factors_indL] * gVML[b_ind];
+        op1R[c_ind] += -muR[i] * mDR[a_ind] * gaussW_g[k]
+                       * sJR[factors_indR] * gVMR[b_ind];
 
+        op2L[c_ind] += muL[i] * mDL[a_ind] * gaussW_g[k]
+                       * sJL[factors_indL] * gVPL[b_ind];
+        op2R[c_ind] += muR[i] * mDR[a_ind] * gaussW_g[k]
+                       * sJR[factors_indR] * gVPR[b_ind];
+
+        /*
         op1L[c_ind] += -gMu[0][factors_indL] * mDL[a_ind] * gaussW_g[k]
                        * sJ[0][factors_indL] * gVML[b_ind];
         op1R[c_ind] += -gMu[1][factors_indR] * mDR[a_ind] * gaussW_g[k]
@@ -142,15 +166,26 @@ inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
         op2R[c_ind] += gMu[1][factors_indR] * mDR[a_ind] * gaussW_g[k]
                        * sJ[1][factors_indR] * gVPR[b_ind];
 
-        // op1L[c_ind] += -0.5 * mu[0][i] * mDL[a_ind] * gaussW_g[k]
-        //                * sJ[0][factors_indL] * gVML[b_ind];
-        // op1R[c_ind] += -0.5 * mu[1][i] * mDR[a_ind] * gaussW_g[k]
-        //                * sJ[1][factors_indR] * gVMR[b_ind];
-        //
-        // op2L[c_ind] += 0.5 * mu[0][i] * mDL[a_ind] * gaussW_g[k]
-        //                * sJ[0][factors_indL] * gVPL[b_ind];
-        // op2R[c_ind] += 0.5 * mu[1][i] * mDR[a_ind] * gaussW_g[k]
-        //                * sJ[1][factors_indR] * gVPR[b_ind];
+        op1L[c_ind] += -mDLMu[a_ind] * gaussW_g[k]
+                       * sJ[0][factors_indL] * gVML[b_ind];
+        op1R[c_ind] += -mDRMu[a_ind] * gaussW_g[k]
+                       * sJ[1][factors_indR] * gVMR[b_ind];
+
+        op2L[c_ind] += mDLMu[a_ind] * gaussW_g[k]
+                       * sJ[0][factors_indL] * gVPL[b_ind];
+        op2R[c_ind] += mDRMu[a_ind] * gaussW_g[k]
+                       * sJ[1][factors_indR] * gVPR[b_ind];
+
+        op1L[c_ind] += -0.5 * mu[0][i] * mDL[a_ind] * gaussW_g[k]
+                       * sJ[0][factors_indL] * gVML[b_ind];
+        op1R[c_ind] += -0.5 * mu[1][i] * mDR[a_ind] * gaussW_g[k]
+                       * sJ[1][factors_indR] * gVMR[b_ind];
+
+        op2L[c_ind] += 0.5 * mu[0][i] * mDL[a_ind] * gaussW_g[k]
+                       * sJ[0][factors_indL] * gVPL[b_ind];
+        op2R[c_ind] += 0.5 * mu[1][i] * mDR[a_ind] * gaussW_g[k]
+                       * sJ[1][factors_indR] * gVPR[b_ind];
+        */
       }
     }
   }
@@ -167,7 +202,8 @@ inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
       indR = edgeR * 7 + 6 - i;
     else
       indR = edgeR * 7 + i;
-    tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / rho[0][indL], *(h[1]) / rho[1][indR]);
+    // tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*hL / rhoL[indL], *hR / rhoR[indR]);
+    tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*hL * gMuL[indL], *hR * gMuR[indR]);
     if(maxL < tauL[i]) {
       maxL = tauL[i];
     }
@@ -179,7 +215,8 @@ inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
       indL = edgeL * 7 + 6 - i;
     else
       indL = edgeL * 7 + i;
-    tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / rho[0][indL], *(h[1]) / rho[1][indR]);
+    // tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*hL / rhoL[indL], *hR / rhoR[indR]);
+    tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*hL * gMuL[indL], *hR * gMuR[indR]);
     if(maxR < tauR[i]) {
       maxR = tauR[i];
     }
@@ -206,25 +243,27 @@ inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
         int factors_indL = edgeL * 7 + k;
         int factors_indR = edgeR * 7 + k;
 
-        op1L[c_ind] += gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
+        op1L[c_ind] += gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
                        * tauL[k] * gVML[b_ind];
-        op1R[c_ind] += gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
+        op1R[c_ind] += gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
                        * tauR[k] * gVMR[b_ind];
 
-        op2L[c_ind] += -gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
+        op2L[c_ind] += -gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
                        * tauL[k] * gVPL[b_ind];
-        op2R[c_ind] += -gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
+        op2R[c_ind] += -gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
                        * tauR[k] * gVPR[b_ind];
 
-        // op1L[c_ind] += 0.5 * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
-        //                * tau[0][edgeL] * gVML[b_ind];
-        // op1R[c_ind] += 0.5 * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
-        //                * tau[1][edgeR] * gVMR[b_ind];
-        //
-        // op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
-        //                * tau[0][edgeL] * gVPL[b_ind];
-        // op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
-        //                * tau[1][edgeR] * gVPR[b_ind];
+        /*
+        op1L[c_ind] += 0.5 * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
+                       * tau[0][edgeL] * gVML[b_ind];
+        op1R[c_ind] += 0.5 * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
+                       * tau[1][edgeR] * gVMR[b_ind];
+
+        op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJ[0][factors_indL]
+                       * tau[0][edgeL] * gVPL[b_ind];
+        op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJ[1][factors_indR]
+                       * tau[1][edgeR] * gVPR[b_ind];
+        */
       }
     }
   }
@@ -234,8 +273,8 @@ inline void viscosity_solve_1(const int *edgeNum, const bool *rev,
   for(int i = 0; i < 15; i++) {
     for(int j = 0; j < 15; j++) {
       int op_ind = i * 15 + j;
-      rhsL[i] += op1L[op_ind] * u[0][j] + op2L[op_ind] * u[1][j];
-      rhsR[i] += op1R[op_ind] * u[1][j] + op2R[op_ind] * u[0][j];
+      rhsL[i] += op1L[op_ind] * uL[j] + op2L[op_ind] * uR[j];
+      rhsR[i] += op1R[op_ind] * uR[j] + op2R[op_ind] * uL[j];
     }
   }
 }

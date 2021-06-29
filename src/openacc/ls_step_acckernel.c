@@ -10,8 +10,8 @@ inline void ls_step_openacc( const double *alpha, const double *s, double *step,
   const double PI = 3.141592653589793238463;
   for(int i = 0; i < 15; i++) {
     step[i] = tanh(PI * s[i] / *alpha);
-    nu[i] = nu0 * step[i] + nu1 * (1.0 - step[i]);
-    rho[i] = rho0 * step[i] + rho1 * (1.0 - step[i]);
+    nu[i] = 0.5 * nu0 * (1.0 + step[i]) + 0.5 * nu1 * (1.0 - step[i]);
+    rho[i] = 0.5 * rho0 * (1.0 + step[i]) + 0.5 * rho1 * (1.0 - step[i]);
   }
 }
 
@@ -35,10 +35,10 @@ void op_par_loop_ls_step(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(72);
+  op_timing_realloc(73);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[72].name      = name;
-  OP_kernels[72].count    += 1;
+  OP_kernels[73].name      = name;
+  OP_kernels[73].count    += 1;
 
 
   if (OP_diags>2) {
@@ -74,9 +74,9 @@ void op_par_loop_ls_step(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[72].time     += wall_t2 - wall_t1;
-  OP_kernels[72].transfer += (float)set->size * arg1.size;
-  OP_kernels[72].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[72].transfer += (float)set->size * arg3.size * 2.0f;
-  OP_kernels[72].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[73].time     += wall_t2 - wall_t1;
+  OP_kernels[73].transfer += (float)set->size * arg1.size;
+  OP_kernels[73].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[73].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[73].transfer += (float)set->size * arg4.size * 2.0f;
 }

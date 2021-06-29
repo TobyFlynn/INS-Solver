@@ -90,6 +90,7 @@ extern double lift_drag_vec[5];
 #include "pressure_bc_seqkernel.cpp"
 #include "pressure_bc2_seqkernel.cpp"
 #include "pressure_rhs_seqkernel.cpp"
+#include "pressure_grad_flux_seqkernel.cpp"
 #include "pressure_update_vel_seqkernel.cpp"
 #include "viscosity_bc_seqkernel.cpp"
 #include "viscosity_rhs_seqkernel.cpp"

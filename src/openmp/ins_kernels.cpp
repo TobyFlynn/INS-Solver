@@ -94,6 +94,7 @@ extern double lift_drag_vec[5];
 #include "pressure_bc_kernel.cpp"
 #include "pressure_bc2_kernel.cpp"
 #include "pressure_rhs_kernel.cpp"
+#include "pressure_grad_flux_kernel.cpp"
 #include "pressure_update_vel_kernel.cpp"
 #include "viscosity_bc_kernel.cpp"
 #include "viscosity_rhs_kernel.cpp"

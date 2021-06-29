@@ -41,6 +41,7 @@ inline void viscosity_solve_0_openacc( const double *J, const double *Dx,
       int op_ind = i * 15 + j;
       rhs[i] += op[op_ind] * u[j];
       rhs[i] += mm[op_ind] * u[j] * rho[j] * (*factor);
+
     }
   }
 }
@@ -107,7 +108,7 @@ void op_par_loop_viscosity_solve_0(char const *name, op_set set,
         &data1[690*n],
         &data2[690*n],
         &data3[46*n],
-        &data4[46*n],
+        &data4[15*n],
         &arg5_l,
         &data6[225*n],
         &data7[15*n],
