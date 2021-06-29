@@ -41,7 +41,8 @@ void pressure_rhs_omp4_kernel(
 
     //inline function
     
-    double factor = (*g0) / (*dt);
+
+    double factor = 1.0 / (*dt);
     for(int i = 0; i < 15; i++) {
       divVelT[i] = J[i] * (-divVelT[i] * factor);
       dPdNOld[i] = sJ[i] * ((*b0) * dPdN[i] + (*b1) * dPdNOld[i]);

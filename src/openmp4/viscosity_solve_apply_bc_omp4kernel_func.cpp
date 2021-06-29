@@ -124,9 +124,10 @@ void viscosity_solve_apply_bc_omp4_kernel(
 
 
 
-
         op[i] = gVM[indT] * gaussW_g_ompkernel[i % 7] * sJ[indSJ] * tauA[i % 7]
-                - mu[indRho] * mD[indT] * gaussW_g_ompkernel[i % 7] * sJ[indSJ];
+                - gMu[indSJ] * mD[indT] * gaussW_g_ompkernel[i % 7] * sJ[indSJ];
+
+
       }
 
       for(int i = 0; i < 15; i++) {

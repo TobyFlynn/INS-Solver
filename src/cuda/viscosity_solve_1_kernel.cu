@@ -76,6 +76,15 @@ __device__ void viscosity_solve_1_gpu( const int *edgeNum, const bool *rev,
 
         int factors_indL = edgeL * 7 + k;
         int factors_indR = edgeR * 7 + k;
+        int factors_indLR;
+        int factors_indRR;
+        if(reverse) {
+          factors_indLR = edgeL * 7 + 6 - k;
+          factors_indRR = edgeR * 7 + 6 - k;
+        } else {
+          factors_indLR = edgeL * 7 + k;
+          factors_indRR = edgeR * 7 + k;
+        }
 
         op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_cuda[k] * sJ[0][factors_indL]
                        * gMu[0][factors_indL] * mDL[b_ind];
@@ -83,9 +92,18 @@ __device__ void viscosity_solve_1_gpu( const int *edgeNum, const bool *rev,
                        * gMu[1][factors_indR] * mDR[b_ind];
 
         op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_cuda[k] * sJ[0][factors_indL]
-                       * gMu[0][factors_indL] * pDL[b_ind];
+                       * gMu[1][factors_indRR] * pDL[b_ind];
         op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g_cuda[k] * sJ[1][factors_indR]
-                       * gMu[1][factors_indR] * pDR[b_ind];
+                       * gMu[0][factors_indLR] * pDR[b_ind];
+
+
+
+
+
+
+
+
+
       }
     }
   }
@@ -114,30 +132,32 @@ __device__ void viscosity_solve_1_gpu( const int *edgeNum, const bool *rev,
 
 
 
-
-
-
-
-
-
-
-
-
-        op1L[c_ind] += -mu[0][i] * mDL[a_ind] * gaussW_g_cuda[k]
+        op1L[c_ind] += -gMu[0][factors_indL] * mDL[a_ind] * gaussW_g_cuda[k]
                        * sJ[0][factors_indL] * gVML[b_ind];
-        op1R[c_ind] += -mu[1][i] * mDR[a_ind] * gaussW_g_cuda[k]
+        op1R[c_ind] += -gMu[1][factors_indR] * mDR[a_ind] * gaussW_g_cuda[k]
                        * sJ[1][factors_indR] * gVMR[b_ind];
 
-        op2L[c_ind] += mu[0][i] * mDL[a_ind] * gaussW_g_cuda[k]
+        op2L[c_ind] += gMu[0][factors_indL] * mDL[a_ind] * gaussW_g_cuda[k]
                        * sJ[0][factors_indL] * gVPL[b_ind];
-        op2R[c_ind] += mu[1][i] * mDR[a_ind] * gaussW_g_cuda[k]
+        op2R[c_ind] += gMu[1][factors_indR] * mDR[a_ind] * gaussW_g_cuda[k]
                        * sJ[1][factors_indR] * gVPR[b_ind];
+
+
+
+
+
+
+
+
+
       }
     }
   }
 
   double tauL[7];
   double tauR[7];
+  double maxL = 0.0;
+  double maxR = 0.0;
   for(int i = 0; i < 7; i++) {
     int indL = edgeL * 7 + i;
     int indR;
@@ -146,6 +166,9 @@ __device__ void viscosity_solve_1_gpu( const int *edgeNum, const bool *rev,
     else
       indR = edgeR * 7 + i;
     tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / rho[0][indL], *(h[1]) / rho[1][indR]);
+    if(maxL < tauL[i]) {
+      maxL = tauL[i];
+    }
   }
   for(int i = 0; i < 7; i++) {
     int indL;
@@ -155,6 +178,14 @@ __device__ void viscosity_solve_1_gpu( const int *edgeNum, const bool *rev,
     else
       indL = edgeL * 7 + i;
     tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / rho[0][indL], *(h[1]) / rho[1][indR]);
+    if(maxR < tauR[i]) {
+      maxR = tauR[i];
+    }
+  }
+
+  for(int i = 0; i < 7; i++) {
+    tauL[i] = maxL;
+    tauR[i] = maxR;
   }
 
 
@@ -171,15 +202,6 @@ __device__ void viscosity_solve_1_gpu( const int *edgeNum, const bool *rev,
 
         int factors_indL = edgeL * 7 + k;
         int factors_indR = edgeR * 7 + k;
-
-
-
-
-
-
-
-
-
 
         op1L[c_ind] += gVML[a_ind] * gaussW_g_cuda[k] * sJ[0][factors_indL]
                        * tauL[k] * gVML[b_ind];
@@ -190,6 +212,15 @@ __device__ void viscosity_solve_1_gpu( const int *edgeNum, const bool *rev,
                        * tauL[k] * gVPL[b_ind];
         op2R[c_ind] += -gVMR[a_ind] * gaussW_g_cuda[k] * sJ[1][factors_indR]
                        * tauR[k] * gVPR[b_ind];
+
+
+
+
+
+
+
+
+
       }
     }
   }

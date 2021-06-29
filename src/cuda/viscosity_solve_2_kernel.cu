@@ -40,7 +40,10 @@ __device__ void viscosity_solve_2_gpu( const int *edgeType, const int *edgeNum,
         int a_ind = ((ind * 15) % (15 * 7)) + (ind / 7);
 
         int factors_ind = *edgeNum * 7 + k;
-        op1[c_ind] += -0.5 * gVM[a_ind] * gaussW_g_cuda[k] * sJ[factors_ind]
+
+
+
+        op1[c_ind] += -gVM[a_ind] * gaussW_g_cuda[k] * sJ[factors_ind]
                       * gMu[factors_ind] * mD[b_ind];
       }
     }
@@ -59,8 +62,7 @@ __device__ void viscosity_solve_2_gpu( const int *edgeType, const int *edgeNum,
 
         int factors_ind = *edgeNum * 7 + k;
 
-
-        op1[c_ind] += -mu[i] * mD[a_ind] * gaussW_g_cuda[k]
+        op1[c_ind] += -gMu[factors_ind] * mD[a_ind] * gaussW_g_cuda[k]
                       * sJ[factors_ind] * gVM[b_ind];
       }
     }
@@ -87,9 +89,10 @@ __device__ void viscosity_solve_2_gpu( const int *edgeType, const int *edgeNum,
 
         int factors_ind = *edgeNum * 7 + k;
 
-
         op1[c_ind] += gVM[a_ind] * gaussW_g_cuda[k] * sJ[factors_ind]
                       * tauA[k] * gVM[b_ind];
+
+
       }
     }
   }
