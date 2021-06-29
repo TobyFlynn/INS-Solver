@@ -162,7 +162,6 @@ void op_par_loop_viscosity_rhs(char const *, op_set,
 void op_par_loop_viscosity_rhs_rho(char const *, op_set,
   op_arg,
   op_arg,
-  op_arg,
   op_arg );
 
 void op_par_loop_viscosity_reset_bc(char const *, op_set,
@@ -436,10 +435,6 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->visBC[0],0,data->bedge2cells,21,"double",OP_INC),
               op_arg_dat(data->visBC[1],0,data->bedge2cells,21,"double",OP_INC));
 
-  // Set up RHS for viscosity solve
-  op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[0], 0.0, data->visRHS[0]);
-  op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[1], 0.0, data->visRHS[1]);
-
   double factor;
   if(multiphase) {
     // factor = ren * g0 / dt;
@@ -451,16 +446,19 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
   op_par_loop_viscosity_rhs("viscosity_rhs",data->cells,
               op_arg_gbl(&factor,1,"double",OP_READ),
-              op_arg_dat(data->visRHS[0],-1,OP_ID,15,"double",OP_RW),
-              op_arg_dat(data->visRHS[1],-1,OP_ID,15,"double",OP_RW));
+              op_arg_dat(data->QTT[0],-1,OP_ID,15,"double",OP_RW),
+              op_arg_dat(data->QTT[1],-1,OP_ID,15,"double",OP_RW));
 
   if(multiphase) {
     op_par_loop_viscosity_rhs_rho("viscosity_rhs_rho",data->cells,
                 op_arg_dat(data->rho,-1,OP_ID,15,"double",OP_READ),
-                op_arg_dat(data->nu,-1,OP_ID,15,"double",OP_RW),
-                op_arg_dat(data->visRHS[0],-1,OP_ID,15,"double",OP_RW),
-                op_arg_dat(data->visRHS[1],-1,OP_ID,15,"double",OP_RW));
+                op_arg_dat(data->QTT[0],-1,OP_ID,15,"double",OP_RW),
+                op_arg_dat(data->QTT[1],-1,OP_ID,15,"double",OP_RW));
   }
+
+  // Set up RHS for viscosity solve
+  op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[0], 0.0, data->visRHS[0]);
+  op2_gemv_batch(false, 15, 15, 1.0, cubatureData->mm, 15, data->QTT[1], 0.0, data->visRHS[1]);
 
   if(multiphase) {
     factor = ren * g0 / dt;

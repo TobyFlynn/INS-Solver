@@ -156,7 +156,7 @@ void PressureSolve::init() {
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPCG);
   KSPSetOperators(ksp, Amat, Amat);
-  KSPSetTolerances(ksp, 1e-6, 1e-50, 1e5, 5e4);
+  KSPSetTolerances(ksp, 1e-6, 1e-50, 1e5, 1e4);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
 
   op_par_loop_poisson_h("poisson_h",data->cells,
