@@ -60,9 +60,10 @@ __device__ void viscosity_solve_apply_bc_gpu( const int *edgeType, const int *ed
 
 
 
-
       op[i] = gVM[indT] * gaussW_g_cuda[i % 7] * sJ[indSJ] * tauA[i % 7]
-              - mu[indRho] * mD[indT] * gaussW_g_cuda[i % 7] * sJ[indSJ];
+              - gMu[indSJ] * mD[indT] * gaussW_g_cuda[i % 7] * sJ[indSJ];
+
+
     }
 
     for(int i = 0; i < 15; i++) {

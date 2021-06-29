@@ -192,6 +192,15 @@ void pressure_solve_1_omp4_kernel(
 
           int factors_indL = edgeL * 7 + k;
           int factors_indR = edgeR * 7 + k;
+          int factors_indLR;
+          int factors_indRR;
+          if(reverse) {
+            factors_indLR = edgeL * 7 + 6 - k;
+            factors_indRR = edgeR * 7 + 6 - k;
+          } else {
+            factors_indLR = edgeL * 7 + k;
+            factors_indRR = edgeR * 7 + k;
+          }
 
           op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJ[0][factors_indL]
                          * (1.0 / gRho[0][factors_indL]) * mDL[b_ind];
@@ -199,9 +208,18 @@ void pressure_solve_1_omp4_kernel(
                          * (1.0 / gRho[1][factors_indR]) * mDR[b_ind];
 
           op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJ[0][factors_indL]
-                         * (1.0 / gRho[0][factors_indL]) * pDL[b_ind];
+                         * (1.0 / gRho[1][factors_indRR]) * pDL[b_ind];
           op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g_ompkernel[k] * sJ[1][factors_indR]
-                         * (1.0 / gRho[1][factors_indR]) * pDR[b_ind];
+                         * (1.0 / gRho[0][factors_indLR]) * pDR[b_ind];
+
+
+
+
+
+
+
+
+
         }
       }
     }
@@ -230,30 +248,32 @@ void pressure_solve_1_omp4_kernel(
 
 
 
-
-
-
-
-
-
-
-
-
-          op1L[c_ind] += -(1.0 / rho[0][i]) * mDL[a_ind] * gaussW_g_ompkernel[k]
+          op1L[c_ind] += -(1.0 / gRho[0][factors_indL]) * mDL[a_ind] * gaussW_g_ompkernel[k]
                          * sJ[0][factors_indL] * gVML[b_ind];
-          op1R[c_ind] += -(1.0 / rho[1][i]) * mDR[a_ind] * gaussW_g_ompkernel[k]
+          op1R[c_ind] += -(1.0 / gRho[1][factors_indR]) * mDR[a_ind] * gaussW_g_ompkernel[k]
                          * sJ[1][factors_indR] * gVMR[b_ind];
 
-          op2L[c_ind] += (1.0 / rho[0][i]) * mDL[a_ind] * gaussW_g_ompkernel[k]
+          op2L[c_ind] += (1.0 / gRho[0][factors_indL]) * mDL[a_ind] * gaussW_g_ompkernel[k]
                          * sJ[0][factors_indL] * gVPL[b_ind];
-          op2R[c_ind] += (1.0 / rho[1][i]) * mDR[a_ind] * gaussW_g_ompkernel[k]
+          op2R[c_ind] += (1.0 / gRho[1][factors_indR]) * mDR[a_ind] * gaussW_g_ompkernel[k]
                          * sJ[1][factors_indR] * gVPR[b_ind];
+
+
+
+
+
+
+
+
+
         }
       }
     }
 
     double tauL[7];
     double tauR[7];
+    double maxL = 0.0;
+    double maxR = 0.0;
     for(int i = 0; i < 7; i++) {
       int indL = edgeL * 7 + i;
       int indR;
@@ -262,6 +282,9 @@ void pressure_solve_1_omp4_kernel(
       else
         indR = edgeR * 7 + i;
       tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / gRho[0][indL], *(h[1]) / gRho[1][indR]);
+      if(maxL < tauL[i]) {
+        maxL = tauL[i];
+      }
     }
     for(int i = 0; i < 7; i++) {
       int indL;
@@ -271,6 +294,14 @@ void pressure_solve_1_omp4_kernel(
       else
         indL = edgeL * 7 + i;
       tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*(h[0]) / gRho[0][indL], *(h[1]) / gRho[1][indR]);
+      if(maxR < tauR[i]) {
+        maxR = tauR[i];
+      }
+    }
+
+    for(int i = 0; i < 7; i++) {
+      tauL[i] = maxL;
+      tauR[i] = maxR;
     }
 
 
@@ -287,15 +318,6 @@ void pressure_solve_1_omp4_kernel(
 
           int factors_indL = edgeL * 7 + k;
           int factors_indR = edgeR * 7 + k;
-
-
-
-
-
-
-
-
-
 
           op1L[c_ind] += gVML[a_ind] * gaussW_g_ompkernel[k] * sJ[0][factors_indL]
                          * tauL[k] * gVML[b_ind];
@@ -306,6 +328,15 @@ void pressure_solve_1_omp4_kernel(
                          * tauL[k] * gVPL[b_ind];
           op2R[c_ind] += -gVMR[a_ind] * gaussW_g_ompkernel[k] * sJ[1][factors_indR]
                          * tauR[k] * gVPR[b_ind];
+
+
+
+
+
+
+
+
+
         }
       }
     }

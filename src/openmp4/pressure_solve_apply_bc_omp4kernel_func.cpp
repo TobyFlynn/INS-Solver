@@ -98,15 +98,14 @@ void pressure_solve_apply_bc_omp4_kernel(
     for(int i = 0; i < 7 * 15; i++) {
       int indT = (i % 7) * 15 + i / 7;
       int indSJ = *edgeNum * 7 + (i % 7);
-
       int indRho = (i / 7);
 
 
 
-
-
       op[i] = gVM[indT] * gaussW_g_ompkernel[i % 7] * sJ[indSJ] * tauA[i % 7]
-              - (1.0 / rho[indRho]) * mD[indT] * gaussW_g_ompkernel[i % 7] * sJ[indSJ];
+              - (1.0 / gRho[indSJ]) * mD[indT] * gaussW_g_ompkernel[i % 7] * sJ[indSJ];
+
+
     }
 
     for(int i = 0; i < 15; i++) {
