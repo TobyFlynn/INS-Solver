@@ -4,8 +4,7 @@
 #include <string>
 
 #include "ins_data.h"
-#include "pressure_solve.h"
-#include "viscosity_solve.h"
+#include "poisson.h"
 #include "ls.h"
 
 class Solver {

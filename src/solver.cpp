@@ -208,6 +208,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   // Call PETSc linear solver
   timer->startPressureLinearSolve();
   pressurePoisson->setBCValues(data->prBC);
+  pressurePoisson->setup();
   bool converged = pressurePoisson->solve(data->pRHS, data->p);
   timer->endPressureLinearSolve();
 
@@ -299,12 +300,11 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   // Call PETSc linear solver
   timer->startViscosityLinearSolve();
   viscosityPoisson->setBCValues(data->visBC[0]);
-  // bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
-  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], factor);
+  viscosityPoisson->setup(factor);
+  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0]);
 
   viscosityPoisson->setBCValues(data->visBC[1]);
-  // bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
-  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], factor);
+  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1]);
   timer->endViscosityLinearSolve();
 
   // Reset BC dats ready for next iteration
