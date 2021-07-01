@@ -126,6 +126,15 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
                        * sJL[factors_indL] * gVPL[b_ind];
         op2R[c_ind] += factorR[i] * mDR[a_ind] * gaussW_g[k]
                        * sJR[factors_indR] * gVPR[b_ind];
+
+
+
+
+
+
+
+
+
       }
     }
   }

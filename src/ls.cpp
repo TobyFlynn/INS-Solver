@@ -152,7 +152,6 @@ void LS::init() {
               op_arg_gbl(&h, 1, "double", OP_MIN));
 
   alpha = 8.0 * h / 4.0;
-  printf("Alpha %g\n", alpha);
   epsilon = h / 4.0;
   reinit_dt = 1.0 / ((16.0 / h) + epsilon * ((16.0*16.0)/(h*h)));
   numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
@@ -444,7 +443,7 @@ bool LS::reinit_needed() {
 
   res = res / (double)count;
   // std::cout << "LS residual: " << res << " " << abs(1.0 - res) << std::endl;
-  return abs(1.0 - res) > 0.001;
+  return abs(1.0 - res) > 0.1;
 }
 
 void LS::update_values() {

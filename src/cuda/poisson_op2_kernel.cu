@@ -124,6 +124,15 @@ __device__ void poisson_op2_gpu( const int *edgeNum, const bool *rev,
                        * sJL[factors_indL] * gVPL[b_ind];
         op2R[c_ind] += factorR[i] * mDR[a_ind] * gaussW_g_cuda[k]
                        * sJR[factors_indR] * gVPR[b_ind];
+
+
+
+
+
+
+
+
+
       }
     }
   }

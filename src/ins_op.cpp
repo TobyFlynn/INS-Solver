@@ -105,8 +105,13 @@ int main(int argc, char **argv) {
   ic_u = 0.0;
   ic_v = 0.0;
 
+  double refRho = 1000.0;
+  double refMu  = 1e-3;
+  double refLen = 0.001;
+  double refVel = 1.0;
+
   // Set Reynolds number
-  ren = 1.0 * 1.0 * 1.0 / 1e-3;
+  ren = refRho * refVel * refLen / refMu;
 
   // Get input from args
   int iter = 1;

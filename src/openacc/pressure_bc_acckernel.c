@@ -47,7 +47,7 @@ inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
 
       for(int i = 0; i < 5; i++) {
         double y1 = y[fmask[i]];
-        double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
+        double bcdUndt = -pow(1.0, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (1.0 - y1);
         dPdN[exInd + i] -= bcdUndt;
       }
     }

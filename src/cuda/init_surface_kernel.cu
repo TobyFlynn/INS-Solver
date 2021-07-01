@@ -7,7 +7,7 @@ __device__ void init_surface_gpu( const double *x, const double *y, double *s) {
   const double PI = 3.141592653589793238463;
   for(int i = 0; i < 15; i++) {
 
-    s[i] = sqrt((x[i] - 0.6) * (x[i] - 0.6) + (y[i] - 0.2) * (y[i] - 0.2)) - 0.1;
+    s[i] = sqrt((x[i] - 1.0) * (x[i] - 1.0) + (y[i] - 0.5) * (y[i] - 0.5)) - 0.1;
   }
 
 }

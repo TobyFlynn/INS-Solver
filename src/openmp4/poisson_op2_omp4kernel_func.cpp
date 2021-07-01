@@ -200,6 +200,15 @@ void poisson_op2_omp4_kernel(
                          * sJL[factors_indL] * gVPL[b_ind];
           op2R[c_ind] += factorR[i] * mDR[a_ind] * gaussW_g_ompkernel[k]
                          * sJR[factors_indR] * gVPR[b_ind];
+
+
+
+
+
+
+
+
+
         }
       }
     }
