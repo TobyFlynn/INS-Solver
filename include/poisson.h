@@ -6,9 +6,12 @@
 #include "petscvec.h"
 #include "petscksp.h"
 
+#include "dg_global_constants.h"
+#include "dg_mesh.h"
+
 class PoissonSolve {
 public:
-  PoissonSolve(INSData *d, CubatureData *c, GaussData *g);
+  PoissonSolve(DGMesh *m, INSData *d);
   ~PoissonSolve();
 
   void init();
@@ -26,10 +29,8 @@ public:
 protected:
   void set_op();
 
+  DGMesh *mesh;
   INSData *data;
-  CubatureData *cData;
-  GaussData *gData;
-
   bool massMat;
 
 private:
@@ -41,7 +42,7 @@ private:
   void copy_rhs(double *rhs_d);
   void create_shell_mat(Mat *m);
 
-  int *dirichlet, *neumann;
+  int dirichlet[3], neumann[3];
 
   int numberIter = 0;
   int solveCount = 0;
@@ -58,14 +59,14 @@ private:
 
 class PressureSolve : public PoissonSolve {
 public:
-  PressureSolve(INSData *d, CubatureData *c, GaussData *g) : PoissonSolve(d, c, g) {}
+  PressureSolve(DGMesh *m, INSData *d) : PoissonSolve(m, d) {}
 
   void setup();
 };
 
 class ViscositySolve : public PoissonSolve {
 public:
-  ViscositySolve(INSData *d, CubatureData *c, GaussData *g) : PoissonSolve(d, c, g) {}
+  ViscositySolve(DGMesh *m, INSData *d) : PoissonSolve(m, d) {}
 
   void setup(double mmConst);
 };

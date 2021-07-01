@@ -12,11 +12,6 @@ __constant__ double nu0_cuda;
 __constant__ double nu1_cuda;
 __constant__ double rho0_cuda;
 __constant__ double rho1_cuda;
-__constant__ double bc_mach_cuda;
-__constant__ double bc_alpha_cuda;
-__constant__ double bc_p_cuda;
-__constant__ double bc_u_cuda;
-__constant__ double bc_v_cuda;
 __constant__ int FMASK_cuda[15];
 __constant__ double ic_u_cuda;
 __constant__ double ic_v_cuda;
@@ -71,26 +66,6 @@ int size, char *dat, char const *name){
   else
   if (!strcmp(name,"rho1")) {
     cutilSafeCall(cudaMemcpyToSymbol(rho1_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"bc_mach")) {
-    cutilSafeCall(cudaMemcpyToSymbol(bc_mach_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"bc_alpha")) {
-    cutilSafeCall(cudaMemcpyToSymbol(bc_alpha_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"bc_p")) {
-    cutilSafeCall(cudaMemcpyToSymbol(bc_p_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"bc_u")) {
-    cutilSafeCall(cudaMemcpyToSymbol(bc_u_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"bc_v")) {
-    cutilSafeCall(cudaMemcpyToSymbol(bc_v_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"FMASK")) {
@@ -207,15 +182,10 @@ int size, char *dat, char const *name){
 }
 
 //user kernel files
-#include "init_nodes_kernel.cu"
-#include "init_grid_kernel.cu"
-#include "init_edges_kernel.cu"
 #include "init_nu_rho_kernel.cu"
 #include "init_cubature_grad_kernel.cu"
-#include "init_cubature_kernel.cu"
 #include "init_cubature_OP_kernel.cu"
 #include "gauss_reverse_kernel.cu"
-#include "init_gauss_kernel.cu"
 #include "gauss_tau_kernel.cu"
 #include "gauss_tau_bc_kernel.cu"
 #include "init_gauss_grad_kernel.cu"
@@ -224,14 +194,6 @@ int size, char *dat, char const *name){
 #include "gauss_grad_faces_kernel.cu"
 #include "gauss_op_kernel.cu"
 #include "gauss_gfi_faces_kernel.cu"
-#include "div_kernel.cu"
-#include "curl_kernel.cu"
-#include "grad_kernel.cu"
-#include "cub_grad_kernel.cu"
-#include "cub_div_kernel.cu"
-#include "cub_grad_weak_kernel.cu"
-#include "cub_div_weak_kernel.cu"
-#include "inv_J_kernel.cu"
 #include "poisson_h_kernel.cu"
 #include "poisson_apply_bc_kernel.cu"
 #include "poisson_cells_kernel.cu"

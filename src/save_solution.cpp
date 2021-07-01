@@ -12,9 +12,10 @@
 #include <map>
 #include <cmath>
 
+#include "dg_mesh.h"
 #include "ins_data.h"
 #include "ls.h"
-#include "operators.h"
+#include "dg_operators.h"
 
 using namespace std;
 
@@ -42,16 +43,16 @@ struct cmpCoords {
     }
 };
 
-void get_data_vectors(INSData *data, int ind, LS *ls, vector<double> &x_v,
-                      vector<double> &y_v, vector<double> &u_v,
-                      vector<double> &v_v, vector<double> &pr_v,
-                      vector<double> &vort_v, vector<double> &s_v,
-                      vector<cgsize_t> &cells) {
+void get_data_vectors(DGMesh *mesh, INSData *data, int ind, LS *ls,
+                      vector<double> &x_v, vector<double> &y_v,
+                      vector<double> &u_v, vector<double> &v_v,
+                      vector<double> &pr_v, vector<double> &vort_v,
+                      vector<double> &s_v, vector<cgsize_t> &cells) {
   // Calculate vorticity
-  curl(data, data->Q[ind][0], data->Q[ind][1], data->vorticity);
+  curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
   // Get Data from OP2
-  int numCells = op_get_size(data->cells);
+  int numCells = op_get_size(mesh->cells);
   double *Ux   = (double *)malloc(15 * numCells * sizeof(double));
   double *Uy   = (double *)malloc(15 * numCells * sizeof(double));
   double *pr   = (double *)malloc(15 * numCells * sizeof(double));
@@ -64,8 +65,8 @@ void get_data_vectors(INSData *data, int ind, LS *ls, vector<double> &x_v,
   op_fetch_data(data->Q[ind][1], Uy);
   op_fetch_data(data->p, pr);
   op_fetch_data(data->vorticity, vort);
-  op_fetch_data(data->x, x);
-  op_fetch_data(data->y, y);
+  op_fetch_data(mesh->x, x);
+  op_fetch_data(mesh->y, y);
   if(ls) {
     op_fetch_data(ls->s, s);
   }
@@ -178,8 +179,8 @@ void get_data_vectors(INSData *data, int ind, LS *ls, vector<double> &x_v,
   free(y);
 }
 
-void save_solution_iter(std::string filename, INSData *data, int ind, LS *ls, int iter) {
-  int numCells = op_get_size(data->cells);
+void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int ind, LS *ls, int iter) {
+  int numCells = op_get_size(mesh->cells);
   vector<double> x_v;
   vector<double> y_v;
   vector<double> u_v;
@@ -189,7 +190,7 @@ void save_solution_iter(std::string filename, INSData *data, int ind, LS *ls, in
   vector<double> s_v;
   vector<cgsize_t> cells(3 * numCells * 16);
 
-  get_data_vectors(data, ind, ls, x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells);
+  get_data_vectors(mesh, data, ind, ls, x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells);
 
   int file;
   if (cg_open(filename.c_str(), CG_MODE_MODIFY, &file)) {
@@ -251,8 +252,8 @@ void save_solution_iter(std::string filename, INSData *data, int ind, LS *ls, in
   cg_close(file);
 }
 
-void save_solution_init(std::string filename, INSData *data, LS *ls) {
-  int numCells = op_get_size(data->cells);
+void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *ls) {
+  int numCells = op_get_size(mesh->cells);
   vector<double> x_v;
   vector<double> y_v;
   vector<double> u_v;
@@ -262,7 +263,7 @@ void save_solution_init(std::string filename, INSData *data, LS *ls) {
   vector<double> s_v;
   vector<cgsize_t> cells(3 * numCells * 16);
 
-  get_data_vectors(data, 0, ls, x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells);
+  get_data_vectors(mesh, data, 0, ls, x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells);
 
   int file;
   if (cg_open(filename.c_str(), CG_MODE_WRITE, &file)) {
@@ -386,8 +387,8 @@ void save_solution_finalise(std::string filename, int numIter, double dt) {
   cg_close(file);
 }
 
-void save_solution(std::string filename, INSData *data, int ind, LS *ls, double finalTime, double nu) {
-  int numCells = op_get_size(data->cells);
+void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, LS *ls, double finalTime, double nu) {
+  int numCells = op_get_size(mesh->cells);
   vector<double> x_v;
   vector<double> y_v;
   vector<double> u_v;
@@ -397,7 +398,7 @@ void save_solution(std::string filename, INSData *data, int ind, LS *ls, double 
   vector<double> s_v;
   vector<cgsize_t> cells(3 * numCells * 16);
 
-  get_data_vectors(data, ind, ls, x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells);
+  get_data_vectors(mesh, data, ind, ls, x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells);
 
   int file;
   if (cg_open(filename.c_str(), CG_MODE_WRITE, &file)) {

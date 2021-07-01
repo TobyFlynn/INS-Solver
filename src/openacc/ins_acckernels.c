@@ -3,16 +3,10 @@
 //
 
 // global constants
-extern double ren;
 extern double nu0;
 extern double nu1;
 extern double rho0;
 extern double rho1;
-extern double bc_mach;
-extern double bc_alpha;
-extern double bc_p;
-extern double bc_u;
-extern double bc_v;
 extern int FMASK[15];
 extern double ic_u;
 extern double ic_v;
@@ -47,15 +41,10 @@ extern double lift_drag_vec[5];
 void op_decl_const_char(int dim, char const *type,
 int size, char *dat, char const *name){}
 // user kernel files
-#include "init_nodes_acckernel.c"
-#include "init_grid_acckernel.c"
-#include "init_edges_acckernel.c"
 #include "init_nu_rho_acckernel.c"
 #include "init_cubature_grad_acckernel.c"
-#include "init_cubature_acckernel.c"
 #include "init_cubature_OP_acckernel.c"
 #include "gauss_reverse_acckernel.c"
-#include "init_gauss_acckernel.c"
 #include "gauss_tau_acckernel.c"
 #include "gauss_tau_bc_acckernel.c"
 #include "init_gauss_grad_acckernel.c"
@@ -64,14 +53,6 @@ int size, char *dat, char const *name){}
 #include "gauss_grad_faces_acckernel.c"
 #include "gauss_op_acckernel.c"
 #include "gauss_gfi_faces_acckernel.c"
-#include "div_acckernel.c"
-#include "curl_acckernel.c"
-#include "grad_acckernel.c"
-#include "cub_grad_acckernel.c"
-#include "cub_div_acckernel.c"
-#include "cub_grad_weak_acckernel.c"
-#include "cub_div_weak_acckernel.c"
-#include "inv_J_acckernel.c"
 #include "poisson_h_acckernel.c"
 #include "poisson_apply_bc_acckernel.c"
 #include "poisson_cells_acckernel.c"

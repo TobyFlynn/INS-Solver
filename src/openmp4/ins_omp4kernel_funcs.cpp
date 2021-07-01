@@ -8,11 +8,6 @@ double nu0_ompkernel;
 double nu1_ompkernel;
 double rho0_ompkernel;
 double rho1_ompkernel;
-double bc_mach_ompkernel;
-double bc_alpha_ompkernel;
-double bc_p_ompkernel;
-double bc_u_ompkernel;
-double bc_v_ompkernel;
 int FMASK_ompkernel[15];
 double ic_u_ompkernel;
 double ic_v_ompkernel;
@@ -61,21 +56,6 @@ void op_decl_const_char(int dim, char const *type,
   } else if(!strcmp(name, "rho1")) {
     memcpy(&rho1_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:rho1_ompkernel)
-  } else if(!strcmp(name, "bc_mach")) {
-    memcpy(&bc_mach_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:bc_mach_ompkernel)
-  } else if(!strcmp(name, "bc_alpha")) {
-    memcpy(&bc_alpha_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:bc_alpha_ompkernel)
-  } else if(!strcmp(name, "bc_p")) {
-    memcpy(&bc_p_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:bc_p_ompkernel)
-  } else if(!strcmp(name, "bc_u")) {
-    memcpy(&bc_u_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:bc_u_ompkernel)
-  } else if(!strcmp(name, "bc_v")) {
-    memcpy(&bc_v_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:bc_v_ompkernel)
   } else if(!strcmp(name, "FMASK")) {
     memcpy(FMASK_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:FMASK_ompkernel[:15])
@@ -160,15 +140,10 @@ void op_decl_const_char(int dim, char const *type,
   }
 }
 // user kernel files
-#include "init_nodes_omp4kernel_func.cpp"
-#include "init_grid_omp4kernel_func.cpp"
-#include "init_edges_omp4kernel_func.cpp"
 #include "init_nu_rho_omp4kernel_func.cpp"
 #include "init_cubature_grad_omp4kernel_func.cpp"
-#include "init_cubature_omp4kernel_func.cpp"
 #include "init_cubature_OP_omp4kernel_func.cpp"
 #include "gauss_reverse_omp4kernel_func.cpp"
-#include "init_gauss_omp4kernel_func.cpp"
 #include "gauss_tau_omp4kernel_func.cpp"
 #include "gauss_tau_bc_omp4kernel_func.cpp"
 #include "init_gauss_grad_omp4kernel_func.cpp"
@@ -177,14 +152,6 @@ void op_decl_const_char(int dim, char const *type,
 #include "gauss_grad_faces_omp4kernel_func.cpp"
 #include "gauss_op_omp4kernel_func.cpp"
 #include "gauss_gfi_faces_omp4kernel_func.cpp"
-#include "div_omp4kernel_func.cpp"
-#include "curl_omp4kernel_func.cpp"
-#include "grad_omp4kernel_func.cpp"
-#include "cub_grad_omp4kernel_func.cpp"
-#include "cub_div_omp4kernel_func.cpp"
-#include "cub_grad_weak_omp4kernel_func.cpp"
-#include "cub_div_weak_omp4kernel_func.cpp"
-#include "inv_J_omp4kernel_func.cpp"
 #include "poisson_h_omp4kernel_func.cpp"
 #include "poisson_apply_bc_omp4kernel_func.cpp"
 #include "poisson_cells_omp4kernel_func.cpp"
