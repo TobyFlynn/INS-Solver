@@ -44,7 +44,6 @@
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_gpu
 #define op_par_loop_viscosity_rhs_rho op_par_loop_viscosity_rhs_rho_gpu
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_gpu
-#define op_par_loop_lift_drag op_par_loop_lift_drag_gpu
 #define op_par_loop_save_values op_par_loop_save_values_gpu
 #define op_par_loop_calc_h op_par_loop_calc_h_gpu
 #define op_par_loop_init_surface op_par_loop_init_surface_gpu
@@ -108,7 +107,6 @@
 #undef op_par_loop_viscosity_rhs
 #undef op_par_loop_viscosity_rhs_rho
 #undef op_par_loop_viscosity_reset_bc
-#undef op_par_loop_lift_drag
 #undef op_par_loop_save_values
 #undef op_par_loop_calc_h
 #undef op_par_loop_init_surface
@@ -172,7 +170,6 @@
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_cpu
 #define op_par_loop_viscosity_rhs_rho op_par_loop_viscosity_rhs_rho_cpu
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_cpu
-#define op_par_loop_lift_drag op_par_loop_lift_drag_cpu
 #define op_par_loop_save_values op_par_loop_save_values_cpu
 #define op_par_loop_calc_h op_par_loop_calc_h_cpu
 #define op_par_loop_init_surface op_par_loop_init_surface_cpu
@@ -236,7 +233,6 @@
 #undef op_par_loop_viscosity_rhs
 #undef op_par_loop_viscosity_rhs_rho
 #undef op_par_loop_viscosity_reset_bc
-#undef op_par_loop_lift_drag
 #undef op_par_loop_save_values
 #undef op_par_loop_calc_h
 #undef op_par_loop_init_surface
@@ -1844,58 +1840,34 @@ void op_par_loop_viscosity_solve_setup(char const *name, op_set set,
 
 void op_par_loop_set_ic_gpu(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5);
+  op_arg arg1);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
 void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5){
+  op_arg arg1){
 
   if (OP_hybrid_gpu) {
     op_par_loop_set_ic_gpu(name, set,
       arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5);
+      arg1);
 
     }else{
     op_par_loop_set_ic_cpu(name, set,
       arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5);
+      arg1);
 
   }
 }
 #else
 void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5){
+  op_arg arg1){
 
   op_par_loop_set_ic_gpu(name, set,
     arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5);
+    arg1);
 
   }
 #endif //OP_HYBRID_GPU
@@ -2992,106 +2964,6 @@ void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
   op_par_loop_viscosity_reset_bc_gpu(name, set,
     arg0,
     arg1);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_lift_drag_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11,
-  op_arg arg12);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_lift_drag(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11,
-  op_arg arg12){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_lift_drag_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8,
-      arg9,
-      arg10,
-      arg11,
-      arg12);
-
-    }else{
-    op_par_loop_lift_drag_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8,
-      arg9,
-      arg10,
-      arg11,
-      arg12);
-
-  }
-}
-#else
-void op_par_loop_lift_drag(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11,
-  op_arg arg12){
-
-  op_par_loop_lift_drag_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6,
-    arg7,
-    arg8,
-    arg9,
-    arg10,
-    arg11,
-    arg12);
 
   }
 #endif //OP_HYBRID_GPU

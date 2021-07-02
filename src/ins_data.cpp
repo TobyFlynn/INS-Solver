@@ -8,6 +8,8 @@
 #include "dg_blas_calls.h"
 #include "blas_calls.h"
 
+#include "constants.h"
+
 using namespace std;
 
 INSData::INSData(DGMesh *m) {
@@ -184,7 +186,6 @@ INSData::INSData(DGMesh *m) {
   op_decl_const(7*15, "double", gFInterp0R_g);
   op_decl_const(7*15, "double", gFInterp1R_g);
   op_decl_const(7*15, "double", gFInterp2R_g);
-  op_decl_const(5, "double", lift_drag_vec);
 }
 
 INSData::~INSData() {

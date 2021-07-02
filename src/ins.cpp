@@ -18,37 +18,10 @@
 
 using namespace std;
 
-void export_data_init(string filename) {
-  ofstream file(filename);
-
-  // Create first row of csv file (headers of columns)
-  file << "Iteration" << ",";
-  file << "Time" << ",";
-  file << "Drag Coefficient" << ",";
-  file << "Lift Coefficient" << ",";
-  file << "Avg. Pressure Convergance" << ",";
-  file << "Avg. Viscosity Convergance" << endl;
-
-  file.close();
-}
-
-void export_data(string filename, int iter, double time, double drag,
-                 double lift, double avgPr, double avgVis) {
-  ofstream file(filename, ios::app);
-
-  // Create first row of csv file (headers of columns)
-  file << to_string(iter) << ",";
-  file << to_string(time) << ",";
-  file << to_string(drag) << ",";
-  file << to_string(lift) << ",";
-  file << to_string(avgPr) << ",";
-  file << to_string(avgVis) << endl;
-
-  file.close();
-}
-
 Timing *timer;
 DGConstants *constants;
+
+extern double nu0, nu1, rho0, rho1, ic_u, ic_v, ren;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 2);
@@ -65,18 +38,13 @@ int main(int argc, char **argv) {
     return ierr;
   }
 
-  gam = 1.4;
-  mu = 1e-2;
   // Phi > 0
   nu0 = 1.0;
-  // rho0 = 0.9;
   rho0 = 1.0;
   // Phi < 0
-  // nu1 = 1.9;
   nu1 = 1.0;
   rho1 = 1.0;
-  bc_u = 1e-6;
-  bc_v = 0.0;
+
   ic_u = 0.0;
   ic_v = 0.0;
 
@@ -138,8 +106,6 @@ int main(int argc, char **argv) {
   op_printf("rho1: %g\n", rho1);
   op_printf("ren: %g\n", ren);
 
-  bc_alpha = 0.0;
-
   Solver *solver = new Solver(filename, pmethod, problem, multiphase);
 
   double a0 = 1.0;
@@ -156,7 +122,6 @@ int main(int argc, char **argv) {
     } else {
       save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, nullptr);
     }
-    // export_data_init(outputDir + "data.csv");
   }
 
   timer->endSetup();
@@ -200,14 +165,9 @@ int main(int argc, char **argv) {
     currentIter++;
     time += solver->dt;
 
-    // Calculate drag and lift coefficients + save data
+    // Save data
     if(save != -1 && (i + 1) % save == 0) {
       op_printf("Iteration: %d Time: %g\n", i, time);
-      // timer->startLiftDrag();
-      // double lift, drag;
-      // solver->lift_drag_coeff(&lift, &drag, currentIter % 2);
-      // export_data(outputDir + "data.csv", i, time, drag, lift, pressurePoisson->getAverageConvergeIter(), viscosityPoisson->getAverageConvergeIter());
-      // timer->endLiftDrag();
 
       timer->startSave();
       if(multiphase) {

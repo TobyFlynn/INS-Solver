@@ -7,11 +7,11 @@
 #endif
 
 // global constants
-extern double ren;
 extern double nu0;
 extern double nu1;
 extern double rho0;
 extern double rho1;
+extern double ren;
 extern int FMASK[15];
 extern double ic_u;
 extern double ic_v;
@@ -38,7 +38,6 @@ extern double gF2DsR_g[105];
 extern double gFInterp0R_g[105];
 extern double gFInterp1R_g[105];
 extern double gFInterp2R_g[105];
-extern double lift_drag_vec[5];
 
 // header
 #include "op_lib_cpp.h"
@@ -84,7 +83,6 @@ extern double lift_drag_vec[5];
 #include "viscosity_rhs_kernel.cpp"
 #include "viscosity_rhs_rho_kernel.cpp"
 #include "viscosity_reset_bc_kernel.cpp"
-#include "lift_drag_kernel.cpp"
 #include "save_values_kernel.cpp"
 #include "calc_h_kernel.cpp"
 #include "init_surface_kernel.cpp"

@@ -38,7 +38,6 @@ __constant__ double gF2DsR_g_cuda[105];
 __constant__ double gFInterp0R_g_cuda[105];
 __constant__ double gFInterp1R_g_cuda[105];
 __constant__ double gFInterp2R_g_cuda[105];
-__constant__ double lift_drag_vec_cuda[5];
 
 //header
 #include "op_lib_cpp.h"
@@ -172,10 +171,6 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(gFInterp2R_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"lift_drag_vec")) {
-    cutilSafeCall(cudaMemcpyToSymbol(lift_drag_vec_cuda, dat, dim*size));
-  }
-  else
   {
     printf("error: unknown const name\n"); exit(1);
   }
@@ -222,7 +217,6 @@ int size, char *dat, char const *name){
 #include "viscosity_rhs_kernel.cu"
 #include "viscosity_rhs_rho_kernel.cu"
 #include "viscosity_reset_bc_kernel.cu"
-#include "lift_drag_kernel.cu"
 #include "save_values_kernel.cu"
 #include "calc_h_kernel.cu"
 #include "init_surface_kernel.cu"

@@ -34,7 +34,6 @@ double gF2DsR_g_ompkernel[105];
 double gFInterp0R_g_ompkernel[105];
 double gFInterp1R_g_ompkernel[105];
 double gFInterp2R_g_ompkernel[105];
-double lift_drag_vec_ompkernel[5];
 
 // header
 #include "op_lib_cpp.h"
@@ -134,9 +133,6 @@ void op_decl_const_char(int dim, char const *type,
   } else if(!strcmp(name, "gFInterp2R_g")) {
     memcpy(gFInterp2R_g_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:gFInterp2R_g_ompkernel[:105])
-  } else if(!strcmp(name, "lift_drag_vec")) {
-    memcpy(lift_drag_vec_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:lift_drag_vec_ompkernel[:5])
   }
 }
 // user kernel files
@@ -180,7 +176,6 @@ void op_decl_const_char(int dim, char const *type,
 #include "viscosity_rhs_omp4kernel_func.cpp"
 #include "viscosity_rhs_rho_omp4kernel_func.cpp"
 #include "viscosity_reset_bc_omp4kernel_func.cpp"
-#include "lift_drag_omp4kernel_func.cpp"
 #include "save_values_omp4kernel_func.cpp"
 #include "calc_h_omp4kernel_func.cpp"
 #include "init_surface_omp4kernel_func.cpp"

@@ -141,6 +141,8 @@ void op_par_loop_gauss_gfi_faces(char const *, op_set,
 #include "dg_blas_calls.h"
 #include "blas_calls.h"
 
+#include "constants.h"
+
 using namespace std;
 
 INSData::INSData(DGMesh *m) {
@@ -317,7 +319,6 @@ INSData::INSData(DGMesh *m) {
   op_decl_const2("gFInterp0R_g",105,"double",gFInterp0R_g);
   op_decl_const2("gFInterp1R_g",105,"double",gFInterp1R_g);
   op_decl_const2("gFInterp2R_g",105,"double",gFInterp2R_g);
-  op_decl_const2("lift_drag_vec",5,"double",lift_drag_vec);
 }
 
 INSData::~INSData() {

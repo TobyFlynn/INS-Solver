@@ -3,7 +3,6 @@
 //
 
 // global constants
-extern double nu0;
 extern double nu1;
 extern double rho0;
 extern double rho1;
@@ -33,7 +32,6 @@ extern double gF2DsR_g[105];
 extern double gFInterp0R_g[105];
 extern double gFInterp1R_g[105];
 extern double gFInterp2R_g[105];
-extern double lift_drag_vec[5];
 
 // header
 #include "op_lib_cpp.h"
@@ -79,7 +77,6 @@ extern double lift_drag_vec[5];
 #include "viscosity_rhs_seqkernel.cpp"
 #include "viscosity_rhs_rho_seqkernel.cpp"
 #include "viscosity_reset_bc_seqkernel.cpp"
-#include "lift_drag_seqkernel.cpp"
 #include "save_values_seqkernel.cpp"
 #include "calc_h_seqkernel.cpp"
 #include "init_surface_seqkernel.cpp"

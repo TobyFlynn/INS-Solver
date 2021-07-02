@@ -3,7 +3,6 @@
 //
 
 // global constants
-extern double nu0;
 extern double nu1;
 extern double rho0;
 extern double rho1;
@@ -33,7 +32,6 @@ extern double gF2DsR_g[105];
 extern double gFInterp0R_g[105];
 extern double gFInterp1R_g[105];
 extern double gFInterp2R_g[105];
-extern double lift_drag_vec[5];
 
 // header
 #include "op_lib_c.h"
@@ -81,7 +79,6 @@ int size, char *dat, char const *name){}
 #include "viscosity_rhs_acckernel.c"
 #include "viscosity_rhs_rho_acckernel.c"
 #include "viscosity_reset_bc_acckernel.c"
-#include "lift_drag_acckernel.c"
 #include "save_values_acckernel.c"
 #include "calc_h_acckernel.c"
 #include "init_surface_acckernel.c"
