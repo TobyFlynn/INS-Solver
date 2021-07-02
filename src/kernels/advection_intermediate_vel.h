@@ -7,11 +7,8 @@ inline void advection_intermediate_vel(const double *a0, const double *a1,
                                        const double *N0Old, const double *N1Old,
                                        double *q0T, double *q1T) {
   for(int i = 0; i < 15; i++) {
-    // q0T[i] = ((*a0 * q0[i] + *a1 * q0Old[i]) - *dt * (*b0 * N0[i] + *b1 * N0Old[i])) / *g0;
-    // q1T[i] = ((*a0 * q1[i] + *a1 * q1Old[i]) - *dt * (*b0 * N1[i] + *b1 * N1Old[i])) / *g0;
-    // q0T[i] = ((*a0 * q0[i] + *a1 * q0Old[i]) - *dt * (*b0 * N0[i] + *b1 * N0Old[i]));
-    // q1T[i] = ((*a0 * q1[i] + *a1 * q1Old[i]) - *dt * (*b0 * N1[i] + *b1 * N1Old[i]));
     q0T[i] = *a0 * q0[i] + *a1 * q0Old[i] + *dt * (*b0 * N0[i] + *b1 * N0Old[i]);
-    q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * N1[i] + *b1 * N1Old[i]);
+    // q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * N1[i] + *b1 * N1Old[i]);
+    q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * (N1[i] - 1.0 / (froude * froude)) + *b1 * (N1Old[i] - 1.0 / (froude * froude)));
   }
 }
