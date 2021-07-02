@@ -7,11 +7,13 @@
 #endif
 
 // global constants
+extern double reynolds;
+extern double froude;
+extern double weber;
 extern double nu0;
 extern double nu1;
 extern double rho0;
 extern double rho1;
-extern double ren;
 extern int FMASK[15];
 extern double ic_u;
 extern double ic_v;

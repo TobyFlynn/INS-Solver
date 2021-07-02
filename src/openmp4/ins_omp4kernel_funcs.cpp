@@ -3,7 +3,9 @@
 //
 
 // global constants
-double ren_ompkernel;
+double reynolds_ompkernel;
+double froude_ompkernel;
+double weber_ompkernel;
 double nu0_ompkernel;
 double nu1_ompkernel;
 double rho0_ompkernel;
@@ -40,9 +42,15 @@ double gFInterp2R_g_ompkernel[105];
 
 void op_decl_const_char(int dim, char const *type,
   int size, char *dat, char const *name){
-  if(!strcmp(name, "ren")) {
-    memcpy(&ren_ompkernel, dat, dim*size);
-  #pragma omp target enter data map(to:ren_ompkernel)
+  if(!strcmp(name, "reynolds")) {
+    memcpy(&reynolds_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:reynolds_ompkernel)
+  } else if(!strcmp(name, "froude")) {
+    memcpy(&froude_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:froude_ompkernel)
+  } else if(!strcmp(name, "weber")) {
+    memcpy(&weber_ompkernel, dat, dim*size);
+  #pragma omp target enter data map(to:weber_ompkernel)
   } else if(!strcmp(name, "nu0")) {
     memcpy(&nu0_ompkernel, dat, dim*size);
   #pragma omp target enter data map(to:nu0_ompkernel)

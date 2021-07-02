@@ -21,7 +21,7 @@ using namespace std;
 Timing *timer;
 DGConstants *constants;
 
-extern double nu0, nu1, rho0, rho1, ic_u, ic_v, ren;
+extern double reynolds, froude, weber, nu0, nu1, rho0, rho1, ic_u, ic_v;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 2);
@@ -54,7 +54,9 @@ int main(int argc, char **argv) {
   double refVel = 1.0;
 
   // Set Reynolds number
-  ren = refRho * refVel * refLen / refMu;
+  reynolds = refRho * refVel * refLen / refMu;
+  // Set Froude number
+  froude = refVel / sqrt(9.8 * refLen);
 
   // Get input from args
   int iter = 1;
@@ -104,7 +106,8 @@ int main(int argc, char **argv) {
   op_printf("nu1: %g\n", nu1);
   op_printf("rho0: %g\n", rho0);
   op_printf("rho1: %g\n", rho1);
-  op_printf("ren: %g\n", ren);
+  op_printf("reynolds: %g\n", reynolds);
+  op_printf("froude: %g\n", froude);
 
   Solver *solver = new Solver(filename, pmethod, problem, multiphase);
 

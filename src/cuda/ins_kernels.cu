@@ -7,7 +7,9 @@
 #define MAX_CONST_SIZE 128
 #endif
 
-__constant__ double ren_cuda;
+__constant__ double reynolds_cuda;
+__constant__ double froude_cuda;
+__constant__ double weber_cuda;
 __constant__ double nu0_cuda;
 __constant__ double nu1_cuda;
 __constant__ double rho0_cuda;
@@ -47,8 +49,16 @@ __constant__ double gFInterp2R_g_cuda[105];
 void op_decl_const_char(int dim, char const *type,
 int size, char *dat, char const *name){
   if (!OP_hybrid_gpu) return;
-  if (!strcmp(name,"ren")) {
-    cutilSafeCall(cudaMemcpyToSymbol(ren_cuda, dat, dim*size));
+  if (!strcmp(name,"reynolds")) {
+    cutilSafeCall(cudaMemcpyToSymbol(reynolds_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"froude")) {
+    cutilSafeCall(cudaMemcpyToSymbol(froude_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"weber")) {
+    cutilSafeCall(cudaMemcpyToSymbol(weber_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"nu0")) {

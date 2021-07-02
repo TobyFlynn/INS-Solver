@@ -288,7 +288,9 @@ INSData::INSData(DGMesh *m) {
     gOPf[i]     = op_decl_dat(mesh->cells, 15 * 15, "double", gOPf_data[i], name.c_str());
   }
 
-  op_decl_const2("ren",1,"double",&ren);
+  op_decl_const2("reynolds",1,"double",&reynolds);
+  op_decl_const2("froude",1,"double",&froude);
+  op_decl_const2("weber",1,"double",&weber);
   op_decl_const2("nu0",1,"double",&nu0);
   op_decl_const2("nu1",1,"double",&nu1);
   op_decl_const2("rho0",1,"double",&rho0);

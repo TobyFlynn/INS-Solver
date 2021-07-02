@@ -3,6 +3,8 @@
 //
 
 // global constants
+extern double froude;
+extern double weber;
 extern double nu1;
 extern double rho0;
 extern double rho1;

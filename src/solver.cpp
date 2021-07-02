@@ -14,7 +14,7 @@
 
 extern Timing *timer;
 extern DGConstants *constants;
-extern double ren;
+extern double reynolds;
 extern double dt;
 extern double nu0;
 
@@ -286,34 +286,23 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->visBC[0], 0, mesh->bedge2cells, 21, "double", OP_INC),
               op_arg_dat(data->visBC[1], 0, mesh->bedge2cells, 21, "double", OP_INC));
 
-  double factor;
-  if(multiphase) {
-    // factor = ren * g0 / dt;
-    factor = ren / dt;
-    // factor = g0 / (nu0 * dt);
-  } else {
-    factor = g0 / (nu0 * dt);
-  }
+  double factor = reynolds / dt;
 
   op_par_loop(viscosity_rhs, "viscosity_rhs", mesh->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
               op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_RW),
               op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_RW));
 
-  if(multiphase) {
-    op_par_loop(viscosity_rhs_rho, "viscosity_rhs_rho", mesh->cells,
-                op_arg_dat(data->rho, -1, OP_ID, 15, "double", OP_READ),
-                op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_RW),
-                op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_RW));
-  }
+  op_par_loop(viscosity_rhs_rho, "viscosity_rhs_rho", mesh->cells,
+              op_arg_dat(data->rho, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_RW));
 
   // Set up RHS for viscosity solve
   op2_gemv_batch(false, 15, 15, 1.0, mesh->cubature->mm, 15, data->QTT[0], 0.0, data->visRHS[0]);
   op2_gemv_batch(false, 15, 15, 1.0, mesh->cubature->mm, 15, data->QTT[1], 0.0, data->visRHS[1]);
 
-  if(multiphase) {
-    factor = ren * g0 / dt;
-  }
+  factor = reynolds * g0 / dt;
 
   timer->endViscositySetup();
 

@@ -37,8 +37,8 @@ inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
         int fInd = fmask[i];
 
 
-        double res1 = -N0[fInd] - gradCurlVel1[fInd] / (ren * rho[fInd]);
-        double res2 = -N1[fInd] + gradCurlVel0[fInd] / (ren * rho[fInd]);
+        double res1 = -N0[fInd] - gradCurlVel1[fInd] / (reynolds * rho[fInd]);
+        double res2 = -N1[fInd] + gradCurlVel0[fInd] / (reynolds * rho[fInd]);
         dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
       }
     }
