@@ -65,10 +65,10 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(57);
+  op_timing_realloc(59);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[57].name      = name;
-  OP_kernels[57].count    += 1;
+  OP_kernels[59].name      = name;
+  OP_kernels[59].count    += 1;
 
 
   if (OP_diags>2) {
@@ -92,8 +92,8 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_57
-      int nthread = OP_BLOCK_SIZE_57;
+    #ifdef OP_BLOCK_SIZE_59
+      int nthread = OP_BLOCK_SIZE_59;
     #else
       int nthread = OP_block_size;
     #endif
@@ -113,10 +113,10 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[57].time     += wall_t2 - wall_t1;
-  OP_kernels[57].transfer += (float)set->size * arg1.size * 2.0f;
-  OP_kernels[57].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[57].transfer += (float)set->size * arg3.size * 2.0f;
-  OP_kernels[57].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[57].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[59].time     += wall_t2 - wall_t1;
+  OP_kernels[59].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[59].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[59].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[59].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[59].transfer += (float)set->size * arg5.size * 2.0f;
 }

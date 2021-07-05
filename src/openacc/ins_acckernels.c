@@ -53,6 +53,8 @@ int size, char *dat, char const *name){}
 #include "gauss_grad_faces_acckernel.c"
 #include "gauss_op_acckernel.c"
 #include "gauss_gfi_faces_acckernel.c"
+#include "glb_ind_kernel_acckernel.c"
+#include "glb_ind_kernelBC_acckernel.c"
 #include "poisson_h_acckernel.c"
 #include "poisson_apply_bc_acckernel.c"
 #include "poisson_cells_acckernel.c"

@@ -11,7 +11,7 @@
 
 class Solver {
 public:
-  Solver(std::string filename, int pmethod, int prob, bool multi);
+  Solver(std::string filename, bool pre, int prob, bool multi);
   ~Solver();
 
   void advection(int currentInd, double a0, double a1, double b0, double b1,

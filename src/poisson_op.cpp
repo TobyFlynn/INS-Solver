@@ -15,6 +15,15 @@ extern "C" {
 #endif
 #endif
 
+void op_par_loop_glb_ind_kernel(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg );
+
+void op_par_loop_glb_ind_kernelBC(char const *, op_set,
+  op_arg,
+  op_arg );
+
 void op_par_loop_poisson_h(char const *, op_set,
   op_arg,
   op_arg,
@@ -141,9 +150,10 @@ extern DGConstants *constants;
 
 using namespace std;
 
-PoissonSolve::PoissonSolve(DGMesh *m, INSData *d) {
+PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
   mesh = m;
   data = d;
+  precondition = p;
 
   u_data      = (double *)calloc(15 * mesh->numCells, sizeof(double));
   rhs_data    = (double *)calloc(15 * mesh->numCells, sizeof(double));
@@ -158,6 +168,13 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d) {
   cFactor_data  = (double *)calloc(46 * mesh->numCells, sizeof(double));
   mmFactor_data = (double *)calloc(15 * mesh->numCells, sizeof(double));
 
+  if(precondition) {
+    glb_ind_data   = (int *)calloc(mesh->numCells, sizeof(int));
+    glb_indL_data  = (int *)calloc(mesh->numEdges, sizeof(int));
+    glb_indR_data  = (int *)calloc(mesh->numEdges, sizeof(int));
+    glb_indBC_data = (int *)calloc(mesh->numBoundaryEdges, sizeof(int));
+  }
+
   u      = op_decl_dat(mesh->cells, 15, "double", u_data, "poisson_u");
   rhs    = op_decl_dat(mesh->cells, 15, "double", rhs_data, "poisson_rhs");
   h      = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
@@ -170,6 +187,13 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d) {
   gFactor  = op_decl_dat(mesh->cells, 21, "double", gFactor_data, "poisson_gFactor");
   cFactor  = op_decl_dat(mesh->cells, 46, "double", cFactor_data, "poisson_cFactor");
   mmFactor = op_decl_dat(mesh->cells, 15, "double", mmFactor_data, "poisson_mmFactor");
+
+  if(precondition) {
+    glb_ind   = op_decl_dat(mesh->cells, 1, "int", glb_ind_data, "poisson_glb_ind");
+    glb_indL  = op_decl_dat(mesh->edges, 1, "int", glb_indL_data, "poisson_glb_indL");
+    glb_indR  = op_decl_dat(mesh->edges, 1, "int", glb_indR_data, "poisson_glb_indR");
+    glb_indBC = op_decl_dat(mesh->bedges, 1, "int", glb_indBC_data, "poisson_glb_indBC");
+  }
 }
 
 PoissonSolve::~PoissonSolve() {
@@ -186,10 +210,18 @@ PoissonSolve::~PoissonSolve() {
   free(cFactor_data);
   free(mmFactor_data);
 
+  if(precondition) {
+    free(glb_ind_data);
+    free(glb_indL_data);
+    free(glb_indR_data);
+    free(glb_indBC_data);
+  }
+
   destroy_vec(&b);
   destroy_vec(&x);
   KSPDestroy(&ksp);
-  MatDestroy(&Amat);
+  if(matCreated)
+    MatDestroy(&Amat);
 }
 
 void PoissonSolve::setDirichletBCs(int *d) {
@@ -218,13 +250,28 @@ double PoissonSolve::getAverageConvergeIter() {
 void PoissonSolve::init() {
   create_vec(&b);
   create_vec(&x);
-  create_shell_mat(&Amat);
+  if(precondition) {
+    setGlbInd();
+    op_par_loop_glb_ind_kernel("glb_ind_kernel",mesh->edges,
+                op_arg_dat(glb_ind,-2,mesh->edge2cells,1,"int",OP_READ),
+                op_arg_dat(glb_indL,-1,OP_ID,1,"int",OP_WRITE),
+                op_arg_dat(glb_indR,-1,OP_ID,1,"int",OP_WRITE));
+    op_par_loop_glb_ind_kernelBC("glb_ind_kernelBC",mesh->bedges,
+                op_arg_dat(glb_ind,0,mesh->bedge2cells,1,"int",OP_READ),
+                op_arg_dat(glb_indBC,-1,OP_ID,1,"int",OP_WRITE));
+  } else {
+    create_shell_mat(&Amat);
+    matCreated = true;
+  }
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPCG);
-  KSPSetOperators(ksp, Amat, Amat);
   KSPSetTolerances(ksp, 1e-6, 1e-50, 1e5, 1e4);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
+
+  if(!precondition) {
+    KSPSetOperators(ksp, Amat, Amat);
+  }
 
   op_par_loop_poisson_h("poisson_h",mesh->cells,
               op_arg_dat(mesh->nodeX,-1,OP_ID,3,"double",OP_READ),
@@ -377,6 +424,15 @@ void PressureSolve::setup() {
   op2_gemv(true, 46, 15, 1.0, constants->get_ptr(DGConstants::CUB_V), 15, factor, 0.0, cFactor);
   op2_gemv(true, 21, 15, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, factor, 0.0, gFactor);
   set_op();
+
+  if(precondition) {
+    setMatrix();
+    KSPSetOperators(ksp, Amat, Amat);
+    PC pc;
+    KSPGetPC(ksp, &pc);
+    PCSetType(pc, PCSOR);
+    PCSORSetSymmetric(pc, SOR_SYMMETRIC_SWEEP);
+  }
 }
 
 void ViscositySolve::setup(double mmConst) {
@@ -392,4 +448,13 @@ void ViscositySolve::setup(double mmConst) {
   op2_gemv(true, 46, 15, 1.0, constants->get_ptr(DGConstants::CUB_V), 15, factor, 0.0, cFactor);
   op2_gemv(true, 21, 15, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, factor, 0.0, gFactor);
   set_op();
+
+  if(precondition) {
+    setMatrix();
+    KSPSetOperators(ksp, Amat, Amat);
+    PC pc;
+    KSPGetPC(ksp, &pc);
+    PCSetType(pc, PCSOR);
+    PCSORSetSymmetric(pc, SOR_SYMMETRIC_SWEEP);
+  }
 }

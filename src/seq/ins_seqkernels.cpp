@@ -51,6 +51,8 @@ extern double gFInterp2R_g[105];
 #include "gauss_grad_faces_seqkernel.cpp"
 #include "gauss_op_seqkernel.cpp"
 #include "gauss_gfi_faces_seqkernel.cpp"
+#include "glb_ind_kernel_seqkernel.cpp"
+#include "glb_ind_kernelBC_seqkernel.cpp"
 #include "poisson_h_seqkernel.cpp"
 #include "poisson_apply_bc_seqkernel.cpp"
 #include "poisson_cells_seqkernel.cpp"

@@ -199,6 +199,8 @@ int size, char *dat, char const *name){
 #include "gauss_grad_faces_kernel.cu"
 #include "gauss_op_kernel.cu"
 #include "gauss_gfi_faces_kernel.cu"
+#include "glb_ind_kernel_kernel.cu"
+#include "glb_ind_kernelBC_kernel.cu"
 #include "poisson_h_kernel.cu"
 #include "poisson_apply_bc_kernel.cu"
 #include "poisson_cells_kernel.cu"

@@ -2,6 +2,10 @@
 
 #include "op_seq.h"
 
+#ifdef INS_MPI
+#include "mpi_helper_func.h"
+#endif
+
 // Copy u PETSc vec array to OP2 dat (TODO avoid this copy)
 void PoissonSolve::copy_u(const double *u_d) {
   op_arg u_copy_args[] = {
@@ -79,4 +83,107 @@ void PoissonSolve::create_shell_mat(Mat *m) {
   MatCreateShell(PETSC_COMM_WORLD, 15 * mesh->cells->size, 15 * mesh->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
   MatShellSetOperation(*m, MATOP_MULT, (void(*)(void))matAMult);
   MatShellSetVecType(*m, VECSTANDARD);
+}
+
+void PoissonSolve::setGlbInd() {
+  int global_ind = 0;
+  #ifdef INS_MPI
+  global_ind = get_global_start_index(glb_ind->set);
+  #endif
+  op_arg args[] = {
+    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE)
+  };
+  op_mpi_halo_exchanges(mesh->cells, 1, args);
+  int *data_ptr = (int *)glb_ind->data;
+  for(int i = 0; i < mesh->cells->size; i++) {
+    data_ptr[i] = global_ind + i;
+  }
+  op_mpi_set_dirtybit(1, args);
+}
+
+void PoissonSolve::setMatrix() {
+  if(matCreated) {
+    MatDestroy(&Amat);
+  }
+  MatCreate(PETSC_COMM_WORLD, &Amat);
+  matCreated = true;
+  MatSetSizes(Amat, 15 * mesh->cells->size, 15 * mesh->cells->size, PETSC_DECIDE, PETSC_DECIDE);
+
+  #ifdef INS_MPI
+  MatSetType(Amat, MATMPIAIJ);
+  MatMPIAIJSetPreallocation(Amat, 15 * 4, NULL, 0, NULL);
+  #else
+  MatSetType(Amat, MATSEQAIJ);
+  MatSeqAIJSetPreallocation(Amat, 15 * 4, NULL);
+  #endif
+  MatSetOption(Amat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+
+  // Add cubature OP to Poisson matrix
+  op_arg args[] = {
+    op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges(mesh->cells, 2, args);
+  double *op1_data = (double *)op1->data;
+  int *glb = (int *)glb_ind->data;
+
+  for(int i = 0; i < mesh->cells->size; i++) {
+    int global_ind = glb[i];
+    // Convert data to row major format
+    for(int m = 0; m < 15; m++) {
+      for(int n = 0; n < 15; n++) {
+        int row = global_ind * 15 + m;
+        int col = global_ind * 15 + n;
+        double val = op1_data[i * 15 * 15 + m * 15 + n];
+        MatSetValues(Amat, 1, &row, 1, &col, &val, INSERT_VALUES);
+      }
+    }
+  }
+
+  op_mpi_set_dirtybit(2, args);
+
+  op_arg edge_args[] = {
+    op_arg_dat(op2[0], -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges(mesh->edges, 4, edge_args);
+
+  double *op2L_data = (double *)op2[0]->data;
+  double *op2R_data = (double *)op2[1]->data;
+  int *glb_l = (int *)glb_indL->data;
+  int *glb_r = (int *)glb_indR->data;
+
+  // Add Gauss OP and OPf to Poisson matrix
+  for(int i = 0; i < mesh->edges->size; i++) {
+    int leftElement = glb_l[i];
+    int rightElement = glb_r[i];
+
+    // Gauss OPf
+    // Convert data to row major format
+    for(int m = 0; m < 15; m++) {
+      for(int n = 0; n < 15; n++) {
+        int row = leftElement * 15 + m;
+        int col = rightElement * 15 + n;
+        double val = op2L_data[i * 15 * 15 + m * 15 + n];
+        MatSetValues(Amat, 1, &row, 1, &col, &val, INSERT_VALUES);
+      }
+    }
+
+    // Convert data to row major format
+    for(int m = 0; m < 15; m++) {
+      for(int n = 0; n < 15; n++) {
+        int row = rightElement * 15 + m;
+        int col = leftElement * 15 + n;
+        double val = op2R_data[i * 15 * 15 + m * 15 + n];
+        MatSetValues(Amat, 1, &row, 1, &col, &val, INSERT_VALUES);
+      }
+    }
+  }
+
+  op_mpi_set_dirtybit(4, edge_args);
+
+  MatAssemblyBegin(Amat, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(Amat, MAT_FINAL_ASSEMBLY);
 }

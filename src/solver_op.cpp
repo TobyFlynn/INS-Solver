@@ -199,7 +199,7 @@ extern double nu0;
 
 using namespace std;
 
-Solver::Solver(std::string filename, int pmethod, int prob, bool multi) {
+Solver::Solver(std::string filename, bool pre, int prob, bool multi) {
   problem = prob;
   multiphase = multi;
 
@@ -233,10 +233,10 @@ Solver::Solver(std::string filename, int pmethod, int prob, bool multi) {
     ls = new LS(mesh, data);
   }
 
-  pressurePoisson = new PressureSolve(mesh, data);
+  pressurePoisson = new PressureSolve(mesh, data, pre);
   pressurePoisson->setDirichletBCs(pressure_dirichlet);
   pressurePoisson->setNeumannBCs(pressure_neumann);
-  viscosityPoisson = new ViscositySolve(mesh, data);
+  viscosityPoisson = new ViscositySolve(mesh, data, pre);
   viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
   viscosityPoisson->setNeumannBCs(viscosity_neumann);
 

@@ -156,6 +156,8 @@ void op_decl_const_char(int dim, char const *type,
 #include "gauss_grad_faces_omp4kernel_func.cpp"
 #include "gauss_op_omp4kernel_func.cpp"
 #include "gauss_gfi_faces_omp4kernel_func.cpp"
+#include "glb_ind_kernel_omp4kernel_func.cpp"
+#include "glb_ind_kernelBC_omp4kernel_func.cpp"
 #include "poisson_h_omp4kernel_func.cpp"
 #include "poisson_apply_bc_omp4kernel_func.cpp"
 #include "poisson_cells_omp4kernel_func.cpp"

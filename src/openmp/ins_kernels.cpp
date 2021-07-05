@@ -57,6 +57,8 @@ extern double gFInterp2R_g[105];
 #include "gauss_grad_faces_kernel.cpp"
 #include "gauss_op_kernel.cpp"
 #include "gauss_gfi_faces_kernel.cpp"
+#include "glb_ind_kernel_kernel.cpp"
+#include "glb_ind_kernelBC_kernel.cpp"
 #include "poisson_h_kernel.cpp"
 #include "poisson_apply_bc_kernel.cpp"
 #include "poisson_cells_kernel.cpp"
