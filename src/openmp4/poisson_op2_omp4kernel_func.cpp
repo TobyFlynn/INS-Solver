@@ -224,7 +224,8 @@ void poisson_op2_omp4_kernel(
         indR = edgeR * 7 + 6 - i;
       else
         indR = edgeR * 7 + i;
-      tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+      tauL[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+
       if(maxL < tauL[i]) {
         maxL = tauL[i];
       }
@@ -236,7 +237,8 @@ void poisson_op2_omp4_kernel(
         indL = edgeL * 7 + 6 - i;
       else
         indL = edgeL * 7 + i;
-      tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+      tauR[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+
       if(maxR < tauR[i]) {
         maxR = tauR[i];
       }

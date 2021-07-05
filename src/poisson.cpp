@@ -291,8 +291,7 @@ void PressureSolve::setup() {
     KSPSetOperators(ksp, Amat, Amat);
     PC pc;
     KSPGetPC(ksp, &pc);
-    PCSetType(pc, PCSOR);
-    PCSORSetSymmetric(pc, SOR_SYMMETRIC_SWEEP);
+    PCSetType(pc, PCGAMG);
   }
 }
 
@@ -315,7 +314,6 @@ void ViscositySolve::setup(double mmConst) {
     KSPSetOperators(ksp, Amat, Amat);
     PC pc;
     KSPGetPC(ksp, &pc);
-    PCSetType(pc, PCSOR);
-    PCSORSetSymmetric(pc, SOR_SYMMETRIC_SWEEP);
+    PCSetType(pc, PCGAMG);
   }
 }
