@@ -7,16 +7,13 @@
 #define MAX_CONST_SIZE 128
 #endif
 
-__constant__ double ren_cuda;
+__constant__ double reynolds_cuda;
+__constant__ double froude_cuda;
+__constant__ double weber_cuda;
 __constant__ double nu0_cuda;
 __constant__ double nu1_cuda;
 __constant__ double rho0_cuda;
 __constant__ double rho1_cuda;
-__constant__ double bc_mach_cuda;
-__constant__ double bc_alpha_cuda;
-__constant__ double bc_p_cuda;
-__constant__ double bc_u_cuda;
-__constant__ double bc_v_cuda;
 __constant__ int FMASK_cuda[15];
 __constant__ double ic_u_cuda;
 __constant__ double ic_v_cuda;
@@ -43,7 +40,6 @@ __constant__ double gF2DsR_g_cuda[105];
 __constant__ double gFInterp0R_g_cuda[105];
 __constant__ double gFInterp1R_g_cuda[105];
 __constant__ double gFInterp2R_g_cuda[105];
-__constant__ double lift_drag_vec_cuda[5];
 
 //header
 #include "op_lib_cpp.h"
@@ -53,8 +49,16 @@ __constant__ double lift_drag_vec_cuda[5];
 void op_decl_const_char(int dim, char const *type,
 int size, char *dat, char const *name){
   if (!OP_hybrid_gpu) return;
-  if (!strcmp(name,"ren")) {
-    cutilSafeCall(cudaMemcpyToSymbol(ren_cuda, dat, dim*size));
+  if (!strcmp(name,"reynolds")) {
+    cutilSafeCall(cudaMemcpyToSymbol(reynolds_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"froude")) {
+    cutilSafeCall(cudaMemcpyToSymbol(froude_cuda, dat, dim*size));
+  }
+  else
+  if (!strcmp(name,"weber")) {
+    cutilSafeCall(cudaMemcpyToSymbol(weber_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"nu0")) {
@@ -71,26 +75,6 @@ int size, char *dat, char const *name){
   else
   if (!strcmp(name,"rho1")) {
     cutilSafeCall(cudaMemcpyToSymbol(rho1_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"bc_mach")) {
-    cutilSafeCall(cudaMemcpyToSymbol(bc_mach_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"bc_alpha")) {
-    cutilSafeCall(cudaMemcpyToSymbol(bc_alpha_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"bc_p")) {
-    cutilSafeCall(cudaMemcpyToSymbol(bc_p_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"bc_u")) {
-    cutilSafeCall(cudaMemcpyToSymbol(bc_u_cuda, dat, dim*size));
-  }
-  else
-  if (!strcmp(name,"bc_v")) {
-    cutilSafeCall(cudaMemcpyToSymbol(bc_v_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"FMASK")) {
@@ -197,25 +181,16 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(gFInterp2R_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"lift_drag_vec")) {
-    cutilSafeCall(cudaMemcpyToSymbol(lift_drag_vec_cuda, dat, dim*size));
-  }
-  else
   {
     printf("error: unknown const name\n"); exit(1);
   }
 }
 
 //user kernel files
-#include "init_nodes_kernel.cu"
-#include "init_grid_kernel.cu"
-#include "init_edges_kernel.cu"
 #include "init_nu_rho_kernel.cu"
 #include "init_cubature_grad_kernel.cu"
-#include "init_cubature_kernel.cu"
 #include "init_cubature_OP_kernel.cu"
 #include "gauss_reverse_kernel.cu"
-#include "init_gauss_kernel.cu"
 #include "gauss_tau_kernel.cu"
 #include "gauss_tau_bc_kernel.cu"
 #include "init_gauss_grad_kernel.cu"
@@ -224,14 +199,8 @@ int size, char *dat, char const *name){
 #include "gauss_grad_faces_kernel.cu"
 #include "gauss_op_kernel.cu"
 #include "gauss_gfi_faces_kernel.cu"
-#include "div_kernel.cu"
-#include "curl_kernel.cu"
-#include "grad_kernel.cu"
-#include "cub_grad_kernel.cu"
-#include "cub_div_kernel.cu"
-#include "cub_grad_weak_kernel.cu"
-#include "cub_div_weak_kernel.cu"
-#include "inv_J_kernel.cu"
+#include "glb_ind_kernel_kernel.cu"
+#include "glb_ind_kernelBC_kernel.cu"
 #include "poisson_h_kernel.cu"
 #include "poisson_apply_bc_kernel.cu"
 #include "poisson_cells_kernel.cu"
@@ -260,7 +229,6 @@ int size, char *dat, char const *name){
 #include "viscosity_rhs_kernel.cu"
 #include "viscosity_rhs_rho_kernel.cu"
 #include "viscosity_reset_bc_kernel.cu"
-#include "lift_drag_kernel.cu"
 #include "save_values_kernel.cu"
 #include "calc_h_kernel.cu"
 #include "init_surface_kernel.cu"

@@ -43,7 +43,7 @@ void pressure_bc_omp4_kernel(
   double arg2_l = *arg2;
   int arg3_l = *arg3;
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: ren_ompkernel, FMASK_ompkernel[:15])\
+    map(to: reynolds_ompkernel, FMASK_ompkernel[:15])\
     map(to:col_reord[0:set_size1],map4[0:map4size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -96,8 +96,8 @@ void pressure_bc_omp4_kernel(
           int fInd = fmask[i];
 
 
-          double res1 = -N0[fInd] - gradCurlVel1[fInd] / (ren_ompkernel * rho[fInd]);
-          double res2 = -N1[fInd] + gradCurlVel0[fInd] / (ren_ompkernel * rho[fInd]);
+          double res1 = -N0[fInd] - gradCurlVel1[fInd] / (reynolds_ompkernel * rho[fInd]);
+          double res2 = -N1[fInd] + gradCurlVel0[fInd] / (reynolds_ompkernel * rho[fInd]);
           dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
         }
       }
@@ -106,7 +106,7 @@ void pressure_bc_omp4_kernel(
 
         for(int i = 0; i < 5; i++) {
           double y1 = y[fmask[i]];
-          double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
+          double bcdUndt = -pow(1.0, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (1.0 - y1);
           dPdN[exInd + i] -= bcdUndt;
         }
       }

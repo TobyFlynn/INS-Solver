@@ -22,6 +22,10 @@ add_definitions(${OP2_USER_DEFINITIONS})
 
 include(OP2Application)
 
+if(NOT OP2DGTOOLKIT_DIR)
+  set(OP2DGTOOLKIT_DIR "/gpfs/users/tsf79-sxa03/OP2-DG-Toolkit/build")
+endif()
+
 set(PETSC_DIR $ENV{PETSC_DIR})
 
 find_package(OpenBLAS)

@@ -9,7 +9,8 @@ inline void poisson_op4_openacc( const double *mm, const double *factor, double 
   for(int i = 0; i < 15; i++) {
     for(int j = 0; j < 15; j++) {
       int c_ind = i * 15 + j;
-      op[c_ind] += mm[c_ind] * factor[j];
+      int mm_ind = j * 15 + i;
+      op[c_ind] += mm[mm_ind] * factor[j];
     }
   }
 }
@@ -29,10 +30,10 @@ void op_par_loop_poisson_op4(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(32);
+  op_timing_realloc(21);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[32].name      = name;
-  OP_kernels[32].count    += 1;
+  OP_kernels[21].name      = name;
+  OP_kernels[21].count    += 1;
 
 
   if (OP_diags>2) {
@@ -64,8 +65,8 @@ void op_par_loop_poisson_op4(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[32].time     += wall_t2 - wall_t1;
-  OP_kernels[32].transfer += (float)set->size * arg0.size;
-  OP_kernels[32].transfer += (float)set->size * arg1.size;
-  OP_kernels[32].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[21].time     += wall_t2 - wall_t1;
+  OP_kernels[21].transfer += (float)set->size * arg0.size;
+  OP_kernels[21].transfer += (float)set->size * arg1.size;
+  OP_kernels[21].transfer += (float)set->size * arg2.size * 2.0f;
 }

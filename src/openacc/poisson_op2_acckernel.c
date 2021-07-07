@@ -126,6 +126,15 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
                        * sJL[factors_indL] * gVPL[b_ind];
         op2R[c_ind] += factorR[i] * mDR[a_ind] * gaussW_g[k]
                        * sJR[factors_indR] * gVPR[b_ind];
+
+
+
+
+
+
+
+
+
       }
     }
   }
@@ -141,7 +150,8 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
       indR = edgeR * 7 + 6 - i;
     else
       indR = edgeR * 7 + i;
-    tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+    tauL[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+
     if(maxL < tauL[i]) {
       maxL = tauL[i];
     }
@@ -153,7 +163,8 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
       indL = edgeL * 7 + 6 - i;
     else
       indL = edgeL * 7 + i;
-    tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+    tauR[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+
     if(maxR < tauR[i]) {
       maxR = tauR[i];
     }
@@ -266,10 +277,10 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(30);
+  op_timing_realloc(19);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[30].name      = name;
-  OP_kernels[30].count    += 1;
+  OP_kernels[19].name      = name;
+  OP_kernels[19].count    += 1;
 
   int  ninds   = 14;
   int  inds[32] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,-1,-1};
@@ -279,8 +290,8 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_30
-    int part_size = OP_PART_SIZE_30;
+  #ifdef OP_PART_SIZE_19
+    int part_size = OP_PART_SIZE_19;
   #else
     int part_size = OP_part_size;
   #endif
@@ -373,8 +384,8 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
       }
 
     }
-    OP_kernels[30].transfer  += Plan->transfer;
-    OP_kernels[30].transfer2 += Plan->transfer2;
+    OP_kernels[19].transfer  += Plan->transfer;
+    OP_kernels[19].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -385,5 +396,5 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[30].time     += wall_t2 - wall_t1;
+  OP_kernels[19].time     += wall_t2 - wall_t1;
 }

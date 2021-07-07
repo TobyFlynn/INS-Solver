@@ -14,12 +14,9 @@ inline void advection_intermediate_vel_openacc( const double *a0, const double *
                                        const double *N0Old, const double *N1Old,
                                        double *q0T, double *q1T) {
   for(int i = 0; i < 15; i++) {
-
-
-
-
     q0T[i] = *a0 * q0[i] + *a1 * q0Old[i] + *dt * (*b0 * N0[i] + *b1 * N0Old[i]);
-    q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * N1[i] + *b1 * N1Old[i]);
+
+    q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * (N1[i] - 1.0 / (froude * froude)) + *b1 * (N1Old[i] - 1.0 / (froude * froude)));
   }
 }
 
@@ -70,10 +67,10 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(42);
+  op_timing_realloc(31);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[42].name      = name;
-  OP_kernels[42].count    += 1;
+  OP_kernels[31].name      = name;
+  OP_kernels[31].count    += 1;
 
 
   if (OP_diags>2) {
@@ -131,15 +128,15 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[42].time     += wall_t2 - wall_t1;
-  OP_kernels[42].transfer += (float)set->size * arg6.size;
-  OP_kernels[42].transfer += (float)set->size * arg7.size;
-  OP_kernels[42].transfer += (float)set->size * arg8.size;
-  OP_kernels[42].transfer += (float)set->size * arg9.size;
-  OP_kernels[42].transfer += (float)set->size * arg10.size;
-  OP_kernels[42].transfer += (float)set->size * arg11.size;
-  OP_kernels[42].transfer += (float)set->size * arg12.size;
-  OP_kernels[42].transfer += (float)set->size * arg13.size;
-  OP_kernels[42].transfer += (float)set->size * arg14.size * 2.0f;
-  OP_kernels[42].transfer += (float)set->size * arg15.size * 2.0f;
+  OP_kernels[31].time     += wall_t2 - wall_t1;
+  OP_kernels[31].transfer += (float)set->size * arg6.size;
+  OP_kernels[31].transfer += (float)set->size * arg7.size;
+  OP_kernels[31].transfer += (float)set->size * arg8.size;
+  OP_kernels[31].transfer += (float)set->size * arg9.size;
+  OP_kernels[31].transfer += (float)set->size * arg10.size;
+  OP_kernels[31].transfer += (float)set->size * arg11.size;
+  OP_kernels[31].transfer += (float)set->size * arg12.size;
+  OP_kernels[31].transfer += (float)set->size * arg13.size;
+  OP_kernels[31].transfer += (float)set->size * arg14.size * 2.0f;
+  OP_kernels[31].transfer += (float)set->size * arg15.size * 2.0f;
 }

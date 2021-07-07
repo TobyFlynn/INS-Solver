@@ -124,6 +124,15 @@ __device__ void poisson_op2_gpu( const int *edgeNum, const bool *rev,
                        * sJL[factors_indL] * gVPL[b_ind];
         op2R[c_ind] += factorR[i] * mDR[a_ind] * gaussW_g_cuda[k]
                        * sJR[factors_indR] * gVPR[b_ind];
+
+
+
+
+
+
+
+
+
       }
     }
   }
@@ -139,7 +148,8 @@ __device__ void poisson_op2_gpu( const int *edgeNum, const bool *rev,
       indR = edgeR * 7 + 6 - i;
     else
       indR = edgeR * 7 + i;
-    tauL[i] = 10 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+    tauL[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+
     if(maxL < tauL[i]) {
       maxL = tauL[i];
     }
@@ -151,7 +161,8 @@ __device__ void poisson_op2_gpu( const int *edgeNum, const bool *rev,
       indL = edgeL * 7 + 6 - i;
     else
       indL = edgeL * 7 + i;
-    tauR[i] = 10 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+    tauR[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+
     if(maxR < tauR[i]) {
       maxR = tauR[i];
     }
@@ -795,10 +806,10 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(30);
+  op_timing_realloc(19);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[30].name      = name;
-  OP_kernels[30].count    += 1;
+  OP_kernels[19].name      = name;
+  OP_kernels[19].count    += 1;
 
 
   int    ninds   = 14;
@@ -811,8 +822,8 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_30
-      int nthread = OP_BLOCK_SIZE_30;
+    #ifdef OP_BLOCK_SIZE_19
+      int nthread = OP_BLOCK_SIZE_19;
     #else
       int nthread = OP_block_size;
     #endif
@@ -853,5 +864,5 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[30].time     += wall_t2 - wall_t1;
+  OP_kernels[19].time     += wall_t2 - wall_t1;
 }

@@ -4,15 +4,10 @@
 
 //header
 #ifdef GPUPASS
-#define op_par_loop_init_nodes op_par_loop_init_nodes_gpu
-#define op_par_loop_init_grid op_par_loop_init_grid_gpu
-#define op_par_loop_init_edges op_par_loop_init_edges_gpu
 #define op_par_loop_init_nu_rho op_par_loop_init_nu_rho_gpu
 #define op_par_loop_init_cubature_grad op_par_loop_init_cubature_grad_gpu
-#define op_par_loop_init_cubature op_par_loop_init_cubature_gpu
 #define op_par_loop_init_cubature_OP op_par_loop_init_cubature_OP_gpu
 #define op_par_loop_gauss_reverse op_par_loop_gauss_reverse_gpu
-#define op_par_loop_init_gauss op_par_loop_init_gauss_gpu
 #define op_par_loop_gauss_tau op_par_loop_gauss_tau_gpu
 #define op_par_loop_gauss_tau_bc op_par_loop_gauss_tau_bc_gpu
 #define op_par_loop_init_gauss_grad op_par_loop_init_gauss_grad_gpu
@@ -21,14 +16,8 @@
 #define op_par_loop_gauss_grad_faces op_par_loop_gauss_grad_faces_gpu
 #define op_par_loop_gauss_op op_par_loop_gauss_op_gpu
 #define op_par_loop_gauss_gfi_faces op_par_loop_gauss_gfi_faces_gpu
-#define op_par_loop_div op_par_loop_div_gpu
-#define op_par_loop_curl op_par_loop_curl_gpu
-#define op_par_loop_grad op_par_loop_grad_gpu
-#define op_par_loop_cub_grad op_par_loop_cub_grad_gpu
-#define op_par_loop_cub_div op_par_loop_cub_div_gpu
-#define op_par_loop_cub_grad_weak op_par_loop_cub_grad_weak_gpu
-#define op_par_loop_cub_div_weak op_par_loop_cub_div_weak_gpu
-#define op_par_loop_inv_J op_par_loop_inv_J_gpu
+#define op_par_loop_glb_ind_kernel op_par_loop_glb_ind_kernel_gpu
+#define op_par_loop_glb_ind_kernelBC op_par_loop_glb_ind_kernelBC_gpu
 #define op_par_loop_poisson_h op_par_loop_poisson_h_gpu
 #define op_par_loop_poisson_apply_bc op_par_loop_poisson_apply_bc_gpu
 #define op_par_loop_poisson_cells op_par_loop_poisson_cells_gpu
@@ -57,7 +46,6 @@
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_gpu
 #define op_par_loop_viscosity_rhs_rho op_par_loop_viscosity_rhs_rho_gpu
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_gpu
-#define op_par_loop_lift_drag op_par_loop_lift_drag_gpu
 #define op_par_loop_save_values op_par_loop_save_values_gpu
 #define op_par_loop_calc_h op_par_loop_calc_h_gpu
 #define op_par_loop_init_surface op_par_loop_init_surface_gpu
@@ -81,15 +69,10 @@
 #define op_par_loop_ls_reinit_check op_par_loop_ls_reinit_check_gpu
 #define op_par_loop_ls_step op_par_loop_ls_step_gpu
 #include "ins_kernels.cu"
-#undef op_par_loop_init_nodes
-#undef op_par_loop_init_grid
-#undef op_par_loop_init_edges
 #undef op_par_loop_init_nu_rho
 #undef op_par_loop_init_cubature_grad
-#undef op_par_loop_init_cubature
 #undef op_par_loop_init_cubature_OP
 #undef op_par_loop_gauss_reverse
-#undef op_par_loop_init_gauss
 #undef op_par_loop_gauss_tau
 #undef op_par_loop_gauss_tau_bc
 #undef op_par_loop_init_gauss_grad
@@ -98,14 +81,8 @@
 #undef op_par_loop_gauss_grad_faces
 #undef op_par_loop_gauss_op
 #undef op_par_loop_gauss_gfi_faces
-#undef op_par_loop_div
-#undef op_par_loop_curl
-#undef op_par_loop_grad
-#undef op_par_loop_cub_grad
-#undef op_par_loop_cub_div
-#undef op_par_loop_cub_grad_weak
-#undef op_par_loop_cub_div_weak
-#undef op_par_loop_inv_J
+#undef op_par_loop_glb_ind_kernel
+#undef op_par_loop_glb_ind_kernelBC
 #undef op_par_loop_poisson_h
 #undef op_par_loop_poisson_apply_bc
 #undef op_par_loop_poisson_cells
@@ -134,7 +111,6 @@
 #undef op_par_loop_viscosity_rhs
 #undef op_par_loop_viscosity_rhs_rho
 #undef op_par_loop_viscosity_reset_bc
-#undef op_par_loop_lift_drag
 #undef op_par_loop_save_values
 #undef op_par_loop_calc_h
 #undef op_par_loop_init_surface
@@ -158,15 +134,10 @@
 #undef op_par_loop_ls_reinit_check
 #undef op_par_loop_ls_step
 #else
-#define op_par_loop_init_nodes op_par_loop_init_nodes_cpu
-#define op_par_loop_init_grid op_par_loop_init_grid_cpu
-#define op_par_loop_init_edges op_par_loop_init_edges_cpu
 #define op_par_loop_init_nu_rho op_par_loop_init_nu_rho_cpu
 #define op_par_loop_init_cubature_grad op_par_loop_init_cubature_grad_cpu
-#define op_par_loop_init_cubature op_par_loop_init_cubature_cpu
 #define op_par_loop_init_cubature_OP op_par_loop_init_cubature_OP_cpu
 #define op_par_loop_gauss_reverse op_par_loop_gauss_reverse_cpu
-#define op_par_loop_init_gauss op_par_loop_init_gauss_cpu
 #define op_par_loop_gauss_tau op_par_loop_gauss_tau_cpu
 #define op_par_loop_gauss_tau_bc op_par_loop_gauss_tau_bc_cpu
 #define op_par_loop_init_gauss_grad op_par_loop_init_gauss_grad_cpu
@@ -175,14 +146,8 @@
 #define op_par_loop_gauss_grad_faces op_par_loop_gauss_grad_faces_cpu
 #define op_par_loop_gauss_op op_par_loop_gauss_op_cpu
 #define op_par_loop_gauss_gfi_faces op_par_loop_gauss_gfi_faces_cpu
-#define op_par_loop_div op_par_loop_div_cpu
-#define op_par_loop_curl op_par_loop_curl_cpu
-#define op_par_loop_grad op_par_loop_grad_cpu
-#define op_par_loop_cub_grad op_par_loop_cub_grad_cpu
-#define op_par_loop_cub_div op_par_loop_cub_div_cpu
-#define op_par_loop_cub_grad_weak op_par_loop_cub_grad_weak_cpu
-#define op_par_loop_cub_div_weak op_par_loop_cub_div_weak_cpu
-#define op_par_loop_inv_J op_par_loop_inv_J_cpu
+#define op_par_loop_glb_ind_kernel op_par_loop_glb_ind_kernel_cpu
+#define op_par_loop_glb_ind_kernelBC op_par_loop_glb_ind_kernelBC_cpu
 #define op_par_loop_poisson_h op_par_loop_poisson_h_cpu
 #define op_par_loop_poisson_apply_bc op_par_loop_poisson_apply_bc_cpu
 #define op_par_loop_poisson_cells op_par_loop_poisson_cells_cpu
@@ -211,7 +176,6 @@
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_cpu
 #define op_par_loop_viscosity_rhs_rho op_par_loop_viscosity_rhs_rho_cpu
 #define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_cpu
-#define op_par_loop_lift_drag op_par_loop_lift_drag_cpu
 #define op_par_loop_save_values op_par_loop_save_values_cpu
 #define op_par_loop_calc_h op_par_loop_calc_h_cpu
 #define op_par_loop_init_surface op_par_loop_init_surface_cpu
@@ -235,15 +199,10 @@
 #define op_par_loop_ls_reinit_check op_par_loop_ls_reinit_check_cpu
 #define op_par_loop_ls_step op_par_loop_ls_step_cpu
 #include "../openmp/ins_kernels.cpp"
-#undef op_par_loop_init_nodes
-#undef op_par_loop_init_grid
-#undef op_par_loop_init_edges
 #undef op_par_loop_init_nu_rho
 #undef op_par_loop_init_cubature_grad
-#undef op_par_loop_init_cubature
 #undef op_par_loop_init_cubature_OP
 #undef op_par_loop_gauss_reverse
-#undef op_par_loop_init_gauss
 #undef op_par_loop_gauss_tau
 #undef op_par_loop_gauss_tau_bc
 #undef op_par_loop_init_gauss_grad
@@ -252,14 +211,8 @@
 #undef op_par_loop_gauss_grad_faces
 #undef op_par_loop_gauss_op
 #undef op_par_loop_gauss_gfi_faces
-#undef op_par_loop_div
-#undef op_par_loop_curl
-#undef op_par_loop_grad
-#undef op_par_loop_cub_grad
-#undef op_par_loop_cub_div
-#undef op_par_loop_cub_grad_weak
-#undef op_par_loop_cub_div_weak
-#undef op_par_loop_inv_J
+#undef op_par_loop_glb_ind_kernel
+#undef op_par_loop_glb_ind_kernelBC
 #undef op_par_loop_poisson_h
 #undef op_par_loop_poisson_apply_bc
 #undef op_par_loop_poisson_cells
@@ -288,7 +241,6 @@
 #undef op_par_loop_viscosity_rhs
 #undef op_par_loop_viscosity_rhs_rho
 #undef op_par_loop_viscosity_reset_bc
-#undef op_par_loop_lift_drag
 #undef op_par_loop_save_values
 #undef op_par_loop_calc_h
 #undef op_par_loop_init_surface
@@ -313,168 +265,6 @@
 #undef op_par_loop_ls_step
 
 //user kernel files
-
-void op_par_loop_init_nodes_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_init_nodes(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_init_nodes_gpu(name, set,
-      arg0,
-      arg1,
-      arg2);
-
-    }else{
-    op_par_loop_init_nodes_cpu(name, set,
-      arg0,
-      arg1,
-      arg2);
-
-  }
-}
-#else
-void op_par_loop_init_nodes(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2){
-
-  op_par_loop_init_nodes_gpu(name, set,
-    arg0,
-    arg1,
-    arg2);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_init_grid_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_init_grid(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_init_grid_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-    }else{
-    op_par_loop_init_grid_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-  }
-}
-#else
-void op_par_loop_init_grid(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  op_par_loop_init_grid_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6,
-    arg7,
-    arg8);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_init_edges_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_init_edges(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_init_edges_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3);
-
-    }else{
-    op_par_loop_init_edges_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3);
-
-  }
-}
-#else
-void op_par_loop_init_edges(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3){
-
-  op_par_loop_init_edges_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3);
-
-  }
-#endif //OP_HYBRID_GPU
 
 void op_par_loop_init_nu_rho_gpu(char const *name, op_set set,
   op_arg arg0,
@@ -558,64 +348,6 @@ void op_par_loop_init_cubature_grad(char const *name, op_set set,
   op_arg arg5){
 
   op_par_loop_init_cubature_grad_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_init_cubature_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_init_cubature(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_init_cubature_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5);
-
-    }else{
-    op_par_loop_init_cubature_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5);
-
-  }
-}
-#else
-void op_par_loop_init_cubature(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5){
-
-  op_par_loop_init_cubature_gpu(name, set,
     arg0,
     arg1,
     arg2,
@@ -720,70 +452,6 @@ void op_par_loop_gauss_reverse(char const *name, op_set set,
     arg1,
     arg2,
     arg3);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_init_gauss_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_init_gauss(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_init_gauss_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6);
-
-    }else{
-    op_par_loop_init_gauss_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6);
-
-  }
-}
-#else
-void op_par_loop_init_gauss(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6){
-
-  op_par_loop_init_gauss_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6);
 
   }
 #endif //OP_HYBRID_GPU
@@ -1402,540 +1070,26 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   }
 #endif //OP_HYBRID_GPU
 
-void op_par_loop_div_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_div(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_div_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-    }else{
-    op_par_loop_div_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-  }
-}
-#else
-void op_par_loop_div(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  op_par_loop_div_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6,
-    arg7,
-    arg8);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_curl_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_curl(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_curl_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-    }else{
-    op_par_loop_curl_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-  }
-}
-#else
-void op_par_loop_curl(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  op_par_loop_curl_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6,
-    arg7,
-    arg8);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_grad_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_grad(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_grad_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7);
-
-    }else{
-    op_par_loop_grad_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7);
-
-  }
-}
-#else
-void op_par_loop_grad(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7){
-
-  op_par_loop_grad_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6,
-    arg7);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_cub_grad_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_cub_grad(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_cub_grad_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6);
-
-    }else{
-    op_par_loop_cub_grad_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6);
-
-  }
-}
-#else
-void op_par_loop_cub_grad(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6){
-
-  op_par_loop_cub_grad_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_cub_div_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_cub_div(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_cub_div_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-    }else{
-    op_par_loop_cub_div_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-  }
-}
-#else
-void op_par_loop_cub_div(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  op_par_loop_cub_div_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6,
-    arg7,
-    arg8);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_cub_grad_weak_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_cub_grad_weak(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_cub_grad_weak_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-    }else{
-    op_par_loop_cub_grad_weak_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-  }
-}
-#else
-void op_par_loop_cub_grad_weak(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  op_par_loop_cub_grad_weak_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6,
-    arg7,
-    arg8);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_cub_div_weak_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_cub_div_weak(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_cub_div_weak_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-    }else{
-    op_par_loop_cub_div_weak_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8);
-
-  }
-}
-#else
-void op_par_loop_cub_div_weak(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
-
-  op_par_loop_cub_div_weak_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6,
-    arg7,
-    arg8);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_inv_J_gpu(char const *name, op_set set,
+void op_par_loop_glb_ind_kernel_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
-void op_par_loop_inv_J(char const *name, op_set set,
+void op_par_loop_glb_ind_kernel(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2){
 
   if (OP_hybrid_gpu) {
-    op_par_loop_inv_J_gpu(name, set,
+    op_par_loop_glb_ind_kernel_gpu(name, set,
       arg0,
       arg1,
       arg2);
 
     }else{
-    op_par_loop_inv_J_cpu(name, set,
+    op_par_loop_glb_ind_kernel_cpu(name, set,
       arg0,
       arg1,
       arg2);
@@ -1943,15 +1097,49 @@ void op_par_loop_inv_J(char const *name, op_set set,
   }
 }
 #else
-void op_par_loop_inv_J(char const *name, op_set set,
+void op_par_loop_glb_ind_kernel(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2){
 
-  op_par_loop_inv_J_gpu(name, set,
+  op_par_loop_glb_ind_kernel_gpu(name, set,
     arg0,
     arg1,
     arg2);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_glb_ind_kernelBC_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_glb_ind_kernelBC(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_glb_ind_kernelBC_gpu(name, set,
+      arg0,
+      arg1);
+
+    }else{
+    op_par_loop_glb_ind_kernelBC_cpu(name, set,
+      arg0,
+      arg1);
+
+  }
+}
+#else
+void op_par_loop_glb_ind_kernelBC(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  op_par_loop_glb_ind_kernelBC_gpu(name, set,
+    arg0,
+    arg1);
 
   }
 #endif //OP_HYBRID_GPU
@@ -2734,58 +1922,34 @@ void op_par_loop_viscosity_solve_setup(char const *name, op_set set,
 
 void op_par_loop_set_ic_gpu(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5);
+  op_arg arg1);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
 void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5){
+  op_arg arg1){
 
   if (OP_hybrid_gpu) {
     op_par_loop_set_ic_gpu(name, set,
       arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5);
+      arg1);
 
     }else{
     op_par_loop_set_ic_cpu(name, set,
       arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5);
+      arg1);
 
   }
 }
 #else
 void op_par_loop_set_ic(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5){
+  op_arg arg1){
 
   op_par_loop_set_ic_gpu(name, set,
     arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5);
+    arg1);
 
   }
 #endif //OP_HYBRID_GPU
@@ -3882,106 +3046,6 @@ void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
   op_par_loop_viscosity_reset_bc_gpu(name, set,
     arg0,
     arg1);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_lift_drag_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11,
-  op_arg arg12);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_lift_drag(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11,
-  op_arg arg12){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_lift_drag_gpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8,
-      arg9,
-      arg10,
-      arg11,
-      arg12);
-
-    }else{
-    op_par_loop_lift_drag_cpu(name, set,
-      arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5,
-      arg6,
-      arg7,
-      arg8,
-      arg9,
-      arg10,
-      arg11,
-      arg12);
-
-  }
-}
-#else
-void op_par_loop_lift_drag(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11,
-  op_arg arg12){
-
-  op_par_loop_lift_drag_gpu(name, set,
-    arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5,
-    arg6,
-    arg7,
-    arg8,
-    arg9,
-    arg10,
-    arg11,
-    arg12);
 
   }
 #endif //OP_HYBRID_GPU

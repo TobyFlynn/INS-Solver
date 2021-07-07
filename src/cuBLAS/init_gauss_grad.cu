@@ -37,24 +37,24 @@ inline void cublas_init_gauss_grad(cublasHandle_t handle, const int numCells,
   }
 }
 
-void init_gauss_grad_blas(INSData *nsData, GaussData *gaussData) {
+void init_gauss_grad_blas(DGMesh *mesh, INSData *data) {
   // Make sure OP2 data is in the right place
   op_arg init_grad_args[] = {
-    op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_READ),
-    op_arg_dat(nsData->y, -1, OP_ID, 15, "double", OP_READ),
-    op_arg_dat(gaussData->rx, -1, OP_ID, 21, "double", OP_WRITE),
-    op_arg_dat(gaussData->sx, -1, OP_ID, 21, "double", OP_WRITE),
-    op_arg_dat(gaussData->ry, -1, OP_ID, 21, "double", OP_WRITE),
-    op_arg_dat(gaussData->sy, -1, OP_ID, 21, "double", OP_WRITE)
+    op_arg_dat(mesh->x, -1, OP_ID, 15, "double", OP_READ),
+    op_arg_dat(mesh->y, -1, OP_ID, 15, "double", OP_READ),
+    op_arg_dat(data->grx, -1, OP_ID, 21, "double", OP_WRITE),
+    op_arg_dat(data->gsx, -1, OP_ID, 21, "double", OP_WRITE),
+    op_arg_dat(data->gry, -1, OP_ID, 21, "double", OP_WRITE),
+    op_arg_dat(data->gsy, -1, OP_ID, 21, "double", OP_WRITE)
   };
-  op_mpi_halo_exchanges_cuda(nsData->cells, 6, init_grad_args);
+  op_mpi_halo_exchanges_cuda(mesh->cells, 6, init_grad_args);
 
-  int setSize = nsData->x->set->size;
+  int setSize = mesh->x->set->size;
 
-  cublas_init_gauss_grad(constants->handle, setSize, (double *)nsData->x->data_d,
-                   (double *)nsData->y->data_d, (double *)gaussData->rx->data_d,
-                   (double *)gaussData->sx->data_d, (double *)gaussData->ry->data_d,
-                   (double *)gaussData->sy->data_d);
+  cublas_init_gauss_grad(constants->handle, setSize, (double *)mesh->x->data_d,
+                   (double *)mesh->y->data_d, (double *)data->grx->data_d,
+                   (double *)data->gsx->data_d, (double *)data->gry->data_d,
+                   (double *)data->gsy->data_d);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit_cuda(6, init_grad_args);

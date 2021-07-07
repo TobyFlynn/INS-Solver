@@ -95,7 +95,8 @@ void poisson_op5_omp4_kernel(
       double tauA[7];
       for(int i = 0; i < 7; i++) {
         int ind = *edgeNum  * 7 + i;
-        tauA[i] = 10 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
+        tauA[i] = 100 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
+
       }
 
 

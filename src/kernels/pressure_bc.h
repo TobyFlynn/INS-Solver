@@ -30,8 +30,8 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
         int fInd = fmask[i];
         // double res1 = -N0[fInd] - nu[fInd] * gradCurlVel1[fInd];
         // double res2 = -N1[fInd] + nu[fInd] * gradCurlVel0[fInd];
-        double res1 = -N0[fInd] - gradCurlVel1[fInd] / (ren * rho[fInd]);
-        double res2 = -N1[fInd] + gradCurlVel0[fInd] / (ren * rho[fInd]);
+        double res1 = -N0[fInd] - gradCurlVel1[fInd] / (reynolds * rho[fInd]);
+        double res2 = -N1[fInd] + gradCurlVel0[fInd] / (reynolds * rho[fInd]);
         dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
       }
     }
@@ -40,7 +40,7 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
       // Inflow
       for(int i = 0; i < 5; i++) {
         double y1 = y[fmask[i]];
-        double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
+        double bcdUndt = -pow(1.0, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (1.0 - y1);
         dPdN[exInd + i] -= bcdUndt;
       }
     }

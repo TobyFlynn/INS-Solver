@@ -10,51 +10,18 @@
 #include <cmath>
 #include <limits>
 
-#include "constants/all_constants.h"
-#include "constants.h"
+#include "dg_constants.h"
 #include "ins_data.h"
 #include "save_solution.h"
 #include "timing.h"
 #include "solver.h"
 
-#include "operators.h"
-
-#include "petscvec.h"
-#include "petscksp.h"
-
 using namespace std;
 
-void export_data_init(string filename) {
-  ofstream file(filename);
-
-  // Create first row of csv file (headers of columns)
-  file << "Iteration" << ",";
-  file << "Time" << ",";
-  file << "Drag Coefficient" << ",";
-  file << "Lift Coefficient" << ",";
-  file << "Avg. Pressure Convergance" << ",";
-  file << "Avg. Viscosity Convergance" << endl;
-
-  file.close();
-}
-
-void export_data(string filename, int iter, double time, double drag,
-                 double lift, double avgPr, double avgVis) {
-  ofstream file(filename, ios::app);
-
-  // Create first row of csv file (headers of columns)
-  file << to_string(iter) << ",";
-  file << to_string(time) << ",";
-  file << to_string(drag) << ",";
-  file << to_string(lift) << ",";
-  file << to_string(avgPr) << ",";
-  file << to_string(avgVis) << endl;
-
-  file.close();
-}
-
 Timing *timer;
-Constants *constants;
+DGConstants *constants;
+
+extern double reynolds, froude, weber, nu0, nu1, rho0, rho1, ic_u, ic_v;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 2);
@@ -62,7 +29,7 @@ int main(int argc, char **argv) {
   timer = new Timing();
   timer->startWallTime();
   timer->startSetup();
-  constants = new Constants();
+  constants = new DGConstants();
 
   char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
@@ -71,23 +38,25 @@ int main(int argc, char **argv) {
     return ierr;
   }
 
-  gam = 1.4;
-  mu = 1e-2;
   // Phi > 0
   nu0 = 1.0;
-  // rho0 = 0.9;
   rho0 = 1.0;
   // Phi < 0
-  // nu1 = 1.9;
   nu1 = 1.0;
   rho1 = 1.0;
-  bc_u = 1e-6;
-  bc_v = 0.0;
+
   ic_u = 0.0;
   ic_v = 0.0;
 
+  double refRho = 1000.0;
+  double refMu  = 1e-3;
+  double refLen = 0.001;
+  double refVel = 1.0;
+
   // Set Reynolds number
-  ren = 1.0 * 1.0 * 1.0 / 1e-3;
+  reynolds = refRho * refVel * refLen / refMu;
+  // Set Froude number
+  froude = refVel / sqrt(9.8 * refLen);
 
   // Get input from args
   int iter = 1;
@@ -97,8 +66,8 @@ int main(int argc, char **argv) {
   int save = -1;
   PetscOptionsGetInt(NULL, NULL, "-save", &save, &found);
 
-  int pmethod = 0;
-  PetscOptionsGetInt(NULL, NULL, "-pmethod", &pmethod, &found);
+  int pre = 0;
+  PetscOptionsGetInt(NULL, NULL, "-pre", &pre, &found);
 
   int problem = 0;
   PetscOptionsGetInt(NULL, NULL, "-problem", &problem, &found);
@@ -137,11 +106,10 @@ int main(int argc, char **argv) {
   op_printf("nu1: %g\n", nu1);
   op_printf("rho0: %g\n", rho0);
   op_printf("rho1: %g\n", rho1);
-  op_printf("ren: %g\n", ren);
+  op_printf("reynolds: %g\n", reynolds);
+  op_printf("froude: %g\n", froude);
 
-  bc_alpha = 0.0;
-
-  Solver *solver = new Solver(filename, pmethod, problem, multiphase);
+  Solver *solver = new Solver(filename, pre > 0, problem, multiphase);
 
   double a0 = 1.0;
   double a1 = 0.0;
@@ -153,11 +121,10 @@ int main(int argc, char **argv) {
 
   if(save != -1) {
     if(multiphase) {
-      save_solution_init(outputDir + "sol.cgns", solver->data, solver->ls);
+      save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);
     } else {
-      save_solution_init(outputDir + "sol.cgns", solver->data, nullptr);
+      save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, nullptr);
     }
-    // export_data_init(outputDir + "data.csv");
   }
 
   timer->endSetup();
@@ -201,20 +168,15 @@ int main(int argc, char **argv) {
     currentIter++;
     time += solver->dt;
 
-    // Calculate drag and lift coefficients + save data
+    // Save data
     if(save != -1 && (i + 1) % save == 0) {
       op_printf("Iteration: %d Time: %g\n", i, time);
-      // timer->startLiftDrag();
-      // double lift, drag;
-      // solver->lift_drag_coeff(&lift, &drag, currentIter % 2);
-      // export_data(outputDir + "data.csv", i, time, drag, lift, pressurePoisson->getAverageConvergeIter(), viscosityPoisson->getAverageConvergeIter());
-      // timer->endLiftDrag();
 
       timer->startSave();
       if(multiphase) {
-        save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, solver->ls, (i + 1) / save);
+        save_solution_iter(outputDir + "sol.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, (i + 1) / save);
       } else {
-        save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, nullptr, (i + 1) / save);
+        save_solution_iter(outputDir + "sol.cgns", solver->mesh, solver->data, currentIter % 2, nullptr, (i + 1) / save);
       }
       timer->endSave();
     }
@@ -226,9 +188,9 @@ int main(int argc, char **argv) {
 
   // Save solution to CGNS file
   if(multiphase) {
-    save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, solver->ls, time, nu0);
+    save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, time, nu0);
   } else {
-    save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, nullptr, time, nu0);
+    save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, nullptr, time, nu0);
   }
 
   timer->endWallTime();

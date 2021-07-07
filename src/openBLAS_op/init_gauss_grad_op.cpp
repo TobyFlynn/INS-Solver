@@ -50,24 +50,24 @@ inline void openblas_init_gauss_grad(const int numCells, const double *x,
   }
 }
 
-void init_gauss_grad_blas(INSData *nsData, GaussData *gaussData) {
+void init_gauss_grad_blas(DGMesh *mesh, INSData *data) {
   // Make sure OP2 data is in the right place
   op_arg init_grad_args[] = {
-    op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_READ),
-    op_arg_dat(nsData->y, -1, OP_ID, 15, "double", OP_READ),
-    op_arg_dat(gaussData->rx, -1, OP_ID, 21, "double", OP_WRITE),
-    op_arg_dat(gaussData->sx, -1, OP_ID, 21, "double", OP_WRITE),
-    op_arg_dat(gaussData->ry, -1, OP_ID, 21, "double", OP_WRITE),
-    op_arg_dat(gaussData->sy, -1, OP_ID, 21, "double", OP_WRITE)
+    op_arg_dat(mesh->x, -1, OP_ID, 15, "double", OP_READ),
+    op_arg_dat(mesh->y, -1, OP_ID, 15, "double", OP_READ),
+    op_arg_dat(data->grx, -1, OP_ID, 21, "double", OP_WRITE),
+    op_arg_dat(data->gsx, -1, OP_ID, 21, "double", OP_WRITE),
+    op_arg_dat(data->gry, -1, OP_ID, 21, "double", OP_WRITE),
+    op_arg_dat(data->gsy, -1, OP_ID, 21, "double", OP_WRITE)
   };
-  op_mpi_halo_exchanges(nsData->cells, 6, init_grad_args);
+  op_mpi_halo_exchanges(mesh->cells, 6, init_grad_args);
 
-  int setSize = nsData->x->set->size;
+  int setSize = mesh->x->set->size;
 
-  openblas_init_gauss_grad(setSize, (double *)nsData->x->data,
-                   (double *)nsData->y->data, (double *)gaussData->rx->data,
-                   (double *)gaussData->sx->data, (double *)gaussData->ry->data,
-                   (double *)gaussData->sy->data);
+  openblas_init_gauss_grad(setSize, (double *)mesh->x->data,
+                   (double *)mesh->y->data, (double *)data->grx->data,
+                   (double *)data->gsx->data, (double *)data->gry->data,
+                   (double *)data->gsy->data);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit(6, init_grad_args);

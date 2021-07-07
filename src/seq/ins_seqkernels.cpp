@@ -3,16 +3,11 @@
 //
 
 // global constants
-extern double ren;
-extern double nu0;
+extern double froude;
+extern double weber;
 extern double nu1;
 extern double rho0;
 extern double rho1;
-extern double bc_mach;
-extern double bc_alpha;
-extern double bc_p;
-extern double bc_u;
-extern double bc_v;
 extern int FMASK[15];
 extern double ic_u;
 extern double ic_v;
@@ -39,21 +34,15 @@ extern double gF2DsR_g[105];
 extern double gFInterp0R_g[105];
 extern double gFInterp1R_g[105];
 extern double gFInterp2R_g[105];
-extern double lift_drag_vec[5];
 
 // header
 #include "op_lib_cpp.h"
 
 // user kernel files
-#include "init_nodes_seqkernel.cpp"
-#include "init_grid_seqkernel.cpp"
-#include "init_edges_seqkernel.cpp"
 #include "init_nu_rho_seqkernel.cpp"
 #include "init_cubature_grad_seqkernel.cpp"
-#include "init_cubature_seqkernel.cpp"
 #include "init_cubature_OP_seqkernel.cpp"
 #include "gauss_reverse_seqkernel.cpp"
-#include "init_gauss_seqkernel.cpp"
 #include "gauss_tau_seqkernel.cpp"
 #include "gauss_tau_bc_seqkernel.cpp"
 #include "init_gauss_grad_seqkernel.cpp"
@@ -62,14 +51,8 @@ extern double lift_drag_vec[5];
 #include "gauss_grad_faces_seqkernel.cpp"
 #include "gauss_op_seqkernel.cpp"
 #include "gauss_gfi_faces_seqkernel.cpp"
-#include "div_seqkernel.cpp"
-#include "curl_seqkernel.cpp"
-#include "grad_seqkernel.cpp"
-#include "cub_grad_seqkernel.cpp"
-#include "cub_div_seqkernel.cpp"
-#include "cub_grad_weak_seqkernel.cpp"
-#include "cub_div_weak_seqkernel.cpp"
-#include "inv_J_seqkernel.cpp"
+#include "glb_ind_kernel_seqkernel.cpp"
+#include "glb_ind_kernelBC_seqkernel.cpp"
 #include "poisson_h_seqkernel.cpp"
 #include "poisson_apply_bc_seqkernel.cpp"
 #include "poisson_cells_seqkernel.cpp"
@@ -98,7 +81,6 @@ extern double lift_drag_vec[5];
 #include "viscosity_rhs_seqkernel.cpp"
 #include "viscosity_rhs_rho_seqkernel.cpp"
 #include "viscosity_reset_bc_seqkernel.cpp"
-#include "lift_drag_seqkernel.cpp"
 #include "save_values_seqkernel.cpp"
 #include "calc_h_seqkernel.cpp"
 #include "init_surface_seqkernel.cpp"

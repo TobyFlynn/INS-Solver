@@ -71,25 +71,25 @@ inline void openblas_init_gauss_grad_neighbour(const int numCells, const int *re
   }
 }
 
-void init_gauss_grad_neighbour_blas(INSData *nsData, GaussData *gaussData) {
+void init_gauss_grad_neighbour_blas(DGMesh *mesh, INSData *data) {
   // Make sure OP2 data is in the right place
   op_arg init_grad_args[] = {
-    op_arg_dat(nsData->x, -1, OP_ID, 15, "double", OP_READ),
-    op_arg_dat(nsData->y, -1, OP_ID, 15, "double", OP_READ),
-    op_arg_dat(gaussData->reverse, -1, OP_ID, 3, "int", OP_READ),
-    op_arg_dat(gaussData->rx, -1, OP_ID, 21, "double", OP_WRITE),
-    op_arg_dat(gaussData->sx, -1, OP_ID, 21, "double", OP_WRITE),
-    op_arg_dat(gaussData->ry, -1, OP_ID, 21, "double", OP_WRITE),
-    op_arg_dat(gaussData->sy, -1, OP_ID, 21, "double", OP_WRITE)
+    op_arg_dat(mesh->x, -1, OP_ID, 15, "double", OP_READ),
+    op_arg_dat(mesh->y, -1, OP_ID, 15, "double", OP_READ),
+    op_arg_dat(data->reverse, -1, OP_ID, 3, "int", OP_READ),
+    op_arg_dat(data->grx, -1, OP_ID, 21, "double", OP_WRITE),
+    op_arg_dat(data->gsx, -1, OP_ID, 21, "double", OP_WRITE),
+    op_arg_dat(data->gry, -1, OP_ID, 21, "double", OP_WRITE),
+    op_arg_dat(data->gsy, -1, OP_ID, 21, "double", OP_WRITE)
   };
-  op_mpi_halo_exchanges(nsData->cells, 7, init_grad_args);
+  op_mpi_halo_exchanges(mesh->cells, 7, init_grad_args);
 
-  int setSize = nsData->x->set->size;
+  int setSize = mesh->x->set->size;
 
-  openblas_init_gauss_grad_neighbour(setSize, (int *)gaussData->reverse->data, (double *)nsData->x->data,
-                   (double *)nsData->y->data, (double *)gaussData->rx->data,
-                   (double *)gaussData->sx->data, (double *)gaussData->ry->data,
-                   (double *)gaussData->sy->data);
+  openblas_init_gauss_grad_neighbour(setSize, (int *)data->reverse->data, (double *)mesh->x->data,
+                   (double *)mesh->y->data, (double *)data->grx->data,
+                   (double *)data->gsx->data, (double *)data->gry->data,
+                   (double *)data->gsy->data);
 
   // Set correct dirty bits for OP2
   op_mpi_set_dirtybit(7, init_grad_args);

@@ -40,7 +40,8 @@ __device__ void poisson_op5_gpu( const int *edgeType, const int *edgeNum,
     double tauA[7];
     for(int i = 0; i < 7; i++) {
       int ind = *edgeNum  * 7 + i;
-      tauA[i] = 10 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
+      tauA[i] = 100 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
+
     }
 
 
@@ -138,10 +139,10 @@ void op_par_loop_poisson_op5(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(33);
+  op_timing_realloc(22);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[33].name      = name;
-  OP_kernels[33].count    += 1;
+  OP_kernels[22].name      = name;
+  OP_kernels[22].count    += 1;
 
 
   int    ninds   = 7;
@@ -181,8 +182,8 @@ void op_par_loop_poisson_op5(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_33
-      int nthread = OP_BLOCK_SIZE_33;
+    #ifdef OP_BLOCK_SIZE_22
+      int nthread = OP_BLOCK_SIZE_22;
     #else
       int nthread = OP_block_size;
     #endif
@@ -218,5 +219,5 @@ void op_par_loop_poisson_op5(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[33].time     += wall_t2 - wall_t1;
+  OP_kernels[22].time     += wall_t2 - wall_t1;
 }
