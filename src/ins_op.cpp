@@ -67,8 +67,8 @@ int main(int argc, char **argv) {
   ic_u = 0.0;
   ic_v = 0.0;
 
-  double refRho = 1000.0;
-  double refMu  = 1e-3;
+  double refRho = 1.204;
+  double refMu  = 1.825e-5;
   double refLen = 0.001;
   double refVel = 1.0;
 
