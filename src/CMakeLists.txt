@@ -21,10 +21,6 @@ set(MPI_SRC save_solution_mpi_op.cpp load_mesh_mpi.cpp mpi_helper_func.cpp)
 
 set(GFORT_LIB /gpfs/users/shared/apps/core/gcc/7.3.0/lib64/libgfortran.so.4)
 
-op2_application(ins_seq LIBS op2_seq op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${SN_SRC} ${OPENBLAS_SRC} seq/ins_seqkernels.cpp ${KERNEL_HEADERS})
-target_include_directories(ins_seq PUBLIC ${PETSC_DIR}/include ${OpenBLAS_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(ins_seq libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so ${OpenBLAS_LIBRARIES} ${GFORT_LIB})
-
 op2_application(ins_openmp LIBS op2_openmp op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${SN_SRC} ${OPENBLAS_SRC} openmp/ins_kernels.cpp ${KERNEL_HEADERS})
 target_include_directories(ins_openmp PUBLIC ${PETSC_DIR}/include ${OpenBLAS_INCLUDE_DIRS} ${OP2DGTOOLKIT_DIR}/include ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(ins_openmp libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so ${OpenBLAS_LIBRARIES} ${OP2DGTOOLKIT_DIR}/lib/libop2dgtoolkit_openmp.so ${GFORT_LIB})
@@ -35,11 +31,6 @@ target_include_directories(ins_cuda PUBLIC ${PETSC_DIR}/include ${CUDAToolkit_IN
 target_link_libraries(ins_cuda libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so ${OP2DGTOOLKIT_DIR}/lib/libop2dgtoolkit_cuda.so CUDA::cudart_static CUDA::cublas)
 set_property(TARGET ins_cuda PROPERTY CUDA_ARCHITECTURES OFF)
 target_compile_definitions(ins_cuda PRIVATE INS_CUDA OP2_DG_CUDA)
-
-op2_application(ins_mpi LIBS op2_mpi op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${MPI_SRC} ${OPENBLAS_SRC} seq/ins_seqkernels.cpp ${KERNEL_HEADERS})
-target_include_directories(ins_mpi PUBLIC ${PETSC_DIR}/include ${OpenBLAS_INCLUDE_DIRS} ${OP2DGTOOLKIT_DIR}/include ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(ins_mpi libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so ${OpenBLAS_LIBRARIES} ${GFORT_LIB} libptscotch.a libscotch.a)
-target_compile_definitions(ins_mpi PRIVATE INS_MPI)
 
 op2_application(ins_mpi_openmp LIBS op2_mpi op2_openmp op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${MPI_SRC} ${OPENBLAS_SRC} openmp/ins_kernels.cpp ${KERNEL_HEADERS})
 target_include_directories(ins_mpi_openmp PUBLIC ${PETSC_DIR}/include ${OpenBLAS_INCLUDE_DIRS} ${OP2DGTOOLKIT_DIR}/include ${PROJECT_SOURCE_DIR}/include)
