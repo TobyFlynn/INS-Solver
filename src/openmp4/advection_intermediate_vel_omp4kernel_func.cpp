@@ -62,11 +62,11 @@ void advection_intermediate_vel_omp4_kernel(
     double *q1T = &data15[15*n_op];
 
     //inline function
-    
+
     for(int i = 0; i < 15; i++) {
       q0T[i] = *a0 * q0[i] + *a1 * q0Old[i] + *dt * (*b0 * N0[i] + *b1 * N0Old[i]);
+      q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * N1[i] + *b1 * N1Old[i]);
 
-      q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * (N1[i] - 1.0 / (froude_ompkernel * froude_ompkernel)) + *b1 * (N1Old[i] - 1.0 / (froude_ompkernel * froude_ompkernel)));
     }
     //end inline func
   }

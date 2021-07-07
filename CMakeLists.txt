@@ -26,6 +26,10 @@ if(NOT OP2DGTOOLKIT_DIR)
   set(OP2DGTOOLKIT_DIR "/gpfs/users/tsf79-sxa03/OP2-DG-Toolkit/build")
 endif()
 
+if(NOT OP2DGTOOLKIT_DIR)
+  set(OP2DGTOOLKIT_DIR "/home/u1717021/Code/PhD/OP2-DG-Toolkit/build")
+endif()
+
 set(PETSC_DIR $ENV{PETSC_DIR})
 
 find_package(OpenBLAS)
