@@ -36,6 +36,9 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
     glb_indBC_data = (int *)calloc(mesh->numBoundaryEdges, sizeof(int));
   }
 
+  in_data  = (double *)calloc(15 * mesh->numCells, sizeof(double));
+  out_data = (double *)calloc(15 * mesh->numCells, sizeof(double));
+
   u      = op_decl_dat(mesh->cells, 15, "double", u_data, "poisson_u");
   rhs    = op_decl_dat(mesh->cells, 15, "double", rhs_data, "poisson_rhs");
   h      = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
@@ -55,6 +58,9 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
     glb_indR  = op_decl_dat(mesh->edges, 1, "int", glb_indR_data, "poisson_glb_indR");
     glb_indBC = op_decl_dat(mesh->bedges, 1, "int", glb_indBC_data, "poisson_glb_indBC");
   }
+
+  in  = op_decl_dat(mesh->cells, 15, "double", in_data, "poisson_in");
+  out = op_decl_dat(mesh->cells, 15, "double", out_data, "poisson_out");
 }
 
 PoissonSolve::~PoissonSolve() {
@@ -77,6 +83,9 @@ PoissonSolve::~PoissonSolve() {
     free(glb_indR_data);
     free(glb_indBC_data);
   }
+
+  free(in_data);
+  free(out_data);
 
   destroy_vec(&b);
   destroy_vec(&x);
@@ -177,7 +186,7 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
 
 void PoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
   // Copy u to OP2 dat
-  copy_u(u_d);
+  copy_vec_to_dat(u, u_d);
 
   op_par_loop(poisson_cells, "poisson_cells", mesh->cells,
               op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
@@ -192,7 +201,19 @@ void PoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
               op_arg_dat(rhs, 1, mesh->edge2cells, 15, "double", OP_INC));
 
-  copy_rhs(rhs_d);
+  copy_dat_to_vec(rhs, rhs_d);
+}
+
+void PoissonSolve::precond(const double *in_d, double *out_d) {
+  copy_vec_to_dat(in, in_d);
+
+  op_par_loop(poisson_pre, "poisson_pre", mesh->cells,
+              op_arg_dat(in, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(mmFactor, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(mesh->cubature->mmInv, -1, OP_ID, 15 * 15, "double", OP_READ),
+              op_arg_dat(out, -1, OP_ID, 15, "double", OP_WRITE));
+
+  copy_dat_to_vec(out, out_d);
 }
 
 void PoissonSolve::set_op() {
@@ -298,6 +319,12 @@ void PressureSolve::setup() {
 void ViscositySolve::setup(double mmConst) {
   massMat = true;
 
+  if(!matCreated) {
+    create_shell_mat(&Amat);
+    matCreated = true;
+    KSPSetOperators(ksp, Amat, Amat);
+  }
+
   op_par_loop(viscosity_solve_setup, "viscosity_solve_setup", mesh->cells,
               op_arg_dat(data->nu, -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->rho, -1, OP_ID, 15, "double", OP_READ),
@@ -310,10 +337,15 @@ void ViscositySolve::setup(double mmConst) {
   set_op();
 
   if(precondition) {
+    /*
     setMatrix();
     KSPSetOperators(ksp, Amat, Amat);
     PC pc;
     KSPGetPC(ksp, &pc);
     PCSetType(pc, PCGAMG);
+    */
+    PC pc;
+    KSPGetPC(ksp, &pc);
+    set_shell_pc(pc);
   }
 }

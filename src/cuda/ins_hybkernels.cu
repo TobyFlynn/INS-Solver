@@ -22,6 +22,7 @@
 #define op_par_loop_poisson_apply_bc op_par_loop_poisson_apply_bc_gpu
 #define op_par_loop_poisson_cells op_par_loop_poisson_cells_gpu
 #define op_par_loop_poisson_edges op_par_loop_poisson_edges_gpu
+#define op_par_loop_poisson_pre op_par_loop_poisson_pre_gpu
 #define op_par_loop_poisson_op1 op_par_loop_poisson_op1_gpu
 #define op_par_loop_poisson_op2 op_par_loop_poisson_op2_gpu
 #define op_par_loop_poisson_op3 op_par_loop_poisson_op3_gpu
@@ -87,6 +88,7 @@
 #undef op_par_loop_poisson_apply_bc
 #undef op_par_loop_poisson_cells
 #undef op_par_loop_poisson_edges
+#undef op_par_loop_poisson_pre
 #undef op_par_loop_poisson_op1
 #undef op_par_loop_poisson_op2
 #undef op_par_loop_poisson_op3
@@ -152,6 +154,7 @@
 #define op_par_loop_poisson_apply_bc op_par_loop_poisson_apply_bc_cpu
 #define op_par_loop_poisson_cells op_par_loop_poisson_cells_cpu
 #define op_par_loop_poisson_edges op_par_loop_poisson_edges_cpu
+#define op_par_loop_poisson_pre op_par_loop_poisson_pre_cpu
 #define op_par_loop_poisson_op1 op_par_loop_poisson_op1_cpu
 #define op_par_loop_poisson_op2 op_par_loop_poisson_op2_cpu
 #define op_par_loop_poisson_op3 op_par_loop_poisson_op3_cpu
@@ -217,6 +220,7 @@
 #undef op_par_loop_poisson_apply_bc
 #undef op_par_loop_poisson_cells
 #undef op_par_loop_poisson_edges
+#undef op_par_loop_poisson_pre
 #undef op_par_loop_poisson_op1
 #undef op_par_loop_poisson_op2
 #undef op_par_loop_poisson_op3
@@ -1324,6 +1328,52 @@ void op_par_loop_poisson_edges(char const *name, op_set set,
     arg3,
     arg4,
     arg5);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_poisson_pre_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_poisson_pre(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_poisson_pre_gpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3);
+
+    }else{
+    op_par_loop_poisson_pre_cpu(name, set,
+      arg0,
+      arg1,
+      arg2,
+      arg3);
+
+  }
+}
+#else
+void op_par_loop_poisson_pre(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3){
+
+  op_par_loop_poisson_pre_gpu(name, set,
+    arg0,
+    arg1,
+    arg2,
+    arg3);
 
   }
 #endif //OP_HYBRID_GPU

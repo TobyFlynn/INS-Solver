@@ -162,6 +162,7 @@ void op_decl_const_char(int dim, char const *type,
 #include "poisson_apply_bc_omp4kernel_func.cpp"
 #include "poisson_cells_omp4kernel_func.cpp"
 #include "poisson_edges_omp4kernel_func.cpp"
+#include "poisson_pre_omp4kernel_func.cpp"
 #include "poisson_op1_omp4kernel_func.cpp"
 #include "poisson_op2_omp4kernel_func.cpp"
 #include "poisson_op3_omp4kernel_func.cpp"

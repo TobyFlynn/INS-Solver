@@ -57,6 +57,7 @@ extern double gFInterp2R_g[105];
 #include "poisson_apply_bc_seqkernel.cpp"
 #include "poisson_cells_seqkernel.cpp"
 #include "poisson_edges_seqkernel.cpp"
+#include "poisson_pre_seqkernel.cpp"
 #include "poisson_op1_seqkernel.cpp"
 #include "poisson_op2_seqkernel.cpp"
 #include "poisson_op3_seqkernel.cpp"

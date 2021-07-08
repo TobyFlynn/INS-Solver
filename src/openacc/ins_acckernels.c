@@ -59,6 +59,7 @@ int size, char *dat, char const *name){}
 #include "poisson_apply_bc_acckernel.c"
 #include "poisson_cells_acckernel.c"
 #include "poisson_edges_acckernel.c"
+#include "poisson_pre_acckernel.c"
 #include "poisson_op1_acckernel.c"
 #include "poisson_op2_acckernel.c"
 #include "poisson_op3_acckernel.c"

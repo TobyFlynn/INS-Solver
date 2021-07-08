@@ -24,6 +24,7 @@
 #include "poisson_apply_bc_omp4kernel.cpp"
 #include "poisson_cells_omp4kernel.cpp"
 #include "poisson_edges_omp4kernel.cpp"
+#include "poisson_pre_omp4kernel.cpp"
 #include "poisson_op1_omp4kernel.cpp"
 #include "poisson_op2_omp4kernel.cpp"
 #include "poisson_op3_omp4kernel.cpp"

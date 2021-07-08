@@ -205,6 +205,7 @@ int size, char *dat, char const *name){
 #include "poisson_apply_bc_kernel.cu"
 #include "poisson_cells_kernel.cu"
 #include "poisson_edges_kernel.cu"
+#include "poisson_pre_kernel.cu"
 #include "poisson_op1_kernel.cu"
 #include "poisson_op2_kernel.cu"
 #include "poisson_op3_kernel.cu"

@@ -63,6 +63,7 @@ extern double gFInterp2R_g[105];
 #include "poisson_apply_bc_kernel.cpp"
 #include "poisson_cells_kernel.cpp"
 #include "poisson_edges_kernel.cpp"
+#include "poisson_pre_kernel.cpp"
 #include "poisson_op1_kernel.cpp"
 #include "poisson_op2_kernel.cpp"
 #include "poisson_op3_kernel.cpp"
