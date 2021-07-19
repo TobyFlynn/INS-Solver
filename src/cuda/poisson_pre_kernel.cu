@@ -3,15 +3,16 @@
 //
 
 //user function
-__device__ void poisson_pre_gpu( const double *in, const double *factor,
-                        const double *mmInv, double *out) {
+__device__ void poisson_pre_gpu( const double *in, const double *pre, double *out) {
 
 
   for(int i = 0; i < 15; i++) {
     out[i] = 0.0;
+
     for(int j = 0; j < 15; j++) {
       int mm_ind = j * 15 + i;
-      out[i] += mmInv[mm_ind] * (1.0 / factor[j]) * in[j];
+
+      out[i] += pre[mm_ind] * in[j];
     }
   }
 
@@ -21,8 +22,7 @@ __device__ void poisson_pre_gpu( const double *in, const double *factor,
 __global__ void op_cuda_poisson_pre(
   const double *__restrict arg0,
   const double *__restrict arg1,
-  const double *__restrict arg2,
-  double *arg3,
+  double *arg2,
   int   set_size ) {
 
 
@@ -31,9 +31,8 @@ __global__ void op_cuda_poisson_pre(
 
     //user-supplied kernel call
     poisson_pre_gpu(arg0+n*15,
-                arg1+n*15,
-                arg2+n*225,
-                arg3+n*15);
+                arg1+n*225,
+                arg2+n*15);
   }
 }
 
@@ -42,16 +41,14 @@ __global__ void op_cuda_poisson_pre(
 void op_par_loop_poisson_pre(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
-  op_arg arg2,
-  op_arg arg3){
+  op_arg arg2){
 
-  int nargs = 4;
-  op_arg args[4];
+  int nargs = 3;
+  op_arg args[3];
 
   args[0] = arg0;
   args[1] = arg1;
   args[2] = arg2;
-  args[3] = arg3;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -81,7 +78,6 @@ void op_par_loop_poisson_pre(char const *name, op_set set,
       (double *) arg0.data_d,
       (double *) arg1.data_d,
       (double *) arg2.data_d,
-      (double *) arg3.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
@@ -91,6 +87,5 @@ void op_par_loop_poisson_pre(char const *name, op_set set,
   OP_kernels[18].time     += wall_t2 - wall_t1;
   OP_kernels[18].transfer += (float)set->size * arg0.size;
   OP_kernels[18].transfer += (float)set->size * arg1.size;
-  OP_kernels[18].transfer += (float)set->size * arg2.size;
-  OP_kernels[18].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[18].transfer += (float)set->size * arg2.size * 2.0f;
 }
