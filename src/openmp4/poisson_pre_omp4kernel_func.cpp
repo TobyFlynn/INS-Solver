@@ -23,15 +23,12 @@ void poisson_pre_omp4_kernel(
 
     //inline function
     
-
-
     for(int i = 0; i < 15; i++) {
       out[i] = 0.0;
-
       for(int j = 0; j < 15; j++) {
-        int mm_ind = j * 15 + i;
 
-        out[i] += pre[mm_ind] * in[j];
+        int ind = i * 15 + j;
+        out[i] += pre[ind] * in[j];
       }
     }
     //end inline func

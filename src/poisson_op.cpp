@@ -463,6 +463,7 @@ void PressureSolve::setup() {
   if(precondition) {
     setMatrix();
     KSPSetOperators(ksp, Amat, Amat);
+    
     PC pc;
     KSPGetPC(ksp, &pc);
     PCSetType(pc, PCGAMG);
@@ -494,23 +495,10 @@ void ViscositySolve::setup(double mmConst) {
   if(precondition) {
     setMatrix();
     KSPSetOperators(ksp, Amat, Amat);
-    // PC pc;
-    // KSPGetPC(ksp, &pc);
-    // PCSetType(pc, PCGAMG);
-    // PCGAMGSetType(pc, PCGAMGAGG);
-    // PCGAMGSetNSmooths(pc, 1);
-    // PCGAMGSetSquareGraph(pc, 0);
-    // PCSetType(pc, PCBJACOBI);
-    // PCBJacobiSetTotalBlocks(pc, mesh->numCells, NULL);
-
-
-    // PC pc;
-    // KSPGetPC(ksp, &pc);
-    // PCSetType(pc, PCSHELL);
-    // set_shell_pc(pc);
 
     PC pc;
     KSPGetPC(ksp, &pc);
-    PCSetType(pc, PCNONE);
+    PCSetType(pc, PCSHELL);
+    set_shell_pc(pc);
   }
 }

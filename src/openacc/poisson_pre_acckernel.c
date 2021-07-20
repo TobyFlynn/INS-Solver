@@ -6,15 +6,12 @@
 //user function
 //#pragma acc routine
 inline void poisson_pre_openacc( const double *in, const double *pre, double *out) {
-
-
   for(int i = 0; i < 15; i++) {
     out[i] = 0.0;
-
     for(int j = 0; j < 15; j++) {
-      int mm_ind = j * 15 + i;
 
-      out[i] += pre[mm_ind] * in[j];
+      int ind = i * 15 + j;
+      out[i] += pre[ind] * in[j];
     }
   }
 }
