@@ -199,9 +199,8 @@ extern double nu0;
 
 using namespace std;
 
-Solver::Solver(std::string filename, bool pre, int prob, bool multi) {
+Solver::Solver(std::string filename, bool pre, int prob) {
   problem = prob;
-  multiphase = multi;
 
   // Ownership of the pointers is passed to DGMesh
   // so don't have to worry about freeing them
@@ -229,9 +228,7 @@ Solver::Solver(std::string filename, bool pre, int prob, bool multi) {
                     numEdges_g, numBoundaryEdges_g, numNodes, numCells,
                     numEdges, numBoundaryEdges);
   data = new INSData(mesh);
-  if(multiphase) {
-    ls = new LS(mesh, data);
-  }
+  ls = new LS(mesh, data);
 
   pressurePoisson = new PressureSolve(mesh, data, pre);
   pressurePoisson->setDirichletBCs(pressure_dirichlet);
@@ -245,9 +242,7 @@ Solver::Solver(std::string filename, bool pre, int prob, bool multi) {
 
   mesh->init();
   data->init();
-  if(multiphase) {
-    ls->init();
-  }
+  ls->init();
   pressurePoisson->init();
   viscosityPoisson->init();
 
@@ -268,9 +263,7 @@ Solver::Solver(std::string filename, bool pre, int prob, bool multi) {
 Solver::~Solver() {
   delete viscosityPoisson;
   delete pressurePoisson;
-  if(multiphase) {
-    delete ls;
-  }
+  delete ls;
   delete data;
   delete mesh;
 }
@@ -506,10 +499,8 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
 void Solver::update_surface(int currentInd) {
   timer->startSurface();
-  if(multiphase) {
-    ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
-    ls->step(dt);
-  }
+  ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
+  ls->step(dt);
   timer->endSurface();
 }
 

@@ -91,8 +91,6 @@ __global__ void op_cuda_advection_bc(
   int start,
   int end,
   int   set_size) {
-  double arg9_l[15];
-  double arg10_l[15];
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
@@ -199,7 +197,7 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   if (OP_diags>2) {
     printf(" kernel routine with indirection: advection_bc\n");
   }
-  int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //transfer constants to GPU
@@ -231,7 +229,7 @@ void op_par_loop_advection_bc(char const *name, op_set set,
 
     for ( int round=0; round<2; round++ ){
       if (round==1) {
-        op_mpi_wait_all_cuda(nargs, args);
+        op_mpi_wait_all_grouped(nargs, args, 2);
       }
       int start = round==0 ? 0 : set->core_size;
       int end = round==0 ? set->core_size : set->size + set->exec_size;

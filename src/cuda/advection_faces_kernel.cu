@@ -72,18 +72,6 @@ __global__ void op_cuda_advection_faces(
   int start,
   int end,
   int   set_size) {
-  double arg6_l[15];
-  double arg7_l[15];
-  double arg8_l[15];
-  double arg9_l[15];
-  double *arg6_vec[2] = {
-    arg6_l,
-    arg7_l,
-  };
-  double *arg8_vec[2] = {
-    arg8_l,
-    arg9_l,
-  };
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
@@ -115,11 +103,11 @@ __global__ void op_cuda_advection_faces(
        &ind_arg1[15 * map2idx],
        &ind_arg1[15 * map3idx]};
     double* arg6_vec[] = {
-       &ind_arg2[15 * map2idx],
-       &ind_arg2[15 * map3idx]};
+      arg6_l,
+      arg7_l};
     double* arg8_vec[] = {
-       &ind_arg3[15 * map2idx],
-       &ind_arg3[15 * map3idx]};
+      arg8_l,
+      arg9_l};
 
     //user-supplied kernel call
     advection_faces_gpu(arg0+n*2,
@@ -245,7 +233,7 @@ void op_par_loop_advection_faces(char const *name, op_set set,
   if (OP_diags>2) {
     printf(" kernel routine with indirection: advection_faces\n");
   }
-  int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //set CUDA execution parameters
@@ -257,7 +245,7 @@ void op_par_loop_advection_faces(char const *name, op_set set,
 
     for ( int round=0; round<2; round++ ){
       if (round==1) {
-        op_mpi_wait_all_cuda(nargs, args);
+        op_mpi_wait_all_grouped(nargs, args, 2);
       }
       int start = round==0 ? 0 : set->core_size;
       int end = round==0 ? set->core_size : set->size + set->exec_size;

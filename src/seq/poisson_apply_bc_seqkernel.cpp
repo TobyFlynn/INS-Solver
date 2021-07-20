@@ -29,13 +29,13 @@ void op_par_loop_poisson_apply_bc(char const *name, op_set set,
     printf(" kernel routine with indirection: poisson_apply_bc\n");
   }
 
-  int set_size = op_mpi_halo_exchanges(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 1);
 
-  if (set_size >0) {
+  if (set_size > 0) {
 
     for ( int n=0; n<set_size; n++ ){
       if (n==set->core_size) {
-        op_mpi_wait_all(nargs, args);
+        op_mpi_wait_all_grouped(nargs, args, 1);
       }
       int map2idx;
       map2idx = arg2.map_data[n * arg2.map->dim + 0];

@@ -67,7 +67,7 @@ void op_par_loop_ls_step(char const *name, op_set set,
     printf(" kernel routine w/o indirection:  ls_step");
   }
 
-  int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //transfer constants to GPU

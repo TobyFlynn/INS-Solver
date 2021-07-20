@@ -54,9 +54,9 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
     printf(" kernel routine w/o indirection:  advection_intermediate_vel");
   }
 
-  int set_size = op_mpi_halo_exchanges(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 1);
 
-  if (set_size >0) {
+  if (set_size > 0) {
 
     for ( int n=0; n<set_size; n++ ){
       advection_intermediate_vel(

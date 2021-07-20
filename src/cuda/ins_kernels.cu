@@ -78,6 +78,9 @@ int size, char *dat, char const *name){
   }
   else
   if (!strcmp(name,"FMASK")) {
+    if (!strcmp(name,"FMASK") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(FMASK_cuda, dat, dim*size));
   }
   else
@@ -90,94 +93,163 @@ int size, char *dat, char const *name){
   }
   else
   if (!strcmp(name,"cubW_g")) {
+    if (!strcmp(name,"cubW_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(cubW_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"cubV_g")) {
+    if (!strcmp(name,"cubV_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(cubV_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"cubVDr_g")) {
+    if (!strcmp(name,"cubVDr_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(cubVDr_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"cubVDs_g")) {
+    if (!strcmp(name,"cubVDs_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(cubVDs_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gF0Dr_g")) {
+    if (!strcmp(name,"gF0Dr_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gF0Dr_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gF0Ds_g")) {
+    if (!strcmp(name,"gF0Ds_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gF0Ds_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gF1Dr_g")) {
+    if (!strcmp(name,"gF1Dr_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gF1Dr_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gF1Ds_g")) {
+    if (!strcmp(name,"gF1Ds_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gF1Ds_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gF2Dr_g")) {
+    if (!strcmp(name,"gF2Dr_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gF2Dr_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gF2Ds_g")) {
+    if (!strcmp(name,"gF2Ds_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gF2Ds_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gaussW_g")) {
+    if (!strcmp(name,"gaussW_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gaussW_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gFInterp0_g")) {
+    if (!strcmp(name,"gFInterp0_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gFInterp0_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gFInterp1_g")) {
+    if (!strcmp(name,"gFInterp1_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gFInterp1_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gFInterp2_g")) {
+    if (!strcmp(name,"gFInterp2_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gFInterp2_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gF0DrR_g")) {
+    if (!strcmp(name,"gF0DrR_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gF0DrR_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gF0DsR_g")) {
+    if (!strcmp(name,"gF0DsR_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gF0DsR_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gF1DrR_g")) {
+    if (!strcmp(name,"gF1DrR_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gF1DrR_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gF1DsR_g")) {
+    if (!strcmp(name,"gF1DsR_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gF1DsR_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gF2DrR_g")) {
+    if (!strcmp(name,"gF2DrR_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gF2DrR_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gF2DsR_g")) {
+    if (!strcmp(name,"gF2DsR_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gF2DsR_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gFInterp0R_g")) {
+    if (!strcmp(name,"gFInterp0R_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gFInterp0R_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gFInterp1R_g")) {
+    if (!strcmp(name,"gFInterp1R_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gFInterp1R_g_cuda, dat, dim*size));
   }
   else
   if (!strcmp(name,"gFInterp2R_g")) {
+    if (!strcmp(name,"gFInterp2R_g") && size>MAX_CONST_SIZE) {
+      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
+    }
     cutilSafeCall(cudaMemcpyToSymbol(gFInterp2R_g_cuda, dat, dim*size));
   }
   else

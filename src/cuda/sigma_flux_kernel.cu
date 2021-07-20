@@ -61,18 +61,6 @@ __global__ void op_cuda_sigma_flux(
   int start,
   int end,
   int   set_size) {
-  double arg10_l[21];
-  double arg11_l[21];
-  double arg12_l[21];
-  double arg13_l[21];
-  double *arg10_vec[2] = {
-    arg10_l,
-    arg11_l,
-  };
-  double *arg12_vec[2] = {
-    arg12_l,
-    arg13_l,
-  };
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
@@ -110,11 +98,11 @@ __global__ void op_cuda_sigma_flux(
        &ind_arg3[21 * map2idx],
        &ind_arg3[21 * map3idx]};
     double* arg10_vec[] = {
-       &ind_arg4[21 * map2idx],
-       &ind_arg4[21 * map3idx]};
+      arg10_l,
+      arg11_l};
     double* arg12_vec[] = {
-       &ind_arg5[21 * map2idx],
-       &ind_arg5[21 * map3idx]};
+      arg12_l,
+      arg13_l};
 
     //user-supplied kernel call
     sigma_flux_gpu(arg0+n*2,
@@ -280,7 +268,7 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   if (OP_diags>2) {
     printf(" kernel routine with indirection: sigma_flux\n");
   }
-  int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //set CUDA execution parameters
@@ -292,7 +280,7 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
 
     for ( int round=0; round<2; round++ ){
       if (round==1) {
-        op_mpi_wait_all_cuda(nargs, args);
+        op_mpi_wait_all_grouped(nargs, args, 2);
       }
       int start = round==0 ? 0 : set->core_size;
       int end = round==0 ? set->core_size : set->size + set->exec_size;

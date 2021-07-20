@@ -53,12 +53,6 @@ __global__ void op_cuda_gauss_reverse(
   int start,
   int end,
   int   set_size) {
-  int arg5_l[3];
-  int arg6_l[3];
-  int *arg5_vec[2] = {
-    arg5_l,
-    arg6_l,
-  };
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
@@ -82,8 +76,8 @@ __global__ void op_cuda_gauss_reverse(
        &ind_arg1[3 * map1idx],
        &ind_arg1[3 * map2idx]};
     int* arg5_vec[] = {
-       &ind_arg2[3 * map1idx],
-       &ind_arg2[3 * map2idx]};
+      arg5_l,
+      arg6_l};
 
     //user-supplied kernel call
     gauss_reverse_gpu(arg0+n*2,
@@ -144,7 +138,7 @@ void op_par_loop_gauss_reverse(char const *name, op_set set,
   if (OP_diags>2) {
     printf(" kernel routine with indirection: gauss_reverse\n");
   }
-  int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //set CUDA execution parameters
@@ -156,7 +150,7 @@ void op_par_loop_gauss_reverse(char const *name, op_set set,
 
     for ( int round=0; round<2; round++ ){
       if (round==1) {
-        op_mpi_wait_all_cuda(nargs, args);
+        op_mpi_wait_all_grouped(nargs, args, 2);
       }
       int start = round==0 ? 0 : set->core_size;
       int end = round==0 ? set->core_size : set->size + set->exec_size;

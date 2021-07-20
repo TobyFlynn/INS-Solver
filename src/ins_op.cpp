@@ -91,10 +91,6 @@ int main(int argc, char **argv) {
   int problem = 0;
   PetscOptionsGetInt(NULL, NULL, "-problem", &problem, &found);
 
-  int temp = 0;
-  PetscOptionsGetInt(NULL, NULL, "-multiphase", &temp, &found);
-  bool multiphase = (temp == 1);
-
   char inputFile[255];
   PetscOptionsGetString(NULL, NULL, "-input", inputFile, 255, &found);
   if(!found) {
@@ -128,7 +124,7 @@ int main(int argc, char **argv) {
   op_printf("reynolds: %g\n", reynolds);
   op_printf("froude: %g\n", froude);
 
-  Solver *solver = new Solver(filename, pre > 0, problem, multiphase);
+  Solver *solver = new Solver(filename, pre > 0, problem);
 
   double a0 = 1.0;
   double a1 = 0.0;
@@ -139,11 +135,7 @@ int main(int argc, char **argv) {
   double time = 0.0;
 
   if(save != -1) {
-    if(multiphase) {
-      save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);
-    } else {
-      save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, nullptr);
-    }
+    save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);
   }
 
   timer->endSetup();
@@ -192,11 +184,7 @@ int main(int argc, char **argv) {
       op_printf("Iteration: %d Time: %g\n", i, time);
 
       timer->startSave();
-      if(multiphase) {
-        save_solution_iter(outputDir + "sol.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, (i + 1) / save);
-      } else {
-        save_solution_iter(outputDir + "sol.cgns", solver->mesh, solver->data, currentIter % 2, nullptr, (i + 1) / save);
-      }
+      save_solution_iter(outputDir + "sol.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, (i + 1) / save);
       timer->endSave();
     }
   }
@@ -206,11 +194,7 @@ int main(int argc, char **argv) {
     save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
 
   // Save solution to CGNS file
-  if(multiphase) {
-    save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, time, nu0);
-  } else {
-    save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, nullptr, time, nu0);
-  }
+  save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, time, nu0);
 
   timer->endWallTime();
   timer->exportTimings(outputDir + "timings.csv", iter, time);
