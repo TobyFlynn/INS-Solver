@@ -33,6 +33,10 @@ void op_par_loop_advection_flux(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_zero_dats(char const *, op_set,
+  op_arg,
+  op_arg );
+
 void op_par_loop_advection_faces(char const *, op_set,
   op_arg,
   op_arg,
@@ -281,6 +285,10 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
   div(mesh, data->F[0], data->F[1], data->N[currentInd][0]);
   div(mesh, data->F[2], data->F[3], data->N[currentInd][1]);
 
+  op_par_loop_zero_dats("zero_dats",mesh->cells,
+              op_arg_dat(data->exQ[0],-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->exQ[1],-1,OP_ID,15,"double",OP_WRITE));
+
   // Exchange values on edges between elements
   op_par_loop_advection_faces("advection_faces",mesh->edges,
               op_arg_dat(mesh->edgeNum,-1,OP_ID,2,"int",OP_READ),
@@ -406,6 +414,10 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
 
   // Calculate gradient of pressure
   grad(mesh, data->p, data->dpdx, data->dpdy);
+
+  op_par_loop_zero_dats("zero_dats",mesh->cells,
+              op_arg_dat(data->pFluxX,-1,OP_ID,15,"double",OP_WRITE),
+              op_arg_dat(data->pFluxY,-1,OP_ID,15,"double",OP_WRITE));
 
   op_par_loop_pressure_grad_flux("pressure_grad_flux",mesh->edges,
               op_arg_dat(mesh->edgeNum,-1,OP_ID,2,"int",OP_READ),

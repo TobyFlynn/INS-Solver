@@ -68,6 +68,7 @@ extern double gFInterp2R_g[105];
 #include "set_ic_seqkernel.cpp"
 #include "calc_dt_seqkernel.cpp"
 #include "advection_flux_seqkernel.cpp"
+#include "zero_dats_seqkernel.cpp"
 #include "advection_faces_seqkernel.cpp"
 #include "advection_bc_seqkernel.cpp"
 #include "advection_numerical_flux_seqkernel.cpp"

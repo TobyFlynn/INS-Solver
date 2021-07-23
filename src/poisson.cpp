@@ -317,13 +317,41 @@ void PressureSolve::setup() {
 
   if(precondition) {
     setMatrix();
-    KSPSetOperators(ksp, Amat, Amat);
-    
+
     PC pc;
     KSPGetPC(ksp, &pc);
     PCSetType(pc, PCGAMG);
     PCGAMGSetNSmooths(pc, 3);
     PCGAMGSetSquareGraph(pc, 0);
+    PCGAMGSetNlevels(pc, 5);
+    PCMGSetLevels(pc, 10, NULL);
+    PCMGSetCycleType(pc, PC_MG_CYCLE_W);
+    PCGAMGSetRepartition(pc, PETSC_TRUE);
+    PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
+
+    // PetscOptionsSetValue(NULL, "-pc_type", "gamg");
+    // PetscOptionsSetValue(NULL, "-pc_gamg_agg_nsmooths", "3");
+    // PetscOptionsSetValue(NULL, "-pc_mg_cycle_type", "v");
+    // PetscOptionsSetValue(NULL, "-mg_levels_ksp_max_it", "10");
+
+    // PetscOptionsSetValue(NULL, "-pc_type", "ml");
+    // PetscOptionsSetValue(NULL, "-pc_ml_maxNlevels", "10");
+    // PetscOptionsSetValue(NULL, "-pc_mg_cycle_type", "w");
+    // PetscOptionsSetValue(NULL, "-mg_levels_ksp_max_it", "4");
+
+    // PetscOptionsSetValue(NULL, "-pc_type", "hypre");
+    // PetscOptionsSetValue(NULL, "-pc_hypre_type", "boomeramg");
+    // PetscOptionsSetValue(NULL, "-pc_hypre_boomeramg_cycle_type", "W");
+    // PetscOptionsSetValue(NULL, "--pc_hypre_boomeramg_agg_nl", "1");
+
+    // PetscOptionsSetValue(NULL, "-help", "");
+    // PCSetFromOptions(pc);
+
+    // PCSetType(pc, PCML);
+
+    // PCSetType(pc, PCHYPRE);
+
+    KSPSetOperators(ksp, Amat, Amat);
   }
 }
 

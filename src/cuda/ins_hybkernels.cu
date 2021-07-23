@@ -33,6 +33,7 @@
 #define op_par_loop_set_ic op_par_loop_set_ic_gpu
 #define op_par_loop_calc_dt op_par_loop_calc_dt_gpu
 #define op_par_loop_advection_flux op_par_loop_advection_flux_gpu
+#define op_par_loop_zero_dats op_par_loop_zero_dats_gpu
 #define op_par_loop_advection_faces op_par_loop_advection_faces_gpu
 #define op_par_loop_advection_bc op_par_loop_advection_bc_gpu
 #define op_par_loop_advection_numerical_flux op_par_loop_advection_numerical_flux_gpu
@@ -99,6 +100,7 @@
 #undef op_par_loop_set_ic
 #undef op_par_loop_calc_dt
 #undef op_par_loop_advection_flux
+#undef op_par_loop_zero_dats
 #undef op_par_loop_advection_faces
 #undef op_par_loop_advection_bc
 #undef op_par_loop_advection_numerical_flux
@@ -165,6 +167,7 @@
 #define op_par_loop_set_ic op_par_loop_set_ic_cpu
 #define op_par_loop_calc_dt op_par_loop_calc_dt_cpu
 #define op_par_loop_advection_flux op_par_loop_advection_flux_cpu
+#define op_par_loop_zero_dats op_par_loop_zero_dats_cpu
 #define op_par_loop_advection_faces op_par_loop_advection_faces_cpu
 #define op_par_loop_advection_bc op_par_loop_advection_bc_cpu
 #define op_par_loop_advection_numerical_flux op_par_loop_advection_numerical_flux_cpu
@@ -231,6 +234,7 @@
 #undef op_par_loop_set_ic
 #undef op_par_loop_calc_dt
 #undef op_par_loop_advection_flux
+#undef op_par_loop_zero_dats
 #undef op_par_loop_advection_faces
 #undef op_par_loop_advection_bc
 #undef op_par_loop_advection_numerical_flux
@@ -2098,6 +2102,40 @@ void op_par_loop_advection_flux(char const *name, op_set set,
     arg3,
     arg4,
     arg5);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_zero_dats_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_zero_dats(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_zero_dats_gpu(name, set,
+      arg0,
+      arg1);
+
+    }else{
+    op_par_loop_zero_dats_cpu(name, set,
+      arg0,
+      arg1);
+
+  }
+}
+#else
+void op_par_loop_zero_dats(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  op_par_loop_zero_dats_gpu(name, set,
+    arg0,
+    arg1);
 
   }
 #endif //OP_HYBRID_GPU
