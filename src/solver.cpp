@@ -136,8 +136,8 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(mesh->ny,      -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->Q[currentInd][0], -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->Q[currentInd][1], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->exQ[0],  -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(data->exQ[1],  -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(data->exQ[0],  -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->exQ[1],  -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->flux[0], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->flux[1], -1, OP_ID, 15, "double", OP_WRITE));
 
@@ -262,9 +262,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->prBC, -1, OP_ID, 21, "double", OP_WRITE),
-              op_arg_dat(data->pFluxX, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->pFluxY, -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(data->prBC, -1, OP_ID, 21, "double", OP_WRITE));
 
   return converged;
 }

@@ -138,8 +138,8 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
   OP_kernels[32].transfer += (float)set->size * arg2.size;
   OP_kernels[32].transfer += (float)set->size * arg3.size;
   OP_kernels[32].transfer += (float)set->size * arg4.size;
-  OP_kernels[32].transfer += (float)set->size * arg5.size * 2.0f;
-  OP_kernels[32].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[32].transfer += (float)set->size * arg5.size;
+  OP_kernels[32].transfer += (float)set->size * arg6.size;
   OP_kernels[32].transfer += (float)set->size * arg7.size * 2.0f;
   OP_kernels[32].transfer += (float)set->size * arg8.size * 2.0f;
 }

@@ -5,8 +5,9 @@
 //user function
 __device__ void advection_numerical_flux_gpu( const double *fscale, const double *nx,
                                      const double *ny, const double *q0,
-                                     const double *q1, double *exQ0,
-                                     double *exQ1, double *flux0, double *flux1) {
+                                     const double *q1, const double *exQ0,
+                                     const double *exQ1, double *flux0,
+                                     double *flux1) {
 
   double fM[4][15];
   for(int i = 0; i < 15; i++) {
@@ -60,11 +61,6 @@ __device__ void advection_numerical_flux_gpu( const double *fscale, const double
     flux1[i] = 0.5 * fscale[i] * (-nx[i] * (fM[2][i] - fP[2][i]) - ny[i] * (fM[3][i] - fP[3][i]) - maxVel[i] * (exQ1[i] - q1[FMASK_cuda[i]]));
   }
 
-  for(int i = 0; i < 15; i++) {
-    exQ0[i] = 0.0;
-    exQ1[i] = 0.0;
-  }
-
 }
 
 // CUDA kernel function
@@ -74,8 +70,8 @@ __global__ void op_cuda_advection_numerical_flux(
   const double *__restrict arg2,
   const double *__restrict arg3,
   const double *__restrict arg4,
-  double *arg5,
-  double *arg6,
+  const double *__restrict arg5,
+  const double *__restrict arg6,
   double *arg7,
   double *arg8,
   int   set_size ) {
@@ -169,8 +165,8 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
   OP_kernels[32].transfer += (float)set->size * arg2.size;
   OP_kernels[32].transfer += (float)set->size * arg3.size;
   OP_kernels[32].transfer += (float)set->size * arg4.size;
-  OP_kernels[32].transfer += (float)set->size * arg5.size * 2.0f;
-  OP_kernels[32].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[32].transfer += (float)set->size * arg5.size;
+  OP_kernels[32].transfer += (float)set->size * arg6.size;
   OP_kernels[32].transfer += (float)set->size * arg7.size * 2.0f;
   OP_kernels[32].transfer += (float)set->size * arg8.size * 2.0f;
 }

@@ -2852,9 +2852,7 @@ void op_par_loop_pressure_update_vel_gpu(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11);
+  op_arg arg9);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -2868,9 +2866,7 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11){
+  op_arg arg9){
 
   if (OP_hybrid_gpu) {
     op_par_loop_pressure_update_vel_gpu(name, set,
@@ -2883,9 +2879,7 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
       arg6,
       arg7,
       arg8,
-      arg9,
-      arg10,
-      arg11);
+      arg9);
 
     }else{
     op_par_loop_pressure_update_vel_cpu(name, set,
@@ -2898,9 +2892,7 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
       arg6,
       arg7,
       arg8,
-      arg9,
-      arg10,
-      arg11);
+      arg9);
 
   }
 }
@@ -2915,9 +2907,7 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11){
+  op_arg arg9){
 
   op_par_loop_pressure_update_vel_gpu(name, set,
     arg0,
@@ -2929,9 +2919,7 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
     arg6,
     arg7,
     arg8,
-    arg9,
-    arg10,
-    arg11);
+    arg9);
 
   }
 #endif //OP_HYBRID_GPU
