@@ -465,6 +465,11 @@ void PressureSolve::setup() {
 
     PC pc;
     KSPGetPC(ksp, &pc);
+    // PCSetType(pc, PCILU);
+
+    // PCSetType(pc, PCASM);
+    // PCASMSetTotalSubdomains(pc, 2, NULL, NULL);
+
     PCSetType(pc, PCGAMG);
     PCGAMGSetNSmooths(pc, 3);
     PCGAMGSetSquareGraph(pc, 0);
@@ -486,6 +491,8 @@ void PressureSolve::setup() {
 
     // PetscOptionsSetValue(NULL, "-pc_type", "hypre");
     // PetscOptionsSetValue(NULL, "-pc_hypre_type", "boomeramg");
+    // PetscOptionsSetValue(NULL, "-pc_hypre_boomeramg_coarsen_type", "PMIS");
+    // PetscOptionsSetValue(NULL, "-pc_hypre_boomeramg_interp_type", "direct");
     // PetscOptionsSetValue(NULL, "-pc_hypre_boomeramg_cycle_type", "W");
     // PetscOptionsSetValue(NULL, "--pc_hypre_boomeramg_agg_nl", "1");
 
