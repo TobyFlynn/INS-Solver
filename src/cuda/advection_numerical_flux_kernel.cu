@@ -5,8 +5,9 @@
 //user function
 __device__ void advection_numerical_flux_gpu( const double *fscale, const double *nx,
                                      const double *ny, const double *q0,
-                                     const double *q1, double *exQ0,
-                                     double *exQ1, double *flux0, double *flux1) {
+                                     const double *q1, const double *exQ0,
+                                     const double *exQ1, double *flux0,
+                                     double *flux1) {
 
   double fM[4][15];
   for(int i = 0; i < 15; i++) {
@@ -60,11 +61,6 @@ __device__ void advection_numerical_flux_gpu( const double *fscale, const double
     flux1[i] = 0.5 * fscale[i] * (-nx[i] * (fM[2][i] - fP[2][i]) - ny[i] * (fM[3][i] - fP[3][i]) - maxVel[i] * (exQ1[i] - q1[FMASK_cuda[i]]));
   }
 
-  for(int i = 0; i < 15; i++) {
-    exQ0[i] = 0.0;
-    exQ1[i] = 0.0;
-  }
-
 }
 
 // CUDA kernel function
@@ -74,8 +70,8 @@ __global__ void op_cuda_advection_numerical_flux(
   const double *__restrict arg2,
   const double *__restrict arg3,
   const double *__restrict arg4,
-  double *arg5,
-  double *arg6,
+  const double *__restrict arg5,
+  const double *__restrict arg6,
   double *arg7,
   double *arg8,
   int   set_size ) {
@@ -125,22 +121,22 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(30);
+  op_timing_realloc(32);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[30].name      = name;
-  OP_kernels[30].count    += 1;
+  OP_kernels[32].name      = name;
+  OP_kernels[32].count    += 1;
 
 
   if (OP_diags>2) {
     printf(" kernel routine w/o indirection:  advection_numerical_flux");
   }
 
-  int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_30
-      int nthread = OP_BLOCK_SIZE_30;
+    #ifdef OP_BLOCK_SIZE_32
+      int nthread = OP_BLOCK_SIZE_32;
     #else
       int nthread = OP_block_size;
     #endif
@@ -163,14 +159,14 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[30].time     += wall_t2 - wall_t1;
-  OP_kernels[30].transfer += (float)set->size * arg0.size;
-  OP_kernels[30].transfer += (float)set->size * arg1.size;
-  OP_kernels[30].transfer += (float)set->size * arg2.size;
-  OP_kernels[30].transfer += (float)set->size * arg3.size;
-  OP_kernels[30].transfer += (float)set->size * arg4.size;
-  OP_kernels[30].transfer += (float)set->size * arg5.size * 2.0f;
-  OP_kernels[30].transfer += (float)set->size * arg6.size * 2.0f;
-  OP_kernels[30].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[30].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[32].time     += wall_t2 - wall_t1;
+  OP_kernels[32].transfer += (float)set->size * arg0.size;
+  OP_kernels[32].transfer += (float)set->size * arg1.size;
+  OP_kernels[32].transfer += (float)set->size * arg2.size;
+  OP_kernels[32].transfer += (float)set->size * arg3.size;
+  OP_kernels[32].transfer += (float)set->size * arg4.size;
+  OP_kernels[32].transfer += (float)set->size * arg5.size;
+  OP_kernels[32].transfer += (float)set->size * arg6.size;
+  OP_kernels[32].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[32].transfer += (float)set->size * arg8.size * 2.0f;
 }

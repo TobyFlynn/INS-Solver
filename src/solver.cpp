@@ -20,9 +20,8 @@ extern double nu0;
 
 using namespace std;
 
-Solver::Solver(std::string filename, bool pre, int prob, bool multi) {
+Solver::Solver(std::string filename, bool pre, int prob) {
   problem = prob;
-  multiphase = multi;
 
   // Ownership of the pointers is passed to DGMesh
   // so don't have to worry about freeing them
@@ -50,9 +49,7 @@ Solver::Solver(std::string filename, bool pre, int prob, bool multi) {
                     numEdges_g, numBoundaryEdges_g, numNodes, numCells,
                     numEdges, numBoundaryEdges);
   data = new INSData(mesh);
-  if(multiphase) {
-    ls = new LS(mesh, data);
-  }
+  ls = new LS(mesh, data);
 
   pressurePoisson = new PressureSolve(mesh, data, pre);
   pressurePoisson->setDirichletBCs(pressure_dirichlet);
@@ -65,9 +62,7 @@ Solver::Solver(std::string filename, bool pre, int prob, bool multi) {
 
   mesh->init();
   data->init();
-  if(multiphase) {
-    ls->init();
-  }
+  ls->init();
   pressurePoisson->init();
   viscosityPoisson->init();
 
@@ -88,9 +83,7 @@ Solver::Solver(std::string filename, bool pre, int prob, bool multi) {
 Solver::~Solver() {
   delete viscosityPoisson;
   delete pressurePoisson;
-  if(multiphase) {
-    delete ls;
-  }
+  delete ls;
   delete data;
   delete mesh;
 }
@@ -108,6 +101,10 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
 
   div(mesh, data->F[0], data->F[1], data->N[currentInd][0]);
   div(mesh, data->F[2], data->F[3], data->N[currentInd][1]);
+
+  op_par_loop(zero_dats, "zero_dats", mesh->cells,
+              op_arg_dat(data->exQ[0], -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->exQ[1], -1, OP_ID, 15, "double", OP_WRITE));
 
   // Exchange values on edges between elements
   op_par_loop(advection_faces, "advection_faces", mesh->edges,
@@ -139,8 +136,8 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(mesh->ny,      -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->Q[currentInd][0], -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->Q[currentInd][1], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->exQ[0],  -1, OP_ID, 15, "double", OP_RW),
-              op_arg_dat(data->exQ[1],  -1, OP_ID, 15, "double", OP_RW),
+              op_arg_dat(data->exQ[0],  -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(data->exQ[1],  -1, OP_ID, 15, "double", OP_READ),
               op_arg_dat(data->flux[0], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->flux[1], -1, OP_ID, 15, "double", OP_WRITE));
 
@@ -235,6 +232,10 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   // Calculate gradient of pressure
   grad(mesh, data->p, data->dpdx, data->dpdy);
 
+  op_par_loop(zero_dats, "zero_dats", mesh->cells,
+              op_arg_dat(data->pFluxX, -1, OP_ID, 15, "double", OP_WRITE),
+              op_arg_dat(data->pFluxY, -1, OP_ID, 15, "double", OP_WRITE));
+
   op_par_loop(pressure_grad_flux, "pressure_grad_flux", mesh->edges,
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
@@ -261,9 +262,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QTT[0], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->QTT[1], -1, OP_ID, 15, "double", OP_WRITE),
               op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->prBC, -1, OP_ID, 21, "double", OP_WRITE),
-              op_arg_dat(data->pFluxX, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(data->pFluxY, -1, OP_ID, 15, "double", OP_WRITE),);
+              op_arg_dat(data->prBC, -1, OP_ID, 21, "double", OP_WRITE));
 
   return converged;
 }
@@ -326,10 +325,8 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
 void Solver::update_surface(int currentInd) {
   timer->startSurface();
-  if(multiphase) {
-    ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
-    ls->step(dt);
-  }
+  ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
+  ls->step(dt);
   timer->endSurface();
 }
 

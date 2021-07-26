@@ -81,22 +81,22 @@ void op_par_loop_ls_rhs(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(55);
+  op_timing_realloc(57);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[55].name      = name;
-  OP_kernels[55].count    += 1;
+  OP_kernels[57].name      = name;
+  OP_kernels[57].count    += 1;
 
 
   if (OP_diags>2) {
     printf(" kernel routine w/o indirection:  ls_rhs");
   }
 
-  int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_55
-      int nthread = OP_BLOCK_SIZE_55;
+    #ifdef OP_BLOCK_SIZE_57
+      int nthread = OP_BLOCK_SIZE_57;
     #else
       int nthread = OP_block_size;
     #endif
@@ -116,11 +116,11 @@ void op_par_loop_ls_rhs(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[55].time     += wall_t2 - wall_t1;
-  OP_kernels[55].transfer += (float)set->size * arg0.size;
-  OP_kernels[55].transfer += (float)set->size * arg1.size;
-  OP_kernels[55].transfer += (float)set->size * arg2.size;
-  OP_kernels[55].transfer += (float)set->size * arg3.size;
-  OP_kernels[55].transfer += (float)set->size * arg4.size;
-  OP_kernels[55].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[57].time     += wall_t2 - wall_t1;
+  OP_kernels[57].transfer += (float)set->size * arg0.size;
+  OP_kernels[57].transfer += (float)set->size * arg1.size;
+  OP_kernels[57].transfer += (float)set->size * arg2.size;
+  OP_kernels[57].transfer += (float)set->size * arg3.size;
+  OP_kernels[57].transfer += (float)set->size * arg4.size;
+  OP_kernels[57].transfer += (float)set->size * arg5.size * 2.0f;
 }

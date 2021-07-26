@@ -65,12 +65,6 @@ __global__ void op_cuda_diff_flux(
   int start,
   int end,
   int   set_size) {
-  double arg12_l[21];
-  double arg13_l[21];
-  double *arg12_vec[2] = {
-    arg12_l,
-    arg13_l,
-  };
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
@@ -103,8 +97,8 @@ __global__ void op_cuda_diff_flux(
        &ind_arg4[21 * map2idx],
        &ind_arg4[21 * map3idx]};
     double* arg12_vec[] = {
-       &ind_arg5[21 * map2idx],
-       &ind_arg5[21 * map3idx]};
+      arg12_l,
+      arg13_l};
 
     //user-supplied kernel call
     diff_flux_gpu(arg0+n*2,
@@ -216,10 +210,10 @@ void op_par_loop_diff_flux(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(60);
+  op_timing_realloc(62);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[60].name      = name;
-  OP_kernels[60].count    += 1;
+  OP_kernels[62].name      = name;
+  OP_kernels[62].count    += 1;
 
 
   int    ninds   = 6;
@@ -228,19 +222,19 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   if (OP_diags>2) {
     printf(" kernel routine with indirection: diff_flux\n");
   }
-  int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_60
-      int nthread = OP_BLOCK_SIZE_60;
+    #ifdef OP_BLOCK_SIZE_62
+      int nthread = OP_BLOCK_SIZE_62;
     #else
       int nthread = OP_block_size;
     #endif
 
     for ( int round=0; round<2; round++ ){
       if (round==1) {
-        op_mpi_wait_all_cuda(nargs, args);
+        op_mpi_wait_all_grouped(nargs, args, 2);
       }
       int start = round==0 ? 0 : set->core_size;
       int end = round==0 ? set->core_size : set->size + set->exec_size;
@@ -264,5 +258,5 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[60].time     += wall_t2 - wall_t1;
+  OP_kernels[62].time     += wall_t2 - wall_t1;
 }

@@ -20,7 +20,7 @@ void op_par_loop_calc_dt(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(26);
+  op_timing_realloc(27);
   op_timers_core(&cpu_t1, &wall_t1);
 
 
@@ -28,9 +28,9 @@ void op_par_loop_calc_dt(char const *name, op_set set,
     printf(" kernel routine w/o indirection:  calc_dt");
   }
 
-  int set_size = op_mpi_halo_exchanges(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 1);
 
-  if (set_size >0) {
+  if (set_size > 0) {
 
     for ( int n=0; n<set_size; n++ ){
       calc_dt(
@@ -46,9 +46,9 @@ void op_par_loop_calc_dt(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[26].name      = name;
-  OP_kernels[26].count    += 1;
-  OP_kernels[26].time     += wall_t2 - wall_t1;
-  OP_kernels[26].transfer += (float)set->size * arg0.size;
-  OP_kernels[26].transfer += (float)set->size * arg1.size;
+  OP_kernels[27].name      = name;
+  OP_kernels[27].count    += 1;
+  OP_kernels[27].time     += wall_t2 - wall_t1;
+  OP_kernels[27].transfer += (float)set->size * arg0.size;
+  OP_kernels[27].transfer += (float)set->size * arg1.size;
 }

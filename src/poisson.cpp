@@ -36,6 +36,11 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
     glb_indBC_data = (int *)calloc(mesh->numBoundaryEdges, sizeof(int));
   }
 
+  in_data  = (double *)calloc(15 * mesh->numCells, sizeof(double));
+  out_data = (double *)calloc(15 * mesh->numCells, sizeof(double));
+  tmp_data = (double *)calloc(15 * 15 * mesh->numCells, sizeof(double));
+  pre_data = (double *)calloc(15 * 15 * mesh->numCells, sizeof(double));
+
   u      = op_decl_dat(mesh->cells, 15, "double", u_data, "poisson_u");
   rhs    = op_decl_dat(mesh->cells, 15, "double", rhs_data, "poisson_rhs");
   h      = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
@@ -55,6 +60,11 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
     glb_indR  = op_decl_dat(mesh->edges, 1, "int", glb_indR_data, "poisson_glb_indR");
     glb_indBC = op_decl_dat(mesh->bedges, 1, "int", glb_indBC_data, "poisson_glb_indBC");
   }
+
+  in  = op_decl_dat(mesh->cells, 15, "double", in_data, "poisson_in");
+  out = op_decl_dat(mesh->cells, 15, "double", out_data, "poisson_out");
+  tmp = op_decl_dat(mesh->cells, 15 * 15, "double", tmp_data, "poisson_tmp");
+  pre = op_decl_dat(mesh->cells, 15 * 15, "double", pre_data, "poisson_pre");
 }
 
 PoissonSolve::~PoissonSolve() {
@@ -77,6 +87,11 @@ PoissonSolve::~PoissonSolve() {
     free(glb_indR_data);
     free(glb_indBC_data);
   }
+
+  free(in_data);
+  free(out_data);
+  free(tmp_data);
+  free(pre_data);
 
   destroy_vec(&b);
   destroy_vec(&x);
@@ -177,7 +192,7 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
 
 void PoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
   // Copy u to OP2 dat
-  copy_u(u_d);
+  copy_vec_to_dat(u, u_d);
 
   op_par_loop(poisson_cells, "poisson_cells", mesh->cells,
               op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
@@ -192,7 +207,18 @@ void PoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
               op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
               op_arg_dat(rhs, 1, mesh->edge2cells, 15, "double", OP_INC));
 
-  copy_rhs(rhs_d);
+  copy_dat_to_vec(rhs, rhs_d);
+}
+
+void PoissonSolve::precond(const double *in_d, double *out_d) {
+  copy_vec_to_dat(in, in_d);
+
+  op_par_loop(poisson_pre, "poisson_pre", mesh->cells,
+              op_arg_dat(in, -1, OP_ID, 15, "double", OP_READ),
+              op_arg_dat(pre, -1, OP_ID, 15 * 15, "double", OP_READ),
+              op_arg_dat(out, -1, OP_ID, 15, "double", OP_WRITE));
+
+  copy_dat_to_vec(out, out_d);
 }
 
 void PoissonSolve::set_op() {
@@ -256,7 +282,10 @@ void PoissonSolve::set_op() {
     op_par_loop(poisson_op4, "poisson_op4", mesh->cells,
                 op_arg_dat(mesh->cubature->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
                 op_arg_dat(mmFactor, -1, OP_ID, 15, "double", OP_READ),
-                op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_INC));
+                op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_INC),
+                op_arg_dat(tmp, -1, OP_ID, 15 * 15, "double", OP_WRITE));
+
+    inv_blas(mesh, op1, pre);
   }
 
   op_par_loop(poisson_op5, "poisson_op5", mesh->bedges,
@@ -288,15 +317,59 @@ void PressureSolve::setup() {
 
   if(precondition) {
     setMatrix();
-    KSPSetOperators(ksp, Amat, Amat);
+
     PC pc;
     KSPGetPC(ksp, &pc);
+    // PCSetType(pc, PCILU);
+
+    // PCSetType(pc, PCASM);
+    // PCASMSetTotalSubdomains(pc, 2, NULL, NULL);
+
     PCSetType(pc, PCGAMG);
+    PCGAMGSetNSmooths(pc, 3);
+    PCGAMGSetSquareGraph(pc, 0);
+    PCGAMGSetNlevels(pc, 5);
+    PCMGSetLevels(pc, 10, NULL);
+    PCMGSetCycleType(pc, PC_MG_CYCLE_W);
+    PCGAMGSetRepartition(pc, PETSC_TRUE);
+    PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
+
+    // PetscOptionsSetValue(NULL, "-pc_type", "gamg");
+    // PetscOptionsSetValue(NULL, "-pc_gamg_agg_nsmooths", "3");
+    // PetscOptionsSetValue(NULL, "-pc_mg_cycle_type", "v");
+    // PetscOptionsSetValue(NULL, "-mg_levels_ksp_max_it", "10");
+
+    // PetscOptionsSetValue(NULL, "-pc_type", "ml");
+    // PetscOptionsSetValue(NULL, "-pc_ml_maxNlevels", "10");
+    // PetscOptionsSetValue(NULL, "-pc_mg_cycle_type", "w");
+    // PetscOptionsSetValue(NULL, "-mg_levels_ksp_max_it", "4");
+
+    // PetscOptionsSetValue(NULL, "-pc_type", "hypre");
+    // PetscOptionsSetValue(NULL, "-pc_hypre_type", "boomeramg");
+    // PetscOptionsSetValue(NULL, "-pc_hypre_boomeramg_coarsen_type", "PMIS");
+    // PetscOptionsSetValue(NULL, "-pc_hypre_boomeramg_interp_type", "direct");
+    // PetscOptionsSetValue(NULL, "-pc_hypre_boomeramg_cycle_type", "W");
+    // PetscOptionsSetValue(NULL, "--pc_hypre_boomeramg_agg_nl", "1");
+
+    // PetscOptionsSetValue(NULL, "-help", "");
+    // PCSetFromOptions(pc);
+
+    // PCSetType(pc, PCML);
+
+    // PCSetType(pc, PCHYPRE);
+
+    KSPSetOperators(ksp, Amat, Amat);
   }
 }
 
 void ViscositySolve::setup(double mmConst) {
   massMat = true;
+
+  if(!matCreated) {
+    create_shell_mat(&Amat);
+    matCreated = true;
+    KSPSetOperators(ksp, Amat, Amat);
+  }
 
   op_par_loop(viscosity_solve_setup, "viscosity_solve_setup", mesh->cells,
               op_arg_dat(data->nu, -1, OP_ID, 15, "double", OP_READ),
@@ -312,8 +385,10 @@ void ViscositySolve::setup(double mmConst) {
   if(precondition) {
     setMatrix();
     KSPSetOperators(ksp, Amat, Amat);
+
     PC pc;
     KSPGetPC(ksp, &pc);
-    PCSetType(pc, PCGAMG);
+    PCSetType(pc, PCSHELL);
+    set_shell_pc(pc);
   }
 }

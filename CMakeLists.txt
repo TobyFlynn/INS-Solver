@@ -30,6 +30,10 @@ if(NOT OP2DGTOOLKIT_DIR)
   set(OP2DGTOOLKIT_DIR "/home/u1717021/Code/PhD/OP2-DG-Toolkit/build")
 endif()
 
+if(NOT ARMA_DIR)
+  set(ARMA_DIR "/home/u1717021/Code/PhD/armadillo-10.5.3/build")
+endif()
+
 set(PETSC_DIR $ENV{PETSC_DIR})
 
 find_package(OpenBLAS)

@@ -34,10 +34,6 @@ __global__ void op_cuda_ls_bflux(
   int start,
   int end,
   int   set_size) {
-  double arg5_l[21];
-  double arg6_l[21];
-  double arg7_l[21];
-  double arg8_l[21];
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
@@ -186,10 +182,10 @@ void op_par_loop_ls_bflux(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(53);
+  op_timing_realloc(55);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[53].name      = name;
-  OP_kernels[53].count    += 1;
+  OP_kernels[55].name      = name;
+  OP_kernels[55].count    += 1;
 
 
   int    ninds   = 8;
@@ -198,19 +194,19 @@ void op_par_loop_ls_bflux(char const *name, op_set set,
   if (OP_diags>2) {
     printf(" kernel routine with indirection: ls_bflux\n");
   }
-  int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_53
-      int nthread = OP_BLOCK_SIZE_53;
+    #ifdef OP_BLOCK_SIZE_55
+      int nthread = OP_BLOCK_SIZE_55;
     #else
       int nthread = OP_block_size;
     #endif
 
     for ( int round=0; round<2; round++ ){
       if (round==1) {
-        op_mpi_wait_all_cuda(nargs, args);
+        op_mpi_wait_all_grouped(nargs, args, 2);
       }
       int start = round==0 ? 0 : set->core_size;
       int end = round==0 ? set->core_size : set->size + set->exec_size;
@@ -235,5 +231,5 @@ void op_par_loop_ls_bflux(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[53].time     += wall_t2 - wall_t1;
+  OP_kernels[55].time     += wall_t2 - wall_t1;
 }

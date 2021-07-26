@@ -46,7 +46,7 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(31);
+  op_timing_realloc(33);
   op_timers_core(&cpu_t1, &wall_t1);
 
 
@@ -54,9 +54,9 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
     printf(" kernel routine w/o indirection:  advection_intermediate_vel");
   }
 
-  int set_size = op_mpi_halo_exchanges(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 1);
 
-  if (set_size >0) {
+  if (set_size > 0) {
 
     for ( int n=0; n<set_size; n++ ){
       advection_intermediate_vel(
@@ -84,17 +84,17 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[31].name      = name;
-  OP_kernels[31].count    += 1;
-  OP_kernels[31].time     += wall_t2 - wall_t1;
-  OP_kernels[31].transfer += (float)set->size * arg6.size;
-  OP_kernels[31].transfer += (float)set->size * arg7.size;
-  OP_kernels[31].transfer += (float)set->size * arg8.size;
-  OP_kernels[31].transfer += (float)set->size * arg9.size;
-  OP_kernels[31].transfer += (float)set->size * arg10.size;
-  OP_kernels[31].transfer += (float)set->size * arg11.size;
-  OP_kernels[31].transfer += (float)set->size * arg12.size;
-  OP_kernels[31].transfer += (float)set->size * arg13.size;
-  OP_kernels[31].transfer += (float)set->size * arg14.size * 2.0f;
-  OP_kernels[31].transfer += (float)set->size * arg15.size * 2.0f;
+  OP_kernels[33].name      = name;
+  OP_kernels[33].count    += 1;
+  OP_kernels[33].time     += wall_t2 - wall_t1;
+  OP_kernels[33].transfer += (float)set->size * arg6.size;
+  OP_kernels[33].transfer += (float)set->size * arg7.size;
+  OP_kernels[33].transfer += (float)set->size * arg8.size;
+  OP_kernels[33].transfer += (float)set->size * arg9.size;
+  OP_kernels[33].transfer += (float)set->size * arg10.size;
+  OP_kernels[33].transfer += (float)set->size * arg11.size;
+  OP_kernels[33].transfer += (float)set->size * arg12.size;
+  OP_kernels[33].transfer += (float)set->size * arg13.size;
+  OP_kernels[33].transfer += (float)set->size * arg14.size * 2.0f;
+  OP_kernels[33].transfer += (float)set->size * arg15.size * 2.0f;
 }

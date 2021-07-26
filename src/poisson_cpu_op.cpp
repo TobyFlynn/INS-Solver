@@ -25,24 +25,24 @@ extern "C" {
 #include "mpi_helper_func.h"
 #endif
 
-// Copy u PETSc vec array to OP2 dat (TODO avoid this copy)
-void PoissonSolve::copy_u(const double *u_d) {
-  op_arg u_copy_args[] = {
-    op_arg_dat(u, -1, OP_ID, 15, "double", OP_WRITE)
+// Copy PETSc vec array to OP2 dat
+void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
+  op_arg copy_args[] = {
+    op_arg_dat(dat, -1, OP_ID, 15, "double", OP_WRITE)
   };
-  op_mpi_halo_exchanges(mesh->cells, 1, u_copy_args);
-  memcpy(u->data, u_d, u->set->size * 15 * sizeof(double));
-  op_mpi_set_dirtybit(1, u_copy_args);
+  op_mpi_halo_exchanges(dat->set, 1, copy_args);
+  memcpy(dat->data, dat_d, dat->set->size * 15 * sizeof(double));
+  op_mpi_set_dirtybit(1, copy_args);
 }
 
-// Copy rhs OP2 dat to PETSc vec array (TODO avoid this copy)
-void PoissonSolve::copy_rhs(double *rhs_d) {
-  op_arg rhs_copy_args[] = {
-    op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_READ)
+// Copy OP2 dat to PETSc vec array
+void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
+  op_arg copy_args[] = {
+    op_arg_dat(dat, -1, OP_ID, 15, "double", OP_READ)
   };
-  op_mpi_halo_exchanges(mesh->cells, 1, rhs_copy_args);
-  memcpy(rhs_d, rhs->data, rhs->set->size * 15 * sizeof(double));
-  op_mpi_set_dirtybit(1, rhs_copy_args);
+  op_mpi_halo_exchanges(dat->set, 1, copy_args);
+  memcpy(dat_d, dat->data, dat->set->size * 15 * sizeof(double));
+  op_mpi_set_dirtybit(1, copy_args);
 }
 
 // Create a PETSc vector for CPUs
@@ -102,6 +102,26 @@ void PoissonSolve::create_shell_mat(Mat *m) {
   MatCreateShell(PETSC_COMM_WORLD, 15 * mesh->cells->size, 15 * mesh->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
   MatShellSetOperation(*m, MATOP_MULT, (void(*)(void))matAMult);
   MatShellSetVecType(*m, VECSTANDARD);
+}
+
+PetscErrorCode precon(PC pc, Vec x, Vec y) {
+  PoissonSolve *poisson;
+  PCShellGetContext(pc, (void **)&poisson);
+  const double *x_ptr;
+  double *y_ptr;
+  VecGetArrayRead(x, &x_ptr);
+  VecGetArray(y, &y_ptr);
+
+  poisson->precond(x_ptr, y_ptr);
+
+  VecRestoreArrayRead(x, &x_ptr);
+  VecRestoreArray(y, &y_ptr);
+  return 0;
+}
+
+void PoissonSolve::set_shell_pc(PC pc) {
+  PCShellSetApply(pc, precon);
+  PCShellSetContext(pc, this);
 }
 
 void PoissonSolve::setGlbInd() {

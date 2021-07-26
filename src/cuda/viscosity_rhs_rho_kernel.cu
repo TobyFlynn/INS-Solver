@@ -45,22 +45,22 @@ void op_par_loop_viscosity_rhs_rho(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(40);
+  op_timing_realloc(42);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[40].name      = name;
-  OP_kernels[40].count    += 1;
+  OP_kernels[42].name      = name;
+  OP_kernels[42].count    += 1;
 
 
   if (OP_diags>2) {
     printf(" kernel routine w/o indirection:  viscosity_rhs_rho");
   }
 
-  int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_40
-      int nthread = OP_BLOCK_SIZE_40;
+    #ifdef OP_BLOCK_SIZE_42
+      int nthread = OP_BLOCK_SIZE_42;
     #else
       int nthread = OP_block_size;
     #endif
@@ -77,8 +77,8 @@ void op_par_loop_viscosity_rhs_rho(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[40].time     += wall_t2 - wall_t1;
-  OP_kernels[40].transfer += (float)set->size * arg0.size;
-  OP_kernels[40].transfer += (float)set->size * arg1.size * 2.0f;
-  OP_kernels[40].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[42].time     += wall_t2 - wall_t1;
+  OP_kernels[42].transfer += (float)set->size * arg0.size;
+  OP_kernels[42].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[42].transfer += (float)set->size * arg2.size * 2.0f;
 }
