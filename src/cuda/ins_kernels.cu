@@ -288,7 +288,6 @@ int size, char *dat, char const *name){
 #include "set_ic_kernel.cu"
 #include "calc_dt_kernel.cu"
 #include "advection_flux_kernel.cu"
-#include "zero_dats_kernel.cu"
 #include "advection_faces_kernel.cu"
 #include "advection_bc_kernel.cu"
 #include "advection_numerical_flux_kernel.cu"

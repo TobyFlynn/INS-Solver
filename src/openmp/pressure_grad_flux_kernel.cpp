@@ -60,9 +60,9 @@ void op_par_loop_pressure_grad_flux(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(38);
-  OP_kernels[38].name      = name;
-  OP_kernels[38].count    += 1;
+  op_timing_realloc(37);
+  OP_kernels[37].name      = name;
+  OP_kernels[37].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
   int  ninds   = 6;
@@ -73,8 +73,8 @@ void op_par_loop_pressure_grad_flux(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_38
-    int part_size = OP_PART_SIZE_38;
+  #ifdef OP_PART_SIZE_37
+    int part_size = OP_PART_SIZE_37;
   #else
     int part_size = OP_part_size;
   #endif
@@ -137,8 +137,8 @@ void op_par_loop_pressure_grad_flux(char const *name, op_set set,
 
       block_offset += nblocks;
     }
-    OP_kernels[38].transfer  += Plan->transfer;
-    OP_kernels[38].transfer2 += Plan->transfer2;
+    OP_kernels[37].transfer  += Plan->transfer;
+    OP_kernels[37].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -149,5 +149,5 @@ void op_par_loop_pressure_grad_flux(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[38].time     += wall_t2 - wall_t1;
+  OP_kernels[37].time     += wall_t2 - wall_t1;
 }

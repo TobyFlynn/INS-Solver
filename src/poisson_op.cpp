@@ -462,6 +462,7 @@ void PressureSolve::setup() {
 
   if(precondition) {
     setMatrix();
+    KSPSetOperators(ksp, Amat, Amat);
 
     PC pc;
     KSPGetPC(ksp, &pc);
