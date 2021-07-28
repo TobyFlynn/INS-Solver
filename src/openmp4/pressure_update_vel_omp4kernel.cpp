@@ -25,6 +25,10 @@ void pressure_update_vel_omp4_kernel(
   int dat8size,
   double *data9,
   int dat9size,
+  double *data10,
+  int dat10size,
+  double *data11,
+  int dat11size,
   int count,
   int num_teams,
   int nthread);
@@ -40,11 +44,13 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   op_arg arg6,
   op_arg arg7,
   op_arg arg8,
-  op_arg arg9){
+  op_arg arg9,
+  op_arg arg10,
+  op_arg arg11){
 
   double*arg0h = (double *)arg0.data;
-  int nargs = 10;
-  op_arg args[10];
+  int nargs = 12;
+  op_arg args[12];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -56,6 +62,8 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   args[7] = arg7;
   args[8] = arg8;
   args[9] = arg9;
+  args[10] = arg10;
+  args[11] = arg11;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
@@ -106,6 +114,10 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
     int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
     double* data9 = (double*)arg9.data_d;
     int dat9size = getSetSizeFromOpArg(&arg9) * arg9.dat->dim;
+    double* data10 = (double*)arg10.data_d;
+    int dat10size = getSetSizeFromOpArg(&arg10) * arg10.dat->dim;
+    double* data11 = (double*)arg11.data_d;
+    int dat11size = getSetSizeFromOpArg(&arg11) * arg11.dat->dim;
     pressure_update_vel_omp4_kernel(
       &arg0_l,
       data1,
@@ -126,6 +138,10 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
       dat8size,
       data9,
       dat9size,
+      data10,
+      dat10size,
+      data11,
+      dat11size,
       set->size,
       part_size!=0?(set->size-1)/part_size+1:(set->size-1)/nthread,
       nthread);
@@ -148,4 +164,6 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   OP_kernels[39].transfer += (float)set->size * arg7.size * 2.0f;
   OP_kernels[39].transfer += (float)set->size * arg8.size * 2.0f;
   OP_kernels[39].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[39].transfer += (float)set->size * arg10.size * 2.0f;
+  OP_kernels[39].transfer += (float)set->size * arg11.size * 2.0f;
 }

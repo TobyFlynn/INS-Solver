@@ -35,8 +35,8 @@ void advection_numerical_flux_omp4_kernel(
     const double *ny = &data2[15*n_op];
     const double *q0 = &data3[15*n_op];
     const double *q1 = &data4[15*n_op];
-    const double *exQ0 = &data5[15*n_op];
-    const double *exQ1 = &data6[15*n_op];
+    double *exQ0 = &data5[15*n_op];
+    double *exQ1 = &data6[15*n_op];
     double *flux0 = &data7[15*n_op];
     double *flux1 = &data8[15*n_op];
 
@@ -93,6 +93,11 @@ void advection_numerical_flux_omp4_kernel(
     for(int i = 0; i < 15; i++) {
       flux0[i] = 0.5 * fscale[i] * (-nx[i] * (fM[0][i] - fP[0][i]) - ny[i] * (fM[1][i] - fP[1][i]) - maxVel[i] * (exQ0[i] - q0[FMASK_ompkernel[i]]));
       flux1[i] = 0.5 * fscale[i] * (-nx[i] * (fM[2][i] - fP[2][i]) - ny[i] * (fM[3][i] - fP[3][i]) - maxVel[i] * (exQ1[i] - q1[FMASK_ompkernel[i]]));
+    }
+
+    for(int i = 0; i < 15; i++) {
+      exQ0[i] = 0.0;
+      exQ1[i] = 0.0;
     }
     //end inline func
   }

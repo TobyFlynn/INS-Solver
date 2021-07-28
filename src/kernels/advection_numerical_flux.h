@@ -1,8 +1,7 @@
 inline void advection_numerical_flux(const double *fscale, const double *nx,
                                      const double *ny, const double *q0,
-                                     const double *q1, const double *exQ0,
-                                     const double *exQ1, double *flux0,
-                                     double *flux1) {
+                                     const double *q1, double *exQ0,
+                                     double *exQ1, double *flux0, double *flux1) {
   // Compute fluxes for face nodes
   double fM[4][15];
   for(int i = 0; i < 15; i++) {
@@ -56,5 +55,11 @@ inline void advection_numerical_flux(const double *fscale, const double *nx,
   for(int i = 0; i < 15; i++) {
     flux0[i] = 0.5 * fscale[i] * (-nx[i] * (fM[0][i] - fP[0][i]) - ny[i] * (fM[1][i] - fP[1][i]) - maxVel[i] * (exQ0[i] - q0[FMASK[i]]));
     flux1[i] = 0.5 * fscale[i] * (-nx[i] * (fM[2][i] - fP[2][i]) - ny[i] * (fM[3][i] - fP[3][i]) - maxVel[i] * (exQ1[i] - q1[FMASK[i]]));
+  }
+
+  // Zero exQ
+  for(int i = 0; i < 15; i++) {
+    exQ0[i] = 0.0;
+    exQ1[i] = 0.0;
   }
 }
