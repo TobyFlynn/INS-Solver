@@ -22,17 +22,17 @@ inline void poisson_op3(const int *edgeType, const int *edgeNum,
 
   // First edge term
   // gVM'*gw*rho^-1*gDnM
-  for(int i = 0; i < 15; i++) {
-    for(int j = 0; j < 15; j++) {
-      int c_ind = i * 15 + j;
-      for(int k = 0; k < 7; k++) {
+  for(int i = 0; i < 10; i++) {
+    for(int j = 0; j < 10; j++) {
+      int c_ind = i * 10 + j;
+      for(int k = 0; k < 6; k++) {
         // mD
-        int b_ind = k * 15 + j;
+        int b_ind = k * 10 + j;
         // Transpose of gVM
-        int ind = i * 7 + k;
-        int a_ind = ((ind * 15) % (15 * 7)) + (ind / 7);
+        int ind = i * 6 + k;
+        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
         // Rho and sJ ind
-        int factors_ind = *edgeNum * 7 + k;
+        int factors_ind = *edgeNum * 6 + k;
 
         op1[c_ind] += -0.5 * gVM[a_ind] * gaussW_g[k] * sJ[factors_ind]
                       * gFactor[factors_ind] * mD[b_ind];
@@ -42,17 +42,17 @@ inline void poisson_op3(const int *edgeType, const int *edgeNum,
 
   // Second edge term
   // rho^-1*gDnM'*gw*gVM
-  for(int i = 0; i < 15; i++) {
-    for(int j = 0; j < 15; j++) {
-      int c_ind = i * 15 + j;
-      for(int k = 0; k < 7; k++) {
+  for(int i = 0; i < 10; i++) {
+    for(int j = 0; j < 10; j++) {
+      int c_ind = i * 10 + j;
+      for(int k = 0; k < 6; k++) {
         // gVM and gVP
-        int b_ind = k * 15 + j;
+        int b_ind = k * 10 + j;
         // Transpose of mD
-        int ind = i * 7 + k;
-        int a_ind = ((ind * 15) % (15 * 7)) + (ind / 7);
+        int ind = i * 6 + k;
+        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
         // Rho and sJ ind
-        int factors_ind = *edgeNum * 7 + k;
+        int factors_ind = *edgeNum * 6 + k;
 
         op1[c_ind] += -factor[i] * mD[a_ind] * gaussW_g[k]
                       * sJ[factors_ind] * gVM[b_ind];
@@ -62,9 +62,9 @@ inline void poisson_op3(const int *edgeType, const int *edgeNum,
 
 
   // Calculate penalty parameter
-  double tauA[7];
-  for(int i = 0; i < 7; i++) {
-    int ind = *edgeNum  * 7 + i;
+  double tauA[6];
+  for(int i = 0; i < 6; i++) {
+    int ind = *edgeNum  * 6 + i;
     tauA[i] = 100 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
     // tauA[i] = 100 * 0.5 * 5 * 6 * (*h);
   }
@@ -72,17 +72,17 @@ inline void poisson_op3(const int *edgeType, const int *edgeNum,
 
   // Third edge term
   // gVM'*gw*tau*gVM
-  for(int i = 0; i < 15; i++) {
-    for(int j = 0; j < 15; j++) {
-      int c_ind = i * 15 + j;
-      for(int k = 0; k < 7; k++) {
+  for(int i = 0; i < 10; i++) {
+    for(int j = 0; j < 10; j++) {
+      int c_ind = i * 10 + j;
+      for(int k = 0; k < 6; k++) {
         // gVM and gVP
-        int b_ind = k * 15 + j;
+        int b_ind = k * 10 + j;
         // Transpose of gVM
-        int ind = i * 7 + k;
-        int a_ind = ((ind * 15) % (15 * 7)) + (ind / 7);
+        int ind = i * 6 + k;
+        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
         // sJ ind
-        int factors_ind = *edgeNum * 7 + k;
+        int factors_ind = *edgeNum * 6 + k;
 
         op1[c_ind] += gVM[a_ind] * gaussW_g[k] * sJ[factors_ind]
                       * tauA[k] * gVM[b_ind];

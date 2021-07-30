@@ -53,12 +53,12 @@ void op_par_loop_init_cubature_grad(char const *name, op_set set,
       int finish = (set->size*(thr+1))/nthreads;
       for ( int n=start; n<finish; n++ ){
         init_cubature_grad(
-          &((double*)arg0.data)[46*n],
-          &((double*)arg1.data)[46*n],
-          &((double*)arg2.data)[46*n],
-          &((double*)arg3.data)[46*n],
-          &((double*)arg4.data)[690*n],
-          &((double*)arg5.data)[690*n]);
+          &((double*)arg0.data)[36*n],
+          &((double*)arg1.data)[36*n],
+          &((double*)arg2.data)[36*n],
+          &((double*)arg3.data)[36*n],
+          &((double*)arg4.data)[360*n],
+          &((double*)arg5.data)[360*n]);
       }
     }
   }

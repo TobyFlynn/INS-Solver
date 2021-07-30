@@ -6,7 +6,7 @@
 //user function
 //#pragma acc routine
 inline void pressure_mu_openacc( const double *mu, double *curl) {
-  for(int i = 0; i < 15; i++) {
+  for(int i = 0; i < 10; i++) {
     curl[i] *= mu[i];
   }
 }
@@ -47,8 +47,8 @@ void op_par_loop_pressure_mu(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1)
     for ( int n=0; n<set->size; n++ ){
       pressure_mu_openacc(
-        &data0[15*n],
-        &data1[15*n]);
+        &data0[10*n],
+        &data1[10*n]);
     }
   }
 

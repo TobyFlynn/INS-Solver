@@ -43,23 +43,149 @@ struct cmpCoords {
     }
 };
 
-void get_data_vectors(DGMesh *mesh, INSData *data, int ind, LS *ls,
-                      vector<double> &x_v, vector<double> &y_v,
-                      vector<double> &u_v, vector<double> &v_v,
-                      vector<double> &pr_v, vector<double> &vort_v,
-                      vector<double> &s_v, vector<cgsize_t> &cells) {
+void get_data_vectors_order_3(DGMesh *mesh, INSData *data, int ind, LS *ls,
+                              vector<double> &x_v, vector<double> &y_v,
+                              vector<double> &u_v, vector<double> &v_v,
+                              vector<double> &pr_v, vector<double> &vort_v,
+                              vector<double> &s_v, vector<cgsize_t> &cells) {
   // Calculate vorticity
   curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
   // Get Data from OP2
   int numCells = op_get_size(mesh->cells);
-  double *Ux   = (double *)malloc(15 * numCells * sizeof(double));
-  double *Uy   = (double *)malloc(15 * numCells * sizeof(double));
-  double *pr   = (double *)malloc(15 * numCells * sizeof(double));
-  double *vort = (double *)malloc(15 * numCells * sizeof(double));
-  double *x    = (double *)malloc(15 * numCells * sizeof(double));
-  double *y    = (double *)malloc(15 * numCells * sizeof(double));
-  double *s    = (double *)calloc(15 * numCells, sizeof(double));
+  double *Ux   = (double *)malloc(10 * numCells * sizeof(double));
+  double *Uy   = (double *)malloc(10 * numCells * sizeof(double));
+  double *pr   = (double *)malloc(10 * numCells * sizeof(double));
+  double *vort = (double *)malloc(10 * numCells * sizeof(double));
+  double *x    = (double *)malloc(10 * numCells * sizeof(double));
+  double *y    = (double *)malloc(10 * numCells * sizeof(double));
+  double *s    = (double *)calloc(10 * numCells, sizeof(double));
+
+  op_fetch_data(data->Q[ind][0], Ux);
+  op_fetch_data(data->Q[ind][1], Uy);
+  op_fetch_data(data->p, pr);
+  op_fetch_data(data->vorticity, vort);
+  op_fetch_data(mesh->x, x);
+  op_fetch_data(mesh->y, y);
+  if(ls) {
+    op_fetch_data(ls->step_s, s);
+  }
+
+  // Maps points to sub elements that they are part of.
+  // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
+  // -1 is just padding to get each line to 6
+  int cellMask[10][6] = {
+    {0, -1, -1, -1, -1, -1},  // Point 0 is part of sub element 0
+    {0, 1, 2, -1, -1, -1},    // 1
+    {2, 3, 4, -1, -1, -1},    // 2
+    {4, -1, -1, -1, -1, -1},  // End of first point row
+    {0, 1, 5, -1, -1, -1},    // 4
+    {1, 2, 3, 7, 6, 5},       // 5
+    {4, 3, 7, -1, -1, -1},    // End of second point row
+    {5, 6, 8, -1, -1, -1},    // 7
+    {7, 6, 8, -1, -1, -1},    // End of third point row
+    {8, -1, -1, -1, -1, -1}   // 9
+  };
+
+  int pointNum[10][6] = {
+    {0, -1, -1, -1, -1, -1},  // Point 0 is the first point of sub element 0
+    {1, 0, 0, -1, -1, -1},    // 1
+    {1, 0, 0, -1, -1, -1},    // 2
+    {1, -1, -1, -1, -1, -1},  // End of first point row
+    {2, 2, 0, -1, -1, -1},    // 4
+    {1, 2, 2, 0, 0, 1},       // 5
+    {2, 1, 1, -1, -1, -1},    // End of second point row
+    {2, 2, 0, -1, -1, -1},    // 7
+    {2, 1, 1, -1, -1, -1},    // End of third point row
+    {2, -1, -1, -1, -1, -1}   // 9
+  };
+
+  // 9 sub elements per original element
+  map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
+  for(int c = 0; c < numCells; c++) {
+    int ind = c * 10;
+    for(int p = 0; p < 10; p++) {
+      pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
+      unique_ptr<Point> point = make_unique<Point>();
+      auto res = pointMap.insert(make_pair(coords, move(point)));
+      if(res.second) {
+        res.first->second->x    = x[ind + p];
+        res.first->second->y    = y[ind + p];
+        res.first->second->u    = Ux[ind + p];
+        res.first->second->v    = Uy[ind + p];
+        res.first->second->pr   = pr[ind + p];
+        res.first->second->vort = vort[ind + p];
+        res.first->second->s    = s[ind + p];
+        for(int m = 0; m < 6; m++) {
+          if(cellMask[p][m] >= 0) {
+            res.first->second->cells.push_back(c * 9 + cellMask[p][m]);
+            res.first->second->pointNum.push_back(pointNum[p][m]);
+          } else {
+            break;
+          }
+        }
+        res.first->second->counter = 1;
+      } else {
+        res.first->second->u    += Ux[ind + p];
+        res.first->second->v    += Uy[ind + p];
+        res.first->second->pr   += pr[ind + p];
+        res.first->second->vort += vort[ind + p];
+        res.first->second->s    += s[ind + p];
+        for(int m = 0; m < 6; m++) {
+          if(cellMask[p][m] >= 0) {
+            res.first->second->cells.push_back(c * 9 + cellMask[p][m]);
+            res.first->second->pointNum.push_back(pointNum[p][m]);
+          } else {
+            break;
+          }
+        }
+        res.first->second->counter++;
+      }
+    }
+  }
+
+  int index = 0;
+
+  for(auto const &p : pointMap) {
+    x_v.push_back(p.second->x);
+    y_v.push_back(p.second->y);
+    u_v.push_back(p.second->u / p.second->counter);
+    v_v.push_back(p.second->v / p.second->counter);
+    pr_v.push_back(p.second->pr / p.second->counter);
+    vort_v.push_back(p.second->vort / p.second->counter);
+    s_v.push_back(p.second->s / p.second->counter);
+    for(int i = 0; i < p.second->cells.size(); i++) {
+      cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
+    }
+    index++;
+  }
+
+  free(s);
+  free(Ux);
+  free(Uy);
+  free(pr);
+  free(vort);
+  free(x);
+  free(y);
+}
+
+void get_data_vectors_order_4(DGMesh *mesh, INSData *data, int ind, LS *ls,
+                              vector<double> &x_v, vector<double> &y_v,
+                              vector<double> &u_v, vector<double> &v_v,
+                              vector<double> &pr_v, vector<double> &vort_v,
+                              vector<double> &s_v, vector<cgsize_t> &cells) {
+  // Calculate vorticity
+  curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
+
+  // Get Data from OP2
+  int numCells = op_get_size(mesh->cells);
+  double *Ux   = (double *)malloc(10 * numCells * sizeof(double));
+  double *Uy   = (double *)malloc(10 * numCells * sizeof(double));
+  double *pr   = (double *)malloc(10 * numCells * sizeof(double));
+  double *vort = (double *)malloc(10 * numCells * sizeof(double));
+  double *x    = (double *)malloc(10 * numCells * sizeof(double));
+  double *y    = (double *)malloc(10 * numCells * sizeof(double));
+  double *s    = (double *)calloc(10 * numCells, sizeof(double));
 
   op_fetch_data(data->Q[ind][0], Ux);
   op_fetch_data(data->Q[ind][1], Uy);
@@ -190,7 +316,8 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   vector<double> s_v;
   vector<cgsize_t> cells(3 * numCells * 16);
 
-  get_data_vectors(mesh, data, ind, ls, x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells);
+  get_data_vectors_order_4(mesh, data, ind, ls, x_v, y_v, u_v, v_v, pr_v,
+                           vort_v, s_v, cells);
 
   int file;
   if (cg_open(filename.c_str(), CG_MODE_MODIFY, &file)) {
@@ -263,7 +390,8 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   vector<double> s_v;
   vector<cgsize_t> cells(3 * numCells * 16);
 
-  get_data_vectors(mesh, data, 0, ls, x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells);
+  get_data_vectors_order_4(mesh, data, 0, ls, x_v, y_v, u_v, v_v, pr_v, vort_v,
+                           s_v, cells);
 
   int file;
   if (cg_open(filename.c_str(), CG_MODE_WRITE, &file)) {
@@ -396,9 +524,19 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, L
   vector<double> pr_v;
   vector<double> vort_v;
   vector<double> s_v;
-  vector<cgsize_t> cells(3 * numCells * 16);
+  int numSubCells;
+  if(DG_ORDER == 4) numSubCells = 16;
+  else numSubCells = 9;
+  // TODO the other orders
+  vector<cgsize_t> cells(3 * numCells * numSubCells);
 
-  get_data_vectors(mesh, data, ind, ls, x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells);
+  if(DG_ORDER == 4) {
+    get_data_vectors_order_4(mesh, data, ind, ls, x_v, y_v, u_v, v_v, pr_v,
+                             vort_v, s_v, cells);
+  } else {
+    get_data_vectors_order_3(mesh, data, ind, ls, x_v, y_v, u_v, v_v, pr_v,
+                             vort_v, s_v, cells);
+  }
 
   int file;
   if (cg_open(filename.c_str(), CG_MODE_WRITE, &file)) {
@@ -416,7 +554,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, L
   // Number of vertices
   sizes[0] = x_v.size();
   // Number of cells
-  sizes[1] = numCells * 16;
+  sizes[1] = numCells * numSubCells;
   // Number of boundary vertices (zero if elements not sorted)
   sizes[2] = 0;
   cg_zone_write(file, baseIndex, zoneName.c_str(), sizes,

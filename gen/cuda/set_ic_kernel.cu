@@ -4,7 +4,7 @@
 
 //user function
 __device__ void set_ic_gpu( double *q0, double *q1) {
-  for(int i = 0; i < 15; i++) {
+  for(int i = 0; i < 10; i++) {
     q0[i] = ic_u_cuda;
     q1[i] = ic_v_cuda;
   }
@@ -22,8 +22,8 @@ __global__ void op_cuda_set_ic(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    set_ic_gpu(arg0+n*15,
-           arg1+n*15);
+    set_ic_gpu(arg0+n*10,
+           arg1+n*10);
   }
 }
 

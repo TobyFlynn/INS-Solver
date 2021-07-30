@@ -5,7 +5,7 @@
 //user function
 __device__ void ls_advec_flux_gpu( const double *q, const double *u, const double *v,
                           double *F, double *G) {
-  for(int i = 0; i < 15; i++) {
+  for(int i = 0; i < 10; i++) {
     F[i] = u[i] * q[i];
     G[i] = v[i] * q[i];
   }
@@ -26,11 +26,11 @@ __global__ void op_cuda_ls_advec_flux(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    ls_advec_flux_gpu(arg0+n*15,
-                  arg1+n*15,
-                  arg2+n*15,
-                  arg3+n*15,
-                  arg4+n*15);
+    ls_advec_flux_gpu(arg0+n*10,
+                  arg1+n*10,
+                  arg2+n*10,
+                  arg3+n*10,
+                  arg4+n*10);
   }
 }
 

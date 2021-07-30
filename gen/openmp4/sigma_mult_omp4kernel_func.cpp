@@ -24,20 +24,20 @@ void sigma_mult_omp4_kernel(
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const double *eps = &arg0_l;
-    double *sigx = &data1[15*n_op];
-    double *sigy = &data2[15*n_op];
-    double *fx = &data3[21*n_op];
-    double *fy = &data4[21*n_op];
-    double *diffF = &data5[21*n_op];
+    double *sigx = &data1[10*n_op];
+    double *sigy = &data2[10*n_op];
+    double *fx = &data3[18*n_op];
+    double *fy = &data4[18*n_op];
+    double *diffF = &data5[18*n_op];
 
     //inline function
     
-    for(int i = 0; i < 15; i++) {
+    for(int i = 0; i < 10; i++) {
       sigx[i] *= *eps;
       sigy[i] *= *eps;
     }
 
-    for(int i = 0; i < 21; i++) {
+    for(int i = 0; i < 18; i++) {
       fx[i] = 0.0;
       fy[i] = 0.0;
       diffF[i] = 0.0;

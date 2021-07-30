@@ -43,9 +43,9 @@ protected:
   bool matCreated = false;
 
 private:
-  void create_vec(Vec *v, int size = 15);
+  void create_vec(Vec *v, int size);
   void destroy_vec(Vec *v);
-  void load_vec(Vec *v, op_dat v_dat, int size = 15);
+  void load_vec(Vec *v, op_dat v_dat, int size);
   void store_vec(Vec *v, op_dat v_dat);
   void setGlbInd();
   void copy_vec_to_dat(op_dat dat, const double *dat_d);

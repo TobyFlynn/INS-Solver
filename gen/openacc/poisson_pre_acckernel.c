@@ -6,11 +6,11 @@
 //user function
 //#pragma acc routine
 inline void poisson_pre_openacc( const double *in, const double *pre, double *out) {
-  for(int i = 0; i < 15; i++) {
+  for(int i = 0; i < 10; i++) {
     out[i] = 0.0;
-    for(int j = 0; j < 15; j++) {
+    for(int j = 0; j < 10; j++) {
 
-      int ind = i * 15 + j;
+      int ind = i * 10 + j;
       out[i] += pre[ind] * in[j];
     }
   }
@@ -55,9 +55,9 @@ void op_par_loop_poisson_pre(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2)
     for ( int n=0; n<set->size; n++ ){
       poisson_pre_openacc(
-        &data0[15*n],
-        &data1[225*n],
-        &data2[15*n]);
+        &data0[10*n],
+        &data1[100*n],
+        &data2[10*n]);
     }
   }
 

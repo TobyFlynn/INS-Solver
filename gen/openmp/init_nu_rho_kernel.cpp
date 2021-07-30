@@ -45,8 +45,8 @@ void op_par_loop_init_nu_rho(char const *name, op_set set,
       int finish = (set->size*(thr+1))/nthreads;
       for ( int n=start; n<finish; n++ ){
         init_nu_rho(
-          &((double*)arg0.data)[15*n],
-          &((double*)arg1.data)[15*n]);
+          &((double*)arg0.data)[10*n],
+          &((double*)arg1.data)[10*n]);
       }
     }
   }

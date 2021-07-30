@@ -7,7 +7,7 @@ __device__ void pressure_update_vel_gpu( const double *factor, const double *rho
                                 const double *dpdy, const double *qt0,
                                 const double *qt1, double *qtt0, double *qtt1,
                                 double *dpdn, double *prBC, double *pX, double *pY) {
-  for(int i = 0; i < 15; i++) {
+  for(int i = 0; i < 10; i++) {
     qtt0[i] = qt0[i] - *factor * dpdx[i] / rho[i];
     qtt1[i] = qt1[i] - *factor * dpdy[i] / rho[i];
 
@@ -15,11 +15,11 @@ __device__ void pressure_update_vel_gpu( const double *factor, const double *rho
     dpdn[i] = 0.0;
   }
 
-  for(int i = 0; i < 21; i++) {
+  for(int i = 0; i < 18; i++) {
     prBC[i] = 0.0;
   }
 
-  for(int i = 0; i < 3 * 5; i++) {
+  for(int i = 0; i < 3 * 4; i++) {
     pX[i] = 0.0;
     pY[i] = 0.0;
   }
@@ -48,17 +48,17 @@ __global__ void op_cuda_pressure_update_vel(
 
     //user-supplied kernel call
     pressure_update_vel_gpu(arg0,
-                        arg1+n*15,
-                        arg2+n*15,
-                        arg3+n*15,
-                        arg4+n*15,
-                        arg5+n*15,
-                        arg6+n*15,
-                        arg7+n*15,
-                        arg8+n*15,
-                        arg9+n*21,
-                        arg10+n*15,
-                        arg11+n*15);
+                        arg1+n*10,
+                        arg2+n*10,
+                        arg3+n*10,
+                        arg4+n*10,
+                        arg5+n*10,
+                        arg6+n*10,
+                        arg7+n*10,
+                        arg8+n*12,
+                        arg9+n*18,
+                        arg10+n*12,
+                        arg11+n*12);
   }
 }
 

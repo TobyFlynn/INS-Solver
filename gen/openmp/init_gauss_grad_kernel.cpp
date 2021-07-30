@@ -61,16 +61,16 @@ void op_par_loop_init_gauss_grad(char const *name, op_set set,
       int finish = (set->size*(thr+1))/nthreads;
       for ( int n=start; n<finish; n++ ){
         init_gauss_grad(
-          &((double*)arg0.data)[21*n],
-          &((double*)arg1.data)[21*n],
-          &((double*)arg2.data)[21*n],
-          &((double*)arg3.data)[21*n],
-          &((double*)arg4.data)[105*n],
-          &((double*)arg5.data)[105*n],
-          &((double*)arg6.data)[105*n],
-          &((double*)arg7.data)[105*n],
-          &((double*)arg8.data)[105*n],
-          &((double*)arg9.data)[105*n]);
+          &((double*)arg0.data)[18*n],
+          &((double*)arg1.data)[18*n],
+          &((double*)arg2.data)[18*n],
+          &((double*)arg3.data)[18*n],
+          &((double*)arg4.data)[60*n],
+          &((double*)arg5.data)[60*n],
+          &((double*)arg6.data)[60*n],
+          &((double*)arg7.data)[60*n],
+          &((double*)arg8.data)[60*n],
+          &((double*)arg9.data)[60*n]);
       }
     }
   }

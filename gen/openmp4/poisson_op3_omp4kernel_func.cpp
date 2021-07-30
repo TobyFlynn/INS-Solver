@@ -39,7 +39,7 @@ void poisson_op3_omp4_kernel(
   int arg3_l = *arg3;
   int arg4_l = *arg4;
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: gaussW_g_ompkernel[:7], gFInterp0_g_ompkernel[:105], gFInterp1_g_ompkernel[:105], gFInterp2_g_ompkernel[:105])\
+    map(to: gaussW_g_ompkernel[:6], gFInterp0_g_ompkernel[:60], gFInterp1_g_ompkernel[:60], gFInterp2_g_ompkernel[:60])\
     map(to:col_reord[0:set_size1],map5[0:map5size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -53,14 +53,14 @@ void poisson_op3_omp4_kernel(
     const int *d0 = &arg2_l;
     const int *d1 = &arg3_l;
     const int *d2 = &arg4_l;
-    const double *mD0 = &data5[105 * map5idx];
-    const double *mD1 = &data6[105 * map5idx];
-    const double *mD2 = &data7[105 * map5idx];
-    const double *sJ = &data8[21 * map5idx];
+    const double *mD0 = &data5[60 * map5idx];
+    const double *mD1 = &data6[60 * map5idx];
+    const double *mD2 = &data7[60 * map5idx];
+    const double *sJ = &data8[18 * map5idx];
     const double *h = &data9[1 * map5idx];
-    const double *gFactor = &data10[21 * map5idx];
-    const double *factor = &data11[15 * map5idx];
-    double *op1 = &data12[225 * map5idx];
+    const double *gFactor = &data10[18 * map5idx];
+    const double *factor = &data11[10 * map5idx];
+    double *op1 = &data12[100 * map5idx];
 
     //inline function
     
@@ -81,17 +81,17 @@ void poisson_op3_omp4_kernel(
     }
 
 
-    for(int i = 0; i < 15; i++) {
-      for(int j = 0; j < 15; j++) {
-        int c_ind = i * 15 + j;
-        for(int k = 0; k < 7; k++) {
+    for(int i = 0; i < 10; i++) {
+      for(int j = 0; j < 10; j++) {
+        int c_ind = i * 10 + j;
+        for(int k = 0; k < 6; k++) {
 
-          int b_ind = k * 15 + j;
+          int b_ind = k * 10 + j;
 
-          int ind = i * 7 + k;
-          int a_ind = ((ind * 15) % (15 * 7)) + (ind / 7);
+          int ind = i * 6 + k;
+          int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
 
-          int factors_ind = *edgeNum * 7 + k;
+          int factors_ind = *edgeNum * 6 + k;
 
           op1[c_ind] += -0.5 * gVM[a_ind] * gaussW_g_ompkernel[k] * sJ[factors_ind]
                         * gFactor[factors_ind] * mD[b_ind];
@@ -100,17 +100,17 @@ void poisson_op3_omp4_kernel(
     }
 
 
-    for(int i = 0; i < 15; i++) {
-      for(int j = 0; j < 15; j++) {
-        int c_ind = i * 15 + j;
-        for(int k = 0; k < 7; k++) {
+    for(int i = 0; i < 10; i++) {
+      for(int j = 0; j < 10; j++) {
+        int c_ind = i * 10 + j;
+        for(int k = 0; k < 6; k++) {
 
-          int b_ind = k * 15 + j;
+          int b_ind = k * 10 + j;
 
-          int ind = i * 7 + k;
-          int a_ind = ((ind * 15) % (15 * 7)) + (ind / 7);
+          int ind = i * 6 + k;
+          int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
 
-          int factors_ind = *edgeNum * 7 + k;
+          int factors_ind = *edgeNum * 6 + k;
 
           op1[c_ind] += -factor[i] * mD[a_ind] * gaussW_g_ompkernel[k]
                         * sJ[factors_ind] * gVM[b_ind];
@@ -119,26 +119,26 @@ void poisson_op3_omp4_kernel(
     }
 
 
-    double tauA[7];
-    for(int i = 0; i < 7; i++) {
-      int ind = *edgeNum  * 7 + i;
+    double tauA[6];
+    for(int i = 0; i < 6; i++) {
+      int ind = *edgeNum  * 6 + i;
       tauA[i] = 100 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
 
     }
 
 
 
-    for(int i = 0; i < 15; i++) {
-      for(int j = 0; j < 15; j++) {
-        int c_ind = i * 15 + j;
-        for(int k = 0; k < 7; k++) {
+    for(int i = 0; i < 10; i++) {
+      for(int j = 0; j < 10; j++) {
+        int c_ind = i * 10 + j;
+        for(int k = 0; k < 6; k++) {
 
-          int b_ind = k * 15 + j;
+          int b_ind = k * 10 + j;
 
-          int ind = i * 7 + k;
-          int a_ind = ((ind * 15) % (15 * 7)) + (ind / 7);
+          int ind = i * 6 + k;
+          int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
 
-          int factors_ind = *edgeNum * 7 + k;
+          int factors_ind = *edgeNum * 6 + k;
 
           op1[c_ind] += gVM[a_ind] * gaussW_g_ompkernel[k] * sJ[factors_ind]
                         * tauA[k] * gVM[b_ind];

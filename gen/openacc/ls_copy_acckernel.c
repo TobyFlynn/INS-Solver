@@ -7,7 +7,7 @@
 //#pragma acc routine
 inline void ls_copy_openacc( const double *dsdx, const double *dsdy,
                     double *dpldx, double *dprdx, double *dpldy, double *dprdy) {
-  for(int i = 0; i < 15; i++) {
+  for(int i = 0; i < 10; i++) {
     dpldx[i] = dsdx[i];
     dprdx[i] = dsdx[i];
     dpldy[i] = dsdy[i];
@@ -63,12 +63,12 @@ void op_par_loop_ls_copy(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5)
     for ( int n=0; n<set->size; n++ ){
       ls_copy_openacc(
-        &data0[15*n],
-        &data1[15*n],
-        &data2[15*n],
-        &data3[15*n],
-        &data4[15*n],
-        &data5[15*n]);
+        &data0[10*n],
+        &data1[10*n],
+        &data2[10*n],
+        &data3[10*n],
+        &data4[10*n],
+        &data5[10*n]);
     }
   }
 

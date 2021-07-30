@@ -9,55 +9,55 @@ __device__ void gauss_op_gpu( const double *tau, const double *sJ,
                      const double *mD2, double *f2_0, double *f2_1, double *f2_2,
                      double *pDy0, double *pDy1, double *pDy2) {
 
-  for(int ind = 0; ind < 7 * 15; ind++) {
-    int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
+  for(int ind = 0; ind < 6 * 10; ind++) {
+    int indT = ((ind * 10) % (10 * 6)) + (ind / 6);
     f0_0[ind] = gFInterp0_g_cuda[indT];
     f0_1[ind] = gFInterp0_g_cuda[indT];
     f0_2[ind] = mD0[indT];
   }
 
-  for(int m = 0; m < 15; m++) {
-    for(int n = 0; n < 7; n++) {
-      int ind  = m * 7 + n;
+  for(int m = 0; m < 10; m++) {
+    for(int n = 0; n < 6; n++) {
+      int ind  = m * 6 + n;
       f0_0[ind] = gaussW_g_cuda[n] * sJ[n] * tau[0] * f0_0[ind];
       f0_1[ind] = gaussW_g_cuda[n] * sJ[n] * f0_1[ind];
       f0_2[ind] = gaussW_g_cuda[n] * sJ[n] * f0_2[ind];
     }
   }
 
-  for(int ind = 0; ind < 7 * 15; ind++) {
-    int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
+  for(int ind = 0; ind < 6 * 10; ind++) {
+    int indT = ((ind * 10) % (10 * 7)) + (ind / 6);
     f1_0[ind] = gFInterp1_g_cuda[indT];
     f1_1[ind] = gFInterp1_g_cuda[indT];
     f1_2[ind] = mD1[indT];
   }
 
-  for(int m = 0; m < 15; m++) {
-    for(int n = 0; n < 7; n++) {
-      int ind = m * 7 + n;
-      f1_0[ind] = gaussW_g_cuda[n] * sJ[n + 7] * tau[1] * f1_0[ind];
-      f1_1[ind] = gaussW_g_cuda[n] * sJ[n + 7] * f1_1[ind];
-      f1_2[ind] = gaussW_g_cuda[n] * sJ[n + 7] * f1_2[ind];
+  for(int m = 0; m < 10; m++) {
+    for(int n = 0; n < 6; n++) {
+      int ind = m * 6 + n;
+      f1_0[ind] = gaussW_g_cuda[n] * sJ[n + 6] * tau[1] * f1_0[ind];
+      f1_1[ind] = gaussW_g_cuda[n] * sJ[n + 6] * f1_1[ind];
+      f1_2[ind] = gaussW_g_cuda[n] * sJ[n + 6] * f1_2[ind];
     }
   }
 
-  for(int ind = 0; ind < 7 * 15; ind++) {
-    int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
+  for(int ind = 0; ind < 6 * 10; ind++) {
+    int indT = ((ind * 10) % (10 * 6)) + (ind / 6);
     f2_0[ind] = gFInterp2_g_cuda[indT];
     f2_1[ind] = gFInterp2_g_cuda[indT];
     f2_2[ind] = mD2[indT];
   }
 
-  for(int m = 0; m < 15; m++) {
-    for(int n = 0; n < 7; n++) {
-      int ind = m * 7 + n;
-      f2_0[ind] = gaussW_g_cuda[n] * sJ[n + 2 * 7] * tau[2] * f2_0[ind];
-      f2_1[ind] = gaussW_g_cuda[n] * sJ[n + 2 * 7] * f2_1[ind];
-      f2_2[ind] = gaussW_g_cuda[n] * sJ[n + 2 * 7] * f2_2[ind];
+  for(int m = 0; m < 10; m++) {
+    for(int n = 0; n < 6; n++) {
+      int ind = m * 6 + n;
+      f2_0[ind] = gaussW_g_cuda[n] * sJ[n + 2 * 6] * tau[2] * f2_0[ind];
+      f2_1[ind] = gaussW_g_cuda[n] * sJ[n + 2 * 6] * f2_1[ind];
+      f2_2[ind] = gaussW_g_cuda[n] * sJ[n + 2 * 6] * f2_2[ind];
     }
   }
 
-  for(int i = 0; i < 7 * 15; i++) {
+  for(int i = 0; i < 6 * 10; i++) {
     pDy0[i] = 0.0;
     pDy1[i] = 0.0;
     pDy2[i] = 0.0;
@@ -92,22 +92,22 @@ __global__ void op_cuda_gauss_op(
 
     //user-supplied kernel call
     gauss_op_gpu(arg0+n*3,
-             arg1+n*21,
-             arg2+n*105,
-             arg3+n*105,
-             arg4+n*105,
-             arg5+n*105,
-             arg6+n*105,
-             arg7+n*105,
-             arg8+n*105,
-             arg9+n*105,
-             arg10+n*105,
-             arg11+n*105,
-             arg12+n*105,
-             arg13+n*105,
-             arg14+n*105,
-             arg15+n*105,
-             arg16+n*105);
+             arg1+n*18,
+             arg2+n*60,
+             arg3+n*60,
+             arg4+n*60,
+             arg5+n*60,
+             arg6+n*60,
+             arg7+n*60,
+             arg8+n*60,
+             arg9+n*60,
+             arg10+n*60,
+             arg11+n*60,
+             arg12+n*60,
+             arg13+n*60,
+             arg14+n*60,
+             arg15+n*60,
+             arg16+n*60);
   }
 }
 

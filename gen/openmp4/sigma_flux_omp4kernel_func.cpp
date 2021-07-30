@@ -29,7 +29,7 @@ void sigma_flux_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: gaussW_g_ompkernel[:7])\
+    map(to: gaussW_g_ompkernel[:6])\
     map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data4[0:dat4size],data6[0:dat6size],data8[0:dat8size],data10[0:dat10size],data12[0:dat12size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -40,23 +40,23 @@ void sigma_flux_omp4_kernel(
     map3idx = map2[n_op + set_size1 * 1];
 
     const double* arg2_vec[] = {
-       &data2[21 * map2idx],
-       &data2[21 * map3idx]};
+       &data2[18 * map2idx],
+       &data2[18 * map3idx]};
     const double* arg4_vec[] = {
-       &data4[21 * map2idx],
-       &data4[21 * map3idx]};
+       &data4[18 * map2idx],
+       &data4[18 * map3idx]};
     const double* arg6_vec[] = {
-       &data6[21 * map2idx],
-       &data6[21 * map3idx]};
+       &data6[18 * map2idx],
+       &data6[18 * map3idx]};
     const double* arg8_vec[] = {
-       &data8[21 * map2idx],
-       &data8[21 * map3idx]};
+       &data8[18 * map2idx],
+       &data8[18 * map3idx]};
     double* arg10_vec[] = {
-       &data10[21 * map2idx],
-       &data10[21 * map3idx]};
+       &data10[18 * map2idx],
+       &data10[18 * map3idx]};
     double* arg12_vec[] = {
-       &data12[21 * map2idx],
-       &data12[21 * map3idx]};
+       &data12[18 * map2idx],
+       &data12[18 * map3idx]};
     //variable mapping
     const int *edgeNum = &data0[2*n_op];
     const bool *rev = &data1[1*n_op];
@@ -74,14 +74,14 @@ void sigma_flux_omp4_kernel(
     int edgeR = edgeNum[1];
     bool reverse = *rev;
 
-    int exIndL = edgeL * 7;
-    int exIndR = edgeR * 7;
+    int exIndL = edgeL * 6;
+    int exIndR = edgeR * 6;
 
-    for(int i = 0; i < 7; i++) {
+    for(int i = 0; i < 6; i++) {
       int rInd;
       int lInd = exIndL + i;
       if(reverse) {
-        rInd = exIndR + 7 - i - 1;
+        rInd = exIndR + 6 - i - 1;
       } else {
         rInd = exIndR + i;
       }
@@ -90,11 +90,11 @@ void sigma_flux_omp4_kernel(
       sigFy[0][lInd] += gaussW_g_ompkernel[i] * sJ[0][lInd] * ny[0][lInd] * flux;
     }
 
-    for(int i = 0; i < 7; i++) {
+    for(int i = 0; i < 6; i++) {
       int lInd;
       int rInd = exIndR + i;
       if(reverse) {
-        lInd = exIndL + 7 - i - 1;
+        lInd = exIndL + 6 - i - 1;
       } else {
         lInd = exIndL + i;
       }

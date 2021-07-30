@@ -10,12 +10,12 @@ inline void init_gauss_grad_neighbour_openacc( const int *reverse, double *rx,
                             double *Dx0, double *Dy0, double *Dx1, double *Dy1,
                             double *Dx2, double *Dy2) {
 
-  double J[21];
-  for(int i = 0; i < 21; i++) {
+  double J[18];
+  for(int i = 0; i < 18; i++) {
     J[i] = -sx[i] * ry[i] + rx[i] * sy[i];
   }
 
-  for(int i = 0; i < 21; i++) {
+  for(int i = 0; i < 18; i++) {
     double rx_n = sy[i] / J[i];
     double sx_n = -ry[i] / J[i];
     double ry_n = -sx[i] / J[i];
@@ -27,17 +27,17 @@ inline void init_gauss_grad_neighbour_openacc( const int *reverse, double *rx,
   }
 
   if(reverse[0]) {
-    for(int m = 0; m < 7; m++) {
-      for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
+    for(int m = 0; m < 6; m++) {
+      for(int n = 0; n < 10; n++) {
+        int ind = m * 10 + n;
         Dx0[ind] = rx[m] * gF0DrR_g[ind] + sx[m] * gF0DsR_g[ind];
         Dy0[ind] = ry[m] * gF0DrR_g[ind] + sy[m] * gF0DsR_g[ind];
       }
     }
   } else {
-    for(int m = 0; m < 7; m++) {
-      for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
+    for(int m = 0; m < 6; m++) {
+      for(int n = 0; n < 10; n++) {
+        int ind = m * 10 + n;
         Dx0[ind] = rx[m] * gF0Dr_g[ind] + sx[m] * gF0Ds_g[ind];
         Dy0[ind] = ry[m] * gF0Dr_g[ind] + sy[m] * gF0Ds_g[ind];
       }
@@ -45,37 +45,37 @@ inline void init_gauss_grad_neighbour_openacc( const int *reverse, double *rx,
   }
 
   if(reverse[1]) {
-    for(int m = 0; m < 7; m++) {
-      for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        Dx1[ind] = rx[m + 7] * gF1DrR_g[ind] + sx[m + 7] * gF1DsR_g[ind];
-        Dy1[ind] = ry[m + 7] * gF1DrR_g[ind] + sy[m + 7] * gF1DsR_g[ind];
+    for(int m = 0; m < 6; m++) {
+      for(int n = 0; n < 10; n++) {
+        int ind = m * 10 + n;
+        Dx1[ind] = rx[m + 6] * gF1DrR_g[ind] + sx[m + 6] * gF1DsR_g[ind];
+        Dy1[ind] = ry[m + 6] * gF1DrR_g[ind] + sy[m + 6] * gF1DsR_g[ind];
       }
     }
   } else {
-    for(int m = 0; m < 7; m++) {
-      for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        Dx1[ind] = rx[m + 7] * gF1Dr_g[ind] + sx[m + 7] * gF1Ds_g[ind];
-        Dy1[ind] = ry[m + 7] * gF1Dr_g[ind] + sy[m + 7] * gF1Ds_g[ind];
+    for(int m = 0; m < 6; m++) {
+      for(int n = 0; n < 10; n++) {
+        int ind = m * 10 + n;
+        Dx1[ind] = rx[m + 6] * gF1Dr_g[ind] + sx[m + 6] * gF1Ds_g[ind];
+        Dy1[ind] = ry[m + 6] * gF1Dr_g[ind] + sy[m + 6] * gF1Ds_g[ind];
       }
     }
   }
 
   if(reverse[2]) {
-    for(int m = 0; m < 7; m++) {
-      for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        Dx2[ind] = rx[m + 2 * 7] * gF2DrR_g[ind] + sx[m + 2 * 7] * gF2DsR_g[ind];
-        Dy2[ind] = ry[m + 2 * 7] * gF2DrR_g[ind] + sy[m + 2 * 7] * gF2DsR_g[ind];
+    for(int m = 0; m < 6; m++) {
+      for(int n = 0; n < 10; n++) {
+        int ind = m * 10 + n;
+        Dx2[ind] = rx[m + 2 * 6] * gF2DrR_g[ind] + sx[m + 2 * 6] * gF2DsR_g[ind];
+        Dy2[ind] = ry[m + 2 * 6] * gF2DrR_g[ind] + sy[m + 2 * 6] * gF2DsR_g[ind];
       }
     }
   } else {
-    for(int m = 0; m < 7; m++) {
-      for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        Dx2[ind] = rx[m + 2 * 7] * gF2Dr_g[ind] + sx[m + 2 * 7] * gF2Ds_g[ind];
-        Dy2[ind] = ry[m + 2 * 7] * gF2Dr_g[ind] + sy[m + 2 * 7] * gF2Ds_g[ind];
+    for(int m = 0; m < 6; m++) {
+      for(int n = 0; n < 10; n++) {
+        int ind = m * 10 + n;
+        Dx2[ind] = rx[m + 2 * 6] * gF2Dr_g[ind] + sx[m + 2 * 6] * gF2Ds_g[ind];
+        Dy2[ind] = ry[m + 2 * 6] * gF2Dr_g[ind] + sy[m + 2 * 6] * gF2Ds_g[ind];
       }
     }
   }
@@ -145,16 +145,16 @@ void op_par_loop_init_gauss_grad_neighbour(char const *name, op_set set,
     for ( int n=0; n<set->size; n++ ){
       init_gauss_grad_neighbour_openacc(
         &data0[3*n],
-        &data1[21*n],
-        &data2[21*n],
-        &data3[21*n],
-        &data4[21*n],
-        &data5[105*n],
-        &data6[105*n],
-        &data7[105*n],
-        &data8[105*n],
-        &data9[105*n],
-        &data10[105*n]);
+        &data1[18*n],
+        &data2[18*n],
+        &data3[18*n],
+        &data4[18*n],
+        &data5[60*n],
+        &data6[60*n],
+        &data7[60*n],
+        &data8[60*n],
+        &data9[60*n],
+        &data10[60*n]);
     }
   }
 

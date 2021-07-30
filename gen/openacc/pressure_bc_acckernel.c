@@ -11,15 +11,15 @@ inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
                         const double *nu, const double *rho, const double *N0, const double *N1,
                         const double *gradCurlVel0, const double *gradCurlVel1,
                         double *dPdN) {
-  int exInd = *bedgeNum * 5;
-  int *fmask = &FMASK[*bedgeNum * 5];
+  int exInd = *bedgeNum * 4;
+  int *fmask = &FMASK[*bedgeNum * 4];
 
   const double PI = 3.141592653589793238463;
 
   if(*problem == 0) {
     if(*bedge_type == 0 || *bedge_type == 2 || *bedge_type == 3) {
 
-      for(int i = 0; i < 5; i++) {
+      for(int i = 0; i < 4; i++) {
         int fInd = fmask[i];
 
 
@@ -31,7 +31,7 @@ inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
 
     if(*bedge_type == 0) {
 
-      for(int i = 0; i < 5; i++) {
+      for(int i = 0; i < 4; i++) {
         double y1 = y[fmask[i]];
         double bcdUndt = -pow(1.0, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (1.0 - y1);
         dPdN[exInd + i] -= bcdUndt;
@@ -40,7 +40,7 @@ inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
   } else {
     if(*bedge_type == 0) {
 
-      for(int i = 0; i < 5; i++) {
+      for(int i = 0; i < 4; i++) {
         int fInd = fmask[i];
         double res1 = -N0[fInd] - nu[fInd] * gradCurlVel1[fInd];
         double res2 = -N1[fInd] + nu[fInd] * gradCurlVel0[fInd];
@@ -170,17 +170,17 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
           &data1[1 * n],
           &arg2_l,
           &arg3_l,
-          &data4[15 * map4idx],
-          &data5[15 * map4idx],
-          &data6[15 * map4idx],
-          &data7[15 * map4idx],
-          &data8[15 * map4idx],
-          &data9[15 * map4idx],
-          &data10[15 * map4idx],
-          &data11[15 * map4idx],
-          &data12[15 * map4idx],
-          &data13[15 * map4idx],
-          &data14[15 * map4idx]);
+          &data4[10 * map4idx],
+          &data5[10 * map4idx],
+          &data6[12 * map4idx],
+          &data7[12 * map4idx],
+          &data8[10 * map4idx],
+          &data9[10 * map4idx],
+          &data10[10 * map4idx],
+          &data11[10 * map4idx],
+          &data12[10 * map4idx],
+          &data13[10 * map4idx],
+          &data14[12 * map4idx]);
       }
 
     }

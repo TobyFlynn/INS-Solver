@@ -66,16 +66,16 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
         (double*)arg3.data,
         (double*)arg4.data,
         (double*)arg5.data,
-        &((double*)arg6.data)[15*n],
-        &((double*)arg7.data)[15*n],
-        &((double*)arg8.data)[15*n],
-        &((double*)arg9.data)[15*n],
-        &((double*)arg10.data)[15*n],
-        &((double*)arg11.data)[15*n],
-        &((double*)arg12.data)[15*n],
-        &((double*)arg13.data)[15*n],
-        &((double*)arg14.data)[15*n],
-        &((double*)arg15.data)[15*n]);
+        &((double*)arg6.data)[10*n],
+        &((double*)arg7.data)[10*n],
+        &((double*)arg8.data)[10*n],
+        &((double*)arg9.data)[10*n],
+        &((double*)arg10.data)[10*n],
+        &((double*)arg11.data)[10*n],
+        &((double*)arg12.data)[10*n],
+        &((double*)arg13.data)[10*n],
+        &((double*)arg14.data)[10*n],
+        &((double*)arg15.data)[10*n]);
     }
   }
 

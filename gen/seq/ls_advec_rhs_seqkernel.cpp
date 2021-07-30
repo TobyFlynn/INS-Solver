@@ -62,23 +62,23 @@ void op_par_loop_ls_advec_rhs(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       ls_advec_rhs(
-        &((double*)arg0.data)[15*n],
-        &((double*)arg1.data)[15*n],
-        &((double*)arg2.data)[15*n],
-        &((double*)arg3.data)[15*n],
-        &((double*)arg4.data)[15*n],
-        &((double*)arg5.data)[15*n],
-        &((double*)arg6.data)[15*n],
-        &((double*)arg7.data)[15*n],
-        &((double*)arg8.data)[15*n],
-        &((double*)arg9.data)[15*n],
-        &((double*)arg10.data)[15*n],
-        &((double*)arg11.data)[15*n],
-        &((double*)arg12.data)[15*n],
-        &((double*)arg13.data)[15*n],
-        &((double*)arg14.data)[15*n],
-        &((double*)arg15.data)[15*n],
-        &((double*)arg16.data)[15*n]);
+        &((double*)arg0.data)[10*n],
+        &((double*)arg1.data)[10*n],
+        &((double*)arg2.data)[10*n],
+        &((double*)arg3.data)[10*n],
+        &((double*)arg4.data)[10*n],
+        &((double*)arg5.data)[10*n],
+        &((double*)arg6.data)[10*n],
+        &((double*)arg7.data)[10*n],
+        &((double*)arg8.data)[10*n],
+        &((double*)arg9.data)[12*n],
+        &((double*)arg10.data)[10*n],
+        &((double*)arg11.data)[10*n],
+        &((double*)arg12.data)[12*n],
+        &((double*)arg13.data)[12*n],
+        &((double*)arg14.data)[12*n],
+        &((double*)arg15.data)[12*n],
+        &((double*)arg16.data)[10*n]);
     }
   }
 

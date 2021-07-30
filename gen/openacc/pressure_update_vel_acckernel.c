@@ -9,7 +9,7 @@ inline void pressure_update_vel_openacc( const double *factor, const double *rho
                                 const double *dpdy, const double *qt0,
                                 const double *qt1, double *qtt0, double *qtt1,
                                 double *dpdn, double *prBC, double *pX, double *pY) {
-  for(int i = 0; i < 15; i++) {
+  for(int i = 0; i < 10; i++) {
     qtt0[i] = qt0[i] - *factor * dpdx[i] / rho[i];
     qtt1[i] = qt1[i] - *factor * dpdy[i] / rho[i];
 
@@ -17,11 +17,11 @@ inline void pressure_update_vel_openacc( const double *factor, const double *rho
     dpdn[i] = 0.0;
   }
 
-  for(int i = 0; i < 21; i++) {
+  for(int i = 0; i < 18; i++) {
     prBC[i] = 0.0;
   }
 
-  for(int i = 0; i < 3 * 5; i++) {
+  for(int i = 0; i < 3 * 4; i++) {
     pX[i] = 0.0;
     pY[i] = 0.0;
   }
@@ -95,17 +95,17 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
     for ( int n=0; n<set->size; n++ ){
       pressure_update_vel_openacc(
         &arg0_l,
-        &data1[15*n],
-        &data2[15*n],
-        &data3[15*n],
-        &data4[15*n],
-        &data5[15*n],
-        &data6[15*n],
-        &data7[15*n],
-        &data8[15*n],
-        &data9[21*n],
-        &data10[15*n],
-        &data11[15*n]);
+        &data1[10*n],
+        &data2[10*n],
+        &data3[10*n],
+        &data4[10*n],
+        &data5[10*n],
+        &data6[10*n],
+        &data7[10*n],
+        &data8[12*n],
+        &data9[18*n],
+        &data10[12*n],
+        &data11[12*n]);
     }
   }
 

@@ -9,15 +9,15 @@ __device__ void pressure_bc_gpu( const int *bedge_type, const int *bedgeNum,
                         const double *nu, const double *rho, const double *N0, const double *N1,
                         const double *gradCurlVel0, const double *gradCurlVel1,
                         double *dPdN) {
-  int exInd = *bedgeNum * 5;
-  int *fmask = &FMASK_cuda[*bedgeNum * 5];
+  int exInd = *bedgeNum * 4;
+  int *fmask = &FMASK_cuda[*bedgeNum * 4];
 
   const double PI = 3.141592653589793238463;
 
   if(*problem == 0) {
     if(*bedge_type == 0 || *bedge_type == 2 || *bedge_type == 3) {
 
-      for(int i = 0; i < 5; i++) {
+      for(int i = 0; i < 4; i++) {
         int fInd = fmask[i];
 
 
@@ -29,7 +29,7 @@ __device__ void pressure_bc_gpu( const int *bedge_type, const int *bedgeNum,
 
     if(*bedge_type == 0) {
 
-      for(int i = 0; i < 5; i++) {
+      for(int i = 0; i < 4; i++) {
         double y1 = y[fmask[i]];
         double bcdUndt = -pow(1.0, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (1.0 - y1);
         dPdN[exInd + i] -= bcdUndt;
@@ -38,7 +38,7 @@ __device__ void pressure_bc_gpu( const int *bedge_type, const int *bedgeNum,
   } else {
     if(*bedge_type == 0) {
 
-      for(int i = 0; i < 5; i++) {
+      for(int i = 0; i < 4; i++) {
         int fInd = fmask[i];
         double res1 = -N0[fInd] - nu[fInd] * gradCurlVel1[fInd];
         double res2 = -N1[fInd] + nu[fInd] * gradCurlVel0[fInd];
@@ -82,8 +82,8 @@ __global__ void op_cuda_pressure_bc(
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg14_l[15];
-    for ( int d=0; d<15; d++ ){
+    double arg14_l[12];
+    for ( int d=0; d<12; d++ ){
       arg14_l[d] = ZERO_double;
     }
     int map4idx;
@@ -94,32 +94,29 @@ __global__ void op_cuda_pressure_bc(
                 arg1+n*1,
                 arg2,
                 arg3,
-                ind_arg0+map4idx*15,
-                ind_arg1+map4idx*15,
-                ind_arg2+map4idx*15,
-                ind_arg3+map4idx*15,
-                ind_arg4+map4idx*15,
-                ind_arg5+map4idx*15,
-                ind_arg6+map4idx*15,
-                ind_arg7+map4idx*15,
-                ind_arg8+map4idx*15,
-                ind_arg9+map4idx*15,
+                ind_arg0+map4idx*10,
+                ind_arg1+map4idx*10,
+                ind_arg2+map4idx*12,
+                ind_arg3+map4idx*12,
+                ind_arg4+map4idx*10,
+                ind_arg5+map4idx*10,
+                ind_arg6+map4idx*10,
+                ind_arg7+map4idx*10,
+                ind_arg8+map4idx*10,
+                ind_arg9+map4idx*10,
                 arg14_l);
-    atomicAdd(&ind_arg10[0+map4idx*15],arg14_l[0]);
-    atomicAdd(&ind_arg10[1+map4idx*15],arg14_l[1]);
-    atomicAdd(&ind_arg10[2+map4idx*15],arg14_l[2]);
-    atomicAdd(&ind_arg10[3+map4idx*15],arg14_l[3]);
-    atomicAdd(&ind_arg10[4+map4idx*15],arg14_l[4]);
-    atomicAdd(&ind_arg10[5+map4idx*15],arg14_l[5]);
-    atomicAdd(&ind_arg10[6+map4idx*15],arg14_l[6]);
-    atomicAdd(&ind_arg10[7+map4idx*15],arg14_l[7]);
-    atomicAdd(&ind_arg10[8+map4idx*15],arg14_l[8]);
-    atomicAdd(&ind_arg10[9+map4idx*15],arg14_l[9]);
-    atomicAdd(&ind_arg10[10+map4idx*15],arg14_l[10]);
-    atomicAdd(&ind_arg10[11+map4idx*15],arg14_l[11]);
-    atomicAdd(&ind_arg10[12+map4idx*15],arg14_l[12]);
-    atomicAdd(&ind_arg10[13+map4idx*15],arg14_l[13]);
-    atomicAdd(&ind_arg10[14+map4idx*15],arg14_l[14]);
+    atomicAdd(&ind_arg10[0+map4idx*12],arg14_l[0]);
+    atomicAdd(&ind_arg10[1+map4idx*12],arg14_l[1]);
+    atomicAdd(&ind_arg10[2+map4idx*12],arg14_l[2]);
+    atomicAdd(&ind_arg10[3+map4idx*12],arg14_l[3]);
+    atomicAdd(&ind_arg10[4+map4idx*12],arg14_l[4]);
+    atomicAdd(&ind_arg10[5+map4idx*12],arg14_l[5]);
+    atomicAdd(&ind_arg10[6+map4idx*12],arg14_l[6]);
+    atomicAdd(&ind_arg10[7+map4idx*12],arg14_l[7]);
+    atomicAdd(&ind_arg10[8+map4idx*12],arg14_l[8]);
+    atomicAdd(&ind_arg10[9+map4idx*12],arg14_l[9]);
+    atomicAdd(&ind_arg10[10+map4idx*12],arg14_l[10]);
+    atomicAdd(&ind_arg10[11+map4idx*12],arg14_l[11]);
   }
 }
 

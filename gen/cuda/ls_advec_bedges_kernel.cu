@@ -6,10 +6,10 @@
 __device__ void ls_advec_bedges_gpu( const int *bedge_type, const int *bedgeNum,
                             const double *x, const double *y, const double *q,
                             double *exQ) {
-  int exInd = *bedgeNum * 5;
-  int *fmask = &FMASK_cuda[*bedgeNum * 5];
+  int exInd = *bedgeNum * 4;
+  int *fmask = &FMASK_cuda[*bedgeNum * 4];
 
-  for(int i = 0; i < 5; i++) {
+  for(int i = 0; i < 4; i++) {
     exQ[exInd + i] += q[fmask[i]];
   }
 
@@ -31,8 +31,8 @@ __global__ void op_cuda_ls_advec_bedges(
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg5_l[15];
-    for ( int d=0; d<15; d++ ){
+    double arg5_l[12];
+    for ( int d=0; d<12; d++ ){
       arg5_l[d] = ZERO_double;
     }
     int map2idx;
@@ -41,25 +41,22 @@ __global__ void op_cuda_ls_advec_bedges(
     //user-supplied kernel call
     ls_advec_bedges_gpu(arg0+n*1,
                     arg1+n*1,
-                    ind_arg0+map2idx*15,
-                    ind_arg1+map2idx*15,
-                    ind_arg2+map2idx*15,
+                    ind_arg0+map2idx*10,
+                    ind_arg1+map2idx*10,
+                    ind_arg2+map2idx*10,
                     arg5_l);
-    atomicAdd(&ind_arg3[0+map2idx*15],arg5_l[0]);
-    atomicAdd(&ind_arg3[1+map2idx*15],arg5_l[1]);
-    atomicAdd(&ind_arg3[2+map2idx*15],arg5_l[2]);
-    atomicAdd(&ind_arg3[3+map2idx*15],arg5_l[3]);
-    atomicAdd(&ind_arg3[4+map2idx*15],arg5_l[4]);
-    atomicAdd(&ind_arg3[5+map2idx*15],arg5_l[5]);
-    atomicAdd(&ind_arg3[6+map2idx*15],arg5_l[6]);
-    atomicAdd(&ind_arg3[7+map2idx*15],arg5_l[7]);
-    atomicAdd(&ind_arg3[8+map2idx*15],arg5_l[8]);
-    atomicAdd(&ind_arg3[9+map2idx*15],arg5_l[9]);
-    atomicAdd(&ind_arg3[10+map2idx*15],arg5_l[10]);
-    atomicAdd(&ind_arg3[11+map2idx*15],arg5_l[11]);
-    atomicAdd(&ind_arg3[12+map2idx*15],arg5_l[12]);
-    atomicAdd(&ind_arg3[13+map2idx*15],arg5_l[13]);
-    atomicAdd(&ind_arg3[14+map2idx*15],arg5_l[14]);
+    atomicAdd(&ind_arg3[0+map2idx*12],arg5_l[0]);
+    atomicAdd(&ind_arg3[1+map2idx*12],arg5_l[1]);
+    atomicAdd(&ind_arg3[2+map2idx*12],arg5_l[2]);
+    atomicAdd(&ind_arg3[3+map2idx*12],arg5_l[3]);
+    atomicAdd(&ind_arg3[4+map2idx*12],arg5_l[4]);
+    atomicAdd(&ind_arg3[5+map2idx*12],arg5_l[5]);
+    atomicAdd(&ind_arg3[6+map2idx*12],arg5_l[6]);
+    atomicAdd(&ind_arg3[7+map2idx*12],arg5_l[7]);
+    atomicAdd(&ind_arg3[8+map2idx*12],arg5_l[8]);
+    atomicAdd(&ind_arg3[9+map2idx*12],arg5_l[9]);
+    atomicAdd(&ind_arg3[10+map2idx*12],arg5_l[10]);
+    atomicAdd(&ind_arg3[11+map2idx*12],arg5_l[11]);
   }
 }
 

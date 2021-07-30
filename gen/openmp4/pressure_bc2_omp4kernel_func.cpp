@@ -41,21 +41,21 @@ void pressure_bc2_omp4_kernel(
     const int *bedgeNum = &data1[1*n_op];
     const double *t = &arg2_l;
     const int *problem = &arg3_l;
-    const double *x = &data4[21 * map4idx];
-    const double *y = &data5[21 * map4idx];
-    const double *nu = &data6[21 * map4idx];
-    double *prBC = &data7[21 * map4idx];
+    const double *x = &data4[18 * map4idx];
+    const double *y = &data5[18 * map4idx];
+    const double *nu = &data6[18 * map4idx];
+    double *prBC = &data7[18 * map4idx];
 
     //inline function
     
-    int exInd = *bedgeNum * 7;
+    int exInd = *bedgeNum * 6;
 
     const double PI = 3.141592653589793238463;
 
     if(*problem == 1) {
       if(*bedge_type == 1) {
 
-        for(int i = 0; i < 7; i++) {
+        for(int i = 0; i < 6; i++) {
           double y1 = y[exInd + i];
           double x1 = x[exInd + i];
           prBC[exInd + i] += -cos(2.0 * PI * x1) * cos(2.0 * PI * y1) * exp(-nu[exInd + i] * 8.0 * PI * PI * *t);

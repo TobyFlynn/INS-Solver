@@ -22,14 +22,14 @@ void update_Q_omp4_kernel(
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const double *dt = &arg0_l;
-    double *s = &data1[15*n_op];
-    const double *rk0 = &data2[15*n_op];
-    const double *rk1 = &data3[15*n_op];
-    const double *rk2 = &data4[15*n_op];
+    double *s = &data1[10*n_op];
+    const double *rk0 = &data2[10*n_op];
+    const double *rk1 = &data3[10*n_op];
+    const double *rk2 = &data4[10*n_op];
 
     //inline function
     
-    for(int i = 0; i < 15; i++) {
+    for(int i = 0; i < 10; i++) {
       double add = (*dt) * (rk0[i]/ 6.0 + rk1[i] / 6.0 + 2.0 * rk2[i] / 3.0);
       s[i] = s[i] + add;
     }

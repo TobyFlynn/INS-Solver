@@ -11,55 +11,55 @@ inline void gauss_op_openacc( const double *tau, const double *sJ,
                      const double *mD2, double *f2_0, double *f2_1, double *f2_2,
                      double *pDy0, double *pDy1, double *pDy2) {
 
-  for(int ind = 0; ind < 7 * 15; ind++) {
-    int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
+  for(int ind = 0; ind < 6 * 10; ind++) {
+    int indT = ((ind * 10) % (10 * 6)) + (ind / 6);
     f0_0[ind] = gFInterp0_g[indT];
     f0_1[ind] = gFInterp0_g[indT];
     f0_2[ind] = mD0[indT];
   }
 
-  for(int m = 0; m < 15; m++) {
-    for(int n = 0; n < 7; n++) {
-      int ind  = m * 7 + n;
+  for(int m = 0; m < 10; m++) {
+    for(int n = 0; n < 6; n++) {
+      int ind  = m * 6 + n;
       f0_0[ind] = gaussW_g[n] * sJ[n] * tau[0] * f0_0[ind];
       f0_1[ind] = gaussW_g[n] * sJ[n] * f0_1[ind];
       f0_2[ind] = gaussW_g[n] * sJ[n] * f0_2[ind];
     }
   }
 
-  for(int ind = 0; ind < 7 * 15; ind++) {
-    int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
+  for(int ind = 0; ind < 6 * 10; ind++) {
+    int indT = ((ind * 10) % (10 * 7)) + (ind / 6);
     f1_0[ind] = gFInterp1_g[indT];
     f1_1[ind] = gFInterp1_g[indT];
     f1_2[ind] = mD1[indT];
   }
 
-  for(int m = 0; m < 15; m++) {
-    for(int n = 0; n < 7; n++) {
-      int ind = m * 7 + n;
-      f1_0[ind] = gaussW_g[n] * sJ[n + 7] * tau[1] * f1_0[ind];
-      f1_1[ind] = gaussW_g[n] * sJ[n + 7] * f1_1[ind];
-      f1_2[ind] = gaussW_g[n] * sJ[n + 7] * f1_2[ind];
+  for(int m = 0; m < 10; m++) {
+    for(int n = 0; n < 6; n++) {
+      int ind = m * 6 + n;
+      f1_0[ind] = gaussW_g[n] * sJ[n + 6] * tau[1] * f1_0[ind];
+      f1_1[ind] = gaussW_g[n] * sJ[n + 6] * f1_1[ind];
+      f1_2[ind] = gaussW_g[n] * sJ[n + 6] * f1_2[ind];
     }
   }
 
-  for(int ind = 0; ind < 7 * 15; ind++) {
-    int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
+  for(int ind = 0; ind < 6 * 10; ind++) {
+    int indT = ((ind * 10) % (10 * 6)) + (ind / 6);
     f2_0[ind] = gFInterp2_g[indT];
     f2_1[ind] = gFInterp2_g[indT];
     f2_2[ind] = mD2[indT];
   }
 
-  for(int m = 0; m < 15; m++) {
-    for(int n = 0; n < 7; n++) {
-      int ind = m * 7 + n;
-      f2_0[ind] = gaussW_g[n] * sJ[n + 2 * 7] * tau[2] * f2_0[ind];
-      f2_1[ind] = gaussW_g[n] * sJ[n + 2 * 7] * f2_1[ind];
-      f2_2[ind] = gaussW_g[n] * sJ[n + 2 * 7] * f2_2[ind];
+  for(int m = 0; m < 10; m++) {
+    for(int n = 0; n < 6; n++) {
+      int ind = m * 6 + n;
+      f2_0[ind] = gaussW_g[n] * sJ[n + 2 * 6] * tau[2] * f2_0[ind];
+      f2_1[ind] = gaussW_g[n] * sJ[n + 2 * 6] * f2_1[ind];
+      f2_2[ind] = gaussW_g[n] * sJ[n + 2 * 6] * f2_2[ind];
     }
   }
 
-  for(int i = 0; i < 7 * 15; i++) {
+  for(int i = 0; i < 6 * 10; i++) {
     pDy0[i] = 0.0;
     pDy1[i] = 0.0;
     pDy2[i] = 0.0;
@@ -148,22 +148,22 @@ void op_par_loop_gauss_op(char const *name, op_set set,
     for ( int n=0; n<set->size; n++ ){
       gauss_op_openacc(
         &data0[3*n],
-        &data1[21*n],
-        &data2[105*n],
-        &data3[105*n],
-        &data4[105*n],
-        &data5[105*n],
-        &data6[105*n],
-        &data7[105*n],
-        &data8[105*n],
-        &data9[105*n],
-        &data10[105*n],
-        &data11[105*n],
-        &data12[105*n],
-        &data13[105*n],
-        &data14[105*n],
-        &data15[105*n],
-        &data16[105*n]);
+        &data1[18*n],
+        &data2[60*n],
+        &data3[60*n],
+        &data4[60*n],
+        &data5[60*n],
+        &data6[60*n],
+        &data7[60*n],
+        &data8[60*n],
+        &data9[60*n],
+        &data10[60*n],
+        &data11[60*n],
+        &data12[60*n],
+        &data13[60*n],
+        &data14[60*n],
+        &data15[60*n],
+        &data16[60*n]);
     }
   }
 

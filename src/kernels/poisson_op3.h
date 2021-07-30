@@ -80,7 +80,7 @@ inline void poisson_op3(const int *edgeType, const int *edgeNum,
         int b_ind = k * DG_NP + j;
         // Transpose of gVM
         int ind = i * DG_GF_NP + k;
-        int a_ind = ((ind * DG_NP) % (DG_NP * 7)) + (ind / DG_GF_NP);
+        int a_ind = ((ind * DG_NP) % (DG_NP * DG_GF_NP)) + (ind / DG_GF_NP);
         // sJ ind
         int factors_ind = *edgeNum * DG_GF_NP + k;
 

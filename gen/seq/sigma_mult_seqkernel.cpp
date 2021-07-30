@@ -41,11 +41,11 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
     for ( int n=0; n<set_size; n++ ){
       sigma_mult(
         (double*)arg0.data,
-        &((double*)arg1.data)[15*n],
-        &((double*)arg2.data)[15*n],
-        &((double*)arg3.data)[21*n],
-        &((double*)arg4.data)[21*n],
-        &((double*)arg5.data)[21*n]);
+        &((double*)arg1.data)[10*n],
+        &((double*)arg2.data)[10*n],
+        &((double*)arg3.data)[18*n],
+        &((double*)arg4.data)[18*n],
+        &((double*)arg5.data)[18*n]);
     }
   }
 

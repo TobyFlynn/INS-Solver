@@ -34,7 +34,7 @@ inline void poisson_op5(const int *edgeType, const int *edgeNum,
     // Calculate penalty parameter
     double tauA[DG_GF_NP];
     for(int i = 0; i < DG_GF_NP; i++) {
-      int ind = *edgeNum  * 7 + i;
+      int ind = *edgeNum  * DG_GF_NP + i;
       tauA[i] = 100 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
       // tauA[i] = 100 * 0.5 * 5 * 6 * (*h);
     }

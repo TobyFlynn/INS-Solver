@@ -7,9 +7,9 @@
 //#pragma acc routine
 inline void init_cubature_OP_openacc( const double *J, const double *Dx,
                              const double *Dy, double *temp, double *temp2) {
-  for(int m = 0; m < 46; m++) {
-    for(int n = 0; n < 15; n++) {
-      int ind = m * 15 + n;
+  for(int m = 0; m < 36; m++) {
+    for(int n = 0; n < 10; n++) {
+      int ind = m * 10 + n;
       temp[ind] = J[m] * cubW_g[m] * Dx[ind];
       temp2[ind] = J[m] * cubW_g[m] * Dy[ind];
     }
@@ -61,11 +61,11 @@ void op_par_loop_init_cubature_OP(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4)
     for ( int n=0; n<set->size; n++ ){
       init_cubature_OP_openacc(
-        &data0[46*n],
-        &data1[690*n],
-        &data2[690*n],
-        &data3[690*n],
-        &data4[690*n]);
+        &data0[36*n],
+        &data1[360*n],
+        &data2[360*n],
+        &data3[360*n],
+        &data4[360*n]);
     }
   }
 

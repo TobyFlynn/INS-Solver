@@ -8,7 +8,7 @@
 inline void ls_reinit_check_openacc( const double *alpha, const double *s,
                             const double *dsdx, const double *dsdy,
                             double *res, int *count) {
-  for(int i = 0; i < 15; i++) {
+  for(int i = 0; i < 10; i++) {
     if(fabs(s[i]) < (*alpha)) {
       *res += dsdx[i] * dsdx[i] + dsdy[i] * dsdy[i];
       *count += 1;
@@ -68,9 +68,9 @@ void op_par_loop_ls_reinit_check(char const *name, op_set set,
     for ( int n=0; n<set->size; n++ ){
       ls_reinit_check_openacc(
         &arg0_l,
-        &data1[15*n],
-        &data2[15*n],
-        &data3[15*n],
+        &data1[10*n],
+        &data2[10*n],
+        &data3[10*n],
         &arg4_l,
         &arg5_l);
     }

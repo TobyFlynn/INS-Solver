@@ -2,14 +2,14 @@ inline void viscosity_bc(const int *bedge_type, const int *bedgeNum,
                          const double *t, const int *problem, const double *x,
                          const double *y, const double *nx, const double *ny,
                          const double *nu, double *exQ0, double *exQ1) {
-  int exInd = *bedgeNum * 7;
+  int exInd = *bedgeNum * 6;
 
   const double PI = 3.141592653589793238463;
 
   if(*problem == 0) {
     if(*bedge_type == 0) {
       // Inflow - BC function dependant on time
-      for(int i = 0; i < 7; i++) {
+      for(int i = 0; i < 6; i++) {
         double y1 = y[exInd + i];
         exQ0[exInd + i] += pow(1.0, -2.0) * sin((PI * (*t)) / 8.0) * 6.0 * y1 * (1.0 - y1);
       }
@@ -26,7 +26,7 @@ inline void viscosity_bc(const int *bedge_type, const int *bedgeNum,
   } else {
     if(*bedge_type == 0) {
       // Inflow - BC function dependant on time
-      for(int i = 0; i < 7; i++) {
+      for(int i = 0; i < 6; i++) {
         double y1 = y[exInd + i];
         double x1 = x[exInd + i];
         exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
@@ -36,7 +36,7 @@ inline void viscosity_bc(const int *bedge_type, const int *bedgeNum,
 
     if(*bedge_type == 1) {
       // Outflow - BC function dependant on time
-      for(int i = 0; i < 7; i++) {
+      for(int i = 0; i < 6; i++) {
         double y1  = y[exInd + i];
         double x1  = x[exInd + i];
         double ny1 = ny[exInd + i];

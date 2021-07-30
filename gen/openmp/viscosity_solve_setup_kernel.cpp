@@ -51,11 +51,11 @@ void op_par_loop_viscosity_solve_setup(char const *name, op_set set,
       int finish = (set->size*(thr+1))/nthreads;
       for ( int n=start; n<finish; n++ ){
         viscosity_solve_setup(
-          &((double*)arg0.data)[15*n],
-          &((double*)arg1.data)[15*n],
+          &((double*)arg0.data)[10*n],
+          &((double*)arg1.data)[10*n],
           (double*)arg2.data,
-          &((double*)arg3.data)[15*n],
-          &((double*)arg4.data)[15*n]);
+          &((double*)arg3.data)[10*n],
+          &((double*)arg4.data)[10*n]);
       }
     }
   }

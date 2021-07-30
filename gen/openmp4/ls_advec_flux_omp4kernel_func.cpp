@@ -21,15 +21,15 @@ void ls_advec_flux_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *q = &data0[15*n_op];
-    const double *u = &data1[15*n_op];
-    const double *v = &data2[15*n_op];
-    double *F = &data3[15*n_op];
-    double *G = &data4[15*n_op];
+    const double *q = &data0[10*n_op];
+    const double *u = &data1[10*n_op];
+    const double *v = &data2[10*n_op];
+    double *F = &data3[10*n_op];
+    double *G = &data4[10*n_op];
 
     //inline function
     
-    for(int i = 0; i < 15; i++) {
+    for(int i = 0; i < 10; i++) {
       F[i] = u[i] * q[i];
       G[i] = v[i] * q[i];
     }

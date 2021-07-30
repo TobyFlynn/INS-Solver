@@ -5,11 +5,11 @@
 //user function
 __device__ void poisson_apply_bc_gpu( const int *bedgeNum, const double *op,
                              const double *bc, double *rhs) {
-  int exInd = *bedgeNum * 7;
+  int exInd = *bedgeNum * 6;
 
-  for(int m = 0; m < 15; m++) {
-    int ind = m * 7;
-    for(int n = 0; n < 7; n++) {
+  for(int m = 0; m < 10; m++) {
+    int ind = m * 6;
+    for(int n = 0; n < 6; n++) {
       rhs[m] += op[ind + n] * bc[exInd + n];
     }
   }
@@ -30,8 +30,8 @@ __global__ void op_cuda_poisson_apply_bc(
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg3_l[15];
-    for ( int d=0; d<15; d++ ){
+    double arg3_l[10];
+    for ( int d=0; d<10; d++ ){
       arg3_l[d] = ZERO_double;
     }
     int map2idx;
@@ -39,24 +39,19 @@ __global__ void op_cuda_poisson_apply_bc(
 
     //user-supplied kernel call
     poisson_apply_bc_gpu(arg0+n*1,
-                     arg1+n*105,
-                     ind_arg0+map2idx*21,
+                     arg1+n*60,
+                     ind_arg0+map2idx*18,
                      arg3_l);
-    atomicAdd(&ind_arg1[0+map2idx*15],arg3_l[0]);
-    atomicAdd(&ind_arg1[1+map2idx*15],arg3_l[1]);
-    atomicAdd(&ind_arg1[2+map2idx*15],arg3_l[2]);
-    atomicAdd(&ind_arg1[3+map2idx*15],arg3_l[3]);
-    atomicAdd(&ind_arg1[4+map2idx*15],arg3_l[4]);
-    atomicAdd(&ind_arg1[5+map2idx*15],arg3_l[5]);
-    atomicAdd(&ind_arg1[6+map2idx*15],arg3_l[6]);
-    atomicAdd(&ind_arg1[7+map2idx*15],arg3_l[7]);
-    atomicAdd(&ind_arg1[8+map2idx*15],arg3_l[8]);
-    atomicAdd(&ind_arg1[9+map2idx*15],arg3_l[9]);
-    atomicAdd(&ind_arg1[10+map2idx*15],arg3_l[10]);
-    atomicAdd(&ind_arg1[11+map2idx*15],arg3_l[11]);
-    atomicAdd(&ind_arg1[12+map2idx*15],arg3_l[12]);
-    atomicAdd(&ind_arg1[13+map2idx*15],arg3_l[13]);
-    atomicAdd(&ind_arg1[14+map2idx*15],arg3_l[14]);
+    atomicAdd(&ind_arg1[0+map2idx*10],arg3_l[0]);
+    atomicAdd(&ind_arg1[1+map2idx*10],arg3_l[1]);
+    atomicAdd(&ind_arg1[2+map2idx*10],arg3_l[2]);
+    atomicAdd(&ind_arg1[3+map2idx*10],arg3_l[3]);
+    atomicAdd(&ind_arg1[4+map2idx*10],arg3_l[4]);
+    atomicAdd(&ind_arg1[5+map2idx*10],arg3_l[5]);
+    atomicAdd(&ind_arg1[6+map2idx*10],arg3_l[6]);
+    atomicAdd(&ind_arg1[7+map2idx*10],arg3_l[7]);
+    atomicAdd(&ind_arg1[8+map2idx*10],arg3_l[8]);
+    atomicAdd(&ind_arg1[9+map2idx*10],arg3_l[9]);
   }
 }
 

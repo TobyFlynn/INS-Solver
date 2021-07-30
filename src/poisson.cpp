@@ -125,8 +125,8 @@ double PoissonSolve::getAverageConvergeIter() {
 }
 
 void PoissonSolve::init() {
-  create_vec(&b);
-  create_vec(&x);
+  create_vec(&b, DG_NP);
+  create_vec(&x, DG_NP);
   if(precondition) {
     setGlbInd();
     op_par_loop(glb_ind_kernel, "glb_ind_kernel", mesh->edges,
@@ -163,8 +163,8 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
               op_arg_dat(bc_dat, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(b_dat,  0, mesh->bedge2cells, DG_NP, "double", OP_INC));
 
-  load_vec(&b, b_dat);
-  load_vec(&x, x_dat);
+  load_vec(&b, b_dat, DG_NP);
+  load_vec(&x, x_dat, DG_NP);
 
   KSPSolve(ksp, b, x);
   int numIt;

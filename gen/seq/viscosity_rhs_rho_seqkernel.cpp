@@ -34,9 +34,9 @@ void op_par_loop_viscosity_rhs_rho(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       viscosity_rhs_rho(
-        &((double*)arg0.data)[15*n],
-        &((double*)arg1.data)[15*n],
-        &((double*)arg2.data)[15*n]);
+        &((double*)arg0.data)[10*n],
+        &((double*)arg1.data)[10*n],
+        &((double*)arg2.data)[10*n]);
     }
   }
 

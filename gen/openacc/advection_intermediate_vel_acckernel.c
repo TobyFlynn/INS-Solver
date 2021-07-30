@@ -13,7 +13,7 @@ inline void advection_intermediate_vel_openacc( const double *a0, const double *
                                        const double *N0, const double *N1,
                                        const double *N0Old, const double *N1Old,
                                        double *q0T, double *q1T) {
-  for(int i = 0; i < 15; i++) {
+  for(int i = 0; i < 10; i++) {
     q0T[i] = *a0 * q0[i] + *a1 * q0Old[i] + *dt * (*b0 * N0[i] + *b1 * N0Old[i]);
     q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * N1[i] + *b1 * N1Old[i]);
 
@@ -110,16 +110,16 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
         &arg3_l,
         &arg4_l,
         &arg5_l,
-        &data6[15*n],
-        &data7[15*n],
-        &data8[15*n],
-        &data9[15*n],
-        &data10[15*n],
-        &data11[15*n],
-        &data12[15*n],
-        &data13[15*n],
-        &data14[15*n],
-        &data15[15*n]);
+        &data6[10*n],
+        &data7[10*n],
+        &data8[10*n],
+        &data9[10*n],
+        &data10[10*n],
+        &data11[10*n],
+        &data12[10*n],
+        &data13[10*n],
+        &data14[10*n],
+        &data15[10*n]);
     }
   }
 

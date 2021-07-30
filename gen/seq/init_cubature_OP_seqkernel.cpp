@@ -38,11 +38,11 @@ void op_par_loop_init_cubature_OP(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       init_cubature_OP(
-        &((double*)arg0.data)[46*n],
-        &((double*)arg1.data)[690*n],
-        &((double*)arg2.data)[690*n],
-        &((double*)arg3.data)[690*n],
-        &((double*)arg4.data)[690*n]);
+        &((double*)arg0.data)[36*n],
+        &((double*)arg1.data)[360*n],
+        &((double*)arg2.data)[360*n],
+        &((double*)arg3.data)[360*n],
+        &((double*)arg4.data)[360*n]);
     }
   }
 

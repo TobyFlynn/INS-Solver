@@ -18,12 +18,12 @@ void viscosity_rhs_omp4_kernel(
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const double *factor = &arg0_l;
-    double *vRHS0 = &data1[15*n_op];
-    double *vRHS1 = &data2[15*n_op];
+    double *vRHS0 = &data1[10*n_op];
+    double *vRHS1 = &data2[10*n_op];
 
     //inline function
     
-    for(int i = 0; i < 15; i++) {
+    for(int i = 0; i < 10; i++) {
       vRHS0[i] = (*factor) * vRHS0[i];
       vRHS1[i] = (*factor) * vRHS1[i];
     }

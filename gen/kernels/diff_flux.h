@@ -6,14 +6,14 @@ inline void diff_flux(const int *edgeNum, const bool *rev, const double **sJ,
   int edgeR = edgeNum[1];
   bool reverse = *rev;
 
-  int exIndL = edgeL * 7;
-  int exIndR = edgeR * 7;
+  int exIndL = edgeL * 6;
+  int exIndR = edgeR * 6;
 
-  for(int i = 0; i < 7; i++) {
+  for(int i = 0; i < 6; i++) {
     int rInd;
     int lInd = exIndL + i;
     if(reverse) {
-      rInd = exIndR + 7 - i - 1;
+      rInd = exIndR + 6 - i - 1;
     } else {
       rInd = exIndR + i;
     }
@@ -24,11 +24,11 @@ inline void diff_flux(const int *edgeNum, const bool *rev, const double **sJ,
     flux[0][lInd] += gaussW_g[i] * sJ[0][lInd] * (nx[0][lInd] * sigFX + ny[0][lInd] * sigFY);
   }
 
-  for(int i = 0; i < 7; i++) {
+  for(int i = 0; i < 6; i++) {
     int lInd;
     int rInd = exIndR + i;
     if(reverse) {
-      lInd = exIndL + 7 - i - 1;
+      lInd = exIndL + 6 - i - 1;
     } else {
       lInd = exIndL + i;
     }

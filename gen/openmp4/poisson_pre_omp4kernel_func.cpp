@@ -17,17 +17,17 @@ void poisson_pre_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *in = &data0[15*n_op];
-    const double *pre = &data1[225*n_op];
-    double *out = &data2[15*n_op];
+    const double *in = &data0[10*n_op];
+    const double *pre = &data1[100*n_op];
+    double *out = &data2[10*n_op];
 
     //inline function
     
-    for(int i = 0; i < 15; i++) {
+    for(int i = 0; i < 10; i++) {
       out[i] = 0.0;
-      for(int j = 0; j < 15; j++) {
+      for(int j = 0; j < 10; j++) {
 
-        int ind = i * 15 + j;
+        int ind = i * 10 + j;
         out[i] += pre[ind] * in[j];
       }
     }

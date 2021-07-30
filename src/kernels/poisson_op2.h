@@ -69,7 +69,7 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
         int b_ind = k * DG_NP + j;
         // Transpose of gVM
         int ind = i * DG_GF_NP + k;
-        int a_ind = ((ind * DG_NP) % (DG_NP * 7)) + (ind / DG_GF_NP);
+        int a_ind = ((ind * DG_NP) % (DG_NP * DG_GF_NP)) + (ind / DG_GF_NP);
         // int a_ind = k * 15 + i;
         // Rho and sJ ind
         int factors_indL = edgeL * DG_GF_NP + k;
@@ -103,7 +103,7 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
   for(int i = 0; i < DG_NP; i++) {
     for(int j = 0; j < DG_NP; j++) {
       int c_ind = i * DG_NP + j;
-      for(int k = 0; k < 7; k++) {
+      for(int k = 0; k < DG_GF_NP; k++) {
         // gVM and gVP
         int b_ind = k * DG_NP + j;
         // Transpose of mD

@@ -59,15 +59,15 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
       int finish = (set->size*(thr+1))/nthreads;
       for ( int n=start; n<finish; n++ ){
         advection_numerical_flux(
-          &((double*)arg0.data)[15*n],
-          &((double*)arg1.data)[15*n],
-          &((double*)arg2.data)[15*n],
-          &((double*)arg3.data)[15*n],
-          &((double*)arg4.data)[15*n],
-          &((double*)arg5.data)[15*n],
-          &((double*)arg6.data)[15*n],
-          &((double*)arg7.data)[15*n],
-          &((double*)arg8.data)[15*n]);
+          &((double*)arg0.data)[12*n],
+          &((double*)arg1.data)[12*n],
+          &((double*)arg2.data)[12*n],
+          &((double*)arg3.data)[10*n],
+          &((double*)arg4.data)[10*n],
+          &((double*)arg5.data)[12*n],
+          &((double*)arg6.data)[12*n],
+          &((double*)arg7.data)[12*n],
+          &((double*)arg8.data)[12*n]);
       }
     }
   }

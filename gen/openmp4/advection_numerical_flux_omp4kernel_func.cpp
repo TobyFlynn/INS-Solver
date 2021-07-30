@@ -26,76 +26,76 @@ void advection_numerical_flux_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size]) \
-    map(to: FMASK_ompkernel[:15])
+    map(to: FMASK_ompkernel[:12])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *fscale = &data0[15*n_op];
-    const double *nx = &data1[15*n_op];
-    const double *ny = &data2[15*n_op];
-    const double *q0 = &data3[15*n_op];
-    const double *q1 = &data4[15*n_op];
-    double *exQ0 = &data5[15*n_op];
-    double *exQ1 = &data6[15*n_op];
-    double *flux0 = &data7[15*n_op];
-    double *flux1 = &data8[15*n_op];
+    const double *fscale = &data0[12*n_op];
+    const double *nx = &data1[12*n_op];
+    const double *ny = &data2[12*n_op];
+    const double *q0 = &data3[10*n_op];
+    const double *q1 = &data4[10*n_op];
+    double *exQ0 = &data5[12*n_op];
+    double *exQ1 = &data6[12*n_op];
+    double *flux0 = &data7[12*n_op];
+    double *flux1 = &data8[12*n_op];
 
     //inline function
     
 
-    double fM[4][3 * 5];
-    for(int i = 0; i < 3 * 5; i++) {
+    double fM[4][3 * 4];
+    for(int i = 0; i < 3 * 4; i++) {
       fM[0][i] = q0[FMASK_ompkernel[i]] * q0[FMASK_ompkernel[i]];
       fM[1][i] = q0[FMASK_ompkernel[i]] * q1[FMASK_ompkernel[i]];
       fM[2][i] = q0[FMASK_ompkernel[i]] * q1[FMASK_ompkernel[i]];
       fM[3][i] = q1[FMASK_ompkernel[i]] * q1[FMASK_ompkernel[i]];
     }
-    double fP[4][3 * 5];
-    for(int i = 0; i < 3 * 5; i++) {
+    double fP[4][3 * 4];
+    for(int i = 0; i < 3 * 4; i++) {
       fP[0][i] = exQ0[i] * exQ0[i];
       fP[1][i] = exQ0[i] * exQ1[i];
       fP[2][i] = exQ0[i] * exQ1[i];
       fP[3][i] = exQ1[i] * exQ1[i];
     }
 
-    double maxVel[3 * 5];
+    double maxVel[3 * 4];
     double max = 0.0;
-    for(int i = 0; i < 5; i++) {
+    for(int i = 0; i < 4; i++) {
       double mVel = q0[FMASK_ompkernel[i]] * nx[i] + q1[FMASK_ompkernel[i]] * ny[i];
       double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
       double vel = fmax(fabs(mVel), fabs(pVel));
       if(vel > max) max = vel;
     }
-    for(int i = 0; i < 5; i++) {
+    for(int i = 0; i < 4; i++) {
       maxVel[i] = max;
     }
     max = 0.0;
-    for(int i = 5; i < 2 * 5; i++) {
+    for(int i = 4; i < 2 * 4; i++) {
       double mVel = q0[FMASK_ompkernel[i]] * nx[i] + q1[FMASK_ompkernel[i]] * ny[i];
       double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
       double vel = fmax(fabs(mVel), fabs(pVel));
       if(vel > max) max = vel;
     }
-    for(int i = 5; i < 2 * 5; i++) {
+    for(int i = 4; i < 2 * 4; i++) {
       maxVel[i] = max;
     }
     max = 0.0;
-    for(int i = 2 * 5; i < 3 * 5; i++) {
+    for(int i = 2 * 4; i < 3 * 4; i++) {
       double mVel = q0[FMASK_ompkernel[i]] * nx[i] + q1[FMASK_ompkernel[i]] * ny[i];
       double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
       double vel = fmax(fabs(mVel), fabs(pVel));
       if(vel > max) max = vel;
     }
-    for(int i = 2 * 5; i < 3 * 5; i++) {
+    for(int i = 2 * 4; i < 3 * 4; i++) {
       maxVel[i] = max;
     }
 
-    for(int i = 0; i < 3 * 5; i++) {
+    for(int i = 0; i < 3 * 4; i++) {
       flux0[i] = 0.5 * fscale[i] * (-nx[i] * (fM[0][i] - fP[0][i]) - ny[i] * (fM[1][i] - fP[1][i]) - maxVel[i] * (exQ0[i] - q0[FMASK_ompkernel[i]]));
       flux1[i] = 0.5 * fscale[i] * (-nx[i] * (fM[2][i] - fP[2][i]) - ny[i] * (fM[3][i] - fP[3][i]) - maxVel[i] * (exQ1[i] - q1[FMASK_ompkernel[i]]));
     }
 
-    for(int i = 0; i < 3 * 5; i++) {
+    for(int i = 0; i < 3 * 4; i++) {
       exQ0[i] = 0.0;
       exQ1[i] = 0.0;
     }

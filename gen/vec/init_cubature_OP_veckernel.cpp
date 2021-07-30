@@ -5,9 +5,9 @@
 //user function
 inline void init_cubature_OP(const double *J, const double *Dx,
                              const double *Dy, double *temp, double *temp2) {
-  for(int m = 0; m < 46; m++) {
-    for(int n = 0; n < 15; n++) {
-      int ind = m * 15 + n;
+  for(int m = 0; m < 36; m++) {
+    for(int n = 0; n < 10; n++) {
+      int ind = m * 10 + n;
       temp[ind] = J[m] * cubW_g[m] * Dx[ind];
       temp2[ind] = J[m] * cubW_g[m] * Dy[ind];
     }
@@ -62,11 +62,11 @@ void op_par_loop_init_cubature_OP(char const *name, op_set set,
       #pragma omp simd simdlen(SIMD_VEC)
       for ( int i=0; i<SIMD_VEC; i++ ){
         init_cubature_OP(
-          &(ptr0)[46 * (n+i)],
-          &(ptr1)[690 * (n+i)],
-          &(ptr2)[690 * (n+i)],
-          &(ptr3)[690 * (n+i)],
-          &(ptr4)[690 * (n+i)]);
+          &(ptr0)[36 * (n+i)],
+          &(ptr1)[360 * (n+i)],
+          &(ptr2)[360 * (n+i)],
+          &(ptr3)[360 * (n+i)],
+          &(ptr4)[360 * (n+i)]);
       }
     }
     //remainder
@@ -75,11 +75,11 @@ void op_par_loop_init_cubature_OP(char const *name, op_set set,
     for ( int n=0; n<exec_size; n++ ){
     #endif
       init_cubature_OP(
-        &(ptr0)[46*n],
-        &(ptr1)[690*n],
-        &(ptr2)[690*n],
-        &(ptr3)[690*n],
-        &(ptr4)[690*n]);
+        &(ptr0)[36*n],
+        &(ptr1)[360*n],
+        &(ptr2)[360*n],
+        &(ptr3)[360*n],
+        &(ptr4)[360*n]);
     }
   }
 

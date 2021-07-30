@@ -8,9 +8,9 @@
 inline void ls_bflux_openacc( const int *bedgeNum, const double *sJ, const double *nx,
                      const double *ny, const double *s, double *dsldx,
                      double *dsrdx, double *dsldy, double *dsrdy) {
-  int exInd = *bedgeNum * 7;
+  int exInd = *bedgeNum * 6;
 
-  for(int i = 0; i < 7; i++) {
+  for(int i = 0; i < 6; i++) {
     dsldx[exInd + i] += gaussW_g[i] * sJ[exInd + i] * nx[exInd + i] * s[exInd + i];
     dsrdx[exInd + i] += gaussW_g[i] * sJ[exInd + i] * nx[exInd + i] * s[exInd + i];
     dsldy[exInd + i] += gaussW_g[i] * sJ[exInd + i] * ny[exInd + i] * s[exInd + i];
@@ -107,14 +107,14 @@ void op_par_loop_ls_bflux(char const *name, op_set set,
 
         ls_bflux_openacc(
           &data0[1 * n],
-          &data1[21 * map1idx],
-          &data2[21 * map1idx],
-          &data3[21 * map1idx],
-          &data4[21 * map1idx],
-          &data5[21 * map1idx],
-          &data6[21 * map1idx],
-          &data7[21 * map1idx],
-          &data8[21 * map1idx]);
+          &data1[18 * map1idx],
+          &data2[18 * map1idx],
+          &data3[18 * map1idx],
+          &data4[18 * map1idx],
+          &data5[18 * map1idx],
+          &data6[18 * map1idx],
+          &data7[18 * map1idx],
+          &data8[18 * map1idx]);
       }
 
     }

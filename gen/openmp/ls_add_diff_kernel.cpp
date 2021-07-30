@@ -53,12 +53,12 @@ void op_par_loop_ls_add_diff(char const *name, op_set set,
       int finish = (set->size*(thr+1))/nthreads;
       for ( int n=start; n<finish; n++ ){
         ls_add_diff(
-          &((double*)arg0.data)[15*n],
-          &((double*)arg1.data)[15*n],
-          &((double*)arg2.data)[21*n],
-          &((double*)arg3.data)[21*n],
-          &((double*)arg4.data)[21*n],
-          &((double*)arg5.data)[21*n]);
+          &((double*)arg0.data)[10*n],
+          &((double*)arg1.data)[10*n],
+          &((double*)arg2.data)[18*n],
+          &((double*)arg3.data)[18*n],
+          &((double*)arg4.data)[18*n],
+          &((double*)arg5.data)[18*n]);
       }
     }
   }

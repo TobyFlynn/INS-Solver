@@ -72,10 +72,10 @@ void op_par_loop_ls_advec_bedges(char const *name, op_set set,
           ls_advec_bedges(
             &((int*)arg0.data)[1 * n],
             &((int*)arg1.data)[1 * n],
-            &((double*)arg2.data)[15 * map2idx],
-            &((double*)arg3.data)[15 * map2idx],
-            &((double*)arg4.data)[15 * map2idx],
-            &((double*)arg5.data)[15 * map2idx]);
+            &((double*)arg2.data)[10 * map2idx],
+            &((double*)arg3.data)[10 * map2idx],
+            &((double*)arg4.data)[10 * map2idx],
+            &((double*)arg5.data)[12 * map2idx]);
         }
       }
 
