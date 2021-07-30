@@ -6,7 +6,7 @@
 //user function
 //#pragma acc routine
 inline void init_nu_rho_openacc( double *nu, double *rho) {
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 6; i++) {
     nu[i] = nu0;
     rho[i] = 1.0;
   }
@@ -48,8 +48,8 @@ void op_par_loop_init_nu_rho(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1)
     for ( int n=0; n<set->size; n++ ){
       init_nu_rho_openacc(
-        &data0[10*n],
-        &data1[10*n]);
+        &data0[6*n],
+        &data1[6*n]);
     }
   }
 

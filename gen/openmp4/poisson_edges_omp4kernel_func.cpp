@@ -31,18 +31,18 @@ void poisson_edges_omp4_kernel(
     map3idx = map0[n_op + set_size1 * 1];
 
     //variable mapping
-    const double *uL = &data0[10 * map0idx];
-    const double *opL = &data1[100*n_op];
-    double *rhsL = &data2[10 * map0idx];
-    const double *uR = &data0[10 * map3idx];
-    const double *opR = &data4[100*n_op];
-    double *rhsR = &data2[10 * map3idx];
+    const double *uL = &data0[6 * map0idx];
+    const double *opL = &data1[36*n_op];
+    double *rhsL = &data2[6 * map0idx];
+    const double *uR = &data0[6 * map3idx];
+    const double *opR = &data4[36*n_op];
+    double *rhsR = &data2[6 * map3idx];
 
     //inline function
     
-    for(int m = 0; m < 10; m++) {
-      int ind = m * 10;
-      for(int n = 0; n < 10; n++) {
+    for(int m = 0; m < 6; m++) {
+      int ind = m * 6;
+      for(int n = 0; n < 6; n++) {
         rhsL[m] += opL[ind + n] * uR[n];
         rhsR[m] += opR[ind + n] * uL[n];
       }

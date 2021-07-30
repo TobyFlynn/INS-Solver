@@ -26,17 +26,17 @@ __device__ void poisson_op3_gpu( const int *edgeType, const int *edgeNum,
   }
 
 
-  for(int i = 0; i < 10; i++) {
-    for(int j = 0; j < 10; j++) {
-      int c_ind = i * 10 + j;
-      for(int k = 0; k < 6; k++) {
+  for(int i = 0; i < 6; i++) {
+    for(int j = 0; j < 6; j++) {
+      int c_ind = i * 6 + j;
+      for(int k = 0; k < 4; k++) {
 
-        int b_ind = k * 10 + j;
+        int b_ind = k * 6 + j;
 
-        int ind = i * 6 + k;
-        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+        int ind = i * 4 + k;
+        int a_ind = ((ind * 6) % (6 * 4)) + (ind / 4);
 
-        int factors_ind = *edgeNum * 6 + k;
+        int factors_ind = *edgeNum * 4 + k;
 
         op1[c_ind] += -0.5 * gVM[a_ind] * gaussW_g_cuda[k] * sJ[factors_ind]
                       * gFactor[factors_ind] * mD[b_ind];
@@ -45,17 +45,17 @@ __device__ void poisson_op3_gpu( const int *edgeType, const int *edgeNum,
   }
 
 
-  for(int i = 0; i < 10; i++) {
-    for(int j = 0; j < 10; j++) {
-      int c_ind = i * 10 + j;
-      for(int k = 0; k < 6; k++) {
+  for(int i = 0; i < 6; i++) {
+    for(int j = 0; j < 6; j++) {
+      int c_ind = i * 6 + j;
+      for(int k = 0; k < 4; k++) {
 
-        int b_ind = k * 10 + j;
+        int b_ind = k * 6 + j;
 
-        int ind = i * 6 + k;
-        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+        int ind = i * 4 + k;
+        int a_ind = ((ind * 6) % (6 * 4)) + (ind / 4);
 
-        int factors_ind = *edgeNum * 6 + k;
+        int factors_ind = *edgeNum * 4 + k;
 
         op1[c_ind] += -factor[i] * mD[a_ind] * gaussW_g_cuda[k]
                       * sJ[factors_ind] * gVM[b_ind];
@@ -64,26 +64,26 @@ __device__ void poisson_op3_gpu( const int *edgeType, const int *edgeNum,
   }
 
 
-  double tauA[6];
-  for(int i = 0; i < 6; i++) {
-    int ind = *edgeNum  * 6 + i;
+  double tauA[4];
+  for(int i = 0; i < 4; i++) {
+    int ind = *edgeNum  * 4 + i;
     tauA[i] = 100 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
 
   }
 
 
 
-  for(int i = 0; i < 10; i++) {
-    for(int j = 0; j < 10; j++) {
-      int c_ind = i * 10 + j;
-      for(int k = 0; k < 6; k++) {
+  for(int i = 0; i < 6; i++) {
+    for(int j = 0; j < 6; j++) {
+      int c_ind = i * 6 + j;
+      for(int k = 0; k < 4; k++) {
 
-        int b_ind = k * 10 + j;
+        int b_ind = k * 6 + j;
 
-        int ind = i * 6 + k;
-        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+        int ind = i * 4 + k;
+        int a_ind = ((ind * 6) % (6 * 4)) + (ind / 4);
 
-        int factors_ind = *edgeNum * 6 + k;
+        int factors_ind = *edgeNum * 4 + k;
 
         op1[c_ind] += gVM[a_ind] * gaussW_g_cuda[k] * sJ[factors_ind]
                       * tauA[k] * gVM[b_ind];
@@ -116,8 +116,8 @@ __global__ void op_cuda_poisson_op3(
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg12_l[100];
-    for ( int d=0; d<100; d++ ){
+    double arg12_l[36];
+    for ( int d=0; d<36; d++ ){
       arg12_l[d] = ZERO_double;
     }
     int map5idx;
@@ -129,114 +129,50 @@ __global__ void op_cuda_poisson_op3(
                 arg2,
                 arg3,
                 arg4,
-                ind_arg0+map5idx*60,
-                ind_arg1+map5idx*60,
-                ind_arg2+map5idx*60,
-                ind_arg3+map5idx*18,
+                ind_arg0+map5idx*24,
+                ind_arg1+map5idx*24,
+                ind_arg2+map5idx*24,
+                ind_arg3+map5idx*12,
                 ind_arg4+map5idx*1,
-                ind_arg5+map5idx*18,
-                ind_arg6+map5idx*10,
+                ind_arg5+map5idx*12,
+                ind_arg6+map5idx*6,
                 arg12_l);
-    atomicAdd(&ind_arg7[0+map5idx*100],arg12_l[0]);
-    atomicAdd(&ind_arg7[1+map5idx*100],arg12_l[1]);
-    atomicAdd(&ind_arg7[2+map5idx*100],arg12_l[2]);
-    atomicAdd(&ind_arg7[3+map5idx*100],arg12_l[3]);
-    atomicAdd(&ind_arg7[4+map5idx*100],arg12_l[4]);
-    atomicAdd(&ind_arg7[5+map5idx*100],arg12_l[5]);
-    atomicAdd(&ind_arg7[6+map5idx*100],arg12_l[6]);
-    atomicAdd(&ind_arg7[7+map5idx*100],arg12_l[7]);
-    atomicAdd(&ind_arg7[8+map5idx*100],arg12_l[8]);
-    atomicAdd(&ind_arg7[9+map5idx*100],arg12_l[9]);
-    atomicAdd(&ind_arg7[10+map5idx*100],arg12_l[10]);
-    atomicAdd(&ind_arg7[11+map5idx*100],arg12_l[11]);
-    atomicAdd(&ind_arg7[12+map5idx*100],arg12_l[12]);
-    atomicAdd(&ind_arg7[13+map5idx*100],arg12_l[13]);
-    atomicAdd(&ind_arg7[14+map5idx*100],arg12_l[14]);
-    atomicAdd(&ind_arg7[15+map5idx*100],arg12_l[15]);
-    atomicAdd(&ind_arg7[16+map5idx*100],arg12_l[16]);
-    atomicAdd(&ind_arg7[17+map5idx*100],arg12_l[17]);
-    atomicAdd(&ind_arg7[18+map5idx*100],arg12_l[18]);
-    atomicAdd(&ind_arg7[19+map5idx*100],arg12_l[19]);
-    atomicAdd(&ind_arg7[20+map5idx*100],arg12_l[20]);
-    atomicAdd(&ind_arg7[21+map5idx*100],arg12_l[21]);
-    atomicAdd(&ind_arg7[22+map5idx*100],arg12_l[22]);
-    atomicAdd(&ind_arg7[23+map5idx*100],arg12_l[23]);
-    atomicAdd(&ind_arg7[24+map5idx*100],arg12_l[24]);
-    atomicAdd(&ind_arg7[25+map5idx*100],arg12_l[25]);
-    atomicAdd(&ind_arg7[26+map5idx*100],arg12_l[26]);
-    atomicAdd(&ind_arg7[27+map5idx*100],arg12_l[27]);
-    atomicAdd(&ind_arg7[28+map5idx*100],arg12_l[28]);
-    atomicAdd(&ind_arg7[29+map5idx*100],arg12_l[29]);
-    atomicAdd(&ind_arg7[30+map5idx*100],arg12_l[30]);
-    atomicAdd(&ind_arg7[31+map5idx*100],arg12_l[31]);
-    atomicAdd(&ind_arg7[32+map5idx*100],arg12_l[32]);
-    atomicAdd(&ind_arg7[33+map5idx*100],arg12_l[33]);
-    atomicAdd(&ind_arg7[34+map5idx*100],arg12_l[34]);
-    atomicAdd(&ind_arg7[35+map5idx*100],arg12_l[35]);
-    atomicAdd(&ind_arg7[36+map5idx*100],arg12_l[36]);
-    atomicAdd(&ind_arg7[37+map5idx*100],arg12_l[37]);
-    atomicAdd(&ind_arg7[38+map5idx*100],arg12_l[38]);
-    atomicAdd(&ind_arg7[39+map5idx*100],arg12_l[39]);
-    atomicAdd(&ind_arg7[40+map5idx*100],arg12_l[40]);
-    atomicAdd(&ind_arg7[41+map5idx*100],arg12_l[41]);
-    atomicAdd(&ind_arg7[42+map5idx*100],arg12_l[42]);
-    atomicAdd(&ind_arg7[43+map5idx*100],arg12_l[43]);
-    atomicAdd(&ind_arg7[44+map5idx*100],arg12_l[44]);
-    atomicAdd(&ind_arg7[45+map5idx*100],arg12_l[45]);
-    atomicAdd(&ind_arg7[46+map5idx*100],arg12_l[46]);
-    atomicAdd(&ind_arg7[47+map5idx*100],arg12_l[47]);
-    atomicAdd(&ind_arg7[48+map5idx*100],arg12_l[48]);
-    atomicAdd(&ind_arg7[49+map5idx*100],arg12_l[49]);
-    atomicAdd(&ind_arg7[50+map5idx*100],arg12_l[50]);
-    atomicAdd(&ind_arg7[51+map5idx*100],arg12_l[51]);
-    atomicAdd(&ind_arg7[52+map5idx*100],arg12_l[52]);
-    atomicAdd(&ind_arg7[53+map5idx*100],arg12_l[53]);
-    atomicAdd(&ind_arg7[54+map5idx*100],arg12_l[54]);
-    atomicAdd(&ind_arg7[55+map5idx*100],arg12_l[55]);
-    atomicAdd(&ind_arg7[56+map5idx*100],arg12_l[56]);
-    atomicAdd(&ind_arg7[57+map5idx*100],arg12_l[57]);
-    atomicAdd(&ind_arg7[58+map5idx*100],arg12_l[58]);
-    atomicAdd(&ind_arg7[59+map5idx*100],arg12_l[59]);
-    atomicAdd(&ind_arg7[60+map5idx*100],arg12_l[60]);
-    atomicAdd(&ind_arg7[61+map5idx*100],arg12_l[61]);
-    atomicAdd(&ind_arg7[62+map5idx*100],arg12_l[62]);
-    atomicAdd(&ind_arg7[63+map5idx*100],arg12_l[63]);
-    atomicAdd(&ind_arg7[64+map5idx*100],arg12_l[64]);
-    atomicAdd(&ind_arg7[65+map5idx*100],arg12_l[65]);
-    atomicAdd(&ind_arg7[66+map5idx*100],arg12_l[66]);
-    atomicAdd(&ind_arg7[67+map5idx*100],arg12_l[67]);
-    atomicAdd(&ind_arg7[68+map5idx*100],arg12_l[68]);
-    atomicAdd(&ind_arg7[69+map5idx*100],arg12_l[69]);
-    atomicAdd(&ind_arg7[70+map5idx*100],arg12_l[70]);
-    atomicAdd(&ind_arg7[71+map5idx*100],arg12_l[71]);
-    atomicAdd(&ind_arg7[72+map5idx*100],arg12_l[72]);
-    atomicAdd(&ind_arg7[73+map5idx*100],arg12_l[73]);
-    atomicAdd(&ind_arg7[74+map5idx*100],arg12_l[74]);
-    atomicAdd(&ind_arg7[75+map5idx*100],arg12_l[75]);
-    atomicAdd(&ind_arg7[76+map5idx*100],arg12_l[76]);
-    atomicAdd(&ind_arg7[77+map5idx*100],arg12_l[77]);
-    atomicAdd(&ind_arg7[78+map5idx*100],arg12_l[78]);
-    atomicAdd(&ind_arg7[79+map5idx*100],arg12_l[79]);
-    atomicAdd(&ind_arg7[80+map5idx*100],arg12_l[80]);
-    atomicAdd(&ind_arg7[81+map5idx*100],arg12_l[81]);
-    atomicAdd(&ind_arg7[82+map5idx*100],arg12_l[82]);
-    atomicAdd(&ind_arg7[83+map5idx*100],arg12_l[83]);
-    atomicAdd(&ind_arg7[84+map5idx*100],arg12_l[84]);
-    atomicAdd(&ind_arg7[85+map5idx*100],arg12_l[85]);
-    atomicAdd(&ind_arg7[86+map5idx*100],arg12_l[86]);
-    atomicAdd(&ind_arg7[87+map5idx*100],arg12_l[87]);
-    atomicAdd(&ind_arg7[88+map5idx*100],arg12_l[88]);
-    atomicAdd(&ind_arg7[89+map5idx*100],arg12_l[89]);
-    atomicAdd(&ind_arg7[90+map5idx*100],arg12_l[90]);
-    atomicAdd(&ind_arg7[91+map5idx*100],arg12_l[91]);
-    atomicAdd(&ind_arg7[92+map5idx*100],arg12_l[92]);
-    atomicAdd(&ind_arg7[93+map5idx*100],arg12_l[93]);
-    atomicAdd(&ind_arg7[94+map5idx*100],arg12_l[94]);
-    atomicAdd(&ind_arg7[95+map5idx*100],arg12_l[95]);
-    atomicAdd(&ind_arg7[96+map5idx*100],arg12_l[96]);
-    atomicAdd(&ind_arg7[97+map5idx*100],arg12_l[97]);
-    atomicAdd(&ind_arg7[98+map5idx*100],arg12_l[98]);
-    atomicAdd(&ind_arg7[99+map5idx*100],arg12_l[99]);
+    atomicAdd(&ind_arg7[0+map5idx*36],arg12_l[0]);
+    atomicAdd(&ind_arg7[1+map5idx*36],arg12_l[1]);
+    atomicAdd(&ind_arg7[2+map5idx*36],arg12_l[2]);
+    atomicAdd(&ind_arg7[3+map5idx*36],arg12_l[3]);
+    atomicAdd(&ind_arg7[4+map5idx*36],arg12_l[4]);
+    atomicAdd(&ind_arg7[5+map5idx*36],arg12_l[5]);
+    atomicAdd(&ind_arg7[6+map5idx*36],arg12_l[6]);
+    atomicAdd(&ind_arg7[7+map5idx*36],arg12_l[7]);
+    atomicAdd(&ind_arg7[8+map5idx*36],arg12_l[8]);
+    atomicAdd(&ind_arg7[9+map5idx*36],arg12_l[9]);
+    atomicAdd(&ind_arg7[10+map5idx*36],arg12_l[10]);
+    atomicAdd(&ind_arg7[11+map5idx*36],arg12_l[11]);
+    atomicAdd(&ind_arg7[12+map5idx*36],arg12_l[12]);
+    atomicAdd(&ind_arg7[13+map5idx*36],arg12_l[13]);
+    atomicAdd(&ind_arg7[14+map5idx*36],arg12_l[14]);
+    atomicAdd(&ind_arg7[15+map5idx*36],arg12_l[15]);
+    atomicAdd(&ind_arg7[16+map5idx*36],arg12_l[16]);
+    atomicAdd(&ind_arg7[17+map5idx*36],arg12_l[17]);
+    atomicAdd(&ind_arg7[18+map5idx*36],arg12_l[18]);
+    atomicAdd(&ind_arg7[19+map5idx*36],arg12_l[19]);
+    atomicAdd(&ind_arg7[20+map5idx*36],arg12_l[20]);
+    atomicAdd(&ind_arg7[21+map5idx*36],arg12_l[21]);
+    atomicAdd(&ind_arg7[22+map5idx*36],arg12_l[22]);
+    atomicAdd(&ind_arg7[23+map5idx*36],arg12_l[23]);
+    atomicAdd(&ind_arg7[24+map5idx*36],arg12_l[24]);
+    atomicAdd(&ind_arg7[25+map5idx*36],arg12_l[25]);
+    atomicAdd(&ind_arg7[26+map5idx*36],arg12_l[26]);
+    atomicAdd(&ind_arg7[27+map5idx*36],arg12_l[27]);
+    atomicAdd(&ind_arg7[28+map5idx*36],arg12_l[28]);
+    atomicAdd(&ind_arg7[29+map5idx*36],arg12_l[29]);
+    atomicAdd(&ind_arg7[30+map5idx*36],arg12_l[30]);
+    atomicAdd(&ind_arg7[31+map5idx*36],arg12_l[31]);
+    atomicAdd(&ind_arg7[32+map5idx*36],arg12_l[32]);
+    atomicAdd(&ind_arg7[33+map5idx*36],arg12_l[33]);
+    atomicAdd(&ind_arg7[34+map5idx*36],arg12_l[34]);
+    atomicAdd(&ind_arg7[35+map5idx*36],arg12_l[35]);
   }
 }
 

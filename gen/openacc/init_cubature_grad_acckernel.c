@@ -8,12 +8,12 @@
 inline void init_cubature_grad_openacc( double *rx, double *sx, double *ry,  double *sy,
                                double *Dx, double *Dy) {
 
-  double J[36];
-  for(int i = 0; i < 36; i++) {
+  double J[16];
+  for(int i = 0; i < 16; i++) {
     J[i] = -sx[i] * ry[i] + rx[i] * sy[i];
   }
 
-  for(int i = 0; i < 36; i++) {
+  for(int i = 0; i < 16; i++) {
     double rx_n = sy[i] / J[i];
     double sx_n = -ry[i] / J[i];
     double ry_n = -sx[i] / J[i];
@@ -24,9 +24,9 @@ inline void init_cubature_grad_openacc( double *rx, double *sx, double *ry,  dou
     sy[i] = sy_n;
   }
 
-  for(int m = 0; m < 36; m++) {
-    for(int n = 0; n < 10; n++) {
-      int ind = m * 10 + n;
+  for(int m = 0; m < 16; m++) {
+    for(int n = 0; n < 6; n++) {
+      int ind = m * 6 + n;
       Dx[ind] = rx[m] * cubVDr_g[ind] + sx[m] * cubVDs_g[ind];
       Dy[ind] = ry[m] * cubVDr_g[ind] + sy[m] * cubVDs_g[ind];
     }
@@ -81,12 +81,12 @@ void op_par_loop_init_cubature_grad(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5)
     for ( int n=0; n<set->size; n++ ){
       init_cubature_grad_openacc(
-        &data0[36*n],
-        &data1[36*n],
-        &data2[36*n],
-        &data3[36*n],
-        &data4[360*n],
-        &data5[360*n]);
+        &data0[16*n],
+        &data1[16*n],
+        &data2[16*n],
+        &data3[16*n],
+        &data4[96*n],
+        &data5[96*n]);
     }
   }
 

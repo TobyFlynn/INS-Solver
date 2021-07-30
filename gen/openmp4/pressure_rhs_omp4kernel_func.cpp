@@ -33,21 +33,21 @@ void pressure_rhs_omp4_kernel(
     const double *b1 = &arg1_l;
     const double *g0 = &arg2_l;
     const double *dt = &arg3_l;
-    const double *J = &data4[10*n_op];
-    const double *sJ = &data5[12*n_op];
-    const double *dPdN = &data6[12*n_op];
-    double *dPdNOld = &data7[12*n_op];
-    double *divVelT = &data8[10*n_op];
+    const double *J = &data4[6*n_op];
+    const double *sJ = &data5[9*n_op];
+    const double *dPdN = &data6[9*n_op];
+    double *dPdNOld = &data7[9*n_op];
+    double *divVelT = &data8[6*n_op];
 
     //inline function
     
 
     double factor = 1.0 / (*dt);
-    for(int i = 0; i < 10; i++) {
+    for(int i = 0; i < 6; i++) {
       divVelT[i] = J[i] * (-divVelT[i] * factor);
     }
 
-    for(int i = 0; i < 3 * 4; i++) {
+    for(int i = 0; i < 3 * 3; i++) {
       dPdNOld[i] = sJ[i] * ((*b0) * dPdN[i] + (*b1) * dPdNOld[i]);
     }
     //end inline func

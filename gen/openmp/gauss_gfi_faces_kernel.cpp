@@ -21,19 +21,19 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   arg2.idx = 0;
   args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 60, "double", OP_INC);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 24, "double", OP_INC);
   }
 
   arg4.idx = 0;
   args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 60, "double", OP_INC);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 24, "double", OP_INC);
   }
 
   arg6.idx = 0;
   args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 60, "double", OP_INC);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 24, "double", OP_INC);
   }
 
 
@@ -84,14 +84,14 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
           map3idx = arg2.map_data[n * arg2.map->dim + 1];
 
           double* arg2_vec[] = {
-             &((double*)arg2.data)[60 * map2idx],
-             &((double*)arg2.data)[60 * map3idx]};
+             &((double*)arg2.data)[24 * map2idx],
+             &((double*)arg2.data)[24 * map3idx]};
           double* arg4_vec[] = {
-             &((double*)arg4.data)[60 * map2idx],
-             &((double*)arg4.data)[60 * map3idx]};
+             &((double*)arg4.data)[24 * map2idx],
+             &((double*)arg4.data)[24 * map3idx]};
           double* arg6_vec[] = {
-             &((double*)arg6.data)[60 * map2idx],
-             &((double*)arg6.data)[60 * map3idx]};
+             &((double*)arg6.data)[24 * map2idx],
+             &((double*)arg6.data)[24 * map3idx]};
 
           gauss_gfi_faces(
             &((int*)arg0.data)[2 * n],

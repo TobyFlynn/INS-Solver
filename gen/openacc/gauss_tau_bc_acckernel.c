@@ -6,7 +6,7 @@
 //user function
 //#pragma acc routine
 inline void gauss_tau_bc_openacc( const int *bedgeNum, const double *fscale, double *tau) {
-  tau[*bedgeNum] += 20 * 25 * fscale[*bedgeNum * 4];
+  tau[*bedgeNum] += 20 * 25 * fscale[*bedgeNum * 3];
 }
 
 // host stub function
@@ -80,7 +80,7 @@ void op_par_loop_gauss_tau_bc(char const *name, op_set set,
 
         gauss_tau_bc_openacc(
           &data0[1 * n],
-          &data1[12 * map1idx],
+          &data1[9 * map1idx],
           &data2[3 * map1idx]);
       }
 

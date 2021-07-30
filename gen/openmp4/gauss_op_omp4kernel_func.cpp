@@ -42,80 +42,80 @@ void gauss_op_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size],data15[0:dat15size],data16[0:dat16size]) \
-    map(to: gaussW_g_ompkernel[:6], gFInterp0_g_ompkernel[:60], gFInterp1_g_ompkernel[:60], gFInterp2_g_ompkernel[:60])
+    map(to: gaussW_g_ompkernel[:4], gFInterp0_g_ompkernel[:24], gFInterp1_g_ompkernel[:24], gFInterp2_g_ompkernel[:24])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const double *tau = &data0[3*n_op];
-    const double *sJ = &data1[18*n_op];
-    const double *mD0 = &data2[60*n_op];
-    double *f0_0 = &data3[60*n_op];
-    double *f0_1 = &data4[60*n_op];
-    double *f0_2 = &data5[60*n_op];
-    const double *mD1 = &data6[60*n_op];
-    double *f1_0 = &data7[60*n_op];
-    double *f1_1 = &data8[60*n_op];
-    double *f1_2 = &data9[60*n_op];
-    const double *mD2 = &data10[60*n_op];
-    double *f2_0 = &data11[60*n_op];
-    double *f2_1 = &data12[60*n_op];
-    double *f2_2 = &data13[60*n_op];
-    double *pDy0 = &data14[60*n_op];
-    double *pDy1 = &data15[60*n_op];
-    double *pDy2 = &data16[60*n_op];
+    const double *sJ = &data1[12*n_op];
+    const double *mD0 = &data2[24*n_op];
+    double *f0_0 = &data3[24*n_op];
+    double *f0_1 = &data4[24*n_op];
+    double *f0_2 = &data5[24*n_op];
+    const double *mD1 = &data6[24*n_op];
+    double *f1_0 = &data7[24*n_op];
+    double *f1_1 = &data8[24*n_op];
+    double *f1_2 = &data9[24*n_op];
+    const double *mD2 = &data10[24*n_op];
+    double *f2_0 = &data11[24*n_op];
+    double *f2_1 = &data12[24*n_op];
+    double *f2_2 = &data13[24*n_op];
+    double *pDy0 = &data14[24*n_op];
+    double *pDy1 = &data15[24*n_op];
+    double *pDy2 = &data16[24*n_op];
 
     //inline function
     
 
-    for(int ind = 0; ind < 6 * 10; ind++) {
-      int indT = ((ind * 10) % (10 * 6)) + (ind / 6);
+    for(int ind = 0; ind < 4 * 6; ind++) {
+      int indT = ((ind * 6) % (6 * 4)) + (ind / 4);
       f0_0[ind] = gFInterp0_g_ompkernel[indT];
       f0_1[ind] = gFInterp0_g_ompkernel[indT];
       f0_2[ind] = mD0[indT];
     }
 
-    for(int m = 0; m < 10; m++) {
-      for(int n = 0; n < 6; n++) {
-        int ind  = m * 6 + n;
+    for(int m = 0; m < 6; m++) {
+      for(int n = 0; n < 4; n++) {
+        int ind  = m * 4 + n;
         f0_0[ind] = gaussW_g_ompkernel[n] * sJ[n] * tau[0] * f0_0[ind];
         f0_1[ind] = gaussW_g_ompkernel[n] * sJ[n] * f0_1[ind];
         f0_2[ind] = gaussW_g_ompkernel[n] * sJ[n] * f0_2[ind];
       }
     }
 
-    for(int ind = 0; ind < 6 * 10; ind++) {
-      int indT = ((ind * 10) % (10 * 7)) + (ind / 6);
+    for(int ind = 0; ind < 4 * 6; ind++) {
+      int indT = ((ind * 6) % (6 * 7)) + (ind / 4);
       f1_0[ind] = gFInterp1_g_ompkernel[indT];
       f1_1[ind] = gFInterp1_g_ompkernel[indT];
       f1_2[ind] = mD1[indT];
     }
 
-    for(int m = 0; m < 10; m++) {
-      for(int n = 0; n < 6; n++) {
-        int ind = m * 6 + n;
-        f1_0[ind] = gaussW_g_ompkernel[n] * sJ[n + 6] * tau[1] * f1_0[ind];
-        f1_1[ind] = gaussW_g_ompkernel[n] * sJ[n + 6] * f1_1[ind];
-        f1_2[ind] = gaussW_g_ompkernel[n] * sJ[n + 6] * f1_2[ind];
+    for(int m = 0; m < 6; m++) {
+      for(int n = 0; n < 4; n++) {
+        int ind = m * 4 + n;
+        f1_0[ind] = gaussW_g_ompkernel[n] * sJ[n + 4] * tau[1] * f1_0[ind];
+        f1_1[ind] = gaussW_g_ompkernel[n] * sJ[n + 4] * f1_1[ind];
+        f1_2[ind] = gaussW_g_ompkernel[n] * sJ[n + 4] * f1_2[ind];
       }
     }
 
-    for(int ind = 0; ind < 6 * 10; ind++) {
-      int indT = ((ind * 10) % (10 * 6)) + (ind / 6);
+    for(int ind = 0; ind < 4 * 6; ind++) {
+      int indT = ((ind * 6) % (6 * 4)) + (ind / 4);
       f2_0[ind] = gFInterp2_g_ompkernel[indT];
       f2_1[ind] = gFInterp2_g_ompkernel[indT];
       f2_2[ind] = mD2[indT];
     }
 
-    for(int m = 0; m < 10; m++) {
-      for(int n = 0; n < 6; n++) {
-        int ind = m * 6 + n;
-        f2_0[ind] = gaussW_g_ompkernel[n] * sJ[n + 2 * 6] * tau[2] * f2_0[ind];
-        f2_1[ind] = gaussW_g_ompkernel[n] * sJ[n + 2 * 6] * f2_1[ind];
-        f2_2[ind] = gaussW_g_ompkernel[n] * sJ[n + 2 * 6] * f2_2[ind];
+    for(int m = 0; m < 6; m++) {
+      for(int n = 0; n < 4; n++) {
+        int ind = m * 4 + n;
+        f2_0[ind] = gaussW_g_ompkernel[n] * sJ[n + 2 * 4] * tau[2] * f2_0[ind];
+        f2_1[ind] = gaussW_g_ompkernel[n] * sJ[n + 2 * 4] * f2_1[ind];
+        f2_2[ind] = gaussW_g_ompkernel[n] * sJ[n + 2 * 4] * f2_2[ind];
       }
     }
 
-    for(int i = 0; i < 6 * 10; i++) {
+    for(int i = 0; i < 4 * 6; i++) {
       pDy0[i] = 0.0;
       pDy1[i] = 0.0;
       pDy2[i] = 0.0;

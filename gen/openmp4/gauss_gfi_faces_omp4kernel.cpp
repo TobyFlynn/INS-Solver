@@ -41,19 +41,19 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   arg2.idx = 0;
   args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 60, "double", OP_INC);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 24, "double", OP_INC);
   }
 
   arg4.idx = 0;
   args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 60, "double", OP_INC);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 24, "double", OP_INC);
   }
 
   arg6.idx = 0;
   args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 60, "double", OP_INC);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 24, "double", OP_INC);
   }
 
 

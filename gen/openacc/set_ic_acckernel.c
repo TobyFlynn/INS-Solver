@@ -6,7 +6,7 @@
 //user function
 //#pragma acc routine
 inline void set_ic_openacc( double *q0, double *q1) {
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 6; i++) {
     q0[i] = ic_u;
     q1[i] = ic_v;
   }
@@ -48,8 +48,8 @@ void op_par_loop_set_ic(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1)
     for ( int n=0; n<set->size; n++ ){
       set_ic_openacc(
-        &data0[10*n],
-        &data1[10*n]);
+        &data0[6*n],
+        &data1[6*n]);
     }
   }
 

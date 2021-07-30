@@ -5,7 +5,7 @@
 //user function
 __device__ void ls_rhs_gpu( const double *sign, const double *dpldx, const double *dprdx,
                    const double *dpldy, const double *dprdy, double *rk) {
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 6; i++) {
     if(sign[i] > 0.0) {
       double plmx2 = fmin(dpldx[i], 0.0);
       plmx2 = plmx2 * plmx2;
@@ -50,12 +50,12 @@ __global__ void op_cuda_ls_rhs(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    ls_rhs_gpu(arg0+n*10,
-           arg1+n*10,
-           arg2+n*10,
-           arg3+n*10,
-           arg4+n*10,
-           arg5+n*10);
+    ls_rhs_gpu(arg0+n*6,
+           arg1+n*6,
+           arg2+n*6,
+           arg3+n*6,
+           arg4+n*6,
+           arg5+n*6);
   }
 }
 

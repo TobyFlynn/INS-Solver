@@ -8,15 +8,15 @@
 inline void set_rkQ_openacc( const int *stage, const double *dt, const double *s,
                     const double *rk0, const double *rk1, double *rkQ) {
   if(*stage == -1) {
-    for(int i = 0; i < 10; i++) {
+    for(int i = 0; i < 6; i++) {
       rkQ[i] = s[i];
     }
   } else if(*stage == 0) {
-    for(int i = 0; i < 10; i++) {
+    for(int i = 0; i < 6; i++) {
       rkQ[i] = s[i] + (*dt) * rk0[i];
     }
   } else {
-    for(int i = 0; i < 10; i++) {
+    for(int i = 0; i < 6; i++) {
       rkQ[i] = s[i] + 0.5 * (*dt) * (rk0[i] / 4.0 + rk1[i] / 4.0);
     }
   }
@@ -74,10 +74,10 @@ void op_par_loop_set_rkQ(char const *name, op_set set,
       set_rkQ_openacc(
         &arg0_l,
         &arg1_l,
-        &data2[10*n],
-        &data3[10*n],
-        &data4[10*n],
-        &data5[10*n]);
+        &data2[6*n],
+        &data3[6*n],
+        &data4[6*n],
+        &data5[6*n]);
     }
   }
 

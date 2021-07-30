@@ -32,8 +32,8 @@ void op_par_loop_pressure_solve_setup(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       pressure_solve_setup(
-        &((double*)arg0.data)[10*n],
-        &((double*)arg1.data)[10*n]);
+        &((double*)arg0.data)[6*n],
+        &((double*)arg1.data)[6*n]);
     }
   }
 

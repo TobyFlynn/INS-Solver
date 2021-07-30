@@ -34,9 +34,9 @@ void op_par_loop_init_surface(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       init_surface(
-        &((double*)arg0.data)[10*n],
-        &((double*)arg1.data)[10*n],
-        &((double*)arg2.data)[10*n]);
+        &((double*)arg0.data)[6*n],
+        &((double*)arg1.data)[6*n],
+        &((double*)arg2.data)[6*n]);
     }
   }
 

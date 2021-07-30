@@ -7,12 +7,12 @@
 //#pragma acc routine
 inline void sigma_mult_openacc( const double *eps, double *sigx, double *sigy,
                        double *fx, double *fy, double *diffF) {
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 6; i++) {
     sigx[i] *= *eps;
     sigy[i] *= *eps;
   }
 
-  for(int i = 0; i < 18; i++) {
+  for(int i = 0; i < 12; i++) {
     fx[i] = 0.0;
     fy[i] = 0.0;
     diffF[i] = 0.0;
@@ -69,11 +69,11 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
     for ( int n=0; n<set->size; n++ ){
       sigma_mult_openacc(
         &arg0_l,
-        &data1[10*n],
-        &data2[10*n],
-        &data3[18*n],
-        &data4[18*n],
-        &data5[18*n]);
+        &data1[6*n],
+        &data2[6*n],
+        &data3[12*n],
+        &data4[12*n],
+        &data5[12*n]);
     }
   }
 

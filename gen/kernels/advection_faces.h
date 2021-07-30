@@ -6,13 +6,13 @@ inline void advection_faces(const int *edgeNum, const bool *rev, const double **
   bool reverse = *rev;
 
   // Copy data from R to L
-  int exInd = edgeL * 4;
-  int *fmask = &FMASK[edgeR * 4];
+  int exInd = edgeL * 3;
+  int *fmask = &FMASK[edgeR * 3];
 
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     int rInd;
     if(reverse) {
-      rInd = fmask[4 - i - 1];
+      rInd = fmask[3 - i - 1];
     } else {
       rInd = fmask[i];
     }
@@ -21,13 +21,13 @@ inline void advection_faces(const int *edgeNum, const bool *rev, const double **
   }
 
   // Copy data from L to R
-  exInd = edgeR * 4;
-  fmask = &FMASK[edgeL * 4];
+  exInd = edgeR * 3;
+  fmask = &FMASK[edgeL * 3];
 
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     int lInd;
     if(reverse) {
-      lInd = fmask[4 - i - 1];
+      lInd = fmask[3 - i - 1];
     } else {
       lInd = fmask[i];
     }

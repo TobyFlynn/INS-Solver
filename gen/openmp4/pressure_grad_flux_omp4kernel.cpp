@@ -50,37 +50,37 @@ void op_par_loop_pressure_grad_flux(char const *name, op_set set,
   arg2.idx = 0;
   args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 12, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 9, "double", OP_READ);
   }
 
   arg4.idx = 0;
   args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 12, "double", OP_READ);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 9, "double", OP_READ);
   }
 
   arg6.idx = 0;
   args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 12, "double", OP_READ);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 9, "double", OP_READ);
   }
 
   arg8.idx = 0;
   args[8] = arg8;
   for ( int v=1; v<2; v++ ){
-    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 10, "double", OP_READ);
+    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 6, "double", OP_READ);
   }
 
   arg10.idx = 0;
   args[10] = arg10;
   for ( int v=1; v<2; v++ ){
-    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 12, "double", OP_INC);
+    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 9, "double", OP_INC);
   }
 
   arg12.idx = 0;
   args[12] = arg12;
   for ( int v=1; v<2; v++ ){
-    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 12, "double", OP_INC);
+    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 9, "double", OP_INC);
   }
 
 

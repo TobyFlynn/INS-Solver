@@ -10,11 +10,11 @@ inline void pressure_rhs_openacc( const double *b0, const double *b1, const doub
                          const double *dPdN, double *dPdNOld, double *divVelT) {
 
   double factor = 1.0 / (*dt);
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 6; i++) {
     divVelT[i] = J[i] * (-divVelT[i] * factor);
   }
 
-  for(int i = 0; i < 3 * 4; i++) {
+  for(int i = 0; i < 3 * 3; i++) {
     dPdNOld[i] = sJ[i] * ((*b0) * dPdN[i] + (*b1) * dPdNOld[i]);
   }
 }
@@ -84,11 +84,11 @@ void op_par_loop_pressure_rhs(char const *name, op_set set,
         &arg1_l,
         &arg2_l,
         &arg3_l,
-        &data4[10*n],
-        &data5[12*n],
-        &data6[12*n],
-        &data7[12*n],
-        &data8[10*n]);
+        &data4[6*n],
+        &data5[9*n],
+        &data6[9*n],
+        &data7[9*n],
+        &data8[6*n]);
     }
   }
 

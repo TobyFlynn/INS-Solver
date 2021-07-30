@@ -4,7 +4,7 @@
 
 //user function
 __device__ void viscosity_rhs_gpu( const double *factor, double *vRHS0, double *vRHS1) {
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 6; i++) {
     vRHS0[i] = (*factor) * vRHS0[i];
     vRHS1[i] = (*factor) * vRHS1[i];
   }
@@ -24,8 +24,8 @@ __global__ void op_cuda_viscosity_rhs(
 
     //user-supplied kernel call
     viscosity_rhs_gpu(arg0,
-                  arg1+n*10,
-                  arg2+n*10);
+                  arg1+n*6,
+                  arg2+n*6);
   }
 }
 

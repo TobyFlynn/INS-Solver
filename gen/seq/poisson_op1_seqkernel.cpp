@@ -38,11 +38,11 @@ void op_par_loop_poisson_op1(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       poisson_op1(
-        &((double*)arg0.data)[36*n],
-        &((double*)arg1.data)[360*n],
-        &((double*)arg2.data)[360*n],
-        &((double*)arg3.data)[36*n],
-        &((double*)arg4.data)[100*n]);
+        &((double*)arg0.data)[16*n],
+        &((double*)arg1.data)[96*n],
+        &((double*)arg2.data)[96*n],
+        &((double*)arg3.data)[16*n],
+        &((double*)arg4.data)[36*n]);
     }
   }
 

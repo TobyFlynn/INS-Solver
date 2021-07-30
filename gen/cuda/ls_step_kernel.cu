@@ -6,7 +6,7 @@
 __device__ void ls_step_gpu( const double *alpha, const double *s, double *step,
                     double *nu, double *rho) {
   const double PI = 3.141592653589793238463;
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 6; i++) {
     step[i] = tanh(PI * s[i] / *alpha);
     nu[i] = 0.5 * nu0_cuda * (1.0 + step[i]) + 0.5 * nu1_cuda * (1.0 - step[i]);
     rho[i] = 0.5 * rho0_cuda * (1.0 + step[i]) + 0.5 * rho1_cuda * (1.0 - step[i]);
@@ -29,10 +29,10 @@ __global__ void op_cuda_ls_step(
 
     //user-supplied kernel call
     ls_step_gpu(arg0,
-            arg1+n*10,
-            arg2+n*10,
-            arg3+n*10,
-            arg4+n*10);
+            arg1+n*6,
+            arg2+n*6,
+            arg3+n*6,
+            arg4+n*6);
   }
 }
 

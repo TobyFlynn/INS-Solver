@@ -10,29 +10,29 @@ __device__ void ls_advec_rhs_gpu( const double *dFdr, const double *dFds,
                          const double *u, const double *v, const double *fscale,
                          const double *nx, const double *ny, double *nFlux,
                          double *output) {
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 6; i++) {
     output[i] = rx[i] * dFdr[i] + sx[i] * dFds[i] + ry[i] * dGdr[i] + sy[i] * dGds[i];
   }
 
-  double mQ[3 * 4];
-  double mF[3 * 4];
-  double mG[3 * 4];
-  for(int i = 0; i < 3 * 4; i++) {
+  double mQ[3 * 3];
+  double mF[3 * 3];
+  double mG[3 * 3];
+  for(int i = 0; i < 3 * 3; i++) {
     int ind = FMASK_cuda[i];
     mQ[i] = q[ind];
     mF[i] = u[ind] * q[ind];
     mG[i] = v[ind] * q[ind];
   }
 
-  double pF[3 * 4];
-  double pG[3 * 4];
-  for(int i = 0; i < 3 * 4; i++) {
+  double pF[3 * 3];
+  double pG[3 * 3];
+  for(int i = 0; i < 3 * 3; i++) {
     int ind = FMASK_cuda[i];
     pF[i]  = u[ind] * exQ[i];
     pG[i]  = v[ind] * exQ[i];
   }
 
-  for(int i = 0; i < 3 * 4; i++) {
+  for(int i = 0; i < 3 * 3; i++) {
     int ind = FMASK_cuda[i];
 
 
@@ -42,7 +42,7 @@ __device__ void ls_advec_rhs_gpu( const double *dFdr, const double *dFds,
     nFlux[i] *= 0.5 * fscale[i];
   }
 
-  for(int i = 0; i < 3 * 4; i++) {
+  for(int i = 0; i < 3 * 3; i++) {
     exQ[i] = 0.0;
   }
 
@@ -74,23 +74,23 @@ __global__ void op_cuda_ls_advec_rhs(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    ls_advec_rhs_gpu(arg0+n*10,
-                 arg1+n*10,
-                 arg2+n*10,
-                 arg3+n*10,
-                 arg4+n*10,
-                 arg5+n*10,
-                 arg6+n*10,
-                 arg7+n*10,
-                 arg8+n*10,
-                 arg9+n*12,
-                 arg10+n*10,
-                 arg11+n*10,
-                 arg12+n*12,
-                 arg13+n*12,
-                 arg14+n*12,
-                 arg15+n*12,
-                 arg16+n*10);
+    ls_advec_rhs_gpu(arg0+n*6,
+                 arg1+n*6,
+                 arg2+n*6,
+                 arg3+n*6,
+                 arg4+n*6,
+                 arg5+n*6,
+                 arg6+n*6,
+                 arg7+n*6,
+                 arg8+n*6,
+                 arg9+n*9,
+                 arg10+n*6,
+                 arg11+n*6,
+                 arg12+n*9,
+                 arg13+n*9,
+                 arg14+n*9,
+                 arg15+n*9,
+                 arg16+n*6);
   }
 }
 

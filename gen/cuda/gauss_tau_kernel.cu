@@ -8,12 +8,12 @@ __device__ void gauss_tau_gpu( const int *edgeNum, const double **fscale, double
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
 
-  if(fscale[0][edgeL * 4] > fscale[1][edgeR * 4]) {
-    tau[0][edgeL] += 20 * 25 * fscale[0][edgeL * 4];
-    tau[1][edgeR] += 20 * 25 * fscale[0][edgeL * 4];
+  if(fscale[0][edgeL * 3] > fscale[1][edgeR * 3]) {
+    tau[0][edgeL] += 20 * 25 * fscale[0][edgeL * 3];
+    tau[1][edgeR] += 20 * 25 * fscale[0][edgeL * 3];
   } else {
-    tau[0][edgeL] += 20 * 25 * fscale[1][edgeR * 4];
-    tau[1][edgeR] += 20 * 25 * fscale[1][edgeR * 4];
+    tau[0][edgeL] += 20 * 25 * fscale[1][edgeR * 3];
+    tau[1][edgeR] += 20 * 25 * fscale[1][edgeR * 3];
   }
 
 }
@@ -44,8 +44,8 @@ __global__ void op_cuda_gauss_tau(
     map1idx = opDat1Map[n + set_size * 0];
     map2idx = opDat1Map[n + set_size * 1];
     const double* arg1_vec[] = {
-       &ind_arg0[12 * map1idx],
-       &ind_arg0[12 * map2idx]};
+       &ind_arg0[9 * map1idx],
+       &ind_arg0[9 * map2idx]};
     double* arg3_vec[] = {
       arg3_l,
       arg4_l};
@@ -77,7 +77,7 @@ void op_par_loop_gauss_tau(char const *name, op_set set,
   arg1.idx = 0;
   args[1] = arg1;
   for ( int v=1; v<2; v++ ){
-    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 12, "double", OP_READ);
+    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 9, "double", OP_READ);
   }
 
   arg3.idx = 0;

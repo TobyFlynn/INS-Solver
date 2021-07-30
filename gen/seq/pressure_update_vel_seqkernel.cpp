@@ -53,17 +53,17 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
     for ( int n=0; n<set_size; n++ ){
       pressure_update_vel(
         (double*)arg0.data,
-        &((double*)arg1.data)[10*n],
-        &((double*)arg2.data)[10*n],
-        &((double*)arg3.data)[10*n],
-        &((double*)arg4.data)[10*n],
-        &((double*)arg5.data)[10*n],
-        &((double*)arg6.data)[10*n],
-        &((double*)arg7.data)[10*n],
-        &((double*)arg8.data)[12*n],
-        &((double*)arg9.data)[18*n],
-        &((double*)arg10.data)[12*n],
-        &((double*)arg11.data)[12*n]);
+        &((double*)arg1.data)[6*n],
+        &((double*)arg2.data)[6*n],
+        &((double*)arg3.data)[6*n],
+        &((double*)arg4.data)[6*n],
+        &((double*)arg5.data)[6*n],
+        &((double*)arg6.data)[6*n],
+        &((double*)arg7.data)[6*n],
+        &((double*)arg8.data)[9*n],
+        &((double*)arg9.data)[12*n],
+        &((double*)arg10.data)[9*n],
+        &((double*)arg11.data)[9*n]);
     }
   }
 

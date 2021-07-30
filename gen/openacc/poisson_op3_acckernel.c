@@ -28,17 +28,17 @@ inline void poisson_op3_openacc( const int *edgeType, const int *edgeNum,
   }
 
 
-  for(int i = 0; i < 10; i++) {
-    for(int j = 0; j < 10; j++) {
-      int c_ind = i * 10 + j;
-      for(int k = 0; k < 6; k++) {
+  for(int i = 0; i < 6; i++) {
+    for(int j = 0; j < 6; j++) {
+      int c_ind = i * 6 + j;
+      for(int k = 0; k < 4; k++) {
 
-        int b_ind = k * 10 + j;
+        int b_ind = k * 6 + j;
 
-        int ind = i * 6 + k;
-        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+        int ind = i * 4 + k;
+        int a_ind = ((ind * 6) % (6 * 4)) + (ind / 4);
 
-        int factors_ind = *edgeNum * 6 + k;
+        int factors_ind = *edgeNum * 4 + k;
 
         op1[c_ind] += -0.5 * gVM[a_ind] * gaussW_g[k] * sJ[factors_ind]
                       * gFactor[factors_ind] * mD[b_ind];
@@ -47,17 +47,17 @@ inline void poisson_op3_openacc( const int *edgeType, const int *edgeNum,
   }
 
 
-  for(int i = 0; i < 10; i++) {
-    for(int j = 0; j < 10; j++) {
-      int c_ind = i * 10 + j;
-      for(int k = 0; k < 6; k++) {
+  for(int i = 0; i < 6; i++) {
+    for(int j = 0; j < 6; j++) {
+      int c_ind = i * 6 + j;
+      for(int k = 0; k < 4; k++) {
 
-        int b_ind = k * 10 + j;
+        int b_ind = k * 6 + j;
 
-        int ind = i * 6 + k;
-        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+        int ind = i * 4 + k;
+        int a_ind = ((ind * 6) % (6 * 4)) + (ind / 4);
 
-        int factors_ind = *edgeNum * 6 + k;
+        int factors_ind = *edgeNum * 4 + k;
 
         op1[c_ind] += -factor[i] * mD[a_ind] * gaussW_g[k]
                       * sJ[factors_ind] * gVM[b_ind];
@@ -66,26 +66,26 @@ inline void poisson_op3_openacc( const int *edgeType, const int *edgeNum,
   }
 
 
-  double tauA[6];
-  for(int i = 0; i < 6; i++) {
-    int ind = *edgeNum  * 6 + i;
+  double tauA[4];
+  for(int i = 0; i < 4; i++) {
+    int ind = *edgeNum  * 4 + i;
     tauA[i] = 100 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
 
   }
 
 
 
-  for(int i = 0; i < 10; i++) {
-    for(int j = 0; j < 10; j++) {
-      int c_ind = i * 10 + j;
-      for(int k = 0; k < 6; k++) {
+  for(int i = 0; i < 6; i++) {
+    for(int j = 0; j < 6; j++) {
+      int c_ind = i * 6 + j;
+      for(int k = 0; k < 4; k++) {
 
-        int b_ind = k * 10 + j;
+        int b_ind = k * 6 + j;
 
-        int ind = i * 6 + k;
-        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+        int ind = i * 4 + k;
+        int a_ind = ((ind * 6) % (6 * 4)) + (ind / 4);
 
-        int factors_ind = *edgeNum * 6 + k;
+        int factors_ind = *edgeNum * 4 + k;
 
         op1[c_ind] += gVM[a_ind] * gaussW_g[k] * sJ[factors_ind]
                       * tauA[k] * gVM[b_ind];
@@ -202,14 +202,14 @@ void op_par_loop_poisson_op3(char const *name, op_set set,
           &arg2_l,
           &arg3_l,
           &arg4_l,
-          &data5[60 * map5idx],
-          &data6[60 * map5idx],
-          &data7[60 * map5idx],
-          &data8[18 * map5idx],
+          &data5[24 * map5idx],
+          &data6[24 * map5idx],
+          &data7[24 * map5idx],
+          &data8[12 * map5idx],
           &data9[1 * map5idx],
-          &data10[18 * map5idx],
-          &data11[10 * map5idx],
-          &data12[100 * map5idx]);
+          &data10[12 * map5idx],
+          &data11[6 * map5idx],
+          &data12[36 * map5idx]);
       }
 
     }

@@ -4,17 +4,17 @@ inline void gauss_op(const double *tau, const double *sJ,
                      const double *mD2, double *f2_0, double *f2_1, double *f2_2,
                      double *pDy0, double *pDy1, double *pDy2) {
   // Face 0 - Transpose
-  for(int ind = 0; ind < 6 * 10; ind++) {
-    int indT = ((ind * 10) % (10 * 6)) + (ind / 6);
+  for(int ind = 0; ind < 4 * 6; ind++) {
+    int indT = ((ind * 6) % (6 * 4)) + (ind / 4);
     f0_0[ind] = gFInterp0_g[indT];
     f0_1[ind] = gFInterp0_g[indT];
     f0_2[ind] = mD0[indT];
   }
 
   // Post diagonal multiply
-  for(int m = 0; m < 10; m++) {
-    for(int n = 0; n < 6; n++) {
-      int ind  = m * 6 + n;
+  for(int m = 0; m < 6; m++) {
+    for(int n = 0; n < 4; n++) {
+      int ind  = m * 4 + n;
       f0_0[ind] = gaussW_g[n] * sJ[n] * tau[0] * f0_0[ind];
       f0_1[ind] = gaussW_g[n] * sJ[n] * f0_1[ind];
       f0_2[ind] = gaussW_g[n] * sJ[n] * f0_2[ind];
@@ -22,42 +22,42 @@ inline void gauss_op(const double *tau, const double *sJ,
   }
 
   // Face 1 - Transpose
-  for(int ind = 0; ind < 6 * 10; ind++) {
-    int indT = ((ind * 10) % (10 * 7)) + (ind / 6);
+  for(int ind = 0; ind < 4 * 6; ind++) {
+    int indT = ((ind * 6) % (6 * 7)) + (ind / 4);
     f1_0[ind] = gFInterp1_g[indT];
     f1_1[ind] = gFInterp1_g[indT];
     f1_2[ind] = mD1[indT];
   }
 
   // Post diagonal multiply
-  for(int m = 0; m < 10; m++) {
-    for(int n = 0; n < 6; n++) {
-      int ind = m * 6 + n;
-      f1_0[ind] = gaussW_g[n] * sJ[n + 6] * tau[1] * f1_0[ind];
-      f1_1[ind] = gaussW_g[n] * sJ[n + 6] * f1_1[ind];
-      f1_2[ind] = gaussW_g[n] * sJ[n + 6] * f1_2[ind];
+  for(int m = 0; m < 6; m++) {
+    for(int n = 0; n < 4; n++) {
+      int ind = m * 4 + n;
+      f1_0[ind] = gaussW_g[n] * sJ[n + 4] * tau[1] * f1_0[ind];
+      f1_1[ind] = gaussW_g[n] * sJ[n + 4] * f1_1[ind];
+      f1_2[ind] = gaussW_g[n] * sJ[n + 4] * f1_2[ind];
     }
   }
 
   // Face 2 - Transpose
-  for(int ind = 0; ind < 6 * 10; ind++) {
-    int indT = ((ind * 10) % (10 * 6)) + (ind / 6);
+  for(int ind = 0; ind < 4 * 6; ind++) {
+    int indT = ((ind * 6) % (6 * 4)) + (ind / 4);
     f2_0[ind] = gFInterp2_g[indT];
     f2_1[ind] = gFInterp2_g[indT];
     f2_2[ind] = mD2[indT];
   }
 
   // Post diagonal multiply
-  for(int m = 0; m < 10; m++) {
-    for(int n = 0; n < 6; n++) {
-      int ind = m * 6 + n;
-      f2_0[ind] = gaussW_g[n] * sJ[n + 2 * 6] * tau[2] * f2_0[ind];
-      f2_1[ind] = gaussW_g[n] * sJ[n + 2 * 6] * f2_1[ind];
-      f2_2[ind] = gaussW_g[n] * sJ[n + 2 * 6] * f2_2[ind];
+  for(int m = 0; m < 6; m++) {
+    for(int n = 0; n < 4; n++) {
+      int ind = m * 4 + n;
+      f2_0[ind] = gaussW_g[n] * sJ[n + 2 * 4] * tau[2] * f2_0[ind];
+      f2_1[ind] = gaussW_g[n] * sJ[n + 2 * 4] * f2_1[ind];
+      f2_2[ind] = gaussW_g[n] * sJ[n + 2 * 4] * f2_2[ind];
     }
   }
 
-  for(int i = 0; i < 6 * 10; i++) {
+  for(int i = 0; i < 4 * 6; i++) {
     pDy0[i] = 0.0;
     pDy1[i] = 0.0;
     pDy2[i] = 0.0;

@@ -12,29 +12,29 @@ inline void ls_advec_rhs_openacc( const double *dFdr, const double *dFds,
                          const double *u, const double *v, const double *fscale,
                          const double *nx, const double *ny, double *nFlux,
                          double *output) {
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 6; i++) {
     output[i] = rx[i] * dFdr[i] + sx[i] * dFds[i] + ry[i] * dGdr[i] + sy[i] * dGds[i];
   }
 
-  double mQ[3 * 4];
-  double mF[3 * 4];
-  double mG[3 * 4];
-  for(int i = 0; i < 3 * 4; i++) {
+  double mQ[3 * 3];
+  double mF[3 * 3];
+  double mG[3 * 3];
+  for(int i = 0; i < 3 * 3; i++) {
     int ind = FMASK[i];
     mQ[i] = q[ind];
     mF[i] = u[ind] * q[ind];
     mG[i] = v[ind] * q[ind];
   }
 
-  double pF[3 * 4];
-  double pG[3 * 4];
-  for(int i = 0; i < 3 * 4; i++) {
+  double pF[3 * 3];
+  double pG[3 * 3];
+  for(int i = 0; i < 3 * 3; i++) {
     int ind = FMASK[i];
     pF[i]  = u[ind] * exQ[i];
     pG[i]  = v[ind] * exQ[i];
   }
 
-  for(int i = 0; i < 3 * 4; i++) {
+  for(int i = 0; i < 3 * 3; i++) {
     int ind = FMASK[i];
 
 
@@ -44,7 +44,7 @@ inline void ls_advec_rhs_openacc( const double *dFdr, const double *dFds,
     nFlux[i] *= 0.5 * fscale[i];
   }
 
-  for(int i = 0; i < 3 * 4; i++) {
+  for(int i = 0; i < 3 * 3; i++) {
     exQ[i] = 0.0;
   }
 }
@@ -130,23 +130,23 @@ void op_par_loop_ls_advec_rhs(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7,data8,data9,data10,data11,data12,data13,data14,data15,data16)
     for ( int n=0; n<set->size; n++ ){
       ls_advec_rhs_openacc(
-        &data0[10*n],
-        &data1[10*n],
-        &data2[10*n],
-        &data3[10*n],
-        &data4[10*n],
-        &data5[10*n],
-        &data6[10*n],
-        &data7[10*n],
-        &data8[10*n],
-        &data9[12*n],
-        &data10[10*n],
-        &data11[10*n],
-        &data12[12*n],
-        &data13[12*n],
-        &data14[12*n],
-        &data15[12*n],
-        &data16[10*n]);
+        &data0[6*n],
+        &data1[6*n],
+        &data2[6*n],
+        &data3[6*n],
+        &data4[6*n],
+        &data5[6*n],
+        &data6[6*n],
+        &data7[6*n],
+        &data8[6*n],
+        &data9[9*n],
+        &data10[6*n],
+        &data11[6*n],
+        &data12[9*n],
+        &data13[9*n],
+        &data14[9*n],
+        &data15[9*n],
+        &data16[6*n]);
     }
   }
 

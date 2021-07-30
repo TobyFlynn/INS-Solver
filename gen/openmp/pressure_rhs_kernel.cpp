@@ -63,11 +63,11 @@ void op_par_loop_pressure_rhs(char const *name, op_set set,
           (double*)arg1.data,
           (double*)arg2.data,
           (double*)arg3.data,
-          &((double*)arg4.data)[10*n],
-          &((double*)arg5.data)[12*n],
-          &((double*)arg6.data)[12*n],
-          &((double*)arg7.data)[12*n],
-          &((double*)arg8.data)[10*n]);
+          &((double*)arg4.data)[6*n],
+          &((double*)arg5.data)[9*n],
+          &((double*)arg6.data)[9*n],
+          &((double*)arg7.data)[9*n],
+          &((double*)arg8.data)[6*n]);
       }
     }
   }

@@ -6,7 +6,7 @@
 __device__ void viscosity_solve_setup_gpu( const double *mu, const double *rho,
                                   const double *mmConst, double *factor,
                                   double *mmFactor) {
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 6; i++) {
     factor[i] = mu[i];
     mmFactor[i] = *mmConst * rho[i];
   }
@@ -27,11 +27,11 @@ __global__ void op_cuda_viscosity_solve_setup(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    viscosity_solve_setup_gpu(arg0+n*10,
-                          arg1+n*10,
+    viscosity_solve_setup_gpu(arg0+n*6,
+                          arg1+n*6,
                           arg2,
-                          arg3+n*10,
-                          arg4+n*10);
+                          arg3+n*6,
+                          arg4+n*6);
   }
 }
 

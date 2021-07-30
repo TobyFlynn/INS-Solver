@@ -60,13 +60,13 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
         &((int*)arg1.data)[1 * n],
         (double*)arg2.data,
         (int*)arg3.data,
-        &((double*)arg4.data)[18 * map4idx],
-        &((double*)arg5.data)[18 * map4idx],
-        &((double*)arg6.data)[18 * map4idx],
-        &((double*)arg7.data)[18 * map4idx],
-        &((double*)arg8.data)[18 * map4idx],
-        &((double*)arg9.data)[18 * map4idx],
-        &((double*)arg10.data)[18 * map4idx]);
+        &((double*)arg4.data)[12 * map4idx],
+        &((double*)arg5.data)[12 * map4idx],
+        &((double*)arg6.data)[12 * map4idx],
+        &((double*)arg7.data)[12 * map4idx],
+        &((double*)arg8.data)[12 * map4idx],
+        &((double*)arg9.data)[12 * map4idx],
+        &((double*)arg10.data)[12 * map4idx]);
     }
   }
 

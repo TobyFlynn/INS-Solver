@@ -6,7 +6,7 @@
 __device__ void ls_reinit_check_gpu( const double *alpha, const double *s,
                             const double *dsdx, const double *dsdy,
                             double *res, int *count) {
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 6; i++) {
     if(fabs(s[i]) < (*alpha)) {
       *res += dsdx[i] * dsdx[i] + dsdy[i] * dsdy[i];
       *count += 1;
@@ -39,9 +39,9 @@ __global__ void op_cuda_ls_reinit_check(
 
     //user-supplied kernel call
     ls_reinit_check_gpu(arg0,
-                    arg1+n*10,
-                    arg2+n*10,
-                    arg3+n*10,
+                    arg1+n*6,
+                    arg2+n*6,
+                    arg3+n*6,
                     arg4_l,
                     arg5_l);
   }

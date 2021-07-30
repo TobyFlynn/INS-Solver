@@ -25,7 +25,7 @@ void ls_advec_bedges_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: FMASK_ompkernel[:12])\
+    map(to: FMASK_ompkernel[:9])\
     map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -36,17 +36,17 @@ void ls_advec_bedges_omp4_kernel(
     //variable mapping
     const int *bedge_type = &data0[1*n_op];
     const int *bedgeNum = &data1[1*n_op];
-    const double *x = &data2[10 * map2idx];
-    const double *y = &data3[10 * map2idx];
-    const double *q = &data4[10 * map2idx];
-    double *exQ = &data5[12 * map2idx];
+    const double *x = &data2[6 * map2idx];
+    const double *y = &data3[6 * map2idx];
+    const double *q = &data4[6 * map2idx];
+    double *exQ = &data5[9 * map2idx];
 
     //inline function
     
-    int exInd = *bedgeNum * 4;
-    int *fmask = &FMASK_ompkernel[*bedgeNum * 4];
+    int exInd = *bedgeNum * 3;
+    int *fmask = &FMASK_ompkernel[*bedgeNum * 3];
 
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 3; i++) {
       exQ[exInd + i] += q[fmask[i]];
     }
     //end inline func

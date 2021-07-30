@@ -7,14 +7,14 @@ inline void sigma_flux(const int *edgeNum, const bool *rev, const double **sJ,
   bool reverse = *rev;
 
   // Do left element first
-  int exIndL = edgeL * 6;
-  int exIndR = edgeR * 6;
+  int exIndL = edgeL * 4;
+  int exIndR = edgeR * 4;
 
-  for(int i = 0; i < 6; i++) {
+  for(int i = 0; i < 4; i++) {
     int rInd;
     int lInd = exIndL + i;
     if(reverse) {
-      rInd = exIndR + 6 - i - 1;
+      rInd = exIndR + 4 - i - 1;
     } else {
       rInd = exIndR + i;
     }
@@ -23,11 +23,11 @@ inline void sigma_flux(const int *edgeNum, const bool *rev, const double **sJ,
     sigFy[0][lInd] += gaussW_g[i] * sJ[0][lInd] * ny[0][lInd] * flux;
   }
 
-  for(int i = 0; i < 6; i++) {
+  for(int i = 0; i < 4; i++) {
     int lInd;
     int rInd = exIndR + i;
     if(reverse) {
-      lInd = exIndL + 6 - i - 1;
+      lInd = exIndL + 4 - i - 1;
     } else {
       lInd = exIndL + i;
     }

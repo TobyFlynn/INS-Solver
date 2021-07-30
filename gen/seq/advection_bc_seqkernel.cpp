@@ -60,13 +60,13 @@ void op_par_loop_advection_bc(char const *name, op_set set,
         &((int*)arg1.data)[1 * n],
         (double*)arg2.data,
         (int*)arg3.data,
-        &((double*)arg4.data)[10 * map4idx],
-        &((double*)arg5.data)[10 * map4idx],
-        &((double*)arg6.data)[10 * map4idx],
-        &((double*)arg7.data)[10 * map4idx],
-        &((double*)arg8.data)[10 * map4idx],
-        &((double*)arg9.data)[12 * map4idx],
-        &((double*)arg10.data)[12 * map4idx]);
+        &((double*)arg4.data)[6 * map4idx],
+        &((double*)arg5.data)[6 * map4idx],
+        &((double*)arg6.data)[6 * map4idx],
+        &((double*)arg7.data)[6 * map4idx],
+        &((double*)arg8.data)[6 * map4idx],
+        &((double*)arg9.data)[9 * map4idx],
+        &((double*)arg10.data)[9 * map4idx]);
     }
   }
 

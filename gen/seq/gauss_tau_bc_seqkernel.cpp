@@ -41,7 +41,7 @@ void op_par_loop_gauss_tau_bc(char const *name, op_set set,
 
       gauss_tau_bc(
         &((int*)arg0.data)[1 * n],
-        &((double*)arg1.data)[12 * map1idx],
+        &((double*)arg1.data)[9 * map1idx],
         &((double*)arg2.data)[3 * map1idx]);
     }
   }

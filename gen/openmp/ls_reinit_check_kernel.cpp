@@ -70,9 +70,9 @@ void op_par_loop_ls_reinit_check(char const *name, op_set set,
       for ( int n=start; n<finish; n++ ){
         ls_reinit_check(
           (double*)arg0.data,
-          &((double*)arg1.data)[10*n],
-          &((double*)arg2.data)[10*n],
-          &((double*)arg3.data)[10*n],
+          &((double*)arg1.data)[6*n],
+          &((double*)arg2.data)[6*n],
+          &((double*)arg3.data)[6*n],
           &arg4_l[64*omp_get_thread_num()],
           &arg5_l[64*omp_get_thread_num()]);
       }

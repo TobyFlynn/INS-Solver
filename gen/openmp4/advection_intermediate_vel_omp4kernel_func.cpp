@@ -49,20 +49,20 @@ void advection_intermediate_vel_omp4_kernel(
     const double *b1 = &arg3_l;
     const double *g0 = &arg4_l;
     const double *dt = &arg5_l;
-    const double *q0 = &data6[10*n_op];
-    const double *q1 = &data7[10*n_op];
-    const double *q0Old = &data8[10*n_op];
-    const double *q1Old = &data9[10*n_op];
-    const double *N0 = &data10[10*n_op];
-    const double *N1 = &data11[10*n_op];
-    const double *N0Old = &data12[10*n_op];
-    const double *N1Old = &data13[10*n_op];
-    double *q0T = &data14[10*n_op];
-    double *q1T = &data15[10*n_op];
+    const double *q0 = &data6[6*n_op];
+    const double *q1 = &data7[6*n_op];
+    const double *q0Old = &data8[6*n_op];
+    const double *q1Old = &data9[6*n_op];
+    const double *N0 = &data10[6*n_op];
+    const double *N1 = &data11[6*n_op];
+    const double *N0Old = &data12[6*n_op];
+    const double *N1Old = &data13[6*n_op];
+    double *q0T = &data14[6*n_op];
+    double *q1T = &data15[6*n_op];
 
     //inline function
     
-    for(int i = 0; i < 10; i++) {
+    for(int i = 0; i < 6; i++) {
       q0T[i] = *a0 * q0[i] + *a1 * q0Old[i] + *dt * (*b0 * N0[i] + *b1 * N0Old[i]);
       q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * N1[i] + *b1 * N1Old[i]);
 

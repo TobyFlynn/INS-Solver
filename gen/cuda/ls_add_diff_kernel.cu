@@ -5,11 +5,11 @@
 //user function
 __device__ void ls_add_diff_gpu( const double *diff, double *rk, double *dsldx,
                         double *dsrdx, double *dsldy, double *dsrdy) {
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 6; i++) {
     rk[i] = rk[i] + diff[i];
   }
 
-  for(int i = 0; i < 18; i++) {
+  for(int i = 0; i < 12; i++) {
     dsldx[i] = 0.0;
     dsrdx[i] = 0.0;
     dsldy[i] = 0.0;
@@ -33,12 +33,12 @@ __global__ void op_cuda_ls_add_diff(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    ls_add_diff_gpu(arg0+n*10,
-                arg1+n*10,
-                arg2+n*18,
-                arg3+n*18,
-                arg4+n*18,
-                arg5+n*18);
+    ls_add_diff_gpu(arg0+n*6,
+                arg1+n*6,
+                arg2+n*12,
+                arg3+n*12,
+                arg4+n*12,
+                arg5+n*12);
   }
 }
 

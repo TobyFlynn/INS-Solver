@@ -12,26 +12,26 @@ inline void ls_advec_edges_openacc( const int *edgeNum, const bool *rev,
   int edgeR = edgeNum[1];
   bool reverse = *rev;
 
-  int exInd = edgeL * 4;
-  int *fmask = &FMASK[edgeR * 4];
+  int exInd = edgeL * 3;
+  int *fmask = &FMASK[edgeR * 3];
 
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     int rInd;
     if(reverse) {
-      rInd = fmask[4 - i - 1];
+      rInd = fmask[3 - i - 1];
     } else {
       rInd = fmask[i];
     }
     exQ[0][exInd + i] += q[1][rInd];
   }
 
-  exInd = edgeR * 4;
-  fmask = &FMASK[edgeL * 4];
+  exInd = edgeR * 3;
+  fmask = &FMASK[edgeL * 3];
 
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     int lInd;
     if(reverse) {
-      lInd = fmask[4 - i - 1];
+      lInd = fmask[3 - i - 1];
     } else {
       lInd = fmask[i];
     }
@@ -54,13 +54,13 @@ void op_par_loop_ls_advec_edges(char const *name, op_set set,
   arg2.idx = 0;
   args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 10, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 6, "double", OP_READ);
   }
 
   arg4.idx = 0;
   args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 12, "double", OP_INC);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 9, "double", OP_INC);
   }
 
 
@@ -123,11 +123,11 @@ void op_par_loop_ls_advec_edges(char const *name, op_set set,
         map3idx = map2[n + set_size1 * 1];
 
         const double* arg2_vec[] = {
-           &data2[10 * map2idx],
-           &data2[10 * map3idx]};
+           &data2[6 * map2idx],
+           &data2[6 * map3idx]};
         double* arg4_vec[] = {
-           &data4[12 * map2idx],
-           &data4[12 * map3idx]};
+           &data4[9 * map2idx],
+           &data4[9 * map3idx]};
 
         ls_advec_edges_openacc(
           &data0[2 * n],

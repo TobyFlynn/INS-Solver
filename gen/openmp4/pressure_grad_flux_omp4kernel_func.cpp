@@ -29,7 +29,7 @@ void pressure_grad_flux_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: FMASK_ompkernel[:12])\
+    map(to: FMASK_ompkernel[:9])\
     map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data4[0:dat4size],data6[0:dat6size],data8[0:dat8size],data10[0:dat10size],data12[0:dat12size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -40,23 +40,23 @@ void pressure_grad_flux_omp4_kernel(
     map3idx = map2[n_op + set_size1 * 1];
 
     const double* arg2_vec[] = {
-       &data2[12 * map2idx],
-       &data2[12 * map3idx]};
+       &data2[9 * map2idx],
+       &data2[9 * map3idx]};
     const double* arg4_vec[] = {
-       &data4[12 * map2idx],
-       &data4[12 * map3idx]};
+       &data4[9 * map2idx],
+       &data4[9 * map3idx]};
     const double* arg6_vec[] = {
-       &data6[12 * map2idx],
-       &data6[12 * map3idx]};
+       &data6[9 * map2idx],
+       &data6[9 * map3idx]};
     const double* arg8_vec[] = {
-       &data8[10 * map2idx],
-       &data8[10 * map3idx]};
+       &data8[6 * map2idx],
+       &data8[6 * map3idx]};
     double* arg10_vec[] = {
-       &data10[12 * map2idx],
-       &data10[12 * map3idx]};
+       &data10[9 * map2idx],
+       &data10[9 * map3idx]};
     double* arg12_vec[] = {
-       &data12[12 * map2idx],
-       &data12[12 * map3idx]};
+       &data12[9 * map2idx],
+       &data12[9 * map3idx]};
     //variable mapping
     const int *edgeNum = &data0[2*n_op];
     const bool *rev = &data1[1*n_op];
@@ -74,15 +74,15 @@ void pressure_grad_flux_omp4_kernel(
     int edgeR = edgeNum[1];
     bool reverse = *rev;
 
-    int exInd = edgeL * 4;
-    int *fmaskL = &FMASK_ompkernel[edgeL * 4];
-    int *fmaskR = &FMASK_ompkernel[edgeR * 4];
+    int exInd = edgeL * 3;
+    int *fmaskL = &FMASK_ompkernel[edgeL * 3];
+    int *fmaskR = &FMASK_ompkernel[edgeR * 3];
 
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 3; i++) {
       int lInd = fmaskL[i];
       int rInd;
       if(reverse) {
-        rInd = fmaskR[4 - i - 1];
+        rInd = fmaskR[3 - i - 1];
       } else {
         rInd = fmaskR[i];
       }
@@ -91,13 +91,13 @@ void pressure_grad_flux_omp4_kernel(
       pY[0][exInd + i] += fscale[0][exInd + i] * ny[0][exInd + i] * flux;
     }
 
-    exInd = edgeR * 4;
+    exInd = edgeR * 3;
 
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 3; i++) {
       int rInd = fmaskR[i];
       int lInd;
       if(reverse) {
-        lInd = fmaskL[4 - i - 1];
+        lInd = fmaskL[3 - i - 1];
       } else {
         lInd = fmaskL[i];
       }

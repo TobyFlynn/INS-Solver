@@ -40,12 +40,12 @@ void op_par_loop_ls_add_diff(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       ls_add_diff(
-        &((double*)arg0.data)[10*n],
-        &((double*)arg1.data)[10*n],
-        &((double*)arg2.data)[18*n],
-        &((double*)arg3.data)[18*n],
-        &((double*)arg4.data)[18*n],
-        &((double*)arg5.data)[18*n]);
+        &((double*)arg0.data)[6*n],
+        &((double*)arg1.data)[6*n],
+        &((double*)arg2.data)[12*n],
+        &((double*)arg3.data)[12*n],
+        &((double*)arg4.data)[12*n],
+        &((double*)arg5.data)[12*n]);
     }
   }
 

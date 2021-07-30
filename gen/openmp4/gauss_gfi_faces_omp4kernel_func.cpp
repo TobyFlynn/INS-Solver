@@ -23,7 +23,7 @@ void gauss_gfi_faces_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: gFInterp0_g_ompkernel[:60], gFInterp1_g_ompkernel[:60], gFInterp2_g_ompkernel[:60])\
+    map(to: gFInterp0_g_ompkernel[:24], gFInterp1_g_ompkernel[:24], gFInterp2_g_ompkernel[:24])\
     map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data4[0:dat4size],data6[0:dat6size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -34,14 +34,14 @@ void gauss_gfi_faces_omp4_kernel(
     map3idx = map2[n_op + set_size1 * 1];
 
     double* arg2_vec[] = {
-       &data2[60 * map2idx],
-       &data2[60 * map3idx]};
+       &data2[24 * map2idx],
+       &data2[24 * map3idx]};
     double* arg4_vec[] = {
-       &data4[60 * map2idx],
-       &data4[60 * map3idx]};
+       &data4[24 * map2idx],
+       &data4[24 * map3idx]};
     double* arg6_vec[] = {
-       &data6[60 * map2idx],
-       &data6[60 * map3idx]};
+       &data6[24 * map2idx],
+       &data6[24 * map3idx]};
     //variable mapping
     const int *edgeNum = &data0[2*n_op];
     const bool *rev = &data1[1*n_op];
@@ -56,15 +56,15 @@ void gauss_gfi_faces_omp4_kernel(
     int edgeR = edgeNum[1];
     bool reverse = *rev;
 
-    for(int m = 0; m < 6; m++) {
-      for(int n = 0; n < 10; n++) {
+    for(int m = 0; m < 4; m++) {
+      for(int n = 0; n < 6; n++) {
         int indL, indR;
         if(!reverse) {
-          indL = m * 10 + n;
-          indR = m * 10 + n;
+          indL = m * 6 + n;
+          indR = m * 6 + n;
         } else {
-          indL = m * 10 + n;
-          indR = (6 - 1 - m) * 10 + n;
+          indL = m * 6 + n;
+          indR = (4 - 1 - m) * 6 + n;
         }
 
         if(edgeL == 0) {

@@ -52,10 +52,10 @@ void op_par_loop_update_Q(char const *name, op_set set,
       for ( int n=start; n<finish; n++ ){
         update_Q(
           (double*)arg0.data,
-          &((double*)arg1.data)[10*n],
-          &((double*)arg2.data)[10*n],
-          &((double*)arg3.data)[10*n],
-          &((double*)arg4.data)[10*n]);
+          &((double*)arg1.data)[6*n],
+          &((double*)arg2.data)[6*n],
+          &((double*)arg3.data)[6*n],
+          &((double*)arg4.data)[6*n]);
       }
     }
   }

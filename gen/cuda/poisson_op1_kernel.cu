@@ -5,26 +5,26 @@
 //user function
 __device__ void poisson_op1_gpu( const double *J, const double *Dx, const double *Dy,
                         const double *factor, double *op) {
-  double tmpX[36 * 10];
-  double tmpY[36 * 10];
+  double tmpX[16 * 6];
+  double tmpY[16 * 6];
 
-  for(int m = 0; m < 36; m++) {
-    for(int n = 0; n < 10; n++) {
-      int ind = m * 10 + n;
+  for(int m = 0; m < 16; m++) {
+    for(int n = 0; n < 6; n++) {
+      int ind = m * 6 + n;
       tmpX[ind] = J[m] * cubW_g_cuda[m] * Dx[ind] * factor[m];
       tmpY[ind] = J[m] * cubW_g_cuda[m] * Dy[ind] * factor[m];
     }
   }
 
-  for(int i = 0; i < 10; i++) {
-    for(int j = 0; j < 10; j++) {
-      int c_ind = i * 10 + j;
+  for(int i = 0; i < 6; i++) {
+    for(int j = 0; j < 6; j++) {
+      int c_ind = i * 6 + j;
       op[c_ind] = 0.0;
-      for(int k = 0; k < 36; k++) {
+      for(int k = 0; k < 16; k++) {
 
-        int b_ind = k * 10 + j;
+        int b_ind = k * 6 + j;
 
-        int a_ind = k * 10 + i;
+        int a_ind = k * 6 + i;
         op[c_ind] += Dx[a_ind] * tmpX[b_ind] + Dy[a_ind] * tmpY[b_ind];
       }
     }
@@ -46,11 +46,11 @@ __global__ void op_cuda_poisson_op1(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    poisson_op1_gpu(arg0+n*36,
-                arg1+n*360,
-                arg2+n*360,
-                arg3+n*36,
-                arg4+n*100);
+    poisson_op1_gpu(arg0+n*16,
+                arg1+n*96,
+                arg2+n*96,
+                arg3+n*16,
+                arg4+n*36);
   }
 }
 

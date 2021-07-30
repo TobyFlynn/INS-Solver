@@ -4,10 +4,10 @@
 
 //user function
 __device__ void poisson_cells_gpu( const double *u, const double *op, double *rhs) {
-  for(int m = 0; m < 10; m++) {
-    int ind = m * 10;
+  for(int m = 0; m < 6; m++) {
+    int ind = m * 6;
     rhs[m] = 0.0;
-    for(int n = 0; n < 10; n++) {
+    for(int n = 0; n < 6; n++) {
       rhs[m] += op[ind + n] * u[n];
     }
   }
@@ -26,9 +26,9 @@ __global__ void op_cuda_poisson_cells(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    poisson_cells_gpu(arg0+n*10,
-                  arg1+n*100,
-                  arg2+n*10);
+    poisson_cells_gpu(arg0+n*6,
+                  arg1+n*36,
+                  arg2+n*6);
   }
 }
 
