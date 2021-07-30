@@ -23,15 +23,15 @@ void ls_step_omp4_kernel(
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const double *alpha = &arg0_l;
-    const double *s = &data1[6*n_op];
-    double *step = &data2[6*n_op];
-    double *nu = &data3[6*n_op];
-    double *rho = &data4[6*n_op];
+    const double *s = &data1[3*n_op];
+    double *step = &data2[3*n_op];
+    double *nu = &data3[3*n_op];
+    double *rho = &data4[3*n_op];
 
     //inline function
     
     const double PI = 3.141592653589793238463;
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
       step[i] = tanh(PI * s[i] / *alpha);
       nu[i] = 0.5 * nu0_ompkernel * (1.0 + step[i]) + 0.5 * nu1_ompkernel * (1.0 - step[i]);
       rho[i] = 0.5 * rho0_ompkernel * (1.0 + step[i]) + 0.5 * rho1_ompkernel * (1.0 - step[i]);

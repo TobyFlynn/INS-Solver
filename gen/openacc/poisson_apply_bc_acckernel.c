@@ -7,11 +7,11 @@
 //#pragma acc routine
 inline void poisson_apply_bc_openacc( const int *bedgeNum, const double *op,
                              const double *bc, double *rhs) {
-  int exInd = *bedgeNum * 4;
+  int exInd = *bedgeNum * 3;
 
-  for(int m = 0; m < 6; m++) {
-    int ind = m * 4;
-    for(int n = 0; n < 4; n++) {
+  for(int m = 0; m < 3; m++) {
+    int ind = m * 3;
+    for(int n = 0; n < 3; n++) {
       rhs[m] += op[ind + n] * bc[exInd + n];
     }
   }
@@ -91,9 +91,9 @@ void op_par_loop_poisson_apply_bc(char const *name, op_set set,
 
         poisson_apply_bc_openacc(
           &data0[1 * n],
-          &data1[24 * n],
-          &data2[12 * map2idx],
-          &data3[6 * map2idx]);
+          &data1[9 * n],
+          &data2[9 * map2idx],
+          &data3[3 * map2idx]);
       }
 
     }

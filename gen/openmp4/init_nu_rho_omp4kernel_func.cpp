@@ -16,12 +16,12 @@ void init_nu_rho_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    double *nu = &data0[6*n_op];
-    double *rho = &data1[6*n_op];
+    double *nu = &data0[3*n_op];
+    double *rho = &data1[3*n_op];
 
     //inline function
     
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
       nu[i] = nu0_ompkernel;
       rho[i] = 1.0;
     }

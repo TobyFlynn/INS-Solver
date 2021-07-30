@@ -23,35 +23,35 @@ __device__ void poisson_op5_gpu( const int *edgeType, const int *edgeNum,
     gVM = gFInterp2_g_cuda;
   }
 
-  for(int i = 0; i < 4 * 6; i++) {
+  for(int i = 0; i < 3 * 3; i++) {
     op[i] = 0.0;
   }
 
   if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2) {
 
 
-    for(int i = 0; i < 4 * 6; i++) {
-      int indT = (i % 4) * 6 + i / 4;
-      int indSJ = *edgeNum * 4 + (i % 4);
-      op[i] = gVM[indT] * gaussW_g_cuda[i % 4] * sJ[indSJ];
+    for(int i = 0; i < 3 * 3; i++) {
+      int indT = (i % 3) * 3 + i / 3;
+      int indSJ = *edgeNum * 3 + (i % 3);
+      op[i] = gVM[indT] * gaussW_g_cuda[i % 3] * sJ[indSJ];
     }
   } else {
 
-    double tauA[4];
-    for(int i = 0; i < 4; i++) {
-      int ind = *edgeNum  * 4 + i;
+    double tauA[3];
+    for(int i = 0; i < 3; i++) {
+      int ind = *edgeNum  * 3 + i;
       tauA[i] = 100 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
 
     }
 
 
-    for(int i = 0; i < 4 * 6; i++) {
-      int indT = (i % 4) * 6 + i / 4;
-      int indSJ = *edgeNum * 4 + (i % 4);
-      int indFactor = (i / 4);
+    for(int i = 0; i < 3 * 3; i++) {
+      int indT = (i % 3) * 3 + i / 3;
+      int indSJ = *edgeNum * 3 + (i % 3);
+      int indFactor = (i / 3);
 
-      op[i] = gVM[indT] * gaussW_g_cuda[i % 4] * sJ[indSJ] * tauA[i % 4]
-              - factor[indFactor] * mD[indT] * gaussW_g_cuda[i % 4] * sJ[indSJ];
+      op[i] = gVM[indT] * gaussW_g_cuda[i % 3] * sJ[indSJ] * tauA[i % 3]
+              - factor[indFactor] * mD[indT] * gaussW_g_cuda[i % 3] * sJ[indSJ];
     }
   }
 
@@ -89,14 +89,14 @@ __global__ void op_cuda_poisson_op5(
                 arg2,
                 arg3,
                 arg4,
-                ind_arg0+map5idx*24,
-                ind_arg1+map5idx*24,
-                ind_arg2+map5idx*24,
-                ind_arg3+map5idx*12,
+                ind_arg0+map5idx*9,
+                ind_arg1+map5idx*9,
+                ind_arg2+map5idx*9,
+                ind_arg3+map5idx*9,
                 ind_arg4+map5idx*1,
-                ind_arg5+map5idx*12,
-                ind_arg6+map5idx*6,
-                arg12+n*24);
+                ind_arg5+map5idx*9,
+                ind_arg6+map5idx*3,
+                arg12+n*9);
   }
 }
 

@@ -5,7 +5,7 @@
 //user function
 __device__ void ls_copy_gpu( const double *dsdx, const double *dsdy,
                     double *dpldx, double *dprdx, double *dpldy, double *dprdy) {
-  for(int i = 0; i < 6; i++) {
+  for(int i = 0; i < 3; i++) {
     dpldx[i] = dsdx[i];
     dprdx[i] = dsdx[i];
     dpldy[i] = dsdy[i];
@@ -29,12 +29,12 @@ __global__ void op_cuda_ls_copy(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    ls_copy_gpu(arg0+n*6,
-            arg1+n*6,
-            arg2+n*6,
-            arg3+n*6,
-            arg4+n*6,
-            arg5+n*6);
+    ls_copy_gpu(arg0+n*3,
+            arg1+n*3,
+            arg2+n*3,
+            arg3+n*3,
+            arg4+n*3,
+            arg5+n*3);
   }
 }
 

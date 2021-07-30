@@ -4,7 +4,7 @@
 
 //user function
 __device__ void viscosity_reset_bc_gpu( double *exQ0, double *exQ1) {
-  for(int i = 0; i < 12; i++) {
+  for(int i = 0; i < 9; i++) {
     exQ0[i] = 0.0;
     exQ1[i] = 0.0;
   }
@@ -22,8 +22,8 @@ __global__ void op_cuda_viscosity_reset_bc(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    viscosity_reset_bc_gpu(arg0+n*12,
-                       arg1+n*12);
+    viscosity_reset_bc_gpu(arg0+n*9,
+                       arg1+n*9);
   }
 }
 

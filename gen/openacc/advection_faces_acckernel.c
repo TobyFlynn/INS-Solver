@@ -12,13 +12,13 @@ inline void advection_faces_openacc( const int *edgeNum, const bool *rev, const 
   int edgeR = edgeNum[1];
   bool reverse = *rev;
 
-  int exInd = edgeL * 3;
-  int *fmask = &FMASK[edgeR * 3];
+  int exInd = edgeL * 2;
+  int *fmask = &FMASK[edgeR * 2];
 
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 2; i++) {
     int rInd;
     if(reverse) {
-      rInd = fmask[3 - i - 1];
+      rInd = fmask[2 - i - 1];
     } else {
       rInd = fmask[i];
     }
@@ -26,13 +26,13 @@ inline void advection_faces_openacc( const int *edgeNum, const bool *rev, const 
     exQ1[0][exInd + i] += q1[1][rInd];
   }
 
-  exInd = edgeR * 3;
-  fmask = &FMASK[edgeL * 3];
+  exInd = edgeR * 2;
+  fmask = &FMASK[edgeL * 2];
 
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 2; i++) {
     int lInd;
     if(reverse) {
-      lInd = fmask[3 - i - 1];
+      lInd = fmask[2 - i - 1];
     } else {
       lInd = fmask[i];
     }
@@ -58,25 +58,25 @@ void op_par_loop_advection_faces(char const *name, op_set set,
   arg2.idx = 0;
   args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 6, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 3, "double", OP_READ);
   }
 
   arg4.idx = 0;
   args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 6, "double", OP_READ);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 3, "double", OP_READ);
   }
 
   arg6.idx = 0;
   args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 9, "double", OP_INC);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 6, "double", OP_INC);
   }
 
   arg8.idx = 0;
   args[8] = arg8;
   for ( int v=1; v<2; v++ ){
-    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 9, "double", OP_INC);
+    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 6, "double", OP_INC);
   }
 
 
@@ -141,17 +141,17 @@ void op_par_loop_advection_faces(char const *name, op_set set,
         map3idx = map2[n + set_size1 * 1];
 
         const double* arg2_vec[] = {
-           &data2[6 * map2idx],
-           &data2[6 * map3idx]};
+           &data2[3 * map2idx],
+           &data2[3 * map3idx]};
         const double* arg4_vec[] = {
-           &data4[6 * map2idx],
-           &data4[6 * map3idx]};
+           &data4[3 * map2idx],
+           &data4[3 * map3idx]};
         double* arg6_vec[] = {
-           &data6[9 * map2idx],
-           &data6[9 * map3idx]};
+           &data6[6 * map2idx],
+           &data6[6 * map3idx]};
         double* arg8_vec[] = {
-           &data8[9 * map2idx],
-           &data8[9 * map3idx]};
+           &data8[6 * map2idx],
+           &data8[6 * map3idx]};
 
         advection_faces_openacc(
           &data0[2 * n],

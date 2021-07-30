@@ -7,7 +7,7 @@
 //#pragma acc routine
 inline void update_Q_openacc( const double *dt, double *s, const double *rk0,
                      const double *rk1, const double *rk2) {
-  for(int i = 0; i < 6; i++) {
+  for(int i = 0; i < 3; i++) {
     double add = (*dt) * (rk0[i]/ 6.0 + rk1[i] / 6.0 + 2.0 * rk2[i] / 3.0);
     s[i] = s[i] + add;
   }
@@ -60,10 +60,10 @@ void op_par_loop_update_Q(char const *name, op_set set,
     for ( int n=0; n<set->size; n++ ){
       update_Q_openacc(
         &arg0_l,
-        &data1[6*n],
-        &data2[6*n],
-        &data3[6*n],
-        &data4[6*n]);
+        &data1[3*n],
+        &data2[3*n],
+        &data3[3*n],
+        &data4[3*n]);
     }
   }
 

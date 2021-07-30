@@ -32,8 +32,8 @@ void op_par_loop_init_nu_rho(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       init_nu_rho(
-        &((double*)arg0.data)[6*n],
-        &((double*)arg1.data)[6*n]);
+        &((double*)arg0.data)[3*n],
+        &((double*)arg1.data)[3*n]);
     }
   }
 

@@ -23,16 +23,16 @@ void ls_rhs_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *sign = &data0[6*n_op];
-    const double *dpldx = &data1[6*n_op];
-    const double *dprdx = &data2[6*n_op];
-    const double *dpldy = &data3[6*n_op];
-    const double *dprdy = &data4[6*n_op];
-    double *rk = &data5[6*n_op];
+    const double *sign = &data0[3*n_op];
+    const double *dpldx = &data1[3*n_op];
+    const double *dprdx = &data2[3*n_op];
+    const double *dpldy = &data3[3*n_op];
+    const double *dprdy = &data4[3*n_op];
+    double *rk = &data5[3*n_op];
 
     //inline function
     
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
       if(sign[i] > 0.0) {
         double plmx2 = fmin(dpldx[i], 0.0);
         plmx2 = plmx2 * plmx2;

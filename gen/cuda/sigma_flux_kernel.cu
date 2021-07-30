@@ -11,14 +11,14 @@ __device__ void sigma_flux_gpu( const int *edgeNum, const bool *rev, const doubl
   int edgeR = edgeNum[1];
   bool reverse = *rev;
 
-  int exIndL = edgeL * 4;
-  int exIndR = edgeR * 4;
+  int exIndL = edgeL * 3;
+  int exIndR = edgeR * 3;
 
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     int rInd;
     int lInd = exIndL + i;
     if(reverse) {
-      rInd = exIndR + 4 - i - 1;
+      rInd = exIndR + 3 - i - 1;
     } else {
       rInd = exIndR + i;
     }
@@ -27,11 +27,11 @@ __device__ void sigma_flux_gpu( const int *edgeNum, const bool *rev, const doubl
     sigFy[0][lInd] += gaussW_g_cuda[i] * sJ[0][lInd] * ny[0][lInd] * flux;
   }
 
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     int lInd;
     int rInd = exIndR + i;
     if(reverse) {
-      lInd = exIndL + 4 - i - 1;
+      lInd = exIndL + 3 - i - 1;
     } else {
       lInd = exIndL + i;
     }
@@ -60,20 +60,20 @@ __global__ void op_cuda_sigma_flux(
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg10_l[12];
-    for ( int d=0; d<12; d++ ){
+    double arg10_l[9];
+    for ( int d=0; d<9; d++ ){
       arg10_l[d] = ZERO_double;
     }
-    double arg11_l[12];
-    for ( int d=0; d<12; d++ ){
+    double arg11_l[9];
+    for ( int d=0; d<9; d++ ){
       arg11_l[d] = ZERO_double;
     }
-    double arg12_l[12];
-    for ( int d=0; d<12; d++ ){
+    double arg12_l[9];
+    for ( int d=0; d<9; d++ ){
       arg12_l[d] = ZERO_double;
     }
-    double arg13_l[12];
-    for ( int d=0; d<12; d++ ){
+    double arg13_l[9];
+    for ( int d=0; d<9; d++ ){
       arg13_l[d] = ZERO_double;
     }
     int map2idx;
@@ -81,17 +81,17 @@ __global__ void op_cuda_sigma_flux(
     map2idx = opDat2Map[n + set_size * 0];
     map3idx = opDat2Map[n + set_size * 1];
     const double* arg2_vec[] = {
-       &ind_arg0[12 * map2idx],
-       &ind_arg0[12 * map3idx]};
+       &ind_arg0[9 * map2idx],
+       &ind_arg0[9 * map3idx]};
     const double* arg4_vec[] = {
-       &ind_arg1[12 * map2idx],
-       &ind_arg1[12 * map3idx]};
+       &ind_arg1[9 * map2idx],
+       &ind_arg1[9 * map3idx]};
     const double* arg6_vec[] = {
-       &ind_arg2[12 * map2idx],
-       &ind_arg2[12 * map3idx]};
+       &ind_arg2[9 * map2idx],
+       &ind_arg2[9 * map3idx]};
     const double* arg8_vec[] = {
-       &ind_arg3[12 * map2idx],
-       &ind_arg3[12 * map3idx]};
+       &ind_arg3[9 * map2idx],
+       &ind_arg3[9 * map3idx]};
     double* arg10_vec[] = {
       arg10_l,
       arg11_l};
@@ -108,54 +108,42 @@ __global__ void op_cuda_sigma_flux(
                arg8_vec,
                arg10_vec,
                arg12_vec);
-    atomicAdd(&ind_arg4[0+map2idx*12],arg10_l[0]);
-    atomicAdd(&ind_arg4[1+map2idx*12],arg10_l[1]);
-    atomicAdd(&ind_arg4[2+map2idx*12],arg10_l[2]);
-    atomicAdd(&ind_arg4[3+map2idx*12],arg10_l[3]);
-    atomicAdd(&ind_arg4[4+map2idx*12],arg10_l[4]);
-    atomicAdd(&ind_arg4[5+map2idx*12],arg10_l[5]);
-    atomicAdd(&ind_arg4[6+map2idx*12],arg10_l[6]);
-    atomicAdd(&ind_arg4[7+map2idx*12],arg10_l[7]);
-    atomicAdd(&ind_arg4[8+map2idx*12],arg10_l[8]);
-    atomicAdd(&ind_arg4[9+map2idx*12],arg10_l[9]);
-    atomicAdd(&ind_arg4[10+map2idx*12],arg10_l[10]);
-    atomicAdd(&ind_arg4[11+map2idx*12],arg10_l[11]);
-    atomicAdd(&ind_arg4[0+map3idx*12],arg11_l[0]);
-    atomicAdd(&ind_arg4[1+map3idx*12],arg11_l[1]);
-    atomicAdd(&ind_arg4[2+map3idx*12],arg11_l[2]);
-    atomicAdd(&ind_arg4[3+map3idx*12],arg11_l[3]);
-    atomicAdd(&ind_arg4[4+map3idx*12],arg11_l[4]);
-    atomicAdd(&ind_arg4[5+map3idx*12],arg11_l[5]);
-    atomicAdd(&ind_arg4[6+map3idx*12],arg11_l[6]);
-    atomicAdd(&ind_arg4[7+map3idx*12],arg11_l[7]);
-    atomicAdd(&ind_arg4[8+map3idx*12],arg11_l[8]);
-    atomicAdd(&ind_arg4[9+map3idx*12],arg11_l[9]);
-    atomicAdd(&ind_arg4[10+map3idx*12],arg11_l[10]);
-    atomicAdd(&ind_arg4[11+map3idx*12],arg11_l[11]);
-    atomicAdd(&ind_arg5[0+map2idx*12],arg12_l[0]);
-    atomicAdd(&ind_arg5[1+map2idx*12],arg12_l[1]);
-    atomicAdd(&ind_arg5[2+map2idx*12],arg12_l[2]);
-    atomicAdd(&ind_arg5[3+map2idx*12],arg12_l[3]);
-    atomicAdd(&ind_arg5[4+map2idx*12],arg12_l[4]);
-    atomicAdd(&ind_arg5[5+map2idx*12],arg12_l[5]);
-    atomicAdd(&ind_arg5[6+map2idx*12],arg12_l[6]);
-    atomicAdd(&ind_arg5[7+map2idx*12],arg12_l[7]);
-    atomicAdd(&ind_arg5[8+map2idx*12],arg12_l[8]);
-    atomicAdd(&ind_arg5[9+map2idx*12],arg12_l[9]);
-    atomicAdd(&ind_arg5[10+map2idx*12],arg12_l[10]);
-    atomicAdd(&ind_arg5[11+map2idx*12],arg12_l[11]);
-    atomicAdd(&ind_arg5[0+map3idx*12],arg13_l[0]);
-    atomicAdd(&ind_arg5[1+map3idx*12],arg13_l[1]);
-    atomicAdd(&ind_arg5[2+map3idx*12],arg13_l[2]);
-    atomicAdd(&ind_arg5[3+map3idx*12],arg13_l[3]);
-    atomicAdd(&ind_arg5[4+map3idx*12],arg13_l[4]);
-    atomicAdd(&ind_arg5[5+map3idx*12],arg13_l[5]);
-    atomicAdd(&ind_arg5[6+map3idx*12],arg13_l[6]);
-    atomicAdd(&ind_arg5[7+map3idx*12],arg13_l[7]);
-    atomicAdd(&ind_arg5[8+map3idx*12],arg13_l[8]);
-    atomicAdd(&ind_arg5[9+map3idx*12],arg13_l[9]);
-    atomicAdd(&ind_arg5[10+map3idx*12],arg13_l[10]);
-    atomicAdd(&ind_arg5[11+map3idx*12],arg13_l[11]);
+    atomicAdd(&ind_arg4[0+map2idx*9],arg10_l[0]);
+    atomicAdd(&ind_arg4[1+map2idx*9],arg10_l[1]);
+    atomicAdd(&ind_arg4[2+map2idx*9],arg10_l[2]);
+    atomicAdd(&ind_arg4[3+map2idx*9],arg10_l[3]);
+    atomicAdd(&ind_arg4[4+map2idx*9],arg10_l[4]);
+    atomicAdd(&ind_arg4[5+map2idx*9],arg10_l[5]);
+    atomicAdd(&ind_arg4[6+map2idx*9],arg10_l[6]);
+    atomicAdd(&ind_arg4[7+map2idx*9],arg10_l[7]);
+    atomicAdd(&ind_arg4[8+map2idx*9],arg10_l[8]);
+    atomicAdd(&ind_arg4[0+map3idx*9],arg11_l[0]);
+    atomicAdd(&ind_arg4[1+map3idx*9],arg11_l[1]);
+    atomicAdd(&ind_arg4[2+map3idx*9],arg11_l[2]);
+    atomicAdd(&ind_arg4[3+map3idx*9],arg11_l[3]);
+    atomicAdd(&ind_arg4[4+map3idx*9],arg11_l[4]);
+    atomicAdd(&ind_arg4[5+map3idx*9],arg11_l[5]);
+    atomicAdd(&ind_arg4[6+map3idx*9],arg11_l[6]);
+    atomicAdd(&ind_arg4[7+map3idx*9],arg11_l[7]);
+    atomicAdd(&ind_arg4[8+map3idx*9],arg11_l[8]);
+    atomicAdd(&ind_arg5[0+map2idx*9],arg12_l[0]);
+    atomicAdd(&ind_arg5[1+map2idx*9],arg12_l[1]);
+    atomicAdd(&ind_arg5[2+map2idx*9],arg12_l[2]);
+    atomicAdd(&ind_arg5[3+map2idx*9],arg12_l[3]);
+    atomicAdd(&ind_arg5[4+map2idx*9],arg12_l[4]);
+    atomicAdd(&ind_arg5[5+map2idx*9],arg12_l[5]);
+    atomicAdd(&ind_arg5[6+map2idx*9],arg12_l[6]);
+    atomicAdd(&ind_arg5[7+map2idx*9],arg12_l[7]);
+    atomicAdd(&ind_arg5[8+map2idx*9],arg12_l[8]);
+    atomicAdd(&ind_arg5[0+map3idx*9],arg13_l[0]);
+    atomicAdd(&ind_arg5[1+map3idx*9],arg13_l[1]);
+    atomicAdd(&ind_arg5[2+map3idx*9],arg13_l[2]);
+    atomicAdd(&ind_arg5[3+map3idx*9],arg13_l[3]);
+    atomicAdd(&ind_arg5[4+map3idx*9],arg13_l[4]);
+    atomicAdd(&ind_arg5[5+map3idx*9],arg13_l[5]);
+    atomicAdd(&ind_arg5[6+map3idx*9],arg13_l[6]);
+    atomicAdd(&ind_arg5[7+map3idx*9],arg13_l[7]);
+    atomicAdd(&ind_arg5[8+map3idx*9],arg13_l[8]);
   }
 }
 
@@ -179,37 +167,37 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   arg2.idx = 0;
   args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 12, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 9, "double", OP_READ);
   }
 
   arg4.idx = 0;
   args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 12, "double", OP_READ);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 9, "double", OP_READ);
   }
 
   arg6.idx = 0;
   args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 12, "double", OP_READ);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 9, "double", OP_READ);
   }
 
   arg8.idx = 0;
   args[8] = arg8;
   for ( int v=1; v<2; v++ ){
-    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 12, "double", OP_READ);
+    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 9, "double", OP_READ);
   }
 
   arg10.idx = 0;
   args[10] = arg10;
   for ( int v=1; v<2; v++ ){
-    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 12, "double", OP_INC);
+    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 9, "double", OP_INC);
   }
 
   arg12.idx = 0;
   args[12] = arg12;
   for ( int v=1; v<2; v++ ){
-    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 12, "double", OP_INC);
+    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 9, "double", OP_INC);
   }
 
 

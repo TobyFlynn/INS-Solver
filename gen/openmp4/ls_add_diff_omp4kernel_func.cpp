@@ -23,20 +23,20 @@ void ls_add_diff_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *diff = &data0[6*n_op];
-    double *rk = &data1[6*n_op];
-    double *dsldx = &data2[12*n_op];
-    double *dsrdx = &data3[12*n_op];
-    double *dsldy = &data4[12*n_op];
-    double *dsrdy = &data5[12*n_op];
+    const double *diff = &data0[3*n_op];
+    double *rk = &data1[3*n_op];
+    double *dsldx = &data2[9*n_op];
+    double *dsrdx = &data3[9*n_op];
+    double *dsldy = &data4[9*n_op];
+    double *dsrdy = &data5[9*n_op];
 
     //inline function
     
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
       rk[i] = rk[i] + diff[i];
     }
 
-    for(int i = 0; i < 12; i++) {
+    for(int i = 0; i < 9; i++) {
       dsldx[i] = 0.0;
       dsrdx[i] = 0.0;
       dsldy[i] = 0.0;

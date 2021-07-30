@@ -36,21 +36,21 @@ void pressure_update_vel_omp4_kernel(
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const double *factor = &arg0_l;
-    const double *rho = &data1[6*n_op];
-    const double *dpdx = &data2[6*n_op];
-    const double *dpdy = &data3[6*n_op];
-    const double *qt0 = &data4[6*n_op];
-    const double *qt1 = &data5[6*n_op];
-    double *qtt0 = &data6[6*n_op];
-    double *qtt1 = &data7[6*n_op];
-    double *dpdn = &data8[9*n_op];
-    double *prBC = &data9[12*n_op];
-    double *pX = &data10[9*n_op];
-    double *pY = &data11[9*n_op];
+    const double *rho = &data1[3*n_op];
+    const double *dpdx = &data2[3*n_op];
+    const double *dpdy = &data3[3*n_op];
+    const double *qt0 = &data4[3*n_op];
+    const double *qt1 = &data5[3*n_op];
+    double *qtt0 = &data6[3*n_op];
+    double *qtt1 = &data7[3*n_op];
+    double *dpdn = &data8[6*n_op];
+    double *prBC = &data9[9*n_op];
+    double *pX = &data10[6*n_op];
+    double *pY = &data11[6*n_op];
 
     //inline function
     
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
       qtt0[i] = qt0[i] - *factor * dpdx[i] / rho[i];
       qtt1[i] = qt1[i] - *factor * dpdy[i] / rho[i];
 
@@ -58,11 +58,11 @@ void pressure_update_vel_omp4_kernel(
       dpdn[i] = 0.0;
     }
 
-    for(int i = 0; i < 12; i++) {
+    for(int i = 0; i < 9; i++) {
       prBC[i] = 0.0;
     }
 
-    for(int i = 0; i < 3 * 3; i++) {
+    for(int i = 0; i < 3 * 2; i++) {
       pX[i] = 0.0;
       pY[i] = 0.0;
     }

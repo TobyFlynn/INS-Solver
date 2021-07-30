@@ -7,15 +7,15 @@ inline void pressure_grad_flux(const int *edgeNum, const bool *rev, const double
   bool reverse = *rev;
 
   // Copy data from R to L
-  int exInd = edgeL * 3;
-  int *fmaskL = &FMASK[edgeL * 3];
-  int *fmaskR = &FMASK[edgeR * 3];
+  int exInd = edgeL * 2;
+  int *fmaskL = &FMASK[edgeL * 2];
+  int *fmaskR = &FMASK[edgeR * 2];
 
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 2; i++) {
     int lInd = fmaskL[i];
     int rInd;
     if(reverse) {
-      rInd = fmaskR[3 - i - 1];
+      rInd = fmaskR[2 - i - 1];
     } else {
       rInd = fmaskR[i];
     }
@@ -25,13 +25,13 @@ inline void pressure_grad_flux(const int *edgeNum, const bool *rev, const double
   }
 
   // Copy data from L to R
-  exInd = edgeR * 3;
+  exInd = edgeR * 2;
 
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 2; i++) {
     int rInd = fmaskR[i];
     int lInd;
     if(reverse) {
-      lInd = fmaskL[3 - i - 1];
+      lInd = fmaskL[2 - i - 1];
     } else {
       lInd = fmaskL[i];
     }

@@ -5,7 +5,7 @@
 //user function
 __device__ void update_Q_gpu( const double *dt, double *s, const double *rk0,
                      const double *rk1, const double *rk2) {
-  for(int i = 0; i < 6; i++) {
+  for(int i = 0; i < 3; i++) {
     double add = (*dt) * (rk0[i]/ 6.0 + rk1[i] / 6.0 + 2.0 * rk2[i] / 3.0);
     s[i] = s[i] + add;
   }
@@ -27,10 +27,10 @@ __global__ void op_cuda_update_Q(
 
     //user-supplied kernel call
     update_Q_gpu(arg0,
-             arg1+n*6,
-             arg2+n*6,
-             arg3+n*6,
-             arg4+n*6);
+             arg1+n*3,
+             arg2+n*3,
+             arg3+n*3,
+             arg4+n*3);
   }
 }
 

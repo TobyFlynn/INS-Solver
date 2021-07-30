@@ -15,10 +15,10 @@ inline void gauss_grad_faces_openacc( const int *edgeNum, const double **mDx0,
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
 
-  for(int m = 0; m < 4; m++) {
-    for(int n = 0; n < 6; n++) {
-      int indL = m * 6 + n;
-      int indR = m * 6 + n;
+  for(int m = 0; m < 3; m++) {
+    for(int n = 0; n < 3; n++) {
+      int indL = m * 3 + n;
+      int indR = m * 3 + n;
 
       if(edgeL == 0) {
         if(edgeR == 0) {
@@ -99,73 +99,73 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
   arg1.idx = 0;
   args[1] = arg1;
   for ( int v=1; v<2; v++ ){
-    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 24, "double", OP_READ);
+    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 9, "double", OP_READ);
   }
 
   arg3.idx = 0;
   args[3] = arg3;
   for ( int v=1; v<2; v++ ){
-    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 24, "double", OP_READ);
+    args[3 + v] = op_arg_dat(arg3.dat, v, arg3.map, 9, "double", OP_READ);
   }
 
   arg5.idx = 0;
   args[5] = arg5;
   for ( int v=1; v<2; v++ ){
-    args[5 + v] = op_arg_dat(arg5.dat, v, arg5.map, 24, "double", OP_READ);
+    args[5 + v] = op_arg_dat(arg5.dat, v, arg5.map, 9, "double", OP_READ);
   }
 
   arg7.idx = 0;
   args[7] = arg7;
   for ( int v=1; v<2; v++ ){
-    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 24, "double", OP_READ);
+    args[7 + v] = op_arg_dat(arg7.dat, v, arg7.map, 9, "double", OP_READ);
   }
 
   arg9.idx = 0;
   args[9] = arg9;
   for ( int v=1; v<2; v++ ){
-    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 24, "double", OP_READ);
+    args[9 + v] = op_arg_dat(arg9.dat, v, arg9.map, 9, "double", OP_READ);
   }
 
   arg11.idx = 0;
   args[11] = arg11;
   for ( int v=1; v<2; v++ ){
-    args[11 + v] = op_arg_dat(arg11.dat, v, arg11.map, 24, "double", OP_READ);
+    args[11 + v] = op_arg_dat(arg11.dat, v, arg11.map, 9, "double", OP_READ);
   }
 
   arg13.idx = 0;
   args[13] = arg13;
   for ( int v=1; v<2; v++ ){
-    args[13 + v] = op_arg_dat(arg13.dat, v, arg13.map, 24, "double", OP_INC);
+    args[13 + v] = op_arg_dat(arg13.dat, v, arg13.map, 9, "double", OP_INC);
   }
 
   arg15.idx = 0;
   args[15] = arg15;
   for ( int v=1; v<2; v++ ){
-    args[15 + v] = op_arg_dat(arg15.dat, v, arg15.map, 24, "double", OP_INC);
+    args[15 + v] = op_arg_dat(arg15.dat, v, arg15.map, 9, "double", OP_INC);
   }
 
   arg17.idx = 0;
   args[17] = arg17;
   for ( int v=1; v<2; v++ ){
-    args[17 + v] = op_arg_dat(arg17.dat, v, arg17.map, 24, "double", OP_INC);
+    args[17 + v] = op_arg_dat(arg17.dat, v, arg17.map, 9, "double", OP_INC);
   }
 
   arg19.idx = 0;
   args[19] = arg19;
   for ( int v=1; v<2; v++ ){
-    args[19 + v] = op_arg_dat(arg19.dat, v, arg19.map, 24, "double", OP_INC);
+    args[19 + v] = op_arg_dat(arg19.dat, v, arg19.map, 9, "double", OP_INC);
   }
 
   arg21.idx = 0;
   args[21] = arg21;
   for ( int v=1; v<2; v++ ){
-    args[21 + v] = op_arg_dat(arg21.dat, v, arg21.map, 24, "double", OP_INC);
+    args[21 + v] = op_arg_dat(arg21.dat, v, arg21.map, 9, "double", OP_INC);
   }
 
   arg23.idx = 0;
   args[23] = arg23;
   for ( int v=1; v<2; v++ ){
-    args[23 + v] = op_arg_dat(arg23.dat, v, arg23.map, 24, "double", OP_INC);
+    args[23 + v] = op_arg_dat(arg23.dat, v, arg23.map, 9, "double", OP_INC);
   }
 
 
@@ -237,41 +237,41 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
         map2idx = map1[n + set_size1 * 1];
 
         const double* arg1_vec[] = {
-           &data1[24 * map1idx],
-           &data1[24 * map2idx]};
+           &data1[9 * map1idx],
+           &data1[9 * map2idx]};
         const double* arg3_vec[] = {
-           &data3[24 * map1idx],
-           &data3[24 * map2idx]};
+           &data3[9 * map1idx],
+           &data3[9 * map2idx]};
         const double* arg5_vec[] = {
-           &data5[24 * map1idx],
-           &data5[24 * map2idx]};
+           &data5[9 * map1idx],
+           &data5[9 * map2idx]};
         const double* arg7_vec[] = {
-           &data7[24 * map1idx],
-           &data7[24 * map2idx]};
+           &data7[9 * map1idx],
+           &data7[9 * map2idx]};
         const double* arg9_vec[] = {
-           &data9[24 * map1idx],
-           &data9[24 * map2idx]};
+           &data9[9 * map1idx],
+           &data9[9 * map2idx]};
         const double* arg11_vec[] = {
-           &data11[24 * map1idx],
-           &data11[24 * map2idx]};
+           &data11[9 * map1idx],
+           &data11[9 * map2idx]};
         double* arg13_vec[] = {
-           &data13[24 * map1idx],
-           &data13[24 * map2idx]};
+           &data13[9 * map1idx],
+           &data13[9 * map2idx]};
         double* arg15_vec[] = {
-           &data15[24 * map1idx],
-           &data15[24 * map2idx]};
+           &data15[9 * map1idx],
+           &data15[9 * map2idx]};
         double* arg17_vec[] = {
-           &data17[24 * map1idx],
-           &data17[24 * map2idx]};
+           &data17[9 * map1idx],
+           &data17[9 * map2idx]};
         double* arg19_vec[] = {
-           &data19[24 * map1idx],
-           &data19[24 * map2idx]};
+           &data19[9 * map1idx],
+           &data19[9 * map2idx]};
         double* arg21_vec[] = {
-           &data21[24 * map1idx],
-           &data21[24 * map2idx]};
+           &data21[9 * map1idx],
+           &data21[9 * map2idx]};
         double* arg23_vec[] = {
-           &data23[24 * map1idx],
-           &data23[24 * map2idx]};
+           &data23[9 * map1idx],
+           &data23[9 * map2idx]};
 
         gauss_grad_faces_openacc(
           &data0[2 * n],

@@ -49,7 +49,7 @@ void poisson_op2_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data30[0:dat30size],data31[0:dat31size]) \
-    map(to: gaussW_g_ompkernel[:4], gFInterp0_g_ompkernel[:24], gFInterp1_g_ompkernel[:24], gFInterp2_g_ompkernel[:24])\
+    map(to: gaussW_g_ompkernel[:3], gFInterp0_g_ompkernel[:9], gFInterp1_g_ompkernel[:9], gFInterp2_g_ompkernel[:9])\
     map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data4[0:dat4size],data6[0:dat6size],data8[0:dat8size],data10[0:dat10size],data12[0:dat12size],data14[0:dat14size],data16[0:dat16size],data18[0:dat18size],data20[0:dat20size],data22[0:dat22size],data24[0:dat24size],data26[0:dat26size],data28[0:dat28size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -62,36 +62,36 @@ void poisson_op2_omp4_kernel(
     //variable mapping
     const int *edgeNum = &data0[2*n_op];
     const bool *rev = &data1[1*n_op];
-    const double *mD0L = &data2[24 * map2idx];
-    const double *mD0R = &data2[24 * map3idx];
-    const double *mD1L = &data4[24 * map2idx];
-    const double *mD1R = &data4[24 * map3idx];
-    const double *mD2L = &data6[24 * map2idx];
-    const double *mD2R = &data6[24 * map3idx];
-    const double *pD0L = &data8[24 * map2idx];
-    const double *pD0R = &data8[24 * map3idx];
-    const double *pD1L = &data10[24 * map2idx];
-    const double *pD1R = &data10[24 * map3idx];
-    const double *pD2L = &data12[24 * map2idx];
-    const double *pD2R = &data12[24 * map3idx];
-    const double *gVP0L = &data14[24 * map2idx];
-    const double *gVP0R = &data14[24 * map3idx];
-    const double *gVP1L = &data16[24 * map2idx];
-    const double *gVP1R = &data16[24 * map3idx];
-    const double *gVP2L = &data18[24 * map2idx];
-    const double *gVP2R = &data18[24 * map3idx];
-    const double *sJL = &data20[12 * map2idx];
-    const double *sJR = &data20[12 * map3idx];
+    const double *mD0L = &data2[9 * map2idx];
+    const double *mD0R = &data2[9 * map3idx];
+    const double *mD1L = &data4[9 * map2idx];
+    const double *mD1R = &data4[9 * map3idx];
+    const double *mD2L = &data6[9 * map2idx];
+    const double *mD2R = &data6[9 * map3idx];
+    const double *pD0L = &data8[9 * map2idx];
+    const double *pD0R = &data8[9 * map3idx];
+    const double *pD1L = &data10[9 * map2idx];
+    const double *pD1R = &data10[9 * map3idx];
+    const double *pD2L = &data12[9 * map2idx];
+    const double *pD2R = &data12[9 * map3idx];
+    const double *gVP0L = &data14[9 * map2idx];
+    const double *gVP0R = &data14[9 * map3idx];
+    const double *gVP1L = &data16[9 * map2idx];
+    const double *gVP1R = &data16[9 * map3idx];
+    const double *gVP2L = &data18[9 * map2idx];
+    const double *gVP2R = &data18[9 * map3idx];
+    const double *sJL = &data20[9 * map2idx];
+    const double *sJR = &data20[9 * map3idx];
     const double *hL = &data22[1 * map2idx];
     const double *hR = &data22[1 * map3idx];
-    const double *gFactorL = &data24[12 * map2idx];
-    const double *gFactorR = &data24[12 * map3idx];
-    const double *factorL = &data26[6 * map2idx];
-    const double *factorR = &data26[6 * map3idx];
-    double *op1L = &data28[36 * map2idx];
-    double *op1R = &data28[36 * map3idx];
-    double *op2L = &data30[36*n_op];
-    double *op2R = &data31[36*n_op];
+    const double *gFactorL = &data24[9 * map2idx];
+    const double *gFactorR = &data24[9 * map3idx];
+    const double *factorL = &data26[3 * map2idx];
+    const double *factorR = &data26[3 * map3idx];
+    double *op1L = &data28[9 * map2idx];
+    double *op1R = &data28[9 * map3idx];
+    double *op2L = &data30[9*n_op];
+    double *op2R = &data31[9*n_op];
 
     //inline function
     
@@ -138,29 +138,29 @@ void poisson_op2_omp4_kernel(
 
 
 
-    for(int i = 0; i < 6; i++) {
-      for(int j = 0; j < 6; j++) {
-        int c_ind = i * 6 + j;
+    for(int i = 0; i < 3; i++) {
+      for(int j = 0; j < 3; j++) {
+        int c_ind = i * 3 + j;
         op2L[c_ind] = 0.0;
         op2R[c_ind] = 0.0;
-        for(int k = 0; k < 4; k++) {
+        for(int k = 0; k < 3; k++) {
 
-          int b_ind = k * 6 + j;
+          int b_ind = k * 3 + j;
 
-          int ind = i * 4 + k;
-          int a_ind = ((ind * 6) % (6 * 4)) + (ind / 4);
+          int ind = i * 3 + k;
+          int a_ind = ((ind * 3) % (3 * 3)) + (ind / 3);
 
 
-          int factors_indL = edgeL * 4 + k;
-          int factors_indR = edgeR * 4 + k;
+          int factors_indL = edgeL * 3 + k;
+          int factors_indR = edgeR * 3 + k;
           int factors_indLR;
           int factors_indRR;
           if(reverse) {
-            factors_indLR = edgeL * 4 + 4 - 1 - k;
-            factors_indRR = edgeR * 4 + 4 - 1 - k;
+            factors_indLR = edgeL * 3 + 3 - 1 - k;
+            factors_indRR = edgeR * 3 + 3 - 1 - k;
           } else {
-            factors_indLR = edgeL * 4 + k;
-            factors_indRR = edgeR * 4 + k;
+            factors_indLR = edgeL * 3 + k;
+            factors_indRR = edgeR * 3 + k;
           }
 
           op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJL[factors_indL]
@@ -178,18 +178,18 @@ void poisson_op2_omp4_kernel(
 
 
 
-    for(int i = 0; i < 6; i++) {
-      for(int j = 0; j < 6; j++) {
-        int c_ind = i * 6 + j;
-        for(int k = 0; k < 4; k++) {
+    for(int i = 0; i < 3; i++) {
+      for(int j = 0; j < 3; j++) {
+        int c_ind = i * 3 + j;
+        for(int k = 0; k < 3; k++) {
 
-          int b_ind = k * 6 + j;
+          int b_ind = k * 3 + j;
 
-          int ind = i * 4 + k;
-          int a_ind = ((ind * 6) % (6 * 4)) + (ind / 4);
+          int ind = i * 3 + k;
+          int a_ind = ((ind * 3) % (3 * 3)) + (ind / 3);
 
-          int factors_indL = edgeL * 4 + k;
-          int factors_indR = edgeR * 4 + k;
+          int factors_indL = edgeL * 3 + k;
+          int factors_indR = edgeR * 3 + k;
 
           op1L[c_ind] += -factorL[i] * mDL[a_ind] * gaussW_g_ompkernel[k]
                          * sJL[factors_indL] * gVML[b_ind];
@@ -213,30 +213,30 @@ void poisson_op2_omp4_kernel(
       }
     }
 
-    double tauL[4];
-    double tauR[4];
+    double tauL[3];
+    double tauR[3];
     double maxL = 0.0;
     double maxR = 0.0;
-    for(int i = 0; i < 4; i++) {
-      int indL = edgeL * 4 + i;
+    for(int i = 0; i < 3; i++) {
+      int indL = edgeL * 3 + i;
       int indR;
       if(reverse)
-        indR = edgeR * 4 + 4 - 1 - i;
+        indR = edgeR * 3 + 3 - 1 - i;
       else
-        indR = edgeR * 4 + i;
+        indR = edgeR * 3 + i;
       tauL[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
 
       if(maxL < tauL[i]) {
         maxL = tauL[i];
       }
     }
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 3; i++) {
       int indL;
-      int indR = edgeR * 4 + i;
+      int indR = edgeR * 3 + i;
       if(reverse)
-        indL = edgeL * 4 + 4 - 1 - i;
+        indL = edgeL * 3 + 3 - 1 - i;
       else
-        indL = edgeL * 4 + i;
+        indL = edgeL * 3 + i;
       tauR[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
 
       if(maxR < tauR[i]) {
@@ -244,25 +244,25 @@ void poisson_op2_omp4_kernel(
       }
     }
 
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 3; i++) {
       tauL[i] = maxL;
       tauR[i] = maxR;
     }
 
 
 
-    for(int i = 0; i < 6; i++) {
-      for(int j = 0; j < 6; j++) {
-        int c_ind = i * 6 + j;
-        for(int k = 0; k < 4; k++) {
+    for(int i = 0; i < 3; i++) {
+      for(int j = 0; j < 3; j++) {
+        int c_ind = i * 3 + j;
+        for(int k = 0; k < 3; k++) {
 
-          int b_ind = k * 6 + j;
+          int b_ind = k * 3 + j;
 
-          int ind = i * 4 + k;
-          int a_ind = ((ind * 6) % (6 * 4)) + (ind / 4);
+          int ind = i * 3 + k;
+          int a_ind = ((ind * 3) % (3 * 3)) + (ind / 3);
 
-          int factors_indL = edgeL * 4 + k;
-          int factors_indR = edgeR * 4 + k;
+          int factors_indL = edgeL * 3 + k;
+          int factors_indR = edgeR * 3 + k;
 
           op1L[c_ind] += gVML[a_ind] * gaussW_g_ompkernel[k] * sJL[factors_indL]
                          * tauL[k] * gVML[b_ind];

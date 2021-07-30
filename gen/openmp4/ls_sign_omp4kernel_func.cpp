@@ -22,15 +22,15 @@ void ls_sign_omp4_kernel(
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const double *a = &arg0_l;
-    const double *s = &data1[6*n_op];
-    const double *dsdx = &data2[6*n_op];
-    const double *dsdy = &data3[6*n_op];
-    double *sign = &data4[6*n_op];
+    const double *s = &data1[3*n_op];
+    const double *dsdx = &data2[3*n_op];
+    const double *dsdy = &data3[3*n_op];
+    double *sign = &data4[3*n_op];
 
     //inline function
     
     const double PI = 3.141592653589793238463;
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
       double alpha = *a * sqrt(dsdx[i] * dsdx[i] + dsdy[i] * dsdy[i]);
       sign[i] = tanh(PI * s[i] / alpha);
     }

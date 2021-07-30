@@ -20,26 +20,26 @@ void init_cubature_grad_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size]) \
-    map(to: cubVDr_g_ompkernel[:96], cubVDs_g_ompkernel[:96])
+    map(to: cubVDr_g_ompkernel[:36], cubVDs_g_ompkernel[:36])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    double *rx = &data0[16*n_op];
-    double *sx = &data1[16*n_op];
-    double *ry = &data2[16*n_op];
-    double *sy = &data3[16*n_op];
-    double *Dx = &data4[96*n_op];
-    double *Dy = &data5[96*n_op];
+    double *rx = &data0[12*n_op];
+    double *sx = &data1[12*n_op];
+    double *ry = &data2[12*n_op];
+    double *sy = &data3[12*n_op];
+    double *Dx = &data4[36*n_op];
+    double *Dy = &data5[36*n_op];
 
     //inline function
     
 
-    double J[16];
-    for(int i = 0; i < 16; i++) {
+    double J[12];
+    for(int i = 0; i < 12; i++) {
       J[i] = -sx[i] * ry[i] + rx[i] * sy[i];
     }
 
-    for(int i = 0; i < 16; i++) {
+    for(int i = 0; i < 12; i++) {
       double rx_n = sy[i] / J[i];
       double sx_n = -ry[i] / J[i];
       double ry_n = -sx[i] / J[i];
@@ -50,9 +50,9 @@ void init_cubature_grad_omp4_kernel(
       sy[i] = sy_n;
     }
 
-    for(int m = 0; m < 16; m++) {
-      for(int n = 0; n < 6; n++) {
-        int ind = m * 6 + n;
+    for(int m = 0; m < 12; m++) {
+      for(int n = 0; n < 3; n++) {
+        int ind = m * 3 + n;
         Dx[ind] = rx[m] * cubVDr_g_ompkernel[ind] + sx[m] * cubVDs_g_ompkernel[ind];
         Dy[ind] = ry[m] * cubVDr_g_ompkernel[ind] + sy[m] * cubVDs_g_ompkernel[ind];
       }

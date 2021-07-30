@@ -49,12 +49,12 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
 
       diff_bflux(
         &((int*)arg0.data)[1 * n],
-        &((double*)arg1.data)[12 * map1idx],
-        &((double*)arg2.data)[12 * map1idx],
-        &((double*)arg3.data)[12 * map1idx],
-        &((double*)arg4.data)[12 * map1idx],
-        &((double*)arg4.data)[12 * map1idx],
-        &((double*)arg6.data)[12 * map1idx]);
+        &((double*)arg1.data)[9 * map1idx],
+        &((double*)arg2.data)[9 * map1idx],
+        &((double*)arg3.data)[9 * map1idx],
+        &((double*)arg4.data)[9 * map1idx],
+        &((double*)arg4.data)[9 * map1idx],
+        &((double*)arg6.data)[9 * map1idx]);
     }
   }
 

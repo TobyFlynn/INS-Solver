@@ -18,7 +18,7 @@ void op_par_loop_gauss_tau(char const *name, op_set set,
   arg1.idx = 0;
   args[1] = arg1;
   for ( int v=1; v<2; v++ ){
-    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 9, "double", OP_READ);
+    args[1 + v] = op_arg_dat(arg1.dat, v, arg1.map, 6, "double", OP_READ);
   }
 
   arg3.idx = 0;
@@ -75,8 +75,8 @@ void op_par_loop_gauss_tau(char const *name, op_set set,
           map2idx = arg1.map_data[n * arg1.map->dim + 1];
 
           const double* arg1_vec[] = {
-             &((double*)arg1.data)[9 * map1idx],
-             &((double*)arg1.data)[9 * map2idx]};
+             &((double*)arg1.data)[6 * map1idx],
+             &((double*)arg1.data)[6 * map2idx]};
           double* arg3_vec[] = {
              &((double*)arg3.data)[3 * map1idx],
              &((double*)arg3.data)[3 * map2idx]};

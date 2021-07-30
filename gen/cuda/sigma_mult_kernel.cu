@@ -5,12 +5,12 @@
 //user function
 __device__ void sigma_mult_gpu( const double *eps, double *sigx, double *sigy,
                        double *fx, double *fy, double *diffF) {
-  for(int i = 0; i < 6; i++) {
+  for(int i = 0; i < 3; i++) {
     sigx[i] *= *eps;
     sigy[i] *= *eps;
   }
 
-  for(int i = 0; i < 12; i++) {
+  for(int i = 0; i < 9; i++) {
     fx[i] = 0.0;
     fy[i] = 0.0;
     diffF[i] = 0.0;
@@ -34,11 +34,11 @@ __global__ void op_cuda_sigma_mult(
 
     //user-supplied kernel call
     sigma_mult_gpu(arg0,
-               arg1+n*6,
-               arg2+n*6,
-               arg3+n*12,
-               arg4+n*12,
-               arg5+n*12);
+               arg1+n*3,
+               arg2+n*3,
+               arg3+n*9,
+               arg4+n*9,
+               arg5+n*9);
   }
 }
 

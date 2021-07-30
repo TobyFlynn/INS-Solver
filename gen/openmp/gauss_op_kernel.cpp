@@ -76,22 +76,22 @@ void op_par_loop_gauss_op(char const *name, op_set set,
       for ( int n=start; n<finish; n++ ){
         gauss_op(
           &((double*)arg0.data)[3*n],
-          &((double*)arg1.data)[12*n],
-          &((double*)arg2.data)[24*n],
-          &((double*)arg3.data)[24*n],
-          &((double*)arg4.data)[24*n],
-          &((double*)arg5.data)[24*n],
-          &((double*)arg6.data)[24*n],
-          &((double*)arg7.data)[24*n],
-          &((double*)arg8.data)[24*n],
-          &((double*)arg9.data)[24*n],
-          &((double*)arg10.data)[24*n],
-          &((double*)arg11.data)[24*n],
-          &((double*)arg12.data)[24*n],
-          &((double*)arg13.data)[24*n],
-          &((double*)arg14.data)[24*n],
-          &((double*)arg15.data)[24*n],
-          &((double*)arg16.data)[24*n]);
+          &((double*)arg1.data)[9*n],
+          &((double*)arg2.data)[9*n],
+          &((double*)arg3.data)[9*n],
+          &((double*)arg4.data)[9*n],
+          &((double*)arg5.data)[9*n],
+          &((double*)arg6.data)[9*n],
+          &((double*)arg7.data)[9*n],
+          &((double*)arg8.data)[9*n],
+          &((double*)arg9.data)[9*n],
+          &((double*)arg10.data)[9*n],
+          &((double*)arg11.data)[9*n],
+          &((double*)arg12.data)[9*n],
+          &((double*)arg13.data)[9*n],
+          &((double*)arg14.data)[9*n],
+          &((double*)arg15.data)[9*n],
+          &((double*)arg16.data)[9*n]);
       }
     }
   }

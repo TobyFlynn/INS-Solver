@@ -8,9 +8,9 @@
 inline void sigma_bflux_openacc( const int *bedgeNum, const double *sJ, const double *nx,
                         const double *ny, const double *s, double *sigFx,
                         double *sigFy) {
-  int exInd = *bedgeNum * 4;
+  int exInd = *bedgeNum * 3;
 
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     sigFx[exInd + i] += gaussW_g[i] * sJ[exInd + i] * nx[exInd + i] * s[exInd + i];
     sigFy[exInd + i] += gaussW_g[i] * sJ[exInd + i] * ny[exInd + i] * s[exInd + i];
   }
@@ -99,12 +99,12 @@ void op_par_loop_sigma_bflux(char const *name, op_set set,
 
         sigma_bflux_openacc(
           &data0[1 * n],
-          &data1[12 * map1idx],
-          &data2[12 * map1idx],
-          &data3[12 * map1idx],
-          &data4[12 * map1idx],
-          &data5[12 * map1idx],
-          &data6[12 * map1idx]);
+          &data1[9 * map1idx],
+          &data2[9 * map1idx],
+          &data3[9 * map1idx],
+          &data4[9 * map1idx],
+          &data5[9 * map1idx],
+          &data6[9 * map1idx]);
       }
 
     }

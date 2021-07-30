@@ -48,8 +48,8 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
       for ( int n=start; n<finish; n++ ){
         viscosity_rhs(
           (double*)arg0.data,
-          &((double*)arg1.data)[6*n],
-          &((double*)arg2.data)[6*n]);
+          &((double*)arg1.data)[3*n],
+          &((double*)arg2.data)[3*n]);
       }
     }
   }

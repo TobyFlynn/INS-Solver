@@ -23,16 +23,16 @@ void ls_copy_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *dsdx = &data0[6*n_op];
-    const double *dsdy = &data1[6*n_op];
-    double *dpldx = &data2[6*n_op];
-    double *dprdx = &data3[6*n_op];
-    double *dpldy = &data4[6*n_op];
-    double *dprdy = &data5[6*n_op];
+    const double *dsdx = &data0[3*n_op];
+    const double *dsdy = &data1[3*n_op];
+    double *dpldx = &data2[3*n_op];
+    double *dprdx = &data3[3*n_op];
+    double *dpldy = &data4[3*n_op];
+    double *dprdy = &data5[3*n_op];
 
     //inline function
     
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
       dpldx[i] = dsdx[i];
       dprdx[i] = dsdx[i];
       dpldy[i] = dsdy[i];

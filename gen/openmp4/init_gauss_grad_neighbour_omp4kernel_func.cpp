@@ -30,31 +30,31 @@ void init_gauss_grad_neighbour_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size]) \
-    map(to: gF0Dr_g_ompkernel[:24], gF0Ds_g_ompkernel[:24], gF1Dr_g_ompkernel[:24], gF1Ds_g_ompkernel[:24], gF2Dr_g_ompkernel[:24], gF2Ds_g_ompkernel[:24], gF0DrR_g_ompkernel[:24], gF0DsR_g_ompkernel[:24], gF1DrR_g_ompkernel[:24], gF1DsR_g_ompkernel[:24], gF2DrR_g_ompkernel[:24], gF2DsR_g_ompkernel[:24])
+    map(to: gF0Dr_g_ompkernel[:9], gF0Ds_g_ompkernel[:9], gF1Dr_g_ompkernel[:9], gF1Ds_g_ompkernel[:9], gF2Dr_g_ompkernel[:9], gF2Ds_g_ompkernel[:9], gF0DrR_g_ompkernel[:9], gF0DsR_g_ompkernel[:9], gF1DrR_g_ompkernel[:9], gF1DsR_g_ompkernel[:9], gF2DrR_g_ompkernel[:9], gF2DsR_g_ompkernel[:9])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const int *reverse = &data0[3*n_op];
-    double *rx = &data1[12*n_op];
-    double *sx = &data2[12*n_op];
-    double *ry = &data3[12*n_op];
-    double *sy = &data4[12*n_op];
-    double *Dx0 = &data5[24*n_op];
-    double *Dy0 = &data6[24*n_op];
-    double *Dx1 = &data7[24*n_op];
-    double *Dy1 = &data8[24*n_op];
-    double *Dx2 = &data9[24*n_op];
-    double *Dy2 = &data10[24*n_op];
+    double *rx = &data1[9*n_op];
+    double *sx = &data2[9*n_op];
+    double *ry = &data3[9*n_op];
+    double *sy = &data4[9*n_op];
+    double *Dx0 = &data5[9*n_op];
+    double *Dy0 = &data6[9*n_op];
+    double *Dx1 = &data7[9*n_op];
+    double *Dy1 = &data8[9*n_op];
+    double *Dx2 = &data9[9*n_op];
+    double *Dy2 = &data10[9*n_op];
 
     //inline function
     
 
-    double J[12];
-    for(int i = 0; i < 12; i++) {
+    double J[9];
+    for(int i = 0; i < 9; i++) {
       J[i] = -sx[i] * ry[i] + rx[i] * sy[i];
     }
 
-    for(int i = 0; i < 12; i++) {
+    for(int i = 0; i < 9; i++) {
       double rx_n = sy[i] / J[i];
       double sx_n = -ry[i] / J[i];
       double ry_n = -sx[i] / J[i];
@@ -66,17 +66,17 @@ void init_gauss_grad_neighbour_omp4_kernel(
     }
 
     if(reverse[0]) {
-      for(int m = 0; m < 4; m++) {
-        for(int n = 0; n < 6; n++) {
-          int ind = m * 6 + n;
+      for(int m = 0; m < 3; m++) {
+        for(int n = 0; n < 3; n++) {
+          int ind = m * 3 + n;
           Dx0[ind] = rx[m] * gF0DrR_g_ompkernel[ind] + sx[m] * gF0DsR_g_ompkernel[ind];
           Dy0[ind] = ry[m] * gF0DrR_g_ompkernel[ind] + sy[m] * gF0DsR_g_ompkernel[ind];
         }
       }
     } else {
-      for(int m = 0; m < 4; m++) {
-        for(int n = 0; n < 6; n++) {
-          int ind = m * 6 + n;
+      for(int m = 0; m < 3; m++) {
+        for(int n = 0; n < 3; n++) {
+          int ind = m * 3 + n;
           Dx0[ind] = rx[m] * gF0Dr_g_ompkernel[ind] + sx[m] * gF0Ds_g_ompkernel[ind];
           Dy0[ind] = ry[m] * gF0Dr_g_ompkernel[ind] + sy[m] * gF0Ds_g_ompkernel[ind];
         }
@@ -84,37 +84,37 @@ void init_gauss_grad_neighbour_omp4_kernel(
     }
 
     if(reverse[1]) {
-      for(int m = 0; m < 4; m++) {
-        for(int n = 0; n < 6; n++) {
-          int ind = m * 6 + n;
-          Dx1[ind] = rx[m + 4] * gF1DrR_g_ompkernel[ind] + sx[m + 4] * gF1DsR_g_ompkernel[ind];
-          Dy1[ind] = ry[m + 4] * gF1DrR_g_ompkernel[ind] + sy[m + 4] * gF1DsR_g_ompkernel[ind];
+      for(int m = 0; m < 3; m++) {
+        for(int n = 0; n < 3; n++) {
+          int ind = m * 3 + n;
+          Dx1[ind] = rx[m + 3] * gF1DrR_g_ompkernel[ind] + sx[m + 3] * gF1DsR_g_ompkernel[ind];
+          Dy1[ind] = ry[m + 3] * gF1DrR_g_ompkernel[ind] + sy[m + 3] * gF1DsR_g_ompkernel[ind];
         }
       }
     } else {
-      for(int m = 0; m < 4; m++) {
-        for(int n = 0; n < 6; n++) {
-          int ind = m * 6 + n;
-          Dx1[ind] = rx[m + 4] * gF1Dr_g_ompkernel[ind] + sx[m + 4] * gF1Ds_g_ompkernel[ind];
-          Dy1[ind] = ry[m + 4] * gF1Dr_g_ompkernel[ind] + sy[m + 4] * gF1Ds_g_ompkernel[ind];
+      for(int m = 0; m < 3; m++) {
+        for(int n = 0; n < 3; n++) {
+          int ind = m * 3 + n;
+          Dx1[ind] = rx[m + 3] * gF1Dr_g_ompkernel[ind] + sx[m + 3] * gF1Ds_g_ompkernel[ind];
+          Dy1[ind] = ry[m + 3] * gF1Dr_g_ompkernel[ind] + sy[m + 3] * gF1Ds_g_ompkernel[ind];
         }
       }
     }
 
     if(reverse[2]) {
-      for(int m = 0; m < 4; m++) {
-        for(int n = 0; n < 6; n++) {
-          int ind = m * 6 + n;
-          Dx2[ind] = rx[m + 2 * 4] * gF2DrR_g_ompkernel[ind] + sx[m + 2 * 4] * gF2DsR_g_ompkernel[ind];
-          Dy2[ind] = ry[m + 2 * 4] * gF2DrR_g_ompkernel[ind] + sy[m + 2 * 4] * gF2DsR_g_ompkernel[ind];
+      for(int m = 0; m < 3; m++) {
+        for(int n = 0; n < 3; n++) {
+          int ind = m * 3 + n;
+          Dx2[ind] = rx[m + 2 * 3] * gF2DrR_g_ompkernel[ind] + sx[m + 2 * 3] * gF2DsR_g_ompkernel[ind];
+          Dy2[ind] = ry[m + 2 * 3] * gF2DrR_g_ompkernel[ind] + sy[m + 2 * 3] * gF2DsR_g_ompkernel[ind];
         }
       }
     } else {
-      for(int m = 0; m < 4; m++) {
-        for(int n = 0; n < 6; n++) {
-          int ind = m * 6 + n;
-          Dx2[ind] = rx[m + 2 * 4] * gF2Dr_g_ompkernel[ind] + sx[m + 2 * 4] * gF2Ds_g_ompkernel[ind];
-          Dy2[ind] = ry[m + 2 * 4] * gF2Dr_g_ompkernel[ind] + sy[m + 2 * 4] * gF2Ds_g_ompkernel[ind];
+      for(int m = 0; m < 3; m++) {
+        for(int n = 0; n < 3; n++) {
+          int ind = m * 3 + n;
+          Dx2[ind] = rx[m + 2 * 3] * gF2Dr_g_ompkernel[ind] + sx[m + 2 * 3] * gF2Ds_g_ompkernel[ind];
+          Dy2[ind] = ry[m + 2 * 3] * gF2Dr_g_ompkernel[ind] + sy[m + 2 * 3] * gF2Ds_g_ompkernel[ind];
         }
       }
     }

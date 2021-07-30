@@ -3,11 +3,11 @@ inline void gauss_tau(const int *edgeNum, const double **fscale, double **tau) {
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
 
-  if(fscale[0][edgeL * 3] > fscale[1][edgeR * 3]) {
-    tau[0][edgeL] += 20 * 25 * fscale[0][edgeL * 3];
-    tau[1][edgeR] += 20 * 25 * fscale[0][edgeL * 3];
+  if(fscale[0][edgeL * 2] > fscale[1][edgeR * 2]) {
+    tau[0][edgeL] += 20 * 25 * fscale[0][edgeL * 2];
+    tau[1][edgeR] += 20 * 25 * fscale[0][edgeL * 2];
   } else {
-    tau[0][edgeL] += 20 * 25 * fscale[1][edgeR * 3];
-    tau[1][edgeR] += 20 * 25 * fscale[1][edgeR * 3];
+    tau[0][edgeL] += 20 * 25 * fscale[1][edgeR * 2];
+    tau[1][edgeR] += 20 * 25 * fscale[1][edgeR * 2];
   }
 }

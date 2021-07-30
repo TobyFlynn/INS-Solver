@@ -62,29 +62,29 @@ __device__ void poisson_op2_gpu( const int *edgeNum, const bool *rev,
 
 
 
-  for(int i = 0; i < 6; i++) {
-    for(int j = 0; j < 6; j++) {
-      int c_ind = i * 6 + j;
+  for(int i = 0; i < 3; i++) {
+    for(int j = 0; j < 3; j++) {
+      int c_ind = i * 3 + j;
       op2L[c_ind] = 0.0;
       op2R[c_ind] = 0.0;
-      for(int k = 0; k < 4; k++) {
+      for(int k = 0; k < 3; k++) {
 
-        int b_ind = k * 6 + j;
+        int b_ind = k * 3 + j;
 
-        int ind = i * 4 + k;
-        int a_ind = ((ind * 6) % (6 * 4)) + (ind / 4);
+        int ind = i * 3 + k;
+        int a_ind = ((ind * 3) % (3 * 3)) + (ind / 3);
 
 
-        int factors_indL = edgeL * 4 + k;
-        int factors_indR = edgeR * 4 + k;
+        int factors_indL = edgeL * 3 + k;
+        int factors_indR = edgeR * 3 + k;
         int factors_indLR;
         int factors_indRR;
         if(reverse) {
-          factors_indLR = edgeL * 4 + 4 - 1 - k;
-          factors_indRR = edgeR * 4 + 4 - 1 - k;
+          factors_indLR = edgeL * 3 + 3 - 1 - k;
+          factors_indRR = edgeR * 3 + 3 - 1 - k;
         } else {
-          factors_indLR = edgeL * 4 + k;
-          factors_indRR = edgeR * 4 + k;
+          factors_indLR = edgeL * 3 + k;
+          factors_indRR = edgeR * 3 + k;
         }
 
         op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_cuda[k] * sJL[factors_indL]
@@ -102,18 +102,18 @@ __device__ void poisson_op2_gpu( const int *edgeNum, const bool *rev,
 
 
 
-  for(int i = 0; i < 6; i++) {
-    for(int j = 0; j < 6; j++) {
-      int c_ind = i * 6 + j;
-      for(int k = 0; k < 4; k++) {
+  for(int i = 0; i < 3; i++) {
+    for(int j = 0; j < 3; j++) {
+      int c_ind = i * 3 + j;
+      for(int k = 0; k < 3; k++) {
 
-        int b_ind = k * 6 + j;
+        int b_ind = k * 3 + j;
 
-        int ind = i * 4 + k;
-        int a_ind = ((ind * 6) % (6 * 4)) + (ind / 4);
+        int ind = i * 3 + k;
+        int a_ind = ((ind * 3) % (3 * 3)) + (ind / 3);
 
-        int factors_indL = edgeL * 4 + k;
-        int factors_indR = edgeR * 4 + k;
+        int factors_indL = edgeL * 3 + k;
+        int factors_indR = edgeR * 3 + k;
 
         op1L[c_ind] += -factorL[i] * mDL[a_ind] * gaussW_g_cuda[k]
                        * sJL[factors_indL] * gVML[b_ind];
@@ -137,30 +137,30 @@ __device__ void poisson_op2_gpu( const int *edgeNum, const bool *rev,
     }
   }
 
-  double tauL[4];
-  double tauR[4];
+  double tauL[3];
+  double tauR[3];
   double maxL = 0.0;
   double maxR = 0.0;
-  for(int i = 0; i < 4; i++) {
-    int indL = edgeL * 4 + i;
+  for(int i = 0; i < 3; i++) {
+    int indL = edgeL * 3 + i;
     int indR;
     if(reverse)
-      indR = edgeR * 4 + 4 - 1 - i;
+      indR = edgeR * 3 + 3 - 1 - i;
     else
-      indR = edgeR * 4 + i;
+      indR = edgeR * 3 + i;
     tauL[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
 
     if(maxL < tauL[i]) {
       maxL = tauL[i];
     }
   }
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     int indL;
-    int indR = edgeR * 4 + i;
+    int indR = edgeR * 3 + i;
     if(reverse)
-      indL = edgeL * 4 + 4 - 1 - i;
+      indL = edgeL * 3 + 3 - 1 - i;
     else
-      indL = edgeL * 4 + i;
+      indL = edgeL * 3 + i;
     tauR[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
 
     if(maxR < tauR[i]) {
@@ -168,25 +168,25 @@ __device__ void poisson_op2_gpu( const int *edgeNum, const bool *rev,
     }
   }
 
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     tauL[i] = maxL;
     tauR[i] = maxR;
   }
 
 
 
-  for(int i = 0; i < 6; i++) {
-    for(int j = 0; j < 6; j++) {
-      int c_ind = i * 6 + j;
-      for(int k = 0; k < 4; k++) {
+  for(int i = 0; i < 3; i++) {
+    for(int j = 0; j < 3; j++) {
+      int c_ind = i * 3 + j;
+      for(int k = 0; k < 3; k++) {
 
-        int b_ind = k * 6 + j;
+        int b_ind = k * 3 + j;
 
-        int ind = i * 4 + k;
-        int a_ind = ((ind * 6) % (6 * 4)) + (ind / 4);
+        int ind = i * 3 + k;
+        int a_ind = ((ind * 3) % (3 * 3)) + (ind / 3);
 
-        int factors_indL = edgeL * 4 + k;
-        int factors_indR = edgeR * 4 + k;
+        int factors_indL = edgeL * 3 + k;
+        int factors_indR = edgeR * 3 + k;
 
         op1L[c_ind] += gVML[a_ind] * gaussW_g_cuda[k] * sJL[factors_indL]
                        * tauL[k] * gVML[b_ind];
@@ -231,12 +231,12 @@ __global__ void op_cuda_poisson_op2(
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg28_l[36];
-    for ( int d=0; d<36; d++ ){
+    double arg28_l[9];
+    for ( int d=0; d<9; d++ ){
       arg28_l[d] = ZERO_double;
     }
-    double arg29_l[36];
-    for ( int d=0; d<36; d++ ){
+    double arg29_l[9];
+    for ( int d=0; d<9; d++ ){
       arg29_l[d] = ZERO_double;
     }
     int map2idx;
@@ -247,108 +247,54 @@ __global__ void op_cuda_poisson_op2(
     //user-supplied kernel call
     poisson_op2_gpu(arg0+n*2,
                 arg1+n*1,
-                ind_arg0+map2idx*24,
-                ind_arg0+map3idx*24,
-                ind_arg1+map2idx*24,
-                ind_arg1+map3idx*24,
-                ind_arg2+map2idx*24,
-                ind_arg2+map3idx*24,
-                ind_arg3+map2idx*24,
-                ind_arg3+map3idx*24,
-                ind_arg4+map2idx*24,
-                ind_arg4+map3idx*24,
-                ind_arg5+map2idx*24,
-                ind_arg5+map3idx*24,
-                ind_arg6+map2idx*24,
-                ind_arg6+map3idx*24,
-                ind_arg7+map2idx*24,
-                ind_arg7+map3idx*24,
-                ind_arg8+map2idx*24,
-                ind_arg8+map3idx*24,
-                ind_arg9+map2idx*12,
-                ind_arg9+map3idx*12,
+                ind_arg0+map2idx*9,
+                ind_arg0+map3idx*9,
+                ind_arg1+map2idx*9,
+                ind_arg1+map3idx*9,
+                ind_arg2+map2idx*9,
+                ind_arg2+map3idx*9,
+                ind_arg3+map2idx*9,
+                ind_arg3+map3idx*9,
+                ind_arg4+map2idx*9,
+                ind_arg4+map3idx*9,
+                ind_arg5+map2idx*9,
+                ind_arg5+map3idx*9,
+                ind_arg6+map2idx*9,
+                ind_arg6+map3idx*9,
+                ind_arg7+map2idx*9,
+                ind_arg7+map3idx*9,
+                ind_arg8+map2idx*9,
+                ind_arg8+map3idx*9,
+                ind_arg9+map2idx*9,
+                ind_arg9+map3idx*9,
                 ind_arg10+map2idx*1,
                 ind_arg10+map3idx*1,
-                ind_arg11+map2idx*12,
-                ind_arg11+map3idx*12,
-                ind_arg12+map2idx*6,
-                ind_arg12+map3idx*6,
+                ind_arg11+map2idx*9,
+                ind_arg11+map3idx*9,
+                ind_arg12+map2idx*3,
+                ind_arg12+map3idx*3,
                 arg28_l,
                 arg29_l,
-                arg30+n*36,
-                arg31+n*36);
-    atomicAdd(&ind_arg13[0+map2idx*36],arg28_l[0]);
-    atomicAdd(&ind_arg13[1+map2idx*36],arg28_l[1]);
-    atomicAdd(&ind_arg13[2+map2idx*36],arg28_l[2]);
-    atomicAdd(&ind_arg13[3+map2idx*36],arg28_l[3]);
-    atomicAdd(&ind_arg13[4+map2idx*36],arg28_l[4]);
-    atomicAdd(&ind_arg13[5+map2idx*36],arg28_l[5]);
-    atomicAdd(&ind_arg13[6+map2idx*36],arg28_l[6]);
-    atomicAdd(&ind_arg13[7+map2idx*36],arg28_l[7]);
-    atomicAdd(&ind_arg13[8+map2idx*36],arg28_l[8]);
-    atomicAdd(&ind_arg13[9+map2idx*36],arg28_l[9]);
-    atomicAdd(&ind_arg13[10+map2idx*36],arg28_l[10]);
-    atomicAdd(&ind_arg13[11+map2idx*36],arg28_l[11]);
-    atomicAdd(&ind_arg13[12+map2idx*36],arg28_l[12]);
-    atomicAdd(&ind_arg13[13+map2idx*36],arg28_l[13]);
-    atomicAdd(&ind_arg13[14+map2idx*36],arg28_l[14]);
-    atomicAdd(&ind_arg13[15+map2idx*36],arg28_l[15]);
-    atomicAdd(&ind_arg13[16+map2idx*36],arg28_l[16]);
-    atomicAdd(&ind_arg13[17+map2idx*36],arg28_l[17]);
-    atomicAdd(&ind_arg13[18+map2idx*36],arg28_l[18]);
-    atomicAdd(&ind_arg13[19+map2idx*36],arg28_l[19]);
-    atomicAdd(&ind_arg13[20+map2idx*36],arg28_l[20]);
-    atomicAdd(&ind_arg13[21+map2idx*36],arg28_l[21]);
-    atomicAdd(&ind_arg13[22+map2idx*36],arg28_l[22]);
-    atomicAdd(&ind_arg13[23+map2idx*36],arg28_l[23]);
-    atomicAdd(&ind_arg13[24+map2idx*36],arg28_l[24]);
-    atomicAdd(&ind_arg13[25+map2idx*36],arg28_l[25]);
-    atomicAdd(&ind_arg13[26+map2idx*36],arg28_l[26]);
-    atomicAdd(&ind_arg13[27+map2idx*36],arg28_l[27]);
-    atomicAdd(&ind_arg13[28+map2idx*36],arg28_l[28]);
-    atomicAdd(&ind_arg13[29+map2idx*36],arg28_l[29]);
-    atomicAdd(&ind_arg13[30+map2idx*36],arg28_l[30]);
-    atomicAdd(&ind_arg13[31+map2idx*36],arg28_l[31]);
-    atomicAdd(&ind_arg13[32+map2idx*36],arg28_l[32]);
-    atomicAdd(&ind_arg13[33+map2idx*36],arg28_l[33]);
-    atomicAdd(&ind_arg13[34+map2idx*36],arg28_l[34]);
-    atomicAdd(&ind_arg13[35+map2idx*36],arg28_l[35]);
-    atomicAdd(&ind_arg13[0+map3idx*36],arg29_l[0]);
-    atomicAdd(&ind_arg13[1+map3idx*36],arg29_l[1]);
-    atomicAdd(&ind_arg13[2+map3idx*36],arg29_l[2]);
-    atomicAdd(&ind_arg13[3+map3idx*36],arg29_l[3]);
-    atomicAdd(&ind_arg13[4+map3idx*36],arg29_l[4]);
-    atomicAdd(&ind_arg13[5+map3idx*36],arg29_l[5]);
-    atomicAdd(&ind_arg13[6+map3idx*36],arg29_l[6]);
-    atomicAdd(&ind_arg13[7+map3idx*36],arg29_l[7]);
-    atomicAdd(&ind_arg13[8+map3idx*36],arg29_l[8]);
-    atomicAdd(&ind_arg13[9+map3idx*36],arg29_l[9]);
-    atomicAdd(&ind_arg13[10+map3idx*36],arg29_l[10]);
-    atomicAdd(&ind_arg13[11+map3idx*36],arg29_l[11]);
-    atomicAdd(&ind_arg13[12+map3idx*36],arg29_l[12]);
-    atomicAdd(&ind_arg13[13+map3idx*36],arg29_l[13]);
-    atomicAdd(&ind_arg13[14+map3idx*36],arg29_l[14]);
-    atomicAdd(&ind_arg13[15+map3idx*36],arg29_l[15]);
-    atomicAdd(&ind_arg13[16+map3idx*36],arg29_l[16]);
-    atomicAdd(&ind_arg13[17+map3idx*36],arg29_l[17]);
-    atomicAdd(&ind_arg13[18+map3idx*36],arg29_l[18]);
-    atomicAdd(&ind_arg13[19+map3idx*36],arg29_l[19]);
-    atomicAdd(&ind_arg13[20+map3idx*36],arg29_l[20]);
-    atomicAdd(&ind_arg13[21+map3idx*36],arg29_l[21]);
-    atomicAdd(&ind_arg13[22+map3idx*36],arg29_l[22]);
-    atomicAdd(&ind_arg13[23+map3idx*36],arg29_l[23]);
-    atomicAdd(&ind_arg13[24+map3idx*36],arg29_l[24]);
-    atomicAdd(&ind_arg13[25+map3idx*36],arg29_l[25]);
-    atomicAdd(&ind_arg13[26+map3idx*36],arg29_l[26]);
-    atomicAdd(&ind_arg13[27+map3idx*36],arg29_l[27]);
-    atomicAdd(&ind_arg13[28+map3idx*36],arg29_l[28]);
-    atomicAdd(&ind_arg13[29+map3idx*36],arg29_l[29]);
-    atomicAdd(&ind_arg13[30+map3idx*36],arg29_l[30]);
-    atomicAdd(&ind_arg13[31+map3idx*36],arg29_l[31]);
-    atomicAdd(&ind_arg13[32+map3idx*36],arg29_l[32]);
-    atomicAdd(&ind_arg13[33+map3idx*36],arg29_l[33]);
-    atomicAdd(&ind_arg13[34+map3idx*36],arg29_l[34]);
-    atomicAdd(&ind_arg13[35+map3idx*36],arg29_l[35]);
+                arg30+n*9,
+                arg31+n*9);
+    atomicAdd(&ind_arg13[0+map2idx*9],arg28_l[0]);
+    atomicAdd(&ind_arg13[1+map2idx*9],arg28_l[1]);
+    atomicAdd(&ind_arg13[2+map2idx*9],arg28_l[2]);
+    atomicAdd(&ind_arg13[3+map2idx*9],arg28_l[3]);
+    atomicAdd(&ind_arg13[4+map2idx*9],arg28_l[4]);
+    atomicAdd(&ind_arg13[5+map2idx*9],arg28_l[5]);
+    atomicAdd(&ind_arg13[6+map2idx*9],arg28_l[6]);
+    atomicAdd(&ind_arg13[7+map2idx*9],arg28_l[7]);
+    atomicAdd(&ind_arg13[8+map2idx*9],arg28_l[8]);
+    atomicAdd(&ind_arg13[0+map3idx*9],arg29_l[0]);
+    atomicAdd(&ind_arg13[1+map3idx*9],arg29_l[1]);
+    atomicAdd(&ind_arg13[2+map3idx*9],arg29_l[2]);
+    atomicAdd(&ind_arg13[3+map3idx*9],arg29_l[3]);
+    atomicAdd(&ind_arg13[4+map3idx*9],arg29_l[4]);
+    atomicAdd(&ind_arg13[5+map3idx*9],arg29_l[5]);
+    atomicAdd(&ind_arg13[6+map3idx*9],arg29_l[6]);
+    atomicAdd(&ind_arg13[7+map3idx*9],arg29_l[7]);
+    atomicAdd(&ind_arg13[8+map3idx*9],arg29_l[8]);
   }
 }
 

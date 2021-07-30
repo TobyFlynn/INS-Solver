@@ -8,11 +8,11 @@ __device__ void pressure_rhs_gpu( const double *b0, const double *b1, const doub
                          const double *dPdN, double *dPdNOld, double *divVelT) {
 
   double factor = 1.0 / (*dt);
-  for(int i = 0; i < 6; i++) {
+  for(int i = 0; i < 3; i++) {
     divVelT[i] = J[i] * (-divVelT[i] * factor);
   }
 
-  for(int i = 0; i < 3 * 3; i++) {
+  for(int i = 0; i < 3 * 2; i++) {
     dPdNOld[i] = sJ[i] * ((*b0) * dPdN[i] + (*b1) * dPdNOld[i]);
   }
 
@@ -40,11 +40,11 @@ __global__ void op_cuda_pressure_rhs(
                  arg1,
                  arg2,
                  arg3,
-                 arg4+n*6,
-                 arg5+n*9,
-                 arg6+n*9,
-                 arg7+n*9,
-                 arg8+n*6);
+                 arg4+n*3,
+                 arg5+n*6,
+                 arg6+n*6,
+                 arg7+n*6,
+                 arg8+n*3);
   }
 }
 

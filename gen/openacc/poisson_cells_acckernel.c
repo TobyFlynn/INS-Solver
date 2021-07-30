@@ -6,10 +6,10 @@
 //user function
 //#pragma acc routine
 inline void poisson_cells_openacc( const double *u, const double *op, double *rhs) {
-  for(int m = 0; m < 6; m++) {
-    int ind = m * 6;
+  for(int m = 0; m < 3; m++) {
+    int ind = m * 3;
     rhs[m] = 0.0;
-    for(int n = 0; n < 6; n++) {
+    for(int n = 0; n < 3; n++) {
       rhs[m] += op[ind + n] * u[n];
     }
   }
@@ -54,9 +54,9 @@ void op_par_loop_poisson_cells(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2)
     for ( int n=0; n<set->size; n++ ){
       poisson_cells_openacc(
-        &data0[6*n],
-        &data1[36*n],
-        &data2[6*n]);
+        &data0[3*n],
+        &data1[9*n],
+        &data2[3*n]);
     }
   }
 

@@ -21,15 +21,15 @@ void viscosity_solve_setup_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *mu = &data0[6*n_op];
-    const double *rho = &data1[6*n_op];
+    const double *mu = &data0[3*n_op];
+    const double *rho = &data1[3*n_op];
     const double *mmConst = &arg2_l;
-    double *factor = &data3[6*n_op];
-    double *mmFactor = &data4[6*n_op];
+    double *factor = &data3[3*n_op];
+    double *mmFactor = &data4[3*n_op];
 
     //inline function
     
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
       factor[i] = mu[i];
       mmFactor[i] = *mmConst * rho[i];
     }

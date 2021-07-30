@@ -8,7 +8,7 @@
 inline void ls_sign_openacc( const double *a, const double *s, const double *dsdx,
                     const double *dsdy, double *sign) {
   const double PI = 3.141592653589793238463;
-  for(int i = 0; i < 6; i++) {
+  for(int i = 0; i < 3; i++) {
     double alpha = *a * sqrt(dsdx[i] * dsdx[i] + dsdy[i] * dsdy[i]);
     sign[i] = tanh(PI * s[i] / alpha);
   }
@@ -61,10 +61,10 @@ void op_par_loop_ls_sign(char const *name, op_set set,
     for ( int n=0; n<set->size; n++ ){
       ls_sign_openacc(
         &arg0_l,
-        &data1[6*n],
-        &data2[6*n],
-        &data3[6*n],
-        &data4[6*n]);
+        &data1[3*n],
+        &data2[3*n],
+        &data3[3*n],
+        &data4[3*n]);
     }
   }
 

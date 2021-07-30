@@ -64,16 +64,16 @@ void op_par_loop_init_gauss_grad_neighbour(char const *name, op_set set,
       for ( int n=start; n<finish; n++ ){
         init_gauss_grad_neighbour(
           &((int*)arg0.data)[3*n],
-          &((double*)arg1.data)[12*n],
-          &((double*)arg2.data)[12*n],
-          &((double*)arg3.data)[12*n],
-          &((double*)arg4.data)[12*n],
-          &((double*)arg5.data)[24*n],
-          &((double*)arg6.data)[24*n],
-          &((double*)arg7.data)[24*n],
-          &((double*)arg8.data)[24*n],
-          &((double*)arg9.data)[24*n],
-          &((double*)arg10.data)[24*n]);
+          &((double*)arg1.data)[9*n],
+          &((double*)arg2.data)[9*n],
+          &((double*)arg3.data)[9*n],
+          &((double*)arg4.data)[9*n],
+          &((double*)arg5.data)[9*n],
+          &((double*)arg6.data)[9*n],
+          &((double*)arg7.data)[9*n],
+          &((double*)arg8.data)[9*n],
+          &((double*)arg9.data)[9*n],
+          &((double*)arg10.data)[9*n]);
       }
     }
   }

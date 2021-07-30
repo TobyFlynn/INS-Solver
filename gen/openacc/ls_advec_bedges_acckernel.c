@@ -8,10 +8,10 @@
 inline void ls_advec_bedges_openacc( const int *bedge_type, const int *bedgeNum,
                             const double *x, const double *y, const double *q,
                             double *exQ) {
-  int exInd = *bedgeNum * 3;
-  int *fmask = &FMASK[*bedgeNum * 3];
+  int exInd = *bedgeNum * 2;
+  int *fmask = &FMASK[*bedgeNum * 2];
 
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 2; i++) {
     exQ[exInd + i] += q[fmask[i]];
   }
 }
@@ -97,10 +97,10 @@ void op_par_loop_ls_advec_bedges(char const *name, op_set set,
         ls_advec_bedges_openacc(
           &data0[1 * n],
           &data1[1 * n],
-          &data2[6 * map2idx],
-          &data3[6 * map2idx],
-          &data4[6 * map2idx],
-          &data5[9 * map2idx]);
+          &data2[3 * map2idx],
+          &data3[3 * map2idx],
+          &data4[3 * map2idx],
+          &data5[6 * map2idx]);
       }
 
     }

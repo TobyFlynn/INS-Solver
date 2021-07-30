@@ -8,7 +8,7 @@
 inline void viscosity_solve_setup_openacc( const double *mu, const double *rho,
                                   const double *mmConst, double *factor,
                                   double *mmFactor) {
-  for(int i = 0; i < 6; i++) {
+  for(int i = 0; i < 3; i++) {
     factor[i] = mu[i];
     mmFactor[i] = *mmConst * rho[i];
   }
@@ -60,11 +60,11 @@ void op_par_loop_viscosity_solve_setup(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data3,data4)
     for ( int n=0; n<set->size; n++ ){
       viscosity_solve_setup_openacc(
-        &data0[6*n],
-        &data1[6*n],
+        &data0[3*n],
+        &data1[3*n],
         &arg2_l,
-        &data3[6*n],
-        &data4[6*n]);
+        &data3[3*n],
+        &data4[3*n]);
     }
   }
 

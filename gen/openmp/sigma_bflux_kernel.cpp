@@ -73,12 +73,12 @@ void op_par_loop_sigma_bflux(char const *name, op_set set,
 
           sigma_bflux(
             &((int*)arg0.data)[1 * n],
-            &((double*)arg1.data)[12 * map1idx],
-            &((double*)arg2.data)[12 * map1idx],
-            &((double*)arg3.data)[12 * map1idx],
-            &((double*)arg4.data)[12 * map1idx],
-            &((double*)arg5.data)[12 * map1idx],
-            &((double*)arg6.data)[12 * map1idx]);
+            &((double*)arg1.data)[9 * map1idx],
+            &((double*)arg2.data)[9 * map1idx],
+            &((double*)arg3.data)[9 * map1idx],
+            &((double*)arg4.data)[9 * map1idx],
+            &((double*)arg5.data)[9 * map1idx],
+            &((double*)arg6.data)[9 * map1idx]);
         }
       }
 

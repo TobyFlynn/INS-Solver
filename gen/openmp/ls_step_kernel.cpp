@@ -52,10 +52,10 @@ void op_par_loop_ls_step(char const *name, op_set set,
       for ( int n=start; n<finish; n++ ){
         ls_step(
           (double*)arg0.data,
-          &((double*)arg1.data)[6*n],
-          &((double*)arg2.data)[6*n],
-          &((double*)arg3.data)[6*n],
-          &((double*)arg4.data)[6*n]);
+          &((double*)arg1.data)[3*n],
+          &((double*)arg2.data)[3*n],
+          &((double*)arg3.data)[3*n],
+          &((double*)arg4.data)[3*n]);
       }
     }
   }

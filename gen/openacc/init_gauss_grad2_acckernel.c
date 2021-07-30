@@ -9,12 +9,12 @@ inline void init_gauss_grad2_openacc( const double *nx, const double *ny, const 
                              const double *Dy0, const double *Dx1, const double *Dy1,
                              const double *Dx2, const double *Dy2, double *d0,
                              double *d1, double *d2) {
-  for(int m = 0; m < 4; m++) {
-    for(int n = 0; n < 6; n++) {
-      int ind = m * 6 + n;
+  for(int m = 0; m < 3; m++) {
+    for(int n = 0; n < 3; n++) {
+      int ind = m * 3 + n;
       d0[ind] = nx[m] * Dx0[ind] + ny[m] * Dy0[ind];
-      d1[ind] = nx[m + 4] * Dx1[ind] + ny[m + 4] * Dy1[ind];
-      d2[ind] = nx[m + 2 * 4] * Dx2[ind] + ny[m + 2 * 4] * Dy2[ind];
+      d1[ind] = nx[m + 3] * Dx1[ind] + ny[m + 3] * Dy1[ind];
+      d2[ind] = nx[m + 2 * 3] * Dx2[ind] + ny[m + 2 * 3] * Dy2[ind];
     }
   }
 }
@@ -82,17 +82,17 @@ void op_par_loop_init_gauss_grad2(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7,data8,data9,data10)
     for ( int n=0; n<set->size; n++ ){
       init_gauss_grad2_openacc(
-        &data0[12*n],
-        &data1[12*n],
-        &data2[24*n],
-        &data3[24*n],
-        &data4[24*n],
-        &data5[24*n],
-        &data6[24*n],
-        &data7[24*n],
-        &data8[24*n],
-        &data9[24*n],
-        &data10[24*n]);
+        &data0[9*n],
+        &data1[9*n],
+        &data2[9*n],
+        &data3[9*n],
+        &data4[9*n],
+        &data5[9*n],
+        &data6[9*n],
+        &data7[9*n],
+        &data8[9*n],
+        &data9[9*n],
+        &data10[9*n]);
     }
   }
 

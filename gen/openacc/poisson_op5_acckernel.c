@@ -25,35 +25,35 @@ inline void poisson_op5_openacc( const int *edgeType, const int *edgeNum,
     gVM = gFInterp2_g;
   }
 
-  for(int i = 0; i < 4 * 6; i++) {
+  for(int i = 0; i < 3 * 3; i++) {
     op[i] = 0.0;
   }
 
   if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2) {
 
 
-    for(int i = 0; i < 4 * 6; i++) {
-      int indT = (i % 4) * 6 + i / 4;
-      int indSJ = *edgeNum * 4 + (i % 4);
-      op[i] = gVM[indT] * gaussW_g[i % 4] * sJ[indSJ];
+    for(int i = 0; i < 3 * 3; i++) {
+      int indT = (i % 3) * 3 + i / 3;
+      int indSJ = *edgeNum * 3 + (i % 3);
+      op[i] = gVM[indT] * gaussW_g[i % 3] * sJ[indSJ];
     }
   } else {
 
-    double tauA[4];
-    for(int i = 0; i < 4; i++) {
-      int ind = *edgeNum  * 4 + i;
+    double tauA[3];
+    for(int i = 0; i < 3; i++) {
+      int ind = *edgeNum  * 3 + i;
       tauA[i] = 100 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
 
     }
 
 
-    for(int i = 0; i < 4 * 6; i++) {
-      int indT = (i % 4) * 6 + i / 4;
-      int indSJ = *edgeNum * 4 + (i % 4);
-      int indFactor = (i / 4);
+    for(int i = 0; i < 3 * 3; i++) {
+      int indT = (i % 3) * 3 + i / 3;
+      int indSJ = *edgeNum * 3 + (i % 3);
+      int indFactor = (i / 3);
 
-      op[i] = gVM[indT] * gaussW_g[i % 4] * sJ[indSJ] * tauA[i % 4]
-              - factor[indFactor] * mD[indT] * gaussW_g[i % 4] * sJ[indSJ];
+      op[i] = gVM[indT] * gaussW_g[i % 3] * sJ[indSJ] * tauA[i % 3]
+              - factor[indFactor] * mD[indT] * gaussW_g[i % 3] * sJ[indSJ];
     }
   }
 }
@@ -166,14 +166,14 @@ void op_par_loop_poisson_op5(char const *name, op_set set,
           &arg2_l,
           &arg3_l,
           &arg4_l,
-          &data5[24 * map5idx],
-          &data6[24 * map5idx],
-          &data7[24 * map5idx],
-          &data8[12 * map5idx],
+          &data5[9 * map5idx],
+          &data6[9 * map5idx],
+          &data7[9 * map5idx],
+          &data8[9 * map5idx],
           &data9[1 * map5idx],
-          &data10[12 * map5idx],
-          &data11[6 * map5idx],
-          &data12[24 * n]);
+          &data10[9 * map5idx],
+          &data11[3 * map5idx],
+          &data12[9 * n]);
       }
 
     }

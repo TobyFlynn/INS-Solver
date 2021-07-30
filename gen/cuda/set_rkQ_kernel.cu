@@ -6,15 +6,15 @@
 __device__ void set_rkQ_gpu( const int *stage, const double *dt, const double *s,
                     const double *rk0, const double *rk1, double *rkQ) {
   if(*stage == -1) {
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
       rkQ[i] = s[i];
     }
   } else if(*stage == 0) {
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
       rkQ[i] = s[i] + (*dt) * rk0[i];
     }
   } else {
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
       rkQ[i] = s[i] + 0.5 * (*dt) * (rk0[i] / 4.0 + rk1[i] / 4.0);
     }
   }
@@ -38,10 +38,10 @@ __global__ void op_cuda_set_rkQ(
     //user-supplied kernel call
     set_rkQ_gpu(arg0,
             arg1,
-            arg2+n*6,
-            arg3+n*6,
-            arg4+n*6,
-            arg5+n*6);
+            arg2+n*3,
+            arg3+n*3,
+            arg4+n*3,
+            arg5+n*3);
   }
 }
 

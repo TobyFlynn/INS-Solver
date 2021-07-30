@@ -35,7 +35,7 @@ void advection_bc_omp4_kernel(
   double arg2_l = *arg2;
   int arg3_l = *arg3;
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: FMASK_ompkernel[:9])\
+    map(to: FMASK_ompkernel[:6])\
     map(to:col_reord[0:set_size1],map4[0:map4size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -48,32 +48,32 @@ void advection_bc_omp4_kernel(
     const int *bedgeNum = &data1[1*n_op];
     const double *t = &arg2_l;
     const int *problem = &arg3_l;
-    const double *x = &data4[6 * map4idx];
-    const double *y = &data5[6 * map4idx];
-    const double *nu = &data6[6 * map4idx];
-    const double *q0 = &data7[6 * map4idx];
-    const double *q1 = &data8[6 * map4idx];
-    double *exQ0 = &data9[9 * map4idx];
-    double *exQ1 = &data10[9 * map4idx];
+    const double *x = &data4[3 * map4idx];
+    const double *y = &data5[3 * map4idx];
+    const double *nu = &data6[3 * map4idx];
+    const double *q0 = &data7[3 * map4idx];
+    const double *q1 = &data8[3 * map4idx];
+    double *exQ0 = &data9[6 * map4idx];
+    double *exQ1 = &data10[6 * map4idx];
 
     //inline function
     
-    int exInd = *bedgeNum * 3;
-    int *fmask = &FMASK_ompkernel[*bedgeNum * 3];
+    int exInd = *bedgeNum * 2;
+    int *fmask = &FMASK_ompkernel[*bedgeNum * 2];
 
     const double PI = 3.141592653589793238463;
 
     if(*problem == 0) {
       if(*bedge_type == 0) {
 
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < 2; i++) {
           int qInd = fmask[i];
           double y1 = y[qInd];
           exQ0[exInd + i] += pow(1.0, -2.0) * sin((PI * *t) / 8.0) * 6.0 * y1 * (1.0 - y1);
         }
       } else if(*bedge_type == 1) {
 
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < 2; i++) {
           int qInd = fmask[i];
           exQ0[exInd + i] += q0[qInd];
           exQ1[exInd + i] += q1[qInd];
@@ -85,7 +85,7 @@ void advection_bc_omp4_kernel(
     } else {
       if(*bedge_type == 0) {
 
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < 2; i++) {
           int qInd = fmask[i];
           double y1 = y[qInd];
           double x1 = x[qInd];
@@ -96,7 +96,7 @@ void advection_bc_omp4_kernel(
 
       if(*bedge_type == 1) {
 
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < 2; i++) {
           int qInd = fmask[i];
 
 

@@ -5,11 +5,11 @@
 //user function
 __device__ void poisson_apply_bc_gpu( const int *bedgeNum, const double *op,
                              const double *bc, double *rhs) {
-  int exInd = *bedgeNum * 4;
+  int exInd = *bedgeNum * 3;
 
-  for(int m = 0; m < 6; m++) {
-    int ind = m * 4;
-    for(int n = 0; n < 4; n++) {
+  for(int m = 0; m < 3; m++) {
+    int ind = m * 3;
+    for(int n = 0; n < 3; n++) {
       rhs[m] += op[ind + n] * bc[exInd + n];
     }
   }
@@ -30,8 +30,8 @@ __global__ void op_cuda_poisson_apply_bc(
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg3_l[6];
-    for ( int d=0; d<6; d++ ){
+    double arg3_l[3];
+    for ( int d=0; d<3; d++ ){
       arg3_l[d] = ZERO_double;
     }
     int map2idx;
@@ -39,15 +39,12 @@ __global__ void op_cuda_poisson_apply_bc(
 
     //user-supplied kernel call
     poisson_apply_bc_gpu(arg0+n*1,
-                     arg1+n*24,
-                     ind_arg0+map2idx*12,
+                     arg1+n*9,
+                     ind_arg0+map2idx*9,
                      arg3_l);
-    atomicAdd(&ind_arg1[0+map2idx*6],arg3_l[0]);
-    atomicAdd(&ind_arg1[1+map2idx*6],arg3_l[1]);
-    atomicAdd(&ind_arg1[2+map2idx*6],arg3_l[2]);
-    atomicAdd(&ind_arg1[3+map2idx*6],arg3_l[3]);
-    atomicAdd(&ind_arg1[4+map2idx*6],arg3_l[4]);
-    atomicAdd(&ind_arg1[5+map2idx*6],arg3_l[5]);
+    atomicAdd(&ind_arg1[0+map2idx*3],arg3_l[0]);
+    atomicAdd(&ind_arg1[1+map2idx*3],arg3_l[1]);
+    atomicAdd(&ind_arg1[2+map2idx*3],arg3_l[2]);
   }
 }
 

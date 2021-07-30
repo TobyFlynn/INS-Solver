@@ -47,9 +47,9 @@ void op_par_loop_init_surface(char const *name, op_set set,
       int finish = (set->size*(thr+1))/nthreads;
       for ( int n=start; n<finish; n++ ){
         init_surface(
-          &((double*)arg0.data)[6*n],
-          &((double*)arg1.data)[6*n],
-          &((double*)arg2.data)[6*n]);
+          &((double*)arg0.data)[3*n],
+          &((double*)arg1.data)[3*n],
+          &((double*)arg2.data)[3*n]);
       }
     }
   }

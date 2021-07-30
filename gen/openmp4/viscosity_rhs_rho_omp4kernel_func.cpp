@@ -17,13 +17,13 @@ void viscosity_rhs_rho_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *rho = &data0[6*n_op];
-    double *vRHS0 = &data1[6*n_op];
-    double *vRHS1 = &data2[6*n_op];
+    const double *rho = &data0[3*n_op];
+    double *vRHS0 = &data1[3*n_op];
+    double *vRHS1 = &data2[3*n_op];
 
     //inline function
     
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
       vRHS0[i] = rho[i] * vRHS0[i];
       vRHS1[i] = rho[i] * vRHS1[i];
     }

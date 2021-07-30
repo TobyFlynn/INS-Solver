@@ -27,7 +27,7 @@ void sigma_bflux_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size]) \
-    map(to: gaussW_g_ompkernel[:4])\
+    map(to: gaussW_g_ompkernel[:3])\
     map(to:col_reord[0:set_size1],map1[0:map1size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -37,18 +37,18 @@ void sigma_bflux_omp4_kernel(
 
     //variable mapping
     const int *bedgeNum = &data0[1*n_op];
-    const double *sJ = &data1[12 * map1idx];
-    const double *nx = &data2[12 * map1idx];
-    const double *ny = &data3[12 * map1idx];
-    const double *s = &data4[12 * map1idx];
-    double *sigFx = &data5[12 * map1idx];
-    double *sigFy = &data6[12 * map1idx];
+    const double *sJ = &data1[9 * map1idx];
+    const double *nx = &data2[9 * map1idx];
+    const double *ny = &data3[9 * map1idx];
+    const double *s = &data4[9 * map1idx];
+    double *sigFx = &data5[9 * map1idx];
+    double *sigFy = &data6[9 * map1idx];
 
     //inline function
     
-    int exInd = *bedgeNum * 4;
+    int exInd = *bedgeNum * 3;
 
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 3; i++) {
       sigFx[exInd + i] += gaussW_g_ompkernel[i] * sJ[exInd + i] * nx[exInd + i] * s[exInd + i];
       sigFy[exInd + i] += gaussW_g_ompkernel[i] * sJ[exInd + i] * ny[exInd + i] * s[exInd + i];
     }

@@ -38,11 +38,11 @@ void op_par_loop_viscosity_solve_setup(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       viscosity_solve_setup(
-        &((double*)arg0.data)[6*n],
-        &((double*)arg1.data)[6*n],
+        &((double*)arg0.data)[3*n],
+        &((double*)arg1.data)[3*n],
         (double*)arg2.data,
-        &((double*)arg3.data)[6*n],
-        &((double*)arg4.data)[6*n]);
+        &((double*)arg3.data)[3*n],
+        &((double*)arg4.data)[3*n]);
     }
   }
 

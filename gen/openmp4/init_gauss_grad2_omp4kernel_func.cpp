@@ -33,26 +33,26 @@ void init_gauss_grad2_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *nx = &data0[12*n_op];
-    const double *ny = &data1[12*n_op];
-    const double *Dx0 = &data2[24*n_op];
-    const double *Dy0 = &data3[24*n_op];
-    const double *Dx1 = &data4[24*n_op];
-    const double *Dy1 = &data5[24*n_op];
-    const double *Dx2 = &data6[24*n_op];
-    const double *Dy2 = &data7[24*n_op];
-    double *d0 = &data8[24*n_op];
-    double *d1 = &data9[24*n_op];
-    double *d2 = &data10[24*n_op];
+    const double *nx = &data0[9*n_op];
+    const double *ny = &data1[9*n_op];
+    const double *Dx0 = &data2[9*n_op];
+    const double *Dy0 = &data3[9*n_op];
+    const double *Dx1 = &data4[9*n_op];
+    const double *Dy1 = &data5[9*n_op];
+    const double *Dx2 = &data6[9*n_op];
+    const double *Dy2 = &data7[9*n_op];
+    double *d0 = &data8[9*n_op];
+    double *d1 = &data9[9*n_op];
+    double *d2 = &data10[9*n_op];
 
     //inline function
     
-    for(int m = 0; m < 4; m++) {
-      for(int n = 0; n < 6; n++) {
-        int ind = m * 6 + n;
+    for(int m = 0; m < 3; m++) {
+      for(int n = 0; n < 3; n++) {
+        int ind = m * 3 + n;
         d0[ind] = nx[m] * Dx0[ind] + ny[m] * Dy0[ind];
-        d1[ind] = nx[m + 4] * Dx1[ind] + ny[m + 4] * Dy1[ind];
-        d2[ind] = nx[m + 2 * 4] * Dx2[ind] + ny[m + 2 * 4] * Dy2[ind];
+        d1[ind] = nx[m + 3] * Dx1[ind] + ny[m + 3] * Dy1[ind];
+        d2[ind] = nx[m + 2 * 3] * Dx2[ind] + ny[m + 2 * 3] * Dy2[ind];
       }
     }
     //end inline func

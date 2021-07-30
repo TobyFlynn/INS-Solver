@@ -28,12 +28,12 @@ void gauss_tau_bc_omp4_kernel(
 
     //variable mapping
     const int *bedgeNum = &data0[1*n_op];
-    const double *fscale = &data1[9 * map1idx];
+    const double *fscale = &data1[6 * map1idx];
     double *tau = &data2[3 * map1idx];
 
     //inline function
     
-    tau[*bedgeNum] += 20 * 25 * fscale[*bedgeNum * 3];
+    tau[*bedgeNum] += 20 * 25 * fscale[*bedgeNum * 2];
     //end inline func
   }
 

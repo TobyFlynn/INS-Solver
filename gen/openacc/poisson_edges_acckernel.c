@@ -7,9 +7,9 @@
 //#pragma acc routine
 inline void poisson_edges_openacc( const double *uL, const double *opL, double *rhsL,
                           const double *uR, const double *opR, double *rhsR) {
-  for(int m = 0; m < 6; m++) {
-    int ind = m * 6;
-    for(int n = 0; n < 6; n++) {
+  for(int m = 0; m < 3; m++) {
+    int ind = m * 3;
+    for(int n = 0; n < 3; n++) {
       rhsL[m] += opL[ind + n] * uR[n];
       rhsR[m] += opR[ind + n] * uL[n];
     }
@@ -95,12 +95,12 @@ void op_par_loop_poisson_edges(char const *name, op_set set,
 
 
         poisson_edges_openacc(
-          &data0[6 * map0idx],
-          &data1[36 * n],
-          &data2[6 * map0idx],
-          &data0[6 * map3idx],
-          &data4[36 * n],
-          &data2[6 * map3idx]);
+          &data0[3 * map0idx],
+          &data1[9 * n],
+          &data2[3 * map0idx],
+          &data0[3 * map3idx],
+          &data4[9 * n],
+          &data2[3 * map3idx]);
       }
 
     }

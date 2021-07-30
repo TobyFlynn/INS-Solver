@@ -49,10 +49,10 @@ void op_par_loop_poisson_op4(char const *name, op_set set,
       int finish = (set->size*(thr+1))/nthreads;
       for ( int n=start; n<finish; n++ ){
         poisson_op4(
-          &((double*)arg0.data)[36*n],
-          &((double*)arg1.data)[6*n],
-          &((double*)arg2.data)[36*n],
-          &((double*)arg3.data)[36*n]);
+          &((double*)arg0.data)[9*n],
+          &((double*)arg1.data)[3*n],
+          &((double*)arg2.data)[9*n],
+          &((double*)arg3.data)[9*n]);
       }
     }
   }

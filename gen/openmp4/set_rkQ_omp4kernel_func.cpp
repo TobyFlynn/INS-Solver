@@ -25,23 +25,23 @@ void set_rkQ_omp4_kernel(
     //variable mapping
     const int *stage = &arg0_l;
     const double *dt = &arg1_l;
-    const double *s = &data2[6*n_op];
-    const double *rk0 = &data3[6*n_op];
-    const double *rk1 = &data4[6*n_op];
-    double *rkQ = &data5[6*n_op];
+    const double *s = &data2[3*n_op];
+    const double *rk0 = &data3[3*n_op];
+    const double *rk1 = &data4[3*n_op];
+    double *rkQ = &data5[3*n_op];
 
     //inline function
     
     if(*stage == -1) {
-      for(int i = 0; i < 6; i++) {
+      for(int i = 0; i < 3; i++) {
         rkQ[i] = s[i];
       }
     } else if(*stage == 0) {
-      for(int i = 0; i < 6; i++) {
+      for(int i = 0; i < 3; i++) {
         rkQ[i] = s[i] + (*dt) * rk0[i];
       }
     } else {
-      for(int i = 0; i < 6; i++) {
+      for(int i = 0; i < 3; i++) {
         rkQ[i] = s[i] + 0.5 * (*dt) * (rk0[i] / 4.0 + rk1[i] / 4.0);
       }
     }

@@ -17,16 +17,16 @@ void poisson_cells_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *u = &data0[6*n_op];
-    const double *op = &data1[36*n_op];
-    double *rhs = &data2[6*n_op];
+    const double *u = &data0[3*n_op];
+    const double *op = &data1[9*n_op];
+    double *rhs = &data2[3*n_op];
 
     //inline function
     
-    for(int m = 0; m < 6; m++) {
-      int ind = m * 6;
+    for(int m = 0; m < 3; m++) {
+      int ind = m * 3;
       rhs[m] = 0.0;
-      for(int n = 0; n < 6; n++) {
+      for(int n = 0; n < 3; n++) {
         rhs[m] += op[ind + n] * u[n];
       }
     }

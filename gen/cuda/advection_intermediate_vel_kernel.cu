@@ -11,7 +11,7 @@ __device__ void advection_intermediate_vel_gpu( const double *a0, const double *
                                        const double *N0, const double *N1,
                                        const double *N0Old, const double *N1Old,
                                        double *q0T, double *q1T) {
-  for(int i = 0; i < 6; i++) {
+  for(int i = 0; i < 3; i++) {
     q0T[i] = *a0 * q0[i] + *a1 * q0Old[i] + *dt * (*b0 * N0[i] + *b1 * N0Old[i]);
     q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * N1[i] + *b1 * N1Old[i]);
 
@@ -50,16 +50,16 @@ __global__ void op_cuda_advection_intermediate_vel(
                                arg3,
                                arg4,
                                arg5,
-                               arg6+n*6,
-                               arg7+n*6,
-                               arg8+n*6,
-                               arg9+n*6,
-                               arg10+n*6,
-                               arg11+n*6,
-                               arg12+n*6,
-                               arg13+n*6,
-                               arg14+n*6,
-                               arg15+n*6);
+                               arg6+n*3,
+                               arg7+n*3,
+                               arg8+n*3,
+                               arg9+n*3,
+                               arg10+n*3,
+                               arg11+n*3,
+                               arg12+n*3,
+                               arg13+n*3,
+                               arg14+n*3,
+                               arg15+n*3);
   }
 }
 

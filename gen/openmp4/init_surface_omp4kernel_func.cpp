@@ -17,14 +17,14 @@ void init_surface_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *x = &data0[6*n_op];
-    const double *y = &data1[6*n_op];
-    double *s = &data2[6*n_op];
+    const double *x = &data0[3*n_op];
+    const double *y = &data1[3*n_op];
+    double *s = &data2[3*n_op];
 
     //inline function
     
     const double PI = 3.141592653589793238463;
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 3; i++) {
 
       s[i] = sqrt((x[i] - 1.0) * (x[i] - 1.0) + (y[i] - 0.5) * (y[i] - 0.5)) - 0.1;
     }

@@ -19,17 +19,17 @@ void poisson_op4_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *mm = &data0[36*n_op];
-    const double *factor = &data1[6*n_op];
-    double *op = &data2[36*n_op];
-    double *tmp = &data3[36*n_op];
+    const double *mm = &data0[9*n_op];
+    const double *factor = &data1[3*n_op];
+    double *op = &data2[9*n_op];
+    double *tmp = &data3[9*n_op];
 
     //inline function
     
-    for(int i = 0; i < 6; i++) {
-      for(int j = 0; j < 6; j++) {
-        int c_ind = i * 6 + j;
-        int mm_ind = j * 6 + i;
+    for(int i = 0; i < 3; i++) {
+      for(int j = 0; j < 3; j++) {
+        int c_ind = i * 3 + j;
+        int mm_ind = j * 3 + i;
         op[c_ind] += mm[mm_ind] * factor[j];
         tmp[mm_ind] = mm[mm_ind];
       }

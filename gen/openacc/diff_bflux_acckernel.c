@@ -8,9 +8,9 @@
 inline void diff_bflux_openacc( const int *bedgeNum, const double *sJ, const double *nx,
                        const double *ny, const double *sigX, const double *sigY,
                        double *flux) {
-  int exInd = *bedgeNum * 4;
+  int exInd = *bedgeNum * 3;
 
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 3; i++) {
     flux[exInd + i] += 0.5 * gaussW_g[i] * sJ[exInd + i] * (nx[exInd + i] * sigX[exInd + i] + ny[exInd + i] * sigY[exInd + i]);
 
   }
@@ -98,12 +98,12 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
 
         diff_bflux_openacc(
           &data0[1 * n],
-          &data1[12 * map1idx],
-          &data2[12 * map1idx],
-          &data3[12 * map1idx],
-          &data4[12 * map1idx],
-          &data4[12 * map1idx],
-          &data6[12 * map1idx]);
+          &data1[9 * map1idx],
+          &data2[9 * map1idx],
+          &data3[9 * map1idx],
+          &data4[9 * map1idx],
+          &data4[9 * map1idx],
+          &data6[9 * map1idx]);
       }
 
     }
