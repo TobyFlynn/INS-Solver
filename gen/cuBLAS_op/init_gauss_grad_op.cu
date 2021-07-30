@@ -49,10 +49,10 @@ inline void cublas_init_gauss_grad(cublasHandle_t handle, const int numCells,
     cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF1Ds_d, 15, y, 1, &beta, gys + 7, 1);
 
     // Face 2
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF2Dr_d, 15, x, 1, &beta, gxr + 14, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF2Ds_d, 15, x, 1, &beta, gxs + 14, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF2Dr_d, 15, y, 1, &beta, gyr + 14, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF2Ds_d, 15, y, 1, &beta, gys + 14, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF2Dr_d, 15, x, 1, &beta, gxr + 2 * 7, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF2Ds_d, 15, x, 1, &beta, gxs + 2 * 7, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF2Dr_d, 15, y, 1, &beta, gyr + 2 * 7, 1);
+    cublasDgemv(handle, CUBLAS_OP_T, 15, 7, &alpha, constants->gF2Ds_d, 15, y, 1, &beta, gys + 2 * 7, 1);
   }
 }
 

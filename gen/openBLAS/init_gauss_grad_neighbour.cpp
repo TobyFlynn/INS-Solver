@@ -39,15 +39,15 @@ inline void openblas_init_gauss_grad_neighbour(const int numCells, const int *re
     }
 
     if(reverse[c * 3 + 2]) {
-      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2DrR, 15, x_c, 1, 0.0, gxr_c + 14, 1);
-      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2DsR, 15, x_c, 1, 0.0, gxs_c + 14, 1);
-      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2DrR, 15, y_c, 1, 0.0, gyr_c + 14, 1);
-      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2DsR, 15, y_c, 1, 0.0, gys_c + 14, 1);
+      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2DrR, 15, x_c, 1, 0.0, gxr_c + 2 * 7, 1);
+      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2DsR, 15, x_c, 1, 0.0, gxs_c + 2 * 7, 1);
+      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2DrR, 15, y_c, 1, 0.0, gyr_c + 2 * 7, 1);
+      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2DsR, 15, y_c, 1, 0.0, gys_c + 2 * 7, 1);
     } else {
-      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2Dr, 15, x_c, 1, 0.0, gxr_c + 14, 1);
-      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2Ds, 15, x_c, 1, 0.0, gxs_c + 14, 1);
-      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2Dr, 15, y_c, 1, 0.0, gyr_c + 14, 1);
-      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2Ds, 15, y_c, 1, 0.0, gys_c + 14, 1);
+      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2Dr, 15, x_c, 1, 0.0, gxr_c + 2 * 7, 1);
+      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2Ds, 15, x_c, 1, 0.0, gxs_c + 2 * 7, 1);
+      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2Dr, 15, y_c, 1, 0.0, gyr_c + 2 * 7, 1);
+      cblas_dgemv(CblasColMajor, CblasTrans, 15, 7, 1.0, constants->gF2Ds, 15, y_c, 1, 0.0, gys_c + 2 * 7, 1);
     }
   }
 }
