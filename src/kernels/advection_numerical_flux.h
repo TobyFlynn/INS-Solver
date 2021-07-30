@@ -3,15 +3,15 @@ inline void advection_numerical_flux(const double *fscale, const double *nx,
                                      const double *q1, double *exQ0,
                                      double *exQ1, double *flux0, double *flux1) {
   // Compute fluxes for face nodes
-  double fM[4][15];
-  for(int i = 0; i < 15; i++) {
+  double fM[4][3 * DG_NPF];
+  for(int i = 0; i < 3 * DG_NPF; i++) {
     fM[0][i] = q0[FMASK[i]] * q0[FMASK[i]];
     fM[1][i] = q0[FMASK[i]] * q1[FMASK[i]];
     fM[2][i] = q0[FMASK[i]] * q1[FMASK[i]];
     fM[3][i] = q1[FMASK[i]] * q1[FMASK[i]];
   }
-  double fP[4][15];
-  for(int i = 0; i < 15; i++) {
+  double fP[4][3 * DG_NPF];
+  for(int i = 0; i < 3 * DG_NPF; i++) {
     fP[0][i] = exQ0[i] * exQ0[i];
     fP[1][i] = exQ0[i] * exQ1[i];
     fP[2][i] = exQ0[i] * exQ1[i];
@@ -19,46 +19,46 @@ inline void advection_numerical_flux(const double *fscale, const double *nx,
   }
 
   // Compute max velocity across each face
-  double maxVel[15];
+  double maxVel[3 * DG_NPF];
   double max = 0.0;
-  for(int i = 0; i < 5; i++) {
+  for(int i = 0; i < DG_NPF; i++) {
     double mVel = q0[FMASK[i]] * nx[i] + q1[FMASK[i]] * ny[i];
     double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
     double vel = fmax(fabs(mVel), fabs(pVel));
     if(vel > max) max = vel;
   }
-  for(int i = 0; i < 5; i++) {
+  for(int i = 0; i < DG_NPF; i++) {
     maxVel[i] = max;
   }
   max = 0.0;
-  for(int i = 5; i < 10; i++) {
+  for(int i = DG_NPF; i < 2 * DG_NPF; i++) {
     double mVel = q0[FMASK[i]] * nx[i] + q1[FMASK[i]] * ny[i];
     double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
     double vel = fmax(fabs(mVel), fabs(pVel));
     if(vel > max) max = vel;
   }
-  for(int i = 5; i < 10; i++) {
+  for(int i = DG_NPF; i < 2 * DG_NPF; i++) {
     maxVel[i] = max;
   }
   max = 0.0;
-  for(int i = 10; i < 15; i++) {
+  for(int i = 2 * DG_NPF; i < 3 * DG_NPF; i++) {
     double mVel = q0[FMASK[i]] * nx[i] + q1[FMASK[i]] * ny[i];
     double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
     double vel = fmax(fabs(mVel), fabs(pVel));
     if(vel > max) max = vel;
   }
-  for(int i = 10; i < 15; i++) {
+  for(int i = 2 * DG_NPF; i < 3 * DG_NPF; i++) {
     maxVel[i] = max;
   }
 
   // Lax-Friedrichs
-  for(int i = 0; i < 15; i++) {
+  for(int i = 0; i < 3 * DG_NPF; i++) {
     flux0[i] = 0.5 * fscale[i] * (-nx[i] * (fM[0][i] - fP[0][i]) - ny[i] * (fM[1][i] - fP[1][i]) - maxVel[i] * (exQ0[i] - q0[FMASK[i]]));
     flux1[i] = 0.5 * fscale[i] * (-nx[i] * (fM[2][i] - fP[2][i]) - ny[i] * (fM[3][i] - fP[3][i]) - maxVel[i] * (exQ1[i] - q1[FMASK[i]]));
   }
 
   // Zero exQ
-  for(int i = 0; i < 15; i++) {
+  for(int i = 0; i < 3 * DG_NPF; i++) {
     exQ0[i] = 0.0;
     exQ1[i] = 0.0;
   }
