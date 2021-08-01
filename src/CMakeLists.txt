@@ -12,7 +12,7 @@ list(APPEND KERNEL_HEADERS kernels/sigma_flux.h kernels/sigma_bflux.h kernels/si
 set(OPENBLAS_SRC openBLAS_op/init_gauss_grad_op.cpp openBLAS_op/init_gauss_grad_neighbour_op.cpp)
 set(CUBLAS_SRC cuBLAS_op/init_gauss_grad_op.cu cuBLAS_op/init_gauss_grad_neighbour_op.cu)
 
-set(COMMON_SRC solver_op.cpp ins_data_op.cpp timing_op.cpp ls_op.cpp poisson_op.cpp)
+set(COMMON_SRC solver_op.cpp ins_data_op.cpp timing_op.cpp ls_op.cpp poisson_op.cpp shared_save_functions.cpp)
 set(CPU_SRC utils_op.cpp poisson_cpu_op.cpp)
 set(GPU_SRC utils_op.cu poisson_gpu_op.cu)
 
