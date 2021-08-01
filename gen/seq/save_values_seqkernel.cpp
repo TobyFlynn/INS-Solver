@@ -32,8 +32,8 @@ void op_par_loop_save_values(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       save_values(
-        &((double*)arg0.data)[15*n],
-        &((double*)arg1.data)[16*n]);
+        &((double*)arg0.data)[3*n],
+        &((double*)arg1.data)[1*n]);
     }
   }
 

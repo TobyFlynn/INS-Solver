@@ -26,12 +26,7 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   vector<double> pr_v;
   vector<double> vort_v;
   vector<double> s_v;
-  int numSubCells;
-  if(DG_ORDER == 4) numSubCells = 16;
-  else if(DG_ORDER == 3) numSubCells = 9;
-  else if(DG_ORDER == 2) numSubCells = 4;
-  else numSubCells = 1;
-  vector<cgsize_t> cells(3 * numCells * numSubCells);
+  vector<cgsize_t> cells(3 * numCells * DG_SUB_CELLS);
 
   // Calculate vorticity
   curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
@@ -146,12 +141,7 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   vector<double> pr_v;
   vector<double> vort_v;
   vector<double> s_v;
-  int numSubCells;
-  if(DG_ORDER == 4) numSubCells = 16;
-  else if(DG_ORDER == 3) numSubCells = 9;
-  else if(DG_ORDER == 2) numSubCells = 4;
-  else numSubCells = 1;
-  vector<cgsize_t> cells(3 * numCells * numSubCells);
+  vector<cgsize_t> cells(3 * numCells * DG_SUB_CELLS);
 
   // Calculate vorticity
   curl(mesh, data->Q[0][0], data->Q[0][1], data->vorticity);
@@ -213,7 +203,7 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   // Number of vertices
   sizes[0] = x_v.size();
   // Number of cells
-  sizes[1] = numCells * numSubCells;
+  sizes[1] = numCells * DG_SUB_CELLS;
   // Number of boundary vertices (zero if elements not sorted)
   sizes[2] = 0;
   cg_zone_write(file, baseIndex, "Zone", sizes,
@@ -328,12 +318,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, L
   vector<double> pr_v;
   vector<double> vort_v;
   vector<double> s_v;
-  int numSubCells;
-  if(DG_ORDER == 4) numSubCells = 16;
-  else if(DG_ORDER == 3) numSubCells = 9;
-  else if(DG_ORDER == 2) numSubCells = 4;
-  else numSubCells = 1;
-  vector<cgsize_t> cells(3 * numCells * numSubCells);
+  vector<cgsize_t> cells(3 * numCells * DG_SUB_CELLS);
 
   // Calculate vorticity
   curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
@@ -395,7 +380,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, L
   // Number of vertices
   sizes[0] = x_v.size();
   // Number of cells
-  sizes[1] = numCells * numSubCells;
+  sizes[1] = numCells * DG_SUB_CELLS;
   // Number of boundary vertices (zero if elements not sorted)
   sizes[2] = 0;
   cg_zone_write(file, baseIndex, zoneName.c_str(), sizes,

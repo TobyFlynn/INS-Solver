@@ -41,7 +41,7 @@ INSData::INSData(DGMesh *m) {
   dpdy_data      = (double *)calloc(3 * mesh->numCells, sizeof(double));
   prBC_data      = (double *)calloc(9 * mesh->numCells, sizeof(double));
   vorticity_data = (double *)calloc(3 * mesh->numCells, sizeof(double));
-  save_temp_data = (double *)calloc(16 * mesh->numCells, sizeof(double));
+  save_temp_data = (double *)calloc(1 * mesh->numCells, sizeof(double));
   nu_data        = (double *)calloc(3 * mesh->numCells, sizeof(double));
   gNu_data       = (double *)calloc(9 * mesh->numCells, sizeof(double));
   rho_data       = (double *)calloc(3 * mesh->numCells, sizeof(double));
@@ -109,7 +109,7 @@ INSData::INSData(DGMesh *m) {
   dpdy      = op_decl_dat(mesh->cells, 3, "double", dpdy_data, "dpdy");
   prBC      = op_decl_dat(mesh->cells, 9, "double", prBC_data, "prBC");
   vorticity = op_decl_dat(mesh->cells, 3, "double", vorticity_data, "vorticity");
-  save_temp = op_decl_dat(mesh->cells, 16, "double", save_temp_data, "save_temp");
+  save_temp = op_decl_dat(mesh->cells, 1, "double", save_temp_data, "save_temp");
   nu        = op_decl_dat(mesh->cells, 3, "double", nu_data, "nu");
   gNu       = op_decl_dat(mesh->cells, 9, "double", gNu_data, "gNu");
   rho       = op_decl_dat(mesh->cells, 3, "double", rho_data, "rho");

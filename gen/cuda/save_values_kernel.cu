@@ -4,6 +4,7 @@
 
 //user function
 __device__ void save_values_gpu( const double *v_vals, double *c_vals) {
+  #if DG_ORDER == 4
   c_vals[0]  = (v_vals[0] + v_vals[1] + v_vals[5]) / 3.0;
   c_vals[1]  = (v_vals[1] + v_vals[5] + v_vals[6]) / 3.0;
   c_vals[2]  = (v_vals[1] + v_vals[2] + v_vals[6]) / 3.0;
@@ -20,6 +21,24 @@ __device__ void save_values_gpu( const double *v_vals, double *c_vals) {
   c_vals[13] = (v_vals[10] + v_vals[12] + v_vals[13]) / 3.0;
   c_vals[14] = (v_vals[10] + v_vals[11] + v_vals[13]) / 3.0;
   c_vals[15] = (v_vals[12] + v_vals[13] + v_vals[14]) / 3.0;
+  #elif DG_ORDER == 3
+  c_vals[0]  = (v_vals[0] + v_vals[1] + v_vals[4]) / 3.0;
+  c_vals[1]  = (v_vals[1] + v_vals[4] + v_vals[5]) / 3.0;
+  c_vals[2]  = (v_vals[1] + v_vals[2] + v_vals[5]) / 3.0;
+  c_vals[3]  = (v_vals[2] + v_vals[5] + v_vals[6]) / 3.0;
+  c_vals[4]  = (v_vals[2] + v_vals[3] + v_vals[6]) / 3.0;
+  c_vals[5]  = (v_vals[4] + v_vals[5] + v_vals[7]) / 3.0;
+  c_vals[6]  = (v_vals[5] + v_vals[7] + v_vals[8]) / 3.0;
+  c_vals[7]  = (v_vals[5] + v_vals[6] + v_vals[8]) / 3.0;
+  c_vals[8]  = (v_vals[7] + v_vals[8] + v_vals[9]) / 3.0;
+  #elif DG_ORDER == 2
+  c_vals[0]  = (v_vals[0] + v_vals[1] + v_vals[3]) / 3.0;
+  c_vals[1]  = (v_vals[1] + v_vals[3] + v_vals[4]) / 3.0;
+  c_vals[2]  = (v_vals[1] + v_vals[2] + v_vals[4]) / 3.0;
+  c_vals[3]  = (v_vals[3] + v_vals[4] + v_vals[5]) / 3.0;
+  #else
+  c_vals[0]  = (v_vals[0] + v_vals[1] + v_vals[2]) / 3.0;
+  #endif
 
 }
 
@@ -34,8 +53,8 @@ __global__ void op_cuda_save_values(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    save_values_gpu(arg0+n*15,
-                arg1+n*16);
+    save_values_gpu(arg0+n*3,
+                arg1+n*1);
   }
 }
 

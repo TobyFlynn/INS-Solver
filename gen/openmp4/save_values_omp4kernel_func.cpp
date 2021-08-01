@@ -15,11 +15,12 @@ void save_values_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *v_vals = &data0[15*n_op];
-    double *c_vals = &data1[16*n_op];
+    const double *v_vals = &data0[3*n_op];
+    double *c_vals = &data1[1*n_op];
 
     //inline function
     
+    #if DG_ORDER == 4
     c_vals[0]  = (v_vals[0] + v_vals[1] + v_vals[5]) / 3.0;
     c_vals[1]  = (v_vals[1] + v_vals[5] + v_vals[6]) / 3.0;
     c_vals[2]  = (v_vals[1] + v_vals[2] + v_vals[6]) / 3.0;
@@ -36,6 +37,24 @@ void save_values_omp4_kernel(
     c_vals[13] = (v_vals[10] + v_vals[12] + v_vals[13]) / 3.0;
     c_vals[14] = (v_vals[10] + v_vals[11] + v_vals[13]) / 3.0;
     c_vals[15] = (v_vals[12] + v_vals[13] + v_vals[14]) / 3.0;
+    #elif DG_ORDER == 3
+    c_vals[0]  = (v_vals[0] + v_vals[1] + v_vals[4]) / 3.0;
+    c_vals[1]  = (v_vals[1] + v_vals[4] + v_vals[5]) / 3.0;
+    c_vals[2]  = (v_vals[1] + v_vals[2] + v_vals[5]) / 3.0;
+    c_vals[3]  = (v_vals[2] + v_vals[5] + v_vals[6]) / 3.0;
+    c_vals[4]  = (v_vals[2] + v_vals[3] + v_vals[6]) / 3.0;
+    c_vals[5]  = (v_vals[4] + v_vals[5] + v_vals[7]) / 3.0;
+    c_vals[6]  = (v_vals[5] + v_vals[7] + v_vals[8]) / 3.0;
+    c_vals[7]  = (v_vals[5] + v_vals[6] + v_vals[8]) / 3.0;
+    c_vals[8]  = (v_vals[7] + v_vals[8] + v_vals[9]) / 3.0;
+    #elif DG_ORDER == 2
+    c_vals[0]  = (v_vals[0] + v_vals[1] + v_vals[3]) / 3.0;
+    c_vals[1]  = (v_vals[1] + v_vals[3] + v_vals[4]) / 3.0;
+    c_vals[2]  = (v_vals[1] + v_vals[2] + v_vals[4]) / 3.0;
+    c_vals[3]  = (v_vals[3] + v_vals[4] + v_vals[5]) / 3.0;
+    #else
+    c_vals[0]  = (v_vals[0] + v_vals[1] + v_vals[2]) / 3.0;
+    #endif
     //end inline func
   }
 
