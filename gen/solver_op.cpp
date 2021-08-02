@@ -33,6 +33,10 @@ void op_par_loop_advection_flux(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_zero_npf(char const *, op_set,
+  op_arg,
+  op_arg );
+
 void op_par_loop_advection_faces(char const *, op_set,
   op_arg,
   op_arg,
@@ -55,8 +59,6 @@ void op_par_loop_advection_bc(char const *, op_set,
   op_arg );
 
 void op_par_loop_advection_numerical_flux(char const *, op_set,
-  op_arg,
-  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -136,8 +138,6 @@ void op_par_loop_pressure_grad_flux(char const *, op_set,
   op_arg );
 
 void op_par_loop_pressure_update_vel(char const *, op_set,
-  op_arg,
-  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -282,14 +282,18 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
   div(mesh, data->F[0], data->F[1], data->N[currentInd][0]);
   div(mesh, data->F[2], data->F[3], data->N[currentInd][1]);
 
+  op_par_loop_zero_npf("zero_npf",mesh->cells,
+              op_arg_dat(data->flux[0],-1,OP_ID,12,"double",OP_WRITE),
+              op_arg_dat(data->flux[1],-1,OP_ID,12,"double",OP_WRITE));
+
   // Exchange values on edges between elements
   op_par_loop_advection_faces("advection_faces",mesh->edges,
               op_arg_dat(mesh->edgeNum,-1,OP_ID,2,"int",OP_READ),
               op_arg_dat(mesh->reverse,-1,OP_ID,1,"bool",OP_READ),
               op_arg_dat(data->Q[currentInd][0],-2,mesh->edge2cells,10,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][1],-2,mesh->edge2cells,10,"double",OP_READ),
-              op_arg_dat(data->exQ[0],-2,mesh->edge2cells,12,"double",OP_INC),
-              op_arg_dat(data->exQ[1],-2,mesh->edge2cells,12,"double",OP_INC));
+              op_arg_dat(data->flux[0],-2,mesh->edge2cells,12,"double",OP_INC),
+              op_arg_dat(data->flux[1],-2,mesh->edge2cells,12,"double",OP_INC));
 
   // Enforce BCs
   op_par_loop_advection_bc("advection_bc",mesh->bedges,
@@ -302,8 +306,8 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->nu,0,mesh->bedge2cells,10,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][0],0,mesh->bedge2cells,10,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][1],0,mesh->bedge2cells,10,"double",OP_READ),
-              op_arg_dat(data->exQ[0],0,mesh->bedge2cells,12,"double",OP_INC),
-              op_arg_dat(data->exQ[1],0,mesh->bedge2cells,12,"double",OP_INC));
+              op_arg_dat(data->flux[0],0,mesh->bedge2cells,12,"double",OP_INC),
+              op_arg_dat(data->flux[1],0,mesh->bedge2cells,12,"double",OP_INC));
 
   // Calculate numberical flux across edges
   op_par_loop_advection_numerical_flux("advection_numerical_flux",mesh->cells,
@@ -312,10 +316,8 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(mesh->ny,-1,OP_ID,12,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][0],-1,OP_ID,10,"double",OP_READ),
               op_arg_dat(data->Q[currentInd][1],-1,OP_ID,10,"double",OP_READ),
-              op_arg_dat(data->exQ[0],-1,OP_ID,12,"double",OP_RW),
-              op_arg_dat(data->exQ[1],-1,OP_ID,12,"double",OP_RW),
-              op_arg_dat(data->flux[0],-1,OP_ID,12,"double",OP_WRITE),
-              op_arg_dat(data->flux[1],-1,OP_ID,12,"double",OP_WRITE));
+              op_arg_dat(data->flux[0],-1,OP_ID,12,"double",OP_RW),
+              op_arg_dat(data->flux[1],-1,OP_ID,12,"double",OP_RW));
 
   op2_gemv(true, 10, 3 * 4, 1.0, constants->get_ptr(DGConstants::LIFT), 3 * 4, data->flux[0], 1.0, data->N[currentInd][0]);
   op2_gemv(true, 10, 3 * 4, 1.0, constants->get_ptr(DGConstants::LIFT), 3 * 4, data->flux[1], 1.0, data->N[currentInd][1]);
@@ -408,6 +410,10 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   // Calculate gradient of pressure
   grad(mesh, data->p, data->dpdx, data->dpdy);
 
+  op_par_loop_zero_npf("zero_npf",mesh->cells,
+              op_arg_dat(data->pFluxX,-1,OP_ID,12,"double",OP_WRITE),
+              op_arg_dat(data->pFluxY,-1,OP_ID,12,"double",OP_WRITE));
+
   op_par_loop_pressure_grad_flux("pressure_grad_flux",mesh->edges,
               op_arg_dat(mesh->edgeNum,-1,OP_ID,2,"int",OP_READ),
               op_arg_dat(mesh->reverse,-1,OP_ID,1,"bool",OP_READ),
@@ -434,9 +440,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QTT[0],-1,OP_ID,10,"double",OP_WRITE),
               op_arg_dat(data->QTT[1],-1,OP_ID,10,"double",OP_WRITE),
               op_arg_dat(data->dPdN[(currentInd + 1) % 2],-1,OP_ID,12,"double",OP_WRITE),
-              op_arg_dat(data->prBC,-1,OP_ID,18,"double",OP_WRITE),
-              op_arg_dat(data->pFluxX,-1,OP_ID,12,"double",OP_WRITE),
-              op_arg_dat(data->pFluxY,-1,OP_ID,12,"double",OP_WRITE));
+              op_arg_dat(data->prBC,-1,OP_ID,18,"double",OP_WRITE));
 
   return converged;
 }

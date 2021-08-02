@@ -7,8 +7,8 @@
 //#pragma acc routine
 inline void advection_numerical_flux_openacc( const double *fscale, const double *nx,
                                      const double *ny, const double *q0,
-                                     const double *q1, double *exQ0,
-                                     double *exQ1, double *flux0, double *flux1) {
+                                     const double *q1, double *flux0,
+                                     double *flux1) {
 
   double fM[4][3 * 4];
   for(int i = 0; i < 3 * 4; i++) {
@@ -19,17 +19,17 @@ inline void advection_numerical_flux_openacc( const double *fscale, const double
   }
   double fP[4][3 * 4];
   for(int i = 0; i < 3 * 4; i++) {
-    fP[0][i] = exQ0[i] * exQ0[i];
-    fP[1][i] = exQ0[i] * exQ1[i];
-    fP[2][i] = exQ0[i] * exQ1[i];
-    fP[3][i] = exQ1[i] * exQ1[i];
+    fP[0][i] = flux0[i] * flux0[i];
+    fP[1][i] = flux0[i] * flux1[i];
+    fP[2][i] = flux0[i] * flux1[i];
+    fP[3][i] = flux1[i] * flux1[i];
   }
 
   double maxVel[3 * 4];
   double max = 0.0;
   for(int i = 0; i < 4; i++) {
     double mVel = q0[FMASK[i]] * nx[i] + q1[FMASK[i]] * ny[i];
-    double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
+    double pVel = flux0[i] * nx[i] + flux1[i] * ny[i];
     double vel = fmax(fabs(mVel), fabs(pVel));
     if(vel > max) max = vel;
   }
@@ -39,7 +39,7 @@ inline void advection_numerical_flux_openacc( const double *fscale, const double
   max = 0.0;
   for(int i = 4; i < 2 * 4; i++) {
     double mVel = q0[FMASK[i]] * nx[i] + q1[FMASK[i]] * ny[i];
-    double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
+    double pVel = flux0[i] * nx[i] + flux1[i] * ny[i];
     double vel = fmax(fabs(mVel), fabs(pVel));
     if(vel > max) max = vel;
   }
@@ -49,7 +49,7 @@ inline void advection_numerical_flux_openacc( const double *fscale, const double
   max = 0.0;
   for(int i = 2 * 4; i < 3 * 4; i++) {
     double mVel = q0[FMASK[i]] * nx[i] + q1[FMASK[i]] * ny[i];
-    double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
+    double pVel = flux0[i] * nx[i] + flux1[i] * ny[i];
     double vel = fmax(fabs(mVel), fabs(pVel));
     if(vel > max) max = vel;
   }
@@ -58,13 +58,8 @@ inline void advection_numerical_flux_openacc( const double *fscale, const double
   }
 
   for(int i = 0; i < 3 * 4; i++) {
-    flux0[i] = 0.5 * fscale[i] * (-nx[i] * (fM[0][i] - fP[0][i]) - ny[i] * (fM[1][i] - fP[1][i]) - maxVel[i] * (exQ0[i] - q0[FMASK[i]]));
-    flux1[i] = 0.5 * fscale[i] * (-nx[i] * (fM[2][i] - fP[2][i]) - ny[i] * (fM[3][i] - fP[3][i]) - maxVel[i] * (exQ1[i] - q1[FMASK[i]]));
-  }
-
-  for(int i = 0; i < 3 * 4; i++) {
-    exQ0[i] = 0.0;
-    exQ1[i] = 0.0;
+    flux0[i] = 0.5 * fscale[i] * (-nx[i] * (fM[0][i] - fP[0][i]) - ny[i] * (fM[1][i] - fP[1][i]) - maxVel[i] * (flux0[i] - q0[FMASK[i]]));
+    flux1[i] = 0.5 * fscale[i] * (-nx[i] * (fM[2][i] - fP[2][i]) - ny[i] * (fM[3][i] - fP[3][i]) - maxVel[i] * (flux1[i] - q1[FMASK[i]]));
   }
 }
 
@@ -76,12 +71,10 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8){
+  op_arg arg6){
 
-  int nargs = 9;
-  op_arg args[9];
+  int nargs = 7;
+  op_arg args[7];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -90,15 +83,13 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
   args[4] = arg4;
   args[5] = arg5;
   args[6] = arg6;
-  args[7] = arg7;
-  args[8] = arg8;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(31);
+  op_timing_realloc(32);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[31].name      = name;
-  OP_kernels[31].count    += 1;
+  OP_kernels[32].name      = name;
+  OP_kernels[32].count    += 1;
 
 
   if (OP_diags>2) {
@@ -120,9 +111,7 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
     double* data4 = (double*)arg4.data_d;
     double* data5 = (double*)arg5.data_d;
     double* data6 = (double*)arg6.data_d;
-    double* data7 = (double*)arg7.data_d;
-    double* data8 = (double*)arg8.data_d;
-    #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7,data8)
+    #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6)
     for ( int n=0; n<set->size; n++ ){
       advection_numerical_flux_openacc(
         &data0[12*n],
@@ -131,9 +120,7 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
         &data3[10*n],
         &data4[10*n],
         &data5[12*n],
-        &data6[12*n],
-        &data7[12*n],
-        &data8[12*n]);
+        &data6[12*n]);
     }
   }
 
@@ -142,14 +129,12 @@ void op_par_loop_advection_numerical_flux(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[31].time     += wall_t2 - wall_t1;
-  OP_kernels[31].transfer += (float)set->size * arg0.size;
-  OP_kernels[31].transfer += (float)set->size * arg1.size;
-  OP_kernels[31].transfer += (float)set->size * arg2.size;
-  OP_kernels[31].transfer += (float)set->size * arg3.size;
-  OP_kernels[31].transfer += (float)set->size * arg4.size;
-  OP_kernels[31].transfer += (float)set->size * arg5.size * 2.0f;
-  OP_kernels[31].transfer += (float)set->size * arg6.size * 2.0f;
-  OP_kernels[31].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[31].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[32].time     += wall_t2 - wall_t1;
+  OP_kernels[32].transfer += (float)set->size * arg0.size;
+  OP_kernels[32].transfer += (float)set->size * arg1.size;
+  OP_kernels[32].transfer += (float)set->size * arg2.size;
+  OP_kernels[32].transfer += (float)set->size * arg3.size;
+  OP_kernels[32].transfer += (float)set->size * arg4.size;
+  OP_kernels[32].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[32].transfer += (float)set->size * arg6.size * 2.0f;
 }
