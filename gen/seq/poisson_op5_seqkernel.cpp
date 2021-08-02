@@ -65,14 +65,14 @@ void op_par_loop_poisson_op5(char const *name, op_set set,
         (int*)arg2.data,
         (int*)arg3.data,
         (int*)arg4.data,
-        &((double*)arg5.data)[9 * map5idx],
-        &((double*)arg6.data)[9 * map5idx],
-        &((double*)arg7.data)[9 * map5idx],
-        &((double*)arg8.data)[9 * map5idx],
+        &((double*)arg5.data)[60 * map5idx],
+        &((double*)arg6.data)[60 * map5idx],
+        &((double*)arg7.data)[60 * map5idx],
+        &((double*)arg8.data)[18 * map5idx],
         &((double*)arg9.data)[1 * map5idx],
-        &((double*)arg10.data)[9 * map5idx],
-        &((double*)arg11.data)[3 * map5idx],
-        &((double*)arg12.data)[9 * n]);
+        &((double*)arg10.data)[18 * map5idx],
+        &((double*)arg11.data)[10 * map5idx],
+        &((double*)arg12.data)[60 * n]);
     }
   }
 

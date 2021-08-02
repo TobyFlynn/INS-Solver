@@ -6,7 +6,7 @@
 __device__ void ls_sign_gpu( const double *a, const double *s, const double *dsdx,
                     const double *dsdy, double *sign) {
   const double PI = 3.141592653589793238463;
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
     double alpha = *a * sqrt(dsdx[i] * dsdx[i] + dsdy[i] * dsdy[i]);
     sign[i] = tanh(PI * s[i] / alpha);
   }
@@ -28,10 +28,10 @@ __global__ void op_cuda_ls_sign(
 
     //user-supplied kernel call
     ls_sign_gpu(arg0,
-            arg1+n*3,
-            arg2+n*3,
-            arg3+n*3,
-            arg4+n*3);
+            arg1+n*10,
+            arg2+n*10,
+            arg3+n*10,
+            arg4+n*10);
   }
 }
 

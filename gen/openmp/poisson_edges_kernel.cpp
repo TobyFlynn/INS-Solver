@@ -72,12 +72,12 @@ void op_par_loop_poisson_edges(char const *name, op_set set,
 
 
           poisson_edges(
-            &((double*)arg0.data)[3 * map0idx],
-            &((double*)arg1.data)[9 * n],
-            &((double*)arg2.data)[3 * map0idx],
-            &((double*)arg0.data)[3 * map3idx],
-            &((double*)arg4.data)[9 * n],
-            &((double*)arg2.data)[3 * map3idx]);
+            &((double*)arg0.data)[10 * map0idx],
+            &((double*)arg1.data)[100 * n],
+            &((double*)arg2.data)[10 * map0idx],
+            &((double*)arg0.data)[10 * map3idx],
+            &((double*)arg4.data)[100 * n],
+            &((double*)arg2.data)[10 * map3idx]);
         }
       }
 

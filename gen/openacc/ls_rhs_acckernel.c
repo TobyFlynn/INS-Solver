@@ -7,7 +7,7 @@
 //#pragma acc routine
 inline void ls_rhs_openacc( const double *sign, const double *dpldx, const double *dprdx,
                    const double *dpldy, const double *dprdy, double *rk) {
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
     if(sign[i] > 0.0) {
       double plmx2 = fmin(dpldx[i], 0.0);
       plmx2 = plmx2 * plmx2;
@@ -84,12 +84,12 @@ void op_par_loop_ls_rhs(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5)
     for ( int n=0; n<set->size; n++ ){
       ls_rhs_openacc(
-        &data0[3*n],
-        &data1[3*n],
-        &data2[3*n],
-        &data3[3*n],
-        &data4[3*n],
-        &data5[3*n]);
+        &data0[10*n],
+        &data1[10*n],
+        &data2[10*n],
+        &data3[10*n],
+        &data4[10*n],
+        &data5[10*n]);
     }
   }
 

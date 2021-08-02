@@ -7,12 +7,12 @@ __device__ void init_gauss_grad_gpu( double *rx, double *sx, double *ry,  double
                             double *Dx0, double *Dy0, double *Dx1, double *Dy1,
                             double *Dx2, double *Dy2) {
 
-  double J[9];
-  for(int i = 0; i < 9; i++) {
+  double J[18];
+  for(int i = 0; i < 18; i++) {
     J[i] = -sx[i] * ry[i] + rx[i] * sy[i];
   }
 
-  for(int i = 0; i < 9; i++) {
+  for(int i = 0; i < 18; i++) {
     double rx_n = sy[i] / J[i];
     double sx_n = -ry[i] / J[i];
     double ry_n = -sx[i] / J[i];
@@ -23,27 +23,27 @@ __device__ void init_gauss_grad_gpu( double *rx, double *sx, double *ry,  double
     sy[i] = sy_n;
   }
 
-  for(int m = 0; m < 3; m++) {
-    for(int n = 0; n < 3; n++) {
-      int ind = m * 3 + n;
+  for(int m = 0; m < 6; m++) {
+    for(int n = 0; n < 10; n++) {
+      int ind = m * 10 + n;
       Dx0[ind] = rx[m] * gF0Dr_g_cuda[ind] + sx[m] * gF0Ds_g_cuda[ind];
       Dy0[ind] = ry[m] * gF0Dr_g_cuda[ind] + sy[m] * gF0Ds_g_cuda[ind];
     }
   }
 
-  for(int m = 0; m < 3; m++) {
-    for(int n = 0; n < 3; n++) {
-      int ind = m * 3 + n;
-      Dx1[ind] = rx[m + 3] * gF1Dr_g_cuda[ind] + sx[m + 3] * gF1Ds_g_cuda[ind];
-      Dy1[ind] = ry[m + 3] * gF1Dr_g_cuda[ind] + sy[m + 3] * gF1Ds_g_cuda[ind];
+  for(int m = 0; m < 6; m++) {
+    for(int n = 0; n < 10; n++) {
+      int ind = m * 10 + n;
+      Dx1[ind] = rx[m + 6] * gF1Dr_g_cuda[ind] + sx[m + 6] * gF1Ds_g_cuda[ind];
+      Dy1[ind] = ry[m + 6] * gF1Dr_g_cuda[ind] + sy[m + 6] * gF1Ds_g_cuda[ind];
     }
   }
 
-  for(int m = 0; m < 3; m++) {
-    for(int n = 0; n < 3; n++) {
-      int ind = m * 3 + n;
-      Dx2[ind] = rx[m + 2 * 3] * gF2Dr_g_cuda[ind] + sx[m + 2 * 3] * gF2Ds_g_cuda[ind];
-      Dy2[ind] = ry[m + 2 * 3] * gF2Dr_g_cuda[ind] + sy[m + 2 * 3] * gF2Ds_g_cuda[ind];
+  for(int m = 0; m < 6; m++) {
+    for(int n = 0; n < 10; n++) {
+      int ind = m * 10 + n;
+      Dx2[ind] = rx[m + 2 * 6] * gF2Dr_g_cuda[ind] + sx[m + 2 * 6] * gF2Ds_g_cuda[ind];
+      Dy2[ind] = ry[m + 2 * 6] * gF2Dr_g_cuda[ind] + sy[m + 2 * 6] * gF2Ds_g_cuda[ind];
     }
   }
 
@@ -68,16 +68,16 @@ __global__ void op_cuda_init_gauss_grad(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    init_gauss_grad_gpu(arg0+n*9,
-                    arg1+n*9,
-                    arg2+n*9,
-                    arg3+n*9,
-                    arg4+n*9,
-                    arg5+n*9,
-                    arg6+n*9,
-                    arg7+n*9,
-                    arg8+n*9,
-                    arg9+n*9);
+    init_gauss_grad_gpu(arg0+n*18,
+                    arg1+n*18,
+                    arg2+n*18,
+                    arg3+n*18,
+                    arg4+n*60,
+                    arg5+n*60,
+                    arg6+n*60,
+                    arg7+n*60,
+                    arg8+n*60,
+                    arg9+n*60);
   }
 }
 

@@ -26,19 +26,19 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   vector<double> pr_v;
   vector<double> vort_v;
   vector<double> s_v;
-  vector<cgsize_t> cells(3 * numCells * 1);
+  vector<cgsize_t> cells(3 * numCells * 9);
 
   // Calculate vorticity
   curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
   // Get Data from OP2
-  double *Ux_g   = (double *)malloc(3 * numCells * sizeof(double));
-  double *Uy_g   = (double *)malloc(3 * numCells * sizeof(double));
-  double *pr_g   = (double *)malloc(3 * numCells * sizeof(double));
-  double *vort_g = (double *)malloc(3 * numCells * sizeof(double));
-  double *x_g    = (double *)malloc(3 * numCells * sizeof(double));
-  double *y_g    = (double *)malloc(3 * numCells * sizeof(double));
-  double *s_g    = (double *)calloc(3 * numCells, sizeof(double));
+  double *Ux_g   = (double *)malloc(10 * numCells * sizeof(double));
+  double *Uy_g   = (double *)malloc(10 * numCells * sizeof(double));
+  double *pr_g   = (double *)malloc(10 * numCells * sizeof(double));
+  double *vort_g = (double *)malloc(10 * numCells * sizeof(double));
+  double *x_g    = (double *)malloc(10 * numCells * sizeof(double));
+  double *y_g    = (double *)malloc(10 * numCells * sizeof(double));
+  double *s_g    = (double *)calloc(10 * numCells, sizeof(double));
 
   op_fetch_data(data->Q[ind][0], Ux_g);
   op_fetch_data(data->Q[ind][1], Uy_g);
@@ -141,19 +141,19 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   vector<double> pr_v;
   vector<double> vort_v;
   vector<double> s_v;
-  vector<cgsize_t> cells(3 * numCells * 1);
+  vector<cgsize_t> cells(3 * numCells * 9);
 
   // Calculate vorticity
   curl(mesh, data->Q[0][0], data->Q[0][1], data->vorticity);
 
   // Get Data from OP2
-  double *Ux_g   = (double *)malloc(3 * numCells * sizeof(double));
-  double *Uy_g   = (double *)malloc(3 * numCells * sizeof(double));
-  double *pr_g   = (double *)malloc(3 * numCells * sizeof(double));
-  double *vort_g = (double *)malloc(3 * numCells * sizeof(double));
-  double *x_g    = (double *)malloc(3 * numCells * sizeof(double));
-  double *y_g    = (double *)malloc(3 * numCells * sizeof(double));
-  double *s_g    = (double *)calloc(3 * numCells, sizeof(double));
+  double *Ux_g   = (double *)malloc(10 * numCells * sizeof(double));
+  double *Uy_g   = (double *)malloc(10 * numCells * sizeof(double));
+  double *pr_g   = (double *)malloc(10 * numCells * sizeof(double));
+  double *vort_g = (double *)malloc(10 * numCells * sizeof(double));
+  double *x_g    = (double *)malloc(10 * numCells * sizeof(double));
+  double *y_g    = (double *)malloc(10 * numCells * sizeof(double));
+  double *s_g    = (double *)calloc(10 * numCells, sizeof(double));
 
   op_fetch_data(data->Q[0][0], Ux_g);
   op_fetch_data(data->Q[0][1], Uy_g);
@@ -203,7 +203,7 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   // Number of vertices
   sizes[0] = x_v.size();
   // Number of cells
-  sizes[1] = numCells * 1;
+  sizes[1] = numCells * 9;
   // Number of boundary vertices (zero if elements not sorted)
   sizes[2] = 0;
   cg_zone_write(file, baseIndex, "Zone", sizes,
@@ -318,19 +318,19 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, L
   vector<double> pr_v;
   vector<double> vort_v;
   vector<double> s_v;
-  vector<cgsize_t> cells(3 * numCells * 1);
+  vector<cgsize_t> cells(3 * numCells * 9);
 
   // Calculate vorticity
   curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
   // Get Data from OP2
-  double *Ux_g   = (double *)malloc(3 * numCells * sizeof(double));
-  double *Uy_g   = (double *)malloc(3 * numCells * sizeof(double));
-  double *pr_g   = (double *)malloc(3 * numCells * sizeof(double));
-  double *vort_g = (double *)malloc(3 * numCells * sizeof(double));
-  double *x_g    = (double *)malloc(3 * numCells * sizeof(double));
-  double *y_g    = (double *)malloc(3 * numCells * sizeof(double));
-  double *s_g    = (double *)calloc(3 * numCells, sizeof(double));
+  double *Ux_g   = (double *)malloc(10 * numCells * sizeof(double));
+  double *Uy_g   = (double *)malloc(10 * numCells * sizeof(double));
+  double *pr_g   = (double *)malloc(10 * numCells * sizeof(double));
+  double *vort_g = (double *)malloc(10 * numCells * sizeof(double));
+  double *x_g    = (double *)malloc(10 * numCells * sizeof(double));
+  double *y_g    = (double *)malloc(10 * numCells * sizeof(double));
+  double *s_g    = (double *)calloc(10 * numCells, sizeof(double));
 
   op_fetch_data(data->Q[ind][0], Ux_g);
   op_fetch_data(data->Q[ind][1], Uy_g);
@@ -380,7 +380,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, L
   // Number of vertices
   sizes[0] = x_v.size();
   // Number of cells
-  sizes[1] = numCells * 1;
+  sizes[1] = numCells * 9;
   // Number of boundary vertices (zero if elements not sorted)
   sizes[2] = 0;
   cg_zone_write(file, baseIndex, zoneName.c_str(), sizes,

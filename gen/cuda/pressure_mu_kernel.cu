@@ -4,7 +4,7 @@
 
 //user function
 __device__ void pressure_mu_gpu( const double *mu, double *curl) {
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
     curl[i] *= mu[i];
   }
 
@@ -21,8 +21,8 @@ __global__ void op_cuda_pressure_mu(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    pressure_mu_gpu(arg0+n*3,
-                arg1+n*3);
+    pressure_mu_gpu(arg0+n*10,
+                arg1+n*10);
   }
 }
 

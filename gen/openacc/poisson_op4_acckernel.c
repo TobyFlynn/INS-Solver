@@ -6,10 +6,10 @@
 //user function
 //#pragma acc routine
 inline void poisson_op4_openacc( const double *mm, const double *factor, double *op, double *tmp) {
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
-      int c_ind = i * 3 + j;
-      int mm_ind = j * 3 + i;
+  for(int i = 0; i < 10; i++) {
+    for(int j = 0; j < 10; j++) {
+      int c_ind = i * 10 + j;
+      int mm_ind = j * 10 + i;
       op[c_ind] += mm[mm_ind] * factor[j];
       tmp[mm_ind] = mm[mm_ind];
     }
@@ -58,10 +58,10 @@ void op_par_loop_poisson_op4(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3)
     for ( int n=0; n<set->size; n++ ){
       poisson_op4_openacc(
-        &data0[9*n],
-        &data1[3*n],
-        &data2[9*n],
-        &data3[9*n]);
+        &data0[100*n],
+        &data1[10*n],
+        &data2[100*n],
+        &data3[100*n]);
     }
   }
 

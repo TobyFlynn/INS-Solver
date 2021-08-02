@@ -7,7 +7,7 @@
 //#pragma acc routine
 inline void ls_advec_flux_openacc( const double *q, const double *u, const double *v,
                           double *F, double *G) {
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
     F[i] = u[i] * q[i];
     G[i] = v[i] * q[i];
   }
@@ -58,11 +58,11 @@ void op_par_loop_ls_advec_flux(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4)
     for ( int n=0; n<set->size; n++ ){
       ls_advec_flux_openacc(
-        &data0[3*n],
-        &data1[3*n],
-        &data2[3*n],
-        &data3[3*n],
-        &data4[3*n]);
+        &data0[10*n],
+        &data1[10*n],
+        &data2[10*n],
+        &data3[10*n],
+        &data4[10*n]);
     }
   }
 

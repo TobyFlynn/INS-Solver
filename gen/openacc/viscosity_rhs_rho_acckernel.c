@@ -6,7 +6,7 @@
 //user function
 //#pragma acc routine
 inline void viscosity_rhs_rho_openacc( const double *rho, double *vRHS0, double *vRHS1) {
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
     vRHS0[i] = rho[i] * vRHS0[i];
     vRHS1[i] = rho[i] * vRHS1[i];
   }
@@ -51,9 +51,9 @@ void op_par_loop_viscosity_rhs_rho(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2)
     for ( int n=0; n<set->size; n++ ){
       viscosity_rhs_rho_openacc(
-        &data0[3*n],
-        &data1[3*n],
-        &data2[3*n]);
+        &data0[10*n],
+        &data1[10*n],
+        &data2[10*n]);
     }
   }
 

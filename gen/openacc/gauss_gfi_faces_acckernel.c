@@ -12,15 +12,15 @@ inline void gauss_gfi_faces_openacc( const int *edgeNum, const bool *rev,
   int edgeR = edgeNum[1];
   bool reverse = *rev;
 
-  for(int m = 0; m < 3; m++) {
-    for(int n = 0; n < 3; n++) {
+  for(int m = 0; m < 6; m++) {
+    for(int n = 0; n < 10; n++) {
       int indL, indR;
       if(!reverse) {
-        indL = m * 3 + n;
-        indR = m * 3 + n;
+        indL = m * 10 + n;
+        indR = m * 10 + n;
       } else {
-        indL = m * 3 + n;
-        indR = (3 - 1 - m) * 3 + n;
+        indL = m * 10 + n;
+        indR = (6 - 1 - m) * 10 + n;
       }
 
       if(edgeL == 0) {
@@ -77,19 +77,19 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   arg2.idx = 0;
   args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 9, "double", OP_INC);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 60, "double", OP_INC);
   }
 
   arg4.idx = 0;
   args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 9, "double", OP_INC);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 60, "double", OP_INC);
   }
 
   arg6.idx = 0;
   args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 9, "double", OP_INC);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 60, "double", OP_INC);
   }
 
 
@@ -153,14 +153,14 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
         map3idx = map2[n + set_size1 * 1];
 
         double* arg2_vec[] = {
-           &data2[9 * map2idx],
-           &data2[9 * map3idx]};
+           &data2[60 * map2idx],
+           &data2[60 * map3idx]};
         double* arg4_vec[] = {
-           &data4[9 * map2idx],
-           &data4[9 * map3idx]};
+           &data4[60 * map2idx],
+           &data4[60 * map3idx]};
         double* arg6_vec[] = {
-           &data6[9 * map2idx],
-           &data6[9 * map3idx]};
+           &data6[60 * map2idx],
+           &data6[60 * map3idx]};
 
         gauss_gfi_faces_openacc(
           &data0[2 * n],

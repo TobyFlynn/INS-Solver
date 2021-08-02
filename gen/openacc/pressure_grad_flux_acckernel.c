@@ -13,15 +13,15 @@ inline void pressure_grad_flux_openacc( const int *edgeNum, const bool *rev, con
   int edgeR = edgeNum[1];
   bool reverse = *rev;
 
-  int exInd = edgeL * 2;
-  int *fmaskL = &FMASK[edgeL * 2];
-  int *fmaskR = &FMASK[edgeR * 2];
+  int exInd = edgeL * 4;
+  int *fmaskL = &FMASK[edgeL * 4];
+  int *fmaskR = &FMASK[edgeR * 4];
 
-  for(int i = 0; i < 2; i++) {
+  for(int i = 0; i < 4; i++) {
     int lInd = fmaskL[i];
     int rInd;
     if(reverse) {
-      rInd = fmaskR[2 - i - 1];
+      rInd = fmaskR[4 - i - 1];
     } else {
       rInd = fmaskR[i];
     }
@@ -30,13 +30,13 @@ inline void pressure_grad_flux_openacc( const int *edgeNum, const bool *rev, con
     pY[0][exInd + i] += fscale[0][exInd + i] * ny[0][exInd + i] * flux;
   }
 
-  exInd = edgeR * 2;
+  exInd = edgeR * 4;
 
-  for(int i = 0; i < 2; i++) {
+  for(int i = 0; i < 4; i++) {
     int rInd = fmaskR[i];
     int lInd;
     if(reverse) {
-      lInd = fmaskL[2 - i - 1];
+      lInd = fmaskL[4 - i - 1];
     } else {
       lInd = fmaskL[i];
     }
@@ -65,37 +65,37 @@ void op_par_loop_pressure_grad_flux(char const *name, op_set set,
   arg2.idx = 0;
   args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 6, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 12, "double", OP_READ);
   }
 
   arg4.idx = 0;
   args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 6, "double", OP_READ);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 12, "double", OP_READ);
   }
 
   arg6.idx = 0;
   args[6] = arg6;
   for ( int v=1; v<2; v++ ){
-    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 6, "double", OP_READ);
+    args[6 + v] = op_arg_dat(arg6.dat, v, arg6.map, 12, "double", OP_READ);
   }
 
   arg8.idx = 0;
   args[8] = arg8;
   for ( int v=1; v<2; v++ ){
-    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 3, "double", OP_READ);
+    args[8 + v] = op_arg_dat(arg8.dat, v, arg8.map, 10, "double", OP_READ);
   }
 
   arg10.idx = 0;
   args[10] = arg10;
   for ( int v=1; v<2; v++ ){
-    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 6, "double", OP_INC);
+    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 12, "double", OP_INC);
   }
 
   arg12.idx = 0;
   args[12] = arg12;
   for ( int v=1; v<2; v++ ){
-    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 6, "double", OP_INC);
+    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 12, "double", OP_INC);
   }
 
 
@@ -162,23 +162,23 @@ void op_par_loop_pressure_grad_flux(char const *name, op_set set,
         map3idx = map2[n + set_size1 * 1];
 
         const double* arg2_vec[] = {
-           &data2[6 * map2idx],
-           &data2[6 * map3idx]};
+           &data2[12 * map2idx],
+           &data2[12 * map3idx]};
         const double* arg4_vec[] = {
-           &data4[6 * map2idx],
-           &data4[6 * map3idx]};
+           &data4[12 * map2idx],
+           &data4[12 * map3idx]};
         const double* arg6_vec[] = {
-           &data6[6 * map2idx],
-           &data6[6 * map3idx]};
+           &data6[12 * map2idx],
+           &data6[12 * map3idx]};
         const double* arg8_vec[] = {
-           &data8[3 * map2idx],
-           &data8[3 * map3idx]};
+           &data8[10 * map2idx],
+           &data8[10 * map3idx]};
         double* arg10_vec[] = {
-           &data10[6 * map2idx],
-           &data10[6 * map3idx]};
+           &data10[12 * map2idx],
+           &data10[12 * map3idx]};
         double* arg12_vec[] = {
-           &data12[6 * map2idx],
-           &data12[6 * map3idx]};
+           &data12[12 * map2idx],
+           &data12[12 * map3idx]};
 
         pressure_grad_flux_openacc(
           &data0[2 * n],

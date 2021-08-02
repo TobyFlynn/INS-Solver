@@ -5,9 +5,9 @@
 //user function
 __device__ void init_cubature_OP_gpu( const double *J, const double *Dx,
                              const double *Dy, double *temp, double *temp2) {
-  for(int m = 0; m < 12; m++) {
-    for(int n = 0; n < 3; n++) {
-      int ind = m * 3 + n;
+  for(int m = 0; m < 36; m++) {
+    for(int n = 0; n < 10; n++) {
+      int ind = m * 10 + n;
       temp[ind] = J[m] * cubW_g_cuda[m] * Dx[ind];
       temp2[ind] = J[m] * cubW_g_cuda[m] * Dy[ind];
     }
@@ -29,11 +29,11 @@ __global__ void op_cuda_init_cubature_OP(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    init_cubature_OP_gpu(arg0+n*12,
-                     arg1+n*36,
-                     arg2+n*36,
-                     arg3+n*36,
-                     arg4+n*36);
+    init_cubature_OP_gpu(arg0+n*36,
+                     arg1+n*360,
+                     arg2+n*360,
+                     arg3+n*360,
+                     arg4+n*360);
   }
 }
 

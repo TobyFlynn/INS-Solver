@@ -43,7 +43,7 @@ void pressure_bc_omp4_kernel(
   double arg2_l = *arg2;
   int arg3_l = *arg3;
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: reynolds_ompkernel, FMASK_ompkernel[:6])\
+    map(to: reynolds_ompkernel, FMASK_ompkernel[:12])\
     map(to:col_reord[0:set_size1],map4[0:map4size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -56,29 +56,29 @@ void pressure_bc_omp4_kernel(
     const int *bedgeNum = &data1[1*n_op];
     const double *t = &arg2_l;
     const int *problem = &arg3_l;
-    const double *x = &data4[3 * map4idx];
-    const double *y = &data5[3 * map4idx];
-    const double *nx = &data6[6 * map4idx];
-    const double *ny = &data7[6 * map4idx];
-    const double *nu = &data8[3 * map4idx];
-    const double *rho = &data9[3 * map4idx];
-    const double *N0 = &data10[3 * map4idx];
-    const double *N1 = &data11[3 * map4idx];
-    const double *gradCurlVel0 = &data12[3 * map4idx];
-    const double *gradCurlVel1 = &data13[3 * map4idx];
-    double *dPdN = &data14[6 * map4idx];
+    const double *x = &data4[10 * map4idx];
+    const double *y = &data5[10 * map4idx];
+    const double *nx = &data6[12 * map4idx];
+    const double *ny = &data7[12 * map4idx];
+    const double *nu = &data8[10 * map4idx];
+    const double *rho = &data9[10 * map4idx];
+    const double *N0 = &data10[10 * map4idx];
+    const double *N1 = &data11[10 * map4idx];
+    const double *gradCurlVel0 = &data12[10 * map4idx];
+    const double *gradCurlVel1 = &data13[10 * map4idx];
+    double *dPdN = &data14[12 * map4idx];
 
     //inline function
     
-    int exInd = *bedgeNum * 2;
-    int *fmask = &FMASK_ompkernel[*bedgeNum * 2];
+    int exInd = *bedgeNum * 4;
+    int *fmask = &FMASK_ompkernel[*bedgeNum * 4];
 
     const double PI = 3.141592653589793238463;
 
     if(*problem == 0) {
       if(*bedge_type == 0 || *bedge_type == 2 || *bedge_type == 3) {
 
-        for(int i = 0; i < 2; i++) {
+        for(int i = 0; i < 4; i++) {
           int fInd = fmask[i];
 
 
@@ -90,7 +90,7 @@ void pressure_bc_omp4_kernel(
 
       if(*bedge_type == 0) {
 
-        for(int i = 0; i < 2; i++) {
+        for(int i = 0; i < 4; i++) {
           double y1 = y[fmask[i]];
           double bcdUndt = -pow(1.0, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (1.0 - y1);
           dPdN[exInd + i] -= bcdUndt;
@@ -99,7 +99,7 @@ void pressure_bc_omp4_kernel(
     } else {
       if(*bedge_type == 0) {
 
-        for(int i = 0; i < 2; i++) {
+        for(int i = 0; i < 4; i++) {
           int fInd = fmask[i];
           double res1 = -N0[fInd] - nu[fInd] * gradCurlVel1[fInd];
           double res2 = -N1[fInd] + nu[fInd] * gradCurlVel0[fInd];

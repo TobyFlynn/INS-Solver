@@ -16,12 +16,12 @@ void set_ic_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    double *q0 = &data0[3*n_op];
-    double *q1 = &data1[3*n_op];
+    double *q0 = &data0[10*n_op];
+    double *q1 = &data1[10*n_op];
 
     //inline function
     
-    for(int i = 0; i < 3; i++) {
+    for(int i = 0; i < 10; i++) {
       q0[i] = ic_u_ompkernel;
       q1[i] = ic_v_ompkernel;
     }

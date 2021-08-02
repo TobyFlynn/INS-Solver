@@ -7,14 +7,14 @@ inline void ls_flux(const int *edgeNum, const bool *rev, const double **sJ,
   int edgeR = edgeNum[1];
   bool reverse = *rev;
 
-  int exIndL = edgeL * 3;
-  int exIndR = edgeR * 3;
+  int exIndL = edgeL * 6;
+  int exIndR = edgeR * 6;
 
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 6; i++) {
     int rInd;
     int lInd = exIndL + i;
     if(reverse) {
-      rInd = exIndR + 3 - i - 1;
+      rInd = exIndR + 6 - i - 1;
     } else {
       rInd = exIndR + i;
     }
@@ -36,11 +36,11 @@ inline void ls_flux(const int *edgeNum, const bool *rev, const double **sJ,
     }
   }
 
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 6; i++) {
     int lInd;
     int rInd = exIndR + i;
     if(reverse) {
-      lInd = exIndL + 3 - i - 1;
+      lInd = exIndL + 6 - i - 1;
     } else {
       lInd = exIndL + i;
     }

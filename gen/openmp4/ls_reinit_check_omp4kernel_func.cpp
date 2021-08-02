@@ -25,15 +25,15 @@ void ls_reinit_check_omp4_kernel(
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const double *alpha = &arg0_l;
-    const double *s = &data1[3*n_op];
-    const double *dsdx = &data2[3*n_op];
-    const double *dsdy = &data3[3*n_op];
+    const double *s = &data1[10*n_op];
+    const double *dsdx = &data2[10*n_op];
+    const double *dsdy = &data3[10*n_op];
     double *res = &arg4_l;
     int *count = &arg5_l;
 
     //inline function
     
-    for(int i = 0; i < 3; i++) {
+    for(int i = 0; i < 10; i++) {
       if(fabs(s[i]) < (*alpha)) {
         *res += dsdx[i] * dsdx[i] + dsdy[i] * dsdy[i];
         *count += 1;

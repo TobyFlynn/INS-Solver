@@ -4,11 +4,11 @@
 
 //user function
 __device__ void poisson_pre_gpu( const double *in, const double *pre, double *out) {
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
     out[i] = 0.0;
-    for(int j = 0; j < 3; j++) {
+    for(int j = 0; j < 10; j++) {
 
-      int ind = i * 3 + j;
+      int ind = i * 10 + j;
       out[i] += pre[ind] * in[j];
     }
   }
@@ -27,9 +27,9 @@ __global__ void op_cuda_poisson_pre(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    poisson_pre_gpu(arg0+n*3,
-                arg1+n*9,
-                arg2+n*3);
+    poisson_pre_gpu(arg0+n*10,
+                arg1+n*100,
+                arg2+n*10);
   }
 }
 

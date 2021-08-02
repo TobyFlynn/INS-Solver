@@ -39,10 +39,10 @@ void op_par_loop_ls_sign(char const *name, op_set set,
     for ( int n=0; n<set_size; n++ ){
       ls_sign(
         (double*)arg0.data,
-        &((double*)arg1.data)[3*n],
-        &((double*)arg2.data)[3*n],
-        &((double*)arg3.data)[3*n],
-        &((double*)arg4.data)[3*n]);
+        &((double*)arg1.data)[10*n],
+        &((double*)arg2.data)[10*n],
+        &((double*)arg3.data)[10*n],
+        &((double*)arg4.data)[10*n]);
     }
   }
 

@@ -4,7 +4,7 @@
 
 //user function
 __device__ void gauss_tau_bc_gpu( const int *bedgeNum, const double *fscale, double *tau) {
-  tau[*bedgeNum] += 20 * 25 * fscale[*bedgeNum * 2];
+  tau[*bedgeNum] += 20 * 25 * fscale[*bedgeNum * 4];
 
 }
 
@@ -30,7 +30,7 @@ __global__ void op_cuda_gauss_tau_bc(
 
     //user-supplied kernel call
     gauss_tau_bc_gpu(arg0+n*1,
-                 ind_arg0+map1idx*6,
+                 ind_arg0+map1idx*12,
                  arg2_l);
     atomicAdd(&ind_arg1[0+map1idx*3],arg2_l[0]);
     atomicAdd(&ind_arg1[1+map1idx*3],arg2_l[1]);

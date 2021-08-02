@@ -23,16 +23,16 @@ void advection_flux_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *u = &data0[3*n_op];
-    const double *v = &data1[3*n_op];
-    double *f0 = &data2[3*n_op];
-    double *f1 = &data3[3*n_op];
-    double *f2 = &data4[3*n_op];
-    double *f3 = &data5[3*n_op];
+    const double *u = &data0[10*n_op];
+    const double *v = &data1[10*n_op];
+    double *f0 = &data2[10*n_op];
+    double *f1 = &data3[10*n_op];
+    double *f2 = &data4[10*n_op];
+    double *f3 = &data5[10*n_op];
 
     //inline function
     
-    for(int i = 0; i < 3; i++) {
+    for(int i = 0; i < 10; i++) {
       f0[i] = u[i] * u[i];
       f1[i] = u[i] * v[i];
       f2[i] = u[i] * v[i];

@@ -7,11 +7,11 @@
 //#pragma acc routine
 inline void ls_add_diff_openacc( const double *diff, double *rk, double *dsldx,
                         double *dsrdx, double *dsldy, double *dsrdy) {
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
     rk[i] = rk[i] + diff[i];
   }
 
-  for(int i = 0; i < 9; i++) {
+  for(int i = 0; i < 18; i++) {
     dsldx[i] = 0.0;
     dsrdx[i] = 0.0;
     dsldy[i] = 0.0;
@@ -67,12 +67,12 @@ void op_par_loop_ls_add_diff(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5)
     for ( int n=0; n<set->size; n++ ){
       ls_add_diff_openacc(
-        &data0[3*n],
-        &data1[3*n],
-        &data2[9*n],
-        &data3[9*n],
-        &data4[9*n],
-        &data5[9*n]);
+        &data0[10*n],
+        &data1[10*n],
+        &data2[18*n],
+        &data3[18*n],
+        &data4[18*n],
+        &data5[18*n]);
     }
   }
 

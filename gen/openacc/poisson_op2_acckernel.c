@@ -64,29 +64,29 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
 
 
 
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
-      int c_ind = i * 3 + j;
+  for(int i = 0; i < 10; i++) {
+    for(int j = 0; j < 10; j++) {
+      int c_ind = i * 10 + j;
       op2L[c_ind] = 0.0;
       op2R[c_ind] = 0.0;
-      for(int k = 0; k < 3; k++) {
+      for(int k = 0; k < 6; k++) {
 
-        int b_ind = k * 3 + j;
+        int b_ind = k * 10 + j;
 
-        int ind = i * 3 + k;
-        int a_ind = ((ind * 3) % (3 * 3)) + (ind / 3);
+        int ind = i * 6 + k;
+        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
 
 
-        int factors_indL = edgeL * 3 + k;
-        int factors_indR = edgeR * 3 + k;
+        int factors_indL = edgeL * 6 + k;
+        int factors_indR = edgeR * 6 + k;
         int factors_indLR;
         int factors_indRR;
         if(reverse) {
-          factors_indLR = edgeL * 3 + 3 - 1 - k;
-          factors_indRR = edgeR * 3 + 3 - 1 - k;
+          factors_indLR = edgeL * 6 + 6 - 1 - k;
+          factors_indRR = edgeR * 6 + 6 - 1 - k;
         } else {
-          factors_indLR = edgeL * 3 + k;
-          factors_indRR = edgeR * 3 + k;
+          factors_indLR = edgeL * 6 + k;
+          factors_indRR = edgeR * 6 + k;
         }
 
         op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
@@ -104,18 +104,18 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
 
 
 
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
-      int c_ind = i * 3 + j;
-      for(int k = 0; k < 3; k++) {
+  for(int i = 0; i < 10; i++) {
+    for(int j = 0; j < 10; j++) {
+      int c_ind = i * 10 + j;
+      for(int k = 0; k < 6; k++) {
 
-        int b_ind = k * 3 + j;
+        int b_ind = k * 10 + j;
 
-        int ind = i * 3 + k;
-        int a_ind = ((ind * 3) % (3 * 3)) + (ind / 3);
+        int ind = i * 6 + k;
+        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
 
-        int factors_indL = edgeL * 3 + k;
-        int factors_indR = edgeR * 3 + k;
+        int factors_indL = edgeL * 6 + k;
+        int factors_indR = edgeR * 6 + k;
 
         op1L[c_ind] += -factorL[i] * mDL[a_ind] * gaussW_g[k]
                        * sJL[factors_indL] * gVML[b_ind];
@@ -139,30 +139,30 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
     }
   }
 
-  double tauL[3];
-  double tauR[3];
+  double tauL[6];
+  double tauR[6];
   double maxL = 0.0;
   double maxR = 0.0;
-  for(int i = 0; i < 3; i++) {
-    int indL = edgeL * 3 + i;
+  for(int i = 0; i < 6; i++) {
+    int indL = edgeL * 6 + i;
     int indR;
     if(reverse)
-      indR = edgeR * 3 + 3 - 1 - i;
+      indR = edgeR * 6 + 6 - 1 - i;
     else
-      indR = edgeR * 3 + i;
+      indR = edgeR * 6 + i;
     tauL[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
 
     if(maxL < tauL[i]) {
       maxL = tauL[i];
     }
   }
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 6; i++) {
     int indL;
-    int indR = edgeR * 3 + i;
+    int indR = edgeR * 6 + i;
     if(reverse)
-      indL = edgeL * 3 + 3 - 1 - i;
+      indL = edgeL * 6 + 6 - 1 - i;
     else
-      indL = edgeL * 3 + i;
+      indL = edgeL * 6 + i;
     tauR[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
 
     if(maxR < tauR[i]) {
@@ -170,25 +170,25 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
     }
   }
 
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 6; i++) {
     tauL[i] = maxL;
     tauR[i] = maxR;
   }
 
 
 
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
-      int c_ind = i * 3 + j;
-      for(int k = 0; k < 3; k++) {
+  for(int i = 0; i < 10; i++) {
+    for(int j = 0; j < 10; j++) {
+      int c_ind = i * 10 + j;
+      for(int k = 0; k < 6; k++) {
 
-        int b_ind = k * 3 + j;
+        int b_ind = k * 10 + j;
 
-        int ind = i * 3 + k;
-        int a_ind = ((ind * 3) % (3 * 3)) + (ind / 3);
+        int ind = i * 6 + k;
+        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
 
-        int factors_indL = edgeL * 3 + k;
-        int factors_indR = edgeR * 3 + k;
+        int factors_indL = edgeL * 6 + k;
+        int factors_indR = edgeR * 6 + k;
 
         op1L[c_ind] += gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
                        * tauL[k] * gVML[b_ind];
@@ -351,36 +351,36 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
         poisson_op2_openacc(
           &data0[2 * n],
           &data1[1 * n],
-          &data2[9 * map2idx],
-          &data2[9 * map3idx],
-          &data4[9 * map2idx],
-          &data4[9 * map3idx],
-          &data6[9 * map2idx],
-          &data6[9 * map3idx],
-          &data8[9 * map2idx],
-          &data8[9 * map3idx],
-          &data10[9 * map2idx],
-          &data10[9 * map3idx],
-          &data12[9 * map2idx],
-          &data12[9 * map3idx],
-          &data14[9 * map2idx],
-          &data14[9 * map3idx],
-          &data16[9 * map2idx],
-          &data16[9 * map3idx],
-          &data18[9 * map2idx],
-          &data18[9 * map3idx],
-          &data20[9 * map2idx],
-          &data20[9 * map3idx],
+          &data2[60 * map2idx],
+          &data2[60 * map3idx],
+          &data4[60 * map2idx],
+          &data4[60 * map3idx],
+          &data6[60 * map2idx],
+          &data6[60 * map3idx],
+          &data8[60 * map2idx],
+          &data8[60 * map3idx],
+          &data10[60 * map2idx],
+          &data10[60 * map3idx],
+          &data12[60 * map2idx],
+          &data12[60 * map3idx],
+          &data14[60 * map2idx],
+          &data14[60 * map3idx],
+          &data16[60 * map2idx],
+          &data16[60 * map3idx],
+          &data18[60 * map2idx],
+          &data18[60 * map3idx],
+          &data20[18 * map2idx],
+          &data20[18 * map3idx],
           &data22[1 * map2idx],
           &data22[1 * map3idx],
-          &data24[9 * map2idx],
-          &data24[9 * map3idx],
-          &data26[3 * map2idx],
-          &data26[3 * map3idx],
-          &data28[9 * map2idx],
-          &data28[9 * map3idx],
-          &data30[9 * n],
-          &data31[9 * n]);
+          &data24[18 * map2idx],
+          &data24[18 * map3idx],
+          &data26[10 * map2idx],
+          &data26[10 * map3idx],
+          &data28[100 * map2idx],
+          &data28[100 * map3idx],
+          &data30[100 * n],
+          &data31[100 * n]);
       }
 
     }

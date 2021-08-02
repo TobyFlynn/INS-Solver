@@ -7,7 +7,7 @@
 //#pragma acc routine
 inline void init_surface_openacc( const double *x, const double *y, double *s) {
   const double PI = 3.141592653589793238463;
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
 
     s[i] = sqrt((x[i] - 1.0) * (x[i] - 1.0) + (y[i] - 0.5) * (y[i] - 0.5)) - 0.1;
   }
@@ -52,9 +52,9 @@ void op_par_loop_init_surface(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2)
     for ( int n=0; n<set->size; n++ ){
       init_surface_openacc(
-        &data0[3*n],
-        &data1[3*n],
-        &data2[3*n]);
+        &data0[10*n],
+        &data1[10*n],
+        &data2[10*n]);
     }
   }
 

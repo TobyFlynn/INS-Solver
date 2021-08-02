@@ -77,14 +77,14 @@ void op_par_loop_ls_bflux(char const *name, op_set set,
 
           ls_bflux(
             &((int*)arg0.data)[1 * n],
-            &((double*)arg1.data)[9 * map1idx],
-            &((double*)arg2.data)[9 * map1idx],
-            &((double*)arg3.data)[9 * map1idx],
-            &((double*)arg4.data)[9 * map1idx],
-            &((double*)arg5.data)[9 * map1idx],
-            &((double*)arg6.data)[9 * map1idx],
-            &((double*)arg7.data)[9 * map1idx],
-            &((double*)arg8.data)[9 * map1idx]);
+            &((double*)arg1.data)[18 * map1idx],
+            &((double*)arg2.data)[18 * map1idx],
+            &((double*)arg3.data)[18 * map1idx],
+            &((double*)arg4.data)[18 * map1idx],
+            &((double*)arg5.data)[18 * map1idx],
+            &((double*)arg6.data)[18 * map1idx],
+            &((double*)arg7.data)[18 * map1idx],
+            &((double*)arg8.data)[18 * map1idx]);
         }
       }
 

@@ -5,7 +5,7 @@
 //user function
 __device__ void init_surface_gpu( const double *x, const double *y, double *s) {
   const double PI = 3.141592653589793238463;
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
 
     s[i] = sqrt((x[i] - 1.0) * (x[i] - 1.0) + (y[i] - 0.5) * (y[i] - 0.5)) - 0.1;
   }
@@ -24,9 +24,9 @@ __global__ void op_cuda_init_surface(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    init_surface_gpu(arg0+n*3,
-                 arg1+n*3,
-                 arg2+n*3);
+    init_surface_gpu(arg0+n*10,
+                 arg1+n*10,
+                 arg2+n*10);
   }
 }
 

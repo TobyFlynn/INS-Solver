@@ -29,8 +29,8 @@ void gauss_tau_omp4_kernel(
     map2idx = map1[n_op + set_size1 * 1];
 
     const double* arg1_vec[] = {
-       &data1[6 * map1idx],
-       &data1[6 * map2idx]};
+       &data1[12 * map1idx],
+       &data1[12 * map2idx]};
     double* arg3_vec[] = {
        &data3[3 * map1idx],
        &data3[3 * map2idx]};
@@ -45,12 +45,12 @@ void gauss_tau_omp4_kernel(
     int edgeL = edgeNum[0];
     int edgeR = edgeNum[1];
 
-    if(fscale[0][edgeL * 2] > fscale[1][edgeR * 2]) {
-      tau[0][edgeL] += 20 * 25 * fscale[0][edgeL * 2];
-      tau[1][edgeR] += 20 * 25 * fscale[0][edgeL * 2];
+    if(fscale[0][edgeL * 4] > fscale[1][edgeR * 4]) {
+      tau[0][edgeL] += 20 * 25 * fscale[0][edgeL * 4];
+      tau[1][edgeR] += 20 * 25 * fscale[0][edgeL * 4];
     } else {
-      tau[0][edgeL] += 20 * 25 * fscale[1][edgeR * 2];
-      tau[1][edgeR] += 20 * 25 * fscale[1][edgeR * 2];
+      tau[0][edgeL] += 20 * 25 * fscale[1][edgeR * 4];
+      tau[1][edgeR] += 20 * 25 * fscale[1][edgeR * 4];
     }
     //end inline func
   }

@@ -6,7 +6,7 @@
 //user function
 //#pragma acc routine
 inline void viscosity_reset_bc_openacc( double *exQ0, double *exQ1) {
-  for(int i = 0; i < 9; i++) {
+  for(int i = 0; i < 18; i++) {
     exQ0[i] = 0.0;
     exQ1[i] = 0.0;
   }
@@ -48,8 +48,8 @@ void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1)
     for ( int n=0; n<set->size; n++ ){
       viscosity_reset_bc_openacc(
-        &data0[9*n],
-        &data1[9*n]);
+        &data0[18*n],
+        &data1[18*n]);
     }
   }
 

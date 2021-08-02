@@ -30,17 +30,17 @@ void poisson_apply_bc_omp4_kernel(
 
     //variable mapping
     const int *bedgeNum = &data0[1*n_op];
-    const double *op = &data1[9*n_op];
-    const double *bc = &data2[9 * map2idx];
-    double *rhs = &data3[3 * map2idx];
+    const double *op = &data1[60*n_op];
+    const double *bc = &data2[18 * map2idx];
+    double *rhs = &data3[10 * map2idx];
 
     //inline function
     
-    int exInd = *bedgeNum * 3;
+    int exInd = *bedgeNum * 6;
 
-    for(int m = 0; m < 3; m++) {
-      int ind = m * 3;
-      for(int n = 0; n < 3; n++) {
+    for(int m = 0; m < 10; m++) {
+      int ind = m * 6;
+      for(int n = 0; n < 6; n++) {
         rhs[m] += op[ind + n] * bc[exInd + n];
       }
     }

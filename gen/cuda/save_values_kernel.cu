@@ -53,8 +53,8 @@ __global__ void op_cuda_save_values(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    save_values_gpu(arg0+n*3,
-                arg1+n*1);
+    save_values_gpu(arg0+n*10,
+                arg1+n*9);
   }
 }
 

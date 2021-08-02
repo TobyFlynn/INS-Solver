@@ -15,8 +15,8 @@ void save_values_omp4_kernel(
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *v_vals = &data0[3*n_op];
-    double *c_vals = &data1[1*n_op];
+    const double *v_vals = &data0[10*n_op];
+    double *c_vals = &data1[9*n_op];
 
     //inline function
     

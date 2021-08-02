@@ -9,12 +9,12 @@ inline void init_gauss_grad_openacc( double *rx, double *sx, double *ry,  double
                             double *Dx0, double *Dy0, double *Dx1, double *Dy1,
                             double *Dx2, double *Dy2) {
 
-  double J[9];
-  for(int i = 0; i < 9; i++) {
+  double J[18];
+  for(int i = 0; i < 18; i++) {
     J[i] = -sx[i] * ry[i] + rx[i] * sy[i];
   }
 
-  for(int i = 0; i < 9; i++) {
+  for(int i = 0; i < 18; i++) {
     double rx_n = sy[i] / J[i];
     double sx_n = -ry[i] / J[i];
     double ry_n = -sx[i] / J[i];
@@ -25,27 +25,27 @@ inline void init_gauss_grad_openacc( double *rx, double *sx, double *ry,  double
     sy[i] = sy_n;
   }
 
-  for(int m = 0; m < 3; m++) {
-    for(int n = 0; n < 3; n++) {
-      int ind = m * 3 + n;
+  for(int m = 0; m < 6; m++) {
+    for(int n = 0; n < 10; n++) {
+      int ind = m * 10 + n;
       Dx0[ind] = rx[m] * gF0Dr_g[ind] + sx[m] * gF0Ds_g[ind];
       Dy0[ind] = ry[m] * gF0Dr_g[ind] + sy[m] * gF0Ds_g[ind];
     }
   }
 
-  for(int m = 0; m < 3; m++) {
-    for(int n = 0; n < 3; n++) {
-      int ind = m * 3 + n;
-      Dx1[ind] = rx[m + 3] * gF1Dr_g[ind] + sx[m + 3] * gF1Ds_g[ind];
-      Dy1[ind] = ry[m + 3] * gF1Dr_g[ind] + sy[m + 3] * gF1Ds_g[ind];
+  for(int m = 0; m < 6; m++) {
+    for(int n = 0; n < 10; n++) {
+      int ind = m * 10 + n;
+      Dx1[ind] = rx[m + 6] * gF1Dr_g[ind] + sx[m + 6] * gF1Ds_g[ind];
+      Dy1[ind] = ry[m + 6] * gF1Dr_g[ind] + sy[m + 6] * gF1Ds_g[ind];
     }
   }
 
-  for(int m = 0; m < 3; m++) {
-    for(int n = 0; n < 3; n++) {
-      int ind = m * 3 + n;
-      Dx2[ind] = rx[m + 2 * 3] * gF2Dr_g[ind] + sx[m + 2 * 3] * gF2Ds_g[ind];
-      Dy2[ind] = ry[m + 2 * 3] * gF2Dr_g[ind] + sy[m + 2 * 3] * gF2Ds_g[ind];
+  for(int m = 0; m < 6; m++) {
+    for(int n = 0; n < 10; n++) {
+      int ind = m * 10 + n;
+      Dx2[ind] = rx[m + 2 * 6] * gF2Dr_g[ind] + sx[m + 2 * 6] * gF2Ds_g[ind];
+      Dy2[ind] = ry[m + 2 * 6] * gF2Dr_g[ind] + sy[m + 2 * 6] * gF2Ds_g[ind];
     }
   }
 }
@@ -110,16 +110,16 @@ void op_par_loop_init_gauss_grad(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1,data2,data3,data4,data5,data6,data7,data8,data9)
     for ( int n=0; n<set->size; n++ ){
       init_gauss_grad_openacc(
-        &data0[9*n],
-        &data1[9*n],
-        &data2[9*n],
-        &data3[9*n],
-        &data4[9*n],
-        &data5[9*n],
-        &data6[9*n],
-        &data7[9*n],
-        &data8[9*n],
-        &data9[9*n]);
+        &data0[18*n],
+        &data1[18*n],
+        &data2[18*n],
+        &data3[18*n],
+        &data4[60*n],
+        &data5[60*n],
+        &data6[60*n],
+        &data7[60*n],
+        &data8[60*n],
+        &data9[60*n]);
     }
   }
 

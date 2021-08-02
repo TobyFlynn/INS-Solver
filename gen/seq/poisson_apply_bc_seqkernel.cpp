@@ -43,9 +43,9 @@ void op_par_loop_poisson_apply_bc(char const *name, op_set set,
 
       poisson_apply_bc(
         &((int*)arg0.data)[1 * n],
-        &((double*)arg1.data)[9 * n],
-        &((double*)arg2.data)[9 * map2idx],
-        &((double*)arg3.data)[3 * map2idx]);
+        &((double*)arg1.data)[60 * n],
+        &((double*)arg2.data)[18 * map2idx],
+        &((double*)arg3.data)[10 * map2idx]);
     }
   }
 

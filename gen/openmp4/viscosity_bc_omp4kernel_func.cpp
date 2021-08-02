@@ -47,24 +47,24 @@ void viscosity_bc_omp4_kernel(
     const int *bedgeNum = &data1[1*n_op];
     const double *t = &arg2_l;
     const int *problem = &arg3_l;
-    const double *x = &data4[9 * map4idx];
-    const double *y = &data5[9 * map4idx];
-    const double *nx = &data6[9 * map4idx];
-    const double *ny = &data7[9 * map4idx];
-    const double *nu = &data8[9 * map4idx];
-    double *exQ0 = &data9[9 * map4idx];
-    double *exQ1 = &data10[9 * map4idx];
+    const double *x = &data4[18 * map4idx];
+    const double *y = &data5[18 * map4idx];
+    const double *nx = &data6[18 * map4idx];
+    const double *ny = &data7[18 * map4idx];
+    const double *nu = &data8[18 * map4idx];
+    double *exQ0 = &data9[18 * map4idx];
+    double *exQ1 = &data10[18 * map4idx];
 
     //inline function
     
-    int exInd = *bedgeNum * 3;
+    int exInd = *bedgeNum * 6;
 
     const double PI = 3.141592653589793238463;
 
     if(*problem == 0) {
       if(*bedge_type == 0) {
 
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < 6; i++) {
           double y1 = y[exInd + i];
           exQ0[exInd + i] += pow(1.0, -2.0) * sin((PI * (*t)) / 8.0) * 6.0 * y1 * (1.0 - y1);
         }
@@ -81,7 +81,7 @@ void viscosity_bc_omp4_kernel(
     } else {
       if(*bedge_type == 0) {
 
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < 6; i++) {
           double y1 = y[exInd + i];
           double x1 = x[exInd + i];
           exQ0[exInd + i] += -sin(2.0 * PI * y1) * exp(-nu[exInd + i] * 4.0 * PI * PI * *t);
@@ -91,7 +91,7 @@ void viscosity_bc_omp4_kernel(
 
       if(*bedge_type == 1) {
 
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < 6; i++) {
           double y1  = y[exInd + i];
           double x1  = x[exInd + i];
           double ny1 = ny[exInd + i];

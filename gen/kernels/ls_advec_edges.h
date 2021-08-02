@@ -6,13 +6,13 @@ inline void ls_advec_edges(const int *edgeNum, const bool *rev,
   bool reverse = *rev;
 
   // Copy data from R to L
-  int exInd = edgeL * 2;
-  int *fmask = &FMASK[edgeR * 2];
+  int exInd = edgeL * 4;
+  int *fmask = &FMASK[edgeR * 4];
 
-  for(int i = 0; i < 2; i++) {
+  for(int i = 0; i < 4; i++) {
     int rInd;
     if(reverse) {
-      rInd = fmask[2 - i - 1];
+      rInd = fmask[4 - i - 1];
     } else {
       rInd = fmask[i];
     }
@@ -20,13 +20,13 @@ inline void ls_advec_edges(const int *edgeNum, const bool *rev,
   }
 
   // Copy data from L to R
-  exInd = edgeR * 2;
-  fmask = &FMASK[edgeL * 2];
+  exInd = edgeR * 4;
+  fmask = &FMASK[edgeL * 4];
 
-  for(int i = 0; i < 2; i++) {
+  for(int i = 0; i < 4; i++) {
     int lInd;
     if(reverse) {
-      lInd = fmask[2 - i - 1];
+      lInd = fmask[4 - i - 1];
     } else {
       lInd = fmask[i];
     }

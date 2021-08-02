@@ -8,14 +8,14 @@
 inline void pressure_bc2_openacc( const int *bedge_type, const int *bedgeNum,
                          const double *t, const int *problem, const double *x,
                          const double *y, const double *nu, double *prBC) {
-  int exInd = *bedgeNum * 3;
+  int exInd = *bedgeNum * 6;
 
   const double PI = 3.141592653589793238463;
 
   if(*problem == 1) {
     if(*bedge_type == 1) {
 
-      for(int i = 0; i < 3; i++) {
+      for(int i = 0; i < 6; i++) {
         double y1 = y[exInd + i];
         double x1 = x[exInd + i];
         prBC[exInd + i] += -cos(2.0 * PI * x1) * cos(2.0 * PI * y1) * exp(-nu[exInd + i] * 8.0 * PI * PI * *t);
@@ -115,10 +115,10 @@ void op_par_loop_pressure_bc2(char const *name, op_set set,
           &data1[1 * n],
           &arg2_l,
           &arg3_l,
-          &data4[9 * map4idx],
-          &data5[9 * map4idx],
-          &data6[9 * map4idx],
-          &data7[9 * map4idx]);
+          &data4[18 * map4idx],
+          &data5[18 * map4idx],
+          &data6[18 * map4idx],
+          &data7[18 * map4idx]);
       }
 
     }

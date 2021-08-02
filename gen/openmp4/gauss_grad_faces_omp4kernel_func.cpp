@@ -49,41 +49,41 @@ void gauss_grad_faces_omp4_kernel(
     map2idx = map1[n_op + set_size1 * 1];
 
     const double* arg1_vec[] = {
-       &data1[9 * map1idx],
-       &data1[9 * map2idx]};
+       &data1[60 * map1idx],
+       &data1[60 * map2idx]};
     const double* arg3_vec[] = {
-       &data3[9 * map1idx],
-       &data3[9 * map2idx]};
+       &data3[60 * map1idx],
+       &data3[60 * map2idx]};
     const double* arg5_vec[] = {
-       &data5[9 * map1idx],
-       &data5[9 * map2idx]};
+       &data5[60 * map1idx],
+       &data5[60 * map2idx]};
     const double* arg7_vec[] = {
-       &data7[9 * map1idx],
-       &data7[9 * map2idx]};
+       &data7[60 * map1idx],
+       &data7[60 * map2idx]};
     const double* arg9_vec[] = {
-       &data9[9 * map1idx],
-       &data9[9 * map2idx]};
+       &data9[60 * map1idx],
+       &data9[60 * map2idx]};
     const double* arg11_vec[] = {
-       &data11[9 * map1idx],
-       &data11[9 * map2idx]};
+       &data11[60 * map1idx],
+       &data11[60 * map2idx]};
     double* arg13_vec[] = {
-       &data13[9 * map1idx],
-       &data13[9 * map2idx]};
+       &data13[60 * map1idx],
+       &data13[60 * map2idx]};
     double* arg15_vec[] = {
-       &data15[9 * map1idx],
-       &data15[9 * map2idx]};
+       &data15[60 * map1idx],
+       &data15[60 * map2idx]};
     double* arg17_vec[] = {
-       &data17[9 * map1idx],
-       &data17[9 * map2idx]};
+       &data17[60 * map1idx],
+       &data17[60 * map2idx]};
     double* arg19_vec[] = {
-       &data19[9 * map1idx],
-       &data19[9 * map2idx]};
+       &data19[60 * map1idx],
+       &data19[60 * map2idx]};
     double* arg21_vec[] = {
-       &data21[9 * map1idx],
-       &data21[9 * map2idx]};
+       &data21[60 * map1idx],
+       &data21[60 * map2idx]};
     double* arg23_vec[] = {
-       &data23[9 * map1idx],
-       &data23[9 * map2idx]};
+       &data23[60 * map1idx],
+       &data23[60 * map2idx]};
     //variable mapping
     const int *edgeNum = &data0[2*n_op];
     const double **mDx0 = arg1_vec;
@@ -105,10 +105,10 @@ void gauss_grad_faces_omp4_kernel(
     int edgeL = edgeNum[0];
     int edgeR = edgeNum[1];
 
-    for(int m = 0; m < 3; m++) {
-      for(int n = 0; n < 3; n++) {
-        int indL = m * 3 + n;
-        int indR = m * 3 + n;
+    for(int m = 0; m < 6; m++) {
+      for(int n = 0; n < 10; n++) {
+        int indL = m * 10 + n;
+        int indR = m * 10 + n;
 
         if(edgeL == 0) {
           if(edgeR == 0) {

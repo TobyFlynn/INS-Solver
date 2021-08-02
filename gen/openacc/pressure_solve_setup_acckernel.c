@@ -6,7 +6,7 @@
 //user function
 //#pragma acc routine
 inline void pressure_solve_setup_openacc( const double *rho, double *factor) {
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
     factor[i] = 1.0 / rho[i];
   }
 }
@@ -47,8 +47,8 @@ void op_par_loop_pressure_solve_setup(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1)
     for ( int n=0; n<set->size; n++ ){
       pressure_solve_setup_openacc(
-        &data0[3*n],
-        &data1[3*n]);
+        &data0[10*n],
+        &data1[10*n]);
     }
   }
 

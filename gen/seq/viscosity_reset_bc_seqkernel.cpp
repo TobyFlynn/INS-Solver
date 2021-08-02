@@ -32,8 +32,8 @@ void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       viscosity_reset_bc(
-        &((double*)arg0.data)[9*n],
-        &((double*)arg1.data)[9*n]);
+        &((double*)arg0.data)[18*n],
+        &((double*)arg1.data)[18*n]);
     }
   }
 

@@ -4,7 +4,7 @@
 
 //user function
 __device__ void init_nu_rho_gpu( double *nu, double *rho) {
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
     nu[i] = nu0_cuda;
     rho[i] = 1.0;
   }
@@ -22,8 +22,8 @@ __global__ void op_cuda_init_nu_rho(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    init_nu_rho_gpu(arg0+n*3,
-                arg1+n*3);
+    init_nu_rho_gpu(arg0+n*10,
+                arg1+n*10);
   }
 }
 

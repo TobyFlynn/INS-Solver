@@ -34,9 +34,9 @@ void op_par_loop_poisson_pre(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       poisson_pre(
-        &((double*)arg0.data)[3*n],
-        &((double*)arg1.data)[9*n],
-        &((double*)arg2.data)[3*n]);
+        &((double*)arg0.data)[10*n],
+        &((double*)arg1.data)[100*n],
+        &((double*)arg2.data)[10*n]);
     }
   }
 

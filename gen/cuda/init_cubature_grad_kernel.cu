@@ -6,12 +6,12 @@
 __device__ void init_cubature_grad_gpu( double *rx, double *sx, double *ry,  double *sy,
                                double *Dx, double *Dy) {
 
-  double J[12];
-  for(int i = 0; i < 12; i++) {
+  double J[36];
+  for(int i = 0; i < 36; i++) {
     J[i] = -sx[i] * ry[i] + rx[i] * sy[i];
   }
 
-  for(int i = 0; i < 12; i++) {
+  for(int i = 0; i < 36; i++) {
     double rx_n = sy[i] / J[i];
     double sx_n = -ry[i] / J[i];
     double ry_n = -sx[i] / J[i];
@@ -22,9 +22,9 @@ __device__ void init_cubature_grad_gpu( double *rx, double *sx, double *ry,  dou
     sy[i] = sy_n;
   }
 
-  for(int m = 0; m < 12; m++) {
-    for(int n = 0; n < 3; n++) {
-      int ind = m * 3 + n;
+  for(int m = 0; m < 36; m++) {
+    for(int n = 0; n < 10; n++) {
+      int ind = m * 10 + n;
       Dx[ind] = rx[m] * cubVDr_g_cuda[ind] + sx[m] * cubVDs_g_cuda[ind];
       Dy[ind] = ry[m] * cubVDr_g_cuda[ind] + sy[m] * cubVDs_g_cuda[ind];
     }
@@ -47,12 +47,12 @@ __global__ void op_cuda_init_cubature_grad(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    init_cubature_grad_gpu(arg0+n*12,
-                       arg1+n*12,
-                       arg2+n*12,
-                       arg3+n*12,
-                       arg4+n*36,
-                       arg5+n*36);
+    init_cubature_grad_gpu(arg0+n*36,
+                       arg1+n*36,
+                       arg2+n*36,
+                       arg3+n*36,
+                       arg4+n*360,
+                       arg5+n*360);
   }
 }
 

@@ -20,13 +20,13 @@ void op_par_loop_ls_advec_edges(char const *name, op_set set,
   arg2.idx = 0;
   args[2] = arg2;
   for ( int v=1; v<2; v++ ){
-    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 3, "double", OP_READ);
+    args[2 + v] = op_arg_dat(arg2.dat, v, arg2.map, 10, "double", OP_READ);
   }
 
   arg4.idx = 0;
   args[4] = arg4;
   for ( int v=1; v<2; v++ ){
-    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 6, "double", OP_INC);
+    args[4 + v] = op_arg_dat(arg4.dat, v, arg4.map, 12, "double", OP_INC);
   }
 
 
@@ -77,11 +77,11 @@ void op_par_loop_ls_advec_edges(char const *name, op_set set,
           map3idx = arg2.map_data[n * arg2.map->dim + 1];
 
           const double* arg2_vec[] = {
-             &((double*)arg2.data)[3 * map2idx],
-             &((double*)arg2.data)[3 * map3idx]};
+             &((double*)arg2.data)[10 * map2idx],
+             &((double*)arg2.data)[10 * map3idx]};
           double* arg4_vec[] = {
-             &((double*)arg4.data)[6 * map2idx],
-             &((double*)arg4.data)[6 * map3idx]};
+             &((double*)arg4.data)[12 * map2idx],
+             &((double*)arg4.data)[12 * map3idx]};
 
           ls_advec_edges(
             &((int*)arg0.data)[2 * n],

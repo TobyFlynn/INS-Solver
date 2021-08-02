@@ -1,6 +1,6 @@
 inline void ls_rhs(const double *sign, const double *dpldx, const double *dprdx,
                    const double *dpldy, const double *dprdy, double *rk) {
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
     if(sign[i] > 0.0) {
       double plmx2 = fmin(dpldx[i], 0.0);
       plmx2 = plmx2 * plmx2;

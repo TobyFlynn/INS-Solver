@@ -8,59 +8,59 @@ __device__ void advection_numerical_flux_gpu( const double *fscale, const double
                                      const double *q1, double *exQ0,
                                      double *exQ1, double *flux0, double *flux1) {
 
-  double fM[4][3 * 2];
-  for(int i = 0; i < 3 * 2; i++) {
+  double fM[4][3 * 4];
+  for(int i = 0; i < 3 * 4; i++) {
     fM[0][i] = q0[FMASK_cuda[i]] * q0[FMASK_cuda[i]];
     fM[1][i] = q0[FMASK_cuda[i]] * q1[FMASK_cuda[i]];
     fM[2][i] = q0[FMASK_cuda[i]] * q1[FMASK_cuda[i]];
     fM[3][i] = q1[FMASK_cuda[i]] * q1[FMASK_cuda[i]];
   }
-  double fP[4][3 * 2];
-  for(int i = 0; i < 3 * 2; i++) {
+  double fP[4][3 * 4];
+  for(int i = 0; i < 3 * 4; i++) {
     fP[0][i] = exQ0[i] * exQ0[i];
     fP[1][i] = exQ0[i] * exQ1[i];
     fP[2][i] = exQ0[i] * exQ1[i];
     fP[3][i] = exQ1[i] * exQ1[i];
   }
 
-  double maxVel[3 * 2];
+  double maxVel[3 * 4];
   double max = 0.0;
-  for(int i = 0; i < 2; i++) {
+  for(int i = 0; i < 4; i++) {
     double mVel = q0[FMASK_cuda[i]] * nx[i] + q1[FMASK_cuda[i]] * ny[i];
     double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
     double vel = fmax(fabs(mVel), fabs(pVel));
     if(vel > max) max = vel;
   }
-  for(int i = 0; i < 2; i++) {
+  for(int i = 0; i < 4; i++) {
     maxVel[i] = max;
   }
   max = 0.0;
-  for(int i = 2; i < 2 * 2; i++) {
+  for(int i = 4; i < 2 * 4; i++) {
     double mVel = q0[FMASK_cuda[i]] * nx[i] + q1[FMASK_cuda[i]] * ny[i];
     double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
     double vel = fmax(fabs(mVel), fabs(pVel));
     if(vel > max) max = vel;
   }
-  for(int i = 2; i < 2 * 2; i++) {
+  for(int i = 4; i < 2 * 4; i++) {
     maxVel[i] = max;
   }
   max = 0.0;
-  for(int i = 2 * 2; i < 3 * 2; i++) {
+  for(int i = 2 * 4; i < 3 * 4; i++) {
     double mVel = q0[FMASK_cuda[i]] * nx[i] + q1[FMASK_cuda[i]] * ny[i];
     double pVel = exQ0[i] * nx[i] + exQ1[i] * ny[i];
     double vel = fmax(fabs(mVel), fabs(pVel));
     if(vel > max) max = vel;
   }
-  for(int i = 2 * 2; i < 3 * 2; i++) {
+  for(int i = 2 * 4; i < 3 * 4; i++) {
     maxVel[i] = max;
   }
 
-  for(int i = 0; i < 3 * 2; i++) {
+  for(int i = 0; i < 3 * 4; i++) {
     flux0[i] = 0.5 * fscale[i] * (-nx[i] * (fM[0][i] - fP[0][i]) - ny[i] * (fM[1][i] - fP[1][i]) - maxVel[i] * (exQ0[i] - q0[FMASK_cuda[i]]));
     flux1[i] = 0.5 * fscale[i] * (-nx[i] * (fM[2][i] - fP[2][i]) - ny[i] * (fM[3][i] - fP[3][i]) - maxVel[i] * (exQ1[i] - q1[FMASK_cuda[i]]));
   }
 
-  for(int i = 0; i < 3 * 2; i++) {
+  for(int i = 0; i < 3 * 4; i++) {
     exQ0[i] = 0.0;
     exQ1[i] = 0.0;
   }
@@ -85,15 +85,15 @@ __global__ void op_cuda_advection_numerical_flux(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    advection_numerical_flux_gpu(arg0+n*6,
-                             arg1+n*6,
-                             arg2+n*6,
-                             arg3+n*3,
-                             arg4+n*3,
-                             arg5+n*6,
-                             arg6+n*6,
-                             arg7+n*6,
-                             arg8+n*6);
+    advection_numerical_flux_gpu(arg0+n*12,
+                             arg1+n*12,
+                             arg2+n*12,
+                             arg3+n*10,
+                             arg4+n*10,
+                             arg5+n*12,
+                             arg6+n*12,
+                             arg7+n*12,
+                             arg8+n*12);
   }
 }
 

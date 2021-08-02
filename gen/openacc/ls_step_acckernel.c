@@ -8,7 +8,7 @@
 inline void ls_step_openacc( const double *alpha, const double *s, double *step,
                     double *nu, double *rho) {
   const double PI = 3.141592653589793238463;
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 10; i++) {
     step[i] = tanh(PI * s[i] / *alpha);
     nu[i] = 0.5 * nu0 * (1.0 + step[i]) + 0.5 * nu1 * (1.0 - step[i]);
     rho[i] = 0.5 * rho0 * (1.0 + step[i]) + 0.5 * rho1 * (1.0 - step[i]);
@@ -62,10 +62,10 @@ void op_par_loop_ls_step(char const *name, op_set set,
     for ( int n=0; n<set->size; n++ ){
       ls_step_openacc(
         &arg0_l,
-        &data1[3*n],
-        &data2[3*n],
-        &data3[3*n],
-        &data4[3*n]);
+        &data1[10*n],
+        &data2[10*n],
+        &data3[10*n],
+        &data4[10*n]);
     }
   }
 

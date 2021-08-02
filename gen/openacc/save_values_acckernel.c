@@ -79,8 +79,8 @@ void op_par_loop_save_values(char const *name, op_set set,
     #pragma acc parallel loop independent deviceptr(data0,data1)
     for ( int n=0; n<set->size; n++ ){
       save_values_openacc(
-        &data0[3*n],
-        &data1[1*n]);
+        &data0[10*n],
+        &data1[9*n]);
     }
   }
 

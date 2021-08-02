@@ -25,7 +25,7 @@ void advection_faces_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
-    map(to: FMASK_ompkernel[:6])\
+    map(to: FMASK_ompkernel[:12])\
     map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data4[0:dat4size],data6[0:dat6size],data8[0:dat8size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -36,17 +36,17 @@ void advection_faces_omp4_kernel(
     map3idx = map2[n_op + set_size1 * 1];
 
     const double* arg2_vec[] = {
-       &data2[3 * map2idx],
-       &data2[3 * map3idx]};
+       &data2[10 * map2idx],
+       &data2[10 * map3idx]};
     const double* arg4_vec[] = {
-       &data4[3 * map2idx],
-       &data4[3 * map3idx]};
+       &data4[10 * map2idx],
+       &data4[10 * map3idx]};
     double* arg6_vec[] = {
-       &data6[6 * map2idx],
-       &data6[6 * map3idx]};
+       &data6[12 * map2idx],
+       &data6[12 * map3idx]};
     double* arg8_vec[] = {
-       &data8[6 * map2idx],
-       &data8[6 * map3idx]};
+       &data8[12 * map2idx],
+       &data8[12 * map3idx]};
     //variable mapping
     const int *edgeNum = &data0[2*n_op];
     const bool *rev = &data1[1*n_op];
@@ -62,13 +62,13 @@ void advection_faces_omp4_kernel(
     int edgeR = edgeNum[1];
     bool reverse = *rev;
 
-    int exInd = edgeL * 2;
-    int *fmask = &FMASK_ompkernel[edgeR * 2];
+    int exInd = edgeL * 4;
+    int *fmask = &FMASK_ompkernel[edgeR * 4];
 
-    for(int i = 0; i < 2; i++) {
+    for(int i = 0; i < 4; i++) {
       int rInd;
       if(reverse) {
-        rInd = fmask[2 - i - 1];
+        rInd = fmask[4 - i - 1];
       } else {
         rInd = fmask[i];
       }
@@ -76,13 +76,13 @@ void advection_faces_omp4_kernel(
       exQ1[0][exInd + i] += q1[1][rInd];
     }
 
-    exInd = edgeR * 2;
-    fmask = &FMASK_ompkernel[edgeL * 2];
+    exInd = edgeR * 4;
+    fmask = &FMASK_ompkernel[edgeL * 4];
 
-    for(int i = 0; i < 2; i++) {
+    for(int i = 0; i < 4; i++) {
       int lInd;
       if(reverse) {
-        lInd = fmask[2 - i - 1];
+        lInd = fmask[4 - i - 1];
       } else {
         lInd = fmask[i];
       }

@@ -76,8 +76,8 @@ void get_cells_order_4(vector<double> &x_v, vector<double> &y_v,
   // 16 sub elements per original element
   map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
   for(int c = 0; c < numCells; c++) {
-    int ind = c * 3;
-    for(int p = 0; p < 3; p++) {
+    int ind = c * 10;
+    for(int p = 0; p < 10; p++) {
       pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
       unique_ptr<Point> point = make_unique<Point>();
       auto res = pointMap.insert(make_pair(coords, move(point)));
@@ -154,8 +154,8 @@ void get_cells_order_3(vector<double> &x_v, vector<double> &y_v,
   // 9 sub elements per original element
   map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
   for(int c = 0; c < numCells; c++) {
-    int ind = c * 3;
-    for(int p = 0; p < 3; p++) {
+    int ind = c * 10;
+    for(int p = 0; p < 10; p++) {
       pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
       unique_ptr<Point> point = make_unique<Point>();
       auto res = pointMap.insert(make_pair(coords, move(point)));
@@ -224,8 +224,8 @@ void get_cells_order_2(vector<double> &x_v, vector<double> &y_v,
   // 9 sub elements per original element
   map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
   for(int c = 0; c < numCells; c++) {
-    int ind = c * 3;
-    for(int p = 0; p < 3; p++) {
+    int ind = c * 10;
+    for(int p = 0; p < 10; p++) {
       pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
       unique_ptr<Point> point = make_unique<Point>();
       auto res = pointMap.insert(make_pair(coords, move(point)));
@@ -288,8 +288,8 @@ void get_cells_order_1(vector<double> &x_v, vector<double> &y_v,
   // 9 sub elements per original element
   map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
   for(int c = 0; c < numCells; c++) {
-    int ind = c * 3;
-    for(int p = 0; p < 3; p++) {
+    int ind = c * 10;
+    for(int p = 0; p < 10; p++) {
       pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
       unique_ptr<Point> point = make_unique<Point>();
       auto res = pointMap.insert(make_pair(coords, move(point)));
@@ -379,8 +379,8 @@ void get_data_vectors_order_4(vector<double> &x_v, vector<double> &y_v,
   // 16 sub elements per original element
   map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
   for(int c = 0; c < numCells; c++) {
-    int ind = c * 3;
-    for(int p = 0; p < 3; p++) {
+    int ind = c * 10;
+    for(int p = 0; p < 10; p++) {
       pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
       unique_ptr<Point> point = make_unique<Point>();
       auto res = pointMap.insert(make_pair(coords, move(point)));
@@ -475,8 +475,8 @@ void get_data_vectors_order_3(vector<double> &x_v, vector<double> &y_v,
   // 9 sub elements per original element
   map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
   for(int c = 0; c < numCells; c++) {
-    int ind = c * 3;
-    for(int p = 0; p < 3; p++) {
+    int ind = c * 10;
+    for(int p = 0; p < 10; p++) {
       pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
       unique_ptr<Point> point = make_unique<Point>();
       auto res = pointMap.insert(make_pair(coords, move(point)));
@@ -563,8 +563,8 @@ void get_data_vectors_order_2(vector<double> &x_v, vector<double> &y_v,
   // 4 sub elements per original element
   map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
   for(int c = 0; c < numCells; c++) {
-    int ind = c * 3;
-    for(int p = 0; p < 3; p++) {
+    int ind = c * 10;
+    for(int p = 0; p < 10; p++) {
       pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
       unique_ptr<Point> point = make_unique<Point>();
       auto res = pointMap.insert(make_pair(coords, move(point)));
@@ -645,8 +645,8 @@ void get_data_vectors_order_1(vector<double> &x_v, vector<double> &y_v,
   // 4 sub elements per original element
   map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
   for(int c = 0; c < numCells; c++) {
-    int ind = c * 3;
-    for(int p = 0; p < 3; p++) {
+    int ind = c * 10;
+    for(int p = 0; p < 10; p++) {
       pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
       unique_ptr<Point> point = make_unique<Point>();
       auto res = pointMap.insert(make_pair(coords, move(point)));

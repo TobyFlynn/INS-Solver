@@ -45,8 +45,8 @@ void op_par_loop_save_values(char const *name, op_set set,
       int finish = (set->size*(thr+1))/nthreads;
       for ( int n=start; n<finish; n++ ){
         save_values(
-          &((double*)arg0.data)[3*n],
-          &((double*)arg1.data)[1*n]);
+          &((double*)arg0.data)[10*n],
+          &((double*)arg1.data)[9*n]);
       }
     }
   }

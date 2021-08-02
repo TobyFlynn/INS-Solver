@@ -59,29 +59,29 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
   // First edge term
   // gVM'*gw*rho^-1*gDnM
   // gVM'*gw*rho^-1*gDnP
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
-      int c_ind = i * 3 + j;
+  for(int i = 0; i < 10; i++) {
+    for(int j = 0; j < 10; j++) {
+      int c_ind = i * 10 + j;
       op2L[c_ind] = 0.0;
       op2R[c_ind] = 0.0;
-      for(int k = 0; k < 3; k++) {
+      for(int k = 0; k < 6; k++) {
         // mD
-        int b_ind = k * 3 + j;
+        int b_ind = k * 10 + j;
         // Transpose of gVM
-        int ind = i * 3 + k;
-        int a_ind = ((ind * 3) % (3 * 3)) + (ind / 3);
+        int ind = i * 6 + k;
+        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
         // int a_ind = k * 15 + i;
         // Rho and sJ ind
-        int factors_indL = edgeL * 3 + k;
-        int factors_indR = edgeR * 3 + k;
+        int factors_indL = edgeL * 6 + k;
+        int factors_indR = edgeR * 6 + k;
         int factors_indLR;
         int factors_indRR;
         if(reverse) {
-          factors_indLR = edgeL * 3 + 3 - 1 - k;
-          factors_indRR = edgeR * 3 + 3 - 1 - k;
+          factors_indLR = edgeL * 6 + 6 - 1 - k;
+          factors_indRR = edgeR * 6 + 6 - 1 - k;
         } else {
-          factors_indLR = edgeL * 3 + k;
-          factors_indRR = edgeR * 3 + k;
+          factors_indLR = edgeL * 6 + k;
+          factors_indRR = edgeR * 6 + k;
         }
 
         op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
@@ -100,18 +100,18 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
   // Second edge term
   // rho^-1*gDnM'*gw*gVM
   // rho^-1*gDnM'*gw*gVP
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
-      int c_ind = i * 3 + j;
-      for(int k = 0; k < 3; k++) {
+  for(int i = 0; i < 10; i++) {
+    for(int j = 0; j < 10; j++) {
+      int c_ind = i * 10 + j;
+      for(int k = 0; k < 6; k++) {
         // gVM and gVP
-        int b_ind = k * 3 + j;
+        int b_ind = k * 10 + j;
         // Transpose of mD
-        int ind = i * 3 + k;
-        int a_ind = ((ind * 3) % (3 * 3)) + (ind / 3);
+        int ind = i * 6 + k;
+        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
         // Rho and sJ ind
-        int factors_indL = edgeL * 3 + k;
-        int factors_indR = edgeR * 3 + k;
+        int factors_indL = edgeL * 6 + k;
+        int factors_indR = edgeR * 6 + k;
 
         op1L[c_ind] += -factorL[i] * mDL[a_ind] * gaussW_g[k]
                        * sJL[factors_indL] * gVML[b_ind];
@@ -137,30 +137,30 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
   }
 
   // Calculate penalty parameter
-  double tauL[3];
-  double tauR[3];
+  double tauL[6];
+  double tauR[6];
   double maxL = 0.0;
   double maxR = 0.0;
-  for(int i = 0; i < 3; i++) {
-    int indL = edgeL * 3 + i;
+  for(int i = 0; i < 6; i++) {
+    int indL = edgeL * 6 + i;
     int indR;
     if(reverse)
-      indR = edgeR * 3 + 3 - 1 - i;
+      indR = edgeR * 6 + 6 - 1 - i;
     else
-      indR = edgeR * 3 + i;
+      indR = edgeR * 6 + i;
     tauL[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
     // tauL[i] = 100 * 0.5 * 5 * 6 * fmax(*hL, *hR);
     if(maxL < tauL[i]) {
       maxL = tauL[i];
     }
   }
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 6; i++) {
     int indL;
-    int indR = edgeR * 3 + i;
+    int indR = edgeR * 6 + i;
     if(reverse)
-      indL = edgeL * 3 + 3 - 1 - i;
+      indL = edgeL * 6 + 6 - 1 - i;
     else
-      indL = edgeL * 3 + i;
+      indL = edgeL * 6 + i;
     tauR[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
     // tauR[i] = 100 * 0.5 * 5 * 6 * fmax(*hL, *hR);
     if(maxR < tauR[i]) {
@@ -168,7 +168,7 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
     }
   }
 
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 6; i++) {
     tauL[i] = maxL;
     tauR[i] = maxR;
   }
@@ -176,18 +176,18 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
   // Third edge term
   // gVM'*gw*tau*gVM
   // gVM'*gw*tau*gVP
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
-      int c_ind = i * 3 + j;
-      for(int k = 0; k < 3; k++) {
+  for(int i = 0; i < 10; i++) {
+    for(int j = 0; j < 10; j++) {
+      int c_ind = i * 10 + j;
+      for(int k = 0; k < 6; k++) {
         // gVM and gVP
-        int b_ind = k * 3 + j;
+        int b_ind = k * 10 + j;
         // Transpose of gVM
-        int ind = i * 3 + k;
-        int a_ind = ((ind * 3) % (3 * 3)) + (ind / 3);
+        int ind = i * 6 + k;
+        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
         // sJ ind
-        int factors_indL = edgeL * 3 + k;
-        int factors_indR = edgeR * 3 + k;
+        int factors_indL = edgeL * 6 + k;
+        int factors_indR = edgeR * 6 + k;
 
         op1L[c_ind] += gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
                        * tauL[k] * gVML[b_ind];

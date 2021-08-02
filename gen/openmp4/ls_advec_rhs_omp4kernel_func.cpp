@@ -42,53 +42,53 @@ void ls_advec_rhs_omp4_kernel(
   int nthread){
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size],data15[0:dat15size],data16[0:dat16size]) \
-    map(to: FMASK_ompkernel[:6])
+    map(to: FMASK_ompkernel[:12])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *dFdr = &data0[3*n_op];
-    const double *dFds = &data1[3*n_op];
-    const double *dGdr = &data2[3*n_op];
-    const double *dGds = &data3[3*n_op];
-    const double *rx = &data4[3*n_op];
-    const double *ry = &data5[3*n_op];
-    const double *sx = &data6[3*n_op];
-    const double *sy = &data7[3*n_op];
-    const double *q = &data8[3*n_op];
-    double *exQ = &data9[6*n_op];
-    const double *u = &data10[3*n_op];
-    const double *v = &data11[3*n_op];
-    const double *fscale = &data12[6*n_op];
-    const double *nx = &data13[6*n_op];
-    const double *ny = &data14[6*n_op];
-    double *nFlux = &data15[6*n_op];
-    double *output = &data16[3*n_op];
+    const double *dFdr = &data0[10*n_op];
+    const double *dFds = &data1[10*n_op];
+    const double *dGdr = &data2[10*n_op];
+    const double *dGds = &data3[10*n_op];
+    const double *rx = &data4[10*n_op];
+    const double *ry = &data5[10*n_op];
+    const double *sx = &data6[10*n_op];
+    const double *sy = &data7[10*n_op];
+    const double *q = &data8[10*n_op];
+    double *exQ = &data9[12*n_op];
+    const double *u = &data10[10*n_op];
+    const double *v = &data11[10*n_op];
+    const double *fscale = &data12[12*n_op];
+    const double *nx = &data13[12*n_op];
+    const double *ny = &data14[12*n_op];
+    double *nFlux = &data15[12*n_op];
+    double *output = &data16[10*n_op];
 
     //inline function
     
-    for(int i = 0; i < 3; i++) {
+    for(int i = 0; i < 10; i++) {
       output[i] = rx[i] * dFdr[i] + sx[i] * dFds[i] + ry[i] * dGdr[i] + sy[i] * dGds[i];
     }
 
-    double mQ[3 * 2];
-    double mF[3 * 2];
-    double mG[3 * 2];
-    for(int i = 0; i < 3 * 2; i++) {
+    double mQ[3 * 4];
+    double mF[3 * 4];
+    double mG[3 * 4];
+    for(int i = 0; i < 3 * 4; i++) {
       int ind = FMASK_ompkernel[i];
       mQ[i] = q[ind];
       mF[i] = u[ind] * q[ind];
       mG[i] = v[ind] * q[ind];
     }
 
-    double pF[3 * 2];
-    double pG[3 * 2];
-    for(int i = 0; i < 3 * 2; i++) {
+    double pF[3 * 4];
+    double pG[3 * 4];
+    for(int i = 0; i < 3 * 4; i++) {
       int ind = FMASK_ompkernel[i];
       pF[i]  = u[ind] * exQ[i];
       pG[i]  = v[ind] * exQ[i];
     }
 
-    for(int i = 0; i < 3 * 2; i++) {
+    for(int i = 0; i < 3 * 4; i++) {
       int ind = FMASK_ompkernel[i];
 
 
@@ -98,7 +98,7 @@ void ls_advec_rhs_omp4_kernel(
       nFlux[i] *= 0.5 * fscale[i];
     }
 
-    for(int i = 0; i < 3 * 2; i++) {
+    for(int i = 0; i < 3 * 4; i++) {
       exQ[i] = 0.0;
     }
     //end inline func

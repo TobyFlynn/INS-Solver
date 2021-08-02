@@ -61,13 +61,13 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   // Create flow solution node
   cg_sol_write(file, baseIndex, zoneIndex, flowName.c_str(), CGNS_ENUMV(CellCenter), &flowIndex);
 
-  cgsize_t numCells = mesh->cells->size * 1;
-  cgsize_t minCell = 1 * get_global_start_index(mesh->cells) + 1;
+  cgsize_t numCells = mesh->cells->size * 9;
+  cgsize_t minCell = 9 * get_global_start_index(mesh->cells) + 1;
   cgsize_t maxCell = minCell + numCells - 1;
 
   op_par_loop_save_values("save_values",mesh->cells,
-              op_arg_dat(data->Q[ind][0],-1,OP_ID,3,"double",OP_READ),
-              op_arg_dat(data->save_temp,-1,OP_ID,1,"double",OP_WRITE));
+              op_arg_dat(data->Q[ind][0],-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->save_temp,-1,OP_ID,9,"double",OP_WRITE));
 
   int velXIndex;
   double *velX_data = getOP2Array(data->save_temp);
@@ -76,8 +76,8 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   free(velX_data);
 
   op_par_loop_save_values("save_values",mesh->cells,
-              op_arg_dat(data->Q[ind][1],-1,OP_ID,3,"double",OP_READ),
-              op_arg_dat(data->save_temp,-1,OP_ID,1,"double",OP_WRITE));
+              op_arg_dat(data->Q[ind][1],-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->save_temp,-1,OP_ID,9,"double",OP_WRITE));
 
   int velYIndex;
   double *velY_data = getOP2Array(data->save_temp);
@@ -86,8 +86,8 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   free(velY_data);
 
   op_par_loop_save_values("save_values",mesh->cells,
-              op_arg_dat(data->p,-1,OP_ID,3,"double",OP_READ),
-              op_arg_dat(data->save_temp,-1,OP_ID,1,"double",OP_WRITE));
+              op_arg_dat(data->p,-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->save_temp,-1,OP_ID,9,"double",OP_WRITE));
 
   int pIndex;
   double *p_data = getOP2Array(data->save_temp);
@@ -96,8 +96,8 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   free(p_data);
 
   op_par_loop_save_values("save_values",mesh->cells,
-              op_arg_dat(data->vorticity,-1,OP_ID,3,"double",OP_READ),
-              op_arg_dat(data->save_temp,-1,OP_ID,1,"double",OP_WRITE));
+              op_arg_dat(data->vorticity,-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->save_temp,-1,OP_ID,9,"double",OP_WRITE));
 
   int vortIndex;
   double *vort_data = getOP2Array(data->save_temp);
@@ -108,8 +108,8 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   int sIndex;
   if(ls) {
     op_par_loop_save_values("save_values",mesh->cells,
-                op_arg_dat(ls->s,-1,OP_ID,3,"double",OP_READ),
-                op_arg_dat(data->save_temp,-1,OP_ID,1,"double",OP_WRITE));
+                op_arg_dat(ls->s,-1,OP_ID,10,"double",OP_READ),
+                op_arg_dat(data->save_temp,-1,OP_ID,9,"double",OP_WRITE));
 
     double *s_data = getOP2Array(data->save_temp);
     cgp_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Surface", &sIndex);
@@ -159,24 +159,24 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   double *y_g;
 
   if(rank == 0) {
-    x_g   = (double *)malloc(3 * mesh->numCells_g * sizeof(double));
-    y_g   = (double *)malloc(3 * mesh->numCells_g * sizeof(double));
+    x_g   = (double *)malloc(10 * mesh->numCells_g * sizeof(double));
+    y_g   = (double *)malloc(10 * mesh->numCells_g * sizeof(double));
   }
 
   op_arg args[] = {
-    op_arg_dat(mesh->x, -1, OP_ID, 3, "double", OP_READ),
-    op_arg_dat(mesh->y, -1, OP_ID, 3, "double", OP_READ)
+    op_arg_dat(mesh->x, -1, OP_ID, 10, "double", OP_READ),
+    op_arg_dat(mesh->y, -1, OP_ID, 10, "double", OP_READ)
   };
   op_mpi_halo_exchanges(mesh->cells, 2, args);
 
-  gather_op2_double_array(x_g, (double *)mesh->x->data, mesh->cells->size, 3, comm_size, rank);
-  gather_op2_double_array(y_g, (double *)mesh->y->data, mesh->cells->size, 3, comm_size, rank);
+  gather_op2_double_array(x_g, (double *)mesh->x->data, mesh->cells->size, 10, comm_size, rank);
+  gather_op2_double_array(y_g, (double *)mesh->y->data, mesh->cells->size, 10, comm_size, rank);
 
   op_mpi_set_dirtybit(2, args);
 
   vector<double> x_v;
   vector<double> y_v;
-  vector<cgsize_t> cells(3 * mesh->numCells_g * 1);
+  vector<cgsize_t> cells(3 * mesh->numCells_g * 9);
 
   if(rank == 0) {
     if(DG_ORDER == 4) {
@@ -204,8 +204,8 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
 
   int sizes_i[3];
   if(rank == 0) {
-    sizes_i[0] = 3 * mesh->numCells_g;
-    sizes_i[1] = mesh->numCells_g * 1;
+    sizes_i[0] = 10 * mesh->numCells_g;
+    sizes_i[1] = mesh->numCells_g * 9;
     sizes_i[2] = 0;
   }
   MPI_Bcast(sizes_i, 3, MPI_INT, 0, MPI_COMM_WORLD);
@@ -249,13 +249,13 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   // Create flow solution node
   cg_sol_write(file, baseIndex, zoneIndex, "FlowSolution0", CGNS_ENUMV(CellCenter), &flowIndex);
 
-  cgsize_t numCells = mesh->cells->size * 1;
-  cgsize_t minCell  = 1 * get_global_start_index(mesh->cells) + 1;
+  cgsize_t numCells = mesh->cells->size * 9;
+  cgsize_t minCell  = 9 * get_global_start_index(mesh->cells) + 1;
   cgsize_t maxCell  = minCell + numCells - 1;
 
   op_par_loop_save_values("save_values",mesh->cells,
-              op_arg_dat(data->Q[0][0],-1,OP_ID,3,"double",OP_READ),
-              op_arg_dat(data->save_temp,-1,OP_ID,1,"double",OP_WRITE));
+              op_arg_dat(data->Q[0][0],-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->save_temp,-1,OP_ID,9,"double",OP_WRITE));
 
   int velXIndex;
   double *velX_data = getOP2Array(data->save_temp);
@@ -264,8 +264,8 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   free(velX_data);
 
   op_par_loop_save_values("save_values",mesh->cells,
-              op_arg_dat(data->Q[0][1],-1,OP_ID,3,"double",OP_READ),
-              op_arg_dat(data->save_temp,-1,OP_ID,1,"double",OP_WRITE));
+              op_arg_dat(data->Q[0][1],-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->save_temp,-1,OP_ID,9,"double",OP_WRITE));
 
   int velYIndex;
   double *velY_data = getOP2Array(data->save_temp);
@@ -274,8 +274,8 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   free(velY_data);
 
   op_par_loop_save_values("save_values",mesh->cells,
-              op_arg_dat(data->p,-1,OP_ID,3,"double",OP_READ),
-              op_arg_dat(data->save_temp,-1,OP_ID,1,"double",OP_WRITE));
+              op_arg_dat(data->p,-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->save_temp,-1,OP_ID,9,"double",OP_WRITE));
 
   int pIndex;
   double *p_data = getOP2Array(data->save_temp);
@@ -284,8 +284,8 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   free(p_data);
 
   op_par_loop_save_values("save_values",mesh->cells,
-              op_arg_dat(data->vorticity,-1,OP_ID,3,"double",OP_READ),
-              op_arg_dat(data->save_temp,-1,OP_ID,1,"double",OP_WRITE));
+              op_arg_dat(data->vorticity,-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->save_temp,-1,OP_ID,9,"double",OP_WRITE));
 
   int vortIndex;
   double *vort_data = getOP2Array(data->save_temp);
@@ -296,8 +296,8 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   int sIndex;
   if(ls) {
     op_par_loop_save_values("save_values",mesh->cells,
-                op_arg_dat(ls->step_s,-1,OP_ID,3,"double",OP_READ),
-                op_arg_dat(data->save_temp,-1,OP_ID,1,"double",OP_WRITE));
+                op_arg_dat(ls->step_s,-1,OP_ID,10,"double",OP_READ),
+                op_arg_dat(data->save_temp,-1,OP_ID,9,"double",OP_WRITE));
 
     double *s_data = getOP2Array(data->save_temp);
     cgp_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Surface", &sIndex);
@@ -406,13 +406,13 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
   // Get local data (in same format that was originally passed to OP2)
-  double *Ux   = (double *)malloc(3 * mesh->numCells * sizeof(double));
-  double *Uy   = (double *)malloc(3 * mesh->numCells * sizeof(double));
-  double *pr   = (double *)malloc(3 * mesh->numCells * sizeof(double));
-  double *vort = (double *)malloc(3 * mesh->numCells * sizeof(double));
-  double *x    = (double *)malloc(3 * mesh->numCells * sizeof(double));
-  double *y    = (double *)malloc(3 * mesh->numCells * sizeof(double));
-  double *s    = (double *)calloc(3 * mesh->numCells, sizeof(double));
+  double *Ux   = (double *)malloc(10 * mesh->numCells * sizeof(double));
+  double *Uy   = (double *)malloc(10 * mesh->numCells * sizeof(double));
+  double *pr   = (double *)malloc(10 * mesh->numCells * sizeof(double));
+  double *vort = (double *)malloc(10 * mesh->numCells * sizeof(double));
+  double *x    = (double *)malloc(10 * mesh->numCells * sizeof(double));
+  double *y    = (double *)malloc(10 * mesh->numCells * sizeof(double));
+  double *s    = (double *)calloc(10 * mesh->numCells, sizeof(double));
 
   op_fetch_data(data->Q[ind][0], Ux);
   op_fetch_data(data->Q[ind][1], Uy);
@@ -430,21 +430,21 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
-  double *Ux_g   = (double *)malloc(3 * mesh->numCells_g * sizeof(double));
-  double *Uy_g   = (double *)malloc(3 * mesh->numCells_g * sizeof(double));
-  double *pr_g   = (double *)malloc(3 * mesh->numCells_g * sizeof(double));
-  double *vort_g = (double *)malloc(3 * mesh->numCells_g * sizeof(double));
-  double *x_g    = (double *)malloc(3 * mesh->numCells_g * sizeof(double));
-  double *y_g    = (double *)malloc(3 * mesh->numCells_g * sizeof(double));
-  double *s_g    = (double *)malloc(3 * mesh->numCells_g * sizeof(double));
+  double *Ux_g   = (double *)malloc(10 * mesh->numCells_g * sizeof(double));
+  double *Uy_g   = (double *)malloc(10 * mesh->numCells_g * sizeof(double));
+  double *pr_g   = (double *)malloc(10 * mesh->numCells_g * sizeof(double));
+  double *vort_g = (double *)malloc(10 * mesh->numCells_g * sizeof(double));
+  double *x_g    = (double *)malloc(10 * mesh->numCells_g * sizeof(double));
+  double *y_g    = (double *)malloc(10 * mesh->numCells_g * sizeof(double));
+  double *s_g    = (double *)malloc(10 * mesh->numCells_g * sizeof(double));
 
-  gather_double_array(Ux_g, Ux, comm_size, mesh->numCells_g, mesh->numCells, 3);
-  gather_double_array(Uy_g, Uy, comm_size, mesh->numCells_g, mesh->numCells, 3);
-  gather_double_array(pr_g, pr, comm_size, mesh->numCells_g, mesh->numCells, 3);
-  gather_double_array(vort_g, vort, comm_size, mesh->numCells_g, mesh->numCells, 3);
-  gather_double_array(x_g, x, comm_size, mesh->numCells_g, mesh->numCells, 3);
-  gather_double_array(y_g, y, comm_size, mesh->numCells_g, mesh->numCells, 3);
-  gather_double_array(s_g, s, comm_size, mesh->numCells_g, mesh->numCells, 3);
+  gather_double_array(Ux_g, Ux, comm_size, mesh->numCells_g, mesh->numCells, 10);
+  gather_double_array(Uy_g, Uy, comm_size, mesh->numCells_g, mesh->numCells, 10);
+  gather_double_array(pr_g, pr, comm_size, mesh->numCells_g, mesh->numCells, 10);
+  gather_double_array(vort_g, vort, comm_size, mesh->numCells_g, mesh->numCells, 10);
+  gather_double_array(x_g, x, comm_size, mesh->numCells_g, mesh->numCells, 10);
+  gather_double_array(y_g, y, comm_size, mesh->numCells_g, mesh->numCells, 10);
+  gather_double_array(s_g, s, comm_size, mesh->numCells_g, mesh->numCells, 10);
 
   int file;
   if (cgp_open(filename.c_str(), CG_MODE_WRITE, &file)) {
@@ -458,7 +458,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   vector<double> pr_v;
   vector<double> vort_v;
   vector<double> s_v;
-  vector<cgsize_t> cells(3 * mesh->numCells_g * 1);
+  vector<cgsize_t> cells(3 * mesh->numCells_g * 9);
 
   if(rank == 0) {
     if(DG_ORDER == 4) {
@@ -491,7 +491,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   int sizes_i[3];
   if(rank == 0) {
     sizes_i[0] = x_v.size();
-    sizes_i[1] = mesh->numCells_g * 1;
+    sizes_i[1] = mesh->numCells_g * 9;
     sizes_i[2] = 0;
   }
   MPI_Bcast(sizes_i, 3, MPI_INT, 0, MPI_COMM_WORLD);
