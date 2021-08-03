@@ -39,8 +39,7 @@ void advection_intermediate_vel_omp4_kernel(
   double arg3_l = *arg3;
   double arg4_l = *arg4;
   double arg5_l = *arg5;
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size],data15[0:dat15size]) \
-    map(to: froude_ompkernel)
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size],data15[0:dat15size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
@@ -62,7 +61,7 @@ void advection_intermediate_vel_omp4_kernel(
     double *q1T = &data15[10*n_op];
 
     //inline function
-
+    
     for(int i = 0; i < 10; i++) {
       q0T[i] = *a0 * q0[i] + *a1 * q0Old[i] + *dt * (*b0 * N0[i] + *b1 * N0Old[i]);
       q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * N1[i] + *b1 * N1Old[i]);
