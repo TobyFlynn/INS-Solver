@@ -43,9 +43,9 @@ protected:
   bool matCreated = false;
 
 private:
-  void create_vec(Vec *v, int size = 15);
+  void create_vec(Vec *v, int size);
   void destroy_vec(Vec *v);
-  void load_vec(Vec *v, op_dat v_dat, int size = 15);
+  void load_vec(Vec *v, op_dat v_dat, int size);
   void store_vec(Vec *v, op_dat v_dat);
   void setGlbInd();
   void copy_vec_to_dat(op_dat dat, const double *dat_d);
@@ -60,10 +60,9 @@ private:
 
   Vec b, x;
 
-  double *u_data, *rhs_data, *h_data, *op1_data, *op2_data[2], *op_bc_data;
-  double *factor_data, *gFactor_data, *cFactor_data, *mmFactor_data;
+  double *h_data, *op1_data, *op2_data[2], *op_bc_data;
+  double *cFactor_data, *tmp_data, *pre_data;
   int *glb_ind_data, *glb_indL_data, *glb_indR_data, *glb_indBC_data;
-  double *in_data, *out_data, *tmp_data, *pre_data;
 };
 
 class PressureSolve : public PoissonSolve {

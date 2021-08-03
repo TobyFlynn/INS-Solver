@@ -18,35 +18,35 @@ inline void poisson_op5(const int *edgeType, const int *edgeNum,
     gVM = gFInterp2_g;
   }
 
-  for(int i = 0; i < 7 * 15; i++) {
+  for(int i = 0; i < DG_GF_NP * DG_NP; i++) {
     op[i] = 0.0;
   }
 
   if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2) {
     // First edge term
     // gVM'*gw*rho^-1*gDnM
-    for(int i = 0; i < 7 * 15; i++) {
-      int indT = (i % 7) * 15 + i / 7;
-      int indSJ = *edgeNum * 7 + (i % 7);
-      op[i] = gVM[indT] * gaussW_g[i % 7] * sJ[indSJ];
+    for(int i = 0; i < DG_GF_NP * DG_NP; i++) {
+      int indT = (i % DG_GF_NP) * DG_NP + i / DG_GF_NP;
+      int indSJ = *edgeNum * DG_GF_NP + (i % DG_GF_NP);
+      op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
     }
   } else {
     // Calculate penalty parameter
-    double tauA[7];
-    for(int i = 0; i < 7; i++) {
-      int ind = *edgeNum  * 7 + i;
+    double tauA[DG_GF_NP];
+    for(int i = 0; i < DG_GF_NP; i++) {
+      int ind = *edgeNum  * DG_GF_NP + i;
       tauA[i] = 100 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
       // tauA[i] = 100 * 0.5 * 5 * 6 * (*h);
     }
     // First edge term
     // gVM'*gw*rho^-1*gDnM
-    for(int i = 0; i < 7 * 15; i++) {
-      int indT = (i % 7) * 15 + i / 7;
-      int indSJ = *edgeNum * 7 + (i % 7);
-      int indFactor = (i / 7);
+    for(int i = 0; i < DG_GF_NP * DG_NP; i++) {
+      int indT = (i % DG_GF_NP) * DG_NP + i / DG_GF_NP;
+      int indSJ = *edgeNum * DG_GF_NP + (i % DG_GF_NP);
+      int indFactor = (i / DG_GF_NP);
 
-      op[i] = gVM[indT] * gaussW_g[i % 7] * sJ[indSJ] * tauA[i % 7]
-              - factor[indFactor] * mD[indT] * gaussW_g[i % 7] * sJ[indSJ];
+      op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ] * tauA[i % DG_GF_NP]
+              - factor[indFactor] * mD[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
     }
   }
 }

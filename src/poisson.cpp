@@ -6,6 +6,7 @@
 
 #include "dg_constants.h"
 #include "dg_blas_calls.h"
+#include "dg_compiler_defs.h"
 
 extern DGConstants *constants;
 
@@ -16,18 +17,12 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
   data = d;
   precondition = p;
 
-  u_data      = (double *)calloc(15 * mesh->numCells, sizeof(double));
-  rhs_data    = (double *)calloc(15 * mesh->numCells, sizeof(double));
-  h_data      = (double *)calloc(mesh->numCells, sizeof(double));
-  op1_data    = (double *)calloc(15 * 15 * mesh->numCells, sizeof(double));
-  op2_data[0] = (double *)calloc(15 * 15 * mesh->numEdges, sizeof(double));
-  op2_data[1] = (double *)calloc(15 * 15 * mesh->numEdges, sizeof(double));
-  op_bc_data  = (double *)calloc(7 * 15 * mesh->numBoundaryEdges, sizeof(double));
-
-  factor_data   = (double *)calloc(15 * mesh->numCells, sizeof(double));
-  gFactor_data  = (double *)calloc(21 * mesh->numCells, sizeof(double));
-  cFactor_data  = (double *)calloc(46 * mesh->numCells, sizeof(double));
-  mmFactor_data = (double *)calloc(15 * mesh->numCells, sizeof(double));
+  h_data       = (double *)calloc(mesh->numCells, sizeof(double));
+  op1_data     = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
+  op2_data[0]  = (double *)calloc(DG_NP * DG_NP * mesh->numEdges, sizeof(double));
+  op2_data[1]  = (double *)calloc(DG_NP * DG_NP * mesh->numEdges, sizeof(double));
+  op_bc_data   = (double *)calloc(DG_GF_NP * DG_NP * mesh->numBoundaryEdges, sizeof(double));
+  cFactor_data = (double *)calloc(DG_CUB_NP * mesh->numCells, sizeof(double));
 
   if(precondition) {
     glb_ind_data   = (int *)calloc(mesh->numCells, sizeof(int));
@@ -36,23 +31,15 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
     glb_indBC_data = (int *)calloc(mesh->numBoundaryEdges, sizeof(int));
   }
 
-  in_data  = (double *)calloc(15 * mesh->numCells, sizeof(double));
-  out_data = (double *)calloc(15 * mesh->numCells, sizeof(double));
-  tmp_data = (double *)calloc(15 * 15 * mesh->numCells, sizeof(double));
-  pre_data = (double *)calloc(15 * 15 * mesh->numCells, sizeof(double));
+  tmp_data = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
+  pre_data = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
 
-  u      = op_decl_dat(mesh->cells, 15, "double", u_data, "poisson_u");
-  rhs    = op_decl_dat(mesh->cells, 15, "double", rhs_data, "poisson_rhs");
-  h      = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
-  op1    = op_decl_dat(mesh->cells, 15 * 15, "double", op1_data, "poisson_op1");
-  op2[0] = op_decl_dat(mesh->edges, 15 * 15, "double", op2_data[0], "poisson_op20");
-  op2[1] = op_decl_dat(mesh->edges, 15 * 15, "double", op2_data[1], "poisson_op21");
-  op_bc  = op_decl_dat(mesh->bedges, 7 * 15, "double", op_bc_data, "poisson_op_bc");
-
-  factor   = op_decl_dat(mesh->cells, 15, "double", factor_data, "poisson_factor");
-  gFactor  = op_decl_dat(mesh->cells, 21, "double", gFactor_data, "poisson_gFactor");
-  cFactor  = op_decl_dat(mesh->cells, 46, "double", cFactor_data, "poisson_cFactor");
-  mmFactor = op_decl_dat(mesh->cells, 15, "double", mmFactor_data, "poisson_mmFactor");
+  h       = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
+  op1     = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", op1_data, "poisson_op1");
+  op2[0]  = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", op2_data[0], "poisson_op20");
+  op2[1]  = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", op2_data[1], "poisson_op21");
+  op_bc   = op_decl_dat(mesh->bedges, DG_GF_NP * DG_NP, "double", op_bc_data, "poisson_op_bc");
+  cFactor = op_decl_dat(mesh->cells, DG_CUB_NP, "double", cFactor_data, "poisson_cFactor");
 
   if(precondition) {
     glb_ind   = op_decl_dat(mesh->cells, 1, "int", glb_ind_data, "poisson_glb_ind");
@@ -61,25 +48,17 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
     glb_indBC = op_decl_dat(mesh->bedges, 1, "int", glb_indBC_data, "poisson_glb_indBC");
   }
 
-  in  = op_decl_dat(mesh->cells, 15, "double", in_data, "poisson_in");
-  out = op_decl_dat(mesh->cells, 15, "double", out_data, "poisson_out");
-  tmp = op_decl_dat(mesh->cells, 15 * 15, "double", tmp_data, "poisson_tmp");
-  pre = op_decl_dat(mesh->cells, 15 * 15, "double", pre_data, "poisson_pre");
+  tmp = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_data, "poisson_tmp");
+  pre = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", pre_data, "poisson_pre");
 }
 
 PoissonSolve::~PoissonSolve() {
-  free(u_data);
-  free(rhs_data);
   free(h_data);
   free(op1_data);
   free(op2_data[0]);
   free(op2_data[1]);
   free(op_bc_data);
-
-  free(factor_data);
-  free(gFactor_data);
   free(cFactor_data);
-  free(mmFactor_data);
 
   if(precondition) {
     free(glb_ind_data);
@@ -88,8 +67,6 @@ PoissonSolve::~PoissonSolve() {
     free(glb_indBC_data);
   }
 
-  free(in_data);
-  free(out_data);
   free(tmp_data);
   free(pre_data);
 
@@ -124,8 +101,17 @@ double PoissonSolve::getAverageConvergeIter() {
 }
 
 void PoissonSolve::init() {
-  create_vec(&b);
-  create_vec(&x);
+  u   = data->tmp_dg_np[4];
+  rhs = data->tmp_dg_np[5];
+  in  = data->tmp_dg_np[6];
+  out = data->tmp_dg_np[7];
+
+  factor   = data->tmp_dg_np[8];
+  mmFactor = data->tmp_dg_np[9];
+  gFactor  = data->tmp_dg_g_np[3];
+
+  create_vec(&b, DG_NP);
+  create_vec(&x, DG_NP);
   if(precondition) {
     setGlbInd();
     op_par_loop(glb_ind_kernel, "glb_ind_kernel", mesh->edges,
@@ -157,13 +143,13 @@ void PoissonSolve::init() {
 
 bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
-              op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(op_bc, -1, OP_ID, 7 * 15, "double", OP_READ),
-              op_arg_dat(bc_dat, 0, mesh->bedge2cells, 21, "double", OP_READ),
-              op_arg_dat(b_dat, 0, mesh->bedge2cells, 15, "double", OP_INC));
+              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(bc_dat, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(b_dat,  0, mesh->bedge2cells, DG_NP, "double", OP_INC));
 
-  load_vec(&b, b_dat);
-  load_vec(&x, x_dat);
+  load_vec(&b, b_dat, DG_NP);
+  load_vec(&x, x_dat, DG_NP);
 
   KSPSolve(ksp, b, x);
   int numIt;
@@ -195,17 +181,17 @@ void PoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
   copy_vec_to_dat(u, u_d);
 
   op_par_loop(poisson_cells, "poisson_cells", mesh->cells,
-              op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
-              op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(u,   -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(rhs, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   op_par_loop(poisson_edges, "poisson_edges", mesh->edges,
-              op_arg_dat(u, 0, mesh->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(op2[0], -1, OP_ID, 15 * 15, "double", OP_READ),
-              op_arg_dat(rhs, 0, mesh->edge2cells, 15, "double", OP_INC),
-              op_arg_dat(u, 1, mesh->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_READ),
-              op_arg_dat(rhs, 1, mesh->edge2cells, 15, "double", OP_INC));
+              op_arg_dat(u,       0, mesh->edge2cells, DG_NP, "double", OP_READ),
+              op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(rhs,     0, mesh->edge2cells, DG_NP, "double", OP_INC),
+              op_arg_dat(u,       1, mesh->edge2cells, DG_NP, "double", OP_READ),
+              op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(rhs,     1, mesh->edge2cells, DG_NP, "double", OP_INC));
 
   copy_dat_to_vec(rhs, rhs_d);
 }
@@ -214,54 +200,54 @@ void PoissonSolve::precond(const double *in_d, double *out_d) {
   copy_vec_to_dat(in, in_d);
 
   op_par_loop(poisson_pre, "poisson_pre", mesh->cells,
-              op_arg_dat(in, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(pre, -1, OP_ID, 15 * 15, "double", OP_READ),
-              op_arg_dat(out, -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(in,  -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(pre, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(out, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   copy_dat_to_vec(out, out_d);
 }
 
 void PoissonSolve::set_op() {
   op_par_loop(poisson_op1, "poisson_op1", mesh->cells,
-              op_arg_dat(mesh->cubature->J,  -1, OP_ID, 46, "double", OP_READ),
-              op_arg_dat(data->Dx, -1, OP_ID, 46 * 15, "double", OP_READ),
-              op_arg_dat(data->Dy, -1, OP_ID, 46 * 15, "double", OP_READ),
-              op_arg_dat(cFactor, -1, OP_ID, 46, "double", OP_READ),
-              op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_WRITE));
+              op_arg_dat(mesh->cubature->J, -1, OP_ID, DG_CUB_NP, "double", OP_READ),
+              op_arg_dat(data->Dx, -1, OP_ID, DG_CUB_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->Dy, -1, OP_ID, DG_CUB_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(cFactor,  -1, OP_ID, DG_CUB_NP, "double", OP_READ),
+              op_arg_dat(op1,      -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE));
 
   op_par_loop(poisson_op2, "poisson_op2", mesh->edges,
-              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(data->mD[0], 0, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->mD[0], 1, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->mD[1], 0, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->mD[1], 1, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->mD[2], 0, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->mD[2], 1, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->pD[0], 0, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->pD[0], 1, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->pD[1], 0, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->pD[1], 1, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->pD[2], 0, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->pD[2], 1, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->pDy[0], 0, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->pDy[0], 1, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->pDy[1], 0, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->pDy[1], 1, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->pDy[2], 0, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->pDy[2], 1, mesh->edge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, 0, mesh->edge2cells, 21, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, 1, mesh->edge2cells, 21, "double", OP_READ),
+              op_arg_dat(mesh->edgeNum,  -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse,  -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(data->mD[0],     0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->mD[0],     1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->mD[1],     0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->mD[1],     1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->mD[2],     0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->mD[2],     1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->pD[0],     0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->pD[0],     1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->pD[1],     0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->pD[1],     1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->pD[2],     0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->pD[2],     1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->pDy[0],    0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->pDy[0],    1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->pDy[1],    0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->pDy[1],    1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->pDy[2],    0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->pDy[2],    1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->sJ, 0, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->sJ, 1, mesh->edge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(h, 0, mesh->edge2cells, 1, "double", OP_READ),
               op_arg_dat(h, 1, mesh->edge2cells, 1, "double", OP_READ),
-              op_arg_dat(gFactor, 0, mesh->edge2cells, 21, "double", OP_READ),
-              op_arg_dat(gFactor, 1, mesh->edge2cells, 21, "double", OP_READ),
-              op_arg_dat(factor, 0, mesh->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(factor, 1, mesh->edge2cells, 15, "double", OP_READ),
-              op_arg_dat(op1, 0, mesh->edge2cells, 15 * 15, "double", OP_INC),
-              op_arg_dat(op1, 1, mesh->edge2cells, 15 * 15, "double", OP_INC),
-              op_arg_dat(op2[0], -1, OP_ID, 15 * 15, "double", OP_WRITE),
-              op_arg_dat(op2[1], -1, OP_ID, 15 * 15, "double", OP_WRITE));
+              op_arg_dat(gFactor, 0, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(gFactor, 1, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(factor,  0, mesh->edge2cells, DG_NP, "double", OP_READ),
+              op_arg_dat(factor,  1, mesh->edge2cells, DG_NP, "double", OP_READ),
+              op_arg_dat(op1,     0, mesh->edge2cells, DG_NP * DG_NP, "double", OP_INC),
+              op_arg_dat(op1,     1, mesh->edge2cells, DG_NP * DG_NP, "double", OP_INC),
+              op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE),
+              op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE));
 
   op_par_loop(poisson_op3, "poisson_op3", mesh->bedges,
               op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
@@ -269,21 +255,21 @@ void PoissonSolve::set_op() {
               op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),
               op_arg_gbl(&dirichlet[1], 1, "int", OP_READ),
               op_arg_gbl(&dirichlet[2], 1, "int", OP_READ),
-              op_arg_dat(data->mD[0], 0, mesh->bedge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->mD[1], 0, mesh->bedge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->mD[2], 0, mesh->bedge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, 21, "double", OP_READ),
-              op_arg_dat(h, 0, mesh->bedge2cells, 1, "double", OP_READ),
-              op_arg_dat(gFactor, 0, mesh->bedge2cells, 21, "double", OP_READ),
-              op_arg_dat(factor, 0, mesh->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(op1, 0, mesh->bedge2cells, 15 * 15, "double", OP_INC));
+              op_arg_dat(data->mD[0],     0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->mD[1],     0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->mD[2],     0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(h,               0, mesh->bedge2cells, 1, "double", OP_READ),
+              op_arg_dat(gFactor,         0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(factor,          0, mesh->bedge2cells, DG_NP, "double", OP_READ),
+              op_arg_dat(op1,             0, mesh->bedge2cells, DG_NP * DG_NP, "double", OP_INC));
 
   if(massMat) {
     op_par_loop(poisson_op4, "poisson_op4", mesh->cells,
-                op_arg_dat(mesh->cubature->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
-                op_arg_dat(mmFactor, -1, OP_ID, 15, "double", OP_READ),
-                op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_INC),
-                op_arg_dat(tmp, -1, OP_ID, 15 * 15, "double", OP_WRITE));
+                op_arg_dat(mesh->cubature->mm, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+                op_arg_dat(mmFactor, -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(op1,      -1, OP_ID, DG_NP * DG_NP, "double", OP_INC),
+                op_arg_dat(tmp,      -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE));
 
     inv_blas(mesh, op1, pre);
   }
@@ -294,29 +280,30 @@ void PoissonSolve::set_op() {
               op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),
               op_arg_gbl(&dirichlet[1], 1, "int", OP_READ),
               op_arg_gbl(&dirichlet[2], 1, "int", OP_READ),
-              op_arg_dat(data->mD[0], 0, mesh->bedge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->mD[1], 0, mesh->bedge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(data->mD[2], 0, mesh->bedge2cells, 7 * 15, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, 21, "double", OP_READ),
-              op_arg_dat(h, 0, mesh->bedge2cells, 1, "double", OP_READ),
-              op_arg_dat(gFactor, 0, mesh->bedge2cells, 21, "double", OP_READ),
-              op_arg_dat(factor, 0, mesh->bedge2cells, 15, "double", OP_READ),
-              op_arg_dat(op_bc, -1, OP_ID, 7 * 15, "double", OP_WRITE));
+              op_arg_dat(data->mD[0],     0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->mD[1],     0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->mD[2],     0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(h,               0, mesh->bedge2cells, 1, "double", OP_READ),
+              op_arg_dat(gFactor,         0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(factor,          0, mesh->bedge2cells, DG_NP, "double", OP_READ),
+              op_arg_dat(op_bc,          -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
 }
 
 void PressureSolve::setup() {
   massMat = false;
 
   op_par_loop(pressure_solve_setup, "pressure_solve_setup", mesh->cells,
-              op_arg_dat(data->rho, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(factor, -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(factor,    -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(DGConstants::CUB_V), 15, factor, 0.0, cFactor);
-  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, factor, 0.0, gFactor);
+  op2_gemv(true, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_V), DG_NP, factor, 0.0, cFactor);
+  op2_gemv(true, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_NP, factor, 0.0, gFactor);
   set_op();
 
   if(precondition) {
     setMatrix();
+    KSPSetOperators(ksp, Amat, Amat);
 
     PC pc;
     KSPGetPC(ksp, &pc);
@@ -372,14 +359,14 @@ void ViscositySolve::setup(double mmConst) {
   }
 
   op_par_loop(viscosity_solve_setup, "viscosity_solve_setup", mesh->cells,
-              op_arg_dat(data->nu, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->rho, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_gbl(&mmConst, 1, "double", OP_READ),
-              op_arg_dat(factor, -1, OP_ID, 15, "double", OP_WRITE),
-              op_arg_dat(mmFactor, -1, OP_ID, 15, "double", OP_WRITE));
+              op_arg_dat(data->nu,  -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_gbl(&mmConst,   1, "double", OP_READ),
+              op_arg_dat(factor,    -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(mmFactor,  -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(true, 46, 15, 1.0, constants->get_ptr(DGConstants::CUB_V), 15, factor, 0.0, cFactor);
-  op2_gemv(true, 21, 15, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 15, factor, 0.0, gFactor);
+  op2_gemv(true, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_V), DG_NP, factor, 0.0, cFactor);
+  op2_gemv(true, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_NP, factor, 0.0, gFactor);
   set_op();
 
   if(precondition) {

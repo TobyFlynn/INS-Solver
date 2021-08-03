@@ -10,8 +10,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <algorithm>
-#include <map>
 #include <cmath>
 
 #include "mpi_helper_func.h"
@@ -20,225 +18,9 @@
 #include "ls.h"
 #include "dg_operators.h"
 #include "utils.h"
+#include "shared_save_functions.h"
 
 using namespace std;
-
-struct Point {
-  double x;
-  double y;
-  double u;
-  double v;
-  double pr;
-  double vort;
-  double s;
-  vector<int> cells;
-  vector<int> pointNum;
-  int counter;
-};
-
-struct cmpCoords {
-    bool operator()(const pair<double,double>& a, const pair<double,double>& b) const {
-        bool xCmp = abs(a.first - b.first) < 1e-8;
-        bool yCmp = abs(a.second - b.second) < 1e-8;
-        if(xCmp && yCmp) {
-          return false;
-        }
-        return a < b;
-    }
-};
-
-void get_data_vectors(vector<double> &x_v, vector<double> &y_v,
-                      vector<double> &u_v, vector<double> &v_v,
-                      vector<double> &pr_v, vector<double> &vort_v,
-                      vector<double> &s_v, vector<cgsize_t> &cells, double *Ux,
-                      double *Uy, double *pr, double *vort, double *x,
-                      double *y, double *s, int numCells) {
-  // Maps points to sub elements that they are part of.
-  // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
-  // -1 is just padding to get each line to 6
-  int cellMask[15][6] = {
-    {0, -1, -1, -1, -1, -1}, // Point 0 is part of sub element 0
-    {0, 1, 2, -1, -1, -1},    // 1
-    {2, 3, 4, -1, -1, -1},    // 2
-    {4, 5, 6, -1, -1, -1},    // 3
-    {6, -1, -1, -1, -1, -1}, // End of first point row
-    {0, 1, 7, -1, -1, -1},    // 5
-    {1, 2, 3, 9, 8, 7},       // 6
-    {3, 4, 5, 11, 10, 9},     // 7
-    {6, 5, 11, -1, -1, -1}, // End of second point row
-    {7, 8, 12, -1, -1, -1},   // 9
-    {8, 9, 10, 14, 13, 12},   // 10
-    {11, 10, 14, -1, -1, -1}, // End of third point row
-    {12, 13, 15, -1, -1, -1}, // 12
-    {14, 13, 15, -1, -1, -1}, // End of fourth point row
-    {15, -1, -1, -1, -1, -1}  // 14
-  };
-
-  int pointNum[15][6] = {
-    {0, -1, -1, -1, -1, -1}, // Point 0 is the first point of sub element 0
-    {1, 0, 0, -1, -1, -1},  // 1
-    {1, 0, 0, -1, -1, -1},  // 2
-    {1, 0, 0, -1, -1, -1},  // 3
-    {1, -1, -1, -1, -1, -1}, // End of first point row
-    {2, 2, 0, -1, -1, -1},  // 5
-    {1, 2, 2, 0, 0, 1},     // 6
-    {1, 2, 2, 0, 0, 1},     // 7
-    {2, 1, 1, -1, -1, -1}, // End of second point row
-    {2, 2, 0, -1, -1, -1},  // 9
-    {1, 2, 2, 0, 0, 1},     // 10
-    {2, 1, 1, -1, -1, -1}, // End of third point row
-    {2, 2, 0, -1, -1, -1},  // 12
-    {2, 1, 1, -1, -1, -1}, // End of fourth point row
-    {2, -1, -1, -1, -1, -1} // 14
-  };
-
-  // 16 sub elements per original element
-  map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
-  for(int c = 0; c < numCells; c++) {
-    int ind = c * 15;
-    for(int p = 0; p < 15; p++) {
-      pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
-      unique_ptr<Point> point = make_unique<Point>();
-      auto res = pointMap.insert(make_pair(coords, move(point)));
-      if(res.second) {
-        res.first->second->x    = x[ind + p];
-        res.first->second->y    = y[ind + p];
-        res.first->second->u    = Ux[ind + p];
-        res.first->second->v    = Uy[ind + p];
-        res.first->second->pr   = pr[ind + p];
-        res.first->second->vort = vort[ind + p];
-        res.first->second->s    = s[ind + p];
-        for(int m = 0; m < 6; m++) {
-          if(cellMask[p][m] >= 0) {
-            res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
-            res.first->second->pointNum.push_back(pointNum[p][m]);
-          } else {
-            break;
-          }
-        }
-        res.first->second->counter = 1;
-      } else {
-        res.first->second->u    += Ux[ind + p];
-        res.first->second->v    += Uy[ind + p];
-        res.first->second->pr   += pr[ind + p];
-        res.first->second->vort += vort[ind + p];
-        res.first->second->s    += s[ind + p];
-        for(int m = 0; m < 6; m++) {
-          if(cellMask[p][m] >= 0) {
-            res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
-            res.first->second->pointNum.push_back(pointNum[p][m]);
-          } else {
-            break;
-          }
-        }
-        res.first->second->counter++;
-      }
-    }
-  }
-
-  int index = 0;
-
-  for(auto const &p : pointMap) {
-    x_v.push_back(p.second->x);
-    y_v.push_back(p.second->y);
-    u_v.push_back(p.second->u / p.second->counter);
-    v_v.push_back(p.second->v / p.second->counter);
-    pr_v.push_back(p.second->pr / p.second->counter);
-    vort_v.push_back(p.second->vort / p.second->counter);
-    s_v.push_back(p.second->s / p.second->counter);
-    for(int i = 0; i < p.second->cells.size(); i++) {
-      cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
-    }
-    index++;
-  }
-}
-
-void get_cells(vector<double> &x_v, vector<double> &y_v, vector<cgsize_t> &cells, double *x, double *y, int numCells) {
-  // Maps points to sub elements that they are part of.
-  // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
-  // -1 is just padding to get each line to 6
-  int cellMask[15][6] = {
-    {0, -1, -1, -1, -1, -1}, // Point 0 is part of sub element 0
-    {0, 1, 2, -1, -1, -1},    // 1
-    {2, 3, 4, -1, -1, -1},    // 2
-    {4, 5, 6, -1, -1, -1},    // 3
-    {6, -1, -1, -1, -1, -1}, // End of first point row
-    {0, 1, 7, -1, -1, -1},    // 5
-    {1, 2, 3, 9, 8, 7},       // 6
-    {3, 4, 5, 11, 10, 9},     // 7
-    {6, 5, 11, -1, -1, -1}, // End of second point row
-    {7, 8, 12, -1, -1, -1},   // 9
-    {8, 9, 10, 14, 13, 12},   // 10
-    {11, 10, 14, -1, -1, -1}, // End of third point row
-    {12, 13, 15, -1, -1, -1}, // 12
-    {14, 13, 15, -1, -1, -1}, // End of fourth point row
-    {15, -1, -1, -1, -1, -1}  // 14
-  };
-
-  int pointNum[15][6] = {
-    {0, -1, -1, -1, -1, -1}, // Point 0 is the first point of sub element 0
-    {1, 0, 0, -1, -1, -1},  // 1
-    {1, 0, 0, -1, -1, -1},  // 2
-    {1, 0, 0, -1, -1, -1},  // 3
-    {1, -1, -1, -1, -1, -1}, // End of first point row
-    {2, 2, 0, -1, -1, -1},  // 5
-    {1, 2, 2, 0, 0, 1},     // 6
-    {1, 2, 2, 0, 0, 1},     // 7
-    {2, 1, 1, -1, -1, -1}, // End of second point row
-    {2, 2, 0, -1, -1, -1},  // 9
-    {1, 2, 2, 0, 0, 1},     // 10
-    {2, 1, 1, -1, -1, -1}, // End of third point row
-    {2, 2, 0, -1, -1, -1},  // 12
-    {2, 1, 1, -1, -1, -1}, // End of fourth point row
-    {2, -1, -1, -1, -1, -1} // 14
-  };
-
-  // 16 sub elements per original element
-  map<pair<double,double>,unique_ptr<Point>, cmpCoords> pointMap;
-  for(int c = 0; c < numCells; c++) {
-    int ind = c * 15;
-    for(int p = 0; p < 15; p++) {
-      pair<double,double> coords = make_pair(x[ind + p], y[ind + p]);
-      unique_ptr<Point> point = make_unique<Point>();
-      auto res = pointMap.insert(make_pair(coords, move(point)));
-      if(res.second) {
-        res.first->second->x    = x[ind + p];
-        res.first->second->y    = y[ind + p];
-        for(int m = 0; m < 6; m++) {
-          if(cellMask[p][m] >= 0) {
-            res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
-            res.first->second->pointNum.push_back(pointNum[p][m]);
-          } else {
-            break;
-          }
-        }
-        res.first->second->counter = 1;
-      } else {
-        for(int m = 0; m < 6; m++) {
-          if(cellMask[p][m] >= 0) {
-            res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
-            res.first->second->pointNum.push_back(pointNum[p][m]);
-          } else {
-            break;
-          }
-        }
-        res.first->second->counter++;
-      }
-    }
-  }
-
-  int index = 0;
-
-  for(auto const &p : pointMap) {
-    x_v.push_back(p.second->x);
-    y_v.push_back(p.second->y);
-    for(int i = 0; i < p.second->cells.size(); i++) {
-      cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
-    }
-    index++;
-  }
-}
-
 
 void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int ind, LS *ls, int iter) {
   // Calculate vorticity
@@ -256,13 +38,13 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   // Create flow solution node
   cg_sol_write(file, baseIndex, zoneIndex, flowName.c_str(), CGNS_ENUMV(CellCenter), &flowIndex);
 
-  cgsize_t numCells = mesh->cells->size * 16;
-  cgsize_t minCell = 16 * get_global_start_index(mesh->cells) + 1;
+  cgsize_t numCells = mesh->cells->size * DG_SUB_CELLS;
+  cgsize_t minCell = DG_SUB_CELLS * get_global_start_index(mesh->cells) + 1;
   cgsize_t maxCell = minCell + numCells - 1;
 
   op_par_loop(save_values, "save_values", mesh->cells,
-              op_arg_dat(data->Q[ind][0], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+              op_arg_dat(data->Q[ind][0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
 
   int velXIndex;
   double *velX_data = getOP2Array(data->save_temp);
@@ -271,8 +53,8 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   free(velX_data);
 
   op_par_loop(save_values, "save_values", mesh->cells,
-              op_arg_dat(data->Q[ind][1], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+              op_arg_dat(data->Q[ind][1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
 
   int velYIndex;
   double *velY_data = getOP2Array(data->save_temp);
@@ -281,8 +63,8 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   free(velY_data);
 
   op_par_loop(save_values, "save_values", mesh->cells,
-              op_arg_dat(data->p, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+              op_arg_dat(data->p,         -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
 
   int pIndex;
   double *p_data = getOP2Array(data->save_temp);
@@ -291,8 +73,8 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   free(p_data);
 
   op_par_loop(save_values, "save_values", mesh->cells,
-              op_arg_dat(data->vorticity, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+              op_arg_dat(data->vorticity, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
 
   int vortIndex;
   double *vort_data = getOP2Array(data->save_temp);
@@ -303,8 +85,8 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   int sIndex;
   if(ls) {
     op_par_loop(save_values, "save_values", mesh->cells,
-                op_arg_dat(ls->s, -1, OP_ID, 15, "double", OP_READ),
-                op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+                op_arg_dat(ls->s,           -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
 
     double *s_data = getOP2Array(data->save_temp);
     cgp_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Surface", &sIndex);
@@ -354,27 +136,35 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   double *y_g;
 
   if(rank == 0) {
-    x_g   = (double *)malloc(15 * mesh->numCells_g * sizeof(double));
-    y_g   = (double *)malloc(15 * mesh->numCells_g * sizeof(double));
+    x_g   = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+    y_g   = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
   }
 
   op_arg args[] = {
-    op_arg_dat(mesh->x, -1, OP_ID, 15, "double", OP_READ),
-    op_arg_dat(mesh->y, -1, OP_ID, 15, "double", OP_READ)
+    op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ)
   };
   op_mpi_halo_exchanges(mesh->cells, 2, args);
 
-  gather_op2_double_array(x_g, (double *)mesh->x->data, mesh->cells->size, 15, comm_size, rank);
-  gather_op2_double_array(y_g, (double *)mesh->y->data, mesh->cells->size, 15, comm_size, rank);
+  gather_op2_double_array(x_g, (double *)mesh->x->data, mesh->cells->size, DG_NP, comm_size, rank);
+  gather_op2_double_array(y_g, (double *)mesh->y->data, mesh->cells->size, DG_NP, comm_size, rank);
 
   op_mpi_set_dirtybit(2, args);
 
   vector<double> x_v;
   vector<double> y_v;
-  vector<cgsize_t> cells(3 * mesh->numCells_g * 16);
+  vector<cgsize_t> cells(3 * mesh->numCells_g * DG_SUB_CELLS);
 
   if(rank == 0) {
-    get_cells(x_v, y_v, cells, x_g, y_g, mesh->numCells_g);
+    if(DG_ORDER == 4) {
+      get_cells_order_4(x_v, y_v, cells, x_g, y_g, mesh->numCells_g);
+    } else if(DG_ORDER == 3) {
+      get_cells_order_3(x_v, y_v, cells, x_g, y_g, mesh->numCells_g);
+    } else if(DG_ORDER == 2) {
+      get_cells_order_2(x_v, y_v, cells, x_g, y_g, mesh->numCells_g);
+    } else {
+      get_cells_order_1(x_v, y_v, cells, x_g, y_g, mesh->numCells_g);
+    }
   }
 
   int file;
@@ -391,8 +181,8 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
 
   int sizes_i[3];
   if(rank == 0) {
-    sizes_i[0] = 15 * mesh->numCells_g;
-    sizes_i[1] = mesh->numCells_g * 16;
+    sizes_i[0] = DG_NP * mesh->numCells_g;
+    sizes_i[1] = mesh->numCells_g * DG_SUB_CELLS;
     sizes_i[2] = 0;
   }
   MPI_Bcast(sizes_i, 3, MPI_INT, 0, MPI_COMM_WORLD);
@@ -436,13 +226,13 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   // Create flow solution node
   cg_sol_write(file, baseIndex, zoneIndex, "FlowSolution0", CGNS_ENUMV(CellCenter), &flowIndex);
 
-  cgsize_t numCells = mesh->cells->size * 16;
-  cgsize_t minCell = 16 * get_global_start_index(mesh->cells) + 1;
-  cgsize_t maxCell = minCell + numCells - 1;
+  cgsize_t numCells = mesh->cells->size * DG_SUB_CELLS;
+  cgsize_t minCell  = DG_SUB_CELLS * get_global_start_index(mesh->cells) + 1;
+  cgsize_t maxCell  = minCell + numCells - 1;
 
   op_par_loop(save_values, "save_values", mesh->cells,
-              op_arg_dat(data->Q[0][0], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+              op_arg_dat(data->Q[0][0],   -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
 
   int velXIndex;
   double *velX_data = getOP2Array(data->save_temp);
@@ -451,8 +241,8 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   free(velX_data);
 
   op_par_loop(save_values, "save_values", mesh->cells,
-              op_arg_dat(data->Q[0][1], -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+              op_arg_dat(data->Q[0][1],   -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
 
   int velYIndex;
   double *velY_data = getOP2Array(data->save_temp);
@@ -461,8 +251,8 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   free(velY_data);
 
   op_par_loop(save_values, "save_values", mesh->cells,
-              op_arg_dat(data->p, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+              op_arg_dat(data->p,         -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
 
   int pIndex;
   double *p_data = getOP2Array(data->save_temp);
@@ -471,8 +261,8 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   free(p_data);
 
   op_par_loop(save_values, "save_values", mesh->cells,
-              op_arg_dat(data->vorticity, -1, OP_ID, 15, "double", OP_READ),
-              op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+              op_arg_dat(data->vorticity, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
 
   int vortIndex;
   double *vort_data = getOP2Array(data->save_temp);
@@ -483,8 +273,8 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   int sIndex;
   if(ls) {
     op_par_loop(save_values, "save_values", mesh->cells,
-                op_arg_dat(ls->s, -1, OP_ID, 15, "double", OP_READ),
-                op_arg_dat(data->save_temp, -1, OP_ID, 16, "double", OP_WRITE));
+                op_arg_dat(ls->step_s,      -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
 
     double *s_data = getOP2Array(data->save_temp);
     cgp_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Surface", &sIndex);
@@ -593,13 +383,13 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
   // Get local data (in same format that was originally passed to OP2)
-  double *Ux   = (double *)malloc(15 * mesh->numCells * sizeof(double));
-  double *Uy   = (double *)malloc(15 * mesh->numCells * sizeof(double));
-  double *pr   = (double *)malloc(15 * mesh->numCells * sizeof(double));
-  double *vort = (double *)malloc(15 * mesh->numCells * sizeof(double));
-  double *x    = (double *)malloc(15 * mesh->numCells * sizeof(double));
-  double *y    = (double *)malloc(15 * mesh->numCells * sizeof(double));
-  double *s    = (double *)calloc(15 * mesh->numCells, sizeof(double));
+  double *Ux   = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
+  double *Uy   = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
+  double *pr   = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
+  double *vort = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
+  double *x    = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
+  double *y    = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
+  double *s    = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
 
   op_fetch_data(data->Q[ind][0], Ux);
   op_fetch_data(data->Q[ind][1], Uy);
@@ -608,7 +398,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   op_fetch_data(mesh->x, x);
   op_fetch_data(mesh->y, y);
   if(ls) {
-    op_fetch_data(ls->s, s);
+    op_fetch_data(ls->step_s, s);
   }
 
   // Gather onto root process
@@ -617,21 +407,21 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
-  double *Ux_g   = (double *)malloc(15 * mesh->numCells_g * sizeof(double));
-  double *Uy_g   = (double *)malloc(15 * mesh->numCells_g * sizeof(double));
-  double *pr_g   = (double *)malloc(15 * mesh->numCells_g * sizeof(double));
-  double *vort_g = (double *)malloc(15 * mesh->numCells_g * sizeof(double));
-  double *x_g    = (double *)malloc(15 * mesh->numCells_g * sizeof(double));
-  double *y_g    = (double *)malloc(15 * mesh->numCells_g * sizeof(double));
-  double *s_g    = (double *)malloc(15 * mesh->numCells_g * sizeof(double));
+  double *Ux_g   = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+  double *Uy_g   = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+  double *pr_g   = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+  double *vort_g = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+  double *x_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+  double *y_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+  double *s_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
 
-  gather_double_array(Ux_g, Ux, comm_size, mesh->numCells_g, mesh->numCells, 15);
-  gather_double_array(Uy_g, Uy, comm_size, mesh->numCells_g, mesh->numCells, 15);
-  gather_double_array(pr_g, pr, comm_size, mesh->numCells_g, mesh->numCells, 15);
-  gather_double_array(vort_g, vort, comm_size, mesh->numCells_g, mesh->numCells, 15);
-  gather_double_array(x_g, x, comm_size, mesh->numCells_g, mesh->numCells, 15);
-  gather_double_array(y_g, y, comm_size, mesh->numCells_g, mesh->numCells, 15);
-  gather_double_array(s_g, s, comm_size, mesh->numCells_g, mesh->numCells, 15);
+  gather_double_array(Ux_g, Ux, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
+  gather_double_array(Uy_g, Uy, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
+  gather_double_array(pr_g, pr, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
+  gather_double_array(vort_g, vort, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
+  gather_double_array(x_g, x, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
+  gather_double_array(y_g, y, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
+  gather_double_array(s_g, s, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
 
   int file;
   if (cgp_open(filename.c_str(), CG_MODE_WRITE, &file)) {
@@ -645,11 +435,26 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   vector<double> pr_v;
   vector<double> vort_v;
   vector<double> s_v;
-  vector<cgsize_t> cells(3 * mesh->numCells_g * 16);
+  vector<cgsize_t> cells(3 * mesh->numCells_g * DG_SUB_CELLS);
 
   if(rank == 0) {
-    get_data_vectors(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells, Ux_g, Uy_g,
-                     pr_g, vort_g, x_g, y_g, s_g, mesh->numCells_g);
+    if(DG_ORDER == 4) {
+      get_data_vectors_order_4(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells,
+                               Ux_g, Uy_g, pr_g, vort_g, x_g, y_g, s_g,
+                               mesh->numCells_g);
+    } else if(DG_ORDER == 3) {
+      get_data_vectors_order_3(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells,
+                               Ux_g, Uy_g, pr_g, vort_g, x_g, y_g, s_g,
+                               mesh->numCells_g);
+    } else if(DG_ORDER == 2) {
+      get_data_vectors_order_2(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells,
+                               Ux_g, Uy_g, pr_g, vort_g, x_g, y_g, s_g,
+                               mesh->numCells_g);
+    } else {
+      get_data_vectors_order_1(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells,
+                               Ux_g, Uy_g, pr_g, vort_g, x_g, y_g, s_g,
+                               mesh->numCells_g);
+    }
   }
 
   int baseIndex;
@@ -663,7 +468,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   int sizes_i[3];
   if(rank == 0) {
     sizes_i[0] = x_v.size();
-    sizes_i[1] = mesh->numCells_g * 16;
+    sizes_i[1] = mesh->numCells_g * DG_SUB_CELLS;
     sizes_i[2] = 0;
   }
   MPI_Bcast(sizes_i, 3, MPI_INT, 0, MPI_COMM_WORLD);

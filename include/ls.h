@@ -39,16 +39,7 @@ private:
   int numSteps;
 
   double *s_data, *step_s_data, *nx_data, *ny_data, *curv_data;
-  double *rk_data[3], *rkQ_data;
-  double *F_data, *G_data, *dFdr_data, *dFds_data, *dGdr_data, *dGds_data;
-  double *nFlux_data, *exAdvec_data;
-
-  double *dsdx_data, *dsdy_data, *sign_data, *gS_data;
-  double *dsldx_data, *dsrdx_data, *dsldy_data, *dsrdy_data;
-  double *dpldx_data, *dprdx_data, *dpldy_data, *dprdy_data;
-
-  double *sigmax_data, *sigmay_data, *sigmaFx_data, *sigmaFy_data;
-  double *gSigmax_data, *gSigmay_data, *diff_data, *diffF_data;
+  double *sign_data, *gS_data, *diff_data, *diffF_data;
 };
 
 #endif

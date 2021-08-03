@@ -40,4 +40,4 @@ include_directories(${CUDAToolkit_INCLUDE_DIRS})
 set(CMAKE_CUDA_COMPILER ${CUDAToolkit_NVCC_EXECUTABLE})
 
 add_subdirectory(tools)
-add_subdirectory(src)
+add_subdirectory(gen)

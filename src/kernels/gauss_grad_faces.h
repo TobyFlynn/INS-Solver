@@ -8,10 +8,10 @@ inline void gauss_grad_faces(const int *edgeNum, const double **mDx0,
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
 
-  for(int m = 0; m < 7; m++) {
-    for(int n = 0; n < 15; n++) {
-      int indL = m * 15 + n;
-      int indR = m * 15 + n;
+  for(int m = 0; m < DG_GF_NP; m++) {
+    for(int n = 0; n < DG_NP; n++) {
+      int indL = m * DG_NP + n;
+      int indR = m * DG_NP + n;
 
       if(edgeL == 0) {
         if(edgeR == 0) {
