@@ -1,13 +1,5 @@
-inline void ls_add_diff(const double *diff, double *rk, double *dsldx,
-                        double *dsrdx, double *dsldy, double *dsrdy) {
+inline void ls_add_diff(const double *diff, double *rk) {
   for(int i = 0; i < 10; i++) {
     rk[i] = rk[i] + diff[i];
-  }
-
-  for(int i = 0; i < 18; i++) {
-    dsldx[i] = 0.0;
-    dsrdx[i] = 0.0;
-    dsldy[i] = 0.0;
-    dsrdy[i] = 0.0;
   }
 }

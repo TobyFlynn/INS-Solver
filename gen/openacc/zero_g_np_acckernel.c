@@ -5,15 +5,15 @@
 //user function
 //user function
 //#pragma acc routine
-inline void viscosity_reset_bc_openacc( double *exQ0, double *exQ1) {
+inline void zero_g_np_openacc( double *g_np0, double *g_np1) {
   for(int i = 0; i < 18; i++) {
-    exQ0[i] = 0.0;
-    exQ1[i] = 0.0;
+    g_np0[i] = 0.0;
+    g_np1[i] = 0.0;
   }
 }
 
 // host stub function
-void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
+void op_par_loop_zero_g_np(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1){
 
@@ -25,14 +25,14 @@ void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(43);
+  op_timing_realloc(41);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[43].name      = name;
-  OP_kernels[43].count    += 1;
+  OP_kernels[41].name      = name;
+  OP_kernels[41].count    += 1;
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  viscosity_reset_bc");
+    printf(" kernel routine w/o indirection:  zero_g_np");
   }
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
@@ -47,7 +47,7 @@ void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
     double* data1 = (double*)arg1.data_d;
     #pragma acc parallel loop independent deviceptr(data0,data1)
     for ( int n=0; n<set->size; n++ ){
-      viscosity_reset_bc_openacc(
+      zero_g_np_openacc(
         &data0[18*n],
         &data1[18*n]);
     }
@@ -58,7 +58,7 @@ void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[43].time     += wall_t2 - wall_t1;
-  OP_kernels[43].transfer += (float)set->size * arg0.size * 2.0f;
-  OP_kernels[43].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[41].time     += wall_t2 - wall_t1;
+  OP_kernels[41].transfer += (float)set->size * arg0.size * 2.0f;
+  OP_kernels[41].transfer += (float)set->size * arg1.size * 2.0f;
 }

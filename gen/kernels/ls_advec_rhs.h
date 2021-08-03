@@ -1,7 +1,7 @@
 inline void ls_advec_rhs(const double *dFdr, const double *dFds,
                          const double *dGdr, const double *dGds,
                          const double *rx, const double *ry, const double *sx,
-                         const double *sy, const double *q, double *exQ,
+                         const double *sy, const double *q, const double *exQ,
                          const double *u, const double *v, const double *fscale,
                          const double *nx, const double *ny, double *nFlux,
                          double *output) {
@@ -36,9 +36,5 @@ inline void ls_advec_rhs(const double *dFdr, const double *dFds,
     nFlux[i] = (nx[i] * u[ind] + ny[i] * v[ind]) * (q[ind] + exQ[i]);
     nFlux[i] += fabs(nx[i] * u[ind] + ny[i] * v[ind]) * (q[ind] - exQ[i]);
     nFlux[i] *= 0.5 * fscale[i];
-  }
-
-  for(int i = 0; i < 3 * 4; i++) {
-    exQ[i] = 0.0;
   }
 }

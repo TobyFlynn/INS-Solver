@@ -20,14 +20,12 @@ void pressure_update_vel_omp4_kernel(
   int dat7size,
   double *data8,
   int dat8size,
-  double *data9,
-  int dat9size,
   int count,
   int num_teams,
   int nthread){
 
   double arg0_l = *arg0;
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size],data8[0:dat8size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
@@ -40,7 +38,6 @@ void pressure_update_vel_omp4_kernel(
     double *qtt0 = &data6[10*n_op];
     double *qtt1 = &data7[10*n_op];
     double *dpdn = &data8[12*n_op];
-    double *prBC = &data9[18*n_op];
 
     //inline function
     
@@ -50,10 +47,6 @@ void pressure_update_vel_omp4_kernel(
 
 
       dpdn[i] = 0.0;
-    }
-
-    for(int i = 0; i < 18; i++) {
-      prBC[i] = 0.0;
     }
     //end inline func
   }

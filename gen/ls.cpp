@@ -21,39 +21,9 @@ LS::LS(DGMesh *m, INSData *d) {
   ny_data     = (double *)calloc(10 * mesh->numCells, sizeof(double));
   curv_data   = (double *)calloc(10 * mesh->numCells, sizeof(double));
 
-  rk_data[0] = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  rk_data[1] = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  rk_data[2] = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  rkQ_data   = (double *)calloc(10 * mesh->numCells, sizeof(double));
-
-  F_data       = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  G_data       = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  dFdr_data    = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  dFds_data    = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  dGdr_data    = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  dGds_data    = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  nFlux_data   = (double *)calloc(3 * 4 * mesh->numCells, sizeof(double));
-  exAdvec_data = (double *)calloc(3 * 4 * mesh->numCells, sizeof(double));
-
-  dsdx_data   = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  dsdy_data   = (double *)calloc(10 * mesh->numCells, sizeof(double));
   sign_data   = (double *)calloc(10 * mesh->numCells, sizeof(double));
   gS_data     = (double *)calloc(18 * mesh->numCells, sizeof(double));
-  dsldx_data  = (double *)calloc(18 * mesh->numCells, sizeof(double));
-  dsrdx_data  = (double *)calloc(18 * mesh->numCells, sizeof(double));
-  dsldy_data  = (double *)calloc(18 * mesh->numCells, sizeof(double));
-  dsrdy_data  = (double *)calloc(18 * mesh->numCells, sizeof(double));
-  dpldx_data  = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  dprdx_data  = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  dpldy_data  = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  dprdy_data  = (double *)calloc(10 * mesh->numCells, sizeof(double));
 
-  sigmax_data  = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  sigmay_data  = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  sigmaFx_data = (double *)calloc(18 * mesh->numCells, sizeof(double));
-  sigmaFy_data = (double *)calloc(18 * mesh->numCells, sizeof(double));
-  gSigmax_data = (double *)calloc(18 * mesh->numCells, sizeof(double));
-  gSigmay_data = (double *)calloc(18 * mesh->numCells, sizeof(double));
   diff_data    = (double *)calloc(10 * mesh->numCells, sizeof(double));
   diffF_data   = (double *)calloc(18 * mesh->numCells, sizeof(double));
 
@@ -63,39 +33,9 @@ LS::LS(DGMesh *m, INSData *d) {
   ny     = op_decl_dat(mesh->cells, 10, "double", ny_data, "ls-ny");
   curv   = op_decl_dat(mesh->cells, 10, "double", curv_data, "curv");
 
-  rk[0] = op_decl_dat(mesh->cells, 10, "double", rk_data[0], "rk0");
-  rk[1] = op_decl_dat(mesh->cells, 10, "double", rk_data[1], "rk1");
-  rk[2] = op_decl_dat(mesh->cells, 10, "double", rk_data[2], "rk2");
-  rkQ   = op_decl_dat(mesh->cells, 10, "double", rkQ_data, "rkQ");
-
-  F       = op_decl_dat(mesh->cells, 10, "double", F_data, "F");
-  G       = op_decl_dat(mesh->cells, 10, "double", G_data, "G");
-  dFdr    = op_decl_dat(mesh->cells, 10, "double", dFdr_data, "dFdr");
-  dFds    = op_decl_dat(mesh->cells, 10, "double", dFds_data, "dFds");
-  dGdr    = op_decl_dat(mesh->cells, 10, "double", dGdr_data, "dGdr");
-  dGds    = op_decl_dat(mesh->cells, 10, "double", dGds_data, "dGds");
-  nFlux   = op_decl_dat(mesh->cells, 3 * 4, "double", nFlux_data, "nFlux");
-  exAdvec = op_decl_dat(mesh->cells, 3 * 4, "double", exAdvec_data, "exAdvec");
-
-  dsdx   = op_decl_dat(mesh->cells, 10, "double", dsdx_data, "dsdx");
-  dsdy   = op_decl_dat(mesh->cells, 10, "double", dsdy_data, "dsdy");
   sign   = op_decl_dat(mesh->cells, 10, "double", sign_data, "sign");
   gS     = op_decl_dat(mesh->cells, 18, "double", gS_data, "gS");
-  dsldx  = op_decl_dat(mesh->cells, 18, "double", dsldx_data, "dsldx");
-  dsrdx  = op_decl_dat(mesh->cells, 18, "double", dsrdx_data, "dsrdx");
-  dsldy  = op_decl_dat(mesh->cells, 18, "double", dsldy_data, "dsldy");
-  dsrdy  = op_decl_dat(mesh->cells, 18, "double", dsrdy_data, "dsrdy");
-  dpldx  = op_decl_dat(mesh->cells, 10, "double", dpldx_data, "dpldx");
-  dprdx  = op_decl_dat(mesh->cells, 10, "double", dprdx_data, "dprdx");
-  dpldy  = op_decl_dat(mesh->cells, 10, "double", dpldy_data, "dpldy");
-  dprdy  = op_decl_dat(mesh->cells, 10, "double", dprdy_data, "dprdy");
 
-  sigmax  = op_decl_dat(mesh->cells, 10, "double", sigmax_data, "sigmax");
-  sigmay  = op_decl_dat(mesh->cells, 10, "double", sigmay_data, "sigmay");
-  sigmaFx = op_decl_dat(mesh->cells, 18, "double", sigmaFx_data, "sigmaFx");
-  sigmaFy = op_decl_dat(mesh->cells, 18, "double", sigmaFy_data, "sigmaFy");
-  gSigmax = op_decl_dat(mesh->cells, 18, "double", gSigmax_data, "gSigmax");
-  gSigmay = op_decl_dat(mesh->cells, 18, "double", gSigmay_data, "gSigmay");
   diff    = op_decl_dat(mesh->cells, 10, "double", diff_data, "diff");
   diffF   = op_decl_dat(mesh->cells, 18, "double", diffF_data, "diffF");
 }
@@ -107,44 +47,51 @@ LS::~LS() {
   free(ny_data);
   free(curv_data);
 
-  free(rk_data[0]);
-  free(rk_data[1]);
-  free(rk_data[2]);
-  free(rkQ_data);
-
-  free(F_data);
-  free(G_data);
-  free(dFdr_data);
-  free(dFds_data);
-  free(dGdr_data);
-  free(dGds_data);
-  free(nFlux_data);
-  free(exAdvec_data);
-
-  free(dsdx_data);
-  free(dsdy_data);
   free(sign_data);
   free(gS_data);
-  free(dsldx_data);
-  free(dsrdx_data);
-  free(dsldy_data);
-  free(dsrdy_data);
-  free(dpldx_data);
-  free(dprdx_data);
-  free(dpldy_data);
-  free(dprdy_data);
 
-  free(sigmax_data);
-  free(sigmay_data);
-  free(sigmaFx_data);
-  free(sigmaFy_data);
-  free(gSigmax_data);
-  free(gSigmay_data);
   free(diff_data);
   free(diffF_data);
 }
 
 void LS::init() {
+  rk[0] = data->tmp_dg_np[0];
+  rk[1] = data->tmp_dg_np[1];
+  rk[2] = data->tmp_dg_np[2];
+  rkQ   = data->tmp_dg_np[3];
+
+  exAdvec = data->tmp_dg_npf[0];
+  nFlux   = data->tmp_dg_npf[1];
+
+  dFdr = data->tmp_dg_np[4];
+  dFds = data->tmp_dg_np[5];
+  dGdr = data->tmp_dg_np[6];
+  dGds = data->tmp_dg_np[7];
+
+  dpldx = data->tmp_dg_np[4];
+  dprdx = data->tmp_dg_np[5];
+  dpldy = data->tmp_dg_np[6];
+  dprdy = data->tmp_dg_np[7];
+
+  F = data->tmp_dg_np[8];
+  G = data->tmp_dg_np[9];
+
+  dsdx = data->tmp_dg_np[8];
+  dsdy = data->tmp_dg_np[9];
+
+  sigmax = data->tmp_dg_np[8];
+  sigmay = data->tmp_dg_np[9];
+
+  dsldx = data->tmp_dg_g_np[0];
+  dsrdx = data->tmp_dg_g_np[1];
+  dsldy = data->tmp_dg_g_np[2];
+  dsrdy = data->tmp_dg_g_np[3];
+
+  sigmaFx = data->tmp_dg_g_np[0];
+  sigmaFy = data->tmp_dg_g_np[1];
+  gSigmax = data->tmp_dg_g_np[2];
+  gSigmay = data->tmp_dg_g_np[3];
+
   h = std::numeric_limits<double>::max();
   op_par_loop(calc_h, "calc_h", mesh->cells,
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
@@ -208,6 +155,10 @@ void LS::step(double dt) {
 }
 
 void LS::advec_step(op_dat input, op_dat output) {
+  op_par_loop(zero_npf, "zero_npf", mesh->cells,
+              op_arg_dat(exAdvec, -1, OP_ID, 3 * 4, "double", OP_WRITE),
+              op_arg_dat(nFlux,   -1, OP_ID, 3 * 4, "double", OP_WRITE));
+
   // Get neighbouring values of q on internal edges
   op_par_loop(ls_advec_edges, "ls_advec_edges", mesh->edges,
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
@@ -247,7 +198,7 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(mesh->sx, -1, OP_ID, 10, "double", OP_READ),
               op_arg_dat(mesh->sy, -1, OP_ID, 10, "double", OP_READ),
               op_arg_dat(input,    -1, OP_ID, 10, "double", OP_READ),
-              op_arg_dat(exAdvec,  -1, OP_ID, 3 * 4, "double", OP_RW),
+              op_arg_dat(exAdvec,  -1, OP_ID, 3 * 4, "double", OP_READ),
               op_arg_dat(u,        -1, OP_ID, 10, "double", OP_READ),
               op_arg_dat(v,        -1, OP_ID, 10, "double", OP_READ),
               op_arg_dat(mesh->fscale, -1, OP_ID, 3 * 4, "double", OP_READ),
@@ -282,6 +233,14 @@ void LS::reinit_ls() {
 
     for(int j = 0; j < 3; j++) {
       op2_gemv(true, 18, 10, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 10, rkQ, 0.0, gS);
+
+      op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+                  op_arg_dat(dsldx, -1, OP_ID, 18, "double", OP_WRITE),
+                  op_arg_dat(dsrdx, -1, OP_ID, 18, "double", OP_WRITE));
+
+      op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+                  op_arg_dat(dsldy, -1, OP_ID, 18, "double", OP_WRITE),
+                  op_arg_dat(dsrdy, -1, OP_ID, 18, "double", OP_WRITE));
 
       op_par_loop(ls_flux, "ls_flux", mesh->edges,
                   op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
@@ -338,11 +297,7 @@ void LS::reinit_ls() {
 
       op_par_loop(ls_add_diff, "ls_add_diff", mesh->cells,
                   op_arg_dat(diff,  -1, OP_ID, 10, "double", OP_READ),
-                  op_arg_dat(rk[j], -1, OP_ID, 10, "double", OP_RW),
-                  op_arg_dat(dsldx, -1, OP_ID, 18, "double", OP_WRITE),
-                  op_arg_dat(dsrdx, -1, OP_ID, 18, "double", OP_WRITE),
-                  op_arg_dat(dsldy, -1, OP_ID, 18, "double", OP_WRITE),
-                  op_arg_dat(dsrdy, -1, OP_ID, 18, "double", OP_WRITE));
+                  op_arg_dat(rk[j], -1, OP_ID, 10, "double", OP_RW));
 
       if(j != 2) {
         op_par_loop(set_rkQ, "set_rkQ", mesh->cells,
@@ -366,6 +321,10 @@ void LS::reinit_ls() {
 void LS::calc_diff() {
   // Calculate sigma
   cub_grad_weak(mesh, rkQ, sigmax, sigmay);
+
+  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+              op_arg_dat(sigmaFx, -1, OP_ID, 18, "double", OP_WRITE),
+              op_arg_dat(sigmaFy, -1, OP_ID, 18, "double", OP_WRITE));
 
   op_par_loop(sigma_flux, "sigma_flux", mesh->edges,
               op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
@@ -396,8 +355,6 @@ void LS::calc_diff() {
               op_arg_gbl(&epsilon, 1, "double", OP_READ),
               op_arg_dat(sigmax,  -1, OP_ID, 10, "double", OP_RW),
               op_arg_dat(sigmay,  -1, OP_ID, 10, "double", OP_RW),
-              op_arg_dat(sigmaFx, -1, OP_ID, 18, "double", OP_WRITE),
-              op_arg_dat(sigmaFy, -1, OP_ID, 18, "double", OP_WRITE),
               op_arg_dat(diffF,   -1, OP_ID, 18, "double", OP_WRITE));
 
   // Calculate diffusion

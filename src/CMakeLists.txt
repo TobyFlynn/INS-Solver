@@ -3,7 +3,7 @@ list(APPEND KERNEL_HEADERS kernels/init_cubature_grad.h kernels/init_cubature_OP
 list(APPEND KERNEL_HEADERS kernels/gauss_tau.h kernels/gauss_tau_bc.h kernels/init_gauss_grad.h kernels/init_gauss_grad_neighbour.h kernels/gauss_grad_faces.h kernels/init_gauss_grad2.h kernels/gauss_op.h kernels/gauss_gfi_faces.h kernels/gauss_reverse.h)
 list(APPEND KERNEL_HEADERS kernels/advection_flux.h kernels/advection_faces.h kernels/advection_bc.h kernels/advection_numerical_flux.h kernels/advection_intermediate_vel.h)
 list(APPEND KERNEL_HEADERS kernels/pressure_bc.h kernels/pressure_bc2.h kernels/pressure_rhs.h kernels/pressure_update_vel.h)
-list(APPEND KERNEL_HEADERS kernels/viscosity_rhs.h kernels/viscosity_reset_bc.h kernels/viscosity_bc.h)
+list(APPEND KERNEL_HEADERS kernels/viscosity_rhs.h kernels/viscosity_bc.h)
 list(APPEND KERNEL_HEADERS kernels/init_surface.h kernels/calc_h.h kernels/set_rkQ.h kernels/update_Q.h)
 list(APPEND KERNEL_HEADERS kernels/ls_advec_edges.h kernels/ls_advec_bedges.h kernels/ls_advec_flux.h kernels/ls_advec_rhs.h)
 list(APPEND KERNEL_HEADERS kernels/ls_sign.h kernels/ls_flux.h kernels/ls_bflux.h kernels/ls_copy.h kernels/ls_rhs.h kernels/ls_add_diff.h kernels/ls_reinit_check.h)

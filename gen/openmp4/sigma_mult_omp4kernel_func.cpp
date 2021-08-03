@@ -10,25 +10,19 @@ void sigma_mult_omp4_kernel(
   int dat2size,
   double *data3,
   int dat3size,
-  double *data4,
-  int dat4size,
-  double *data5,
-  int dat5size,
   int count,
   int num_teams,
   int nthread){
 
   double arg0_l = *arg0;
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size],data2[0:dat2size],data3[0:dat3size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const double *eps = &arg0_l;
     double *sigx = &data1[10*n_op];
     double *sigy = &data2[10*n_op];
-    double *fx = &data3[18*n_op];
-    double *fy = &data4[18*n_op];
-    double *diffF = &data5[18*n_op];
+    double *diffF = &data3[18*n_op];
 
     //inline function
     
@@ -38,8 +32,6 @@ void sigma_mult_omp4_kernel(
     }
 
     for(int i = 0; i < 18; i++) {
-      fx[i] = 0.0;
-      fy[i] = 0.0;
       diffF[i] = 0.0;
     }
     //end inline func

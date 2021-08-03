@@ -175,6 +175,9 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->curlVel, -1, OP_ID, DG_NP, "double", OP_RW));
   grad(mesh, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
 
+  op_par_loop(zero_g_np1, "zero_g_np1", mesh->cells,
+              op_arg_dat(data->prBC, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+
   // Apply pressure boundary conditions
   op_par_loop(pressure_bc, "pressure_bc", mesh->bedges,
               op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
@@ -260,8 +263,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QT[1],  -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->QTT[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 3 * DG_NPF, "double", OP_WRITE),
-              op_arg_dat(data->prBC,   -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+              op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 3 * DG_NPF, "double", OP_WRITE));
 
   return converged;
 }
@@ -269,6 +271,10 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
 bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
                        double b1, double g0, double t) {
   timer->startViscositySetup();
+  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+              op_arg_dat(data->visBC[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
+              op_arg_dat(data->visBC[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+
   double time = t + dt;
   // Get BCs for viscosity solve
   op_par_loop(viscosity_bc, "viscosity_bc", mesh->bedges,
@@ -313,11 +319,6 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   viscosityPoisson->setBCValues(data->visBC[1]);
   bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1]);
   timer->endViscosityLinearSolve();
-
-  // Reset BC dats ready for next iteration
-  op_par_loop(viscosity_reset_bc, "viscosity_reset_bc", mesh->cells,
-              op_arg_dat(data->visBC[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
-              op_arg_dat(data->visBC[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
 
   return convergedX && convergedY;
 }

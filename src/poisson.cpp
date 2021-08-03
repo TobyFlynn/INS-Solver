@@ -17,18 +17,12 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
   data = d;
   precondition = p;
 
-  u_data      = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  rhs_data    = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  h_data      = (double *)calloc(mesh->numCells, sizeof(double));
-  op1_data    = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
-  op2_data[0] = (double *)calloc(DG_NP * DG_NP * mesh->numEdges, sizeof(double));
-  op2_data[1] = (double *)calloc(DG_NP * DG_NP * mesh->numEdges, sizeof(double));
-  op_bc_data  = (double *)calloc(DG_GF_NP * DG_NP * mesh->numBoundaryEdges, sizeof(double));
-
-  factor_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  gFactor_data  = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
-  cFactor_data  = (double *)calloc(DG_CUB_NP * mesh->numCells, sizeof(double));
-  mmFactor_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+  h_data       = (double *)calloc(mesh->numCells, sizeof(double));
+  op1_data     = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
+  op2_data[0]  = (double *)calloc(DG_NP * DG_NP * mesh->numEdges, sizeof(double));
+  op2_data[1]  = (double *)calloc(DG_NP * DG_NP * mesh->numEdges, sizeof(double));
+  op_bc_data   = (double *)calloc(DG_GF_NP * DG_NP * mesh->numBoundaryEdges, sizeof(double));
+  cFactor_data = (double *)calloc(DG_CUB_NP * mesh->numCells, sizeof(double));
 
   if(precondition) {
     glb_ind_data   = (int *)calloc(mesh->numCells, sizeof(int));
@@ -37,23 +31,15 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
     glb_indBC_data = (int *)calloc(mesh->numBoundaryEdges, sizeof(int));
   }
 
-  in_data  = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  out_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   tmp_data = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
   pre_data = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
 
-  u      = op_decl_dat(mesh->cells, DG_NP, "double", u_data, "poisson_u");
-  rhs    = op_decl_dat(mesh->cells, DG_NP, "double", rhs_data, "poisson_rhs");
-  h      = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
-  op1    = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", op1_data, "poisson_op1");
-  op2[0] = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", op2_data[0], "poisson_op20");
-  op2[1] = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", op2_data[1], "poisson_op21");
-  op_bc  = op_decl_dat(mesh->bedges, DG_GF_NP * DG_NP, "double", op_bc_data, "poisson_op_bc");
-
-  factor   = op_decl_dat(mesh->cells, DG_NP, "double", factor_data, "poisson_factor");
-  gFactor  = op_decl_dat(mesh->cells, DG_G_NP, "double", gFactor_data, "poisson_gFactor");
-  cFactor  = op_decl_dat(mesh->cells, DG_CUB_NP, "double", cFactor_data, "poisson_cFactor");
-  mmFactor = op_decl_dat(mesh->cells, DG_NP, "double", mmFactor_data, "poisson_mmFactor");
+  h       = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
+  op1     = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", op1_data, "poisson_op1");
+  op2[0]  = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", op2_data[0], "poisson_op20");
+  op2[1]  = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", op2_data[1], "poisson_op21");
+  op_bc   = op_decl_dat(mesh->bedges, DG_GF_NP * DG_NP, "double", op_bc_data, "poisson_op_bc");
+  cFactor = op_decl_dat(mesh->cells, DG_CUB_NP, "double", cFactor_data, "poisson_cFactor");
 
   if(precondition) {
     glb_ind   = op_decl_dat(mesh->cells, 1, "int", glb_ind_data, "poisson_glb_ind");
@@ -62,25 +48,17 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
     glb_indBC = op_decl_dat(mesh->bedges, 1, "int", glb_indBC_data, "poisson_glb_indBC");
   }
 
-  in  = op_decl_dat(mesh->cells, DG_NP, "double", in_data, "poisson_in");
-  out = op_decl_dat(mesh->cells, DG_NP, "double", out_data, "poisson_out");
   tmp = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_data, "poisson_tmp");
   pre = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", pre_data, "poisson_pre");
 }
 
 PoissonSolve::~PoissonSolve() {
-  free(u_data);
-  free(rhs_data);
   free(h_data);
   free(op1_data);
   free(op2_data[0]);
   free(op2_data[1]);
   free(op_bc_data);
-
-  free(factor_data);
-  free(gFactor_data);
   free(cFactor_data);
-  free(mmFactor_data);
 
   if(precondition) {
     free(glb_ind_data);
@@ -89,8 +67,6 @@ PoissonSolve::~PoissonSolve() {
     free(glb_indBC_data);
   }
 
-  free(in_data);
-  free(out_data);
   free(tmp_data);
   free(pre_data);
 
@@ -125,6 +101,15 @@ double PoissonSolve::getAverageConvergeIter() {
 }
 
 void PoissonSolve::init() {
+  u   = data->tmp_dg_np[4];
+  rhs = data->tmp_dg_np[5];
+  in  = data->tmp_dg_np[6];
+  out = data->tmp_dg_np[7];
+
+  factor   = data->tmp_dg_np[8];
+  mmFactor = data->tmp_dg_np[9];
+  gFactor  = data->tmp_dg_g_np[3];
+
   create_vec(&b, DG_NP);
   create_vec(&x, DG_NP);
   if(precondition) {

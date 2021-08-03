@@ -39,15 +39,16 @@
 #define op_par_loop_advection_numerical_flux op_par_loop_advection_numerical_flux_gpu
 #define op_par_loop_advection_intermediate_vel op_par_loop_advection_intermediate_vel_gpu
 #define op_par_loop_pressure_mu op_par_loop_pressure_mu_gpu
+#define op_par_loop_zero_g_np1 op_par_loop_zero_g_np1_gpu
 #define op_par_loop_pressure_bc op_par_loop_pressure_bc_gpu
 #define op_par_loop_pressure_bc2 op_par_loop_pressure_bc2_gpu
 #define op_par_loop_pressure_rhs op_par_loop_pressure_rhs_gpu
 #define op_par_loop_pressure_grad_flux op_par_loop_pressure_grad_flux_gpu
 #define op_par_loop_pressure_update_vel op_par_loop_pressure_update_vel_gpu
+#define op_par_loop_zero_g_np op_par_loop_zero_g_np_gpu
 #define op_par_loop_viscosity_bc op_par_loop_viscosity_bc_gpu
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_gpu
 #define op_par_loop_viscosity_rhs_rho op_par_loop_viscosity_rhs_rho_gpu
-#define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_gpu
 #define op_par_loop_save_values op_par_loop_save_values_gpu
 #define op_par_loop_calc_h op_par_loop_calc_h_gpu
 #define op_par_loop_init_surface op_par_loop_init_surface_gpu
@@ -106,15 +107,16 @@
 #undef op_par_loop_advection_numerical_flux
 #undef op_par_loop_advection_intermediate_vel
 #undef op_par_loop_pressure_mu
+#undef op_par_loop_zero_g_np1
 #undef op_par_loop_pressure_bc
 #undef op_par_loop_pressure_bc2
 #undef op_par_loop_pressure_rhs
 #undef op_par_loop_pressure_grad_flux
 #undef op_par_loop_pressure_update_vel
+#undef op_par_loop_zero_g_np
 #undef op_par_loop_viscosity_bc
 #undef op_par_loop_viscosity_rhs
 #undef op_par_loop_viscosity_rhs_rho
-#undef op_par_loop_viscosity_reset_bc
 #undef op_par_loop_save_values
 #undef op_par_loop_calc_h
 #undef op_par_loop_init_surface
@@ -173,15 +175,16 @@
 #define op_par_loop_advection_numerical_flux op_par_loop_advection_numerical_flux_cpu
 #define op_par_loop_advection_intermediate_vel op_par_loop_advection_intermediate_vel_cpu
 #define op_par_loop_pressure_mu op_par_loop_pressure_mu_cpu
+#define op_par_loop_zero_g_np1 op_par_loop_zero_g_np1_cpu
 #define op_par_loop_pressure_bc op_par_loop_pressure_bc_cpu
 #define op_par_loop_pressure_bc2 op_par_loop_pressure_bc2_cpu
 #define op_par_loop_pressure_rhs op_par_loop_pressure_rhs_cpu
 #define op_par_loop_pressure_grad_flux op_par_loop_pressure_grad_flux_cpu
 #define op_par_loop_pressure_update_vel op_par_loop_pressure_update_vel_cpu
+#define op_par_loop_zero_g_np op_par_loop_zero_g_np_cpu
 #define op_par_loop_viscosity_bc op_par_loop_viscosity_bc_cpu
 #define op_par_loop_viscosity_rhs op_par_loop_viscosity_rhs_cpu
 #define op_par_loop_viscosity_rhs_rho op_par_loop_viscosity_rhs_rho_cpu
-#define op_par_loop_viscosity_reset_bc op_par_loop_viscosity_reset_bc_cpu
 #define op_par_loop_save_values op_par_loop_save_values_cpu
 #define op_par_loop_calc_h op_par_loop_calc_h_cpu
 #define op_par_loop_init_surface op_par_loop_init_surface_cpu
@@ -240,15 +243,16 @@
 #undef op_par_loop_advection_numerical_flux
 #undef op_par_loop_advection_intermediate_vel
 #undef op_par_loop_pressure_mu
+#undef op_par_loop_zero_g_np1
 #undef op_par_loop_pressure_bc
 #undef op_par_loop_pressure_bc2
 #undef op_par_loop_pressure_rhs
 #undef op_par_loop_pressure_grad_flux
 #undef op_par_loop_pressure_update_vel
+#undef op_par_loop_zero_g_np
 #undef op_par_loop_viscosity_bc
 #undef op_par_loop_viscosity_rhs
 #undef op_par_loop_viscosity_rhs_rho
-#undef op_par_loop_viscosity_reset_bc
 #undef op_par_loop_save_values
 #undef op_par_loop_calc_h
 #undef op_par_loop_init_surface
@@ -2502,6 +2506,34 @@ void op_par_loop_pressure_mu(char const *name, op_set set,
   }
 #endif //OP_HYBRID_GPU
 
+void op_par_loop_zero_g_np1_gpu(char const *name, op_set set,
+  op_arg arg0);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_zero_g_np1(char const *name, op_set set,
+  op_arg arg0){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_zero_g_np1_gpu(name, set,
+      arg0);
+
+    }else{
+    op_par_loop_zero_g_np1_cpu(name, set,
+      arg0);
+
+  }
+}
+#else
+void op_par_loop_zero_g_np1(char const *name, op_set set,
+  op_arg arg0){
+
+  op_par_loop_zero_g_np1_gpu(name, set,
+    arg0);
+
+  }
+#endif //OP_HYBRID_GPU
+
 void op_par_loop_pressure_bc_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
@@ -2839,8 +2871,7 @@ void op_par_loop_pressure_update_vel_gpu(char const *name, op_set set,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8,
-  op_arg arg9);
+  op_arg arg8);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -2853,8 +2884,7 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8,
-  op_arg arg9){
+  op_arg arg8){
 
   if (OP_hybrid_gpu) {
     op_par_loop_pressure_update_vel_gpu(name, set,
@@ -2866,8 +2896,7 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
       arg5,
       arg6,
       arg7,
-      arg8,
-      arg9);
+      arg8);
 
     }else{
     op_par_loop_pressure_update_vel_cpu(name, set,
@@ -2879,8 +2908,7 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
       arg5,
       arg6,
       arg7,
-      arg8,
-      arg9);
+      arg8);
 
   }
 }
@@ -2894,8 +2922,7 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8,
-  op_arg arg9){
+  op_arg arg8){
 
   op_par_loop_pressure_update_vel_gpu(name, set,
     arg0,
@@ -2906,8 +2933,41 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
     arg5,
     arg6,
     arg7,
-    arg8,
-    arg9);
+    arg8);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_zero_g_np_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_zero_g_np(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_zero_g_np_gpu(name, set,
+      arg0,
+      arg1);
+
+    }else{
+    op_par_loop_zero_g_np_cpu(name, set,
+      arg0,
+      arg1);
+
+  }
+}
+#else
+void op_par_loop_zero_g_np(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  op_par_loop_zero_g_np_gpu(name, set,
+    arg0,
+    arg1);
 
   }
 #endif //OP_HYBRID_GPU
@@ -3076,40 +3136,6 @@ void op_par_loop_viscosity_rhs_rho(char const *name, op_set set,
     arg0,
     arg1,
     arg2);
-
-  }
-#endif //OP_HYBRID_GPU
-
-void op_par_loop_viscosity_reset_bc_gpu(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1);
-
-//GPU host stub function
-#if OP_HYBRID_GPU
-void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1){
-
-  if (OP_hybrid_gpu) {
-    op_par_loop_viscosity_reset_bc_gpu(name, set,
-      arg0,
-      arg1);
-
-    }else{
-    op_par_loop_viscosity_reset_bc_cpu(name, set,
-      arg0,
-      arg1);
-
-  }
-}
-#else
-void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1){
-
-  op_par_loop_viscosity_reset_bc_gpu(name, set,
-    arg0,
-    arg1);
 
   }
 #endif //OP_HYBRID_GPU
@@ -3946,58 +3972,34 @@ void op_par_loop_ls_rhs(char const *name, op_set set,
 
 void op_par_loop_ls_add_diff_gpu(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5);
+  op_arg arg1);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
 void op_par_loop_ls_add_diff(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5){
+  op_arg arg1){
 
   if (OP_hybrid_gpu) {
     op_par_loop_ls_add_diff_gpu(name, set,
       arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5);
+      arg1);
 
     }else{
     op_par_loop_ls_add_diff_cpu(name, set,
       arg0,
-      arg1,
-      arg2,
-      arg3,
-      arg4,
-      arg5);
+      arg1);
 
   }
 }
 #else
 void op_par_loop_ls_add_diff(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5){
+  op_arg arg1){
 
   op_par_loop_ls_add_diff_gpu(name, set,
     arg0,
-    arg1,
-    arg2,
-    arg3,
-    arg4,
-    arg5);
+    arg1);
 
   }
 #endif //OP_HYBRID_GPU
@@ -4140,9 +4142,7 @@ void op_par_loop_sigma_mult_gpu(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5);
+  op_arg arg3);
 
 //GPU host stub function
 #if OP_HYBRID_GPU
@@ -4150,27 +4150,21 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5){
+  op_arg arg3){
 
   if (OP_hybrid_gpu) {
     op_par_loop_sigma_mult_gpu(name, set,
       arg0,
       arg1,
       arg2,
-      arg3,
-      arg4,
-      arg5);
+      arg3);
 
     }else{
     op_par_loop_sigma_mult_cpu(name, set,
       arg0,
       arg1,
       arg2,
-      arg3,
-      arg4,
-      arg5);
+      arg3);
 
   }
 }
@@ -4179,17 +4173,13 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5){
+  op_arg arg3){
 
   op_par_loop_sigma_mult_gpu(name, set,
     arg0,
     arg1,
     arg2,
-    arg3,
-    arg4,
-    arg5);
+    arg3);
 
   }
 #endif //OP_HYBRID_GPU

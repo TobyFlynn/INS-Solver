@@ -55,7 +55,7 @@ void ls_advec_rhs_omp4_kernel(
     const double *sx = &data6[10*n_op];
     const double *sy = &data7[10*n_op];
     const double *q = &data8[10*n_op];
-    double *exQ = &data9[12*n_op];
+    const double *exQ = &data9[12*n_op];
     const double *u = &data10[10*n_op];
     const double *v = &data11[10*n_op];
     const double *fscale = &data12[12*n_op];
@@ -96,10 +96,6 @@ void ls_advec_rhs_omp4_kernel(
       nFlux[i] = (nx[i] * u[ind] + ny[i] * v[ind]) * (q[ind] + exQ[i]);
       nFlux[i] += fabs(nx[i] * u[ind] + ny[i] * v[ind]) * (q[ind] - exQ[i]);
       nFlux[i] *= 0.5 * fscale[i];
-    }
-
-    for(int i = 0; i < 3 * 4; i++) {
-      exQ[i] = 0.0;
     }
     //end inline func
   }

@@ -3,18 +3,16 @@
 //
 
 //user function
-__device__ void viscosity_reset_bc_gpu( double *exQ0, double *exQ1) {
+__device__ void zero_g_np1_gpu( double *g_np0) {
   for(int i = 0; i < 18; i++) {
-    exQ0[i] = 0.0;
-    exQ1[i] = 0.0;
+    g_np0[i] = 0.0;
   }
 
 }
 
 // CUDA kernel function
-__global__ void op_cuda_viscosity_reset_bc(
+__global__ void op_cuda_zero_g_np1(
   double *arg0,
-  double *arg1,
   int   set_size ) {
 
 
@@ -22,57 +20,52 @@ __global__ void op_cuda_viscosity_reset_bc(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    viscosity_reset_bc_gpu(arg0+n*18,
-                       arg1+n*18);
+    zero_g_np1_gpu(arg0+n*18);
   }
 }
 
 
 //host stub function
-void op_par_loop_viscosity_reset_bc(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1){
+void op_par_loop_zero_g_np1(char const *name, op_set set,
+  op_arg arg0){
 
-  int nargs = 2;
-  op_arg args[2];
+  int nargs = 1;
+  op_arg args[1];
 
   args[0] = arg0;
-  args[1] = arg1;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(43);
+  op_timing_realloc(35);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[43].name      = name;
-  OP_kernels[43].count    += 1;
+  OP_kernels[35].name      = name;
+  OP_kernels[35].count    += 1;
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  viscosity_reset_bc");
+    printf(" kernel routine w/o indirection:  zero_g_np1");
   }
 
   int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_43
-      int nthread = OP_BLOCK_SIZE_43;
+    #ifdef OP_BLOCK_SIZE_35
+      int nthread = OP_BLOCK_SIZE_35;
     #else
       int nthread = OP_block_size;
     #endif
 
     int nblocks = 200;
 
-    op_cuda_viscosity_reset_bc<<<nblocks,nthread>>>(
+    op_cuda_zero_g_np1<<<nblocks,nthread>>>(
       (double *) arg0.data_d,
-      (double *) arg1.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[43].time     += wall_t2 - wall_t1;
-  OP_kernels[43].transfer += (float)set->size * arg0.size * 2.0f;
-  OP_kernels[43].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[35].time     += wall_t2 - wall_t1;
+  OP_kernels[35].transfer += (float)set->size * arg0.size * 2.0f;
 }

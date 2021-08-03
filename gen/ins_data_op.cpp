@@ -149,8 +149,11 @@ using namespace std;
 INSData::INSData(DGMesh *m) {
   mesh = m;
 
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 10; i++) {
     tmp_dg_np_data[i] = (double *)calloc(10 * mesh->numCells, sizeof(double));
+  }
+  for(int i = 0; i < 4; i++) {
+    tmp_dg_g_np_data[i] = (double *)calloc(18 * mesh->numCells, sizeof(double));
   }
   for(int i = 0; i < 2; i++) {
     Q_data[0][i]       = (double *)calloc(10 * mesh->numCells, sizeof(double));
@@ -160,18 +163,14 @@ INSData::INSData(DGMesh *m) {
     N_data[0][i]       = (double *)calloc(10 * mesh->numCells, sizeof(double));
     N_data[1][i]       = (double *)calloc(10 * mesh->numCells, sizeof(double));
     dPdN_data[i]       = (double *)calloc(3 * 4 * mesh->numCells, sizeof(double));
-    visBC_data[i]      = (double *)calloc(18 * mesh->numCells, sizeof(double));
     tmp_dg_npf_data[i] = (double *)calloc(3 * 4 * mesh->numCells, sizeof(double));
   }
   p_data         = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  prBC_data      = (double *)calloc(18 * mesh->numCells, sizeof(double));
   vorticity_data = (double *)calloc(10 * mesh->numCells, sizeof(double));
   save_temp_data = (double *)calloc(9 * mesh->numCells, sizeof(double));
   nu_data        = (double *)calloc(10 * mesh->numCells, sizeof(double));
   gNu_data       = (double *)calloc(18 * mesh->numCells, sizeof(double));
   rho_data       = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  pFluxX_data    = (double *)calloc(3 * 4 * mesh->numCells, sizeof(double));
-  pFluxY_data    = (double *)calloc(3 * 4 * mesh->numCells, sizeof(double));
 
   Dx_data    = (double *)calloc(36 * 10 * mesh->numCells, sizeof(double));
   Dy_data    = (double *)calloc(36 * 10 * mesh->numCells, sizeof(double));
@@ -196,9 +195,13 @@ INSData::INSData(DGMesh *m) {
     gOPf_data[i] = (double *)calloc(10 * 10 * mesh->numCells, sizeof(double));
   }
 
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 10; i++) {
     string name  = "tmp_dg_np" + to_string(i);
     tmp_dg_np[i] = op_decl_dat(mesh->cells, 10, "double", tmp_dg_np_data[i], name.c_str());
+  }
+  for(int i = 0; i < 4; i++) {
+    string name  = "tmp_dg_g_np" + to_string(i);
+    tmp_dg_g_np[i] = op_decl_dat(mesh->cells, 18, "double", tmp_dg_g_np_data[i], name.c_str());
   }
   for(int i = 0; i < 2; i++) {
     string name   = "Q0" + to_string(i);
@@ -215,20 +218,15 @@ INSData::INSData(DGMesh *m) {
     N[1][i]       = op_decl_dat(mesh->cells, 10, "double", N_data[1][i], name.c_str());
     name          = "dPdN" + to_string(i);
     dPdN[i]       = op_decl_dat(mesh->cells, 3 * 4, "double", dPdN_data[i], name.c_str());
-    name          = "visBC" + to_string(i);
-    visBC[i]      = op_decl_dat(mesh->cells, 18, "double", visBC_data[i], name.c_str());
     name          = "tmp_dg_npf" + to_string(i);
     tmp_dg_npf[i] = op_decl_dat(mesh->cells, 3 * 4, "double", tmp_dg_npf_data[i], name.c_str());
   }
   p         = op_decl_dat(mesh->cells, 10, "double", p_data, "p");
-  prBC      = op_decl_dat(mesh->cells, 18, "double", prBC_data, "prBC");
   vorticity = op_decl_dat(mesh->cells, 10, "double", vorticity_data, "vorticity");
   save_temp = op_decl_dat(mesh->cells, 9, "double", save_temp_data, "save_temp");
   nu        = op_decl_dat(mesh->cells, 10, "double", nu_data, "nu");
   gNu       = op_decl_dat(mesh->cells, 18, "double", gNu_data, "gNu");
   rho       = op_decl_dat(mesh->cells, 10, "double", rho_data, "rho");
-  pFluxX    = op_decl_dat(mesh->cells, 3 * 4, "double", pFluxX_data, "pX");
-  pFluxY    = op_decl_dat(mesh->cells, 3 * 4, "double", pFluxY_data, "pY");
 
   Dx    = op_decl_dat(mesh->cells, 36 * 10, "double", Dx_data, "cub-Dx");
   Dy    = op_decl_dat(mesh->cells, 36 * 10, "double", Dy_data, "cub-Dy");
@@ -298,8 +296,11 @@ INSData::INSData(DGMesh *m) {
 }
 
 INSData::~INSData() {
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 10; i++) {
     free(tmp_dg_np_data[i]);
+  }
+  for(int i = 0; i < 4; i++) {
+    free(tmp_dg_g_np_data[i]);
   }
   for(int i = 0; i < 2; i++) {
     free(Q_data[0][i]);
@@ -310,18 +311,14 @@ INSData::~INSData() {
     free(N_data[0][i]);
     free(N_data[1][i]);
     free(dPdN_data[i]);
-    free(visBC_data[i]);
     free(tmp_dg_npf_data[i]);
   }
   free(p_data);
-  free(prBC_data);
   free(vorticity_data);
   free(save_temp_data);
   free(nu_data);
   free(gNu_data);
   free(rho_data);
-  free(pFluxX_data);
-  free(pFluxY_data);
 
   free(Dx_data);
   free(Dy_data);
@@ -349,21 +346,30 @@ INSData::~INSData() {
 
 void INSData::init() {
   // Set up dats that share a storage dat
-  F[0] = tmp_dg_np[0]; F[1] = tmp_dg_np[1];
-  F[2] = tmp_dg_np[2]; F[3] = tmp_dg_np[3];
-  divVelT = tmp_dg_np[0];
-  curlVel = tmp_dg_np[1];
+  F[0] = tmp_dg_np[0];
+  F[1] = tmp_dg_np[1];
+  F[2] = tmp_dg_np[2];
+  F[3] = tmp_dg_np[3];
+
+  divVelT        = tmp_dg_np[0];
+  curlVel        = tmp_dg_np[1];
   gradCurlVel[0] = tmp_dg_np[2];
   gradCurlVel[1] = tmp_dg_np[3];
-  pRHS = tmp_dg_np[1];
-  dpdx = tmp_dg_np[2];
-  dpdy = tmp_dg_np[3];
+
+  pRHS      = tmp_dg_np[1];
+  dpdx      = tmp_dg_np[2];
+  dpdy      = tmp_dg_np[3];
   visRHS[0] = tmp_dg_np[0];
   visRHS[1] = tmp_dg_np[1];
+
   flux[0] = tmp_dg_npf[0];
   flux[1] = tmp_dg_npf[1];
-  pFluxX = tmp_dg_npf[0];
-  pFluxY = tmp_dg_npf[1];
+  pFluxX  = tmp_dg_npf[0];
+  pFluxY  = tmp_dg_npf[1];
+
+  prBC     = tmp_dg_g_np[0];
+  visBC[0] = tmp_dg_g_np[1];
+  visBC[1] = tmp_dg_g_np[2];
 
   // Regular grid point init
   op_par_loop_init_nu_rho("init_nu_rho",mesh->cells,

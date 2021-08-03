@@ -6,17 +6,13 @@
 __device__ void pressure_update_vel_gpu( const double *factor, const double *rho, const double *dpdx,
                                 const double *dpdy, const double *qt0,
                                 const double *qt1, double *qtt0, double *qtt1,
-                                double *dpdn, double *prBC) {
+                                double *dpdn) {
   for(int i = 0; i < 10; i++) {
     qtt0[i] = qt0[i] - *factor * dpdx[i] / rho[i];
     qtt1[i] = qt1[i] - *factor * dpdy[i] / rho[i];
 
 
     dpdn[i] = 0.0;
-  }
-
-  for(int i = 0; i < 18; i++) {
-    prBC[i] = 0.0;
   }
 
 }
@@ -32,7 +28,6 @@ __global__ void op_cuda_pressure_update_vel(
   double *arg6,
   double *arg7,
   double *arg8,
-  double *arg9,
   int   set_size ) {
 
 
@@ -48,8 +43,7 @@ __global__ void op_cuda_pressure_update_vel(
                         arg5+n*10,
                         arg6+n*10,
                         arg7+n*10,
-                        arg8+n*12,
-                        arg9+n*18);
+                        arg8+n*12);
   }
 }
 
@@ -64,12 +58,11 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   op_arg arg5,
   op_arg arg6,
   op_arg arg7,
-  op_arg arg8,
-  op_arg arg9){
+  op_arg arg8){
 
   double*arg0h = (double *)arg0.data;
-  int nargs = 10;
-  op_arg args[10];
+  int nargs = 9;
+  op_arg args[9];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -80,14 +73,13 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
   args[6] = arg6;
   args[7] = arg7;
   args[8] = arg8;
-  args[9] = arg9;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(39);
+  op_timing_realloc(40);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[39].name      = name;
-  OP_kernels[39].count    += 1;
+  OP_kernels[40].name      = name;
+  OP_kernels[40].count    += 1;
 
 
   if (OP_diags>2) {
@@ -111,8 +103,8 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_39
-      int nthread = OP_BLOCK_SIZE_39;
+    #ifdef OP_BLOCK_SIZE_40
+      int nthread = OP_BLOCK_SIZE_40;
     #else
       int nthread = OP_block_size;
     #endif
@@ -129,21 +121,19 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
       (double *) arg6.data_d,
       (double *) arg7.data_d,
       (double *) arg8.data_d,
-      (double *) arg9.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[39].time     += wall_t2 - wall_t1;
-  OP_kernels[39].transfer += (float)set->size * arg1.size;
-  OP_kernels[39].transfer += (float)set->size * arg2.size;
-  OP_kernels[39].transfer += (float)set->size * arg3.size;
-  OP_kernels[39].transfer += (float)set->size * arg4.size;
-  OP_kernels[39].transfer += (float)set->size * arg5.size;
-  OP_kernels[39].transfer += (float)set->size * arg6.size * 2.0f;
-  OP_kernels[39].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[39].transfer += (float)set->size * arg8.size * 2.0f;
-  OP_kernels[39].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[40].time     += wall_t2 - wall_t1;
+  OP_kernels[40].transfer += (float)set->size * arg1.size;
+  OP_kernels[40].transfer += (float)set->size * arg2.size;
+  OP_kernels[40].transfer += (float)set->size * arg3.size;
+  OP_kernels[40].transfer += (float)set->size * arg4.size;
+  OP_kernels[40].transfer += (float)set->size * arg5.size;
+  OP_kernels[40].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[40].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[40].transfer += (float)set->size * arg8.size * 2.0f;
 }
