@@ -99,9 +99,9 @@ void LS::init() {
               op_arg_gbl(&h, 1, "double", OP_MIN));
 
   // alpha = 16.0 * h / 4.0;
-  alpha = 8.0 * h;
-  epsilon = h / 4.0;
-  reinit_dt = 1.0 / ((16.0 / h) + epsilon * ((16.0*16.0)/(h*h)));
+  alpha = 16.0 * h / DG_ORDER;
+  epsilon = h / DG_ORDER;
+  reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
 
   op_par_loop(init_surface, "init_surface", mesh->cells,
