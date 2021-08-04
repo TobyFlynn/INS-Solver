@@ -156,14 +156,16 @@ INSData::INSData(DGMesh *m) {
     tmp_dg_g_np_data[i] = (double *)calloc(18 * mesh->numCells, sizeof(double));
   }
   for(int i = 0; i < 2; i++) {
-    Q_data[0][i]       = (double *)calloc(10 * mesh->numCells, sizeof(double));
-    Q_data[1][i]       = (double *)calloc(10 * mesh->numCells, sizeof(double));
-    QT_data[i]         = (double *)calloc(10 * mesh->numCells, sizeof(double));
-    QTT_data[i]        = (double *)calloc(10 * mesh->numCells, sizeof(double));
-    N_data[0][i]       = (double *)calloc(10 * mesh->numCells, sizeof(double));
-    N_data[1][i]       = (double *)calloc(10 * mesh->numCells, sizeof(double));
-    dPdN_data[i]       = (double *)calloc(3 * 4 * mesh->numCells, sizeof(double));
-    tmp_dg_npf_data[i] = (double *)calloc(3 * 4 * mesh->numCells, sizeof(double));
+    Q_data[0][i]        = (double *)calloc(10 * mesh->numCells, sizeof(double));
+    Q_data[1][i]        = (double *)calloc(10 * mesh->numCells, sizeof(double));
+    QT_data[i]          = (double *)calloc(10 * mesh->numCells, sizeof(double));
+    QTT_data[i]         = (double *)calloc(10 * mesh->numCells, sizeof(double));
+    N_data[0][i]        = (double *)calloc(10 * mesh->numCells, sizeof(double));
+    N_data[1][i]        = (double *)calloc(10 * mesh->numCells, sizeof(double));
+    surf_ten_data[0][i] = (double *)calloc(10 * mesh->numCells, sizeof(double));
+    surf_ten_data[1][i] = (double *)calloc(10 * mesh->numCells, sizeof(double));
+    dPdN_data[i]        = (double *)calloc(3 * 4 * mesh->numCells, sizeof(double));
+    tmp_dg_npf_data[i]  = (double *)calloc(3 * 4 * mesh->numCells, sizeof(double));
   }
   p_data         = (double *)calloc(10 * mesh->numCells, sizeof(double));
   vorticity_data = (double *)calloc(10 * mesh->numCells, sizeof(double));
@@ -204,22 +206,26 @@ INSData::INSData(DGMesh *m) {
     tmp_dg_g_np[i] = op_decl_dat(mesh->cells, 18, "double", tmp_dg_g_np_data[i], name.c_str());
   }
   for(int i = 0; i < 2; i++) {
-    string name   = "Q0" + to_string(i);
-    Q[0][i]       = op_decl_dat(mesh->cells, 10, "double", Q_data[0][i], name.c_str());
-    name          = "Q1" + to_string(i);
-    Q[1][i]       = op_decl_dat(mesh->cells, 10, "double", Q_data[1][i], name.c_str());
-    name          = "QT" + to_string(i);
-    QT[i]         = op_decl_dat(mesh->cells, 10, "double", QT_data[i], name.c_str());
-    name          = "QTT" + to_string(i);
-    QTT[i]        = op_decl_dat(mesh->cells, 10, "double", QTT_data[i], name.c_str());
-    name          = "N0" + to_string(i);
-    N[0][i]       = op_decl_dat(mesh->cells, 10, "double", N_data[0][i], name.c_str());
-    name          = "N1" + to_string(i);
-    N[1][i]       = op_decl_dat(mesh->cells, 10, "double", N_data[1][i], name.c_str());
-    name          = "dPdN" + to_string(i);
-    dPdN[i]       = op_decl_dat(mesh->cells, 3 * 4, "double", dPdN_data[i], name.c_str());
-    name          = "tmp_dg_npf" + to_string(i);
-    tmp_dg_npf[i] = op_decl_dat(mesh->cells, 3 * 4, "double", tmp_dg_npf_data[i], name.c_str());
+    string name    = "Q0" + to_string(i);
+    Q[0][i]        = op_decl_dat(mesh->cells, 10, "double", Q_data[0][i], name.c_str());
+    name           = "Q1" + to_string(i);
+    Q[1][i]        = op_decl_dat(mesh->cells, 10, "double", Q_data[1][i], name.c_str());
+    name           = "QT" + to_string(i);
+    QT[i]          = op_decl_dat(mesh->cells, 10, "double", QT_data[i], name.c_str());
+    name           = "QTT" + to_string(i);
+    QTT[i]         = op_decl_dat(mesh->cells, 10, "double", QTT_data[i], name.c_str());
+    name           = "N0" + to_string(i);
+    N[0][i]        = op_decl_dat(mesh->cells, 10, "double", N_data[0][i], name.c_str());
+    name           = "N1" + to_string(i);
+    N[1][i]        = op_decl_dat(mesh->cells, 10, "double", N_data[1][i], name.c_str());
+    name           = "surf_ten0" + to_string(i);
+    surf_ten[0][i] = op_decl_dat(mesh->cells, 10, "double", surf_ten_data[0][i], name.c_str());
+    name           = "surf_ten1" + to_string(i);
+    surf_ten[1][i] = op_decl_dat(mesh->cells, 10, "double", surf_ten_data[1][i], name.c_str());
+    name           = "dPdN" + to_string(i);
+    dPdN[i]        = op_decl_dat(mesh->cells, 3 * 4, "double", dPdN_data[i], name.c_str());
+    name           = "tmp_dg_npf" + to_string(i);
+    tmp_dg_npf[i]  = op_decl_dat(mesh->cells, 3 * 4, "double", tmp_dg_npf_data[i], name.c_str());
   }
   p         = op_decl_dat(mesh->cells, 10, "double", p_data, "p");
   vorticity = op_decl_dat(mesh->cells, 10, "double", vorticity_data, "vorticity");
@@ -307,9 +313,10 @@ INSData::~INSData() {
     free(Q_data[1][i]);
     free(QT_data[i]);
     free(QTT_data[i]);
-
     free(N_data[0][i]);
     free(N_data[1][i]);
+    free(surf_ten_data[0][i]);
+    free(surf_ten_data[1][i]);
     free(dPdN_data[i]);
     free(tmp_dg_npf_data[i]);
   }

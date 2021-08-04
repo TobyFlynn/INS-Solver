@@ -39,6 +39,7 @@
 #include "advection_faces_omp4kernel.cpp"
 #include "advection_bc_omp4kernel.cpp"
 #include "advection_numerical_flux_omp4kernel.cpp"
+#include "advection_surface_tension_omp4kernel.cpp"
 #include "advection_intermediate_vel_omp4kernel.cpp"
 #include "pressure_mu_omp4kernel.cpp"
 #include "zero_g_np1_omp4kernel.cpp"
@@ -73,3 +74,4 @@
 #include "diff_bflux_omp4kernel.cpp"
 #include "ls_reinit_check_omp4kernel.cpp"
 #include "ls_step_omp4kernel.cpp"
+#include "ls_normalise_omp4kernel.cpp"

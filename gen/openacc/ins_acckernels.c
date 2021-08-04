@@ -74,6 +74,7 @@ int size, char *dat, char const *name){}
 #include "advection_faces_acckernel.c"
 #include "advection_bc_acckernel.c"
 #include "advection_numerical_flux_acckernel.c"
+#include "advection_surface_tension_acckernel.c"
 #include "advection_intermediate_vel_acckernel.c"
 #include "pressure_mu_acckernel.c"
 #include "zero_g_np1_acckernel.c"
@@ -108,3 +109,4 @@ int size, char *dat, char const *name){}
 #include "diff_bflux_acckernel.c"
 #include "ls_reinit_check_acckernel.c"
 #include "ls_step_acckernel.c"
+#include "ls_normalise_acckernel.c"

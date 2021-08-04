@@ -16,6 +16,7 @@ public:
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, p, dpdx, dpdy;
   op_dat visRHS[2], prBC, visBC[2];
   op_dat vorticity, save_temp, nu, gNu, rho, pFluxX, pFluxY;
+  op_dat surf_ten[2][2];
 
   op_dat tmp_dg_np[10], tmp_dg_npf[2], tmp_dg_g_np[4];
 
@@ -34,6 +35,7 @@ private:
   double *Q_data[2][2], *N_data[2][2], *QT_data[2], *QTT_data[2];
   double *dPdN_data[2], *p_data;
   double *vorticity_data, *save_temp_data, *nu_data, *gNu_data, *rho_data;
+  double *surf_ten_data[2][2];
 
   double *tmp_dg_np_data[10], *tmp_dg_npf_data[2], *tmp_dg_g_np_data[4];
 

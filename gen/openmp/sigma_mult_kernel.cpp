@@ -22,9 +22,9 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(62);
-  OP_kernels[62].name      = name;
-  OP_kernels[62].count    += 1;
+  op_timing_realloc(63);
+  OP_kernels[63].name      = name;
+  OP_kernels[63].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
 
@@ -62,8 +62,8 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[62].time     += wall_t2 - wall_t1;
-  OP_kernels[62].transfer += (float)set->size * arg1.size * 2.0f;
-  OP_kernels[62].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[62].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[63].time     += wall_t2 - wall_t1;
+  OP_kernels[63].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[63].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[63].transfer += (float)set->size * arg3.size * 2.0f;
 }

@@ -36,9 +36,9 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(42);
-  OP_kernels[42].name      = name;
-  OP_kernels[42].count    += 1;
+  op_timing_realloc(43);
+  OP_kernels[43].name      = name;
+  OP_kernels[43].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
   int  ninds   = 7;
@@ -49,8 +49,8 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_42
-    int part_size = OP_PART_SIZE_42;
+  #ifdef OP_PART_SIZE_43
+    int part_size = OP_PART_SIZE_43;
   #else
     int part_size = OP_part_size;
   #endif
@@ -96,8 +96,8 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
 
       block_offset += nblocks;
     }
-    OP_kernels[42].transfer  += Plan->transfer;
-    OP_kernels[42].transfer2 += Plan->transfer2;
+    OP_kernels[43].transfer  += Plan->transfer;
+    OP_kernels[43].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -108,5 +108,5 @@ void op_par_loop_viscosity_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[42].time     += wall_t2 - wall_t1;
+  OP_kernels[43].time     += wall_t2 - wall_t1;
 }

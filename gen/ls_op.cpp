@@ -196,6 +196,10 @@ void op_par_loop_ls_step(char const *, op_set,
   op_arg,
   op_arg,
   op_arg );
+
+void op_par_loop_ls_normalise(char const *, op_set,
+  op_arg,
+  op_arg );
 #ifdef OPENACC
 #ifdef __cplusplus
 }
@@ -299,8 +303,7 @@ void LS::init() {
               op_arg_dat(mesh->nodeY,-1,OP_ID,3,"double",OP_READ),
               op_arg_gbl(&h,1,"double",OP_MIN));
 
-  // alpha = 16.0 * h / 4.0;
-  alpha = 16.0 * h / DG_ORDER;
+  alpha = 8.0 * DG_ORDER * h / DG_ORDER;
   epsilon = h / DG_ORDER;
   reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
@@ -617,5 +620,8 @@ void LS::update_values() {
 
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
   grad(mesh, s, nx, ny);
+  op_par_loop_ls_normalise("ls_normalise",mesh->cells,
+              op_arg_dat(nx,-1,OP_ID,10,"double",OP_RW),
+              op_arg_dat(ny,-1,OP_ID,10,"double",OP_RW));
   div(mesh, nx, ny, curv);
 }

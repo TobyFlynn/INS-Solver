@@ -72,6 +72,7 @@ extern double gFInterp2R_g[60];
 #include "advection_faces_seqkernel.cpp"
 #include "advection_bc_seqkernel.cpp"
 #include "advection_numerical_flux_seqkernel.cpp"
+#include "advection_surface_tension_seqkernel.cpp"
 #include "advection_intermediate_vel_seqkernel.cpp"
 #include "pressure_mu_seqkernel.cpp"
 #include "zero_g_np1_seqkernel.cpp"
@@ -106,3 +107,4 @@ extern double gFInterp2R_g[60];
 #include "diff_bflux_seqkernel.cpp"
 #include "ls_reinit_check_seqkernel.cpp"
 #include "ls_step_seqkernel.cpp"
+#include "ls_normalise_seqkernel.cpp"

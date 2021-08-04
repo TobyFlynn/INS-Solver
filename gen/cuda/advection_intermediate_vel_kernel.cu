@@ -10,10 +10,18 @@ __device__ void advection_intermediate_vel_gpu( const double *a0, const double *
                                        const double *q0Old, const double *q1Old,
                                        const double *N0, const double *N1,
                                        const double *N0Old, const double *N1Old,
+                                       const double *st_x, const double *st_y,
+                                       const double *st_xOld, const double *st_yOld,
                                        double *q0T, double *q1T) {
+  double gravity = 1.0 / (froude_cuda * froude_cuda);
   for(int i = 0; i < 10; i++) {
-    q0T[i] = *a0 * q0[i] + *a1 * q0Old[i] + *dt * (*b0 * N0[i] + *b1 * N0Old[i]);
-    q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * N1[i] + *b1 * N1Old[i]);
+
+
+
+
+    q0T[i] = *a0 * q0[i] + *a1 * q0Old[i] + *dt * (*b0 * (N0[i]) + *b1 * (N0Old[i]));
+    q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * (N1[i] - gravity) + *b1 * (N1Old[i] - gravity));
+
 
   }
 
@@ -35,8 +43,12 @@ __global__ void op_cuda_advection_intermediate_vel(
   const double *__restrict arg11,
   const double *__restrict arg12,
   const double *__restrict arg13,
-  double *arg14,
-  double *arg15,
+  const double *__restrict arg14,
+  const double *__restrict arg15,
+  const double *__restrict arg16,
+  const double *__restrict arg17,
+  double *arg18,
+  double *arg19,
   int   set_size ) {
 
 
@@ -59,7 +71,11 @@ __global__ void op_cuda_advection_intermediate_vel(
                                arg12+n*10,
                                arg13+n*10,
                                arg14+n*10,
-                               arg15+n*10);
+                               arg15+n*10,
+                               arg16+n*10,
+                               arg17+n*10,
+                               arg18+n*10,
+                               arg19+n*10);
   }
 }
 
@@ -81,7 +97,11 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
   op_arg arg12,
   op_arg arg13,
   op_arg arg14,
-  op_arg arg15){
+  op_arg arg15,
+  op_arg arg16,
+  op_arg arg17,
+  op_arg arg18,
+  op_arg arg19){
 
   double*arg0h = (double *)arg0.data;
   double*arg1h = (double *)arg1.data;
@@ -89,8 +109,8 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
   double*arg3h = (double *)arg3.data;
   double*arg4h = (double *)arg4.data;
   double*arg5h = (double *)arg5.data;
-  int nargs = 16;
-  op_arg args[16];
+  int nargs = 20;
+  op_arg args[20];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -108,13 +128,17 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
   args[13] = arg13;
   args[14] = arg14;
   args[15] = arg15;
+  args[16] = arg16;
+  args[17] = arg17;
+  args[18] = arg18;
+  args[19] = arg19;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(33);
+  op_timing_realloc(34);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[33].name      = name;
-  OP_kernels[33].count    += 1;
+  OP_kernels[34].name      = name;
+  OP_kernels[34].count    += 1;
 
 
   if (OP_diags>2) {
@@ -173,8 +197,8 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_33
-      int nthread = OP_BLOCK_SIZE_33;
+    #ifdef OP_BLOCK_SIZE_34
+      int nthread = OP_BLOCK_SIZE_34;
     #else
       int nthread = OP_block_size;
     #endif
@@ -198,21 +222,29 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
       (double *) arg13.data_d,
       (double *) arg14.data_d,
       (double *) arg15.data_d,
+      (double *) arg16.data_d,
+      (double *) arg17.data_d,
+      (double *) arg18.data_d,
+      (double *) arg19.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[33].time     += wall_t2 - wall_t1;
-  OP_kernels[33].transfer += (float)set->size * arg6.size;
-  OP_kernels[33].transfer += (float)set->size * arg7.size;
-  OP_kernels[33].transfer += (float)set->size * arg8.size;
-  OP_kernels[33].transfer += (float)set->size * arg9.size;
-  OP_kernels[33].transfer += (float)set->size * arg10.size;
-  OP_kernels[33].transfer += (float)set->size * arg11.size;
-  OP_kernels[33].transfer += (float)set->size * arg12.size;
-  OP_kernels[33].transfer += (float)set->size * arg13.size;
-  OP_kernels[33].transfer += (float)set->size * arg14.size * 2.0f;
-  OP_kernels[33].transfer += (float)set->size * arg15.size * 2.0f;
+  OP_kernels[34].time     += wall_t2 - wall_t1;
+  OP_kernels[34].transfer += (float)set->size * arg6.size;
+  OP_kernels[34].transfer += (float)set->size * arg7.size;
+  OP_kernels[34].transfer += (float)set->size * arg8.size;
+  OP_kernels[34].transfer += (float)set->size * arg9.size;
+  OP_kernels[34].transfer += (float)set->size * arg10.size;
+  OP_kernels[34].transfer += (float)set->size * arg11.size;
+  OP_kernels[34].transfer += (float)set->size * arg12.size;
+  OP_kernels[34].transfer += (float)set->size * arg13.size;
+  OP_kernels[34].transfer += (float)set->size * arg14.size;
+  OP_kernels[34].transfer += (float)set->size * arg15.size;
+  OP_kernels[34].transfer += (float)set->size * arg16.size;
+  OP_kernels[34].transfer += (float)set->size * arg17.size;
+  OP_kernels[34].transfer += (float)set->size * arg18.size * 2.0f;
+  OP_kernels[34].transfer += (float)set->size * arg19.size * 2.0f;
 }

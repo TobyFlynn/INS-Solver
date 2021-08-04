@@ -64,18 +64,21 @@ int main(int argc, char **argv) {
   nu1 = 1.0;
   rho1 = 1.0;
 
-  ic_u = 0.0;
+  ic_u = 1.3;
   ic_v = 0.0;
 
-  double refRho = 1.204;
-  double refMu  = 1.825e-5;
-  double refLen = 0.001;
-  double refVel = 1.0;
+  double refRho     = 1.204;
+  double refMu      = 1.825e-5;
+  double refLen     = 0.001;
+  double refVel     = 1.0;
+  double refSurfTen = 0.0756;
 
   // Set Reynolds number
   reynolds = refRho * refVel * refLen / refMu;
   // Set Froude number
   froude = refVel / sqrt(9.8 * refLen);
+  // Set Weber number
+  weber = refRho * refVel * refLen / refSurfTen;
 
   // Get input from args
   int iter = 1;
@@ -123,6 +126,7 @@ int main(int argc, char **argv) {
   op_printf("rho1: %g\n", rho1);
   op_printf("reynolds: %g\n", reynolds);
   op_printf("froude: %g\n", froude);
+  op_printf("weber: %g\n", weber);
 
   Solver *solver = new Solver(filename, pre > 0, problem);
 
@@ -132,7 +136,8 @@ int main(int argc, char **argv) {
   double b1 = 0.0;
   double g0 = 1.0;
   int currentIter = 0;
-  double time = 0.0;
+  // double time = 0.0;
+  double time = 3.0;
 
   if(save != -1) {
     save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);

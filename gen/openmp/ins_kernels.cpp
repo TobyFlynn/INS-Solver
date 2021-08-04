@@ -78,6 +78,7 @@ extern double gFInterp2R_g[60];
 #include "advection_faces_kernel.cpp"
 #include "advection_bc_kernel.cpp"
 #include "advection_numerical_flux_kernel.cpp"
+#include "advection_surface_tension_kernel.cpp"
 #include "advection_intermediate_vel_kernel.cpp"
 #include "pressure_mu_kernel.cpp"
 #include "zero_g_np1_kernel.cpp"
@@ -112,3 +113,4 @@ extern double gFInterp2R_g[60];
 #include "diff_bflux_kernel.cpp"
 #include "ls_reinit_check_kernel.cpp"
 #include "ls_step_kernel.cpp"
+#include "ls_normalise_kernel.cpp"

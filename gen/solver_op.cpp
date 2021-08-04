@@ -67,7 +67,19 @@ void op_par_loop_advection_numerical_flux(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_advection_surface_tension(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg );
+
 void op_par_loop_advection_intermediate_vel(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -324,6 +336,14 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
   op2_gemv(true, 10, 3 * 4, 1.0, constants->get_ptr(DGConstants::LIFT), 3 * 4, data->flux[0], 1.0, data->N[currentInd][0]);
   op2_gemv(true, 10, 3 * 4, 1.0, constants->get_ptr(DGConstants::LIFT), 3 * 4, data->flux[1], 1.0, data->N[currentInd][1]);
 
+  op_par_loop_advection_surface_tension("advection_surface_tension",mesh->cells,
+              op_arg_dat(ls->curv,-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(ls->nx,-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(ls->ny,-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(ls->step_s,-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->surf_ten[currentInd][0],-1,OP_ID,10,"double",OP_WRITE),
+              op_arg_dat(data->surf_ten[currentInd][1],-1,OP_ID,10,"double",OP_WRITE));
+
   // Calculate the intermediate velocity values
   op_par_loop_advection_intermediate_vel("advection_intermediate_vel",mesh->cells,
               op_arg_gbl(&a0,1,"double",OP_READ),
@@ -340,6 +360,10 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->N[currentInd][1],-1,OP_ID,10,"double",OP_READ),
               op_arg_dat(data->N[(currentInd + 1) % 2][0],-1,OP_ID,10,"double",OP_READ),
               op_arg_dat(data->N[(currentInd + 1) % 2][1],-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->surf_ten[currentInd][0],-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->surf_ten[currentInd][1],-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->surf_ten[(currentInd + 1) % 2][0],-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(data->surf_ten[(currentInd + 1) % 2][1],-1,OP_ID,10,"double",OP_READ),
               op_arg_dat(data->QT[0],-1,OP_ID,10,"double",OP_WRITE),
               op_arg_dat(data->QT[1],-1,OP_ID,10,"double",OP_WRITE));
 }

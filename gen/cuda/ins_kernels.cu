@@ -292,6 +292,7 @@ int size, char *dat, char const *name){
 #include "advection_faces_kernel.cu"
 #include "advection_bc_kernel.cu"
 #include "advection_numerical_flux_kernel.cu"
+#include "advection_surface_tension_kernel.cu"
 #include "advection_intermediate_vel_kernel.cu"
 #include "pressure_mu_kernel.cu"
 #include "zero_g_np1_kernel.cu"
@@ -326,3 +327,4 @@ int size, char *dat, char const *name){
 #include "diff_bflux_kernel.cu"
 #include "ls_reinit_check_kernel.cu"
 #include "ls_step_kernel.cu"
+#include "ls_normalise_kernel.cu"

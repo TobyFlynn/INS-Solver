@@ -29,6 +29,14 @@ void advection_intermediate_vel_omp4_kernel(
   int dat14size,
   double *data15,
   int dat15size,
+  double *data16,
+  int dat16size,
+  double *data17,
+  int dat17size,
+  double *data18,
+  int dat18size,
+  double *data19,
+  int dat19size,
   int count,
   int num_teams,
   int nthread){
@@ -39,7 +47,8 @@ void advection_intermediate_vel_omp4_kernel(
   double arg3_l = *arg3;
   double arg4_l = *arg4;
   double arg5_l = *arg5;
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size],data15[0:dat15size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data6[0:dat6size],data7[0:dat7size],data8[0:dat8size],data9[0:dat9size],data10[0:dat10size],data11[0:dat11size],data12[0:dat12size],data13[0:dat13size],data14[0:dat14size],data15[0:dat15size],data16[0:dat16size],data17[0:dat17size],data18[0:dat18size],data19[0:dat19size]) \
+    map(to: froude_ompkernel)
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
@@ -57,14 +66,24 @@ void advection_intermediate_vel_omp4_kernel(
     const double *N1 = &data11[10*n_op];
     const double *N0Old = &data12[10*n_op];
     const double *N1Old = &data13[10*n_op];
-    double *q0T = &data14[10*n_op];
-    double *q1T = &data15[10*n_op];
+    const double *st_x = &data14[10*n_op];
+    const double *st_y = &data15[10*n_op];
+    const double *st_xOld = &data16[10*n_op];
+    const double *st_yOld = &data17[10*n_op];
+    double *q0T = &data18[10*n_op];
+    double *q1T = &data19[10*n_op];
 
     //inline function
     
+    double gravity = 1.0 / (froude_ompkernel * froude_ompkernel);
     for(int i = 0; i < 10; i++) {
-      q0T[i] = *a0 * q0[i] + *a1 * q0Old[i] + *dt * (*b0 * N0[i] + *b1 * N0Old[i]);
-      q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * N1[i] + *b1 * N1Old[i]);
+
+
+
+
+      q0T[i] = *a0 * q0[i] + *a1 * q0Old[i] + *dt * (*b0 * (N0[i]) + *b1 * (N0Old[i]));
+      q1T[i] = *a0 * q1[i] + *a1 * q1Old[i] + *dt * (*b0 * (N1[i] - gravity) + *b1 * (N1Old[i] - gravity));
+
 
     }
     //end inline func

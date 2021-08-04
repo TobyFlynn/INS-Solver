@@ -32,6 +32,14 @@ void advection_intermediate_vel_omp4_kernel(
   int dat14size,
   double *data15,
   int dat15size,
+  double *data16,
+  int dat16size,
+  double *data17,
+  int dat17size,
+  double *data18,
+  int dat18size,
+  double *data19,
+  int dat19size,
   int count,
   int num_teams,
   int nthread);
@@ -53,7 +61,11 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
   op_arg arg12,
   op_arg arg13,
   op_arg arg14,
-  op_arg arg15){
+  op_arg arg15,
+  op_arg arg16,
+  op_arg arg17,
+  op_arg arg18,
+  op_arg arg19){
 
   double*arg0h = (double *)arg0.data;
   double*arg1h = (double *)arg1.data;
@@ -61,8 +73,8 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
   double*arg3h = (double *)arg3.data;
   double*arg4h = (double *)arg4.data;
   double*arg5h = (double *)arg5.data;
-  int nargs = 16;
-  op_arg args[16];
+  int nargs = 20;
+  op_arg args[20];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -80,13 +92,17 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
   args[13] = arg13;
   args[14] = arg14;
   args[15] = arg15;
+  args[16] = arg16;
+  args[17] = arg17;
+  args[18] = arg18;
+  args[19] = arg19;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(33);
+  op_timing_realloc(34);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[33].name      = name;
-  OP_kernels[33].count    += 1;
+  OP_kernels[34].name      = name;
+  OP_kernels[34].count    += 1;
 
 
   if (OP_diags>2) {
@@ -95,13 +111,13 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_33
-    int part_size = OP_PART_SIZE_33;
+  #ifdef OP_PART_SIZE_34
+    int part_size = OP_PART_SIZE_34;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_33
-    int nthread = OP_BLOCK_SIZE_33;
+  #ifdef OP_BLOCK_SIZE_34
+    int nthread = OP_BLOCK_SIZE_34;
   #else
     int nthread = OP_block_size;
   #endif
@@ -137,6 +153,14 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
     int dat14size = getSetSizeFromOpArg(&arg14) * arg14.dat->dim;
     double* data15 = (double*)arg15.data_d;
     int dat15size = getSetSizeFromOpArg(&arg15) * arg15.dat->dim;
+    double* data16 = (double*)arg16.data_d;
+    int dat16size = getSetSizeFromOpArg(&arg16) * arg16.dat->dim;
+    double* data17 = (double*)arg17.data_d;
+    int dat17size = getSetSizeFromOpArg(&arg17) * arg17.dat->dim;
+    double* data18 = (double*)arg18.data_d;
+    int dat18size = getSetSizeFromOpArg(&arg18) * arg18.dat->dim;
+    double* data19 = (double*)arg19.data_d;
+    int dat19size = getSetSizeFromOpArg(&arg19) * arg19.dat->dim;
     advection_intermediate_vel_omp4_kernel(
       &arg0_l,
       &arg1_l,
@@ -164,6 +188,14 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
       dat14size,
       data15,
       dat15size,
+      data16,
+      dat16size,
+      data17,
+      dat17size,
+      data18,
+      dat18size,
+      data19,
+      dat19size,
       set->size,
       part_size!=0?(set->size-1)/part_size+1:(set->size-1)/nthread,
       nthread);
@@ -176,15 +208,19 @@ void op_par_loop_advection_intermediate_vel(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[33].time     += wall_t2 - wall_t1;
-  OP_kernels[33].transfer += (float)set->size * arg6.size;
-  OP_kernels[33].transfer += (float)set->size * arg7.size;
-  OP_kernels[33].transfer += (float)set->size * arg8.size;
-  OP_kernels[33].transfer += (float)set->size * arg9.size;
-  OP_kernels[33].transfer += (float)set->size * arg10.size;
-  OP_kernels[33].transfer += (float)set->size * arg11.size;
-  OP_kernels[33].transfer += (float)set->size * arg12.size;
-  OP_kernels[33].transfer += (float)set->size * arg13.size;
-  OP_kernels[33].transfer += (float)set->size * arg14.size * 2.0f;
-  OP_kernels[33].transfer += (float)set->size * arg15.size * 2.0f;
+  OP_kernels[34].time     += wall_t2 - wall_t1;
+  OP_kernels[34].transfer += (float)set->size * arg6.size;
+  OP_kernels[34].transfer += (float)set->size * arg7.size;
+  OP_kernels[34].transfer += (float)set->size * arg8.size;
+  OP_kernels[34].transfer += (float)set->size * arg9.size;
+  OP_kernels[34].transfer += (float)set->size * arg10.size;
+  OP_kernels[34].transfer += (float)set->size * arg11.size;
+  OP_kernels[34].transfer += (float)set->size * arg12.size;
+  OP_kernels[34].transfer += (float)set->size * arg13.size;
+  OP_kernels[34].transfer += (float)set->size * arg14.size;
+  OP_kernels[34].transfer += (float)set->size * arg15.size;
+  OP_kernels[34].transfer += (float)set->size * arg16.size;
+  OP_kernels[34].transfer += (float)set->size * arg17.size;
+  OP_kernels[34].transfer += (float)set->size * arg18.size * 2.0f;
+  OP_kernels[34].transfer += (float)set->size * arg19.size * 2.0f;
 }
