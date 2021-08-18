@@ -102,10 +102,10 @@ void op_par_loop_init_gauss_grad3(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(8);
+  op_timing_realloc(6);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[8].name      = name;
-  OP_kernels[8].count    += 1;
+  OP_kernels[6].name      = name;
+  OP_kernels[6].count    += 1;
 
   int  ninds   = 8;
   int  inds[19] = {-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,-1,-1};
@@ -115,8 +115,8 @@ void op_par_loop_init_gauss_grad3(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_8
-    int part_size = OP_PART_SIZE_8;
+  #ifdef OP_PART_SIZE_6
+    int part_size = OP_PART_SIZE_6;
   #else
     int part_size = OP_part_size;
   #endif
@@ -189,8 +189,8 @@ void op_par_loop_init_gauss_grad3(char const *name, op_set set,
       }
 
     }
-    OP_kernels[8].transfer  += Plan->transfer;
-    OP_kernels[8].transfer2 += Plan->transfer2;
+    OP_kernels[6].transfer  += Plan->transfer;
+    OP_kernels[6].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -201,5 +201,5 @@ void op_par_loop_init_gauss_grad3(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[8].time     += wall_t2 - wall_t1;
+  OP_kernels[6].time     += wall_t2 - wall_t1;
 }

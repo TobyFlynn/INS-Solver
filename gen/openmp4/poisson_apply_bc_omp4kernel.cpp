@@ -40,10 +40,10 @@ void op_par_loop_poisson_apply_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(18);
+  op_timing_realloc(14);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[18].name      = name;
-  OP_kernels[18].count    += 1;
+  OP_kernels[14].name      = name;
+  OP_kernels[14].count    += 1;
 
   int  ninds   = 2;
   int  inds[4] = {-1,-1,0,1};
@@ -55,13 +55,13 @@ void op_par_loop_poisson_apply_bc(char const *name, op_set set,
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_18
-    int part_size = OP_PART_SIZE_18;
+  #ifdef OP_PART_SIZE_14
+    int part_size = OP_PART_SIZE_14;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_18
-    int nthread = OP_BLOCK_SIZE_18;
+  #ifdef OP_BLOCK_SIZE_14
+    int nthread = OP_BLOCK_SIZE_14;
   #else
     int nthread = OP_block_size;
   #endif
@@ -116,8 +116,8 @@ void op_par_loop_poisson_apply_bc(char const *name, op_set set,
         nthread);
 
     }
-    OP_kernels[18].transfer  += Plan->transfer;
-    OP_kernels[18].transfer2 += Plan->transfer2;
+    OP_kernels[14].transfer  += Plan->transfer;
+    OP_kernels[14].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -129,5 +129,5 @@ void op_par_loop_poisson_apply_bc(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[18].time     += wall_t2 - wall_t1;
+  OP_kernels[14].time     += wall_t2 - wall_t1;
 }

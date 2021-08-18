@@ -22,10 +22,10 @@ void op_par_loop_glb_ind_kernelBC(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(16);
+  op_timing_realloc(12);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[16].name      = name;
-  OP_kernels[16].count    += 1;
+  OP_kernels[12].name      = name;
+  OP_kernels[12].count    += 1;
 
   int  ninds   = 1;
   int  inds[2] = {0,-1};
@@ -35,8 +35,8 @@ void op_par_loop_glb_ind_kernelBC(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_16
-    int part_size = OP_PART_SIZE_16;
+  #ifdef OP_PART_SIZE_12
+    int part_size = OP_PART_SIZE_12;
   #else
     int part_size = OP_part_size;
   #endif
@@ -81,8 +81,8 @@ void op_par_loop_glb_ind_kernelBC(char const *name, op_set set,
       }
 
     }
-    OP_kernels[16].transfer  += Plan->transfer;
-    OP_kernels[16].transfer2 += Plan->transfer2;
+    OP_kernels[12].transfer  += Plan->transfer;
+    OP_kernels[12].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -93,5 +93,5 @@ void op_par_loop_glb_ind_kernelBC(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[16].time     += wall_t2 - wall_t1;
+  OP_kernels[12].time     += wall_t2 - wall_t1;
 }

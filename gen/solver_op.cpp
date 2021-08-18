@@ -283,6 +283,7 @@ Solver::~Solver() {
 
 void Solver::advection(int currentInd, double a0, double a1, double b0,
                        double b1, double g0, double t) {
+  // Calculate Nonlinear Terms (same method used as Hesthaven and Warburton textbook)
   // Calculate flux values
   op_par_loop_advection_flux("advection_flux",mesh->cells,
               op_arg_dat(data->Q[currentInd][0],-1,OP_ID,10,"double",OP_READ),
@@ -335,6 +336,7 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
   op2_gemv(true, 10, 3 * 4, 1.0, constants->get_ptr(DGConstants::LIFT), 3 * 4, data->flux[0], 1.0, data->N[currentInd][0]);
   op2_gemv(true, 10, 3 * 4, 1.0, constants->get_ptr(DGConstants::LIFT), 3 * 4, data->flux[1], 1.0, data->N[currentInd][1]);
 
+  // Kernel to calculate surface tension force
   op_par_loop_advection_surface_tension("advection_surface_tension",mesh->cells,
               op_arg_gbl(&ls->alpha,1,"double",OP_READ),
               op_arg_dat(ls->curv,-1,OP_ID,10,"double",OP_READ),
@@ -344,7 +346,8 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->surf_ten[currentInd][0],-1,OP_ID,10,"double",OP_WRITE),
               op_arg_dat(data->surf_ten[currentInd][1],-1,OP_ID,10,"double",OP_WRITE));
 
-  // Calculate the intermediate velocity values
+  // Calculate the intermediate velocity value from previous velocities, nonlinear terms and body forces
+  // Doesn't currently add gravity or surface tension while I am trying to sort out the thin interface stuff
   op_par_loop_advection_intermediate_vel("advection_intermediate_vel",mesh->cells,
               op_arg_gbl(&a0,1,"double",OP_READ),
               op_arg_gbl(&a1,1,"double",OP_READ),
@@ -372,6 +375,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
                       double b1, double g0, double t) {
   timer->startPressureSetup();
 
+  // Calculations used for pressure RHS and BCs
   div(mesh, data->QT[0], data->QT[1], data->divVelT);
   curl(mesh, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
   // Mult by mu here?
@@ -401,6 +405,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->gradCurlVel[1],0,mesh->bedge2cells,10,"double",OP_READ),
               op_arg_dat(data->dPdN[currentInd],0,mesh->bedge2cells,12,"double",OP_INC));
 
+  // Left over from single fluid solver, can ignore, just setting some Dirichlet BCs
   if(problem == 1) {
     op_par_loop_pressure_bc2("pressure_bc2",mesh->bedges,
                 op_arg_dat(mesh->bedge_type,-1,OP_ID,1,"int",OP_READ),
@@ -456,7 +461,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   op2_gemv(true, 10, 3 * 4, -1.0, constants->get_ptr(DGConstants::LIFT), 3 * 4, data->pFluxX, 1.0, data->dpdx);
   op2_gemv(true, 10, 3 * 4, -1.0, constants->get_ptr(DGConstants::LIFT), 3 * 4, data->pFluxY, 1.0, data->dpdy);
 
-  // Calculate new velocity intermediate values
+  // Calculate new velocity intermediate values using the pressure gradient
   // double factor = dt / g0;
   double factor = dt;
   op_par_loop_pressure_update_vel("pressure_update_vel",mesh->cells,
@@ -497,6 +502,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
   double factor = reynolds / dt;
 
+  // Calculate the RHS of the viscosity solve
   op_par_loop_viscosity_rhs("viscosity_rhs",mesh->cells,
               op_arg_gbl(&factor,1,"double",OP_READ),
               op_arg_dat(data->rho,-1,OP_ID,10,"double",OP_READ),

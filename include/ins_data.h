@@ -22,14 +22,13 @@ public:
   op_dat tmp_dg_np[10], tmp_dg_npf[2], tmp_dg_g_np[4];
 
   // Cubature stuff
-  op_dat Dx, Dy, cOP, temp, temp2;
+  op_dat Dx, Dy;
 
   // Gauss stuff
   op_dat grx, gsx, gry, gsy, tau, reverse;
-  op_dat mDx[3], mDy[3], pDx[3], pDy[3], mD[3], pD[3];
+  op_dat mDx[3], mDy[3], pDx[3], pDy[3];
   op_dat mDL, mDR, mDBC, pDL, pDR, gVPL, gVPR;
-  // OP is in column major format
-  op_dat gOP[3], gOPf[3];
+
 private:
   DGMesh *mesh;
 
@@ -49,10 +48,8 @@ private:
   int *reverse_data;
   double *mDx_data[3], *mDy_data[3];
   double *pDx_data[3], *pDy_data[3];
-  double *mD_data[3], *pD_data[3];
   double *mDL_data, *mDR_data, *mDBC_data, *pDL_data, *pDR_data;
   double *gVPL_data, *gVPR_data;
-  double *gOP_data[3], *gOPf_data[3];
 };
 
 #endif

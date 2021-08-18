@@ -273,6 +273,7 @@ void PoissonSolve::init() {
               op_arg_dat(h,-1,OP_ID,1,"double",OP_WRITE));
 }
 
+// Apply BCs to RHS and call PETSc linear solver
 bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   op_par_loop_poisson_apply_bc("poisson_apply_bc",mesh->bedges,
               op_arg_dat(mesh->bedgeNum,-1,OP_ID,1,"int",OP_READ),
@@ -308,6 +309,7 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   return converged;
 }
 
+// Matrix-free Mat-Vec mult function
 void PoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
   // Copy u to OP2 dat
   copy_vec_to_dat(u, u_d);
@@ -328,6 +330,7 @@ void PoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
   copy_dat_to_vec(rhs, rhs_d);
 }
 
+// Matrix-free block-jacobi preconditioning function
 void PoissonSolve::precond(const double *in_d, double *out_d) {
   copy_vec_to_dat(in, in_d);
 
@@ -339,7 +342,9 @@ void PoissonSolve::precond(const double *in_d, double *out_d) {
   copy_dat_to_vec(out, out_d);
 }
 
+// Set up LHS matrix
 void PoissonSolve::set_op() {
+  // Kernel to calculate the 1st term in Eqn. 10 Karakus et al.
   op_par_loop_poisson_op1("poisson_op1",mesh->cells,
               op_arg_dat(mesh->cubature->J,-1,OP_ID,36,"double",OP_READ),
               op_arg_dat(data->Dx,-1,OP_ID,360,"double",OP_READ),
@@ -347,6 +352,7 @@ void PoissonSolve::set_op() {
               op_arg_dat(cFactor,-1,OP_ID,36,"double",OP_READ),
               op_arg_dat(op1,-1,OP_ID,100,"double",OP_WRITE));
 
+  // Kernel to calculate the 2nd, 3rd and 4th term in Eqn. 10 Karakus et al.
   op_par_loop_poisson_op2("poisson_op2",mesh->edges,
               op_arg_dat(mesh->edgeNum,-1,OP_ID,2,"int",OP_READ),
               op_arg_dat(mesh->reverse,-1,OP_ID,1,"bool",OP_READ),
@@ -369,6 +375,7 @@ void PoissonSolve::set_op() {
               op_arg_dat(op2[0],-1,OP_ID,100,"double",OP_WRITE),
               op_arg_dat(op2[1],-1,OP_ID,100,"double",OP_WRITE));
 
+  // Same as previous kernel but for boundary edges
   op_par_loop_poisson_op3("poisson_op3",mesh->bedges,
               op_arg_dat(mesh->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(mesh->bedgeNum,-1,OP_ID,1,"int",OP_READ),
@@ -382,6 +389,7 @@ void PoissonSolve::set_op() {
               op_arg_dat(factor,0,mesh->bedge2cells,10,"double",OP_READ),
               op_arg_dat(op1,0,mesh->bedge2cells,100,"double",OP_INC));
 
+  // Calculates the scaled mass matrix used in the screened Poisson solve for the viscosity solve
   if(massMat) {
     op_par_loop_poisson_op4("poisson_op4",mesh->cells,
                 op_arg_dat(mesh->cubature->J,-1,OP_ID,36,"double",OP_READ),
@@ -392,6 +400,7 @@ void PoissonSolve::set_op() {
     inv_blas(mesh, op1, pre);
   }
 
+  // Kernel to calculate matrix that is used to apply Dirichlet and Neumann BCs to RHS
   op_par_loop_poisson_op5("poisson_op5",mesh->bedges,
               op_arg_dat(mesh->bedge_type,-1,OP_ID,1,"int",OP_READ),
               op_arg_dat(mesh->bedgeNum,-1,OP_ID,1,"int",OP_READ),
@@ -409,6 +418,7 @@ void PoissonSolve::set_op() {
 void PressureSolve::setup() {
   massMat = false;
 
+  // Set factor used in Poisson solve (1 / rho)
   op_par_loop_pressure_solve_setup("pressure_solve_setup",mesh->cells,
               op_arg_dat(data->rho,-1,OP_ID,10,"double",OP_READ),
               op_arg_dat(factor,-1,OP_ID,10,"double",OP_WRITE));
@@ -491,6 +501,7 @@ void ViscositySolve::setup(double mmConst) {
     KSPSetOperators(ksp, Amat, Amat);
   }
 
+  // Set factor used in Poisson solve (nu) and for scaled mass matrix
   op_par_loop_viscosity_solve_setup("viscosity_solve_setup",mesh->cells,
               op_arg_dat(data->nu,-1,OP_ID,10,"double",OP_READ),
               op_arg_dat(data->rho,-1,OP_ID,10,"double",OP_READ),
