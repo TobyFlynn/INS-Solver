@@ -14,7 +14,7 @@ public:
 
   op_dat Q[2][2], F[4], N[2][2], flux[2], QT[2], QTT[2];
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, p, dpdx, dpdy;
-  op_dat visRHS[2], prBC, visBC[2];
+  op_dat visRHS[2], prBC, visBC[2], visTemp[2];
   op_dat vorticity, save_temp, nu, gNu, rho, pFluxX, pFluxY;
   op_dat surf_ten[2][2];
 
@@ -26,6 +26,7 @@ public:
   // Gauss stuff
   op_dat grx, gsx, gry, gsy, tau, reverse;
   op_dat mDx[3], mDy[3], pDx[3], pDy[3], mD[3], pD[3];
+  op_dat mDL, mDR, mDBC, pDL, pDR, gVPL, gVPR;
   // OP is in column major format
   op_dat gOP[3], gOPf[3];
 private:
@@ -48,6 +49,8 @@ private:
   double *mDx_data[3], *mDy_data[3];
   double *pDx_data[3], *pDy_data[3];
   double *mD_data[3], *pD_data[3];
+  double *mDL_data, *mDR_data, *mDBC_data, *pDL_data, *pDR_data;
+  double *gVPL_data, *gVPR_data;
   double *gOP_data[3], *gOPf_data[3];
 };
 

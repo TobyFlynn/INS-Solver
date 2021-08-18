@@ -6,15 +6,9 @@
 //user function
 //#pragma acc routine
 inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
-                        const double *mD0L, const double *mD0R,
-                        const double *mD1L, const double *mD1R,
-                        const double *mD2L, const double *mD2R,
-                        const double *pD0L, const double *pD0R,
-                        const double *pD1L, const double *pD1R,
-                        const double *pD2L, const double *pD2R,
-                        const double *gVP0L, const double *gVP0R,
-                        const double *gVP1L, const double *gVP1R,
-                        const double *gVP2L, const double *gVP2R,
+                        const double *mDL, const double *mDR,
+                        const double *pDL, const double *pDR,
+                        const double *gVPL, const double *gVPR,
                         const double *sJL, const double *sJR,
                         const double *hL, const double *hR,
                         const double *gFactorL, const double *gFactorR,
@@ -26,40 +20,21 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
   int edgeR = edgeNum[1];
   bool reverse = *rev;
 
-
-  const double *mDL, *mDR, *pDL, *pDR, *gVML, *gVMR, *gVPL, *gVPR;
+  const double *gVML, *gVMR;
   if(edgeL == 0) {
-    mDL  = mD0L;
-    pDL  = pD0L;
     gVML = gFInterp0_g;
-    gVPL = gVP0L;
   } else if(edgeL == 1) {
-    mDL  = mD1L;
-    pDL  = pD1L;
     gVML = gFInterp1_g;
-    gVPL = gVP1L;
   } else {
-    mDL  = mD2L;
-    pDL  = pD2L;
     gVML = gFInterp2_g;
-    gVPL = gVP2L;
   }
 
   if(edgeR == 0) {
-    mDR  = mD0R;
-    pDR  = pD0R;
     gVMR = gFInterp0_g;
-    gVPR = gVP0R;
   } else if(edgeR == 1) {
-    mDR  = mD1R;
-    pDR  = pD1R;
     gVMR = gFInterp1_g;
-    gVPR = gVP1R;
   } else {
-    mDR  = mD2R;
-    pDR  = pD2R;
     gVMR = gFInterp2_g;
-    gVPR = gVP2R;
   }
 
 
@@ -116,25 +91,43 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
 
         int factors_indL = edgeL * 6 + k;
         int factors_indR = edgeR * 6 + k;
+        int factors_indLR;
+        int factors_indRR;
+        if(reverse) {
+          factors_indLR = edgeL * 6 + 6 - 1 - k;
+          factors_indRR = edgeR * 6 + 6 - 1 - k;
+        } else {
+          factors_indLR = edgeL * 6 + k;
+          factors_indRR = edgeR * 6 + k;
+        }
 
-        op1L[c_ind] += -factorL[i] * mDL[a_ind] * gaussW_g[k]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        op1L[c_ind] += -0.5 * gFactorL[factors_indL] * mDL[a_ind] * gaussW_g[k]
                        * sJL[factors_indL] * gVML[b_ind];
-        op1R[c_ind] += -factorR[i] * mDR[a_ind] * gaussW_g[k]
+        op1R[c_ind] += -0.5 * gFactorR[factors_indR] * mDR[a_ind] * gaussW_g[k]
                        * sJR[factors_indR] * gVMR[b_ind];
 
-        op2L[c_ind] += factorL[i] * mDL[a_ind] * gaussW_g[k]
+        op2L[c_ind] += 0.5 * gFactorL[factors_indL] * mDL[a_ind] * gaussW_g[k]
                        * sJL[factors_indL] * gVPL[b_ind];
-        op2R[c_ind] += factorR[i] * mDR[a_ind] * gaussW_g[k]
+        op2R[c_ind] += 0.5 * gFactorR[factors_indR] * mDR[a_ind] * gaussW_g[k]
                        * sJR[factors_indR] * gVPR[b_ind];
-
-
-
-
-
-
-
-
-
       }
     }
   }
@@ -150,11 +143,11 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
       indR = edgeR * 6 + 6 - 1 - i;
     else
       indR = edgeR * 6 + i;
-    tauL[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
 
-    if(maxL < tauL[i]) {
-      maxL = tauL[i];
-    }
+    tauL[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+
+
+
   }
   for(int i = 0; i < 6; i++) {
     int indL;
@@ -163,17 +156,16 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
       indL = edgeL * 6 + 6 - 1 - i;
     else
       indL = edgeL * 6 + i;
-    tauR[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
 
-    if(maxR < tauR[i]) {
-      maxR = tauR[i];
-    }
+    tauR[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+
+
+
   }
 
-  for(int i = 0; i < 6; i++) {
-    tauL[i] = maxL;
-    tauR[i] = maxR;
-  }
+
+
+
 
 
 
@@ -190,14 +182,23 @@ inline void poisson_op2_openacc( const int *edgeNum, const bool *rev,
         int factors_indL = edgeL * 6 + k;
         int factors_indR = edgeR * 6 + k;
 
-        op1L[c_ind] += gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
+
+
+
+
+
+
+
+
+
+        op1L[c_ind] += 0.5 * gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
                        * tauL[k] * gVML[b_ind];
-        op1R[c_ind] += gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
+        op1R[c_ind] += 0.5 * gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
                        * tauR[k] * gVMR[b_ind];
 
-        op2L[c_ind] += -gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
+        op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
                        * tauL[k] * gVPL[b_ind];
-        op2R[c_ind] += -gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
+        op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
                        * tauR[k] * gVPR[b_ind];
       }
     }
@@ -225,22 +226,10 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   op_arg arg16,
   op_arg arg17,
   op_arg arg18,
-  op_arg arg19,
-  op_arg arg20,
-  op_arg arg21,
-  op_arg arg22,
-  op_arg arg23,
-  op_arg arg24,
-  op_arg arg25,
-  op_arg arg26,
-  op_arg arg27,
-  op_arg arg28,
-  op_arg arg29,
-  op_arg arg30,
-  op_arg arg31){
+  op_arg arg19){
 
-  int nargs = 32;
-  op_arg args[32];
+  int nargs = 20;
+  op_arg args[20];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -262,36 +251,24 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   args[17] = arg17;
   args[18] = arg18;
   args[19] = arg19;
-  args[20] = arg20;
-  args[21] = arg21;
-  args[22] = arg22;
-  args[23] = arg23;
-  args[24] = arg24;
-  args[25] = arg25;
-  args[26] = arg26;
-  args[27] = arg27;
-  args[28] = arg28;
-  args[29] = arg29;
-  args[30] = arg30;
-  args[31] = arg31;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(20);
+  op_timing_realloc(23);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[20].name      = name;
-  OP_kernels[20].count    += 1;
+  OP_kernels[23].name      = name;
+  OP_kernels[23].count    += 1;
 
-  int  ninds   = 14;
-  int  inds[32] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,-1,-1};
+  int  ninds   = 5;
+  int  inds[20] = {-1,-1,-1,-1,-1,-1,-1,-1,0,0,1,1,2,2,3,3,4,4,-1,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_op2\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_20
-    int part_size = OP_PART_SIZE_20;
+  #ifdef OP_PART_SIZE_23
+    int part_size = OP_PART_SIZE_23;
   #else
     int part_size = OP_part_size;
   #endif
@@ -305,26 +282,23 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
 
 
     //Set up typed device pointers for OpenACC
-    int *map2 = arg2.map_data_d;
+    int *map8 = arg8.map_data_d;
 
     int* data0 = (int*)arg0.data_d;
     bool* data1 = (bool*)arg1.data_d;
-    double* data30 = (double*)arg30.data_d;
-    double* data31 = (double*)arg31.data_d;
-    double *data2 = (double *)arg2.data_d;
-    double *data4 = (double *)arg4.data_d;
-    double *data6 = (double *)arg6.data_d;
+    double* data2 = (double*)arg2.data_d;
+    double* data3 = (double*)arg3.data_d;
+    double* data4 = (double*)arg4.data_d;
+    double* data5 = (double*)arg5.data_d;
+    double* data6 = (double*)arg6.data_d;
+    double* data7 = (double*)arg7.data_d;
+    double* data18 = (double*)arg18.data_d;
+    double* data19 = (double*)arg19.data_d;
     double *data8 = (double *)arg8.data_d;
     double *data10 = (double *)arg10.data_d;
     double *data12 = (double *)arg12.data_d;
     double *data14 = (double *)arg14.data_d;
     double *data16 = (double *)arg16.data_d;
-    double *data18 = (double *)arg18.data_d;
-    double *data20 = (double *)arg20.data_d;
-    double *data22 = (double *)arg22.data_d;
-    double *data24 = (double *)arg24.data_d;
-    double *data26 = (double *)arg26.data_d;
-    double *data28 = (double *)arg28.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -339,53 +313,41 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map2,data0,data1,data30,data31,data2,data4,data6,data8,data10,data12,data14,data16,data18,data20,data22,data24,data26,data28)
+      #pragma acc parallel loop independent deviceptr(col_reord,map8,data0,data1,data2,data3,data4,data5,data6,data7,data18,data19,data8,data10,data12,data14,data16)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
-        int map2idx;
-        int map3idx;
-        map2idx = map2[n + set_size1 * 0];
-        map3idx = map2[n + set_size1 * 1];
+        int map8idx;
+        int map9idx;
+        map8idx = map8[n + set_size1 * 0];
+        map9idx = map8[n + set_size1 * 1];
 
 
         poisson_op2_openacc(
           &data0[2 * n],
           &data1[1 * n],
-          &data2[60 * map2idx],
-          &data2[60 * map3idx],
-          &data4[60 * map2idx],
-          &data4[60 * map3idx],
-          &data6[60 * map2idx],
-          &data6[60 * map3idx],
-          &data8[60 * map2idx],
-          &data8[60 * map3idx],
-          &data10[60 * map2idx],
-          &data10[60 * map3idx],
-          &data12[60 * map2idx],
-          &data12[60 * map3idx],
-          &data14[60 * map2idx],
-          &data14[60 * map3idx],
-          &data16[60 * map2idx],
-          &data16[60 * map3idx],
-          &data18[60 * map2idx],
-          &data18[60 * map3idx],
-          &data20[18 * map2idx],
-          &data20[18 * map3idx],
-          &data22[1 * map2idx],
-          &data22[1 * map3idx],
-          &data24[18 * map2idx],
-          &data24[18 * map3idx],
-          &data26[10 * map2idx],
-          &data26[10 * map3idx],
-          &data28[100 * map2idx],
-          &data28[100 * map3idx],
-          &data30[100 * n],
-          &data31[100 * n]);
+          &data2[60 * n],
+          &data3[60 * n],
+          &data4[60 * n],
+          &data5[60 * n],
+          &data6[60 * n],
+          &data7[60 * n],
+          &data8[18 * map8idx],
+          &data8[18 * map9idx],
+          &data10[1 * map8idx],
+          &data10[1 * map9idx],
+          &data12[18 * map8idx],
+          &data12[18 * map9idx],
+          &data14[10 * map8idx],
+          &data14[10 * map9idx],
+          &data16[100 * map8idx],
+          &data16[100 * map9idx],
+          &data18[100 * n],
+          &data19[100 * n]);
       }
 
     }
-    OP_kernels[20].transfer  += Plan->transfer;
-    OP_kernels[20].transfer2 += Plan->transfer2;
+    OP_kernels[23].transfer  += Plan->transfer;
+    OP_kernels[23].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -396,5 +358,5 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[20].time     += wall_t2 - wall_t1;
+  OP_kernels[23].time     += wall_t2 - wall_t1;
 }

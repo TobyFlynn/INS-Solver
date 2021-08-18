@@ -22,7 +22,7 @@ void op_par_loop_poisson_op4(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(22);
+  op_timing_realloc(25);
   op_timers_core(&cpu_t1, &wall_t1);
 
 
@@ -36,8 +36,8 @@ void op_par_loop_poisson_op4(char const *name, op_set set,
 
     for ( int n=0; n<set_size; n++ ){
       poisson_op4(
-        &((double*)arg0.data)[100*n],
-        &((double*)arg1.data)[10*n],
+        &((double*)arg0.data)[36*n],
+        &((double*)arg1.data)[36*n],
         &((double*)arg2.data)[100*n],
         &((double*)arg3.data)[100*n]);
     }
@@ -48,11 +48,11 @@ void op_par_loop_poisson_op4(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[22].name      = name;
-  OP_kernels[22].count    += 1;
-  OP_kernels[22].time     += wall_t2 - wall_t1;
-  OP_kernels[22].transfer += (float)set->size * arg0.size;
-  OP_kernels[22].transfer += (float)set->size * arg1.size;
-  OP_kernels[22].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[22].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[25].name      = name;
+  OP_kernels[25].count    += 1;
+  OP_kernels[25].time     += wall_t2 - wall_t1;
+  OP_kernels[25].transfer += (float)set->size * arg0.size;
+  OP_kernels[25].transfer += (float)set->size * arg1.size;
+  OP_kernels[25].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[25].transfer += (float)set->size * arg3.size * 2.0f;
 }

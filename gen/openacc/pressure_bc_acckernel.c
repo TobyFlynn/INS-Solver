@@ -33,7 +33,9 @@ inline void pressure_bc_openacc( const int *bedge_type, const int *bedgeNum,
 
       for(int i = 0; i < 4; i++) {
         double y1 = y[fmask[i]];
+        int fInd = fmask[i];
         double bcdUndt = -pow(1.0, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (1.0 - y1);
+
         dPdN[exInd + i] -= bcdUndt;
       }
     }
@@ -99,10 +101,10 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(37);
+  op_timing_realloc(40);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[37].name      = name;
-  OP_kernels[37].count    += 1;
+  OP_kernels[40].name      = name;
+  OP_kernels[40].count    += 1;
 
   int  ninds   = 11;
   int  inds[15] = {-1,-1,-1,-1,0,1,2,3,4,5,6,7,8,9,10};
@@ -112,8 +114,8 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_37
-    int part_size = OP_PART_SIZE_37;
+  #ifdef OP_PART_SIZE_40
+    int part_size = OP_PART_SIZE_40;
   #else
     int part_size = OP_part_size;
   #endif
@@ -184,8 +186,8 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
       }
 
     }
-    OP_kernels[37].transfer  += Plan->transfer;
-    OP_kernels[37].transfer2 += Plan->transfer2;
+    OP_kernels[40].transfer  += Plan->transfer;
+    OP_kernels[40].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -196,5 +198,5 @@ void op_par_loop_pressure_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[37].time     += wall_t2 - wall_t1;
+  OP_kernels[40].time     += wall_t2 - wall_t1;
 }

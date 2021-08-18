@@ -28,6 +28,8 @@ public:
   op_dat dsdx, dsdy, sign, gS;
   op_dat dsldx, dsrdx, dsldy, dsrdy, dpldx, dprdx, dpldy, dprdy;
   op_dat sigmax, sigmay, sigmaFx, sigmaFy, gSigmax, gSigmay, diff, diffF;
+
+  double alpha;
 private:
   void advec_step(op_dat input, op_dat output);
   void reinit_ls();
@@ -35,7 +37,7 @@ private:
   bool reinit_needed();
   void update_values();
 
-  double h, alpha, epsilon, reinit_dt;
+  double h, epsilon, reinit_dt;
   int numSteps;
 
   double *s_data, *step_s_data, *nx_data, *ny_data, *curv_data;

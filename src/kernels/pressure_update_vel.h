@@ -7,6 +7,9 @@ inline void pressure_update_vel(const double *factor, const double *rho, const d
     qtt1[i] = qt1[i] - *factor * dpdy[i] / rho[i];
     // qtt0[i] = qt0[i] - *factor * dpdx[i];
     // qtt1[i] = qt1[i] - *factor * dpdy[i];
+  }
+
+  for(int i = 0; i < 3 * DG_NPF; i++) {
     dpdn[i] = 0.0;
   }
 }

@@ -80,23 +80,9 @@ void op_par_loop_poisson_op2(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
-  op_arg,
-  op_arg,
-  op_arg,
-  op_arg,
-  op_arg,
-  op_arg,
-  op_arg,
-  op_arg,
-  op_arg,
-  op_arg,
-  op_arg,
-  op_arg,
   op_arg );
 
 void op_par_loop_poisson_op3(char const *, op_set,
-  op_arg,
-  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -116,8 +102,6 @@ void op_par_loop_poisson_op4(char const *, op_set,
   op_arg );
 
 void op_par_loop_poisson_op5(char const *, op_set,
-  op_arg,
-  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -162,12 +146,13 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
   data = d;
   precondition = p;
 
-  h_data       = (double *)calloc(mesh->numCells, sizeof(double));
-  op1_data     = (double *)calloc(10 * 10 * mesh->numCells, sizeof(double));
-  op2_data[0]  = (double *)calloc(10 * 10 * mesh->numEdges, sizeof(double));
-  op2_data[1]  = (double *)calloc(10 * 10 * mesh->numEdges, sizeof(double));
-  op_bc_data   = (double *)calloc(6 * 10 * mesh->numBoundaryEdges, sizeof(double));
-  cFactor_data = (double *)calloc(36 * mesh->numCells, sizeof(double));
+  h_data         = (double *)calloc(mesh->numCells, sizeof(double));
+  op1_data       = (double *)calloc(10 * 10 * mesh->numCells, sizeof(double));
+  op2_data[0]    = (double *)calloc(10 * 10 * mesh->numEdges, sizeof(double));
+  op2_data[1]    = (double *)calloc(10 * 10 * mesh->numEdges, sizeof(double));
+  op_bc_data     = (double *)calloc(6 * 10 * mesh->numBoundaryEdges, sizeof(double));
+  cFactor_data   = (double *)calloc(36 * mesh->numCells, sizeof(double));
+  cmmFactor_data = (double *)calloc(36 * mesh->numCells, sizeof(double));
 
   if(precondition) {
     glb_ind_data   = (int *)calloc(mesh->numCells, sizeof(int));
@@ -179,12 +164,13 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *d, bool p) {
   tmp_data = (double *)calloc(10 * 10 * mesh->numCells, sizeof(double));
   pre_data = (double *)calloc(10 * 10 * mesh->numCells, sizeof(double));
 
-  h       = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
-  op1     = op_decl_dat(mesh->cells, 10 * 10, "double", op1_data, "poisson_op1");
-  op2[0]  = op_decl_dat(mesh->edges, 10 * 10, "double", op2_data[0], "poisson_op20");
-  op2[1]  = op_decl_dat(mesh->edges, 10 * 10, "double", op2_data[1], "poisson_op21");
-  op_bc   = op_decl_dat(mesh->bedges, 6 * 10, "double", op_bc_data, "poisson_op_bc");
-  cFactor = op_decl_dat(mesh->cells, 36, "double", cFactor_data, "poisson_cFactor");
+  h         = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
+  op1       = op_decl_dat(mesh->cells, 10 * 10, "double", op1_data, "poisson_op1");
+  op2[0]    = op_decl_dat(mesh->edges, 10 * 10, "double", op2_data[0], "poisson_op20");
+  op2[1]    = op_decl_dat(mesh->edges, 10 * 10, "double", op2_data[1], "poisson_op21");
+  op_bc     = op_decl_dat(mesh->bedges, 6 * 10, "double", op_bc_data, "poisson_op_bc");
+  cFactor   = op_decl_dat(mesh->cells, 36, "double", cFactor_data, "poisson_cFactor");
+  cmmFactor = op_decl_dat(mesh->cells, 36, "double", cmmFactor_data, "poisson_cmmFactor");
 
   if(precondition) {
     glb_ind   = op_decl_dat(mesh->cells, 1, "int", glb_ind_data, "poisson_glb_ind");
@@ -204,6 +190,7 @@ PoissonSolve::~PoissonSolve() {
   free(op2_data[1]);
   free(op_bc_data);
   free(cFactor_data);
+  free(cmmFactor_data);
 
   if(precondition) {
     free(glb_ind_data);
@@ -363,24 +350,12 @@ void PoissonSolve::set_op() {
   op_par_loop_poisson_op2("poisson_op2",mesh->edges,
               op_arg_dat(mesh->edgeNum,-1,OP_ID,2,"int",OP_READ),
               op_arg_dat(mesh->reverse,-1,OP_ID,1,"bool",OP_READ),
-              op_arg_dat(data->mD[0],0,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->mD[0],1,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->mD[1],0,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->mD[1],1,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->mD[2],0,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->mD[2],1,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->pD[0],0,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->pD[0],1,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->pD[1],0,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->pD[1],1,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->pD[2],0,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->pD[2],1,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->pDy[0],0,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->pDy[0],1,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->pDy[1],0,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->pDy[1],1,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->pDy[2],0,mesh->edge2cells,60,"double",OP_READ),
-              op_arg_dat(data->pDy[2],1,mesh->edge2cells,60,"double",OP_READ),
+              op_arg_dat(data->mDL,-1,OP_ID,60,"double",OP_READ),
+              op_arg_dat(data->mDR,-1,OP_ID,60,"double",OP_READ),
+              op_arg_dat(data->pDL,-1,OP_ID,60,"double",OP_READ),
+              op_arg_dat(data->pDR,-1,OP_ID,60,"double",OP_READ),
+              op_arg_dat(data->gVPL,-1,OP_ID,60,"double",OP_READ),
+              op_arg_dat(data->gVPR,-1,OP_ID,60,"double",OP_READ),
               op_arg_dat(mesh->gauss->sJ,0,mesh->edge2cells,18,"double",OP_READ),
               op_arg_dat(mesh->gauss->sJ,1,mesh->edge2cells,18,"double",OP_READ),
               op_arg_dat(h,0,mesh->edge2cells,1,"double",OP_READ),
@@ -400,9 +375,7 @@ void PoissonSolve::set_op() {
               op_arg_gbl(&dirichlet[0],1,"int",OP_READ),
               op_arg_gbl(&dirichlet[1],1,"int",OP_READ),
               op_arg_gbl(&dirichlet[2],1,"int",OP_READ),
-              op_arg_dat(data->mD[0],0,mesh->bedge2cells,60,"double",OP_READ),
-              op_arg_dat(data->mD[1],0,mesh->bedge2cells,60,"double",OP_READ),
-              op_arg_dat(data->mD[2],0,mesh->bedge2cells,60,"double",OP_READ),
+              op_arg_dat(data->mDBC,-1,OP_ID,60,"double",OP_READ),
               op_arg_dat(mesh->gauss->sJ,0,mesh->bedge2cells,18,"double",OP_READ),
               op_arg_dat(h,0,mesh->bedge2cells,1,"double",OP_READ),
               op_arg_dat(gFactor,0,mesh->bedge2cells,18,"double",OP_READ),
@@ -411,8 +384,8 @@ void PoissonSolve::set_op() {
 
   if(massMat) {
     op_par_loop_poisson_op4("poisson_op4",mesh->cells,
-                op_arg_dat(mesh->cubature->mm,-1,OP_ID,100,"double",OP_READ),
-                op_arg_dat(mmFactor,-1,OP_ID,10,"double",OP_READ),
+                op_arg_dat(mesh->cubature->J,-1,OP_ID,36,"double",OP_READ),
+                op_arg_dat(cmmFactor,-1,OP_ID,36,"double",OP_READ),
                 op_arg_dat(op1,-1,OP_ID,100,"double",OP_INC),
                 op_arg_dat(tmp,-1,OP_ID,100,"double",OP_WRITE));
 
@@ -425,9 +398,7 @@ void PoissonSolve::set_op() {
               op_arg_gbl(&dirichlet[0],1,"int",OP_READ),
               op_arg_gbl(&dirichlet[1],1,"int",OP_READ),
               op_arg_gbl(&dirichlet[2],1,"int",OP_READ),
-              op_arg_dat(data->mD[0],0,mesh->bedge2cells,60,"double",OP_READ),
-              op_arg_dat(data->mD[1],0,mesh->bedge2cells,60,"double",OP_READ),
-              op_arg_dat(data->mD[2],0,mesh->bedge2cells,60,"double",OP_READ),
+              op_arg_dat(data->mDBC,-1,OP_ID,60,"double",OP_READ),
               op_arg_dat(mesh->gauss->sJ,0,mesh->bedge2cells,18,"double",OP_READ),
               op_arg_dat(h,0,mesh->bedge2cells,1,"double",OP_READ),
               op_arg_dat(gFactor,0,mesh->bedge2cells,18,"double",OP_READ),
@@ -458,13 +429,14 @@ void PressureSolve::setup() {
     // PCASMSetTotalSubdomains(pc, 2, NULL, NULL);
 
     PCSetType(pc, PCGAMG);
-    PCGAMGSetNSmooths(pc, 3);
-    PCGAMGSetSquareGraph(pc, 0);
-    PCGAMGSetNlevels(pc, 5);
-    PCMGSetLevels(pc, 10, NULL);
+    PCGAMGSetNSmooths(pc, 4);
+    PCGAMGSetSquareGraph(pc, 1);
+    PCGAMGSetNlevels(pc, 20);
+    PCMGSetLevels(pc, 20, NULL);
     PCMGSetCycleType(pc, PC_MG_CYCLE_W);
     PCGAMGSetRepartition(pc, PETSC_TRUE);
     PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
+    // PCGAMGASMSetUseAggs(pc, PETSC_TRUE);
 
     // PetscOptionsSetValue(NULL, "-pc_type", "gamg");
     // PetscOptionsSetValue(NULL, "-pc_gamg_agg_nsmooths", "3");
@@ -490,8 +462,24 @@ void PressureSolve::setup() {
 
     // PCSetType(pc, PCHYPRE);
 
-    KSPSetOperators(ksp, Amat, Amat);
+    // KSPSetOperators(ksp, Amat, Amat);
   }
+
+  // Check sym
+  // double maxDiff = 0.0;
+  // double totalDiff = 0.0;
+  // for(int i = 0; i < 10 * mesh->numCells; i++) {
+  //   for(int j = i + 1; j < 10 * mesh->numCells; j++) {
+  //     double l[1];
+  //     double r[1];
+  //     MatGetValues(Amat, 1, &i, 1, &j, l);
+  //     MatGetValues(Amat, 1, &j, 1, &i, r);
+  //     totalDiff += abs(l[0] - r[0]);
+  //     if(abs(l[0] - r[0]) > maxDiff)
+  //       maxDiff = abs(l[0] - r[0]);
+  //   }
+  // }
+  // op_printf("Max diff sym test: %g\nTotal diff sym test: %g\n", maxDiff, totalDiff);
 }
 
 void ViscositySolve::setup(double mmConst) {
@@ -512,15 +500,32 @@ void ViscositySolve::setup(double mmConst) {
 
   op2_gemv(true, 36, 10, 1.0, constants->get_ptr(DGConstants::CUB_V), 10, factor, 0.0, cFactor);
   op2_gemv(true, 18, 10, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 10, factor, 0.0, gFactor);
+  op2_gemv(true, 36, 10, 1.0, constants->get_ptr(DGConstants::CUB_V), 10, mmFactor, 0.0, cmmFactor);
   set_op();
 
   if(precondition) {
-    setMatrix();
-    KSPSetOperators(ksp, Amat, Amat);
+    // setMatrix();
+    // KSPSetOperators(ksp, Amat, Amat);
 
     PC pc;
     KSPGetPC(ksp, &pc);
     PCSetType(pc, PCSHELL);
     set_shell_pc(pc);
   }
+
+  // Check sym
+  // double maxDiff = 0.0;
+  // double totalDiff = 0.0;
+  // for(int i = 0; i < 10 * mesh->numCells; i++) {
+  //   for(int j = i + 1; j < 10 * mesh->numCells; j++) {
+  //     double l[1];
+  //     double r[1];
+  //     MatGetValues(Amat, 1, &i, 1, &j, l);
+  //     MatGetValues(Amat, 1, &j, 1, &i, r);
+  //     totalDiff += abs(l[0] - r[0]);
+  //     if(abs(l[0] - r[0]) > maxDiff)
+  //       maxDiff = abs(l[0] - r[0]);
+  //   }
+  // }
+  // op_printf("Max diff sym test: %g\nTotal diff sym test: %g\n", maxDiff, totalDiff);
 }

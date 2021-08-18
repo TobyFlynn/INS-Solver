@@ -3,8 +3,7 @@
 //
 
 void advection_surface_tension_omp4_kernel(
-  double *data0,
-  int dat0size,
+  double *arg0,
   double *data1,
   int dat1size,
   double *data2,
@@ -15,35 +14,44 @@ void advection_surface_tension_omp4_kernel(
   int dat4size,
   double *data5,
   int dat5size,
+  double *data6,
+  int dat6size,
   int count,
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size]) \
+  double arg0_l = *arg0;
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size]) \
     map(to: weber_ompkernel)
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *curv = &data0[10*n_op];
-    const double *nx = &data1[10*n_op];
-    const double *ny = &data2[10*n_op];
-    const double *step_s = &data3[10*n_op];
-    double *st_x = &data4[10*n_op];
-    double *st_y = &data5[10*n_op];
+    const double *alpha = &arg0_l;
+    const double *curv = &data1[10*n_op];
+    const double *nx = &data2[10*n_op];
+    const double *ny = &data3[10*n_op];
+    const double *s = &data4[10*n_op];
+    double *st_x = &data5[10*n_op];
+    double *st_y = &data6[10*n_op];
 
     //inline function
     
+    const double PI = 3.141592653589793238463;
     for(int i = 0; i < 10; i++) {
 
 
-      double delta = 1.0 - fabs(step_s[i]);
-      if(fabs(step_s[i]) >= 1.0) {
-        delta = 0.0;
-      }
+
+
+
+
+
+
+      double delta = (PI / *alpha) * (1.0 / cosh(PI * s[i] / *alpha)) * (1.0 / cosh(PI * s[i] / *alpha));
       st_x[i] = delta * (curv[i] * nx[i] / weber_ompkernel);
       st_y[i] = delta * (curv[i] * ny[i] / weber_ompkernel);
     }
     //end inline func
   }
 
+  *arg0 = arg0_l;
 }

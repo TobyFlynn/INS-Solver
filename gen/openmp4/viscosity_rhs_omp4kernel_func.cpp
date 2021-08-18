@@ -8,24 +8,33 @@ void viscosity_rhs_omp4_kernel(
   int dat1size,
   double *data2,
   int dat2size,
+  double *data3,
+  int dat3size,
+  double *data4,
+  int dat4size,
+  double *data5,
+  int dat5size,
   int count,
   int num_teams,
   int nthread){
 
   double arg0_l = *arg0;
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size],data2[0:dat2size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const double *factor = &arg0_l;
-    double *vRHS0 = &data1[10*n_op];
-    double *vRHS1 = &data2[10*n_op];
+    const double *rho = &data1[10*n_op];
+    const double *qtt0 = &data2[10*n_op];
+    const double *qtt1 = &data3[10*n_op];
+    double *vRHS0 = &data4[10*n_op];
+    double *vRHS1 = &data5[10*n_op];
 
     //inline function
     
     for(int i = 0; i < 10; i++) {
-      vRHS0[i] = (*factor) * vRHS0[i];
-      vRHS1[i] = (*factor) * vRHS1[i];
+      vRHS0[i] = (*factor) * rho[i] * qtt0[i];
+      vRHS1[i] = (*factor) * rho[i] * qtt1[i];
     }
     //end inline func
   }

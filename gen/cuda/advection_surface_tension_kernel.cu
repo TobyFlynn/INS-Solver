@@ -3,16 +3,21 @@
 //
 
 //user function
-__device__ void advection_surface_tension_gpu( const double *curv, const double *nx,
-                                      const double *ny, const double *step_s,
-                                      double *st_x, double *st_y) {
+__device__ void advection_surface_tension_gpu( const double *alpha, const double *curv,
+                                      const double *nx, const double *ny,
+                                      const double *s, double *st_x,
+                                      double *st_y) {
+  const double PI = 3.141592653589793238463;
   for(int i = 0; i < 10; i++) {
 
 
-    double delta = 1.0 - fabs(step_s[i]);
-    if(fabs(step_s[i]) >= 1.0) {
-      delta = 0.0;
-    }
+
+
+
+
+
+
+    double delta = (PI / *alpha) * (1.0 / cosh(PI * s[i] / *alpha)) * (1.0 / cosh(PI * s[i] / *alpha));
     st_x[i] = delta * (curv[i] * nx[i] / weber_cuda);
     st_y[i] = delta * (curv[i] * ny[i] / weber_cuda);
   }
@@ -21,12 +26,13 @@ __device__ void advection_surface_tension_gpu( const double *curv, const double 
 
 // CUDA kernel function
 __global__ void op_cuda_advection_surface_tension(
-  const double *__restrict arg0,
+  const double *arg0,
   const double *__restrict arg1,
   const double *__restrict arg2,
   const double *__restrict arg3,
-  double *arg4,
+  const double *__restrict arg4,
   double *arg5,
+  double *arg6,
   int   set_size ) {
 
 
@@ -34,12 +40,13 @@ __global__ void op_cuda_advection_surface_tension(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    advection_surface_tension_gpu(arg0+n*10,
+    advection_surface_tension_gpu(arg0,
                               arg1+n*10,
                               arg2+n*10,
                               arg3+n*10,
                               arg4+n*10,
-                              arg5+n*10);
+                              arg5+n*10,
+                              arg6+n*10);
   }
 }
 
@@ -51,10 +58,12 @@ void op_par_loop_advection_surface_tension(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5){
+  op_arg arg5,
+  op_arg arg6){
 
-  int nargs = 6;
-  op_arg args[6];
+  double*arg0h = (double *)arg0.data;
+  int nargs = 7;
+  op_arg args[7];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -62,13 +71,14 @@ void op_par_loop_advection_surface_tension(char const *name, op_set set,
   args[3] = arg3;
   args[4] = arg4;
   args[5] = arg5;
+  args[6] = arg6;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(33);
+  op_timing_realloc(36);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[33].name      = name;
-  OP_kernels[33].count    += 1;
+  OP_kernels[36].name      = name;
+  OP_kernels[36].count    += 1;
 
 
   if (OP_diags>2) {
@@ -78,9 +88,22 @@ void op_par_loop_advection_surface_tension(char const *name, op_set set,
   int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
+    //transfer constants to GPU
+    int consts_bytes = 0;
+    consts_bytes += ROUND_UP(1*sizeof(double));
+    reallocConstArrays(consts_bytes);
+    consts_bytes = 0;
+    arg0.data   = OP_consts_h + consts_bytes;
+    arg0.data_d = OP_consts_d + consts_bytes;
+    for ( int d=0; d<1; d++ ){
+      ((double *)arg0.data)[d] = arg0h[d];
+    }
+    consts_bytes += ROUND_UP(1*sizeof(double));
+    mvConstArraysToDevice(consts_bytes);
+
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_33
-      int nthread = OP_BLOCK_SIZE_33;
+    #ifdef OP_BLOCK_SIZE_36
+      int nthread = OP_BLOCK_SIZE_36;
     #else
       int nthread = OP_block_size;
     #endif
@@ -94,17 +117,18 @@ void op_par_loop_advection_surface_tension(char const *name, op_set set,
       (double *) arg3.data_d,
       (double *) arg4.data_d,
       (double *) arg5.data_d,
+      (double *) arg6.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[33].time     += wall_t2 - wall_t1;
-  OP_kernels[33].transfer += (float)set->size * arg0.size;
-  OP_kernels[33].transfer += (float)set->size * arg1.size;
-  OP_kernels[33].transfer += (float)set->size * arg2.size;
-  OP_kernels[33].transfer += (float)set->size * arg3.size;
-  OP_kernels[33].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[33].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[36].time     += wall_t2 - wall_t1;
+  OP_kernels[36].transfer += (float)set->size * arg1.size;
+  OP_kernels[36].transfer += (float)set->size * arg2.size;
+  OP_kernels[36].transfer += (float)set->size * arg3.size;
+  OP_kernels[36].transfer += (float)set->size * arg4.size;
+  OP_kernels[36].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[36].transfer += (float)set->size * arg6.size * 2.0f;
 }

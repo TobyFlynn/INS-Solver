@@ -41,6 +41,7 @@ Timing *timer;
 DGConstants *constants;
 
 extern double reynolds, froude, weber, nu0, nu1, rho0, rho1, ic_u, ic_v;
+extern double refRho, refMu, refLen, refVel, refSurfTen;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 2);
@@ -64,14 +65,14 @@ int main(int argc, char **argv) {
   nu1 = 1.0;
   rho1 = 1.0;
 
-  ic_u = 1.3;
+  ic_u = 0.0;
   ic_v = 0.0;
 
-  double refRho     = 1.204;
-  double refMu      = 1.825e-5;
-  double refLen     = 0.001;
-  double refVel     = 1.0;
-  double refSurfTen = 0.0756;
+  refRho     = 1.204;
+  refMu      = 1.825e-5;
+  refLen     = 0.001;
+  refVel     = 1.0;
+  refSurfTen = 0.0756;
 
   // Set Reynolds number
   reynolds = refRho * refVel * refLen / refMu;
@@ -136,8 +137,7 @@ int main(int argc, char **argv) {
   double b1 = 0.0;
   double g0 = 1.0;
   int currentIter = 0;
-  // double time = 0.0;
-  double time = 3.0;
+  double time = 0.0;
 
   if(save != -1) {
     save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);

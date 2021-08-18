@@ -15,7 +15,7 @@
 
 extern Timing *timer;
 extern DGConstants *constants;
-extern double reynolds;
+extern double reynolds, refVel;
 extern double dt;
 extern double nu0;
 
@@ -77,7 +77,7 @@ Solver::Solver(std::string filename, bool pre, int prob) {
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_gbl(&dt, 1, "double", OP_MIN));
-  dt = dt / 25.0;
+  dt = dt / (DG_ORDER * DG_ORDER * refVel);
   op_printf("dt: %g\n", dt);
 }
 
@@ -144,10 +144,11 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
   op2_gemv(true, DG_NP, 3 * DG_NPF, 1.0, constants->get_ptr(DGConstants::LIFT), 3 * DG_NPF, data->flux[1], 1.0, data->N[currentInd][1]);
 
   op_par_loop(advection_surface_tension, "advection_surface_tension", mesh->cells,
+              op_arg_gbl(&ls->alpha, 1, "double", OP_READ),
               op_arg_dat(ls->curv,                      -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(ls->nx,                        -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(ls->ny,                        -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(ls->step_s,                    -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls->s,                         -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->surf_ten[currentInd][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->surf_ten[currentInd][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
@@ -306,17 +307,15 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
   op_par_loop(viscosity_rhs, "viscosity_rhs", mesh->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
-              op_arg_dat(data->QTT[0], -1, OP_ID, DG_NP, "double", OP_RW),
-              op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_RW));
-
-  op_par_loop(viscosity_rhs_rho, "viscosity_rhs_rho", mesh->cells,
               op_arg_dat(data->rho,    -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->QTT[0], -1, OP_ID, DG_NP, "double", OP_RW),
-              op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_RW));
+              op_arg_dat(data->QTT[0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->visTemp[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->visTemp[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   // Set up RHS for viscosity solve
-  op2_gemv_batch(false, DG_NP, DG_NP, 1.0, mesh->cubature->mm, DG_NP, data->QTT[0], 0.0, data->visRHS[0]);
-  op2_gemv_batch(false, DG_NP, DG_NP, 1.0, mesh->cubature->mm, DG_NP, data->QTT[1], 0.0, data->visRHS[1]);
+  op2_gemv_batch(false, DG_NP, DG_NP, 1.0, mesh->cubature->mm, DG_NP, data->visTemp[0], 0.0, data->visRHS[0]);
+  op2_gemv_batch(false, DG_NP, DG_NP, 1.0, mesh->cubature->mm, DG_NP, data->visTemp[1], 0.0, data->visRHS[1]);
 
   factor = reynolds * g0 / dt;
 

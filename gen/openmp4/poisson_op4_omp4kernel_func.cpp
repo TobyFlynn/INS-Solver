@@ -15,23 +15,50 @@ void poisson_op4_omp4_kernel(
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size])
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size]) \
+    map(to: cubW_g_ompkernel[:36], cubV_g_ompkernel[:360])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
-    const double *mm = &data0[100*n_op];
-    const double *factor = &data1[10*n_op];
+    const double *cJ = &data0[36*n_op];
+    const double *factor = &data1[36*n_op];
     double *op = &data2[100*n_op];
     double *tmp = &data3[100*n_op];
 
     //inline function
     
+    double cTmp[36 * 10];
+    double mm[10 * 10];
+    for(int m = 0; m < 36; m++) {
+      for(int n = 0; n < 10; n++) {
+        int ind = m * 10 + n;
+        cTmp[ind] = factor[m] * cJ[m] * cubW_g_ompkernel[m] * cubV_g_ompkernel[ind];
+      }
+    }
+
     for(int i = 0; i < 10; i++) {
       for(int j = 0; j < 10; j++) {
         int c_ind = i * 10 + j;
-        int mm_ind = j * 10 + i;
-        op[c_ind] += mm[mm_ind] * factor[j];
-        tmp[mm_ind] = mm[mm_ind];
+        mm[c_ind] = 0.0;
+        for(int k = 0; k < 36; k++) {
+          int b_ind = k * 10 + j;
+
+          int ind = i * 36 + k;
+          int a_ind = ((ind * 10) % (10 * 36)) + (ind / 36);
+
+          mm[c_ind] += cubV_g_ompkernel[b_ind] * cTmp[a_ind];
+        }
+      }
+    }
+
+    for(int i = 0; i < 10; i++) {
+      for(int j = 0; j < 10; j++) {
+        int c_ind = i * 10 + j;
+        op[c_ind] += mm[c_ind];
+        tmp[c_ind] = mm[c_ind];
+
+
+
       }
     }
     //end inline func

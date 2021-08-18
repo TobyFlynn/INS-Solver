@@ -26,22 +26,10 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   op_arg arg16,
   op_arg arg17,
   op_arg arg18,
-  op_arg arg19,
-  op_arg arg20,
-  op_arg arg21,
-  op_arg arg22,
-  op_arg arg23,
-  op_arg arg24,
-  op_arg arg25,
-  op_arg arg26,
-  op_arg arg27,
-  op_arg arg28,
-  op_arg arg29,
-  op_arg arg30,
-  op_arg arg31){
+  op_arg arg19){
 
-  int nargs = 32;
-  op_arg args[32];
+  int nargs = 20;
+  op_arg args[20];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -63,36 +51,24 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   args[17] = arg17;
   args[18] = arg18;
   args[19] = arg19;
-  args[20] = arg20;
-  args[21] = arg21;
-  args[22] = arg22;
-  args[23] = arg23;
-  args[24] = arg24;
-  args[25] = arg25;
-  args[26] = arg26;
-  args[27] = arg27;
-  args[28] = arg28;
-  args[29] = arg29;
-  args[30] = arg30;
-  args[31] = arg31;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(20);
-  OP_kernels[20].name      = name;
-  OP_kernels[20].count    += 1;
+  op_timing_realloc(23);
+  OP_kernels[23].name      = name;
+  OP_kernels[23].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 14;
-  int  inds[32] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,-1,-1};
+  int  ninds   = 5;
+  int  inds[20] = {-1,-1,-1,-1,-1,-1,-1,-1,0,0,1,1,2,2,3,3,4,4,-1,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_op2\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_20
-    int part_size = OP_PART_SIZE_20;
+  #ifdef OP_PART_SIZE_23
+    int part_size = OP_PART_SIZE_23;
   #else
     int part_size = OP_part_size;
   #endif
@@ -117,52 +93,40 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
         int nelem    = Plan->nelems[blockId];
         int offset_b = Plan->offset[blockId];
         for ( int n=offset_b; n<offset_b+nelem; n++ ){
-          int map2idx;
-          int map3idx;
-          map2idx = arg2.map_data[n * arg2.map->dim + 0];
-          map3idx = arg2.map_data[n * arg2.map->dim + 1];
+          int map8idx;
+          int map9idx;
+          map8idx = arg8.map_data[n * arg8.map->dim + 0];
+          map9idx = arg8.map_data[n * arg8.map->dim + 1];
 
 
           poisson_op2(
             &((int*)arg0.data)[2 * n],
             &((bool*)arg1.data)[1 * n],
-            &((double*)arg2.data)[60 * map2idx],
-            &((double*)arg2.data)[60 * map3idx],
-            &((double*)arg4.data)[60 * map2idx],
-            &((double*)arg4.data)[60 * map3idx],
-            &((double*)arg6.data)[60 * map2idx],
-            &((double*)arg6.data)[60 * map3idx],
-            &((double*)arg8.data)[60 * map2idx],
-            &((double*)arg8.data)[60 * map3idx],
-            &((double*)arg10.data)[60 * map2idx],
-            &((double*)arg10.data)[60 * map3idx],
-            &((double*)arg12.data)[60 * map2idx],
-            &((double*)arg12.data)[60 * map3idx],
-            &((double*)arg14.data)[60 * map2idx],
-            &((double*)arg14.data)[60 * map3idx],
-            &((double*)arg16.data)[60 * map2idx],
-            &((double*)arg16.data)[60 * map3idx],
-            &((double*)arg18.data)[60 * map2idx],
-            &((double*)arg18.data)[60 * map3idx],
-            &((double*)arg20.data)[18 * map2idx],
-            &((double*)arg20.data)[18 * map3idx],
-            &((double*)arg22.data)[1 * map2idx],
-            &((double*)arg22.data)[1 * map3idx],
-            &((double*)arg24.data)[18 * map2idx],
-            &((double*)arg24.data)[18 * map3idx],
-            &((double*)arg26.data)[10 * map2idx],
-            &((double*)arg26.data)[10 * map3idx],
-            &((double*)arg28.data)[100 * map2idx],
-            &((double*)arg28.data)[100 * map3idx],
-            &((double*)arg30.data)[100 * n],
-            &((double*)arg31.data)[100 * n]);
+            &((double*)arg2.data)[60 * n],
+            &((double*)arg3.data)[60 * n],
+            &((double*)arg4.data)[60 * n],
+            &((double*)arg5.data)[60 * n],
+            &((double*)arg6.data)[60 * n],
+            &((double*)arg7.data)[60 * n],
+            &((double*)arg8.data)[18 * map8idx],
+            &((double*)arg8.data)[18 * map9idx],
+            &((double*)arg10.data)[1 * map8idx],
+            &((double*)arg10.data)[1 * map9idx],
+            &((double*)arg12.data)[18 * map8idx],
+            &((double*)arg12.data)[18 * map9idx],
+            &((double*)arg14.data)[10 * map8idx],
+            &((double*)arg14.data)[10 * map9idx],
+            &((double*)arg16.data)[100 * map8idx],
+            &((double*)arg16.data)[100 * map9idx],
+            &((double*)arg18.data)[100 * n],
+            &((double*)arg19.data)[100 * n]);
         }
       }
 
       block_offset += nblocks;
     }
-    OP_kernels[20].transfer  += Plan->transfer;
-    OP_kernels[20].transfer2 += Plan->transfer2;
+    OP_kernels[23].transfer  += Plan->transfer;
+    OP_kernels[23].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -173,5 +137,5 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[20].time     += wall_t2 - wall_t1;
+  OP_kernels[23].time     += wall_t2 - wall_t1;
 }

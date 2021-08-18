@@ -92,7 +92,9 @@ void pressure_bc_omp4_kernel(
 
         for(int i = 0; i < 4; i++) {
           double y1 = y[fmask[i]];
+          int fInd = fmask[i];
           double bcdUndt = -pow(1.0, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (1.0 - y1);
+
           dPdN[exInd + i] -= bcdUndt;
         }
       }

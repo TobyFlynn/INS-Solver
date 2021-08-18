@@ -46,6 +46,9 @@ void pressure_update_vel_omp4_kernel(
       qtt1[i] = qt1[i] - *factor * dpdy[i] / rho[i];
 
 
+    }
+
+    for(int i = 0; i < 3 * 4; i++) {
       dpdn[i] = 0.0;
     }
     //end inline func

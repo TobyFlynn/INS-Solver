@@ -4,5 +4,5 @@ inline void poisson_h(const double *x, const double *y, double *h) {
   double len2 = sqrt((x[2] - x[0]) * (x[2] - x[0]) + (y[2] - y[0]) * (y[2] - y[0]));
   double sper = (len0 + len1 + len2) / 2.0;
   double area = sqrt(sper * (sper - len0) * (sper - len1) * (sper - len2));
-  *h = sper / area;
+  *h = 2.0 * sper / area;
 }

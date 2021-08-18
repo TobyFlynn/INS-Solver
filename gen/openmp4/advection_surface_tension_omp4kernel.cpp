@@ -6,8 +6,7 @@
 //user function
 
 void advection_surface_tension_omp4_kernel(
-  double *data0,
-  int dat0size,
+  double *arg0,
   double *data1,
   int dat1size,
   double *data2,
@@ -18,6 +17,8 @@ void advection_surface_tension_omp4_kernel(
   int dat4size,
   double *data5,
   int dat5size,
+  double *data6,
+  int dat6size,
   int count,
   int num_teams,
   int nthread);
@@ -29,10 +30,12 @@ void op_par_loop_advection_surface_tension(char const *name, op_set set,
   op_arg arg2,
   op_arg arg3,
   op_arg arg4,
-  op_arg arg5){
+  op_arg arg5,
+  op_arg arg6){
 
-  int nargs = 6;
-  op_arg args[6];
+  double*arg0h = (double *)arg0.data;
+  int nargs = 7;
+  op_arg args[7];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -40,13 +43,14 @@ void op_par_loop_advection_surface_tension(char const *name, op_set set,
   args[3] = arg3;
   args[4] = arg4;
   args[5] = arg5;
+  args[6] = arg6;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(33);
+  op_timing_realloc(36);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[33].name      = name;
-  OP_kernels[33].count    += 1;
+  OP_kernels[36].name      = name;
+  OP_kernels[36].count    += 1;
 
 
   if (OP_diags>2) {
@@ -55,24 +59,23 @@ void op_par_loop_advection_surface_tension(char const *name, op_set set,
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_33
-    int part_size = OP_PART_SIZE_33;
+  #ifdef OP_PART_SIZE_36
+    int part_size = OP_PART_SIZE_36;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_33
-    int nthread = OP_BLOCK_SIZE_33;
+  #ifdef OP_BLOCK_SIZE_36
+    int nthread = OP_BLOCK_SIZE_36;
   #else
     int nthread = OP_block_size;
   #endif
 
+  double arg0_l = arg0h[0];
 
   if (set_size >0) {
 
     //Set up typed device pointers for OpenMP
 
-    double* data0 = (double*)arg0.data_d;
-    int dat0size = getSetSizeFromOpArg(&arg0) * arg0.dat->dim;
     double* data1 = (double*)arg1.data_d;
     int dat1size = getSetSizeFromOpArg(&arg1) * arg1.dat->dim;
     double* data2 = (double*)arg2.data_d;
@@ -83,9 +86,10 @@ void op_par_loop_advection_surface_tension(char const *name, op_set set,
     int dat4size = getSetSizeFromOpArg(&arg4) * arg4.dat->dim;
     double* data5 = (double*)arg5.data_d;
     int dat5size = getSetSizeFromOpArg(&arg5) * arg5.dat->dim;
+    double* data6 = (double*)arg6.data_d;
+    int dat6size = getSetSizeFromOpArg(&arg6) * arg6.dat->dim;
     advection_surface_tension_omp4_kernel(
-      data0,
-      dat0size,
+      &arg0_l,
       data1,
       dat1size,
       data2,
@@ -96,6 +100,8 @@ void op_par_loop_advection_surface_tension(char const *name, op_set set,
       dat4size,
       data5,
       dat5size,
+      data6,
+      dat6size,
       set->size,
       part_size!=0?(set->size-1)/part_size+1:(set->size-1)/nthread,
       nthread);
@@ -108,11 +114,11 @@ void op_par_loop_advection_surface_tension(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[33].time     += wall_t2 - wall_t1;
-  OP_kernels[33].transfer += (float)set->size * arg0.size;
-  OP_kernels[33].transfer += (float)set->size * arg1.size;
-  OP_kernels[33].transfer += (float)set->size * arg2.size;
-  OP_kernels[33].transfer += (float)set->size * arg3.size;
-  OP_kernels[33].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[33].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[36].time     += wall_t2 - wall_t1;
+  OP_kernels[36].transfer += (float)set->size * arg1.size;
+  OP_kernels[36].transfer += (float)set->size * arg2.size;
+  OP_kernels[36].transfer += (float)set->size * arg3.size;
+  OP_kernels[36].transfer += (float)set->size * arg4.size;
+  OP_kernels[36].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[36].transfer += (float)set->size * arg6.size * 2.0f;
 }

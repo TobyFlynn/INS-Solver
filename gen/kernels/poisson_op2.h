@@ -1,13 +1,7 @@
 inline void poisson_op2(const int *edgeNum, const bool *rev,
-                        const double *mD0L, const double *mD0R,
-                        const double *mD1L, const double *mD1R,
-                        const double *mD2L, const double *mD2R,
-                        const double *pD0L, const double *pD0R,
-                        const double *pD1L, const double *pD1R,
-                        const double *pD2L, const double *pD2R,
-                        const double *gVP0L, const double *gVP0R,
-                        const double *gVP1L, const double *gVP1R,
-                        const double *gVP2L, const double *gVP2R,
+                        const double *mDL, const double *mDR,
+                        const double *pDL, const double *pDR,
+                        const double *gVPL, const double *gVPR,
                         const double *sJL, const double *sJR,
                         const double *hL, const double *hR,
                         const double *gFactorL, const double *gFactorR,
@@ -19,41 +13,22 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
   int edgeR = edgeNum[1];
   bool reverse = *rev;
 
-  // Get right matrices for this edge
-  // (TODO switch matrices to be defined on edge set instead of cell set)
-  const double *mDL, *mDR, *pDL, *pDR, *gVML, *gVMR, *gVPL, *gVPR;
+  // Get right matrix for this edge
+  const double *gVML, *gVMR;
   if(edgeL == 0) {
-    mDL  = mD0L;
-    pDL  = pD0L;
     gVML = gFInterp0_g;
-    gVPL = gVP0L;
   } else if(edgeL == 1) {
-    mDL  = mD1L;
-    pDL  = pD1L;
     gVML = gFInterp1_g;
-    gVPL = gVP1L;
   } else {
-    mDL  = mD2L;
-    pDL  = pD2L;
     gVML = gFInterp2_g;
-    gVPL = gVP2L;
   }
 
   if(edgeR == 0) {
-    mDR  = mD0R;
-    pDR  = pD0R;
     gVMR = gFInterp0_g;
-    gVPR = gVP0R;
   } else if(edgeR == 1) {
-    mDR  = mD1R;
-    pDR  = pD1R;
     gVMR = gFInterp1_g;
-    gVPR = gVP1R;
   } else {
-    mDR  = mD2R;
-    pDR  = pD2R;
     gVMR = gFInterp2_g;
-    gVPR = gVP2R;
   }
 
   // First edge term
@@ -112,16 +87,25 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
         // Rho and sJ ind
         int factors_indL = edgeL * 6 + k;
         int factors_indR = edgeR * 6 + k;
+        int factors_indLR;
+        int factors_indRR;
+        if(reverse) {
+          factors_indLR = edgeL * 6 + 6 - 1 - k;
+          factors_indRR = edgeR * 6 + 6 - 1 - k;
+        } else {
+          factors_indLR = edgeL * 6 + k;
+          factors_indRR = edgeR * 6 + k;
+        }
 
-        op1L[c_ind] += -factorL[i] * mDL[a_ind] * gaussW_g[k]
-                       * sJL[factors_indL] * gVML[b_ind];
-        op1R[c_ind] += -factorR[i] * mDR[a_ind] * gaussW_g[k]
-                       * sJR[factors_indR] * gVMR[b_ind];
-
-        op2L[c_ind] += factorL[i] * mDL[a_ind] * gaussW_g[k]
-                       * sJL[factors_indL] * gVPL[b_ind];
-        op2R[c_ind] += factorR[i] * mDR[a_ind] * gaussW_g[k]
-                       * sJR[factors_indR] * gVPR[b_ind];
+        // op1L[c_ind] += -factorL[i] * mDL[a_ind] * gaussW_g[k]
+        //                * sJL[factors_indL] * gVML[b_ind];
+        // op1R[c_ind] += -factorR[i] * mDR[a_ind] * gaussW_g[k]
+        //                * sJR[factors_indR] * gVMR[b_ind];
+        //
+        // op2L[c_ind] += factorL[i] * mDL[a_ind] * gaussW_g[k]
+        //                * sJL[factors_indL] * gVPL[b_ind];
+        // op2R[c_ind] += factorR[i] * mDR[a_ind] * gaussW_g[k]
+        //                * sJR[factors_indR] * gVPR[b_ind];
 
         // op1L[c_ind] += -gFactorL[factors_indL] * mDL[a_ind] * gaussW_g[k]
         //                * sJL[factors_indL] * gVML[b_ind];
@@ -132,6 +116,16 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
         //                * sJL[factors_indL] * gVPL[b_ind];
         // op2R[c_ind] += gFactorR[factors_indR] * mDR[a_ind] * gaussW_g[k]
         //                * sJR[factors_indR] * gVPR[b_ind];
+
+        op1L[c_ind] += -0.5 * gFactorL[factors_indL] * mDL[a_ind] * gaussW_g[k]
+                       * sJL[factors_indL] * gVML[b_ind];
+        op1R[c_ind] += -0.5 * gFactorR[factors_indR] * mDR[a_ind] * gaussW_g[k]
+                       * sJR[factors_indR] * gVMR[b_ind];
+
+        op2L[c_ind] += 0.5 * gFactorL[factors_indL] * mDL[a_ind] * gaussW_g[k]
+                       * sJL[factors_indL] * gVPL[b_ind];
+        op2R[c_ind] += 0.5 * gFactorR[factors_indR] * mDR[a_ind] * gaussW_g[k]
+                       * sJR[factors_indR] * gVPR[b_ind];
       }
     }
   }
@@ -148,11 +142,11 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
       indR = edgeR * 6 + 6 - 1 - i;
     else
       indR = edgeR * 6 + i;
-    tauL[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
-    // tauL[i] = 100 * 0.5 * 5 * 6 * fmax(*hL, *hR);
-    if(maxL < tauL[i]) {
-      maxL = tauL[i];
-    }
+    // tauL[i] = 0.5 * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+    tauL[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+    // if(maxL < tauL[i]) {
+    //   maxL = tauL[i];
+    // }
   }
   for(int i = 0; i < 6; i++) {
     int indL;
@@ -161,17 +155,17 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
       indL = edgeL * 6 + 6 - 1 - i;
     else
       indL = edgeL * 6 + i;
-    tauR[i] = 100 * 0.5 * 5 * 6 * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
-    // tauR[i] = 100 * 0.5 * 5 * 6 * fmax(*hL, *hR);
-    if(maxR < tauR[i]) {
-      maxR = tauR[i];
-    }
+    // tauR[i] = 0.5 * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+    tauR[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+    // if(maxR < tauR[i]) {
+    //   maxR = tauR[i];
+    // }
   }
 
-  for(int i = 0; i < 6; i++) {
-    tauL[i] = maxL;
-    tauR[i] = maxR;
-  }
+  // for(int i = 0; i < 6; i++) {
+  //   tauL[i] = maxL;
+  //   tauR[i] = maxR;
+  // }
 
   // Third edge term
   // gVM'*gw*tau*gVM
@@ -189,14 +183,24 @@ inline void poisson_op2(const int *edgeNum, const bool *rev,
         int factors_indL = edgeL * 6 + k;
         int factors_indR = edgeR * 6 + k;
 
-        op1L[c_ind] += gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
+        // op1L[c_ind] += gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
+        //                * tauL[k] * gVML[b_ind];
+        // op1R[c_ind] += gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
+        //                * tauR[k] * gVMR[b_ind];
+        //
+        // op2L[c_ind] += -gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
+        //                * tauL[k] * gVPL[b_ind];
+        // op2R[c_ind] += -gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
+        //                * tauR[k] * gVPR[b_ind];
+
+        op1L[c_ind] += 0.5 * gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
                        * tauL[k] * gVML[b_ind];
-        op1R[c_ind] += gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
+        op1R[c_ind] += 0.5 * gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
                        * tauR[k] * gVMR[b_ind];
 
-        op2L[c_ind] += -gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
+        op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g[k] * sJL[factors_indL]
                        * tauL[k] * gVPL[b_ind];
-        op2R[c_ind] += -gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
+        op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g[k] * sJR[factors_indR]
                        * tauR[k] * gVPR[b_ind];
       }
     }

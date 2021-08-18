@@ -10,18 +10,24 @@ void poisson_op2_omp4_kernel(
   int dat0size,
   bool *data1,
   int dat1size,
-  int *map2,
-  int map2size,
-  double *data30,
-  int dat30size,
-  double *data31,
-  int dat31size,
   double *data2,
   int dat2size,
+  double *data3,
+  int dat3size,
   double *data4,
   int dat4size,
+  double *data5,
+  int dat5size,
   double *data6,
   int dat6size,
+  double *data7,
+  int dat7size,
+  int *map8,
+  int map8size,
+  double *data18,
+  int dat18size,
+  double *data19,
+  int dat19size,
   double *data8,
   int dat8size,
   double *data10,
@@ -32,18 +38,6 @@ void poisson_op2_omp4_kernel(
   int dat14size,
   double *data16,
   int dat16size,
-  double *data18,
-  int dat18size,
-  double *data20,
-  int dat20size,
-  double *data22,
-  int dat22size,
-  double *data24,
-  int dat24size,
-  double *data26,
-  int dat26size,
-  double *data28,
-  int dat28size,
   int *col_reord,
   int set_size1,
   int start,
@@ -72,22 +66,10 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   op_arg arg16,
   op_arg arg17,
   op_arg arg18,
-  op_arg arg19,
-  op_arg arg20,
-  op_arg arg21,
-  op_arg arg22,
-  op_arg arg23,
-  op_arg arg24,
-  op_arg arg25,
-  op_arg arg26,
-  op_arg arg27,
-  op_arg arg28,
-  op_arg arg29,
-  op_arg arg30,
-  op_arg arg31){
+  op_arg arg19){
 
-  int nargs = 32;
-  op_arg args[32];
+  int nargs = 20;
+  op_arg args[20];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -109,28 +91,16 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   args[17] = arg17;
   args[18] = arg18;
   args[19] = arg19;
-  args[20] = arg20;
-  args[21] = arg21;
-  args[22] = arg22;
-  args[23] = arg23;
-  args[24] = arg24;
-  args[25] = arg25;
-  args[26] = arg26;
-  args[27] = arg27;
-  args[28] = arg28;
-  args[29] = arg29;
-  args[30] = arg30;
-  args[31] = arg31;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(20);
+  op_timing_realloc(23);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[20].name      = name;
-  OP_kernels[20].count    += 1;
+  OP_kernels[23].name      = name;
+  OP_kernels[23].count    += 1;
 
-  int  ninds   = 14;
-  int  inds[32] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,-1,-1};
+  int  ninds   = 5;
+  int  inds[20] = {-1,-1,-1,-1,-1,-1,-1,-1,0,0,1,1,2,2,3,3,4,4,-1,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_op2\n");
@@ -139,13 +109,13 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_20
-    int part_size = OP_PART_SIZE_20;
+  #ifdef OP_PART_SIZE_23
+    int part_size = OP_PART_SIZE_23;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_20
-    int nthread = OP_BLOCK_SIZE_20;
+  #ifdef OP_BLOCK_SIZE_23
+    int nthread = OP_BLOCK_SIZE_23;
   #else
     int nthread = OP_block_size;
   #endif
@@ -157,23 +127,29 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   if (set_size >0) {
 
     //Set up typed device pointers for OpenMP
-    int *map2 = arg2.map_data_d;
-     int map2size = arg2.map->dim * set_size1;
+    int *map8 = arg8.map_data_d;
+     int map8size = arg8.map->dim * set_size1;
 
     int* data0 = (int*)arg0.data_d;
     int dat0size = getSetSizeFromOpArg(&arg0) * arg0.dat->dim;
     bool* data1 = (bool*)arg1.data_d;
     int dat1size = getSetSizeFromOpArg(&arg1) * arg1.dat->dim;
-    double* data30 = (double*)arg30.data_d;
-    int dat30size = getSetSizeFromOpArg(&arg30) * arg30.dat->dim;
-    double* data31 = (double*)arg31.data_d;
-    int dat31size = getSetSizeFromOpArg(&arg31) * arg31.dat->dim;
-    double *data2 = (double *)arg2.data_d;
+    double* data2 = (double*)arg2.data_d;
     int dat2size = getSetSizeFromOpArg(&arg2) * arg2.dat->dim;
-    double *data4 = (double *)arg4.data_d;
+    double* data3 = (double*)arg3.data_d;
+    int dat3size = getSetSizeFromOpArg(&arg3) * arg3.dat->dim;
+    double* data4 = (double*)arg4.data_d;
     int dat4size = getSetSizeFromOpArg(&arg4) * arg4.dat->dim;
-    double *data6 = (double *)arg6.data_d;
+    double* data5 = (double*)arg5.data_d;
+    int dat5size = getSetSizeFromOpArg(&arg5) * arg5.dat->dim;
+    double* data6 = (double*)arg6.data_d;
     int dat6size = getSetSizeFromOpArg(&arg6) * arg6.dat->dim;
+    double* data7 = (double*)arg7.data_d;
+    int dat7size = getSetSizeFromOpArg(&arg7) * arg7.dat->dim;
+    double* data18 = (double*)arg18.data_d;
+    int dat18size = getSetSizeFromOpArg(&arg18) * arg18.dat->dim;
+    double* data19 = (double*)arg19.data_d;
+    int dat19size = getSetSizeFromOpArg(&arg19) * arg19.dat->dim;
     double *data8 = (double *)arg8.data_d;
     int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
     double *data10 = (double *)arg10.data_d;
@@ -184,18 +160,6 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
     int dat14size = getSetSizeFromOpArg(&arg14) * arg14.dat->dim;
     double *data16 = (double *)arg16.data_d;
     int dat16size = getSetSizeFromOpArg(&arg16) * arg16.dat->dim;
-    double *data18 = (double *)arg18.data_d;
-    int dat18size = getSetSizeFromOpArg(&arg18) * arg18.dat->dim;
-    double *data20 = (double *)arg20.data_d;
-    int dat20size = getSetSizeFromOpArg(&arg20) * arg20.dat->dim;
-    double *data22 = (double *)arg22.data_d;
-    int dat22size = getSetSizeFromOpArg(&arg22) * arg22.dat->dim;
-    double *data24 = (double *)arg24.data_d;
-    int dat24size = getSetSizeFromOpArg(&arg24) * arg24.dat->dim;
-    double *data26 = (double *)arg26.data_d;
-    int dat26size = getSetSizeFromOpArg(&arg26) * arg26.dat->dim;
-    double *data28 = (double *)arg28.data_d;
-    int dat28size = getSetSizeFromOpArg(&arg28) * arg28.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -214,18 +178,24 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
         dat0size,
         data1,
         dat1size,
-        map2,
-        map2size,
-        data30,
-        dat30size,
-        data31,
-        dat31size,
         data2,
         dat2size,
+        data3,
+        dat3size,
         data4,
         dat4size,
+        data5,
+        dat5size,
         data6,
         dat6size,
+        data7,
+        dat7size,
+        map8,
+        map8size,
+        data18,
+        dat18size,
+        data19,
+        dat19size,
         data8,
         dat8size,
         data10,
@@ -236,18 +206,6 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
         dat14size,
         data16,
         dat16size,
-        data18,
-        dat18size,
-        data20,
-        dat20size,
-        data22,
-        dat22size,
-        data24,
-        dat24size,
-        data26,
-        dat26size,
-        data28,
-        dat28size,
         col_reord,
         set_size1,
         start,
@@ -256,8 +214,8 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
         nthread);
 
     }
-    OP_kernels[20].transfer  += Plan->transfer;
-    OP_kernels[20].transfer2 += Plan->transfer2;
+    OP_kernels[23].transfer  += Plan->transfer;
+    OP_kernels[23].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -269,5 +227,5 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[20].time     += wall_t2 - wall_t1;
+  OP_kernels[23].time     += wall_t2 - wall_t1;
 }

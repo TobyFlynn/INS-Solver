@@ -1,6 +1,8 @@
-inline void viscosity_rhs(const double *factor, double *vRHS0, double *vRHS1) {
+inline void viscosity_rhs(const double *factor, const double *rho,
+                          const double *qtt0, const double *qtt1,
+                          double *vRHS0, double *vRHS1) {
   for(int i = 0; i < 10; i++) {
-    vRHS0[i] = (*factor) * vRHS0[i];
-    vRHS1[i] = (*factor) * vRHS1[i];
+    vRHS0[i] = (*factor) * rho[i] * qtt0[i];
+    vRHS1[i] = (*factor) * rho[i] * qtt1[i];
   }
 }

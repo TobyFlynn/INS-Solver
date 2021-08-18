@@ -5,21 +5,16 @@
 //user function
 __device__ void poisson_op5_gpu( const int *edgeType, const int *edgeNum,
                         const int *d0, const int *d1, const int *d2,
-                        const double *mD0, const double *mD1,
-                        const double *mD2, const double *sJ,
-                        const double *h, const double *gFactor,
-                        const double *factor, double *op) {
+                        const double *mD, const double *sJ, const double *h,
+                        const double *gFactor, const double *factor,
+                        double *op) {
 
-
-  const double *mD, *gVM;
+  const double *gVM;
   if(*edgeNum == 0) {
-    mD  = mD0;
     gVM = gFInterp0_g_cuda;
   } else if(*edgeNum == 1) {
-    mD  = mD1;
     gVM = gFInterp1_g_cuda;
   } else {
-    mD  = mD2;
     gVM = gFInterp2_g_cuda;
   }
 
@@ -38,11 +33,17 @@ __device__ void poisson_op5_gpu( const int *edgeType, const int *edgeNum,
   } else {
 
     double tauA[6];
+    double maxTau = 0.0;
     for(int i = 0; i < 6; i++) {
       int ind = *edgeNum  * 6 + i;
-      tauA[i] = 100 * 0.5 * 5 * 6 * (*h * gFactor[ind]);
+
+      tauA[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * (*h * gFactor[ind]);
+
 
     }
+
+
+
 
 
     for(int i = 0; i < 6 * 10; i++) {
@@ -52,6 +53,8 @@ __device__ void poisson_op5_gpu( const int *edgeType, const int *edgeNum,
 
       op[i] = gVM[indT] * gaussW_g_cuda[i % 6] * sJ[indSJ] * tauA[i % 6]
               - factor[indFactor] * mD[indT] * gaussW_g_cuda[i % 6] * sJ[indSJ];
+
+
     }
   }
 
@@ -63,16 +66,14 @@ __global__ void op_cuda_poisson_op5(
   const double *__restrict ind_arg1,
   const double *__restrict ind_arg2,
   const double *__restrict ind_arg3,
-  const double *__restrict ind_arg4,
-  const double *__restrict ind_arg5,
-  const double *__restrict ind_arg6,
-  const int *__restrict opDat5Map,
+  const int *__restrict opDat6Map,
   const int *__restrict arg0,
   const int *__restrict arg1,
   const int *arg2,
   const int *arg3,
   const int *arg4,
-  double *arg12,
+  const double *__restrict arg5,
+  double *arg10,
   int start,
   int end,
   int   set_size) {
@@ -80,8 +81,8 @@ __global__ void op_cuda_poisson_op5(
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    int map5idx;
-    map5idx = opDat5Map[n + set_size * 0];
+    int map6idx;
+    map6idx = opDat6Map[n + set_size * 0];
 
     //user-supplied kernel call
     poisson_op5_gpu(arg0+n*1,
@@ -89,14 +90,12 @@ __global__ void op_cuda_poisson_op5(
                 arg2,
                 arg3,
                 arg4,
-                ind_arg0+map5idx*60,
-                ind_arg1+map5idx*60,
-                ind_arg2+map5idx*60,
-                ind_arg3+map5idx*18,
-                ind_arg4+map5idx*1,
-                ind_arg5+map5idx*18,
-                ind_arg6+map5idx*10,
-                arg12+n*60);
+                arg5+n*60,
+                ind_arg0+map6idx*18,
+                ind_arg1+map6idx*1,
+                ind_arg2+map6idx*18,
+                ind_arg3+map6idx*10,
+                arg10+n*60);
   }
 }
 
@@ -113,15 +112,13 @@ void op_par_loop_poisson_op5(char const *name, op_set set,
   op_arg arg7,
   op_arg arg8,
   op_arg arg9,
-  op_arg arg10,
-  op_arg arg11,
-  op_arg arg12){
+  op_arg arg10){
 
   int*arg2h = (int *)arg2.data;
   int*arg3h = (int *)arg3.data;
   int*arg4h = (int *)arg4.data;
-  int nargs = 13;
-  op_arg args[13];
+  int nargs = 11;
+  op_arg args[11];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -134,19 +131,17 @@ void op_par_loop_poisson_op5(char const *name, op_set set,
   args[8] = arg8;
   args[9] = arg9;
   args[10] = arg10;
-  args[11] = arg11;
-  args[12] = arg12;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(23);
+  op_timing_realloc(26);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[23].name      = name;
-  OP_kernels[23].count    += 1;
+  OP_kernels[26].name      = name;
+  OP_kernels[26].count    += 1;
 
 
-  int    ninds   = 7;
-  int    inds[13] = {-1,-1,-1,-1,-1,0,1,2,3,4,5,6,-1};
+  int    ninds   = 4;
+  int    inds[11] = {-1,-1,-1,-1,-1,-1,0,1,2,3,-1};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: poisson_op5\n");
@@ -182,8 +177,8 @@ void op_par_loop_poisson_op5(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_23
-      int nthread = OP_BLOCK_SIZE_23;
+    #ifdef OP_BLOCK_SIZE_26
+      int nthread = OP_BLOCK_SIZE_26;
     #else
       int nthread = OP_block_size;
     #endif
@@ -197,20 +192,18 @@ void op_par_loop_poisson_op5(char const *name, op_set set,
       if (end-start>0) {
         int nblocks = (end-start-1)/nthread+1;
         op_cuda_poisson_op5<<<nblocks,nthread>>>(
-        (double *)arg5.data_d,
         (double *)arg6.data_d,
         (double *)arg7.data_d,
         (double *)arg8.data_d,
         (double *)arg9.data_d,
-        (double *)arg10.data_d,
-        (double *)arg11.data_d,
-        arg5.map_data_d,
+        arg6.map_data_d,
         (int*)arg0.data_d,
         (int*)arg1.data_d,
         (int*)arg2.data_d,
         (int*)arg3.data_d,
         (int*)arg4.data_d,
-        (double*)arg12.data_d,
+        (double*)arg5.data_d,
+        (double*)arg10.data_d,
         start,end,set->size+set->exec_size);
       }
     }
@@ -219,5 +212,5 @@ void op_par_loop_poisson_op5(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[23].time     += wall_t2 - wall_t1;
+  OP_kernels[26].time     += wall_t2 - wall_t1;
 }

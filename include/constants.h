@@ -4,5 +4,6 @@
 // Physics constants
 double reynolds, froude, weber, nu0, nu1, rho0, rho1, dt;
 double ic_u, ic_v;
+double refRho, refMu, refLen, refVel, refSurfTen;
 
 #endif
