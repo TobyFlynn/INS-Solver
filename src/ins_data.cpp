@@ -48,13 +48,10 @@ INSData::INSData(DGMesh *m) {
   gsx_data     = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
   gry_data     = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
   gsy_data     = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
-  tau_data     = (double *)calloc(3 * mesh->numCells, sizeof(double));
   reverse_data = (int *)calloc(3 * mesh->numCells, sizeof(int));
   for(int i = 0; i < 3; i++) {
     mDx_data[i]  = (double *)calloc(DG_GF_NP * DG_NP * mesh->numCells, sizeof(double));
     mDy_data[i]  = (double *)calloc(DG_GF_NP * DG_NP * mesh->numCells, sizeof(double));
-    pDx_data[i]  = (double *)calloc(DG_GF_NP * DG_NP * mesh->numCells, sizeof(double));
-    pDy_data[i]  = (double *)calloc(DG_GF_NP * DG_NP * mesh->numCells, sizeof(double));
   }
 
   mDL_data  = (double *)calloc(DG_GF_NP * DG_NP * mesh->numEdges, sizeof(double));
@@ -109,7 +106,6 @@ INSData::INSData(DGMesh *m) {
   gsx     = op_decl_dat(mesh->cells, DG_G_NP, "double", gsx_data, "gauss-gsx");
   gry     = op_decl_dat(mesh->cells, DG_G_NP, "double", gry_data, "gauss-gry");
   gsy     = op_decl_dat(mesh->cells, DG_G_NP, "double", gsy_data, "gauss-gsy");
-  tau     = op_decl_dat(mesh->cells, 3, "double", tau_data, "gauss-tau");
   reverse = op_decl_dat(mesh->cells, 3, "int", reverse_data, "gauss-reverse");
 
   for(int i = 0; i < 3; i++) {
@@ -117,10 +113,6 @@ INSData::INSData(DGMesh *m) {
     mDx[i]      = op_decl_dat(mesh->cells, DG_GF_NP * DG_NP, "double", mDx_data[i], name.c_str());
     name        = "gauss-mDy" + to_string(i);
     mDy[i]      = op_decl_dat(mesh->cells, DG_GF_NP * DG_NP, "double", mDy_data[i], name.c_str());
-    name        = "gauss-pDx" + to_string(i);
-    pDx[i]      = op_decl_dat(mesh->cells, DG_GF_NP * DG_NP, "double", pDx_data[i], name.c_str());
-    name        = "gauss-pDy" + to_string(i);
-    pDy[i]      = op_decl_dat(mesh->cells, DG_GF_NP * DG_NP, "double", pDy_data[i], name.c_str());
   }
 
   mDL  = op_decl_dat(mesh->edges, DG_GF_NP * DG_NP, "double", mDL_data, "mDL");
@@ -199,13 +191,10 @@ INSData::~INSData() {
   free(gsx_data);
   free(gry_data);
   free(gsy_data);
-  free(tau_data);
   free(reverse_data);
   for(int i = 0; i < 3; i++) {
     free(mDx_data[i]);
     free(mDy_data[i]);
-    free(pDx_data[i]);
-    free(pDy_data[i]);
   }
 
   free(mDL_data);
@@ -294,20 +283,10 @@ void INSData::init() {
               op_arg_dat(mesh->nodeY,   -2, mesh->edge2cells, 3, "double", OP_READ),
               op_arg_dat(reverse,       -2, mesh->edge2cells, 3, "int", OP_INC));
 
-  // Calculate tau (used when constructing the Poisson matrix)
-  op_par_loop(gauss_tau, "gauss_tau", mesh->edges,
-              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->fscale,  -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_READ),
-              op_arg_dat(tau,           -2, mesh->edge2cells, 3, "double", OP_INC));
-
-  op_par_loop(gauss_tau_bc, "gauss_tau_bc", mesh->bedges,
-              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->fscale,    0, mesh->bedge2cells, 3 * DG_NPF, "double", OP_READ),
-              op_arg_dat(tau,             0, mesh->bedge2cells, 3, "double", OP_INC));
-
   // Calculate geometric factors used when constructing gradient matrices
   init_gauss_grad_blas(mesh, this);
 
+  // [gDxM, gDyM] = PhysDmatrices2D(x(:,k1), y(:,k1),gVM);
   op_par_loop(init_gauss_grad, "init_gauss_grad", mesh->cells,
               op_arg_dat(grx,    -1, OP_ID, DG_G_NP, "double", OP_RW),
               op_arg_dat(gsx,    -1, OP_ID, DG_G_NP, "double", OP_RW),
@@ -320,6 +299,7 @@ void INSData::init() {
               op_arg_dat(mDx[2], -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
               op_arg_dat(mDy[2], -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
 
+  // gDnM = gnx*gDxM + gny*gDyM;
   op_par_loop(init_gauss_grad3, "init_gauss_grad3", mesh->edges,
               op_arg_dat(mesh->edgeNum,  -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->gauss->nx, 0, mesh->edge2cells, DG_G_NP, "double", OP_READ),
@@ -357,6 +337,7 @@ void INSData::init() {
   // Matrices are calculated locally, then copied to neighbour elements
   init_gauss_grad_neighbour_blas(mesh, this);
 
+  // [gDxP, gDyP] = PhysDmatrices2D(x(:,k2), y(:,k2),gVP);
   op_par_loop(init_gauss_grad_neighbour, "init_gauss_grad_neighbour", mesh->cells,
               op_arg_dat(reverse, -1, OP_ID, 3, "int", OP_READ),
               op_arg_dat(grx,     -1, OP_ID, DG_G_NP, "double", OP_RW),
@@ -370,40 +351,25 @@ void INSData::init() {
               op_arg_dat(mDx[2],  -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
               op_arg_dat(mDy[2],  -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
 
-  // Copy x and y grad matrices to neighbours
-  op_par_loop(gauss_grad_faces, "gauss_grad_faces", mesh->edges,
-              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mDx[0], -2, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[0], -2, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[1], -2, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[1], -2, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[2], -2, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[2], -2, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDx[0], -2, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_INC),
-              op_arg_dat(pDy[0], -2, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_INC),
-              op_arg_dat(pDx[1], -2, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_INC),
-              op_arg_dat(pDy[1], -2, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_INC),
-              op_arg_dat(pDx[2], -2, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_INC),
-              op_arg_dat(pDy[2], -2, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_INC));
-
-  op_par_loop(init_gauss_grad3, "init_gauss_grad3", mesh->edges,
+  // gDnP = gnx*gDxP + gny*gDyP;
+  op_par_loop(init_gauss_grad5, "init_gauss_grad5", mesh->edges,
               op_arg_dat(mesh->edgeNum,  -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->gauss->nx, 0, mesh->edge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(mesh->gauss->nx, 1, mesh->edge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(mesh->gauss->ny, 0, mesh->edge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(mesh->gauss->ny, 1, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(pDx[0], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDx[0], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDy[0], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDy[0], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDx[1], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDx[1], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDy[1], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDy[1], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDx[2], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDx[2], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDy[2], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDy[2], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mDx[0], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mDx[0], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mDy[0], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mDy[0], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mDx[1], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mDx[1], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mDy[1], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mDy[1], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mDx[2], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mDx[2], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mDy[2], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mDy[2], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
               op_arg_dat(pDL, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
               op_arg_dat(pDR, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
 

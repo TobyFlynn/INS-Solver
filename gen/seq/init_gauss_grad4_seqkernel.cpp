@@ -34,7 +34,7 @@ void op_par_loop_init_gauss_grad4(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(7);
+  op_timing_realloc(5);
   op_timers_core(&cpu_t1, &wall_t1);
 
   if (OP_diags>2) {
@@ -75,18 +75,18 @@ void op_par_loop_init_gauss_grad4(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[7].name      = name;
-  OP_kernels[7].count    += 1;
-  OP_kernels[7].time     += wall_t2 - wall_t1;
-  OP_kernels[7].transfer += (float)set->size * arg1.size;
-  OP_kernels[7].transfer += (float)set->size * arg2.size;
-  OP_kernels[7].transfer += (float)set->size * arg3.size;
-  OP_kernels[7].transfer += (float)set->size * arg4.size;
-  OP_kernels[7].transfer += (float)set->size * arg5.size;
-  OP_kernels[7].transfer += (float)set->size * arg6.size;
-  OP_kernels[7].transfer += (float)set->size * arg7.size;
-  OP_kernels[7].transfer += (float)set->size * arg8.size;
-  OP_kernels[7].transfer += (float)set->size * arg0.size;
-  OP_kernels[7].transfer += (float)set->size * arg9.size;
-  OP_kernels[7].transfer += (float)set->size * arg1.map->dim * 4.0f;
+  OP_kernels[5].name      = name;
+  OP_kernels[5].count    += 1;
+  OP_kernels[5].time     += wall_t2 - wall_t1;
+  OP_kernels[5].transfer += (float)set->size * arg1.size;
+  OP_kernels[5].transfer += (float)set->size * arg2.size;
+  OP_kernels[5].transfer += (float)set->size * arg3.size;
+  OP_kernels[5].transfer += (float)set->size * arg4.size;
+  OP_kernels[5].transfer += (float)set->size * arg5.size;
+  OP_kernels[5].transfer += (float)set->size * arg6.size;
+  OP_kernels[5].transfer += (float)set->size * arg7.size;
+  OP_kernels[5].transfer += (float)set->size * arg8.size;
+  OP_kernels[5].transfer += (float)set->size * arg0.size;
+  OP_kernels[5].transfer += (float)set->size * arg9.size;
+  OP_kernels[5].transfer += (float)set->size * arg1.map->dim * 4.0f;
 }

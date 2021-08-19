@@ -26,7 +26,6 @@ void poisson_pre_omp4_kernel(
     for(int i = 0; i < 10; i++) {
       out[i] = 0.0;
       for(int j = 0; j < 10; j++) {
-
         int ind = i * 10 + j;
         out[i] += pre[ind] * in[j];
       }

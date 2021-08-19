@@ -46,10 +46,7 @@ __device__ void poisson_op2_gpu( const int *edgeNum, const bool *rev,
 
         int b_ind = k * 10 + j;
 
-
-
         int a_ind = k * 10 + i;
-
 
         int factors_indL = edgeL * 6 + k;
         int factors_indR = edgeR * 6 + k;
@@ -84,8 +81,6 @@ __device__ void poisson_op2_gpu( const int *edgeNum, const bool *rev,
       for(int k = 0; k < 6; k++) {
 
         int b_ind = k * 10 + j;
-
-
 
         int a_ind = k * 10 + i;
 
@@ -175,8 +170,6 @@ __device__ void poisson_op2_gpu( const int *edgeNum, const bool *rev,
       for(int k = 0; k < 6; k++) {
 
         int b_ind = k * 10 + j;
-
-
 
         int a_ind = k * 10 + i;
 
@@ -519,10 +512,10 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(19);
+  op_timing_realloc(17);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[19].name      = name;
-  OP_kernels[19].count    += 1;
+  OP_kernels[17].name      = name;
+  OP_kernels[17].count    += 1;
 
 
   int    ninds   = 5;
@@ -535,8 +528,8 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_19
-      int nthread = OP_BLOCK_SIZE_19;
+    #ifdef OP_BLOCK_SIZE_17
+      int nthread = OP_BLOCK_SIZE_17;
     #else
       int nthread = OP_block_size;
     #endif
@@ -574,5 +567,5 @@ void op_par_loop_poisson_op2(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[19].time     += wall_t2 - wall_t1;
+  OP_kernels[17].time     += wall_t2 - wall_t1;
 }

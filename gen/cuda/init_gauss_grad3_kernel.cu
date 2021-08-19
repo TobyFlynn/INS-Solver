@@ -151,10 +151,10 @@ void op_par_loop_init_gauss_grad3(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(6);
+  op_timing_realloc(4);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[6].name      = name;
-  OP_kernels[6].count    += 1;
+  OP_kernels[4].name      = name;
+  OP_kernels[4].count    += 1;
 
 
   int    ninds   = 8;
@@ -167,8 +167,8 @@ void op_par_loop_init_gauss_grad3(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_6
-      int nthread = OP_BLOCK_SIZE_6;
+    #ifdef OP_BLOCK_SIZE_4
+      int nthread = OP_BLOCK_SIZE_4;
     #else
       int nthread = OP_block_size;
     #endif
@@ -202,5 +202,5 @@ void op_par_loop_init_gauss_grad3(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[6].time     += wall_t2 - wall_t1;
+  OP_kernels[4].time     += wall_t2 - wall_t1;
 }

@@ -25,8 +25,8 @@ public:
   op_dat Dx, Dy;
 
   // Gauss stuff
-  op_dat grx, gsx, gry, gsy, tau, reverse;
-  op_dat mDx[3], mDy[3], pDx[3], pDy[3];
+  op_dat grx, gsx, gry, gsy, reverse;
+  op_dat mDx[3], mDy[3];
   op_dat mDL, mDR, mDBC, pDL, pDR, gVPL, gVPR;
 
 private:
@@ -44,10 +44,9 @@ private:
   double *Dx_data, *Dy_data, *cOP_data, *temp_data, *temp2_data;
 
   // Gauss stuff
-  double *grx_data, *gsx_data, *gry_data, *gsy_data, *tau_data;
+  double *grx_data, *gsx_data, *gry_data, *gsy_data;
   int *reverse_data;
   double *mDx_data[3], *mDy_data[3];
-  double *pDx_data[3], *pDy_data[3];
   double *mDL_data, *mDR_data, *mDBC_data, *pDL_data, *pDR_data;
   double *gVPL_data, *gVPR_data;
 };
