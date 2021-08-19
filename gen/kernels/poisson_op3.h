@@ -25,8 +25,9 @@ inline void poisson_op3(const int *edgeType, const int *edgeNum,
         // mD
         int b_ind = k * 10 + j;
         // Transpose of gVM
-        int ind = i * 6 + k;
-        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+        // int ind = i * 6 + k;
+        // int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+        int a_ind = k * 10 + i;
         // Rho and sJ ind
         int factors_ind = *edgeNum * 6 + k;
 
@@ -51,8 +52,9 @@ inline void poisson_op3(const int *edgeType, const int *edgeNum,
         // gVM and gVP
         int b_ind = k * 10 + j;
         // Transpose of mD
-        int ind = i * 6 + k;
-        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+        // int ind = i * 6 + k;
+        // int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+        int a_ind = k * 10 + i;
         // Rho and sJ ind
         int factors_ind = *edgeNum * 6 + k;
 
@@ -96,8 +98,9 @@ inline void poisson_op3(const int *edgeType, const int *edgeNum,
         // gVM and gVP
         int b_ind = k * 10 + j;
         // Transpose of gVM
-        int ind = i * 6 + k;
-        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+        // int ind = i * 6 + k;
+        // int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+        int a_ind = k * 10 + i;
         // sJ ind
         int factors_ind = *edgeNum * 6 + k;
 

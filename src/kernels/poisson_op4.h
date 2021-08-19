@@ -15,8 +15,7 @@ inline void poisson_op4(const double *cJ, const double *factor, double *op, doub
       for(int k = 0; k < DG_CUB_NP; k++) {
         int b_ind = k * DG_NP + j;
         // Transpose
-        int ind = i * DG_CUB_NP + k;
-        int a_ind = ((ind * DG_NP) % (DG_NP * DG_CUB_NP)) + (ind / DG_CUB_NP);
+        int a_ind = k * DG_NP + i;
 
         mm[c_ind] += cubV_g[b_ind] * cTmp[a_ind];
       }

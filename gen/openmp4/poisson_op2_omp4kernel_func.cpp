@@ -110,8 +110,9 @@ void poisson_op2_omp4_kernel(
 
           int b_ind = k * 10 + j;
 
-          int ind = i * 6 + k;
-          int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+
+
+          int a_ind = k * 10 + i;
 
 
           int factors_indL = edgeL * 6 + k;
@@ -148,8 +149,9 @@ void poisson_op2_omp4_kernel(
 
           int b_ind = k * 10 + j;
 
-          int ind = i * 6 + k;
-          int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+
+
+          int a_ind = k * 10 + i;
 
           int factors_indL = edgeL * 6 + k;
           int factors_indR = edgeR * 6 + k;
@@ -238,8 +240,9 @@ void poisson_op2_omp4_kernel(
 
           int b_ind = k * 10 + j;
 
-          int ind = i * 6 + k;
-          int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+
+
+          int a_ind = k * 10 + i;
 
           int factors_indL = edgeL * 6 + k;
           int factors_indR = edgeR * 6 + k;

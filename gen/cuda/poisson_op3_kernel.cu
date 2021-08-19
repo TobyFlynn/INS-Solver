@@ -28,8 +28,9 @@ __device__ void poisson_op3_gpu( const int *edgeType, const int *edgeNum,
 
         int b_ind = k * 10 + j;
 
-        int ind = i * 6 + k;
-        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+
+
+        int a_ind = k * 10 + i;
 
         int factors_ind = *edgeNum * 6 + k;
 
@@ -51,8 +52,9 @@ __device__ void poisson_op3_gpu( const int *edgeType, const int *edgeNum,
 
         int b_ind = k * 10 + j;
 
-        int ind = i * 6 + k;
-        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+
+
+        int a_ind = k * 10 + i;
 
         int factors_ind = *edgeNum * 6 + k;
 
@@ -90,8 +92,9 @@ __device__ void poisson_op3_gpu( const int *edgeType, const int *edgeNum,
 
         int b_ind = k * 10 + j;
 
-        int ind = i * 6 + k;
-        int a_ind = ((ind * 10) % (10 * 6)) + (ind / 6);
+
+
+        int a_ind = k * 10 + i;
 
         int factors_ind = *edgeNum * 6 + k;
 

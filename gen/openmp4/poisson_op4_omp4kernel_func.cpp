@@ -43,8 +43,9 @@ void poisson_op4_omp4_kernel(
         for(int k = 0; k < 36; k++) {
           int b_ind = k * 10 + j;
 
-          int ind = i * 36 + k;
-          int a_ind = ((ind * 10) % (10 * 36)) + (ind / 36);
+
+
+          int a_ind = k * 10 + i;
 
           mm[c_ind] += cubV_g_ompkernel[b_ind] * cTmp[a_ind];
         }

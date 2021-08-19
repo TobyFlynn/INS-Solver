@@ -20,8 +20,9 @@ __device__ void poisson_op4_gpu( const double *cJ, const double *factor, double 
       for(int k = 0; k < 36; k++) {
         int b_ind = k * 10 + j;
 
-        int ind = i * 36 + k;
-        int a_ind = ((ind * 10) % (10 * 36)) + (ind / 36);
+
+
+        int a_ind = k * 10 + i;
 
         mm[c_ind] += cubV_g_cuda[b_ind] * cTmp[a_ind];
       }
