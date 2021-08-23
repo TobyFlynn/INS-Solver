@@ -27,6 +27,9 @@ LS::LS(DGMesh *m, INSData *d) {
   diff_data    = (double *)calloc(10 * mesh->numCells, sizeof(double));
   diffF_data   = (double *)calloc(18 * mesh->numCells, sizeof(double));
 
+  modal_data = (double *)calloc(10 * mesh->numCells, sizeof(double));
+  q_data     = (double *)calloc((3 + 1) * mesh->numCells, sizeof(double));
+
   s      = op_decl_dat(mesh->cells, 10, "double", s_data, "s");
   step_s = op_decl_dat(mesh->cells, 10, "double", step_s_data, "step");
   nx     = op_decl_dat(mesh->cells, 10, "double", nx_data, "ls-nx");
@@ -38,6 +41,9 @@ LS::LS(DGMesh *m, INSData *d) {
 
   diff    = op_decl_dat(mesh->cells, 10, "double", diff_data, "diff");
   diffF   = op_decl_dat(mesh->cells, 18, "double", diffF_data, "diffF");
+
+  modal = op_decl_dat(mesh->cells, 10, "double", modal_data, "modal");
+  q     = op_decl_dat(mesh->cells, 3 + 1, "double", q_data, "q");
 }
 
 LS::~LS() {
@@ -52,6 +58,9 @@ LS::~LS() {
 
   free(diff_data);
   free(diffF_data);
+
+  free(modal_data);
+  free(q_data);
 }
 
 void LS::init() {
@@ -211,6 +220,8 @@ void LS::advec_step(op_dat input, op_dat output) {
 }
 
 void LS::reinit_ls() {
+  calc_local_diff_const();
+  
   cub_grad(mesh, s, dsdx, dsdy);
   inv_mass(mesh, dsdx);
   inv_mass(mesh, dsdy);
@@ -422,4 +433,14 @@ void LS::update_values() {
               op_arg_dat(ny, -1, OP_ID, 10, "double", OP_RW));
   */
   div(mesh, nx, ny, curv);
+}
+
+void LS::calc_local_diff_const() {
+  // Get modal coefficients from nodal representation
+  op2_gemv(true, 10, 18, 1.0, constants->get_ptr(DGConstants::INV_V), 10, s, 0.0, modal);
+
+  // Group modal coefficients using quadratic mean (with skyline pessimization)
+  op_par_loop(ls_group_modal, "ls_group_modal", mesh->cells,
+              op_arg_dat(modal, -1, OP_ID, 10, "double", OP_READ),
+              op_arg_dat(q,     -1, OP_ID, 3 + 1, "double", OP_WRITE));
 }

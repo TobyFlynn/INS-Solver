@@ -69,6 +69,7 @@
 #define op_par_loop_ls_reinit_check op_par_loop_ls_reinit_check_gpu
 #define op_par_loop_ls_step op_par_loop_ls_step_gpu
 #define op_par_loop_ls_normalise op_par_loop_ls_normalise_gpu
+#define op_par_loop_ls_group_modal op_par_loop_ls_group_modal_gpu
 #include "ins_kernels.cu"
 #undef op_par_loop_init_nu_rho
 #undef op_par_loop_init_cubature_grad
@@ -135,6 +136,7 @@
 #undef op_par_loop_ls_reinit_check
 #undef op_par_loop_ls_step
 #undef op_par_loop_ls_normalise
+#undef op_par_loop_ls_group_modal
 #else
 #define op_par_loop_init_nu_rho op_par_loop_init_nu_rho_cpu
 #define op_par_loop_init_cubature_grad op_par_loop_init_cubature_grad_cpu
@@ -201,6 +203,7 @@
 #define op_par_loop_ls_reinit_check op_par_loop_ls_reinit_check_cpu
 #define op_par_loop_ls_step op_par_loop_ls_step_cpu
 #define op_par_loop_ls_normalise op_par_loop_ls_normalise_cpu
+#define op_par_loop_ls_group_modal op_par_loop_ls_group_modal_cpu
 #include "../openmp/ins_kernels.cpp"
 #undef op_par_loop_init_nu_rho
 #undef op_par_loop_init_cubature_grad
@@ -267,6 +270,7 @@
 #undef op_par_loop_ls_reinit_check
 #undef op_par_loop_ls_step
 #undef op_par_loop_ls_normalise
+#undef op_par_loop_ls_group_modal
 
 //user kernel files
 
@@ -4322,6 +4326,40 @@ void op_par_loop_ls_normalise(char const *name, op_set set,
   op_arg arg1){
 
   op_par_loop_ls_normalise_gpu(name, set,
+    arg0,
+    arg1);
+
+  }
+#endif //OP_HYBRID_GPU
+
+void op_par_loop_ls_group_modal_gpu(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1);
+
+//GPU host stub function
+#if OP_HYBRID_GPU
+void op_par_loop_ls_group_modal(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  if (OP_hybrid_gpu) {
+    op_par_loop_ls_group_modal_gpu(name, set,
+      arg0,
+      arg1);
+
+    }else{
+    op_par_loop_ls_group_modal_cpu(name, set,
+      arg0,
+      arg1);
+
+  }
+}
+#else
+void op_par_loop_ls_group_modal(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1){
+
+  op_par_loop_ls_group_modal_gpu(name, set,
     arg0,
     arg1);
 

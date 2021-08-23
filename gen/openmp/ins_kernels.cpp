@@ -110,3 +110,4 @@ extern double gFInterp2R_g[60];
 #include "ls_reinit_check_kernel.cpp"
 #include "ls_step_kernel.cpp"
 #include "ls_normalise_kernel.cpp"
+#include "ls_group_modal_kernel.cpp"

@@ -324,3 +324,4 @@ int size, char *dat, char const *name){
 #include "ls_reinit_check_kernel.cu"
 #include "ls_step_kernel.cu"
 #include "ls_normalise_kernel.cu"
+#include "ls_group_modal_kernel.cu"

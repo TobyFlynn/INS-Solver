@@ -71,3 +71,4 @@
 #include "ls_reinit_check_omp4kernel.cpp"
 #include "ls_step_omp4kernel.cpp"
 #include "ls_normalise_omp4kernel.cpp"
+#include "ls_group_modal_omp4kernel.cpp"

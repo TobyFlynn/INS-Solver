@@ -106,3 +106,4 @@ int size, char *dat, char const *name){}
 #include "ls_reinit_check_acckernel.c"
 #include "ls_step_acckernel.c"
 #include "ls_normalise_acckernel.c"
+#include "ls_group_modal_acckernel.c"

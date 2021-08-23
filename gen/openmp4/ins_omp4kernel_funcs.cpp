@@ -209,3 +209,4 @@ void op_decl_const_char(int dim, char const *type,
 #include "ls_reinit_check_omp4kernel_func.cpp"
 #include "ls_step_omp4kernel_func.cpp"
 #include "ls_normalise_omp4kernel_func.cpp"
+#include "ls_group_modal_omp4kernel_func.cpp"

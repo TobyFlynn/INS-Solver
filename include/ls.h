@@ -28,6 +28,7 @@ public:
   op_dat dsdx, dsdy, sign, gS;
   op_dat dsldx, dsrdx, dsldy, dsrdy, dpldx, dprdx, dpldy, dprdy;
   op_dat sigmax, sigmay, sigmaFx, sigmaFy, gSigmax, gSigmay, diff, diffF;
+  op_dat modal, q;
 
   double alpha;
 private:
@@ -36,12 +37,14 @@ private:
   void calc_diff();
   bool reinit_needed();
   void update_values();
+  void calc_local_diff_const();
 
   double h, epsilon, reinit_dt;
   int numSteps;
 
   double *s_data, *step_s_data, *nx_data, *ny_data, *curv_data;
   double *sign_data, *gS_data, *diff_data, *diffF_data;
+  double *modal_data, *q_data;
 };
 
 #endif
