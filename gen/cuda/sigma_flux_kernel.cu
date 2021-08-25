@@ -5,7 +5,7 @@
 //user function
 __device__ void sigma_flux_gpu( const int *edgeNum, const bool *rev, const double **sJ,
                        const double **nx, const double **ny, const double **s,
-                       double **sigFx, double **sigFy) {
+                       const double **vis, double **sigFx, double **sigFy) {
 
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
@@ -13,6 +13,21 @@ __device__ void sigma_flux_gpu( const int *edgeNum, const bool *rev, const doubl
 
   int exIndL = edgeL * 6;
   int exIndR = edgeR * 6;
+
+  double kL = sqrt(vis[0][0]);
+  double kR = sqrt(vis[1][0]);
+  double lamdaL = kL;
+  double lamdaR = kR;
+  double wL, wR;
+
+  if(lamdaL < 1e-12 && lamdaR < 1e-12) {
+    wL = 0.5;
+    wR = 0.5;
+  } else {
+    double lamdaAvg = (lamdaL + lamdaR) / 2.0;
+    wL = lamdaL / (2.0 * lamdaAvg);
+    wR = lamdaR / (2.0 * lamdaAvg);
+  }
 
   for(int i = 0; i < 6; i++) {
     int rInd;
@@ -22,7 +37,8 @@ __device__ void sigma_flux_gpu( const int *edgeNum, const bool *rev, const doubl
     } else {
       rInd = exIndR + i;
     }
-    double flux = (s[0][lInd] + s[1][rInd]) / 2.0;
+    double flux = wL * s[0][lInd] + wR * s[1][rInd];
+    flux *= kL;
     sigFx[0][lInd] += gaussW_g_cuda[i] * sJ[0][lInd] * nx[0][lInd] * flux;
     sigFy[0][lInd] += gaussW_g_cuda[i] * sJ[0][lInd] * ny[0][lInd] * flux;
   }
@@ -35,7 +51,8 @@ __device__ void sigma_flux_gpu( const int *edgeNum, const bool *rev, const doubl
     } else {
       lInd = exIndL + i;
     }
-    double flux = (s[0][lInd] + s[1][rInd]) / 2.0;
+    double flux = wL * s[0][lInd] + wR * s[1][rInd];
+    flux *= kR;
     sigFx[1][rInd] += gaussW_g_cuda[i] * sJ[1][rInd] * nx[1][rInd] * flux;
     sigFy[1][rInd] += gaussW_g_cuda[i] * sJ[1][rInd] * ny[1][rInd] * flux;
   }
@@ -48,8 +65,9 @@ __global__ void op_cuda_sigma_flux(
   const double *__restrict ind_arg1,
   const double *__restrict ind_arg2,
   const double *__restrict ind_arg3,
-  double *__restrict ind_arg4,
+  const double *__restrict ind_arg4,
   double *__restrict ind_arg5,
+  double *__restrict ind_arg6,
   const int *__restrict opDat2Map,
   const int *__restrict arg0,
   const bool *__restrict arg1,
@@ -60,14 +78,6 @@ __global__ void op_cuda_sigma_flux(
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg10_l[18];
-    for ( int d=0; d<18; d++ ){
-      arg10_l[d] = ZERO_double;
-    }
-    double arg11_l[18];
-    for ( int d=0; d<18; d++ ){
-      arg11_l[d] = ZERO_double;
-    }
     double arg12_l[18];
     for ( int d=0; d<18; d++ ){
       arg12_l[d] = ZERO_double;
@@ -75,6 +85,14 @@ __global__ void op_cuda_sigma_flux(
     double arg13_l[18];
     for ( int d=0; d<18; d++ ){
       arg13_l[d] = ZERO_double;
+    }
+    double arg14_l[18];
+    for ( int d=0; d<18; d++ ){
+      arg14_l[d] = ZERO_double;
+    }
+    double arg15_l[18];
+    for ( int d=0; d<18; d++ ){
+      arg15_l[d] = ZERO_double;
     }
     int map2idx;
     int map3idx;
@@ -92,12 +110,15 @@ __global__ void op_cuda_sigma_flux(
     const double* arg8_vec[] = {
        &ind_arg3[18 * map2idx],
        &ind_arg3[18 * map3idx]};
-    double* arg10_vec[] = {
-      arg10_l,
-      arg11_l};
+    const double* arg10_vec[] = {
+       &ind_arg4[1 * map2idx],
+       &ind_arg4[1 * map3idx]};
     double* arg12_vec[] = {
       arg12_l,
       arg13_l};
+    double* arg14_vec[] = {
+      arg14_l,
+      arg15_l};
 
     //user-supplied kernel call
     sigma_flux_gpu(arg0+n*2,
@@ -107,43 +128,8 @@ __global__ void op_cuda_sigma_flux(
                arg6_vec,
                arg8_vec,
                arg10_vec,
-               arg12_vec);
-    atomicAdd(&ind_arg4[0+map2idx*18],arg10_l[0]);
-    atomicAdd(&ind_arg4[1+map2idx*18],arg10_l[1]);
-    atomicAdd(&ind_arg4[2+map2idx*18],arg10_l[2]);
-    atomicAdd(&ind_arg4[3+map2idx*18],arg10_l[3]);
-    atomicAdd(&ind_arg4[4+map2idx*18],arg10_l[4]);
-    atomicAdd(&ind_arg4[5+map2idx*18],arg10_l[5]);
-    atomicAdd(&ind_arg4[6+map2idx*18],arg10_l[6]);
-    atomicAdd(&ind_arg4[7+map2idx*18],arg10_l[7]);
-    atomicAdd(&ind_arg4[8+map2idx*18],arg10_l[8]);
-    atomicAdd(&ind_arg4[9+map2idx*18],arg10_l[9]);
-    atomicAdd(&ind_arg4[10+map2idx*18],arg10_l[10]);
-    atomicAdd(&ind_arg4[11+map2idx*18],arg10_l[11]);
-    atomicAdd(&ind_arg4[12+map2idx*18],arg10_l[12]);
-    atomicAdd(&ind_arg4[13+map2idx*18],arg10_l[13]);
-    atomicAdd(&ind_arg4[14+map2idx*18],arg10_l[14]);
-    atomicAdd(&ind_arg4[15+map2idx*18],arg10_l[15]);
-    atomicAdd(&ind_arg4[16+map2idx*18],arg10_l[16]);
-    atomicAdd(&ind_arg4[17+map2idx*18],arg10_l[17]);
-    atomicAdd(&ind_arg4[0+map3idx*18],arg11_l[0]);
-    atomicAdd(&ind_arg4[1+map3idx*18],arg11_l[1]);
-    atomicAdd(&ind_arg4[2+map3idx*18],arg11_l[2]);
-    atomicAdd(&ind_arg4[3+map3idx*18],arg11_l[3]);
-    atomicAdd(&ind_arg4[4+map3idx*18],arg11_l[4]);
-    atomicAdd(&ind_arg4[5+map3idx*18],arg11_l[5]);
-    atomicAdd(&ind_arg4[6+map3idx*18],arg11_l[6]);
-    atomicAdd(&ind_arg4[7+map3idx*18],arg11_l[7]);
-    atomicAdd(&ind_arg4[8+map3idx*18],arg11_l[8]);
-    atomicAdd(&ind_arg4[9+map3idx*18],arg11_l[9]);
-    atomicAdd(&ind_arg4[10+map3idx*18],arg11_l[10]);
-    atomicAdd(&ind_arg4[11+map3idx*18],arg11_l[11]);
-    atomicAdd(&ind_arg4[12+map3idx*18],arg11_l[12]);
-    atomicAdd(&ind_arg4[13+map3idx*18],arg11_l[13]);
-    atomicAdd(&ind_arg4[14+map3idx*18],arg11_l[14]);
-    atomicAdd(&ind_arg4[15+map3idx*18],arg11_l[15]);
-    atomicAdd(&ind_arg4[16+map3idx*18],arg11_l[16]);
-    atomicAdd(&ind_arg4[17+map3idx*18],arg11_l[17]);
+               arg12_vec,
+               arg14_vec);
     atomicAdd(&ind_arg5[0+map2idx*18],arg12_l[0]);
     atomicAdd(&ind_arg5[1+map2idx*18],arg12_l[1]);
     atomicAdd(&ind_arg5[2+map2idx*18],arg12_l[2]);
@@ -180,6 +166,42 @@ __global__ void op_cuda_sigma_flux(
     atomicAdd(&ind_arg5[15+map3idx*18],arg13_l[15]);
     atomicAdd(&ind_arg5[16+map3idx*18],arg13_l[16]);
     atomicAdd(&ind_arg5[17+map3idx*18],arg13_l[17]);
+    atomicAdd(&ind_arg6[0+map2idx*18],arg14_l[0]);
+    atomicAdd(&ind_arg6[1+map2idx*18],arg14_l[1]);
+    atomicAdd(&ind_arg6[2+map2idx*18],arg14_l[2]);
+    atomicAdd(&ind_arg6[3+map2idx*18],arg14_l[3]);
+    atomicAdd(&ind_arg6[4+map2idx*18],arg14_l[4]);
+    atomicAdd(&ind_arg6[5+map2idx*18],arg14_l[5]);
+    atomicAdd(&ind_arg6[6+map2idx*18],arg14_l[6]);
+    atomicAdd(&ind_arg6[7+map2idx*18],arg14_l[7]);
+    atomicAdd(&ind_arg6[8+map2idx*18],arg14_l[8]);
+    atomicAdd(&ind_arg6[9+map2idx*18],arg14_l[9]);
+    atomicAdd(&ind_arg6[10+map2idx*18],arg14_l[10]);
+    atomicAdd(&ind_arg6[11+map2idx*18],arg14_l[11]);
+    atomicAdd(&ind_arg6[12+map2idx*18],arg14_l[12]);
+    atomicAdd(&ind_arg6[13+map2idx*18],arg14_l[13]);
+    atomicAdd(&ind_arg6[14+map2idx*18],arg14_l[14]);
+    atomicAdd(&ind_arg6[15+map2idx*18],arg14_l[15]);
+    atomicAdd(&ind_arg6[16+map2idx*18],arg14_l[16]);
+    atomicAdd(&ind_arg6[17+map2idx*18],arg14_l[17]);
+    atomicAdd(&ind_arg6[0+map3idx*18],arg15_l[0]);
+    atomicAdd(&ind_arg6[1+map3idx*18],arg15_l[1]);
+    atomicAdd(&ind_arg6[2+map3idx*18],arg15_l[2]);
+    atomicAdd(&ind_arg6[3+map3idx*18],arg15_l[3]);
+    atomicAdd(&ind_arg6[4+map3idx*18],arg15_l[4]);
+    atomicAdd(&ind_arg6[5+map3idx*18],arg15_l[5]);
+    atomicAdd(&ind_arg6[6+map3idx*18],arg15_l[6]);
+    atomicAdd(&ind_arg6[7+map3idx*18],arg15_l[7]);
+    atomicAdd(&ind_arg6[8+map3idx*18],arg15_l[8]);
+    atomicAdd(&ind_arg6[9+map3idx*18],arg15_l[9]);
+    atomicAdd(&ind_arg6[10+map3idx*18],arg15_l[10]);
+    atomicAdd(&ind_arg6[11+map3idx*18],arg15_l[11]);
+    atomicAdd(&ind_arg6[12+map3idx*18],arg15_l[12]);
+    atomicAdd(&ind_arg6[13+map3idx*18],arg15_l[13]);
+    atomicAdd(&ind_arg6[14+map3idx*18],arg15_l[14]);
+    atomicAdd(&ind_arg6[15+map3idx*18],arg15_l[15]);
+    atomicAdd(&ind_arg6[16+map3idx*18],arg15_l[16]);
+    atomicAdd(&ind_arg6[17+map3idx*18],arg15_l[17]);
   }
 }
 
@@ -193,10 +215,11 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   op_arg arg6,
   op_arg arg8,
   op_arg arg10,
-  op_arg arg12){
+  op_arg arg12,
+  op_arg arg14){
 
-  int nargs = 14;
-  op_arg args[14];
+  int nargs = 16;
+  op_arg args[16];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -227,7 +250,7 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   arg10.idx = 0;
   args[10] = arg10;
   for ( int v=1; v<2; v++ ){
-    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 18, "double", OP_INC);
+    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 1, "double", OP_READ);
   }
 
   arg12.idx = 0;
@@ -236,17 +259,23 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
     args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 18, "double", OP_INC);
   }
 
+  arg14.idx = 0;
+  args[14] = arg14;
+  for ( int v=1; v<2; v++ ){
+    args[14 + v] = op_arg_dat(arg14.dat, v, arg14.map, 18, "double", OP_INC);
+  }
+
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(57);
+  op_timing_realloc(58);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[57].name      = name;
-  OP_kernels[57].count    += 1;
+  OP_kernels[58].name      = name;
+  OP_kernels[58].count    += 1;
 
 
-  int    ninds   = 6;
-  int    inds[14] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5};
+  int    ninds   = 7;
+  int    inds[16] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: sigma_flux\n");
@@ -255,8 +284,8 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_57
-      int nthread = OP_BLOCK_SIZE_57;
+    #ifdef OP_BLOCK_SIZE_58
+      int nthread = OP_BLOCK_SIZE_58;
     #else
       int nthread = OP_block_size;
     #endif
@@ -276,6 +305,7 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
         (double *)arg8.data_d,
         (double *)arg10.data_d,
         (double *)arg12.data_d,
+        (double *)arg14.data_d,
         arg2.map_data_d,
         (int*)arg0.data_d,
         (bool*)arg1.data_d,
@@ -287,5 +317,5 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[57].time     += wall_t2 - wall_t1;
+  OP_kernels[58].time     += wall_t2 - wall_t1;
 }

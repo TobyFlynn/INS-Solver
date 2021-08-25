@@ -14,10 +14,11 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   op_arg arg6,
   op_arg arg8,
   op_arg arg10,
-  op_arg arg12){
+  op_arg arg12,
+  op_arg arg14){
 
-  int nargs = 14;
-  op_arg args[14];
+  int nargs = 16;
+  op_arg args[16];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -48,7 +49,7 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   arg10.idx = 0;
   args[10] = arg10;
   for ( int v=1; v<2; v++ ){
-    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 18, "double", OP_INC);
+    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 1, "double", OP_READ);
   }
 
   arg12.idx = 0;
@@ -57,10 +58,16 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
     args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 18, "double", OP_INC);
   }
 
+  arg14.idx = 0;
+  args[14] = arg14;
+  for ( int v=1; v<2; v++ ){
+    args[14 + v] = op_arg_dat(arg14.dat, v, arg14.map, 18, "double", OP_INC);
+  }
+
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(57);
+  op_timing_realloc(58);
   op_timers_core(&cpu_t1, &wall_t1);
 
   if (OP_diags>2) {
@@ -92,12 +99,15 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
       const double* arg8_vec[] = {
          &((double*)arg8.data)[18 * map2idx],
          &((double*)arg8.data)[18 * map3idx]};
-      double* arg10_vec[] = {
-         &((double*)arg10.data)[18 * map2idx],
-         &((double*)arg10.data)[18 * map3idx]};
+      const double* arg10_vec[] = {
+         &((double*)arg10.data)[1 * map2idx],
+         &((double*)arg10.data)[1 * map3idx]};
       double* arg12_vec[] = {
          &((double*)arg12.data)[18 * map2idx],
          &((double*)arg12.data)[18 * map3idx]};
+      double* arg14_vec[] = {
+         &((double*)arg14.data)[18 * map2idx],
+         &((double*)arg14.data)[18 * map3idx]};
 
       sigma_flux(
         &((int*)arg0.data)[2 * n],
@@ -107,7 +117,8 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
         arg6_vec,
         arg8_vec,
         arg10_vec,
-        arg12_vec);
+        arg12_vec,
+        arg14_vec);
     }
   }
 
@@ -119,16 +130,17 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[57].name      = name;
-  OP_kernels[57].count    += 1;
-  OP_kernels[57].time     += wall_t2 - wall_t1;
-  OP_kernels[57].transfer += (float)set->size * arg2.size;
-  OP_kernels[57].transfer += (float)set->size * arg4.size;
-  OP_kernels[57].transfer += (float)set->size * arg6.size;
-  OP_kernels[57].transfer += (float)set->size * arg8.size;
-  OP_kernels[57].transfer += (float)set->size * arg10.size * 2.0f;
-  OP_kernels[57].transfer += (float)set->size * arg12.size * 2.0f;
-  OP_kernels[57].transfer += (float)set->size * arg0.size;
-  OP_kernels[57].transfer += (float)set->size * arg1.size;
-  OP_kernels[57].transfer += (float)set->size * arg2.map->dim * 4.0f;
+  OP_kernels[58].name      = name;
+  OP_kernels[58].count    += 1;
+  OP_kernels[58].time     += wall_t2 - wall_t1;
+  OP_kernels[58].transfer += (float)set->size * arg2.size;
+  OP_kernels[58].transfer += (float)set->size * arg4.size;
+  OP_kernels[58].transfer += (float)set->size * arg6.size;
+  OP_kernels[58].transfer += (float)set->size * arg8.size;
+  OP_kernels[58].transfer += (float)set->size * arg10.size;
+  OP_kernels[58].transfer += (float)set->size * arg12.size * 2.0f;
+  OP_kernels[58].transfer += (float)set->size * arg14.size * 2.0f;
+  OP_kernels[58].transfer += (float)set->size * arg0.size;
+  OP_kernels[58].transfer += (float)set->size * arg1.size;
+  OP_kernels[58].transfer += (float)set->size * arg2.map->dim * 4.0f;
 }

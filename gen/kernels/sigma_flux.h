@@ -1,6 +1,6 @@
 inline void sigma_flux(const int *edgeNum, const bool *rev, const double **sJ,
                        const double **nx, const double **ny, const double **s,
-                       double **sigFx, double **sigFy) {
+                       const double **vis, double **sigFx, double **sigFy) {
   // Work out which edge for each element
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
@@ -10,6 +10,21 @@ inline void sigma_flux(const int *edgeNum, const bool *rev, const double **sJ,
   int exIndL = edgeL * 6;
   int exIndR = edgeR * 6;
 
+  double kL = sqrt(vis[0][0]);
+  double kR = sqrt(vis[1][0]);
+  double lamdaL = kL;
+  double lamdaR = kR;
+  double wL, wR;
+
+  if(lamdaL < 1e-12 && lamdaR < 1e-12) {
+    wL = 0.5;
+    wR = 0.5;
+  } else {
+    double lamdaAvg = (lamdaL + lamdaR) / 2.0;
+    wL = lamdaL / (2.0 * lamdaAvg);
+    wR = lamdaR / (2.0 * lamdaAvg);
+  }
+
   for(int i = 0; i < 6; i++) {
     int rInd;
     int lInd = exIndL + i;
@@ -18,7 +33,8 @@ inline void sigma_flux(const int *edgeNum, const bool *rev, const double **sJ,
     } else {
       rInd = exIndR + i;
     }
-    double flux = (s[0][lInd] + s[1][rInd]) / 2.0;
+    double flux = wL * s[0][lInd] + wR * s[1][rInd];
+    flux *= kL;
     sigFx[0][lInd] += gaussW_g[i] * sJ[0][lInd] * nx[0][lInd] * flux;
     sigFy[0][lInd] += gaussW_g[i] * sJ[0][lInd] * ny[0][lInd] * flux;
   }
@@ -31,7 +47,8 @@ inline void sigma_flux(const int *edgeNum, const bool *rev, const double **sJ,
     } else {
       lInd = exIndL + i;
     }
-    double flux = (s[0][lInd] + s[1][rInd]) / 2.0;
+    double flux = wL * s[0][lInd] + wR * s[1][rInd];
+    flux *= kR;
     sigFx[1][rInd] += gaussW_g[i] * sJ[1][rInd] * nx[1][rInd] * flux;
     sigFy[1][rInd] += gaussW_g[i] * sJ[1][rInd] * ny[1][rInd] * flux;
   }

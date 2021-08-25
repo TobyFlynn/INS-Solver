@@ -27,8 +27,8 @@ public:
 
   op_dat dsdx, dsdy, sign, gS;
   op_dat dsldx, dsrdx, dsldy, dsrdy, dpldx, dprdx, dpldy, dprdy;
-  op_dat sigmax, sigmay, sigmaFx, sigmaFy, gSigmax, gSigmay, diff, diffF;
-  op_dat modal, q;
+  op_dat sigmax, sigmay, sigmaFx, sigmaFy, gSigmax, gSigmay, sigTmp, gSigTmp, diff, diffF;
+  op_dat modal, local_vis;
 
   double alpha;
 private:
@@ -43,8 +43,8 @@ private:
   int numSteps;
 
   double *s_data, *step_s_data, *nx_data, *ny_data, *curv_data;
-  double *sign_data, *gS_data, *diff_data, *diffF_data;
-  double *modal_data, *q_data;
+  double *sign_data, *gS_data, *gSigTmp_data, *diff_data, *diffF_data;
+  double *modal_data, *local_vis_data;
 };
 
 #endif

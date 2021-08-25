@@ -3,10 +3,10 @@
 //
 
 //user function
-#include "../kernels/sigma_mult.h"
+#include "../kernels/ls_local_vis.h"
 
 // host stub function
-void op_par_loop_sigma_mult(char const *name, op_set set,
+void op_par_loop_ls_local_vis(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2){
@@ -20,12 +20,12 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(57);
+  op_timing_realloc(66);
   op_timers_core(&cpu_t1, &wall_t1);
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  sigma_mult");
+    printf(" kernel routine w/o indirection:  ls_local_vis");
   }
 
   int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 1);
@@ -33,10 +33,10 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
   if (set_size > 0) {
 
     for ( int n=0; n<set_size; n++ ){
-      sigma_mult(
-        &((double*)arg0.data)[1*n],
+      ls_local_vis(
+        (double*)arg0.data,
         &((double*)arg1.data)[10*n],
-        &((double*)arg2.data)[10*n]);
+        &((double*)arg2.data)[1*n]);
     }
   }
 
@@ -45,10 +45,9 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[57].name      = name;
-  OP_kernels[57].count    += 1;
-  OP_kernels[57].time     += wall_t2 - wall_t1;
-  OP_kernels[57].transfer += (float)set->size * arg0.size;
-  OP_kernels[57].transfer += (float)set->size * arg1.size;
-  OP_kernels[57].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[66].name      = name;
+  OP_kernels[66].count    += 1;
+  OP_kernels[66].time     += wall_t2 - wall_t1;
+  OP_kernels[66].transfer += (float)set->size * arg1.size;
+  OP_kernels[66].transfer += (float)set->size * arg2.size * 2.0f;
 }

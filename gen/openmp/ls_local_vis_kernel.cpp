@@ -3,29 +3,31 @@
 //
 
 //user function
-#include "../kernels/ls_normalise.h"
+#include "../kernels/ls_local_vis.h"
 
 // host stub function
-void op_par_loop_ls_normalise(char const *name, op_set set,
+void op_par_loop_ls_local_vis(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1){
+  op_arg arg1,
+  op_arg arg2){
 
-  int nargs = 2;
-  op_arg args[2];
+  int nargs = 3;
+  op_arg args[3];
 
   args[0] = arg0;
   args[1] = arg1;
+  args[2] = arg2;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(65);
-  OP_kernels[65].name      = name;
-  OP_kernels[65].count    += 1;
+  op_timing_realloc(66);
+  OP_kernels[66].name      = name;
+  OP_kernels[66].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  ls_normalise");
+    printf(" kernel routine w/o indirection:  ls_local_vis");
   }
 
   int set_size = op_mpi_halo_exchanges(set, nargs, args);
@@ -44,9 +46,10 @@ void op_par_loop_ls_normalise(char const *name, op_set set,
       int start  = (set->size* thr)/nthreads;
       int finish = (set->size*(thr+1))/nthreads;
       for ( int n=start; n<finish; n++ ){
-        ls_normalise(
-          &((double*)arg0.data)[10*n],
-          &((double*)arg1.data)[10*n]);
+        ls_local_vis(
+          (double*)arg0.data,
+          &((double*)arg1.data)[10*n],
+          &((double*)arg2.data)[1*n]);
       }
     }
   }
@@ -56,7 +59,7 @@ void op_par_loop_ls_normalise(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[65].time     += wall_t2 - wall_t1;
-  OP_kernels[65].transfer += (float)set->size * arg0.size * 2.0f;
-  OP_kernels[65].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[66].time     += wall_t2 - wall_t1;
+  OP_kernels[66].transfer += (float)set->size * arg1.size;
+  OP_kernels[66].transfer += (float)set->size * arg2.size * 2.0f;
 }

@@ -18,8 +18,12 @@ void diff_bflux_omp4_kernel(
   int dat3size,
   double *data4,
   int dat4size,
+  double *data5,
+  int dat5size,
   double *data6,
   int dat6size,
+  double *data8,
+  int dat8size,
   int *col_reord,
   int set_size1,
   int start,
@@ -35,10 +39,12 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6){
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8){
 
-  int nargs = 7;
-  op_arg args[7];
+  int nargs = 9;
+  op_arg args[9];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -47,16 +53,18 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
   args[4] = arg4;
   args[5] = arg5;
   args[6] = arg6;
+  args[7] = arg7;
+  args[8] = arg8;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(61);
+  op_timing_realloc(62);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[61].name      = name;
-  OP_kernels[61].count    += 1;
+  OP_kernels[62].name      = name;
+  OP_kernels[62].count    += 1;
 
-  int  ninds   = 5;
-  int  inds[7] = {-1,0,1,2,3,3,4};
+  int  ninds   = 7;
+  int  inds[9] = {-1,0,1,2,3,4,5,5,6};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: diff_bflux\n");
@@ -65,13 +73,13 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_61
-    int part_size = OP_PART_SIZE_61;
+  #ifdef OP_PART_SIZE_62
+    int part_size = OP_PART_SIZE_62;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_61
-    int nthread = OP_BLOCK_SIZE_61;
+  #ifdef OP_BLOCK_SIZE_62
+    int nthread = OP_BLOCK_SIZE_62;
   #else
     int nthread = OP_block_size;
   #endif
@@ -96,8 +104,12 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
     int dat3size = getSetSizeFromOpArg(&arg3) * arg3.dat->dim;
     double *data4 = (double *)arg4.data_d;
     int dat4size = getSetSizeFromOpArg(&arg4) * arg4.dat->dim;
+    double *data5 = (double *)arg5.data_d;
+    int dat5size = getSetSizeFromOpArg(&arg5) * arg5.dat->dim;
     double *data6 = (double *)arg6.data_d;
     int dat6size = getSetSizeFromOpArg(&arg6) * arg6.dat->dim;
+    double *data8 = (double *)arg8.data_d;
+    int dat8size = getSetSizeFromOpArg(&arg8) * arg8.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -124,8 +136,12 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
         dat3size,
         data4,
         dat4size,
+        data5,
+        dat5size,
         data6,
         dat6size,
+        data8,
+        dat8size,
         col_reord,
         set_size1,
         start,
@@ -134,8 +150,8 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
         nthread);
 
     }
-    OP_kernels[61].transfer  += Plan->transfer;
-    OP_kernels[61].transfer2 += Plan->transfer2;
+    OP_kernels[62].transfer  += Plan->transfer;
+    OP_kernels[62].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -147,5 +163,5 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[61].time     += wall_t2 - wall_t1;
+  OP_kernels[62].time     += wall_t2 - wall_t1;
 }

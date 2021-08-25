@@ -13,10 +13,12 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6){
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8){
 
-  int nargs = 7;
-  op_arg args[7];
+  int nargs = 9;
+  op_arg args[9];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -25,24 +27,26 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
   args[4] = arg4;
   args[5] = arg5;
   args[6] = arg6;
+  args[7] = arg7;
+  args[8] = arg8;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(61);
-  OP_kernels[61].name      = name;
-  OP_kernels[61].count    += 1;
+  op_timing_realloc(62);
+  OP_kernels[62].name      = name;
+  OP_kernels[62].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 5;
-  int  inds[7] = {-1,0,1,2,3,3,4};
+  int  ninds   = 7;
+  int  inds[9] = {-1,0,1,2,3,4,5,5,6};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: diff_bflux\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_61
-    int part_size = OP_PART_SIZE_61;
+  #ifdef OP_PART_SIZE_62
+    int part_size = OP_PART_SIZE_62;
   #else
     int part_size = OP_part_size;
   #endif
@@ -77,15 +81,17 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
             &((double*)arg2.data)[18 * map1idx],
             &((double*)arg3.data)[18 * map1idx],
             &((double*)arg4.data)[18 * map1idx],
-            &((double*)arg4.data)[18 * map1idx],
-            &((double*)arg6.data)[18 * map1idx]);
+            &((double*)arg5.data)[1 * map1idx],
+            &((double*)arg6.data)[18 * map1idx],
+            &((double*)arg6.data)[18 * map1idx],
+            &((double*)arg8.data)[18 * map1idx]);
         }
       }
 
       block_offset += nblocks;
     }
-    OP_kernels[61].transfer  += Plan->transfer;
-    OP_kernels[61].transfer2 += Plan->transfer2;
+    OP_kernels[62].transfer  += Plan->transfer;
+    OP_kernels[62].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -96,5 +102,5 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[61].time     += wall_t2 - wall_t1;
+  OP_kernels[62].time     += wall_t2 - wall_t1;
 }

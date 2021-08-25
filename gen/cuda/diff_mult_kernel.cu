@@ -3,18 +3,19 @@
 //
 
 //user function
-__device__ void sigma_mult_gpu( const double *vis, const double *s, double *out) {
+__device__ void diff_mult_gpu( const double *vis, double *dx, double *dy) {
   double k = sqrt(*vis);
   for(int i = 0; i < 10; i++) {
-    out[i] = k * s[i];
+    dx[i] *= k;
+    dy[i] *= k;
   }
 
 }
 
 // CUDA kernel function
-__global__ void op_cuda_sigma_mult(
+__global__ void op_cuda_diff_mult(
   const double *__restrict arg0,
-  const double *__restrict arg1,
+  double *arg1,
   double *arg2,
   int   set_size ) {
 
@@ -23,15 +24,15 @@ __global__ void op_cuda_sigma_mult(
   for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
 
     //user-supplied kernel call
-    sigma_mult_gpu(arg0+n*1,
-               arg1+n*10,
-               arg2+n*10);
+    diff_mult_gpu(arg0+n*1,
+              arg1+n*10,
+              arg2+n*10);
   }
 }
 
 
 //host stub function
-void op_par_loop_sigma_mult(char const *name, op_set set,
+void op_par_loop_diff_mult(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2){
@@ -45,29 +46,29 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(57);
+  op_timing_realloc(60);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[57].name      = name;
-  OP_kernels[57].count    += 1;
+  OP_kernels[60].name      = name;
+  OP_kernels[60].count    += 1;
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  sigma_mult");
+    printf(" kernel routine w/o indirection:  diff_mult");
   }
 
   int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_57
-      int nthread = OP_BLOCK_SIZE_57;
+    #ifdef OP_BLOCK_SIZE_60
+      int nthread = OP_BLOCK_SIZE_60;
     #else
       int nthread = OP_block_size;
     #endif
 
     int nblocks = 200;
 
-    op_cuda_sigma_mult<<<nblocks,nthread>>>(
+    op_cuda_diff_mult<<<nblocks,nthread>>>(
       (double *) arg0.data_d,
       (double *) arg1.data_d,
       (double *) arg2.data_d,
@@ -77,8 +78,8 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[57].time     += wall_t2 - wall_t1;
-  OP_kernels[57].transfer += (float)set->size * arg0.size;
-  OP_kernels[57].transfer += (float)set->size * arg1.size;
-  OP_kernels[57].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[60].time     += wall_t2 - wall_t1;
+  OP_kernels[60].transfer += (float)set->size * arg0.size;
+  OP_kernels[60].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[60].transfer += (float)set->size * arg2.size * 2.0f;
 }

@@ -13,10 +13,11 @@ void op_par_loop_sigma_bflux(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6){
+  op_arg arg6,
+  op_arg arg7){
 
-  int nargs = 7;
-  op_arg args[7];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -25,24 +26,25 @@ void op_par_loop_sigma_bflux(char const *name, op_set set,
   args[4] = arg4;
   args[5] = arg5;
   args[6] = arg6;
+  args[7] = arg7;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(58);
-  OP_kernels[58].name      = name;
-  OP_kernels[58].count    += 1;
+  op_timing_realloc(59);
+  OP_kernels[59].name      = name;
+  OP_kernels[59].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
-  int  ninds   = 6;
-  int  inds[7] = {-1,0,1,2,3,4,5};
+  int  ninds   = 7;
+  int  inds[8] = {-1,0,1,2,3,4,5,6};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: sigma_bflux\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_58
-    int part_size = OP_PART_SIZE_58;
+  #ifdef OP_PART_SIZE_59
+    int part_size = OP_PART_SIZE_59;
   #else
     int part_size = OP_part_size;
   #endif
@@ -77,15 +79,16 @@ void op_par_loop_sigma_bflux(char const *name, op_set set,
             &((double*)arg2.data)[18 * map1idx],
             &((double*)arg3.data)[18 * map1idx],
             &((double*)arg4.data)[18 * map1idx],
-            &((double*)arg5.data)[18 * map1idx],
-            &((double*)arg6.data)[18 * map1idx]);
+            &((double*)arg5.data)[1 * map1idx],
+            &((double*)arg6.data)[18 * map1idx],
+            &((double*)arg7.data)[18 * map1idx]);
         }
       }
 
       block_offset += nblocks;
     }
-    OP_kernels[58].transfer  += Plan->transfer;
-    OP_kernels[58].transfer2 += Plan->transfer2;
+    OP_kernels[59].transfer  += Plan->transfer;
+    OP_kernels[59].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size) {
@@ -96,5 +99,5 @@ void op_par_loop_sigma_bflux(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[58].time     += wall_t2 - wall_t1;
+  OP_kernels[59].time     += wall_t2 - wall_t1;
 }

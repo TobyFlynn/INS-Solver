@@ -4,13 +4,15 @@
 
 //user function
 __device__ void sigma_bflux_gpu( const int *bedgeNum, const double *sJ, const double *nx,
-                        const double *ny, const double *s, double *sigFx,
-                        double *sigFy) {
+                        const double *ny, const double *s, const double *vis,
+                        double *sigFx, double *sigFy) {
   int exInd = *bedgeNum * 6;
 
+  double k = sqrt(*vis);
+
   for(int i = 0; i < 6; i++) {
-    sigFx[exInd + i] += gaussW_g_cuda[i] * sJ[exInd + i] * nx[exInd + i] * s[exInd + i];
-    sigFy[exInd + i] += gaussW_g_cuda[i] * sJ[exInd + i] * ny[exInd + i] * s[exInd + i];
+    sigFx[exInd + i] += gaussW_g_cuda[i] * sJ[exInd + i] * nx[exInd + i] * k * s[exInd + i];
+    sigFy[exInd + i] += gaussW_g_cuda[i] * sJ[exInd + i] * ny[exInd + i] * k * s[exInd + i];
   }
 
 }
@@ -21,8 +23,9 @@ __global__ void op_cuda_sigma_bflux(
   const double *__restrict ind_arg1,
   const double *__restrict ind_arg2,
   const double *__restrict ind_arg3,
-  double *__restrict ind_arg4,
+  const double *__restrict ind_arg4,
   double *__restrict ind_arg5,
+  double *__restrict ind_arg6,
   const int *__restrict opDat1Map,
   const int *__restrict arg0,
   int start,
@@ -32,13 +35,13 @@ __global__ void op_cuda_sigma_bflux(
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg5_l[18];
-    for ( int d=0; d<18; d++ ){
-      arg5_l[d] = ZERO_double;
-    }
     double arg6_l[18];
     for ( int d=0; d<18; d++ ){
       arg6_l[d] = ZERO_double;
+    }
+    double arg7_l[18];
+    for ( int d=0; d<18; d++ ){
+      arg7_l[d] = ZERO_double;
     }
     int map1idx;
     map1idx = opDat1Map[n + set_size * 0];
@@ -49,26 +52,9 @@ __global__ void op_cuda_sigma_bflux(
                 ind_arg1+map1idx*18,
                 ind_arg2+map1idx*18,
                 ind_arg3+map1idx*18,
-                arg5_l,
-                arg6_l);
-    atomicAdd(&ind_arg4[0+map1idx*18],arg5_l[0]);
-    atomicAdd(&ind_arg4[1+map1idx*18],arg5_l[1]);
-    atomicAdd(&ind_arg4[2+map1idx*18],arg5_l[2]);
-    atomicAdd(&ind_arg4[3+map1idx*18],arg5_l[3]);
-    atomicAdd(&ind_arg4[4+map1idx*18],arg5_l[4]);
-    atomicAdd(&ind_arg4[5+map1idx*18],arg5_l[5]);
-    atomicAdd(&ind_arg4[6+map1idx*18],arg5_l[6]);
-    atomicAdd(&ind_arg4[7+map1idx*18],arg5_l[7]);
-    atomicAdd(&ind_arg4[8+map1idx*18],arg5_l[8]);
-    atomicAdd(&ind_arg4[9+map1idx*18],arg5_l[9]);
-    atomicAdd(&ind_arg4[10+map1idx*18],arg5_l[10]);
-    atomicAdd(&ind_arg4[11+map1idx*18],arg5_l[11]);
-    atomicAdd(&ind_arg4[12+map1idx*18],arg5_l[12]);
-    atomicAdd(&ind_arg4[13+map1idx*18],arg5_l[13]);
-    atomicAdd(&ind_arg4[14+map1idx*18],arg5_l[14]);
-    atomicAdd(&ind_arg4[15+map1idx*18],arg5_l[15]);
-    atomicAdd(&ind_arg4[16+map1idx*18],arg5_l[16]);
-    atomicAdd(&ind_arg4[17+map1idx*18],arg5_l[17]);
+                ind_arg4+map1idx*1,
+                arg6_l,
+                arg7_l);
     atomicAdd(&ind_arg5[0+map1idx*18],arg6_l[0]);
     atomicAdd(&ind_arg5[1+map1idx*18],arg6_l[1]);
     atomicAdd(&ind_arg5[2+map1idx*18],arg6_l[2]);
@@ -87,6 +73,24 @@ __global__ void op_cuda_sigma_bflux(
     atomicAdd(&ind_arg5[15+map1idx*18],arg6_l[15]);
     atomicAdd(&ind_arg5[16+map1idx*18],arg6_l[16]);
     atomicAdd(&ind_arg5[17+map1idx*18],arg6_l[17]);
+    atomicAdd(&ind_arg6[0+map1idx*18],arg7_l[0]);
+    atomicAdd(&ind_arg6[1+map1idx*18],arg7_l[1]);
+    atomicAdd(&ind_arg6[2+map1idx*18],arg7_l[2]);
+    atomicAdd(&ind_arg6[3+map1idx*18],arg7_l[3]);
+    atomicAdd(&ind_arg6[4+map1idx*18],arg7_l[4]);
+    atomicAdd(&ind_arg6[5+map1idx*18],arg7_l[5]);
+    atomicAdd(&ind_arg6[6+map1idx*18],arg7_l[6]);
+    atomicAdd(&ind_arg6[7+map1idx*18],arg7_l[7]);
+    atomicAdd(&ind_arg6[8+map1idx*18],arg7_l[8]);
+    atomicAdd(&ind_arg6[9+map1idx*18],arg7_l[9]);
+    atomicAdd(&ind_arg6[10+map1idx*18],arg7_l[10]);
+    atomicAdd(&ind_arg6[11+map1idx*18],arg7_l[11]);
+    atomicAdd(&ind_arg6[12+map1idx*18],arg7_l[12]);
+    atomicAdd(&ind_arg6[13+map1idx*18],arg7_l[13]);
+    atomicAdd(&ind_arg6[14+map1idx*18],arg7_l[14]);
+    atomicAdd(&ind_arg6[15+map1idx*18],arg7_l[15]);
+    atomicAdd(&ind_arg6[16+map1idx*18],arg7_l[16]);
+    atomicAdd(&ind_arg6[17+map1idx*18],arg7_l[17]);
   }
 }
 
@@ -99,10 +103,11 @@ void op_par_loop_sigma_bflux(char const *name, op_set set,
   op_arg arg3,
   op_arg arg4,
   op_arg arg5,
-  op_arg arg6){
+  op_arg arg6,
+  op_arg arg7){
 
-  int nargs = 7;
-  op_arg args[7];
+  int nargs = 8;
+  op_arg args[8];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -111,17 +116,18 @@ void op_par_loop_sigma_bflux(char const *name, op_set set,
   args[4] = arg4;
   args[5] = arg5;
   args[6] = arg6;
+  args[7] = arg7;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(58);
+  op_timing_realloc(59);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[58].name      = name;
-  OP_kernels[58].count    += 1;
+  OP_kernels[59].name      = name;
+  OP_kernels[59].count    += 1;
 
 
-  int    ninds   = 6;
-  int    inds[7] = {-1,0,1,2,3,4,5};
+  int    ninds   = 7;
+  int    inds[8] = {-1,0,1,2,3,4,5,6};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: sigma_bflux\n");
@@ -130,8 +136,8 @@ void op_par_loop_sigma_bflux(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_58
-      int nthread = OP_BLOCK_SIZE_58;
+    #ifdef OP_BLOCK_SIZE_59
+      int nthread = OP_BLOCK_SIZE_59;
     #else
       int nthread = OP_block_size;
     #endif
@@ -151,6 +157,7 @@ void op_par_loop_sigma_bflux(char const *name, op_set set,
         (double *)arg4.data_d,
         (double *)arg5.data_d,
         (double *)arg6.data_d,
+        (double *)arg7.data_d,
         arg1.map_data_d,
         (int*)arg0.data_d,
         start,end,set->size+set->exec_size);
@@ -161,5 +168,5 @@ void op_par_loop_sigma_bflux(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[58].time     += wall_t2 - wall_t1;
+  OP_kernels[59].time     += wall_t2 - wall_t1;
 }

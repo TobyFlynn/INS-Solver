@@ -19,6 +19,8 @@ void sigma_bflux_omp4_kernel(
   int dat5size,
   double *data6,
   int dat6size,
+  double *data7,
+  int dat7size,
   int *col_reord,
   int set_size1,
   int start,
@@ -28,7 +30,7 @@ void sigma_bflux_omp4_kernel(
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size]) \
     map(to: gaussW_g_ompkernel[:6])\
-    map(to:col_reord[0:set_size1],map1[0:map1size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size])
+    map(to:col_reord[0:set_size1],map1[0:map1size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data7[0:dat7size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
@@ -41,16 +43,19 @@ void sigma_bflux_omp4_kernel(
     const double *nx = &data2[18 * map1idx];
     const double *ny = &data3[18 * map1idx];
     const double *s = &data4[18 * map1idx];
-    double *sigFx = &data5[18 * map1idx];
-    double *sigFy = &data6[18 * map1idx];
+    const double *vis = &data5[1 * map1idx];
+    double *sigFx = &data6[18 * map1idx];
+    double *sigFy = &data7[18 * map1idx];
 
     //inline function
     
     int exInd = *bedgeNum * 6;
 
+    double k = sqrt(*vis);
+
     for(int i = 0; i < 6; i++) {
-      sigFx[exInd + i] += gaussW_g_ompkernel[i] * sJ[exInd + i] * nx[exInd + i] * s[exInd + i];
-      sigFy[exInd + i] += gaussW_g_ompkernel[i] * sJ[exInd + i] * ny[exInd + i] * s[exInd + i];
+      sigFx[exInd + i] += gaussW_g_ompkernel[i] * sJ[exInd + i] * nx[exInd + i] * k * s[exInd + i];
+      sigFy[exInd + i] += gaussW_g_ompkernel[i] * sJ[exInd + i] * ny[exInd + i] * k * s[exInd + i];
     }
     //end inline func
   }

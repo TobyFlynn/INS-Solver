@@ -138,7 +138,13 @@ void op_par_loop_ls_add_diff(char const *, op_set,
   op_arg,
   op_arg );
 
+void op_par_loop_sigma_mult(char const *, op_set,
+  op_arg,
+  op_arg,
+  op_arg );
+
 void op_par_loop_sigma_flux(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -155,10 +161,13 @@ void op_par_loop_sigma_bflux(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
   op_arg );
 
-void op_par_loop_sigma_mult(char const *, op_set,
-  op_arg,
+void op_par_loop_zero_g_np1(char const *, op_set,
+  op_arg );
+
+void op_par_loop_diff_mult(char const *, op_set,
   op_arg,
   op_arg,
   op_arg );
@@ -171,9 +180,13 @@ void op_par_loop_diff_flux(char const *, op_set,
   op_arg,
   op_arg,
   op_arg,
+  op_arg,
+  op_arg,
   op_arg );
 
 void op_par_loop_diff_bflux(char const *, op_set,
+  op_arg,
+  op_arg,
   op_arg,
   op_arg,
   op_arg,
@@ -201,7 +214,8 @@ void op_par_loop_ls_normalise(char const *, op_set,
   op_arg,
   op_arg );
 
-void op_par_loop_ls_group_modal(char const *, op_set,
+void op_par_loop_ls_local_vis(char const *, op_set,
+  op_arg,
   op_arg,
   op_arg );
 #ifdef OPENACC
@@ -233,11 +247,12 @@ LS::LS(DGMesh *m, INSData *d) {
   sign_data   = (double *)calloc(10 * mesh->numCells, sizeof(double));
   gS_data     = (double *)calloc(18 * mesh->numCells, sizeof(double));
 
+  gSigTmp_data = (double *)calloc(18 * mesh->numCells, sizeof(double));
   diff_data    = (double *)calloc(10 * mesh->numCells, sizeof(double));
   diffF_data   = (double *)calloc(18 * mesh->numCells, sizeof(double));
 
-  modal_data = (double *)calloc(10 * mesh->numCells, sizeof(double));
-  q_data     = (double *)calloc((3 + 1) * mesh->numCells, sizeof(double));
+  modal_data     = (double *)calloc(10 * mesh->numCells, sizeof(double));
+  local_vis_data = (double *)calloc(mesh->numCells, sizeof(double));
 
   s      = op_decl_dat(mesh->cells, 10, "double", s_data, "s");
   step_s = op_decl_dat(mesh->cells, 10, "double", step_s_data, "step");
@@ -248,11 +263,12 @@ LS::LS(DGMesh *m, INSData *d) {
   sign   = op_decl_dat(mesh->cells, 10, "double", sign_data, "sign");
   gS     = op_decl_dat(mesh->cells, 18, "double", gS_data, "gS");
 
+  gSigTmp = op_decl_dat(mesh->cells, 18, "double", gSigTmp_data, "gSigTmp");
   diff    = op_decl_dat(mesh->cells, 10, "double", diff_data, "diff");
   diffF   = op_decl_dat(mesh->cells, 18, "double", diffF_data, "diffF");
 
-  modal = op_decl_dat(mesh->cells, 10, "double", modal_data, "modal");
-  q     = op_decl_dat(mesh->cells, 3 + 1, "double", q_data, "q");
+  modal     = op_decl_dat(mesh->cells, 10, "double", modal_data, "modal");
+  local_vis = op_decl_dat(mesh->cells, 1, "double", local_vis_data, "local_vis");
 }
 
 LS::~LS() {
@@ -265,11 +281,12 @@ LS::~LS() {
   free(sign_data);
   free(gS_data);
 
+  free(gSigTmp_data);
   free(diff_data);
   free(diffF_data);
 
   free(modal_data);
-  free(q_data);
+  free(local_vis_data);
 }
 
 void LS::init() {
@@ -299,6 +316,7 @@ void LS::init() {
 
   sigmax = data->tmp_dg_np[8];
   sigmay = data->tmp_dg_np[9];
+  sigTmp = data->tmp_dg_np[4];
 
   dsldx = data->tmp_dg_g_np[0];
   dsrdx = data->tmp_dg_g_np[1];
@@ -327,6 +345,7 @@ void LS::init() {
               op_arg_dat(mesh->y,-1,OP_ID,10,"double",OP_READ),
               op_arg_dat(s,-1,OP_ID,10,"double",OP_WRITE));
 
+  reinit_ls();
   update_values();
 }
 
@@ -430,7 +449,7 @@ void LS::advec_step(op_dat input, op_dat output) {
 
 void LS::reinit_ls() {
   calc_local_diff_const();
-  
+
   cub_grad(mesh, s, dsdx, dsdy);
   inv_mass(mesh, dsdx);
   inv_mass(mesh, dsdy);
@@ -539,12 +558,19 @@ void LS::reinit_ls() {
 }
 
 void LS::calc_diff() {
+  op_par_loop_sigma_mult("sigma_mult",mesh->cells,
+              op_arg_dat(local_vis,-1,OP_ID,1,"double",OP_READ),
+              op_arg_dat(rkQ,-1,OP_ID,10,"double",OP_READ),
+              op_arg_dat(sigTmp,-1,OP_ID,10,"double",OP_WRITE));
+
   // Calculate sigma
-  cub_grad_weak(mesh, rkQ, sigmax, sigmay);
+  cub_grad_weak(mesh, sigTmp, sigmax, sigmay);
 
   op_par_loop_zero_g_np("zero_g_np",mesh->cells,
               op_arg_dat(sigmaFx,-1,OP_ID,18,"double",OP_WRITE),
               op_arg_dat(sigmaFy,-1,OP_ID,18,"double",OP_WRITE));
+
+  // op2_gemv(true, 18, 10, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 10, sigTmp, 0.0, gSigTmp);
 
   op_par_loop_sigma_flux("sigma_flux",mesh->edges,
               op_arg_dat(mesh->edgeNum,-1,OP_ID,2,"int",OP_READ),
@@ -553,6 +579,7 @@ void LS::calc_diff() {
               op_arg_dat(mesh->gauss->nx,-2,mesh->edge2cells,18,"double",OP_READ),
               op_arg_dat(mesh->gauss->ny,-2,mesh->edge2cells,18,"double",OP_READ),
               op_arg_dat(gS,-2,mesh->edge2cells,18,"double",OP_READ),
+              op_arg_dat(local_vis,-2,mesh->edge2cells,1,"double",OP_READ),
               op_arg_dat(sigmaFx,-2,mesh->edge2cells,18,"double",OP_INC),
               op_arg_dat(sigmaFy,-2,mesh->edge2cells,18,"double",OP_INC));
 
@@ -562,6 +589,7 @@ void LS::calc_diff() {
               op_arg_dat(mesh->gauss->nx,0,mesh->bedge2cells,18,"double",OP_READ),
               op_arg_dat(mesh->gauss->ny,0,mesh->bedge2cells,18,"double",OP_READ),
               op_arg_dat(gS,0,mesh->bedge2cells,18,"double",OP_READ),
+              op_arg_dat(local_vis,0,mesh->bedge2cells,1,"double",OP_READ),
               op_arg_dat(sigmaFx,0,mesh->bedge2cells,18,"double",OP_INC),
               op_arg_dat(sigmaFy,0,mesh->bedge2cells,18,"double",OP_INC));
 
@@ -571,13 +599,15 @@ void LS::calc_diff() {
   inv_mass(mesh, sigmax);
   inv_mass(mesh, sigmay);
 
-  op_par_loop_sigma_mult("sigma_mult",mesh->cells,
-              op_arg_gbl(&epsilon,1,"double",OP_READ),
-              op_arg_dat(sigmax,-1,OP_ID,10,"double",OP_RW),
-              op_arg_dat(sigmay,-1,OP_ID,10,"double",OP_RW),
+  op_par_loop_zero_g_np1("zero_g_np1",mesh->cells,
               op_arg_dat(diffF,-1,OP_ID,18,"double",OP_WRITE));
 
   // Calculate diffusion
+  op_par_loop_diff_mult("diff_mult",mesh->cells,
+              op_arg_dat(local_vis,-1,OP_ID,1,"double",OP_READ),
+              op_arg_dat(sigmax,-1,OP_ID,10,"double",OP_RW),
+              op_arg_dat(sigmay,-1,OP_ID,10,"double",OP_RW));
+
   cub_div_weak(mesh, sigmax, sigmay, diff);
 
   op2_gemv(true, 18, 10, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), 10, sigmax, 0.0, gSigmax);
@@ -589,6 +619,8 @@ void LS::calc_diff() {
               op_arg_dat(mesh->gauss->sJ,-2,mesh->edge2cells,18,"double",OP_READ),
               op_arg_dat(mesh->gauss->nx,-2,mesh->edge2cells,18,"double",OP_READ),
               op_arg_dat(mesh->gauss->ny,-2,mesh->edge2cells,18,"double",OP_READ),
+              op_arg_dat(gS,-2,mesh->edge2cells,18,"double",OP_READ),
+              op_arg_dat(local_vis,-2,mesh->edge2cells,1,"double",OP_READ),
               op_arg_dat(gSigmax,-2,mesh->edge2cells,18,"double",OP_READ),
               op_arg_dat(gSigmay,-2,mesh->edge2cells,18,"double",OP_READ),
               op_arg_dat(diffF,-2,mesh->edge2cells,18,"double",OP_INC));
@@ -598,6 +630,8 @@ void LS::calc_diff() {
               op_arg_dat(mesh->gauss->sJ,0,mesh->bedge2cells,18,"double",OP_READ),
               op_arg_dat(mesh->gauss->nx,0,mesh->bedge2cells,18,"double",OP_READ),
               op_arg_dat(mesh->gauss->ny,0,mesh->bedge2cells,18,"double",OP_READ),
+              op_arg_dat(gS,0,mesh->bedge2cells,18,"double",OP_READ),
+              op_arg_dat(local_vis,0,mesh->bedge2cells,1,"double",OP_READ),
               op_arg_dat(gSigmax,0,mesh->bedge2cells,18,"double",OP_READ),
               op_arg_dat(gSigmax,0,mesh->bedge2cells,18,"double",OP_READ),
               op_arg_dat(diffF,0,mesh->bedge2cells,18,"double",OP_INC));
@@ -621,7 +655,7 @@ bool LS::reinit_needed() {
 
   res = res / (double)count;
   // std::cout << "LS residual: " << res << " " << abs(1.0 - res) << std::endl;
-  return abs(1.0 - res) > 0.1;
+  return abs(1.0 - res) > 0.01;
 }
 
 void LS::update_values() {
@@ -646,10 +680,11 @@ void LS::update_values() {
 
 void LS::calc_local_diff_const() {
   // Get modal coefficients from nodal representation
-  op2_gemv(true, 10, 18, 1.0, constants->get_ptr(DGConstants::INV_V), 10, s, 0.0, modal);
+  op2_gemv(true, 10, 10, 1.0, constants->get_ptr(DGConstants::INV_V), 10, s, 0.0, modal);
 
   // Group modal coefficients using quadratic mean (with skyline pessimization)
-  op_par_loop_ls_group_modal("ls_group_modal",mesh->cells,
+  op_par_loop_ls_local_vis("ls_local_vis",mesh->cells,
+              op_arg_gbl(&epsilon,1,"double",OP_READ),
               op_arg_dat(modal,-1,OP_ID,10,"double",OP_READ),
-              op_arg_dat(q,-1,OP_ID,4,"double",OP_WRITE));
+              op_arg_dat(local_vis,-1,OP_ID,1,"double",OP_WRITE));
 }

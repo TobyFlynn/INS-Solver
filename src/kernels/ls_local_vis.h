@@ -1,5 +1,7 @@
-inline void ls_group_modal(const double *modal, double *q) {
+inline void ls_local_vis(const double *visMax, const double *modal,
+                         double *viscosity) {
   // Group modal coefficients using quadratic mean
+  double q[DG_ORDER + 1];
   #if DG_ORDER == 4
   q[0] = modal[0];
   q[1] = modal[1] * modal[1] + modal[5] * modal[5];
@@ -58,4 +60,30 @@ inline void ls_group_modal(const double *modal, double *q) {
   q[1] = fmax(q[0], q[1]);
   q[0] = fmax(q[0], q[1]);
   #endif
+
+  // Least squares fitting to find decay exponent
+  // https://mathworld.wolfram.com/LeastSquaresFittingLogarithmic.html
+  // y = a + b ln(x)
+  double sum1 = 0.0;
+  double sum2 = 0.0;
+  double sum3 = 0.0;
+  double sum4 = 0.0;
+  for(int i = 1; i < DG_ORDER + 1; i++) {
+    double logx = logf(i);
+    double logq = logf(q[i]);
+    sum1 += logq * logx;
+    sum2 += logq;
+    sum3 += logx;
+    sum4 += logx * logx;
+  }
+  double b = (DG_ORDER * sum1 - sum2 * sum3) / (DG_ORDER * sum4 - sum3 * sum3);
+  double a = (sum2 - b * sum3) / (double)DG_ORDER;
+  double decay_exponent = -b;
+  const double PI = 3.141592653589793238463;
+  if(decay_exponent < 1.0)
+    *viscosity = *visMax;
+  else if(decay_exponent > 3.0)
+    *viscosity = 0.0;
+  else
+    *viscosity = *visMax * 0.5 * (1.0 + sin(-PI * (decay_exponent - 2.0) / 2.0));
 }

@@ -4,7 +4,8 @@
 
 //user function
 __device__ void diff_flux_gpu( const int *edgeNum, const bool *rev, const double **sJ,
-                      const double **nx, const double **ny, const double **sigX,
+                      const double **nx, const double **ny, const double **s,
+                      const double **vis, const double **sigX,
                       const double **sigY, double **flux) {
 
   int edgeL = edgeNum[0];
@@ -13,6 +14,24 @@ __device__ void diff_flux_gpu( const int *edgeNum, const bool *rev, const double
 
   int exIndL = edgeL * 6;
   int exIndR = edgeR * 6;
+
+  double kL = sqrt(vis[0][0]);
+  double kR = sqrt(vis[1][0]);
+  double lamdaL = kL;
+  double lamdaR = kR;
+  double wL, wR;
+
+  if(lamdaL < 1e-12 && lamdaR < 1e-12) {
+    wL = 0.5;
+    wR = 0.5;
+  } else {
+    double lamdaAvg = (lamdaL + lamdaR) / 2.0;
+    wL = lamdaL / (2.0 * lamdaAvg);
+    wR = lamdaR / (2.0 * lamdaAvg);
+
+    wL = 1.0 - wL;
+    wR = 1.0 - wR;
+  }
 
   for(int i = 0; i < 6; i++) {
     int rInd;
@@ -23,10 +42,12 @@ __device__ void diff_flux_gpu( const int *edgeNum, const bool *rev, const double
       rInd = exIndR + i;
     }
 
-    double sigFX = (sigX[0][lInd] + sigX[1][rInd]) / 2.0;
-    double sigFY = (sigY[0][lInd] + sigY[1][rInd]) / 2.0;
+    double sigFX = wL * sigX[0][lInd] + wR * sigX[1][rInd];
+    double sigFY = wL * sigY[0][lInd] + wR * sigY[1][rInd];
 
-    flux[0][lInd] += gaussW_g_cuda[i] * sJ[0][lInd] * (nx[0][lInd] * sigFX + ny[0][lInd] * sigFY);
+    double pen   = fmin(lamdaL, lamdaR) * fmin(lamdaL, lamdaR) * (s[0][lInd] - s[1][rInd]);
+
+    flux[0][lInd] += gaussW_g_cuda[i] * sJ[0][lInd] * (nx[0][lInd] * sigFX + ny[0][lInd] * sigFY - pen);
   }
 
   for(int i = 0; i < 6; i++) {
@@ -38,10 +59,12 @@ __device__ void diff_flux_gpu( const int *edgeNum, const bool *rev, const double
       lInd = exIndL + i;
     }
 
-    double sigFX = (sigX[0][lInd] + sigX[1][rInd]) / 2.0;
-    double sigFY = (sigY[0][lInd] + sigY[1][rInd]) / 2.0;
+    double sigFX = wL * sigX[0][lInd] + wR * sigX[1][rInd];
+    double sigFY = wL * sigY[0][lInd] + wR * sigY[1][rInd];
 
-    flux[1][rInd] += gaussW_g_cuda[i] * sJ[1][rInd] * (nx[1][rInd] * sigFX + ny[1][rInd] * sigFY);
+    double pen   = fmin(lamdaL, lamdaR) * fmin(lamdaL, lamdaR) * (s[1][rInd] - s[0][lInd]);
+
+    flux[1][rInd] += gaussW_g_cuda[i] * sJ[1][rInd] * (nx[1][rInd] * sigFX + ny[1][rInd] * sigFY - pen);
   }
 
 }
@@ -53,7 +76,9 @@ __global__ void op_cuda_diff_flux(
   const double *__restrict ind_arg2,
   const double *__restrict ind_arg3,
   const double *__restrict ind_arg4,
-  double *__restrict ind_arg5,
+  const double *__restrict ind_arg5,
+  const double *__restrict ind_arg6,
+  double *__restrict ind_arg7,
   const int *__restrict opDat2Map,
   const int *__restrict arg0,
   const bool *__restrict arg1,
@@ -64,13 +89,13 @@ __global__ void op_cuda_diff_flux(
   if (tid + start < end) {
     int n = tid + start;
     //initialise local variables
-    double arg12_l[18];
+    double arg16_l[18];
     for ( int d=0; d<18; d++ ){
-      arg12_l[d] = ZERO_double;
+      arg16_l[d] = ZERO_double;
     }
-    double arg13_l[18];
+    double arg17_l[18];
     for ( int d=0; d<18; d++ ){
-      arg13_l[d] = ZERO_double;
+      arg17_l[d] = ZERO_double;
     }
     int map2idx;
     int map3idx;
@@ -89,11 +114,17 @@ __global__ void op_cuda_diff_flux(
        &ind_arg3[18 * map2idx],
        &ind_arg3[18 * map3idx]};
     const double* arg10_vec[] = {
-       &ind_arg4[18 * map2idx],
-       &ind_arg4[18 * map3idx]};
-    double* arg12_vec[] = {
-      arg12_l,
-      arg13_l};
+       &ind_arg4[1 * map2idx],
+       &ind_arg4[1 * map3idx]};
+    const double* arg12_vec[] = {
+       &ind_arg5[18 * map2idx],
+       &ind_arg5[18 * map3idx]};
+    const double* arg14_vec[] = {
+       &ind_arg6[18 * map2idx],
+       &ind_arg6[18 * map3idx]};
+    double* arg16_vec[] = {
+      arg16_l,
+      arg17_l};
 
     //user-supplied kernel call
     diff_flux_gpu(arg0+n*2,
@@ -103,43 +134,45 @@ __global__ void op_cuda_diff_flux(
               arg6_vec,
               arg8_vec,
               arg10_vec,
-              arg12_vec);
-    atomicAdd(&ind_arg5[0+map2idx*18],arg12_l[0]);
-    atomicAdd(&ind_arg5[1+map2idx*18],arg12_l[1]);
-    atomicAdd(&ind_arg5[2+map2idx*18],arg12_l[2]);
-    atomicAdd(&ind_arg5[3+map2idx*18],arg12_l[3]);
-    atomicAdd(&ind_arg5[4+map2idx*18],arg12_l[4]);
-    atomicAdd(&ind_arg5[5+map2idx*18],arg12_l[5]);
-    atomicAdd(&ind_arg5[6+map2idx*18],arg12_l[6]);
-    atomicAdd(&ind_arg5[7+map2idx*18],arg12_l[7]);
-    atomicAdd(&ind_arg5[8+map2idx*18],arg12_l[8]);
-    atomicAdd(&ind_arg5[9+map2idx*18],arg12_l[9]);
-    atomicAdd(&ind_arg5[10+map2idx*18],arg12_l[10]);
-    atomicAdd(&ind_arg5[11+map2idx*18],arg12_l[11]);
-    atomicAdd(&ind_arg5[12+map2idx*18],arg12_l[12]);
-    atomicAdd(&ind_arg5[13+map2idx*18],arg12_l[13]);
-    atomicAdd(&ind_arg5[14+map2idx*18],arg12_l[14]);
-    atomicAdd(&ind_arg5[15+map2idx*18],arg12_l[15]);
-    atomicAdd(&ind_arg5[16+map2idx*18],arg12_l[16]);
-    atomicAdd(&ind_arg5[17+map2idx*18],arg12_l[17]);
-    atomicAdd(&ind_arg5[0+map3idx*18],arg13_l[0]);
-    atomicAdd(&ind_arg5[1+map3idx*18],arg13_l[1]);
-    atomicAdd(&ind_arg5[2+map3idx*18],arg13_l[2]);
-    atomicAdd(&ind_arg5[3+map3idx*18],arg13_l[3]);
-    atomicAdd(&ind_arg5[4+map3idx*18],arg13_l[4]);
-    atomicAdd(&ind_arg5[5+map3idx*18],arg13_l[5]);
-    atomicAdd(&ind_arg5[6+map3idx*18],arg13_l[6]);
-    atomicAdd(&ind_arg5[7+map3idx*18],arg13_l[7]);
-    atomicAdd(&ind_arg5[8+map3idx*18],arg13_l[8]);
-    atomicAdd(&ind_arg5[9+map3idx*18],arg13_l[9]);
-    atomicAdd(&ind_arg5[10+map3idx*18],arg13_l[10]);
-    atomicAdd(&ind_arg5[11+map3idx*18],arg13_l[11]);
-    atomicAdd(&ind_arg5[12+map3idx*18],arg13_l[12]);
-    atomicAdd(&ind_arg5[13+map3idx*18],arg13_l[13]);
-    atomicAdd(&ind_arg5[14+map3idx*18],arg13_l[14]);
-    atomicAdd(&ind_arg5[15+map3idx*18],arg13_l[15]);
-    atomicAdd(&ind_arg5[16+map3idx*18],arg13_l[16]);
-    atomicAdd(&ind_arg5[17+map3idx*18],arg13_l[17]);
+              arg12_vec,
+              arg14_vec,
+              arg16_vec);
+    atomicAdd(&ind_arg7[0+map2idx*18],arg16_l[0]);
+    atomicAdd(&ind_arg7[1+map2idx*18],arg16_l[1]);
+    atomicAdd(&ind_arg7[2+map2idx*18],arg16_l[2]);
+    atomicAdd(&ind_arg7[3+map2idx*18],arg16_l[3]);
+    atomicAdd(&ind_arg7[4+map2idx*18],arg16_l[4]);
+    atomicAdd(&ind_arg7[5+map2idx*18],arg16_l[5]);
+    atomicAdd(&ind_arg7[6+map2idx*18],arg16_l[6]);
+    atomicAdd(&ind_arg7[7+map2idx*18],arg16_l[7]);
+    atomicAdd(&ind_arg7[8+map2idx*18],arg16_l[8]);
+    atomicAdd(&ind_arg7[9+map2idx*18],arg16_l[9]);
+    atomicAdd(&ind_arg7[10+map2idx*18],arg16_l[10]);
+    atomicAdd(&ind_arg7[11+map2idx*18],arg16_l[11]);
+    atomicAdd(&ind_arg7[12+map2idx*18],arg16_l[12]);
+    atomicAdd(&ind_arg7[13+map2idx*18],arg16_l[13]);
+    atomicAdd(&ind_arg7[14+map2idx*18],arg16_l[14]);
+    atomicAdd(&ind_arg7[15+map2idx*18],arg16_l[15]);
+    atomicAdd(&ind_arg7[16+map2idx*18],arg16_l[16]);
+    atomicAdd(&ind_arg7[17+map2idx*18],arg16_l[17]);
+    atomicAdd(&ind_arg7[0+map3idx*18],arg17_l[0]);
+    atomicAdd(&ind_arg7[1+map3idx*18],arg17_l[1]);
+    atomicAdd(&ind_arg7[2+map3idx*18],arg17_l[2]);
+    atomicAdd(&ind_arg7[3+map3idx*18],arg17_l[3]);
+    atomicAdd(&ind_arg7[4+map3idx*18],arg17_l[4]);
+    atomicAdd(&ind_arg7[5+map3idx*18],arg17_l[5]);
+    atomicAdd(&ind_arg7[6+map3idx*18],arg17_l[6]);
+    atomicAdd(&ind_arg7[7+map3idx*18],arg17_l[7]);
+    atomicAdd(&ind_arg7[8+map3idx*18],arg17_l[8]);
+    atomicAdd(&ind_arg7[9+map3idx*18],arg17_l[9]);
+    atomicAdd(&ind_arg7[10+map3idx*18],arg17_l[10]);
+    atomicAdd(&ind_arg7[11+map3idx*18],arg17_l[11]);
+    atomicAdd(&ind_arg7[12+map3idx*18],arg17_l[12]);
+    atomicAdd(&ind_arg7[13+map3idx*18],arg17_l[13]);
+    atomicAdd(&ind_arg7[14+map3idx*18],arg17_l[14]);
+    atomicAdd(&ind_arg7[15+map3idx*18],arg17_l[15]);
+    atomicAdd(&ind_arg7[16+map3idx*18],arg17_l[16]);
+    atomicAdd(&ind_arg7[17+map3idx*18],arg17_l[17]);
   }
 }
 
@@ -153,10 +186,12 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   op_arg arg6,
   op_arg arg8,
   op_arg arg10,
-  op_arg arg12){
+  op_arg arg12,
+  op_arg arg14,
+  op_arg arg16){
 
-  int nargs = 14;
-  op_arg args[14];
+  int nargs = 18;
+  op_arg args[18];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -187,26 +222,38 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   arg10.idx = 0;
   args[10] = arg10;
   for ( int v=1; v<2; v++ ){
-    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 18, "double", OP_READ);
+    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 1, "double", OP_READ);
   }
 
   arg12.idx = 0;
   args[12] = arg12;
   for ( int v=1; v<2; v++ ){
-    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 18, "double", OP_INC);
+    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 18, "double", OP_READ);
+  }
+
+  arg14.idx = 0;
+  args[14] = arg14;
+  for ( int v=1; v<2; v++ ){
+    args[14 + v] = op_arg_dat(arg14.dat, v, arg14.map, 18, "double", OP_READ);
+  }
+
+  arg16.idx = 0;
+  args[16] = arg16;
+  for ( int v=1; v<2; v++ ){
+    args[16 + v] = op_arg_dat(arg16.dat, v, arg16.map, 18, "double", OP_INC);
   }
 
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(60);
+  op_timing_realloc(61);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[60].name      = name;
-  OP_kernels[60].count    += 1;
+  OP_kernels[61].name      = name;
+  OP_kernels[61].count    += 1;
 
 
-  int    ninds   = 6;
-  int    inds[14] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5};
+  int    ninds   = 8;
+  int    inds[18] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: diff_flux\n");
@@ -215,8 +262,8 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_60
-      int nthread = OP_BLOCK_SIZE_60;
+    #ifdef OP_BLOCK_SIZE_61
+      int nthread = OP_BLOCK_SIZE_61;
     #else
       int nthread = OP_block_size;
     #endif
@@ -236,6 +283,8 @@ void op_par_loop_diff_flux(char const *name, op_set set,
         (double *)arg8.data_d,
         (double *)arg10.data_d,
         (double *)arg12.data_d,
+        (double *)arg14.data_d,
+        (double *)arg16.data_d,
         arg2.map_data_d,
         (int*)arg0.data_d,
         (bool*)arg1.data_d,
@@ -247,5 +296,5 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[60].time     += wall_t2 - wall_t1;
+  OP_kernels[61].time     += wall_t2 - wall_t1;
 }

@@ -5,8 +5,10 @@
 //user function
 //user function
 //#pragma acc routine
-inline void ls_group_modal_openacc( const double *modal, double *q) {
+inline void ls_local_vis_openacc( const double *visMax, const double *modal,
+                         double *viscosity) {
 
+  double q[DG_ORDER + 1];
   #if DG_ORDER == 4
   q[0] = modal[0];
   q[1] = modal[1] * modal[1] + modal[5] * modal[5];
@@ -64,46 +66,76 @@ inline void ls_group_modal_openacc( const double *modal, double *q) {
   q[1] = fmax(q[0], q[1]);
   q[0] = fmax(q[0], q[1]);
   #endif
+
+
+
+  double sum1 = 0.0;
+  double sum2 = 0.0;
+  double sum3 = 0.0;
+  double sum4 = 0.0;
+  for(int i = 1; i < DG_ORDER + 1; i++) {
+    double logx = logf(i);
+    double logq = logf(q[i]);
+    sum1 += logq * logx;
+    sum2 += logq;
+    sum3 += logx;
+    sum4 += logx * logx;
+  }
+  double b = (DG_ORDER * sum1 - sum2 * sum3) / (DG_ORDER * sum4 - sum3 * sum3);
+  double a = (sum2 - b * sum3) / (double)DG_ORDER;
+  double decay_exponent = -b;
+  const double PI = 3.141592653589793238463;
+  if(decay_exponent < 1.0)
+    *viscosity = *visMax;
+  else if(decay_exponent > 3.0)
+    *viscosity = 0.0;
+  else
+    *viscosity = *visMax * 0.5 * (1.0 + sin(-PI * (decay_exponent - 2.0) / 2.0));
 }
 
 // host stub function
-void op_par_loop_ls_group_modal(char const *name, op_set set,
+void op_par_loop_ls_local_vis(char const *name, op_set set,
   op_arg arg0,
-  op_arg arg1){
+  op_arg arg1,
+  op_arg arg2){
 
-  int nargs = 2;
-  op_arg args[2];
+  double*arg0h = (double *)arg0.data;
+  int nargs = 3;
+  op_arg args[3];
 
   args[0] = arg0;
   args[1] = arg1;
+  args[2] = arg2;
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(65);
+  op_timing_realloc(66);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[65].name      = name;
-  OP_kernels[65].count    += 1;
+  OP_kernels[66].name      = name;
+  OP_kernels[66].count    += 1;
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  ls_group_modal");
+    printf(" kernel routine w/o indirection:  ls_local_vis");
   }
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
+  double arg0_l = arg0h[0];
 
   if (set_size >0) {
 
 
     //Set up typed device pointers for OpenACC
 
-    double* data0 = (double*)arg0.data_d;
     double* data1 = (double*)arg1.data_d;
-    #pragma acc parallel loop independent deviceptr(data0,data1)
+    double* data2 = (double*)arg2.data_d;
+    #pragma acc parallel loop independent deviceptr(data1,data2)
     for ( int n=0; n<set->size; n++ ){
-      ls_group_modal_openacc(
-        &data0[10*n],
-        &data1[4*n]);
+      ls_local_vis_openacc(
+        &arg0_l,
+        &data1[10*n],
+        &data2[1*n]);
     }
   }
 
@@ -112,7 +144,7 @@ void op_par_loop_ls_group_modal(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[65].time     += wall_t2 - wall_t1;
-  OP_kernels[65].transfer += (float)set->size * arg0.size;
-  OP_kernels[65].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[66].time     += wall_t2 - wall_t1;
+  OP_kernels[66].transfer += (float)set->size * arg1.size;
+  OP_kernels[66].transfer += (float)set->size * arg2.size * 2.0f;
 }

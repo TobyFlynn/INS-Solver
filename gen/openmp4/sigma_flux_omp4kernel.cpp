@@ -24,6 +24,8 @@ void sigma_flux_omp4_kernel(
   int dat10size,
   double *data12,
   int dat12size,
+  double *data14,
+  int dat14size,
   int *col_reord,
   int set_size1,
   int start,
@@ -40,10 +42,11 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   op_arg arg6,
   op_arg arg8,
   op_arg arg10,
-  op_arg arg12){
+  op_arg arg12,
+  op_arg arg14){
 
-  int nargs = 14;
-  op_arg args[14];
+  int nargs = 16;
+  op_arg args[16];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -74,7 +77,7 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   arg10.idx = 0;
   args[10] = arg10;
   for ( int v=1; v<2; v++ ){
-    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 18, "double", OP_INC);
+    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 1, "double", OP_READ);
   }
 
   arg12.idx = 0;
@@ -83,16 +86,22 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
     args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 18, "double", OP_INC);
   }
 
+  arg14.idx = 0;
+  args[14] = arg14;
+  for ( int v=1; v<2; v++ ){
+    args[14 + v] = op_arg_dat(arg14.dat, v, arg14.map, 18, "double", OP_INC);
+  }
+
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(57);
+  op_timing_realloc(58);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[57].name      = name;
-  OP_kernels[57].count    += 1;
+  OP_kernels[58].name      = name;
+  OP_kernels[58].count    += 1;
 
-  int  ninds   = 6;
-  int  inds[14] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5};
+  int  ninds   = 7;
+  int  inds[16] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: sigma_flux\n");
@@ -101,13 +110,13 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   // get plan
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
 
-  #ifdef OP_PART_SIZE_57
-    int part_size = OP_PART_SIZE_57;
+  #ifdef OP_PART_SIZE_58
+    int part_size = OP_PART_SIZE_58;
   #else
     int part_size = OP_part_size;
   #endif
-  #ifdef OP_BLOCK_SIZE_57
-    int nthread = OP_BLOCK_SIZE_57;
+  #ifdef OP_BLOCK_SIZE_58
+    int nthread = OP_BLOCK_SIZE_58;
   #else
     int nthread = OP_block_size;
   #endif
@@ -138,6 +147,8 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
     int dat10size = getSetSizeFromOpArg(&arg10) * arg10.dat->dim;
     double *data12 = (double *)arg12.data_d;
     int dat12size = getSetSizeFromOpArg(&arg12) * arg12.dat->dim;
+    double *data14 = (double *)arg14.data_d;
+    int dat14size = getSetSizeFromOpArg(&arg14) * arg14.dat->dim;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -170,6 +181,8 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
         dat10size,
         data12,
         dat12size,
+        data14,
+        dat14size,
         col_reord,
         set_size1,
         start,
@@ -178,8 +191,8 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
         nthread);
 
     }
-    OP_kernels[57].transfer  += Plan->transfer;
-    OP_kernels[57].transfer2 += Plan->transfer2;
+    OP_kernels[58].transfer  += Plan->transfer;
+    OP_kernels[58].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -191,5 +204,5 @@ void op_par_loop_sigma_flux(char const *name, op_set set,
   if (OP_diags>1) deviceSync();
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[57].time     += wall_t2 - wall_t1;
+  OP_kernels[58].time     += wall_t2 - wall_t1;
 }

@@ -6,7 +6,8 @@
 //user function
 //#pragma acc routine
 inline void diff_flux_openacc( const int *edgeNum, const bool *rev, const double **sJ,
-                      const double **nx, const double **ny, const double **sigX,
+                      const double **nx, const double **ny, const double **s,
+                      const double **vis, const double **sigX,
                       const double **sigY, double **flux) {
 
   int edgeL = edgeNum[0];
@@ -15,6 +16,24 @@ inline void diff_flux_openacc( const int *edgeNum, const bool *rev, const double
 
   int exIndL = edgeL * 6;
   int exIndR = edgeR * 6;
+
+  double kL = sqrt(vis[0][0]);
+  double kR = sqrt(vis[1][0]);
+  double lamdaL = kL;
+  double lamdaR = kR;
+  double wL, wR;
+
+  if(lamdaL < 1e-12 && lamdaR < 1e-12) {
+    wL = 0.5;
+    wR = 0.5;
+  } else {
+    double lamdaAvg = (lamdaL + lamdaR) / 2.0;
+    wL = lamdaL / (2.0 * lamdaAvg);
+    wR = lamdaR / (2.0 * lamdaAvg);
+
+    wL = 1.0 - wL;
+    wR = 1.0 - wR;
+  }
 
   for(int i = 0; i < 6; i++) {
     int rInd;
@@ -25,10 +44,12 @@ inline void diff_flux_openacc( const int *edgeNum, const bool *rev, const double
       rInd = exIndR + i;
     }
 
-    double sigFX = (sigX[0][lInd] + sigX[1][rInd]) / 2.0;
-    double sigFY = (sigY[0][lInd] + sigY[1][rInd]) / 2.0;
+    double sigFX = wL * sigX[0][lInd] + wR * sigX[1][rInd];
+    double sigFY = wL * sigY[0][lInd] + wR * sigY[1][rInd];
 
-    flux[0][lInd] += gaussW_g[i] * sJ[0][lInd] * (nx[0][lInd] * sigFX + ny[0][lInd] * sigFY);
+    double pen   = fmin(lamdaL, lamdaR) * fmin(lamdaL, lamdaR) * (s[0][lInd] - s[1][rInd]);
+
+    flux[0][lInd] += gaussW_g[i] * sJ[0][lInd] * (nx[0][lInd] * sigFX + ny[0][lInd] * sigFY - pen);
   }
 
   for(int i = 0; i < 6; i++) {
@@ -40,10 +61,12 @@ inline void diff_flux_openacc( const int *edgeNum, const bool *rev, const double
       lInd = exIndL + i;
     }
 
-    double sigFX = (sigX[0][lInd] + sigX[1][rInd]) / 2.0;
-    double sigFY = (sigY[0][lInd] + sigY[1][rInd]) / 2.0;
+    double sigFX = wL * sigX[0][lInd] + wR * sigX[1][rInd];
+    double sigFY = wL * sigY[0][lInd] + wR * sigY[1][rInd];
 
-    flux[1][rInd] += gaussW_g[i] * sJ[1][rInd] * (nx[1][rInd] * sigFX + ny[1][rInd] * sigFY);
+    double pen   = fmin(lamdaL, lamdaR) * fmin(lamdaL, lamdaR) * (s[1][rInd] - s[0][lInd]);
+
+    flux[1][rInd] += gaussW_g[i] * sJ[1][rInd] * (nx[1][rInd] * sigFX + ny[1][rInd] * sigFY - pen);
   }
 }
 
@@ -56,10 +79,12 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   op_arg arg6,
   op_arg arg8,
   op_arg arg10,
-  op_arg arg12){
+  op_arg arg12,
+  op_arg arg14,
+  op_arg arg16){
 
-  int nargs = 14;
-  op_arg args[14];
+  int nargs = 18;
+  op_arg args[18];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -90,33 +115,45 @@ void op_par_loop_diff_flux(char const *name, op_set set,
   arg10.idx = 0;
   args[10] = arg10;
   for ( int v=1; v<2; v++ ){
-    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 18, "double", OP_READ);
+    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 1, "double", OP_READ);
   }
 
   arg12.idx = 0;
   args[12] = arg12;
   for ( int v=1; v<2; v++ ){
-    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 18, "double", OP_INC);
+    args[12 + v] = op_arg_dat(arg12.dat, v, arg12.map, 18, "double", OP_READ);
+  }
+
+  arg14.idx = 0;
+  args[14] = arg14;
+  for ( int v=1; v<2; v++ ){
+    args[14 + v] = op_arg_dat(arg14.dat, v, arg14.map, 18, "double", OP_READ);
+  }
+
+  arg16.idx = 0;
+  args[16] = arg16;
+  for ( int v=1; v<2; v++ ){
+    args[16 + v] = op_arg_dat(arg16.dat, v, arg16.map, 18, "double", OP_INC);
   }
 
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(60);
+  op_timing_realloc(61);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[60].name      = name;
-  OP_kernels[60].count    += 1;
+  OP_kernels[61].name      = name;
+  OP_kernels[61].count    += 1;
 
-  int  ninds   = 6;
-  int  inds[14] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5};
+  int  ninds   = 8;
+  int  inds[18] = {-1,-1,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7};
 
   if (OP_diags>2) {
     printf(" kernel routine with indirection: diff_flux\n");
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_60
-    int part_size = OP_PART_SIZE_60;
+  #ifdef OP_PART_SIZE_61
+    int part_size = OP_PART_SIZE_61;
   #else
     int part_size = OP_part_size;
   #endif
@@ -140,6 +177,8 @@ void op_par_loop_diff_flux(char const *name, op_set set,
     double *data8 = (double *)arg8.data_d;
     double *data10 = (double *)arg10.data_d;
     double *data12 = (double *)arg12.data_d;
+    double *data14 = (double *)arg14.data_d;
+    double *data16 = (double *)arg16.data_d;
 
     op_plan *Plan = op_plan_get_stage(name,set,part_size,nargs,args,ninds,inds,OP_COLOR2);
     ncolors = Plan->ncolors;
@@ -154,7 +193,7 @@ void op_par_loop_diff_flux(char const *name, op_set set,
       int start = Plan->col_offsets[0][col];
       int end = Plan->col_offsets[0][col+1];
 
-      #pragma acc parallel loop independent deviceptr(col_reord,map2,data0,data1,data2,data4,data6,data8,data10,data12)
+      #pragma acc parallel loop independent deviceptr(col_reord,map2,data0,data1,data2,data4,data6,data8,data10,data12,data14,data16)
       for ( int e=start; e<end; e++ ){
         int n = col_reord[e];
         int map2idx;
@@ -175,11 +214,17 @@ void op_par_loop_diff_flux(char const *name, op_set set,
            &data8[18 * map2idx],
            &data8[18 * map3idx]};
         const double* arg10_vec[] = {
-           &data10[18 * map2idx],
-           &data10[18 * map3idx]};
-        double* arg12_vec[] = {
+           &data10[1 * map2idx],
+           &data10[1 * map3idx]};
+        const double* arg12_vec[] = {
            &data12[18 * map2idx],
            &data12[18 * map3idx]};
+        const double* arg14_vec[] = {
+           &data14[18 * map2idx],
+           &data14[18 * map3idx]};
+        double* arg16_vec[] = {
+           &data16[18 * map2idx],
+           &data16[18 * map3idx]};
 
         diff_flux_openacc(
           &data0[2 * n],
@@ -189,12 +234,14 @@ void op_par_loop_diff_flux(char const *name, op_set set,
           arg6_vec,
           arg8_vec,
           arg10_vec,
-          arg12_vec);
+          arg12_vec,
+          arg14_vec,
+          arg16_vec);
       }
 
     }
-    OP_kernels[60].transfer  += Plan->transfer;
-    OP_kernels[60].transfer2 += Plan->transfer2;
+    OP_kernels[61].transfer  += Plan->transfer;
+    OP_kernels[61].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -205,5 +252,5 @@ void op_par_loop_diff_flux(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[60].time     += wall_t2 - wall_t1;
+  OP_kernels[61].time     += wall_t2 - wall_t1;
 }

@@ -5,15 +5,16 @@
 //user function
 //user function
 //#pragma acc routine
-inline void sigma_mult_openacc( const double *vis, const double *s, double *out) {
+inline void diff_mult_openacc( const double *vis, double *dx, double *dy) {
   double k = sqrt(*vis);
   for(int i = 0; i < 10; i++) {
-    out[i] = k * s[i];
+    dx[i] *= k;
+    dy[i] *= k;
   }
 }
 
 // host stub function
-void op_par_loop_sigma_mult(char const *name, op_set set,
+void op_par_loop_diff_mult(char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2){
@@ -27,14 +28,14 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(57);
+  op_timing_realloc(60);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[57].name      = name;
-  OP_kernels[57].count    += 1;
+  OP_kernels[60].name      = name;
+  OP_kernels[60].count    += 1;
 
 
   if (OP_diags>2) {
-    printf(" kernel routine w/o indirection:  sigma_mult");
+    printf(" kernel routine w/o indirection:  diff_mult");
   }
 
   int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
@@ -50,7 +51,7 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
     double* data2 = (double*)arg2.data_d;
     #pragma acc parallel loop independent deviceptr(data0,data1,data2)
     for ( int n=0; n<set->size; n++ ){
-      sigma_mult_openacc(
+      diff_mult_openacc(
         &data0[1*n],
         &data1[10*n],
         &data2[10*n]);
@@ -62,8 +63,8 @@ void op_par_loop_sigma_mult(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[57].time     += wall_t2 - wall_t1;
-  OP_kernels[57].transfer += (float)set->size * arg0.size;
-  OP_kernels[57].transfer += (float)set->size * arg1.size;
-  OP_kernels[57].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[60].time     += wall_t2 - wall_t1;
+  OP_kernels[60].transfer += (float)set->size * arg0.size;
+  OP_kernels[60].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[60].transfer += (float)set->size * arg2.size * 2.0f;
 }

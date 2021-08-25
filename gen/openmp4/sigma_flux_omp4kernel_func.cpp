@@ -21,6 +21,8 @@ void sigma_flux_omp4_kernel(
   int dat10size,
   double *data12,
   int dat12size,
+  double *data14,
+  int dat14size,
   int *col_reord,
   int set_size1,
   int start,
@@ -30,7 +32,7 @@ void sigma_flux_omp4_kernel(
 
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size]) \
     map(to: gaussW_g_ompkernel[:6])\
-    map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data4[0:dat4size],data6[0:dat6size],data8[0:dat8size],data10[0:dat10size],data12[0:dat12size])
+    map(to:col_reord[0:set_size1],map2[0:map2size],data2[0:dat2size],data4[0:dat4size],data6[0:dat6size],data8[0:dat8size],data10[0:dat10size],data12[0:dat12size],data14[0:dat14size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
     int n_op = col_reord[e];
@@ -51,12 +53,15 @@ void sigma_flux_omp4_kernel(
     const double* arg8_vec[] = {
        &data8[18 * map2idx],
        &data8[18 * map3idx]};
-    double* arg10_vec[] = {
-       &data10[18 * map2idx],
-       &data10[18 * map3idx]};
+    const double* arg10_vec[] = {
+       &data10[1 * map2idx],
+       &data10[1 * map3idx]};
     double* arg12_vec[] = {
        &data12[18 * map2idx],
        &data12[18 * map3idx]};
+    double* arg14_vec[] = {
+       &data14[18 * map2idx],
+       &data14[18 * map3idx]};
     //variable mapping
     const int *edgeNum = &data0[2*n_op];
     const bool *rev = &data1[1*n_op];
@@ -64,8 +69,9 @@ void sigma_flux_omp4_kernel(
     const double **nx = arg4_vec;
     const double **ny = arg6_vec;
     const double **s = arg8_vec;
-    double **sigFx = arg10_vec;
-    double **sigFy = arg12_vec;
+    const double **vis = arg10_vec;
+    double **sigFx = arg12_vec;
+    double **sigFy = arg14_vec;
 
     //inline function
     
@@ -77,6 +83,21 @@ void sigma_flux_omp4_kernel(
     int exIndL = edgeL * 6;
     int exIndR = edgeR * 6;
 
+    double kL = sqrt(vis[0][0]);
+    double kR = sqrt(vis[1][0]);
+    double lamdaL = kL;
+    double lamdaR = kR;
+    double wL, wR;
+
+    if(lamdaL < 1e-12 && lamdaR < 1e-12) {
+      wL = 0.5;
+      wR = 0.5;
+    } else {
+      double lamdaAvg = (lamdaL + lamdaR) / 2.0;
+      wL = lamdaL / (2.0 * lamdaAvg);
+      wR = lamdaR / (2.0 * lamdaAvg);
+    }
+
     for(int i = 0; i < 6; i++) {
       int rInd;
       int lInd = exIndL + i;
@@ -85,7 +106,8 @@ void sigma_flux_omp4_kernel(
       } else {
         rInd = exIndR + i;
       }
-      double flux = (s[0][lInd] + s[1][rInd]) / 2.0;
+      double flux = wL * s[0][lInd] + wR * s[1][rInd];
+      flux *= kL;
       sigFx[0][lInd] += gaussW_g_ompkernel[i] * sJ[0][lInd] * nx[0][lInd] * flux;
       sigFy[0][lInd] += gaussW_g_ompkernel[i] * sJ[0][lInd] * ny[0][lInd] * flux;
     }
@@ -98,7 +120,8 @@ void sigma_flux_omp4_kernel(
       } else {
         lInd = exIndL + i;
       }
-      double flux = (s[0][lInd] + s[1][rInd]) / 2.0;
+      double flux = wL * s[0][lInd] + wR * s[1][rInd];
+      flux *= kR;
       sigFx[1][rInd] += gaussW_g_ompkernel[i] * sJ[1][rInd] * nx[1][rInd] * flux;
       sigFy[1][rInd] += gaussW_g_ompkernel[i] * sJ[1][rInd] * ny[1][rInd] * flux;
     }
