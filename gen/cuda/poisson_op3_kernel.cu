@@ -8,94 +8,94 @@ __device__ void poisson_op3_gpu( const int *edgeType, const int *edgeNum,
                         const double *mD, const double *sJ,
                         const double *h, const double *gFactor,
                         const double *factor, double *op1) {
-  if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2)
+  if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2) {
     return;
-
-  const double *gVM;
-  if(*edgeNum == 0) {
-    gVM = gFInterp0_g_cuda;
-  } else if(*edgeNum == 1) {
-    gVM = gFInterp1_g_cuda;
   } else {
-    gVM = gFInterp2_g_cuda;
-  }
+
+    const double *gVM;
+    if(*edgeNum == 0) {
+      gVM = gFInterp0_g_cuda;
+    } else if(*edgeNum == 1) {
+      gVM = gFInterp1_g_cuda;
+    } else {
+      gVM = gFInterp2_g_cuda;
+    }
 
 
-  for(int i = 0; i < 10; i++) {
-    for(int j = 0; j < 10; j++) {
-      int c_ind = i * 10 + j;
-      for(int k = 0; k < 6; k++) {
+    for(int i = 0; i < 10; i++) {
+      for(int j = 0; j < 10; j++) {
+        int c_ind = i * 10 + j;
+        for(int k = 0; k < 6; k++) {
 
-        int b_ind = k * 10 + j;
+          int b_ind = k * 10 + j;
 
-        int a_ind = k * 10 + i;
+          int a_ind = k * 10 + i;
 
-        int factors_ind = *edgeNum * 6 + k;
-
-
-
-        op1[c_ind] += -gVM[a_ind] * gaussW_g_cuda[k] * sJ[factors_ind]
-                      * gFactor[factors_ind] * mD[b_ind];
+          int factors_ind = *edgeNum * 6 + k;
 
 
+
+
+
+          op1[c_ind] += -gVM[a_ind] * gaussW_g_cuda[k] * sJ[factors_ind]
+                        * mD[b_ind];
+        }
       }
     }
-  }
 
 
-  for(int i = 0; i < 10; i++) {
-    for(int j = 0; j < 10; j++) {
-      int c_ind = i * 10 + j;
-      for(int k = 0; k < 6; k++) {
+    for(int i = 0; i < 10; i++) {
+      for(int j = 0; j < 10; j++) {
+        int c_ind = i * 10 + j;
+        for(int k = 0; k < 6; k++) {
 
-        int b_ind = k * 10 + j;
+          int b_ind = k * 10 + j;
 
-        int a_ind = k * 10 + i;
+          int a_ind = k * 10 + i;
 
-        int factors_ind = *edgeNum * 6 + k;
-
-
-
-        op1[c_ind] += -gFactor[factors_ind] * mD[a_ind] * gaussW_g_cuda[k]
-                      * sJ[factors_ind] * gVM[b_ind];
+          int factors_ind = *edgeNum * 6 + k;
 
 
 
 
+
+          op1[c_ind] += -mD[a_ind] * gaussW_g_cuda[k]
+                        * sJ[factors_ind] * gVM[b_ind];
+        }
       }
     }
-  }
 
-  double tauA[6];
-  double maxTau = 0.0;
-  for(int i = 0; i < 6; i++) {
-    int ind = *edgeNum  * 6 + i;
+    double tauA[6];
+    double maxTau = 0.0;
+    for(int i = 0; i < 6; i++) {
+      int ind = *edgeNum  * 6 + i;
 
-    tauA[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * (*h * gFactor[ind]);
+      tauA[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * (*h * gFactor[ind]);
 
 
-  }
-
+    }
 
 
 
 
 
-  for(int i = 0; i < 10; i++) {
-    for(int j = 0; j < 10; j++) {
-      int c_ind = i * 10 + j;
-      for(int k = 0; k < 6; k++) {
 
-        int b_ind = k * 10 + j;
+    for(int i = 0; i < 10; i++) {
+      for(int j = 0; j < 10; j++) {
+        int c_ind = i * 10 + j;
+        for(int k = 0; k < 6; k++) {
 
-        int a_ind = k * 10 + i;
+          int b_ind = k * 10 + j;
 
-        int factors_ind = *edgeNum * 6 + k;
+          int a_ind = k * 10 + i;
+
+          int factors_ind = *edgeNum * 6 + k;
 
 
 
-        op1[c_ind] += gVM[a_ind] * gaussW_g_cuda[k] * sJ[factors_ind]
-                      * tauA[k] * gVM[b_ind];
+          op1[c_ind] += gVM[a_ind] * gaussW_g_cuda[k] * sJ[factors_ind]
+                        * tauA[k] * gVM[b_ind];
+        }
       }
     }
   }
@@ -280,10 +280,10 @@ void op_par_loop_poisson_op3(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(18);
+  op_timing_realloc(21);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[18].name      = name;
-  OP_kernels[18].count    += 1;
+  OP_kernels[21].name      = name;
+  OP_kernels[21].count    += 1;
 
 
   int    ninds   = 5;
@@ -323,8 +323,8 @@ void op_par_loop_poisson_op3(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_18
-      int nthread = OP_BLOCK_SIZE_18;
+    #ifdef OP_BLOCK_SIZE_21
+      int nthread = OP_BLOCK_SIZE_21;
     #else
       int nthread = OP_block_size;
     #endif
@@ -358,5 +358,5 @@ void op_par_loop_poisson_op3(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[18].time     += wall_t2 - wall_t1;
+  OP_kernels[21].time     += wall_t2 - wall_t1;
 }

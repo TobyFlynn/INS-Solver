@@ -124,15 +124,24 @@ void poisson_op2_omp4_kernel(
             factors_indRR = edgeR * 6 + k;
           }
 
+
+
+
+
+
+
+
+
+
           op1L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJL[factors_indL]
-                         * gFactorL[factors_indL] * mDL[b_ind];
+                         * mDL[b_ind];
           op1R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g_ompkernel[k] * sJR[factors_indR]
-                         * gFactorR[factors_indR] * mDR[b_ind];
+                         * mDR[b_ind];
 
           op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJL[factors_indL]
-                         * gFactorR[factors_indRR] * pDL[b_ind];
+                         * pDL[b_ind];
           op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g_ompkernel[k] * sJR[factors_indR]
-                         * gFactorL[factors_indLR] * pDR[b_ind];
+                         * pDR[b_ind];
         }
       }
     }
@@ -169,32 +178,21 @@ void poisson_op2_omp4_kernel(
 
 
 
-
-
-
-
-
-
-
-
-
-          op1L[c_ind] += -0.5 * gFactorL[factors_indL] * mDL[a_ind] * gaussW_g_ompkernel[k]
+          op1L[c_ind] += -0.5 * mDL[a_ind] * gaussW_g_ompkernel[k]
                          * sJL[factors_indL] * gVML[b_ind];
-          op1R[c_ind] += -0.5 * gFactorR[factors_indR] * mDR[a_ind] * gaussW_g_ompkernel[k]
+          op1R[c_ind] += -0.5 * mDR[a_ind] * gaussW_g_ompkernel[k]
                          * sJR[factors_indR] * gVMR[b_ind];
 
-          op2L[c_ind] += 0.5 * gFactorL[factors_indL] * mDL[a_ind] * gaussW_g_ompkernel[k]
+          op2L[c_ind] += 0.5 * mDL[a_ind] * gaussW_g_ompkernel[k]
                          * sJL[factors_indL] * gVPL[b_ind];
-          op2R[c_ind] += 0.5 * gFactorR[factors_indR] * mDR[a_ind] * gaussW_g_ompkernel[k]
+          op2R[c_ind] += 0.5 * mDR[a_ind] * gaussW_g_ompkernel[k]
                          * sJR[factors_indR] * gVPR[b_ind];
         }
       }
     }
 
-    double tauL[6];
-    double tauR[6];
-    double maxL = 0.0;
-    double maxR = 0.0;
+    double tau[6];
+    double max = 0.0;
     for(int i = 0; i < 6; i++) {
       int indL = edgeL * 6 + i;
       int indR;
@@ -203,25 +201,11 @@ void poisson_op2_omp4_kernel(
       else
         indR = edgeR * 6 + i;
 
-      tauL[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
+      tau[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
 
 
 
     }
-    for(int i = 0; i < 6; i++) {
-      int indL;
-      int indR = edgeR * 6 + i;
-      if(reverse)
-        indL = edgeL * 6 + 6 - 1 - i;
-      else
-        indL = edgeL * 6 + i;
-
-      tauR[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(*hL * gFactorL[indL], *hR * gFactorR[indR]);
-
-
-
-    }
-
 
 
 
@@ -240,6 +224,14 @@ void poisson_op2_omp4_kernel(
           int factors_indL = edgeL * 6 + k;
           int factors_indR = edgeR * 6 + k;
 
+          int tau_indL = k;
+          int tau_indR;
+          if(reverse) {
+            tau_indR = 6 - k - 1;
+          } else {
+            tau_indR = k;
+          }
+
 
 
 
@@ -250,14 +242,14 @@ void poisson_op2_omp4_kernel(
 
 
           op1L[c_ind] += 0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJL[factors_indL]
-                         * tauL[k] * gVML[b_ind];
+                         * tau[tau_indL] * gVML[b_ind];
           op1R[c_ind] += 0.5 * gVMR[a_ind] * gaussW_g_ompkernel[k] * sJR[factors_indR]
-                         * tauR[k] * gVMR[b_ind];
+                         * tau[tau_indR] * gVMR[b_ind];
 
           op2L[c_ind] += -0.5 * gVML[a_ind] * gaussW_g_ompkernel[k] * sJL[factors_indL]
-                         * tauL[k] * gVPL[b_ind];
+                         * tau[tau_indL] * gVPL[b_ind];
           op2R[c_ind] += -0.5 * gVMR[a_ind] * gaussW_g_ompkernel[k] * sJR[factors_indR]
-                         * tauR[k] * gVPR[b_ind];
+                         * tau[tau_indR] * gVPR[b_ind];
         }
       }
     }

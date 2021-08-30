@@ -9,7 +9,7 @@ __device__ void diff_bflux_gpu( const int *bedgeNum, const double *sJ, const dou
   int exInd = *bedgeNum * 6;
 
   for(int i = 0; i < 6; i++) {
-    flux[exInd + i] += gaussW_g_cuda[i] * sJ[exInd + i] * 0.5 * (*vis) * s[exInd + i];
+
 
 
   }
@@ -100,10 +100,10 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(62);
+  op_timing_realloc(65);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[62].name      = name;
-  OP_kernels[62].count    += 1;
+  OP_kernels[65].name      = name;
+  OP_kernels[65].count    += 1;
 
 
   int    ninds   = 7;
@@ -116,8 +116,8 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_62
-      int nthread = OP_BLOCK_SIZE_62;
+    #ifdef OP_BLOCK_SIZE_65
+      int nthread = OP_BLOCK_SIZE_65;
     #else
       int nthread = OP_block_size;
     #endif
@@ -148,5 +148,5 @@ void op_par_loop_diff_bflux(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[62].time     += wall_t2 - wall_t1;
+  OP_kernels[65].time     += wall_t2 - wall_t1;
 }

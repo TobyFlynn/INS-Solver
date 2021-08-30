@@ -99,12 +99,14 @@ void poisson_op5_omp4_kernel(
       for(int i = 0; i < 6 * 10; i++) {
         int indT = (i % 6) * 10 + i / 6;
         int indSJ = *edgeNum * 6 + (i % 6);
-        int indFactor = (i / 6);
+
+
+
+
+
 
         op[i] = gVM[indT] * gaussW_g_ompkernel[i % 6] * sJ[indSJ] * tauA[i % 6]
-                - factor[indFactor] * mD[indT] * gaussW_g_ompkernel[i % 6] * sJ[indSJ];
-
-
+                - mD[indT] * gaussW_g_ompkernel[i % 6] * sJ[indSJ];
       }
     }
     //end inline func

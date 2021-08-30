@@ -45,7 +45,7 @@ void poisson_op4_omp4_kernel(
 
           int a_ind = k * 10 + i;
 
-          mm[c_ind] += cubV_g_ompkernel[b_ind] * cTmp[a_ind];
+          mm[c_ind] += cubV_g_ompkernel[a_ind] * cTmp[b_ind];
         }
       }
     }

@@ -85,6 +85,12 @@ void ls_local_vis_omp4_kernel(
 
 
 
+
+    #if DG_ORDER == 1
+    *viscosity = *visMax;
+    return;
+    #endif
+
     double sum1 = 0.0;
     double sum2 = 0.0;
     double sum3 = 0.0;

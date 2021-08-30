@@ -58,94 +58,94 @@ void poisson_op3_omp4_kernel(
 
     //inline function
     
-    if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2)
+    if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2) {
       return;
-
-    const double *gVM;
-    if(*edgeNum == 0) {
-      gVM = gFInterp0_g_ompkernel;
-    } else if(*edgeNum == 1) {
-      gVM = gFInterp1_g_ompkernel;
     } else {
-      gVM = gFInterp2_g_ompkernel;
-    }
+
+      const double *gVM;
+      if(*edgeNum == 0) {
+        gVM = gFInterp0_g_ompkernel;
+      } else if(*edgeNum == 1) {
+        gVM = gFInterp1_g_ompkernel;
+      } else {
+        gVM = gFInterp2_g_ompkernel;
+      }
 
 
-    for(int i = 0; i < 10; i++) {
-      for(int j = 0; j < 10; j++) {
-        int c_ind = i * 10 + j;
-        for(int k = 0; k < 6; k++) {
+      for(int i = 0; i < 10; i++) {
+        for(int j = 0; j < 10; j++) {
+          int c_ind = i * 10 + j;
+          for(int k = 0; k < 6; k++) {
 
-          int b_ind = k * 10 + j;
+            int b_ind = k * 10 + j;
 
-          int a_ind = k * 10 + i;
+            int a_ind = k * 10 + i;
 
-          int factors_ind = *edgeNum * 6 + k;
-
-
-
-          op1[c_ind] += -gVM[a_ind] * gaussW_g_ompkernel[k] * sJ[factors_ind]
-                        * gFactor[factors_ind] * mD[b_ind];
+            int factors_ind = *edgeNum * 6 + k;
 
 
+
+
+
+            op1[c_ind] += -gVM[a_ind] * gaussW_g_ompkernel[k] * sJ[factors_ind]
+                          * mD[b_ind];
+          }
         }
       }
-    }
 
 
-    for(int i = 0; i < 10; i++) {
-      for(int j = 0; j < 10; j++) {
-        int c_ind = i * 10 + j;
-        for(int k = 0; k < 6; k++) {
+      for(int i = 0; i < 10; i++) {
+        for(int j = 0; j < 10; j++) {
+          int c_ind = i * 10 + j;
+          for(int k = 0; k < 6; k++) {
 
-          int b_ind = k * 10 + j;
+            int b_ind = k * 10 + j;
 
-          int a_ind = k * 10 + i;
+            int a_ind = k * 10 + i;
 
-          int factors_ind = *edgeNum * 6 + k;
-
-
-
-          op1[c_ind] += -gFactor[factors_ind] * mD[a_ind] * gaussW_g_ompkernel[k]
-                        * sJ[factors_ind] * gVM[b_ind];
+            int factors_ind = *edgeNum * 6 + k;
 
 
 
 
+
+            op1[c_ind] += -mD[a_ind] * gaussW_g_ompkernel[k]
+                          * sJ[factors_ind] * gVM[b_ind];
+          }
         }
       }
-    }
 
-    double tauA[6];
-    double maxTau = 0.0;
-    for(int i = 0; i < 6; i++) {
-      int ind = *edgeNum  * 6 + i;
+      double tauA[6];
+      double maxTau = 0.0;
+      for(int i = 0; i < 6; i++) {
+        int ind = *edgeNum  * 6 + i;
 
-      tauA[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * (*h * gFactor[ind]);
+        tauA[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * (*h * gFactor[ind]);
 
 
-    }
-
+      }
 
 
 
 
 
-    for(int i = 0; i < 10; i++) {
-      for(int j = 0; j < 10; j++) {
-        int c_ind = i * 10 + j;
-        for(int k = 0; k < 6; k++) {
 
-          int b_ind = k * 10 + j;
+      for(int i = 0; i < 10; i++) {
+        for(int j = 0; j < 10; j++) {
+          int c_ind = i * 10 + j;
+          for(int k = 0; k < 6; k++) {
 
-          int a_ind = k * 10 + i;
+            int b_ind = k * 10 + j;
 
-          int factors_ind = *edgeNum * 6 + k;
+            int a_ind = k * 10 + i;
+
+            int factors_ind = *edgeNum * 6 + k;
 
 
 
-          op1[c_ind] += gVM[a_ind] * gaussW_g_ompkernel[k] * sJ[factors_ind]
-                        * tauA[k] * gVM[b_ind];
+            op1[c_ind] += gVM[a_ind] * gaussW_g_ompkernel[k] * sJ[factors_ind]
+                          * tauA[k] * gVM[b_ind];
+          }
         }
       }
     }

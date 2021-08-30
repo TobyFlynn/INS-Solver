@@ -49,11 +49,6 @@ void gauss_gfi_faces2_omp4_kernel(
       gFL = gFInterp2_g_ompkernel;
     }
 
-    for(int i = 0; i < 6 * 10; i++) {
-      gVPL[i] = 0.0;
-      gVPR[i] = 0.0;
-    }
-
     for(int m = 0; m < 6; m++) {
       for(int n = 0; n < 10; n++) {
         int indL, indR;
@@ -65,8 +60,8 @@ void gauss_gfi_faces2_omp4_kernel(
           indR = (6 - 1 - m) * 10 + n;
         }
 
-        gVPL[indL] += gFL[indR];
-        gVPR[indR] += gFR[indL];
+        gVPL[indL] = gFL[indR];
+        gVPR[indR] = gFR[indL];
       }
     }
     //end inline func

@@ -50,6 +50,7 @@ private:
   void setGlbInd();
   void copy_vec_to_dat(op_dat dat, const double *dat_d);
   void copy_dat_to_vec(op_dat dat, double *dat_d);
+  void set_sub_mat();
 
   int dirichlet[3], neumann[3];
 

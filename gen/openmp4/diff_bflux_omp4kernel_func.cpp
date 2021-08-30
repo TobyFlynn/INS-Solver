@@ -28,8 +28,7 @@ void diff_bflux_omp4_kernel(
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size]) \
-    map(to: gaussW_g_ompkernel[:6])\
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size])\
     map(to:col_reord[0:set_size1],map1[0:map1size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size],data5[0:dat5size],data6[0:dat6size],data8[0:dat8size])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int e=start; e<end; e++ ){
@@ -53,7 +52,7 @@ void diff_bflux_omp4_kernel(
     int exInd = *bedgeNum * 6;
 
     for(int i = 0; i < 6; i++) {
-      flux[exInd + i] += gaussW_g_ompkernel[i] * sJ[exInd + i] * 0.5 * (*vis) * s[exInd + i];
+
 
 
     }

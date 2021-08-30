@@ -46,13 +46,16 @@ inline void poisson_op5(const int *edgeType, const int *edgeNum,
     for(int i = 0; i < 6 * 10; i++) {
       int indT = (i % 6) * 10 + i / 6;
       int indSJ = *edgeNum * 6 + (i % 6);
-      int indFactor = (i / 6);
-
-      op[i] = gVM[indT] * gaussW_g[i % 6] * sJ[indSJ] * tauA[i % 6]
-              - factor[indFactor] * mD[indT] * gaussW_g[i % 6] * sJ[indSJ];
+      // int indFactor = *edgeNum * 6 + (i / 6);
 
       // op[i] = gVM[indT] * gaussW_g[i % 6] * sJ[indSJ] * tauA[i % 6]
       //         - factor[indSJ] * mD[indT] * gaussW_g[i % 6] * sJ[indSJ];
+
+      // op[i] = gVM[indT] * gaussW_g[i % 6] * sJ[indSJ] * tauA[i % 6]
+      //         - factor[indSJ] * mD[indT] * gaussW_g[i % 6] * sJ[indSJ];
+
+      op[i] = gVM[indT] * gaussW_g[i % 6] * sJ[indSJ] * tauA[i % 6]
+              - mD[indT] * gaussW_g[i % 6] * sJ[indSJ];
     }
   }
 }

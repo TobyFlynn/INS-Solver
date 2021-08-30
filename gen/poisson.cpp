@@ -7,6 +7,7 @@
 #include "dg_constants.h"
 #include "dg_blas_calls.h"
 #include "dg_compiler_defs.h"
+#include "blas_calls.h"
 
 extern DGConstants *constants;
 
@@ -213,8 +214,107 @@ void PoissonSolve::precond(const double *in_d, double *out_d) {
   copy_dat_to_vec(out, out_d);
 }
 
+void PoissonSolve::set_sub_mat() {
+  // Calculate geometric factors used when constructing gradient matrices
+  init_gauss_grad_blas(mesh, data);
+
+  // [gDxM, gDyM] = PhysDmatrices2D(x(:,k1), y(:,k1),gVM);
+  op_par_loop(init_gauss_grad, "init_gauss_grad", mesh->cells,
+              op_arg_dat(data->grx,    -1, OP_ID, 18, "double", OP_RW),
+              op_arg_dat(data->gsx,    -1, OP_ID, 18, "double", OP_RW),
+              op_arg_dat(data->gry,    -1, OP_ID, 18, "double", OP_RW),
+              op_arg_dat(data->gsy,    -1, OP_ID, 18, "double", OP_RW),
+              op_arg_dat(data->mDx[0], -1, OP_ID, 6 * 10, "double", OP_WRITE),
+              op_arg_dat(data->mDy[0], -1, OP_ID, 6 * 10, "double", OP_WRITE),
+              op_arg_dat(data->mDx[1], -1, OP_ID, 6 * 10, "double", OP_WRITE),
+              op_arg_dat(data->mDy[1], -1, OP_ID, 6 * 10, "double", OP_WRITE),
+              op_arg_dat(data->mDx[2], -1, OP_ID, 6 * 10, "double", OP_WRITE),
+              op_arg_dat(data->mDy[2], -1, OP_ID, 6 * 10, "double", OP_WRITE));
+
+  // gDnM = gnx*gDxM + gny*gDyM;
+  op_par_loop(init_gauss_grad3_2, "init_gauss_grad3_2", mesh->edges,
+              op_arg_dat(mesh->edgeNum,  -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->gauss->nx, 0, mesh->edge2cells, 18, "double", OP_READ),
+              op_arg_dat(mesh->gauss->nx, 1, mesh->edge2cells, 18, "double", OP_READ),
+              op_arg_dat(mesh->gauss->ny, 0, mesh->edge2cells, 18, "double", OP_READ),
+              op_arg_dat(mesh->gauss->ny, 1, mesh->edge2cells, 18, "double", OP_READ),
+              op_arg_dat(data->mDx[0], 0, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDx[0], 1, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[0], 0, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[0], 1, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDx[1], 0, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDx[1], 1, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[1], 0, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[1], 1, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDx[2], 0, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDx[2], 1, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[2], 0, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[2], 1, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(gFactor, 0, mesh->edge2cells, 18, "double", OP_READ),
+              op_arg_dat(gFactor, 1, mesh->edge2cells, 18, "double", OP_READ),
+              op_arg_dat(data->mDL, -1, OP_ID, 6 * 10, "double", OP_WRITE),
+              op_arg_dat(data->mDR, -1, OP_ID, 6 * 10, "double", OP_WRITE));
+
+  op_par_loop(init_gauss_grad4_2, "init_gauss_grad4_2", mesh->bedges,
+              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, 18, "double", OP_READ),
+              op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, 18, "double", OP_READ),
+              op_arg_dat(data->mDx[0], 0, mesh->bedge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[0], 0, mesh->bedge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDx[1], 0, mesh->bedge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[1], 0, mesh->bedge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDx[2], 0, mesh->bedge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[2], 0, mesh->bedge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(gFactor, 0, mesh->bedge2cells, 18, "double", OP_READ),
+              op_arg_dat(data->mDBC, -1, OP_ID, 6 * 10, "double", OP_WRITE));
+
+  // Calculate geometric factors for grad matrices used by neighbours
+  // Matrices are calculated locally, then copied to neighbour elements
+  init_gauss_grad_neighbour_blas(mesh, data);
+
+  // [gDxP, gDyP] = PhysDmatrices2D(x(:,k2), y(:,k2),gVP);
+  op_par_loop(init_gauss_grad_neighbour, "init_gauss_grad_neighbour", mesh->cells,
+              op_arg_dat(data->reverse, -1, OP_ID, 3, "int", OP_READ),
+              op_arg_dat(data->grx,     -1, OP_ID, 18, "double", OP_RW),
+              op_arg_dat(data->gsx,     -1, OP_ID, 18, "double", OP_RW),
+              op_arg_dat(data->gry,     -1, OP_ID, 18, "double", OP_RW),
+              op_arg_dat(data->gsy,     -1, OP_ID, 18, "double", OP_RW),
+              op_arg_dat(data->mDx[0],  -1, OP_ID, 6 * 10, "double", OP_WRITE),
+              op_arg_dat(data->mDy[0],  -1, OP_ID, 6 * 10, "double", OP_WRITE),
+              op_arg_dat(data->mDx[1],  -1, OP_ID, 6 * 10, "double", OP_WRITE),
+              op_arg_dat(data->mDy[1],  -1, OP_ID, 6 * 10, "double", OP_WRITE),
+              op_arg_dat(data->mDx[2],  -1, OP_ID, 6 * 10, "double", OP_WRITE),
+              op_arg_dat(data->mDy[2],  -1, OP_ID, 6 * 10, "double", OP_WRITE));
+
+  // gDnP = gnx*gDxP + gny*gDyP;
+  op_par_loop(init_gauss_grad5_2, "init_gauss_grad5_2", mesh->edges,
+              op_arg_dat(mesh->edgeNum,  -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse,  -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(mesh->gauss->nx, 0, mesh->edge2cells, 18, "double", OP_READ),
+              op_arg_dat(mesh->gauss->nx, 1, mesh->edge2cells, 18, "double", OP_READ),
+              op_arg_dat(mesh->gauss->ny, 0, mesh->edge2cells, 18, "double", OP_READ),
+              op_arg_dat(mesh->gauss->ny, 1, mesh->edge2cells, 18, "double", OP_READ),
+              op_arg_dat(data->mDx[0], 0, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDx[0], 1, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[0], 0, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[0], 1, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDx[1], 0, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDx[1], 1, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[1], 0, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[1], 1, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDx[2], 0, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDx[2], 1, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[2], 0, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(data->mDy[2], 1, mesh->edge2cells, 6 * 10, "double", OP_READ),
+              op_arg_dat(gFactor, 0, mesh->edge2cells, 18, "double", OP_READ),
+              op_arg_dat(gFactor, 1, mesh->edge2cells, 18, "double", OP_READ),
+              op_arg_dat(data->pDL, -1, OP_ID, 6 * 10, "double", OP_WRITE),
+              op_arg_dat(data->pDR, -1, OP_ID, 6 * 10, "double", OP_WRITE));
+}
+
 // Set up LHS matrix
 void PoissonSolve::set_op() {
+  set_sub_mat();
   // Kernel to calculate the 1st term in Eqn. 10 Karakus et al.
   op_par_loop(poisson_op1, "poisson_op1", mesh->cells,
               op_arg_dat(mesh->cubature->J, -1, OP_ID, 36, "double", OP_READ),

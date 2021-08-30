@@ -64,6 +64,13 @@ inline void ls_local_vis(const double *visMax, const double *modal,
   // Least squares fitting to find decay exponent
   // https://mathworld.wolfram.com/LeastSquaresFittingLogarithmic.html
   // y = a + b ln(x)
+
+  // Doesn't work for order 1
+  #if DG_ORDER == 1
+  *viscosity = *visMax;
+  return;
+  #endif
+
   double sum1 = 0.0;
   double sum2 = 0.0;
   double sum3 = 0.0;

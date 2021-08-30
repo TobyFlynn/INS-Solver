@@ -26,7 +26,7 @@ void init_surface_omp4_kernel(
     const double PI = 3.141592653589793238463;
     for(int i = 0; i < 10; i++) {
 
-      s[i] = sqrt((x[i] - 1.0) * (x[i] - 1.0) + (y[i] - 0.5) * (y[i] - 0.5)) - 0.15;
+      s[i] = sqrt((x[i] - 0.5) * (x[i] - 0.5) + (y[i] - 0.5) * (y[i] - 0.5)) - 0.20;
     }
     //end inline func
   }

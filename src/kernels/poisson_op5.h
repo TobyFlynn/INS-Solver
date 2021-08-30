@@ -46,13 +46,16 @@ inline void poisson_op5(const int *edgeType, const int *edgeNum,
     for(int i = 0; i < DG_GF_NP * DG_NP; i++) {
       int indT = (i % DG_GF_NP) * DG_NP + i / DG_GF_NP;
       int indSJ = *edgeNum * DG_GF_NP + (i % DG_GF_NP);
-      int indFactor = (i / DG_GF_NP);
-
-      op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ] * tauA[i % DG_GF_NP]
-              - factor[indFactor] * mD[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
+      // int indFactor = *edgeNum * DG_GF_NP + (i / DG_GF_NP);
 
       // op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ] * tauA[i % DG_GF_NP]
       //         - factor[indSJ] * mD[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
+
+      // op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ] * tauA[i % DG_GF_NP]
+      //         - factor[indSJ] * mD[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
+
+      op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ] * tauA[i % DG_GF_NP]
+              - mD[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
     }
   }
 }
