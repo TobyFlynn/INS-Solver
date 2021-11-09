@@ -20,10 +20,19 @@ inline void poisson_op5(const int *edgeType, const int *edgeNum,
   if(*edgeType != *d0 && *edgeType != *d1 && *edgeType != *d2) {
     // First edge term
     // gVM'*gw*rho^-1*gDnM
-    for(int i = 0; i < DG_GF_NP * DG_NP; i++) {
-      int indT = (i % DG_GF_NP) * DG_NP + i / DG_GF_NP;
-      int indSJ = *edgeNum * DG_GF_NP + (i % DG_GF_NP);
-      op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
+    // for(int i = 0; i < DG_GF_NP * DG_NP; i++) {
+    //   // int indT = (i % DG_GF_NP) * DG_NP + i / DG_GF_NP;
+    //   int indT = i;
+    //   int indSJ = *edgeNum * DG_GF_NP + (i % DG_GF_NP);
+    //   op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
+    // }
+    for(int m = 0; m < DG_GF_NP; m++) {
+      for(int n = 0; n < DG_NP; n++) {
+        int ind  = m + n * DG_GF_NP;
+        int indT = m * DG_NP + n;
+        int indSJ = *edgeNum * DG_GF_NP + (m % DG_GF_NP);
+        op[ind] = gVM[indT] * gaussW_g[m % DG_GF_NP] * sJ[indSJ];
+      }
     }
   } else {
     // Calculate penalty parameter
@@ -43,19 +52,30 @@ inline void poisson_op5(const int *edgeType, const int *edgeNum,
 
     // First edge term
     // gVM'*gw*rho^-1*gDnM
-    for(int i = 0; i < DG_GF_NP * DG_NP; i++) {
-      int indT = (i % DG_GF_NP) * DG_NP + i / DG_GF_NP;
-      int indSJ = *edgeNum * DG_GF_NP + (i % DG_GF_NP);
-      // int indFactor = *edgeNum * DG_GF_NP + (i / DG_GF_NP);
+    // for(int i = 0; i < DG_GF_NP * DG_NP; i++) {
+    //   // int indT = (i % DG_GF_NP) * DG_NP + i / DG_GF_NP;
+    //   int indT = i;
+    //   int indSJ = *edgeNum * DG_GF_NP + (i % DG_GF_NP);
+    //   // int indFactor = *edgeNum * DG_GF_NP + (i / DG_GF_NP);
+    //
+    //   // op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ] * tauA[i % DG_GF_NP]
+    //   //         - factor[indSJ] * mD[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
+    //
+    //   // op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ] * tauA[i % DG_GF_NP]
+    //   //         - factor[indSJ] * mD[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
+    //
+    //   op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ] * tauA[i % DG_GF_NP]
+    //           - mD[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
+    // }
 
-      // op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ] * tauA[i % DG_GF_NP]
-      //         - factor[indSJ] * mD[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
-
-      // op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ] * tauA[i % DG_GF_NP]
-      //         - factor[indSJ] * mD[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
-
-      op[i] = gVM[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ] * tauA[i % DG_GF_NP]
-              - mD[indT] * gaussW_g[i % DG_GF_NP] * sJ[indSJ];
+    for(int m = 0; m < DG_GF_NP; m++) {
+      for(int n = 0; n < DG_NP; n++) {
+        int ind  = m + n * DG_GF_NP;
+        int indT = m * DG_NP + n;
+        int indSJ = *edgeNum * DG_GF_NP + (m % DG_GF_NP);
+        op[indT] = gVM[ind] * gaussW_g[m % DG_GF_NP] * sJ[indSJ] * tauA[m % DG_GF_NP]
+                - mD[ind] * gaussW_g[m % DG_GF_NP] * sJ[indSJ];
+      }
     }
   }
 }

@@ -20,12 +20,12 @@ inline void poisson_op3(const int *edgeType, const int *edgeNum,
     // gVM'*gw*rho^-1*gDnM
     for(int i = 0; i < DG_NP; i++) {
       for(int j = 0; j < DG_NP; j++) {
-        int c_ind = i * DG_NP + j;
+        int c_ind = i + j * DG_NP;
         for(int k = 0; k < DG_GF_NP; k++) {
           // mD
-          int b_ind = k * DG_NP + j;
+          int b_ind = k + j * DG_GF_NP;
           // Transpose of gVM
-          int a_ind = k * DG_NP + i;
+          int a_ind = k + i * DG_GF_NP;
           // Rho and sJ ind
           int factors_ind = *edgeNum * DG_GF_NP + k;
 
@@ -45,12 +45,12 @@ inline void poisson_op3(const int *edgeType, const int *edgeNum,
     // rho^-1*gDnM'*gw*gVM
     for(int i = 0; i < DG_NP; i++) {
       for(int j = 0; j < DG_NP; j++) {
-        int c_ind = i * DG_NP + j;
+        int c_ind = i + j * DG_NP;
         for(int k = 0; k < DG_GF_NP; k++) {
           // gVM and gVP
-          int b_ind = k * DG_NP + j;
+          int b_ind = k + j * DG_GF_NP;
           // Transpose of mD
-          int a_ind = k * DG_NP + i;
+          int a_ind = k + i * DG_GF_NP;
           // Rho and sJ ind
           int factors_ind = *edgeNum * DG_GF_NP + k;
 
@@ -86,12 +86,12 @@ inline void poisson_op3(const int *edgeType, const int *edgeNum,
     // gVM'*gw*tau*gVM
     for(int i = 0; i < DG_NP; i++) {
       for(int j = 0; j < DG_NP; j++) {
-        int c_ind = i * DG_NP + j;
+        int c_ind = i + j * DG_NP;
         for(int k = 0; k < DG_GF_NP; k++) {
           // gVM and gVP
-          int b_ind = k * DG_NP + j;
+          int b_ind = k + j * DG_GF_NP;
           // Transpose of gVM
-          int a_ind = k * DG_NP + i;
+          int a_ind = k + i * DG_GF_NP;
           // sJ ind
           int factors_ind = *edgeNum * DG_GF_NP + k;
 

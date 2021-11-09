@@ -5,7 +5,7 @@ inline void poisson_op1(const double *J, const double *Dx, const double *Dy,
 
   for(int m = 0; m < DG_CUB_NP; m++) {
     for(int n = 0; n < DG_NP; n++) {
-      int ind = m * DG_NP + n;
+      int ind = m + n * DG_CUB_NP;
       tmpX[ind] = J[m] * cubW_g[m] * Dx[ind] * factor[m];
       tmpY[ind] = J[m] * cubW_g[m] * Dy[ind] * factor[m];
     }
@@ -17,9 +17,9 @@ inline void poisson_op1(const double *J, const double *Dx, const double *Dy,
       op[c_ind] = 0.0;
       for(int k = 0; k < DG_CUB_NP; k++) {
         // tmpX and tmpY
-        int b_ind = k * DG_NP + j;
+        int b_ind = k + j * DG_CUB_NP;
         // Transpose of Dx and Dy
-        int a_ind = k * DG_NP + i;
+        int a_ind = k + i * DG_CUB_NP;
         op[c_ind] += Dx[a_ind] * tmpX[b_ind] + Dy[a_ind] * tmpY[b_ind];
       }
     }

@@ -40,7 +40,8 @@ inline void init_gauss_grad5_2(const int *edgeNum, const bool *rev,
 
   for(int m = 0; m < DG_GF_NP; m++) {
     for(int n = 0; n < DG_NP; n++) {
-      int ind  = m * DG_NP + n;
+      // int ind  = m * DG_NP + n;
+      int ind  = m + n * DG_GF_NP;
       int indL = edgeL * DG_GF_NP + m;
       int indR = edgeR * DG_GF_NP + m;
       int factLInd, factRInd;

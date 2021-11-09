@@ -23,7 +23,7 @@ inline void init_gauss_grad_neighbour(const int *reverse, double *rx,
   if(reverse[0]) {
     for(int m = 0; m < DG_GF_NP; m++) {
       for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
+        int ind = m + n * DG_GF_NP;
         Dx0[ind] = rx[m] * gF0DrR_g[ind] + sx[m] * gF0DsR_g[ind];
         Dy0[ind] = ry[m] * gF0DrR_g[ind] + sy[m] * gF0DsR_g[ind];
       }
@@ -31,7 +31,7 @@ inline void init_gauss_grad_neighbour(const int *reverse, double *rx,
   } else {
     for(int m = 0; m < DG_GF_NP; m++) {
       for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
+        int ind = m + n * DG_GF_NP;
         Dx0[ind] = rx[m] * gF0Dr_g[ind] + sx[m] * gF0Ds_g[ind];
         Dy0[ind] = ry[m] * gF0Dr_g[ind] + sy[m] * gF0Ds_g[ind];
       }
@@ -41,7 +41,7 @@ inline void init_gauss_grad_neighbour(const int *reverse, double *rx,
   if(reverse[1]) {
     for(int m = 0; m < DG_GF_NP; m++) {
       for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
+        int ind = m + n * DG_GF_NP;
         Dx1[ind] = rx[m + DG_GF_NP] * gF1DrR_g[ind] + sx[m + DG_GF_NP] * gF1DsR_g[ind];
         Dy1[ind] = ry[m + DG_GF_NP] * gF1DrR_g[ind] + sy[m + DG_GF_NP] * gF1DsR_g[ind];
       }
@@ -49,7 +49,7 @@ inline void init_gauss_grad_neighbour(const int *reverse, double *rx,
   } else {
     for(int m = 0; m < DG_GF_NP; m++) {
       for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
+        int ind = m + n * DG_GF_NP;
         Dx1[ind] = rx[m + DG_GF_NP] * gF1Dr_g[ind] + sx[m + DG_GF_NP] * gF1Ds_g[ind];
         Dy1[ind] = ry[m + DG_GF_NP] * gF1Dr_g[ind] + sy[m + DG_GF_NP] * gF1Ds_g[ind];
       }
@@ -59,7 +59,7 @@ inline void init_gauss_grad_neighbour(const int *reverse, double *rx,
   if(reverse[2]) {
     for(int m = 0; m < DG_GF_NP; m++) {
       for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
+        int ind = m + n * DG_GF_NP;
         Dx2[ind] = rx[m + 2 * DG_GF_NP] * gF2DrR_g[ind] + sx[m + 2 * DG_GF_NP] * gF2DsR_g[ind];
         Dy2[ind] = ry[m + 2 * DG_GF_NP] * gF2DrR_g[ind] + sy[m + 2 * DG_GF_NP] * gF2DsR_g[ind];
       }
@@ -67,7 +67,7 @@ inline void init_gauss_grad_neighbour(const int *reverse, double *rx,
   } else {
     for(int m = 0; m < DG_GF_NP; m++) {
       for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
+        int ind = m + n * DG_GF_NP;
         Dx2[ind] = rx[m + 2 * DG_GF_NP] * gF2Dr_g[ind] + sx[m + 2 * DG_GF_NP] * gF2Ds_g[ind];
         Dy2[ind] = ry[m + 2 * DG_GF_NP] * gF2Dr_g[ind] + sy[m + 2 * DG_GF_NP] * gF2Ds_g[ind];
       }

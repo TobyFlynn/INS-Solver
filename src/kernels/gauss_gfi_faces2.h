@@ -26,11 +26,11 @@ inline void gauss_gfi_faces2(const int *edgeNum, const bool *rev,
     for(int n = 0; n < DG_NP; n++) {
       int indL, indR;
       if(!reverse) {
-        indL = m * DG_NP + n;
-        indR = m * DG_NP + n;
+        indL = m + n * DG_GF_NP;
+        indR = m + n * DG_GF_NP;
       } else {
-        indL = m * DG_NP + n;
-        indR = (DG_GF_NP - 1 - m) * DG_NP + n;
+        indL = m + n * DG_GF_NP;
+        indR = (DG_GF_NP - 1 - m) + n * DG_GF_NP;
       }
 
       gVPL[indL] = gFL[indR];

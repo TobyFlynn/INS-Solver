@@ -240,14 +240,14 @@ void INSData::init() {
               op_arg_dat(nu,  -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(true, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_NP, nu, 0.0, gNu);
+  op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, nu, 0.0, gNu);
 
   // Cubature grid point init (needed for Poisson solver)
   // Initialise geometric factors for calcuating grad matrix
-  op2_gemv(true, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDR), DG_NP, mesh->x, 0.0, mesh->cubature->op_tmp[0]);
-  op2_gemv(true, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDS), DG_NP, mesh->x, 0.0, mesh->cubature->op_tmp[1]);
-  op2_gemv(true, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDR), DG_NP, mesh->y, 0.0, mesh->cubature->op_tmp[2]);
-  op2_gemv(true, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDS), DG_NP, mesh->y, 0.0, mesh->cubature->op_tmp[3]);
+  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDR), DG_CUB_NP, mesh->x, 0.0, mesh->cubature->op_tmp[0]);
+  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDS), DG_CUB_NP, mesh->x, 0.0, mesh->cubature->op_tmp[1]);
+  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDR), DG_CUB_NP, mesh->y, 0.0, mesh->cubature->op_tmp[2]);
+  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDS), DG_CUB_NP, mesh->y, 0.0, mesh->cubature->op_tmp[3]);
 
   // The Dx and Dy dats contain matrices that are used when calculating the 1st term of Eqn. 10 in Karakus et al.
   op_par_loop(init_cubature_grad, "init_cubature_grad", mesh->cells,
@@ -257,7 +257,7 @@ void INSData::init() {
               op_arg_dat(mesh->cubature->op_tmp[3], -1, OP_ID, DG_CUB_NP, "double", OP_RW),
               op_arg_dat(Dx, -1, OP_ID, DG_CUB_NP * DG_NP, "double", OP_WRITE),
               op_arg_dat(Dy, -1, OP_ID, DG_CUB_NP * DG_NP, "double", OP_WRITE));
-  // Dx and Dy are row-major at this point
+  // Dx and Dy are col-major at this point
 
   /*****************************************************************************
   *

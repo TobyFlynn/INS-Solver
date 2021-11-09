@@ -18,7 +18,7 @@ inline void init_gauss_grad4(const int *bedgeNum,
 
   for(int m = 0; m < DG_GF_NP; m++) {
     for(int n = 0; n < DG_NP; n++) {
-      int ind   = m * DG_NP + n;
+      int ind   = m + n * DG_GF_NP;
       int indBC = *bedgeNum * DG_GF_NP + m;
 
       d[ind] = nx[indBC] * Dx[ind] + ny[indBC] * Dy[ind];

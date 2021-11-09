@@ -141,8 +141,8 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->flux[0], -1, OP_ID, 3 * DG_NPF, "double", OP_RW),
               op_arg_dat(data->flux[1], -1, OP_ID, 3 * DG_NPF, "double", OP_RW));
 
-  op2_gemv(true, DG_NP, 3 * DG_NPF, 1.0, constants->get_ptr(DGConstants::LIFT), 3 * DG_NPF, data->flux[0], 1.0, data->N[currentInd][0]);
-  op2_gemv(true, DG_NP, 3 * DG_NPF, 1.0, constants->get_ptr(DGConstants::LIFT), 3 * DG_NPF, data->flux[1], 1.0, data->N[currentInd][1]);
+  op2_gemv(false, DG_NP, 3 * DG_NPF, 1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->flux[0], 1.0, data->N[currentInd][0]);
+  op2_gemv(false, DG_NP, 3 * DG_NPF, 1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->flux[1], 1.0, data->N[currentInd][1]);
 
   // Kernel to calculate surface tension force
   op_par_loop(advection_surface_tension, "advection_surface_tension", mesh->cells,
@@ -238,8 +238,8 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 3 * DG_NPF, "double", OP_RW),
               op_arg_dat(data->divVelT, -1, OP_ID, DG_NP, "double", OP_RW));
 
-  op2_gemv(true, DG_NP, 3 * DG_NPF, 1.0, constants->get_ptr(DGConstants::LIFT), 3 * DG_NPF, data->dPdN[(currentInd + 1) % 2], 1.0, data->divVelT);
-  op2_gemv(true, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::MASS), DG_NP, data->divVelT, 0.0, data->pRHS);
+  op2_gemv(false, DG_NP, 3 * DG_NPF, 1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->dPdN[(currentInd + 1) % 2], 1.0, data->divVelT);
+  op2_gemv(false, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::MASS), DG_NP, data->divVelT, 0.0, data->pRHS);
   timer->endPressureSetup();
 
   // Call PETSc linear solver
@@ -266,8 +266,8 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->pFluxX, -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_INC),
               op_arg_dat(data->pFluxY, -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_INC));
 
-  op2_gemv(true, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), 3 * DG_NPF, data->pFluxX, 1.0, data->dpdx);
-  op2_gemv(true, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), 3 * DG_NPF, data->pFluxY, 1.0, data->dpdy);
+  op2_gemv(false, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->pFluxX, 1.0, data->dpdx);
+  op2_gemv(false, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->pFluxY, 1.0, data->dpdy);
 
   // Calculate new velocity intermediate values using the pressure gradient
   // double factor = dt / g0;
@@ -320,6 +320,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->visTemp[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   // Set up RHS for viscosity solve
+  // TODO double check that mm is column-major
   op2_gemv_batch(false, DG_NP, DG_NP, 1.0, mesh->cubature->mm, DG_NP, data->visTemp[0], 0.0, data->visRHS[0]);
   op2_gemv_batch(false, DG_NP, DG_NP, 1.0, mesh->cubature->mm, DG_NP, data->visTemp[1], 0.0, data->visRHS[1]);
 

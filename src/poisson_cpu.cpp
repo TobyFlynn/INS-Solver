@@ -156,7 +156,7 @@ void PoissonSolve::setMatrix() {
       for(int n = 0; n < DG_NP; n++) {
         int row = global_ind * DG_NP + m;
         int col = global_ind * DG_NP + n;
-        double val = op1_data[i * DG_NP * DG_NP + m * DG_NP + n];
+        double val = op1_data[i * DG_NP * DG_NP + m + n * DG_NP];
         MatSetValues(Amat, 1, &row, 1, &col, &val, INSERT_VALUES);
       }
     }
@@ -188,7 +188,7 @@ void PoissonSolve::setMatrix() {
       for(int n = 0; n < DG_NP; n++) {
         int row = leftElement * DG_NP + m;
         int col = rightElement * DG_NP + n;
-        double val = op2L_data[i * DG_NP * DG_NP + m * DG_NP + n];
+        double val = op2L_data[i * DG_NP * DG_NP + m + n * DG_NP];
         MatSetValues(Amat, 1, &row, 1, &col, &val, INSERT_VALUES);
       }
     }
@@ -198,7 +198,7 @@ void PoissonSolve::setMatrix() {
       for(int n = 0; n < DG_NP; n++) {
         int row = rightElement * DG_NP + m;
         int col = leftElement * DG_NP + n;
-        double val = op2R_data[i * DG_NP * DG_NP + m * DG_NP + n];
+        double val = op2R_data[i * DG_NP * DG_NP + m + n * DG_NP];
         MatSetValues(Amat, 1, &row, 1, &col, &val, INSERT_VALUES);
       }
     }

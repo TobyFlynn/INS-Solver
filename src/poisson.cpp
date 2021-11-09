@@ -394,8 +394,8 @@ void PressureSolve::setup() {
               op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(factor,    -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(true, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_V), DG_NP, factor, 0.0, cFactor);
-  op2_gemv(true, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_NP, factor, 0.0, gFactor);
+  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_V), DG_CUB_NP, factor, 0.0, cFactor);
+  op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, factor, 0.0, gFactor);
   set_op();
 
   if(precondition) {
@@ -480,9 +480,9 @@ void ViscositySolve::setup(double mmConst) {
               op_arg_dat(factor,    -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(mmFactor,  -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(true, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_V), DG_NP, factor, 0.0, cFactor);
-  op2_gemv(true, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_NP, factor, 0.0, gFactor);
-  op2_gemv(true, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_V), DG_NP, mmFactor, 0.0, cmmFactor);
+  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_V), DG_CUB_NP, factor, 0.0, cFactor);
+  op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, factor, 0.0, gFactor);
+  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_V), DG_CUB_NP, mmFactor, 0.0, cmmFactor);
   set_op();
 
   if(precondition) {

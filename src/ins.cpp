@@ -19,7 +19,7 @@
 using namespace std;
 
 Timing *timer;
-DGConstants *constants;
+extern DGConstants *constants;
 
 extern double reynolds, froude, weber, nu0, nu1, rho0, rho1, ic_u, ic_v;
 extern double refRho, refMu, refLen, refVel, refSurfTen;
@@ -30,7 +30,6 @@ int main(int argc, char **argv) {
   timer = new Timing();
   timer->startWallTime();
   timer->startSetup();
-  constants = new DGConstants();
 
   char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
@@ -196,7 +195,6 @@ int main(int argc, char **argv) {
   op_timings_to_csv(op_out_file.c_str());
 
   delete solver;
-  delete constants;
   delete timer;
 
   ierr = PetscFinalize();
