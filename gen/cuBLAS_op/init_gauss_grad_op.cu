@@ -37,22 +37,22 @@ inline void cublas_init_gauss_grad(cublasHandle_t handle, const int numCells,
     double *gys = gys_d + c * 18;
 
     // Face 0
-    cublasDgemv(handle, CUBLAS_OP_T, 10, 6, &alpha, constants->gF0Dr_d, 10, x, 1, &beta, gxr, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 10, 6, &alpha, constants->gF0Ds_d, 10, x, 1, &beta, gxs, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 10, 6, &alpha, constants->gF0Dr_d, 10, y, 1, &beta, gyr, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 10, 6, &alpha, constants->gF0Ds_d, 10, y, 1, &beta, gys, 1);
+    cublasDgemv(handle, CUBLAS_OP_N, 6, 10, &alpha, constants->gF0Dr_d, 6, x, 1, &beta, gxr, 1);
+    cublasDgemv(handle, CUBLAS_OP_N, 6, 10, &alpha, constants->gF0Ds_d, 6, x, 1, &beta, gxs, 1);
+    cublasDgemv(handle, CUBLAS_OP_N, 6, 10, &alpha, constants->gF0Dr_d, 6, y, 1, &beta, gyr, 1);
+    cublasDgemv(handle, CUBLAS_OP_N, 6, 10, &alpha, constants->gF0Ds_d, 6, y, 1, &beta, gys, 1);
 
     // Face 1
-    cublasDgemv(handle, CUBLAS_OP_T, 10, 6, &alpha, constants->gF1Dr_d, 10, x, 1, &beta, gxr + 6, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 10, 6, &alpha, constants->gF1Ds_d, 10, x, 1, &beta, gxs + 6, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 10, 6, &alpha, constants->gF1Dr_d, 10, y, 1, &beta, gyr + 6, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 10, 6, &alpha, constants->gF1Ds_d, 10, y, 1, &beta, gys + 6, 1);
+    cublasDgemv(handle, CUBLAS_OP_N, 6, 10, &alpha, constants->gF1Dr_d, 6, x, 1, &beta, gxr + 6, 1);
+    cublasDgemv(handle, CUBLAS_OP_N, 6, 10, &alpha, constants->gF1Ds_d, 6, x, 1, &beta, gxs + 6, 1);
+    cublasDgemv(handle, CUBLAS_OP_N, 6, 10, &alpha, constants->gF1Dr_d, 6, y, 1, &beta, gyr + 6, 1);
+    cublasDgemv(handle, CUBLAS_OP_N, 6, 10, &alpha, constants->gF1Ds_d, 6, y, 1, &beta, gys + 6, 1);
 
     // Face 2
-    cublasDgemv(handle, CUBLAS_OP_T, 10, 6, &alpha, constants->gF2Dr_d, 10, x, 1, &beta, gxr + 2 * 6, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 10, 6, &alpha, constants->gF2Ds_d, 10, x, 1, &beta, gxs + 2 * 6, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 10, 6, &alpha, constants->gF2Dr_d, 10, y, 1, &beta, gyr + 2 * 6, 1);
-    cublasDgemv(handle, CUBLAS_OP_T, 10, 6, &alpha, constants->gF2Ds_d, 10, y, 1, &beta, gys + 2 * 6, 1);
+    cublasDgemv(handle, CUBLAS_OP_N, 6, 10, &alpha, constants->gF2Dr_d, 6, x, 1, &beta, gxr + 2 * 6, 1);
+    cublasDgemv(handle, CUBLAS_OP_N, 6, 10, &alpha, constants->gF2Ds_d, 6, x, 1, &beta, gxs + 2 * 6, 1);
+    cublasDgemv(handle, CUBLAS_OP_N, 6, 10, &alpha, constants->gF2Dr_d, 6, y, 1, &beta, gyr + 2 * 6, 1);
+    cublasDgemv(handle, CUBLAS_OP_N, 6, 10, &alpha, constants->gF2Ds_d, 6, y, 1, &beta, gys + 2 * 6, 1);
   }
 }
 

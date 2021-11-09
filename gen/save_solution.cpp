@@ -332,14 +332,16 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, L
   double *y_g    = (double *)malloc(10 * numCells * sizeof(double));
   double *s_g    = (double *)calloc(10 * numCells, sizeof(double));
 
-  op_fetch_data(data->Q[ind][0], Ux_g);
-  op_fetch_data(data->Q[ind][1], Uy_g);
+  // op_fetch_data(data->Q[ind][0], Ux_g);
+  // op_fetch_data(data->Q[ind][1], Uy_g);
+  op_fetch_data(ls->nx, Ux_g);
+  op_fetch_data(ls->ny, Uy_g);
   op_fetch_data(data->p, pr_g);
   op_fetch_data(data->vorticity, vort_g);
   op_fetch_data(mesh->x, x_g);
   op_fetch_data(mesh->y, y_g);
   if(ls) {
-    op_fetch_data(ls->step_s, s_g);
+    op_fetch_data(ls->s, s_g);
   }
 
   if(DG_ORDER == 4) {

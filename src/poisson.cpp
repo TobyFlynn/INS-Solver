@@ -365,6 +365,7 @@ void PoissonSolve::set_op() {
     op_par_loop(poisson_op4, "poisson_op4", mesh->cells,
                 op_arg_dat(mesh->cubature->J, -1, OP_ID, DG_CUB_NP, "double", OP_READ),
                 op_arg_dat(cmmFactor, -1, OP_ID, DG_CUB_NP, "double", OP_READ),
+                op_arg_dat(factor,    -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_dat(op1,       -1, OP_ID, DG_NP * DG_NP, "double", OP_INC),
                 op_arg_dat(tmp,       -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE));
 

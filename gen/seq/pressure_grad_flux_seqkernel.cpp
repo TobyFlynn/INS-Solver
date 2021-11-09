@@ -60,7 +60,7 @@ void op_par_loop_pressure_grad_flux(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(40);
+  op_timing_realloc(69);
   op_timers_core(&cpu_t1, &wall_t1);
 
   if (OP_diags>2) {
@@ -119,16 +119,16 @@ void op_par_loop_pressure_grad_flux(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[40].name      = name;
-  OP_kernels[40].count    += 1;
-  OP_kernels[40].time     += wall_t2 - wall_t1;
-  OP_kernels[40].transfer += (float)set->size * arg2.size;
-  OP_kernels[40].transfer += (float)set->size * arg4.size;
-  OP_kernels[40].transfer += (float)set->size * arg6.size;
-  OP_kernels[40].transfer += (float)set->size * arg8.size;
-  OP_kernels[40].transfer += (float)set->size * arg10.size * 2.0f;
-  OP_kernels[40].transfer += (float)set->size * arg12.size * 2.0f;
-  OP_kernels[40].transfer += (float)set->size * arg0.size;
-  OP_kernels[40].transfer += (float)set->size * arg1.size;
-  OP_kernels[40].transfer += (float)set->size * arg2.map->dim * 4.0f;
+  OP_kernels[69].name      = name;
+  OP_kernels[69].count    += 1;
+  OP_kernels[69].time     += wall_t2 - wall_t1;
+  OP_kernels[69].transfer += (float)set->size * arg2.size;
+  OP_kernels[69].transfer += (float)set->size * arg4.size;
+  OP_kernels[69].transfer += (float)set->size * arg6.size;
+  OP_kernels[69].transfer += (float)set->size * arg8.size;
+  OP_kernels[69].transfer += (float)set->size * arg10.size * 2.0f;
+  OP_kernels[69].transfer += (float)set->size * arg12.size * 2.0f;
+  OP_kernels[69].transfer += (float)set->size * arg0.size;
+  OP_kernels[69].transfer += (float)set->size * arg1.size;
+  OP_kernels[69].transfer += (float)set->size * arg2.map->dim * 4.0f;
 }

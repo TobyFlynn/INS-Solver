@@ -6,4 +6,6 @@ inline void calc_h(const double *x, const double *y, double *dt) {
   double area = sqrt(sper * (sper - len0) * (sper - len1) * (sper - len2));
   if(*dt > area / sper)
     *dt = area / sper;
+  // if(*dt < area / sper)
+  //   *dt = area / sper;
 }

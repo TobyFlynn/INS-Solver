@@ -13,6 +13,8 @@ inline void calc_h_openacc( const double *x, const double *y, double *dt) {
   double area = sqrt(sper * (sper - len0) * (sper - len1) * (sper - len2));
   if(*dt > area / sper)
     *dt = area / sper;
+
+
 }
 
 // host stub function
@@ -31,10 +33,10 @@ void op_par_loop_calc_h(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(46);
+  op_timing_realloc(9);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[46].name      = name;
-  OP_kernels[46].count    += 1;
+  OP_kernels[9].name      = name;
+  OP_kernels[9].count    += 1;
 
 
   if (OP_diags>2) {
@@ -52,7 +54,7 @@ void op_par_loop_calc_h(char const *name, op_set set,
 
     double* data0 = (double*)arg0.data_d;
     double* data1 = (double*)arg1.data_d;
-    #pragma acc parallel loop independent deviceptr(data0,data1) reduction(min:arg2_l)
+    #pragma acc parallel loop independent deviceptr(data0,data1) reduction(max:arg2_l)
     for ( int n=0; n<set->size; n++ ){
       calc_h_openacc(
         &data0[3*n],
@@ -62,13 +64,13 @@ void op_par_loop_calc_h(char const *name, op_set set,
   }
 
   // combine reduction data
-  arg2h[0]  = MIN(arg2h[0],arg2_l);
+  arg2h[0]  = MAX(arg2h[0],arg2_l);
   op_mpi_reduce_double(&arg2,arg2h);
   op_mpi_set_dirtybit_cuda(nargs, args);
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[46].time     += wall_t2 - wall_t1;
-  OP_kernels[46].transfer += (float)set->size * arg0.size;
-  OP_kernels[46].transfer += (float)set->size * arg1.size;
+  OP_kernels[9].time     += wall_t2 - wall_t1;
+  OP_kernels[9].transfer += (float)set->size * arg0.size;
+  OP_kernels[9].transfer += (float)set->size * arg1.size;
 }

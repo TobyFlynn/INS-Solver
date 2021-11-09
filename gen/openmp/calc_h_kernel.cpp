@@ -21,9 +21,9 @@ void op_par_loop_calc_h(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(46);
-  OP_kernels[46].name      = name;
-  OP_kernels[46].count    += 1;
+  op_timing_realloc(9);
+  OP_kernels[9].name      = name;
+  OP_kernels[9].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
 
@@ -66,7 +66,7 @@ void op_par_loop_calc_h(char const *name, op_set set,
   // combine reduction data
   for ( int thr=0; thr<nthreads; thr++ ){
     for ( int d=0; d<1; d++ ){
-      arg2h[d]  = MIN(arg2h[d],arg2_l[d+thr*64]);
+      arg2h[d]  = MAX(arg2h[d],arg2_l[d+thr*64]);
     }
   }
   op_mpi_reduce(&arg2,arg2h);
@@ -74,7 +74,7 @@ void op_par_loop_calc_h(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[46].time     += wall_t2 - wall_t1;
-  OP_kernels[46].transfer += (float)set->size * arg0.size;
-  OP_kernels[46].transfer += (float)set->size * arg1.size;
+  OP_kernels[9].time     += wall_t2 - wall_t1;
+  OP_kernels[9].transfer += (float)set->size * arg0.size;
+  OP_kernels[9].transfer += (float)set->size * arg1.size;
 }

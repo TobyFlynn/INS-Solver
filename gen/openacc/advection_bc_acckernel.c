@@ -94,10 +94,10 @@ void op_par_loop_advection_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(31);
+  op_timing_realloc(61);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[31].name      = name;
-  OP_kernels[31].count    += 1;
+  OP_kernels[61].name      = name;
+  OP_kernels[61].count    += 1;
 
   int  ninds   = 7;
   int  inds[11] = {-1,-1,-1,-1,0,1,2,3,4,5,6};
@@ -107,8 +107,8 @@ void op_par_loop_advection_bc(char const *name, op_set set,
   }
 
   // get plan
-  #ifdef OP_PART_SIZE_31
-    int part_size = OP_PART_SIZE_31;
+  #ifdef OP_PART_SIZE_61
+    int part_size = OP_PART_SIZE_61;
   #else
     int part_size = OP_part_size;
   #endif
@@ -171,8 +171,8 @@ void op_par_loop_advection_bc(char const *name, op_set set,
       }
 
     }
-    OP_kernels[31].transfer  += Plan->transfer;
-    OP_kernels[31].transfer2 += Plan->transfer2;
+    OP_kernels[61].transfer  += Plan->transfer;
+    OP_kernels[61].transfer2 += Plan->transfer2;
   }
 
   if (set_size == 0 || set_size == set->core_size || ncolors == 1) {
@@ -183,5 +183,5 @@ void op_par_loop_advection_bc(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[31].time     += wall_t2 - wall_t1;
+  OP_kernels[61].time     += wall_t2 - wall_t1;
 }

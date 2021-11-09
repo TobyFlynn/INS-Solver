@@ -49,15 +49,15 @@ void gauss_gfi_faces2_omp4_kernel(
       gFL = gFInterp2_g_ompkernel;
     }
 
-    for(int m = 0; m < 6; m++) {
-      for(int n = 0; n < 10; n++) {
+    for(int j = 0; j < 10; j++) {
+      for(int i = 0; i < 6; i++) {
         int indL, indR;
         if(!reverse) {
-          indL = m * 10 + n;
-          indR = m * 10 + n;
+          indL = j * 6 + i;
+          indR = j * 6 + i;
         } else {
-          indL = m * 10 + n;
-          indR = (6 - 1 - m) * 10 + n;
+          indL = j * 6 + i;
+          indR = j * 6 + (10 - 1 - i);
         }
 
         gVPL[indL] = gFL[indR];

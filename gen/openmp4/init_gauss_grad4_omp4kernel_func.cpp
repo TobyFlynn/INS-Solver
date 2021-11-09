@@ -67,10 +67,10 @@ void init_gauss_grad4_omp4_kernel(
       Dy = Dy2;
     }
 
-    for(int m = 0; m < 6; m++) {
-      for(int n = 0; n < 10; n++) {
-        int ind   = m * 10 + n;
-        int indBC = *bedgeNum * 6 + m;
+    for(int j = 0; j < 10; j++) {
+      for(int i = 0; i < 6; i++) {
+        int ind   = j * 6 + i;
+        int indBC = *bedgeNum * 6 + i;
 
         d[ind] = nx[indBC] * Dx[ind] + ny[indBC] * Dy[ind];
       }

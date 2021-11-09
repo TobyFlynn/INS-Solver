@@ -11,19 +11,22 @@ void poisson_op4_omp4_kernel(
   int dat2size,
   double *data3,
   int dat3size,
+  double *data4,
+  int dat4size,
   int count,
   int num_teams,
   int nthread){
 
-  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size]) \
+  #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size],data2[0:dat2size],data3[0:dat3size],data4[0:dat4size]) \
     map(to: cubW_g_ompkernel[:36], cubV_g_ompkernel[:360])
   #pragma omp distribute parallel for schedule(static,1)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const double *cJ = &data0[36*n_op];
     const double *factor = &data1[36*n_op];
-    double *op = &data2[100*n_op];
-    double *tmp = &data3[100*n_op];
+    const double *fact = &data2[10*n_op];
+    double *op = &data3[100*n_op];
+    double *tmp = &data4[100*n_op];
 
     //inline function
     
@@ -33,6 +36,7 @@ void poisson_op4_omp4_kernel(
       for(int n = 0; n < 10; n++) {
         int ind = m * 10 + n;
         cTmp[ind] = factor[m] * cJ[m] * cubW_g_ompkernel[m] * cubV_g_ompkernel[ind];
+
       }
     }
 

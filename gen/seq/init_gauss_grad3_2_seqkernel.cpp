@@ -56,7 +56,7 @@ void op_par_loop_init_gauss_grad3_2(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(16);
+  op_timing_realloc(46);
   op_timers_core(&cpu_t1, &wall_t1);
 
   if (OP_diags>2) {
@@ -110,20 +110,20 @@ void op_par_loop_init_gauss_grad3_2(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[16].name      = name;
-  OP_kernels[16].count    += 1;
-  OP_kernels[16].time     += wall_t2 - wall_t1;
-  OP_kernels[16].transfer += (float)set->size * arg1.size;
-  OP_kernels[16].transfer += (float)set->size * arg3.size;
-  OP_kernels[16].transfer += (float)set->size * arg5.size;
-  OP_kernels[16].transfer += (float)set->size * arg7.size;
-  OP_kernels[16].transfer += (float)set->size * arg9.size;
-  OP_kernels[16].transfer += (float)set->size * arg11.size;
-  OP_kernels[16].transfer += (float)set->size * arg13.size;
-  OP_kernels[16].transfer += (float)set->size * arg15.size;
-  OP_kernels[16].transfer += (float)set->size * arg17.size;
-  OP_kernels[16].transfer += (float)set->size * arg0.size;
-  OP_kernels[16].transfer += (float)set->size * arg19.size;
-  OP_kernels[16].transfer += (float)set->size * arg20.size;
-  OP_kernels[16].transfer += (float)set->size * arg1.map->dim * 4.0f;
+  OP_kernels[46].name      = name;
+  OP_kernels[46].count    += 1;
+  OP_kernels[46].time     += wall_t2 - wall_t1;
+  OP_kernels[46].transfer += (float)set->size * arg1.size;
+  OP_kernels[46].transfer += (float)set->size * arg3.size;
+  OP_kernels[46].transfer += (float)set->size * arg5.size;
+  OP_kernels[46].transfer += (float)set->size * arg7.size;
+  OP_kernels[46].transfer += (float)set->size * arg9.size;
+  OP_kernels[46].transfer += (float)set->size * arg11.size;
+  OP_kernels[46].transfer += (float)set->size * arg13.size;
+  OP_kernels[46].transfer += (float)set->size * arg15.size;
+  OP_kernels[46].transfer += (float)set->size * arg17.size;
+  OP_kernels[46].transfer += (float)set->size * arg0.size;
+  OP_kernels[46].transfer += (float)set->size * arg19.size;
+  OP_kernels[46].transfer += (float)set->size * arg20.size;
+  OP_kernels[46].transfer += (float)set->size * arg1.map->dim * 4.0f;
 }

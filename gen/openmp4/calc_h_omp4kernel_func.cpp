@@ -14,8 +14,8 @@ void calc_h_omp4_kernel(
 
   double arg2_l = *arg2;
   #pragma omp target teams num_teams(num_teams) thread_limit(nthread) map(to:data0[0:dat0size],data1[0:dat1size])\
-    map(tofrom: arg2_l) reduction(min:arg2_l)
-  #pragma omp distribute parallel for schedule(static,1) reduction(min:arg2_l)
+    map(tofrom: arg2_l) reduction(max:arg2_l)
+  #pragma omp distribute parallel for schedule(static,1) reduction(max:arg2_l)
   for ( int n_op=0; n_op<count; n_op++ ){
     //variable mapping
     const double *x = &data0[3*n_op];

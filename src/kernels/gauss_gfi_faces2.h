@@ -22,15 +22,15 @@ inline void gauss_gfi_faces2(const int *edgeNum, const bool *rev,
     gFL = gFInterp2_g;
   }
 
-  for(int m = 0; m < DG_GF_NP; m++) {
-    for(int n = 0; n < DG_NP; n++) {
+  for(int j = 0; j < DG_NP; j++) {
+    for(int i = 0; i < DG_GF_NP; i++) {
       int indL, indR;
       if(!reverse) {
-        indL = m * DG_NP + n;
-        indR = m * DG_NP + n;
+        indL = j * DG_GF_NP + i;
+        indR = j * DG_GF_NP + i;
       } else {
-        indL = m * DG_NP + n;
-        indR = (DG_GF_NP - 1 - m) * DG_NP + n;
+        indL = j * DG_GF_NP + i;
+        indR = j * DG_GF_NP + (DG_NP - 1 - i);
       }
 
       gVPL[indL] = gFL[indR];

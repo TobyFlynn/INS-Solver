@@ -12,6 +12,8 @@ __device__ void calc_h_gpu( const double *x, const double *y, double *dt) {
   if(*dt > area / sper)
     *dt = area / sper;
 
+
+
 }
 
 // CUDA kernel function
@@ -38,7 +40,7 @@ __global__ void op_cuda_calc_h(
   //global reductions
 
   for ( int d=0; d<1; d++ ){
-    op_reduction<OP_MIN>(&arg2[d+blockIdx.x*1],arg2_l[d]);
+    op_reduction<OP_MAX>(&arg2[d+blockIdx.x*1],arg2_l[d]);
   }
 }
 
@@ -59,10 +61,10 @@ void op_par_loop_calc_h(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(46);
+  op_timing_realloc(9);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[46].name      = name;
-  OP_kernels[46].count    += 1;
+  OP_kernels[9].name      = name;
+  OP_kernels[9].count    += 1;
 
 
   if (OP_diags>2) {
@@ -73,8 +75,8 @@ void op_par_loop_calc_h(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_46
-      int nthread = OP_BLOCK_SIZE_46;
+    #ifdef OP_BLOCK_SIZE_9
+      int nthread = OP_BLOCK_SIZE_9;
     #else
       int nthread = OP_block_size;
     #endif
@@ -109,7 +111,7 @@ void op_par_loop_calc_h(char const *name, op_set set,
     mvReductArraysToHost(reduct_bytes);
     for ( int b=0; b<maxblocks; b++ ){
       for ( int d=0; d<1; d++ ){
-        arg2h[d] = MIN(arg2h[d],((double *)arg2.data)[d+b*1]);
+        arg2h[d] = MAX(arg2h[d],((double *)arg2.data)[d+b*1]);
       }
     }
     arg2.data = (char *)arg2h;
@@ -119,7 +121,7 @@ void op_par_loop_calc_h(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[46].time     += wall_t2 - wall_t1;
-  OP_kernels[46].transfer += (float)set->size * arg0.size;
-  OP_kernels[46].transfer += (float)set->size * arg1.size;
+  OP_kernels[9].time     += wall_t2 - wall_t1;
+  OP_kernels[9].transfer += (float)set->size * arg0.size;
+  OP_kernels[9].transfer += (float)set->size * arg1.size;
 }

@@ -72,8 +72,9 @@ void LS::init() {
   rk[2] = data->tmp_dg_np[2];
   rkQ   = data->tmp_dg_np[3];
 
-  exAdvec = data->tmp_dg_npf[0];
-  nFlux   = data->tmp_dg_npf[1];
+  exAdvec  = data->tmp_dg_npf[0];
+  nFlux    = data->tmp_dg_npf[1];
+  stepFlux = data->tmp_dg_npf[0];
 
   dFdr = data->tmp_dg_np[4];
   dFds = data->tmp_dg_np[5];
@@ -106,10 +107,11 @@ void LS::init() {
   gSigmay = data->tmp_dg_g_np[3];
 
   h = std::numeric_limits<double>::max();
+  // h = 0.0;
   op_par_loop(calc_h, "calc_h", mesh->cells,
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_gbl(&h, 1, "double", OP_MIN));
+              op_arg_gbl(&h, 1, "double", OP_MAX));
 
   // alpha = 8.0 * h;
   alpha = 2.0 * h / DG_ORDER;
@@ -162,8 +164,8 @@ void LS::step(double dt) {
               op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(rk[2], -1, OP_ID, DG_NP, "double", OP_READ));
 
-  if(reinit_needed())
-    reinit_ls();
+  // if(reinit_needed())
+  //   reinit_ls();
 
   update_values();
 }
@@ -196,10 +198,10 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(F,     -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(G,     -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(true, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::DRW), DG_NP, F, 0.0, dFdr);
-  op2_gemv(true, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::DSW), DG_NP, F, 0.0, dFds);
-  op2_gemv(true, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::DRW), DG_NP, G, 0.0, dGdr);
-  op2_gemv(true, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::DSW), DG_NP, G, 0.0, dGds);
+  op2_gemv(false, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::DRW), DG_NP, F, 0.0, dFdr);
+  op2_gemv(false, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::DSW), DG_NP, F, 0.0, dFds);
+  op2_gemv(false, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::DRW), DG_NP, G, 0.0, dGdr);
+  op2_gemv(false, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::DSW), DG_NP, G, 0.0, dGds);
 
   // Calculate vectors F an G from q for each cell
   op_par_loop(ls_advec_rhs, "ls_advec_rhs", mesh->cells,
@@ -221,9 +223,9 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(nFlux,        -1, OP_ID, 3 * DG_NPF, "double", OP_WRITE),
               op_arg_dat(output,       -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(true, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), 3 * DG_NPF, nFlux, 1.0, output);
+  op2_gemv(false, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, nFlux, 1.0, output);
 }
-
+// TODO below change to col-major
 void LS::reinit_ls() {
   calc_local_diff_const();
 
@@ -435,15 +437,31 @@ bool LS::reinit_needed() {
   return abs(1.0 - res) > 0.01;
 }
 
+// Just this func updated
 void LS::update_values() {
   op_par_loop(ls_step, "ls_step", mesh->cells,
               op_arg_gbl(&alpha, 1, "double", OP_READ),
               op_arg_dat(s,         -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(step_s,    -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(step_s,    -1, OP_ID, DG_NP, "double", OP_WRITE));
+  /*
+  op_par_loop(zero_npf1, "zero_npf1", mesh->cells,
+              op_arg_dat(stepFlux, -1, OP_ID, 3 * DG_NPF, "double", OP_WRITE));
+
+  op_par_loop(ls_step_flux, "ls_step_flux", mesh->edges,
+              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(mesh->fscale,  -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_READ),
+              op_arg_dat(step_s,        -2, mesh->edge2cells, DG_NP, "double", OP_READ),
+              op_arg_dat(stepFlux,      -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_INC));
+
+  op2_gemv(false, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, stepFlux, 1.0, step_s);
+  */
+  op_par_loop(ls_fluid_prop, "ls_fluid_prop", mesh->cells,
+              op_arg_dat(step_s,    -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->nu,  -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(true, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_NP, data->nu, 0.0, data->gNu);
+  op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->nu, 0.0, data->gNu);
 
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
   grad(mesh, s, nx, ny);

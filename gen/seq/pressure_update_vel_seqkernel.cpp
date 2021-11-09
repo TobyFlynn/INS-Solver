@@ -32,7 +32,7 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(41);
+  op_timing_realloc(70);
   op_timers_core(&cpu_t1, &wall_t1);
 
 
@@ -63,15 +63,15 @@ void op_par_loop_pressure_update_vel(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[41].name      = name;
-  OP_kernels[41].count    += 1;
-  OP_kernels[41].time     += wall_t2 - wall_t1;
-  OP_kernels[41].transfer += (float)set->size * arg1.size;
-  OP_kernels[41].transfer += (float)set->size * arg2.size;
-  OP_kernels[41].transfer += (float)set->size * arg3.size;
-  OP_kernels[41].transfer += (float)set->size * arg4.size;
-  OP_kernels[41].transfer += (float)set->size * arg5.size;
-  OP_kernels[41].transfer += (float)set->size * arg6.size * 2.0f;
-  OP_kernels[41].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[41].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[70].name      = name;
+  OP_kernels[70].count    += 1;
+  OP_kernels[70].time     += wall_t2 - wall_t1;
+  OP_kernels[70].transfer += (float)set->size * arg1.size;
+  OP_kernels[70].transfer += (float)set->size * arg2.size;
+  OP_kernels[70].transfer += (float)set->size * arg3.size;
+  OP_kernels[70].transfer += (float)set->size * arg4.size;
+  OP_kernels[70].transfer += (float)set->size * arg5.size;
+  OP_kernels[70].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[70].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[70].transfer += (float)set->size * arg8.size * 2.0f;
 }

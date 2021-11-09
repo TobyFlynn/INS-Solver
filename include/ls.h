@@ -28,7 +28,7 @@ public:
   op_dat dsdx, dsdy, sign, gS;
   op_dat dsldx, dsrdx, dsldy, dsrdy, dpldx, dprdx, dpldy, dprdy;
   op_dat sigmax, sigmay, sigmaFx, sigmaFy, gSigmax, gSigmay, sigTmp, gSigTmp, diff, diffF;
-  op_dat modal, local_vis;
+  op_dat modal, local_vis, stepFlux;
 
   double alpha;
 private:

@@ -22,10 +22,10 @@ void op_par_loop_zero_g_np1(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(36);
+  op_timing_realloc(28);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[36].name      = name;
-  OP_kernels[36].count    += 1;
+  OP_kernels[28].name      = name;
+  OP_kernels[28].count    += 1;
 
 
   if (OP_diags>2) {
@@ -53,6 +53,6 @@ void op_par_loop_zero_g_np1(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[36].time     += wall_t2 - wall_t1;
-  OP_kernels[36].transfer += (float)set->size * arg0.size * 2.0f;
+  OP_kernels[28].time     += wall_t2 - wall_t1;
+  OP_kernels[28].transfer += (float)set->size * arg0.size * 2.0f;
 }

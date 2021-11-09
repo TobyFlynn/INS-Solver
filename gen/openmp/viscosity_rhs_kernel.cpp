@@ -26,9 +26,9 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(44);
-  OP_kernels[44].name      = name;
-  OP_kernels[44].count    += 1;
+  op_timing_realloc(72);
+  OP_kernels[72].name      = name;
+  OP_kernels[72].count    += 1;
   op_timers_core(&cpu_t1, &wall_t1);
 
 
@@ -68,10 +68,10 @@ void op_par_loop_viscosity_rhs(char const *name, op_set set,
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[44].time     += wall_t2 - wall_t1;
-  OP_kernels[44].transfer += (float)set->size * arg1.size;
-  OP_kernels[44].transfer += (float)set->size * arg2.size;
-  OP_kernels[44].transfer += (float)set->size * arg3.size;
-  OP_kernels[44].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[44].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[72].time     += wall_t2 - wall_t1;
+  OP_kernels[72].transfer += (float)set->size * arg1.size;
+  OP_kernels[72].transfer += (float)set->size * arg2.size;
+  OP_kernels[72].transfer += (float)set->size * arg3.size;
+  OP_kernels[72].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[72].transfer += (float)set->size * arg5.size * 2.0f;
 }

@@ -50,11 +50,11 @@ void init_cubature_grad_omp4_kernel(
       sy[i] = sy_n;
     }
 
-    for(int m = 0; m < 36; m++) {
-      for(int n = 0; n < 10; n++) {
-        int ind = m * 10 + n;
-        Dx[ind] = rx[m] * cubVDr_g_ompkernel[ind] + sx[m] * cubVDs_g_ompkernel[ind];
-        Dy[ind] = ry[m] * cubVDr_g_ompkernel[ind] + sy[m] * cubVDs_g_ompkernel[ind];
+    for(int j = 0; j < 10; j++) {
+      for(int i = 0; i < 36; i++) {
+        int ind = j * 36 + i;
+        Dx[ind] = rx[i] * cubVDr_g_ompkernel[ind] + sx[i] * cubVDs_g_ompkernel[ind];
+        Dy[ind] = ry[i] * cubVDr_g_ompkernel[ind] + sy[i] * cubVDs_g_ompkernel[ind];
       }
     }
     //end inline func

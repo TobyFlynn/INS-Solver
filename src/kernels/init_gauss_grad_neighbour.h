@@ -21,55 +21,55 @@ inline void init_gauss_grad_neighbour(const int *reverse, double *rx,
   }
 
   if(reverse[0]) {
-    for(int m = 0; m < DG_GF_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
-        Dx0[ind] = rx[m] * gF0DrR_g[ind] + sx[m] * gF0DsR_g[ind];
-        Dy0[ind] = ry[m] * gF0DrR_g[ind] + sy[m] * gF0DsR_g[ind];
+    for(int j = 0; j < DG_NP; j++) {
+      for(int i = 0; i < DG_GF_NP; i++) {
+        int ind = j * DG_GF_NP + i;
+        Dx0[ind] = rx[i] * gF0DrR_g[ind] + sx[i] * gF0DsR_g[ind];
+        Dy0[ind] = ry[i] * gF0DrR_g[ind] + sy[i] * gF0DsR_g[ind];
       }
     }
   } else {
-    for(int m = 0; m < DG_GF_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
-        Dx0[ind] = rx[m] * gF0Dr_g[ind] + sx[m] * gF0Ds_g[ind];
-        Dy0[ind] = ry[m] * gF0Dr_g[ind] + sy[m] * gF0Ds_g[ind];
+    for(int j = 0; j < DG_NP; j++) {
+      for(int i = 0; i < DG_GF_NP; i++) {
+        int ind = j * DG_GF_NP + i;
+        Dx0[ind] = rx[i] * gF0Dr_g[ind] + sx[i] * gF0Ds_g[ind];
+        Dy0[ind] = ry[i] * gF0Dr_g[ind] + sy[i] * gF0Ds_g[ind];
       }
     }
   }
 
   if(reverse[1]) {
-    for(int m = 0; m < DG_GF_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
-        Dx1[ind] = rx[m + DG_GF_NP] * gF1DrR_g[ind] + sx[m + DG_GF_NP] * gF1DsR_g[ind];
-        Dy1[ind] = ry[m + DG_GF_NP] * gF1DrR_g[ind] + sy[m + DG_GF_NP] * gF1DsR_g[ind];
+    for(int j = 0; j < DG_NP; j++) {
+      for(int i = 0; i < DG_GF_NP; i++) {
+        int ind = j * DG_GF_NP + i;
+        Dx1[ind] = rx[i + DG_GF_NP] * gF1DrR_g[ind] + sx[i + DG_GF_NP] * gF1DsR_g[ind];
+        Dy1[ind] = ry[i + DG_GF_NP] * gF1DrR_g[ind] + sy[i + DG_GF_NP] * gF1DsR_g[ind];
       }
     }
   } else {
-    for(int m = 0; m < DG_GF_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
-        Dx1[ind] = rx[m + DG_GF_NP] * gF1Dr_g[ind] + sx[m + DG_GF_NP] * gF1Ds_g[ind];
-        Dy1[ind] = ry[m + DG_GF_NP] * gF1Dr_g[ind] + sy[m + DG_GF_NP] * gF1Ds_g[ind];
+    for(int j = 0; j < DG_NP; j++) {
+      for(int i = 0; i < DG_GF_NP; i++) {
+        int ind = j * DG_GF_NP + i;
+        Dx1[ind] = rx[i + DG_GF_NP] * gF1Dr_g[ind] + sx[i + DG_GF_NP] * gF1Ds_g[ind];
+        Dy1[ind] = ry[i + DG_GF_NP] * gF1Dr_g[ind] + sy[i + DG_GF_NP] * gF1Ds_g[ind];
       }
     }
   }
 
   if(reverse[2]) {
-    for(int m = 0; m < DG_GF_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
-        Dx2[ind] = rx[m + 2 * DG_GF_NP] * gF2DrR_g[ind] + sx[m + 2 * DG_GF_NP] * gF2DsR_g[ind];
-        Dy2[ind] = ry[m + 2 * DG_GF_NP] * gF2DrR_g[ind] + sy[m + 2 * DG_GF_NP] * gF2DsR_g[ind];
+    for(int j = 0; j < DG_NP; j++) {
+      for(int i = 0; i < DG_GF_NP; i++) {
+        int ind = j * DG_GF_NP + i;
+        Dx2[ind] = rx[i + 2 * DG_GF_NP] * gF2DrR_g[ind] + sx[i + 2 * DG_GF_NP] * gF2DsR_g[ind];
+        Dy2[ind] = ry[i + 2 * DG_GF_NP] * gF2DrR_g[ind] + sy[i + 2 * DG_GF_NP] * gF2DsR_g[ind];
       }
     }
   } else {
-    for(int m = 0; m < DG_GF_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
-        Dx2[ind] = rx[m + 2 * DG_GF_NP] * gF2Dr_g[ind] + sx[m + 2 * DG_GF_NP] * gF2Ds_g[ind];
-        Dy2[ind] = ry[m + 2 * DG_GF_NP] * gF2Dr_g[ind] + sy[m + 2 * DG_GF_NP] * gF2Ds_g[ind];
+    for(int j = 0; j < DG_NP; j++) {
+      for(int i = 0; i < DG_GF_NP; i++) {
+        int ind = j * DG_GF_NP + i;
+        Dx2[ind] = rx[i + 2 * DG_GF_NP] * gF2Dr_g[ind] + sx[i + 2 * DG_GF_NP] * gF2Ds_g[ind];
+        Dy2[ind] = ry[i + 2 * DG_GF_NP] * gF2Dr_g[ind] + sy[i + 2 * DG_GF_NP] * gF2Ds_g[ind];
       }
     }
   }

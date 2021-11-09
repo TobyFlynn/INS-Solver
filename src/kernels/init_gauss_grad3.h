@@ -36,11 +36,11 @@ inline void init_gauss_grad3(const int *edgeNum,
     DyR = Dy2R;
   }
 
-  for(int m = 0; m < DG_GF_NP; m++) {
-    for(int n = 0; n < DG_NP; n++) {
-      int ind  = m * DG_NP + n;
-      int indL = edgeL * DG_GF_NP + m;
-      int indR = edgeR * DG_GF_NP + m;
+  for(int j = 0; j < DG_NP; j++) {
+    for(int i = 0; i < DG_GF_NP; i++) {
+      int ind  = j * DG_GF_NP + i;
+      int indL = edgeL * DG_GF_NP + i;
+      int indR = edgeR * DG_GF_NP + i;
 
       dL[ind] = nxL[indL] * DxL[ind] + nyL[indL] * DyL[ind];
       dR[ind] = nxR[indR] * DxR[ind] + nyR[indR] * DyR[ind];

@@ -38,7 +38,7 @@ extern "C" {
 using namespace std;
 
 Timing *timer;
-DGConstants *constants;
+extern DGConstants *constants;
 
 extern double reynolds, froude, weber, nu0, nu1, rho0, rho1, ic_u, ic_v;
 extern double refRho, refMu, refLen, refVel, refSurfTen;
@@ -49,7 +49,6 @@ int main(int argc, char **argv) {
   timer = new Timing();
   timer->startWallTime();
   timer->startSetup();
-  constants = new DGConstants();
 
   char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
@@ -65,7 +64,7 @@ int main(int argc, char **argv) {
   nu1 = 1.0;
   rho1 = 1.0;
 
-  ic_u = 0.0;
+  ic_u = 1.0;
   ic_v = 0.0;
 
   refRho     = 1.204;
@@ -156,27 +155,27 @@ int main(int argc, char **argv) {
       b1 = -1.0;
     }
     timer->startAdvection();
-    solver->advection(currentIter % 2, a0, a1, b0, b1, g0, time);
+    // solver->advection(currentIter % 2, a0, a1, b0, b1, g0, time);
     timer->endAdvection();
 
     timer->startPressure();
-    bool converged = solver->pressure(currentIter % 2, a0, a1, b0, b1, g0, time);
-    if(!converged) {
-      op_printf("******** ERROR ********\n");
-      op_printf("Pressure solve failed to converge, exiting...\n");
-      op_printf("Iteration: %d Time: %g\n", i, time);
-      break;
-    }
+    // bool converged = solver->pressure(currentIter % 2, a0, a1, b0, b1, g0, time);
+    // if(!converged) {
+    //   op_printf("******** ERROR ********\n");
+    //   op_printf("Pressure solve failed to converge, exiting...\n");
+    //   op_printf("Iteration: %d Time: %g\n", i, time);
+    //   break;
+    // }
     timer->endPressure();
 
     timer->startViscosity();
-    converged = solver->viscosity(currentIter % 2, a0, a1, b0, b1, g0, time);
-    if(!converged) {
-      op_printf("******** ERROR ********\n");
-      op_printf("Viscosity solve failed to converge, exiting...\n");
-      op_printf("Iteration: %d Time: %g\n", i, time);
-      break;
-    }
+    // converged = solver->viscosity(currentIter % 2, a0, a1, b0, b1, g0, time);
+    // if(!converged) {
+    //   op_printf("******** ERROR ********\n");
+    //   op_printf("Viscosity solve failed to converge, exiting...\n");
+    //   op_printf("Iteration: %d Time: %g\n", i, time);
+    //   break;
+    // }
     timer->endViscosity();
 
     solver->update_surface(currentIter % 2);
@@ -204,18 +203,17 @@ int main(int argc, char **argv) {
   timer->endWallTime();
   timer->exportTimings(outputDir + "timings.csv", iter, time);
 
-  op_printf("Final time: %g\n", time);
-  op_printf("Wall time: %g\n", timer->getWallTime());
-  op_printf("Solve time: %g\n", timer->getMainLoop());
-  op_printf("Time to simulate 1 second: %g\n", timer->getWallTime() / time);
-  op_printf("Average number of iterations to pressure convergance: %g\n", solver->getAvgPressureConvergance());
-  op_printf("Average number of iterations to viscosity convergance: %g\n", solver->getAvgViscosityConvergance());
+  // op_printf("Final time: %g\n", time);
+  // op_printf("Wall time: %g\n", timer->getWallTime());
+  // op_printf("Solve time: %g\n", timer->getMainLoop());
+  // op_printf("Time to simulate 1 second: %g\n", timer->getWallTime() / time);
+  // op_printf("Average number of iterations to pressure convergance: %g\n", solver->getAvgPressureConvergance());
+  // op_printf("Average number of iterations to viscosity convergance: %g\n", solver->getAvgViscosityConvergance());
 
   string op_out_file = outputDir + "op2_timings.csv";
   op_timings_to_csv(op_out_file.c_str());
 
   delete solver;
-  delete constants;
   delete timer;
 
   ierr = PetscFinalize();

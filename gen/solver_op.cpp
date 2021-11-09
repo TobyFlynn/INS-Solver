@@ -244,20 +244,20 @@ Solver::Solver(std::string filename, bool pre, int prob) {
   data = new INSData(mesh);
   ls = new LS(mesh, data);
 
-  pressurePoisson = new PressureSolve(mesh, data, pre);
-  pressurePoisson->setDirichletBCs(pressure_dirichlet);
-  pressurePoisson->setNeumannBCs(pressure_neumann);
-  viscosityPoisson = new ViscositySolve(mesh, data, pre);
-  viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
-  viscosityPoisson->setNeumannBCs(viscosity_neumann);
+  // pressurePoisson = new PressureSolve(mesh, data, pre);
+  // pressurePoisson->setDirichletBCs(pressure_dirichlet);
+  // pressurePoisson->setNeumannBCs(pressure_neumann);
+  // viscosityPoisson = new ViscositySolve(mesh, data, pre);
+  // viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
+  // viscosityPoisson->setNeumannBCs(viscosity_neumann);
 
   op_partition("PARMETIS", "KWAY", mesh->cells, mesh->edge2cells, NULL);
 
   mesh->init();
   data->init();
   ls->init();
-  pressurePoisson->init();
-  viscosityPoisson->init();
+  // pressurePoisson->init();
+  // viscosityPoisson->init();
 
   // Set initial conditions
   op_par_loop_set_ic("set_ic",mesh->cells,
@@ -274,8 +274,8 @@ Solver::Solver(std::string filename, bool pre, int prob) {
 }
 
 Solver::~Solver() {
-  delete viscosityPoisson;
-  delete pressurePoisson;
+  // delete viscosityPoisson;
+  // delete pressurePoisson;
   delete ls;
   delete data;
   delete mesh;
@@ -534,7 +534,8 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
 void Solver::update_surface(int currentInd) {
   timer->startSurface();
-  ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
+  // ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
+  ls->setVelField(data->Q[0][0], data->Q[0][1]);
   ls->step(dt);
   timer->endSurface();
 }

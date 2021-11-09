@@ -1,10 +1,11 @@
-inline void poisson_op4(const double *cJ, const double *factor, double *op, double *tmp){
+inline void poisson_op4(const double *cJ, const double *factor, const double *fact, double *op, double *tmp){
   double cTmp[DG_CUB_NP * DG_NP];
   double mm[DG_NP * DG_NP];
   for(int m = 0; m < DG_CUB_NP; m++) {
     for(int n = 0; n < DG_NP; n++) {
       int ind = m * DG_NP + n;
       cTmp[ind] = factor[m] * cJ[m] * cubW_g[m] * cubV_g[ind];
+      // cTmp[ind] = cJ[m] * cubW_g[m] * cubV_g[ind];
     }
   }
 
