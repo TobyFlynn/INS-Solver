@@ -13,7 +13,7 @@ public:
   void init();
 
   op_dat Q[2][2], QT[2], QTT[2]; // Velocity and intermediate velocity dats
-  op_dat F[4], N[2][2], flux[2];
+  op_dat F[4], N[2][2], flux[2], gQ[2];
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, p, dpdx, dpdy;
   op_dat visRHS[2], prBC, visBC[2], visTemp[2];
   op_dat vorticity, save_temp, nu, gNu, rho, pFluxX, pFluxY;

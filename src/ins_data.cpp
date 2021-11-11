@@ -226,11 +226,13 @@ void INSData::init() {
   visTemp[0] = tmp_dg_np[2];
   visTemp[1] = tmp_dg_np[3];
 
-  flux[0] = tmp_dg_npf[0];
-  flux[1] = tmp_dg_npf[1];
   pFluxX  = tmp_dg_npf[0];
   pFluxY  = tmp_dg_npf[1];
 
+  gQ[0]    = tmp_dg_g_np[0];
+  gQ[1]    = tmp_dg_g_np[1];
+  flux[0]  = tmp_dg_g_np[2];
+  flux[1]  = tmp_dg_g_np[3];
   prBC     = tmp_dg_g_np[0];
   visBC[0] = tmp_dg_g_np[1];
   visBC[1] = tmp_dg_g_np[2];

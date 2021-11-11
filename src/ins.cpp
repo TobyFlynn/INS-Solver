@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
   refRho     = 1.204;
   refMu      = 1.825e-5;
   refLen     = 0.001;
-  refVel     = 1.0;
+  refVel     = 2.0;
   refSurfTen = 0.0756;
 
   // Set Reynolds number
