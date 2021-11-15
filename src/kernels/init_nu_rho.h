@@ -1,6 +1,9 @@
-inline void init_nu_rho(double *nu, double *rho) {
-  for(int i = 0; i < DG_NP; i++) {
+inline void init_nu_rho(const int *p, double *nu, double *rho) {
+  // Get constants for this element's order
+  const int dg_np  = DG_CONSTANTS[(*p - 1) * 5];
+  
+  for(int i = 0; i < dg_np; i++) {
     nu[i] = nu0;
-    rho[i] = 1.0;
+    rho[i] = rh0;
   }
 }

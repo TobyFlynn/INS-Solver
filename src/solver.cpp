@@ -69,6 +69,7 @@ Solver::Solver(std::string filename, bool pre, int prob) {
 
   // Set initial conditions
   op_par_loop(set_ic, "set_ic", mesh->cells,
+              op_arg_dat(mesh->order,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->Q[0][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->Q[0][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
@@ -94,6 +95,7 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
   // Calculate Nonlinear Terms
   // Calculate flux values
   op_par_loop(advection_flux, "advection_flux", mesh->cells,
+              op_arg_dat(mesh->order,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(data->Q[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->Q[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->F[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
@@ -104,8 +106,8 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
   cub_div(mesh, data->F[0], data->F[1], data->N[currentInd][0]);
   cub_div(mesh, data->F[2], data->F[3], data->N[currentInd][1]);
 
-  op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->Q[currentInd][0], 0.0, data->gQ[0]);
-  op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->Q[currentInd][1], 0.0, data->gQ[1]);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, data->Q[currentInd][0], 0.0, data->gQ[0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, data->Q[currentInd][1], 0.0, data->gQ[1]);
 
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
               op_arg_dat(data->flux[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
@@ -138,8 +140,8 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->flux[0],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
               op_arg_dat(data->flux[1],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
 
-  op2_gemv(true, DG_NP, DG_G_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->flux[0], 1.0, data->N[currentInd][0]);
-  op2_gemv(true, DG_NP, DG_G_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->flux[1], 1.0, data->N[currentInd][1]);
+  op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->flux[0], 1.0, data->N[currentInd][0]);
+  op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->flux[1], 1.0, data->N[currentInd][1]);
   /*
   // Kernel to calculate surface tension force
   op_par_loop(advection_surface_tension, "advection_surface_tension", mesh->cells,
@@ -235,8 +237,8 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 3 * DG_NPF, "double", OP_RW),
               op_arg_dat(data->divVelT, -1, OP_ID, DG_NP, "double", OP_RW));
 
-  op2_gemv(false, DG_NP, 3 * DG_NPF, 1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->dPdN[(currentInd + 1) % 2], 1.0, data->divVelT);
-  op2_gemv(false, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::MASS), DG_NP, data->divVelT, 0.0, data->pRHS);
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, data->dPdN[(currentInd + 1) % 2], 1.0, data->divVelT);
+  op2_gemv(mesh, false, 1.0, DGConstants::MASS, data->divVelT, 0.0, data->pRHS);
   timer->endPressureSetup();
 
   // Call PETSc linear solver
@@ -263,8 +265,8 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->pFluxX, -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_INC),
               op_arg_dat(data->pFluxY, -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_INC));
 
-  op2_gemv(false, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->pFluxX, 1.0, data->dpdx);
-  op2_gemv(false, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->pFluxY, 1.0, data->dpdy);
+  op2_gemv(mesh, false, -1.0, DGConstants::LIFT, data->pFluxX, 1.0, data->dpdx);
+  op2_gemv(mesh, false, -1.0, DGConstants::LIFT, data->pFluxY, 1.0, data->dpdy);
 
   // Calculate new velocity intermediate values using the pressure gradient
   // double factor = dt / g0;

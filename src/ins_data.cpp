@@ -130,32 +130,12 @@ INSData::INSData(DGMesh *m) {
   op_decl_const(1, "double", &nu1);
   op_decl_const(1, "double", &rho0);
   op_decl_const(1, "double", &rho1);
-  op_decl_const(3 * DG_NPF, "int", FMASK);
+  op_decl_const(DG_ORDER * 3 * DG_NPF, "int", FMASK);
   op_decl_const(1, "double", &ic_u);
   op_decl_const(1, "double", &ic_v);
-  op_decl_const(DG_CUB_NP, "double", cubW_g);
-  op_decl_const(DG_CUB_NP * DG_NP, "double", cubV_g);
-  op_decl_const(DG_CUB_NP * DG_NP, "double", cubVDr_g);
-  op_decl_const(DG_CUB_NP * DG_NP, "double", cubVDs_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF0Dr_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF0Ds_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF1Dr_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF1Ds_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF2Dr_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF2Ds_g);
-  op_decl_const(DG_GF_NP, "double", gaussW_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gFInterp0_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gFInterp1_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gFInterp2_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF0DrR_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF0DsR_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF1DrR_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF1DsR_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF2DrR_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF2DsR_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gFInterp0R_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gFInterp1R_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gFInterp2R_g);
+  op_decl_const(DG_ORDER * DG_CUB_NP, "double", cubW_g);
+  op_decl_const(DG_ORDER * DG_GF_NP, "double", gaussW_g);
+  op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
 }
 
 INSData::~INSData() {
@@ -239,43 +219,11 @@ void INSData::init() {
 
   // Regular grid point init
   op_par_loop(init_nu_rho, "init_nu_rho", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(nu,  -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, nu, 0.0, gNu);
-
-  // Cubature grid point init (needed for Poisson solver)
-  // Initialise geometric factors for calcuating grad matrix
-  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDR), DG_CUB_NP, mesh->x, 0.0, mesh->cubature->op_tmp[0]);
-  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDS), DG_CUB_NP, mesh->x, 0.0, mesh->cubature->op_tmp[1]);
-  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDR), DG_CUB_NP, mesh->y, 0.0, mesh->cubature->op_tmp[2]);
-  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDS), DG_CUB_NP, mesh->y, 0.0, mesh->cubature->op_tmp[3]);
-
-  // The Dx and Dy dats contain matrices that are used when calculating the 1st term of Eqn. 10 in Karakus et al.
-  op_par_loop(init_cubature_grad, "init_cubature_grad", mesh->cells,
-              op_arg_dat(mesh->cubature->op_tmp[0], -1, OP_ID, DG_CUB_NP, "double", OP_RW),
-              op_arg_dat(mesh->cubature->op_tmp[1], -1, OP_ID, DG_CUB_NP, "double", OP_RW),
-              op_arg_dat(mesh->cubature->op_tmp[2], -1, OP_ID, DG_CUB_NP, "double", OP_RW),
-              op_arg_dat(mesh->cubature->op_tmp[3], -1, OP_ID, DG_CUB_NP, "double", OP_RW),
-              op_arg_dat(Dx, -1, OP_ID, DG_CUB_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(Dy, -1, OP_ID, DG_CUB_NP * DG_NP, "double", OP_WRITE));
-  // Dx and Dy are col-major at this point
-
-  /*****************************************************************************
-  *
-  * Below contains code used to calculate matrices which are later used to
-  * calculate terms 2, 3 and 4 of Eqn. 10 in Karakus et al. You can ignore most
-  * of these dats, most are just temp dats, the dats holding the final matrices
-  * are mDL, mDR, mDBC, pDL, pDR, gVPL and gVPR.
-  *
-  * Looking at the following code from the Hesthaven and Warburton textbook can
-  * help to understand these matrices and how they are calculated:
-  * https://github.com/tcew/nodal-dg/blob/master/Codes1.1/Codes2D/CurvedPoissonIPDG2D.m
-  * mDL, mDR and mDBC correspond to gDnM in the MATLAB code. pDL and pDR to gDnP.
-  * gVPL and gVPR to gVP. L dats belong to the cell to the left of the edge, R
-  * to the right cell.
-  *
-  *****************************************************************************/
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, nu, 0.0, gNu);
 
   // Gauss grid point init
   // Check which edges will require matrices to be 'reverse'
@@ -284,100 +232,4 @@ void INSData::init() {
               op_arg_dat(mesh->nodeX,   -2, mesh->edge2cells, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY,   -2, mesh->edge2cells, 3, "double", OP_READ),
               op_arg_dat(reverse,       -2, mesh->edge2cells, 3, "int", OP_INC));
-
-  // Calculate geometric factors used when constructing gradient matrices
-  init_gauss_grad_blas(mesh, this);
-
-  // [gDxM, gDyM] = PhysDmatrices2D(x(:,k1), y(:,k1),gVM);
-  op_par_loop(init_gauss_grad, "init_gauss_grad", mesh->cells,
-              op_arg_dat(grx,    -1, OP_ID, DG_G_NP, "double", OP_RW),
-              op_arg_dat(gsx,    -1, OP_ID, DG_G_NP, "double", OP_RW),
-              op_arg_dat(gry,    -1, OP_ID, DG_G_NP, "double", OP_RW),
-              op_arg_dat(gsy,    -1, OP_ID, DG_G_NP, "double", OP_RW),
-              op_arg_dat(mDx[0], -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(mDy[0], -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(mDx[1], -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(mDy[1], -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(mDx[2], -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(mDy[2], -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
-
-  // gDnM = gnx*gDxM + gny*gDyM;
-  op_par_loop(init_gauss_grad3, "init_gauss_grad3", mesh->edges,
-              op_arg_dat(mesh->edgeNum,  -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->gauss->nx, 0, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->nx, 1, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, 0, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, 1, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mDx[0], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[0], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[0], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[0], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[1], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[1], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[1], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[1], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[2], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[2], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[2], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[2], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDL, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(mDR, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
-
-  op_par_loop(init_gauss_grad4, "init_gauss_grad4", mesh->bedges,
-              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mDx[0], 0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[0], 0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[1], 0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[1], 0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[2], 0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[2], 0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDBC, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
-
-  // Calculate geometric factors for grad matrices used by neighbours
-  // Matrices are calculated locally, then copied to neighbour elements
-  init_gauss_grad_neighbour_blas(mesh, this);
-
-  // [gDxP, gDyP] = PhysDmatrices2D(x(:,k2), y(:,k2),gVP);
-  op_par_loop(init_gauss_grad_neighbour, "init_gauss_grad_neighbour", mesh->cells,
-              op_arg_dat(reverse, -1, OP_ID, 3, "int", OP_READ),
-              op_arg_dat(grx,     -1, OP_ID, DG_G_NP, "double", OP_RW),
-              op_arg_dat(gsx,     -1, OP_ID, DG_G_NP, "double", OP_RW),
-              op_arg_dat(gry,     -1, OP_ID, DG_G_NP, "double", OP_RW),
-              op_arg_dat(gsy,     -1, OP_ID, DG_G_NP, "double", OP_RW),
-              op_arg_dat(mDx[0],  -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(mDy[0],  -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(mDx[1],  -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(mDy[1],  -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(mDx[2],  -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(mDy[2],  -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
-
-  // gDnP = gnx*gDxP + gny*gDyP;
-  op_par_loop(init_gauss_grad5, "init_gauss_grad5", mesh->edges,
-              op_arg_dat(mesh->edgeNum,  -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->gauss->nx, 0, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->nx, 1, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, 0, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, 1, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mDx[0], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[0], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[0], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[0], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[1], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[1], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[1], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[1], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[2], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDx[2], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[2], 0, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mDy[2], 1, mesh->edge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(pDL, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(pDR, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
-
-  op_par_loop(gauss_gfi_faces2, "gauss_gfi_faces2", mesh->edges,
-              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(gVPL, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(gVPR, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
 }

@@ -215,6 +215,38 @@ void PoissonSolve::precond(const double *in_d, double *out_d) {
 }
 
 void PoissonSolve::set_sub_mat() {
+  // Initialise geometric factors for calcuating grad matrix
+  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDR), DG_CUB_NP, mesh->x, 0.0, mesh->cubature->op_tmp[0]);
+  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDS), DG_CUB_NP, mesh->x, 0.0, mesh->cubature->op_tmp[1]);
+  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDR), DG_CUB_NP, mesh->y, 0.0, mesh->cubature->op_tmp[2]);
+  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDS), DG_CUB_NP, mesh->y, 0.0, mesh->cubature->op_tmp[3]);
+
+  // The Dx and Dy dats contain matrices that are used when calculating the 1st term of Eqn. 10 in Karakus et al.
+  op_par_loop(init_cubature_grad, "init_cubature_grad", mesh->cells,
+              op_arg_dat(mesh->cubature->op_tmp[0], -1, OP_ID, DG_CUB_NP, "double", OP_RW),
+              op_arg_dat(mesh->cubature->op_tmp[1], -1, OP_ID, DG_CUB_NP, "double", OP_RW),
+              op_arg_dat(mesh->cubature->op_tmp[2], -1, OP_ID, DG_CUB_NP, "double", OP_RW),
+              op_arg_dat(mesh->cubature->op_tmp[3], -1, OP_ID, DG_CUB_NP, "double", OP_RW),
+              op_arg_dat(data->Dx, -1, OP_ID, DG_CUB_NP * DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->Dy, -1, OP_ID, DG_CUB_NP * DG_NP, "double", OP_WRITE));
+  // Dx and Dy are col-major at this point
+
+  /*****************************************************************************
+  *
+  * Below contains code used to calculate matrices which are later used to
+  * calculate terms 2, 3 and 4 of Eqn. 10 in Karakus et al. You can ignore most
+  * of these dats, most are just temp dats, the dats holding the final matrices
+  * are mDL, mDR, mDBC, pDL, pDR, gVPL and gVPR.
+  *
+  * Looking at the following code from the Hesthaven and Warburton textbook can
+  * help to understand these matrices and how they are calculated:
+  * https://github.com/tcew/nodal-dg/blob/master/Codes1.1/Codes2D/CurvedPoissonIPDG2D.m
+  * mDL, mDR and mDBC correspond to gDnM in the MATLAB code. pDL and pDR to gDnP.
+  * gVPL and gVPR to gVP. L dats belong to the cell to the left of the edge, R
+  * to the right cell.
+  *
+  *****************************************************************************/
+
   // Calculate geometric factors used when constructing gradient matrices
   init_gauss_grad_blas(mesh, data);
 
@@ -310,6 +342,12 @@ void PoissonSolve::set_sub_mat() {
               op_arg_dat(gFactor, 1, mesh->edge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(data->pDL, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
               op_arg_dat(data->pDR, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
+
+  op_par_loop(gauss_gfi_faces2, "gauss_gfi_faces2", mesh->edges,
+              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(data->gVPL, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->gVPR, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
 }
 
 // Set up LHS matrix
