@@ -22,7 +22,8 @@ inline void init_gauss_grad4_2(const int *bedgeNum,
       int ind   = m + n * DG_GF_NP;
       int indBC = *bedgeNum * DG_GF_NP + m;
 
-      d[ind] = nx[indBC] * fact[indBC] * Dx[ind] + ny[indBC] * fact[indBC] * Dy[ind];
+      // d[ind] = nx[indBC] * fact[indBC] * Dx[ind] + ny[indBC] * fact[indBC] * Dy[ind];
+      d[ind] = nx[indBC] * Dx[ind] + ny[indBC] * Dy[ind];
     }
   }
 }

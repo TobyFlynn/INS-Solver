@@ -15,3 +15,7 @@ target_link_libraries(matlab2CGNS ${CGNS_DIR}/lib/libcgns.so)
 add_executable(vortexError vortexError.cpp)
 target_include_directories(vortexError PUBLIC ${CGNS_DIR}/include)
 target_link_libraries(vortexError ${CGNS_DIR}/lib/libcgns.so)
+
+add_executable(diff diff.cpp)
+target_include_directories(diff PUBLIC ${CGNS_DIR}/include)
+target_link_libraries(diff ${CGNS_DIR}/lib/libcgns.so)
