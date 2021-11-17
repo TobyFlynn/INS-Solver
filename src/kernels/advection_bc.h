@@ -12,7 +12,7 @@ inline void advection_bc(const int *bedge_type, const int *bedgeNum,
     // Inflow - BC function dependant on time
     for(int i = 0; i < DG_GF_NP; i++) {
       double y1 = y[exInd + i];
-      pQ0[i] = pow(1.0, -2.0) * sin((PI * *t) / 8.0) * 6.0 * y1 * (1.0 - y1);
+      pQ0[i] = pow(0.41, -2.0) * sin((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
       pQ1[i] = 0.0;
     }
   } else if(*bedge_type == 1) {

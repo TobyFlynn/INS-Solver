@@ -50,8 +50,8 @@ int getBoundaryEdgeNum(const string &type, double x0, double y0, double x1, doub
     } else if(x0 == x1 && x0 > 2.0) {
       // Outflow
       return 1;
-    } else if(x0 > 0.1 && x1 > 0.1 && x0 < 5.0  && x1 < 5.0
-              && y0 > 0.1 && y1 > 0.1 && y0 < 0.9 && y1 < 0.9) {
+    } else if(x0 > 0.1 && x1 > 0.1 && x0 < 2.0  && x1 < 2.0
+              && y0 > 0.1 && y1 > 0.1 && y0 < 0.38 && y1 < 0.38) {
       // Cylinder Wall
       return 2;
     } else {

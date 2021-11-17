@@ -29,6 +29,8 @@ public:
   op_dat mDx[3], mDy[3];
   op_dat mDL, mDR, mDBC, pDL, pDR, gVPL, gVPR;
 
+  op_dat cOP, gOP[3], gOPf[3], gmD[3], tau;
+
 private:
   DGMesh *mesh;
 

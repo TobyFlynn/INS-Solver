@@ -53,8 +53,11 @@ inline void init_gauss_grad5_2(const int *edgeNum, const bool *rev,
         factRInd = edgeR * DG_GF_NP + m;
       }
 
-      dL[ind] = nxL[indL] * factR[factRInd] * DxL[ind] + nyL[indL] * factR[factRInd] * DyL[ind];
-      dR[ind] = nxR[indR] * factL[factLInd] * DxR[ind] + nyR[indR] * factL[factLInd] * DyR[ind];
+      // dL[ind] = nxL[indL] * factR[factRInd] * DxL[ind] + nyL[indL] * factR[factRInd] * DyL[ind];
+      // dR[ind] = nxR[indR] * factL[factLInd] * DxR[ind] + nyR[indR] * factL[factLInd] * DyR[ind];
+
+      dL[ind] = nxL[indL] * DxL[ind] + nyL[indL] * DyL[ind];
+      dR[ind] = nxR[indR] * DxR[ind] + nyR[indR] * DyR[ind];
 
       // dL[ind] = nxL[indL] * factL[indL] * DxL[ind] + nyL[indL] * factL[indL] * DyL[ind];
       // dR[ind] = nxR[indR] * factR[indR] * DxR[ind] + nyR[indR] * factR[indR] * DyR[ind];

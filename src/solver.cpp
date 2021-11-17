@@ -52,10 +52,17 @@ Solver::Solver(std::string filename, bool pre, int prob) {
   data = new INSData(mesh);
   ls = new LS(mesh, data);
 
-  pressurePoisson = new PressureSolve(mesh, data, pre);
+  // pressurePoisson = new PressureSolve(mesh, data, pre);
+  // pressurePoisson->setDirichletBCs(pressure_dirichlet);
+  // pressurePoisson->setNeumannBCs(pressure_neumann);
+  // viscosityPoisson = new ViscositySolve(mesh, data, pre);
+  // viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
+  // viscosityPoisson->setNeumannBCs(viscosity_neumann);
+
+  pressurePoisson = new Poisson_MF2(data, mesh);
   pressurePoisson->setDirichletBCs(pressure_dirichlet);
   pressurePoisson->setNeumannBCs(pressure_neumann);
-  viscosityPoisson = new ViscositySolve(mesh, data, pre);
+  viscosityPoisson = new Poisson_MF2(data, mesh);
   viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
   viscosityPoisson->setNeumannBCs(viscosity_neumann);
 
@@ -210,19 +217,6 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->gradCurlVel[1],   0, mesh->bedge2cells, DG_NP, "double", OP_READ),
               op_arg_dat(data->dPdN[currentInd], 0, mesh->bedge2cells, 3 * DG_NPF, "double", OP_INC));
 
-  // Left over from single fluid solver, can ignore, just setting some Dirichlet BCs
-  if(problem == 1) {
-    op_par_loop(pressure_bc2, "pressure_bc2", mesh->bedges,
-                op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-                op_arg_gbl(&t, 1, "double", OP_READ),
-                op_arg_gbl(&problem, 1, "int", OP_READ),
-                op_arg_dat(mesh->gauss->x, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->y, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(data->gNu,      0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(data->prBC,     0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
-  }
-
   // Calculate RHS of pressure solve
   op_par_loop(pressure_rhs, "pressure_rhs", mesh->cells,
               op_arg_gbl(&b0, 1, "double", OP_READ),
@@ -242,7 +236,6 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   // Call PETSc linear solver
   timer->startPressureLinearSolve();
   pressurePoisson->setBCValues(data->prBC);
-  pressurePoisson->setup();
   bool converged = pressurePoisson->solve(data->pRHS, data->p);
   timer->endPressureLinearSolve();
 
@@ -263,8 +256,8 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->pFluxX, -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_INC),
               op_arg_dat(data->pFluxY, -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_INC));
 
-  op2_gemv(false, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->pFluxX, 1.0, data->dpdx);
-  op2_gemv(false, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->pFluxY, 1.0, data->dpdy);
+  // op2_gemv(false, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->pFluxX, 1.0, data->dpdx);
+  // op2_gemv(false, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->pFluxY, 1.0, data->dpdy);
 
   // Calculate new velocity intermediate values using the pressure gradient
   // double factor = dt / g0;
@@ -327,11 +320,11 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   // Call PETSc linear solver
   timer->startViscosityLinearSolve();
   viscosityPoisson->setBCValues(data->visBC[0]);
-  viscosityPoisson->setup(factor);
-  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0]);
+  // viscosityPoisson->setup(factor);
+  bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0], true, factor);
 
   viscosityPoisson->setBCValues(data->visBC[1]);
-  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1]);
+  bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1], true, factor);
   timer->endViscosityLinearSolve();
 
   return convergedX && convergedY;

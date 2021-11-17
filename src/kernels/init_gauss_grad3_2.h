@@ -43,8 +43,10 @@ inline void init_gauss_grad3_2(const int *edgeNum,
       int indL = edgeL * DG_GF_NP + m;
       int indR = edgeR * DG_GF_NP + m;
 
-      dL[ind] = nxL[indL] * factL[indL] * DxL[ind] + nyL[indL] * factL[indL] * DyL[ind];
-      dR[ind] = nxR[indR] * factR[indR] * DxR[ind] + nyR[indR] * factR[indR] * DyR[ind];
+      // dL[ind] = nxL[indL] * factL[indL] * DxL[ind] + nyL[indL] * factL[indL] * DyL[ind];
+      // dR[ind] = nxR[indR] * factR[indR] * DxR[ind] + nyR[indR] * factR[indR] * DyR[ind];
+      dL[ind] = nxL[indL] * DxL[ind] + nyL[indL] * DyL[ind];
+      dR[ind] = nxR[indR] * DxR[ind] + nyR[indR] * DyR[ind];
     }
   }
 }

@@ -33,8 +33,8 @@ public:
   LS *ls;
   double dt;
 private:
-  PressureSolve *pressurePoisson;
-  ViscositySolve *viscosityPoisson;
+  Poisson_MF2 *pressurePoisson;
+  Poisson_MF2 *viscosityPoisson;
 
   int problem;
 };
