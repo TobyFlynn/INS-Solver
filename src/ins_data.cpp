@@ -62,6 +62,21 @@ INSData::INSData(DGMesh *m) {
   gVPL_data = (double *)calloc(DG_GF_NP * DG_NP * mesh->numEdges, sizeof(double));
   gVPR_data = (double *)calloc(DG_GF_NP * DG_NP * mesh->numEdges, sizeof(double));
 
+  cOP_data   = (double *)calloc(15 * 15 * mesh->numCells, sizeof(double));
+  cTmp_data  = (double *)calloc(46 * 15 * mesh->numCells, sizeof(double));
+  cTmp2_data = (double *)calloc(46 * 15 * mesh->numCells, sizeof(double));
+  for(int i = 0; i < 3; i++) {
+    // mDx_data[i] = (double *)calloc(7 * 15 * mesh->numCells, sizeof(double));
+    // mDy_data[i] = (double *)calloc(7 * 15 * mesh->numCells, sizeof(double));
+    // pDx_data[i] = (double *)calloc(7 * 15 * mesh->numCells, sizeof(double));
+    // pDy_data[i] = (double *)calloc(7 * 15 * mesh->numCells, sizeof(double));
+    gmD_data[i]  = (double *)calloc(7 * 15 * mesh->numCells, sizeof(double));
+    // pD_data[i]  = (double *)calloc(7 * 15 * mesh->numCells, sizeof(double));
+    gOP_data[i]  = (double *)calloc(15 * 15 * mesh->numCells, sizeof(double));
+    gOPf_data[i] = (double *)calloc(15 * 15 * mesh->numCells, sizeof(double));
+  }
+  tau_data     = (double *)calloc(3 * mesh->numCells, sizeof(double));
+
   for(int i = 0; i < 10; i++) {
     string name  = "tmp_dg_np" + to_string(i);
     tmp_dg_np[i] = op_decl_dat(mesh->cells, DG_NP, "double", tmp_dg_np_data[i], name.c_str());
@@ -122,6 +137,29 @@ INSData::INSData(DGMesh *m) {
   pDR  = op_decl_dat(mesh->edges, DG_GF_NP * DG_NP, "double", pDR_data, "pDR");
   gVPL = op_decl_dat(mesh->edges, DG_GF_NP * DG_NP, "double", gVPL_data, "gVPL");
   gVPR = op_decl_dat(mesh->edges, DG_GF_NP * DG_NP, "double", gVPR_data, "gVPR");
+
+  cOP = op_decl_dat(mesh->cells, 15 * 15, "double", cOP_data, "cub-OP");
+  cTmp = op_decl_dat(mesh->cells, 46 * 15, "double", cTmp_data, "cub-Tmp");
+  cTmp2 = op_decl_dat(mesh->cells, 46 * 15, "double", cTmp2_data, "cub-Tmp2");
+  tau = op_decl_dat(mesh->cells, 3, "double", tau_data, "gauss-tau");
+  for(int i = 0; i < 3; i++) {
+    string name = "mDx" + to_string(i);
+    // mDx[i] = op_decl_dat(mesh->cells, 7 * 15, "double", mDx_data[i], name.c_str());
+    // name = "mDy" + to_string(i);
+    // mDy[i] = op_decl_dat(mesh->cells, 7 * 15, "double", mDy_data[i], name.c_str());
+    // name = "pDx" + to_string(i);
+    // pDx[i] = op_decl_dat(mesh->cells, 7 * 15, "double", pDx_data[i], name.c_str());
+    // name = "pDy" + to_string(i);
+    // pDy[i] = op_decl_dat(mesh->cells, 7 * 15, "double", pDy_data[i], name.c_str());
+    name = "mD" + to_string(i);
+    gmD[i] = op_decl_dat(mesh->cells, 7 * 15, "double", gmD_data[i], name.c_str());
+    // name = "pD" + to_string(i);
+    // pD[i] = op_decl_dat(mesh->cells, 7 * 15, "double", pD_data[i], name.c_str());
+    name = "OP" + to_string(i);
+    gOP[i] = op_decl_dat(mesh->cells, 15 * 15, "double", gOP_data[i], name.c_str());
+    name = "OPf" + to_string(i);
+    gOPf[i] = op_decl_dat(mesh->cells, 15 * 15, "double", gOPf_data[i], name.c_str());
+  }
 
   op_decl_const(1, "double", &reynolds);
   op_decl_const(1, "double", &froude);
@@ -251,6 +289,16 @@ void INSData::init() {
   op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDR), DG_CUB_NP, mesh->y, 0.0, mesh->cubature->op_tmp[2]);
   op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDS), DG_CUB_NP, mesh->y, 0.0, mesh->cubature->op_tmp[3]);
 
+  op_fetch_data_hdf5_file(mesh->x, "cOP.h5");
+  op_fetch_data_hdf5_file(mesh->y, "cOP.h5");
+  op_fetch_data_hdf5_file(mesh->nodeX, "cOP.h5");
+  op_fetch_data_hdf5_file(mesh->nodeY, "cOP.h5");
+
+  op_fetch_data_hdf5_file(mesh->cubature->op_tmp[0], "cOP.h5");
+  op_fetch_data_hdf5_file(mesh->cubature->op_tmp[1], "cOP.h5");
+  op_fetch_data_hdf5_file(mesh->cubature->op_tmp[2], "cOP.h5");
+  op_fetch_data_hdf5_file(mesh->cubature->op_tmp[3], "cOP.h5");
+
   // The Dx and Dy dats contain matrices that are used when calculating the 1st term of Eqn. 10 in Karakus et al.
   op_par_loop(init_cubature_grad, "init_cubature_grad", mesh->cells,
               op_arg_dat(mesh->cubature->op_tmp[0], -1, OP_ID, DG_CUB_NP, "double", OP_RW),
@@ -259,7 +307,26 @@ void INSData::init() {
               op_arg_dat(mesh->cubature->op_tmp[3], -1, OP_ID, DG_CUB_NP, "double", OP_RW),
               op_arg_dat(Dx, -1, OP_ID, DG_CUB_NP * DG_NP, "double", OP_WRITE),
               op_arg_dat(Dy, -1, OP_ID, DG_CUB_NP * DG_NP, "double", OP_WRITE));
-  // Dx and Dy are col-major at this point
+  // Dx and Dy are row-major at this point
+
+  // Calculate Cubature OP (contribution of Cubature points to Poisson matrix)
+  op_par_loop(init_cubature_OP, "init_cubature_OP", mesh->cells,
+              op_arg_dat(mesh->cubature->J,     -1, OP_ID, 46, "double", OP_READ),
+              op_arg_dat(Dx,    -1, OP_ID, 46 * 15, "double", OP_READ),
+              op_arg_dat(Dy,    -1, OP_ID, 46 * 15, "double", OP_READ),
+              op_arg_dat(cTmp,  -1, OP_ID, 46 * 15, "double", OP_WRITE),
+              op_arg_dat(cTmp2, -1, OP_ID, 46 * 15, "double", OP_WRITE));
+  // Temp and temp2 are in row-major at this point
+  op2_gemm_batch(false, true, 15, 15, 46, 1.0, Dx, 15, cTmp, 15, 0.0, cOP, 15);
+  op2_gemm_batch(false, true, 15, 15, 46, 1.0, Dy, 15, cTmp2, 15, 1.0, cOP, 15);
+  // OP is in col-major at this point
+
+  op_fetch_data_hdf5_file(cOP, "cOP.h5");
+  op_fetch_data_hdf5_file(Dx, "cOP.h5");
+  op_fetch_data_hdf5_file(Dy, "cOP.h5");
+  op_fetch_data_hdf5_file(cTmp, "cOP.h5");
+  op_fetch_data_hdf5_file(cTmp2, "cOP.h5");
+  exit(-1);
 
   /*****************************************************************************
   *

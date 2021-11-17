@@ -30,7 +30,7 @@ public:
   op_dat mDL, mDR, mDBC, pDL, pDR, gVPL, gVPR;
 
   op_dat cOP, gOP[3], gOPf[3], gmD[3], tau;
-
+  op_dat cTmp, cTmp2;
 private:
   DGMesh *mesh;
 
@@ -43,7 +43,7 @@ private:
   double *tmp_dg_np_data[10], *tmp_dg_npf_data[2], *tmp_dg_g_np_data[4];
 
   // Cubature stuff
-  double *Dx_data, *Dy_data, *cOP_data, *temp_data, *temp2_data;
+  double *Dx_data, *Dy_data, *temp_data, *temp2_data;
 
   // Gauss stuff
   double *grx_data, *gsx_data, *gry_data, *gsy_data;
@@ -51,6 +51,9 @@ private:
   double *mDx_data[3], *mDy_data[3];
   double *mDL_data, *mDR_data, *mDBC_data, *pDL_data, *pDR_data;
   double *gVPL_data, *gVPR_data;
+
+  double *cOP_data, *gOP_data[3], *gOPf_data[3], *gmD_data[3], *tau_data;
+  double *cTmp_data, *cTmp2_data;
 };
 
 #endif
