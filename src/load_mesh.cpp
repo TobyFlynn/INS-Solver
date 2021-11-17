@@ -179,4 +179,9 @@ void load_mesh(std::string filename, double **coords_data, int **cells_data,
   }
 
   cg_close(file);
+
+  for(int i = 0; i < x.size() * 2; i++) {
+    if(isnan(coords_ptr[i]))
+      printf("***NaN***\n");
+  }
 }

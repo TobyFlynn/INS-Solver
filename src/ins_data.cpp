@@ -293,6 +293,7 @@ void INSData::init() {
   op_fetch_data_hdf5_file(mesh->y, "cOP.h5");
   op_fetch_data_hdf5_file(mesh->nodeX, "cOP.h5");
   op_fetch_data_hdf5_file(mesh->nodeY, "cOP.h5");
+  op_fetch_data_hdf5_file(mesh->node_coords, "cOP.h5");
 
   op_fetch_data_hdf5_file(mesh->cubature->op_tmp[0], "cOP.h5");
   op_fetch_data_hdf5_file(mesh->cubature->op_tmp[1], "cOP.h5");
