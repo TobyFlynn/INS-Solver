@@ -22,10 +22,7 @@ public:
   op_dat vorticity;
   op_dat save_temp;
 
-  int pressure_dirichlet[3];
-  int pressure_neumann[3];
-  int viscosity_dirichlet[3];
-  int viscosity_neumann[3];
+  DGMesh *mesh;
 private:
   // Pointers to private memory
   double *Q_data[2][2];
