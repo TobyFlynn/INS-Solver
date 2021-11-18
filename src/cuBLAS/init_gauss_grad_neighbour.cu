@@ -19,41 +19,41 @@ inline void cublas_init_gauss_grad_neighbour(cublasHandle_t handle, const int nu
 
     // Face 0
     if(reverse[3 * c]) {
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF0DrR_d, 15, x, 1, &beta, gxr, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF0DsR_d, 15, x, 1, &beta, gxs, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF0DrR_d, 15, y, 1, &beta, gyr, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF0DsR_d, 15, y, 1, &beta, gys, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF0DrR_d, 7, x, 1, &beta, gxr, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF0DsR_d, 7, x, 1, &beta, gxs, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF0DrR_d, 7, y, 1, &beta, gyr, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF0DsR_d, 7, y, 1, &beta, gys, 1);
     } else {
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF0Dr_d, 15, x, 1, &beta, gxr, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF0Ds_d, 15, x, 1, &beta, gxs, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF0Dr_d, 15, y, 1, &beta, gyr, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF0Ds_d, 15, y, 1, &beta, gys, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF0Dr_d, 7, x, 1, &beta, gxr, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF0Ds_d, 7, x, 1, &beta, gxs, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF0Dr_d, 7, y, 1, &beta, gyr, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF0Ds_d, 7, y, 1, &beta, gys, 1);
     }
 
     // Face 1
     if(reverse[3 * c + 1]) {
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF1DrR_d, 15, x, 1, &beta, gxr + 7, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF1DsR_d, 15, x, 1, &beta, gxs + 7, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF1DrR_d, 15, y, 1, &beta, gyr + 7, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF1DsR_d, 15, y, 1, &beta, gys + 7, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF1DrR_d, 7, x, 1, &beta, gxr + 7, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF1DsR_d, 7, x, 1, &beta, gxs + 7, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF1DrR_d, 7, y, 1, &beta, gyr + 7, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF1DsR_d, 7, y, 1, &beta, gys + 7, 1);
     } else {
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF1Dr_d, 15, x, 1, &beta, gxr + 7, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF1Ds_d, 15, x, 1, &beta, gxs + 7, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF1Dr_d, 15, y, 1, &beta, gyr + 7, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF1Ds_d, 15, y, 1, &beta, gys + 7, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF1Dr_d, 7, x, 1, &beta, gxr + 7, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF1Ds_d, 7, x, 1, &beta, gxs + 7, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF1Dr_d, 7, y, 1, &beta, gyr + 7, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF1Ds_d, 7, y, 1, &beta, gys + 7, 1);
     }
 
     // Face 2
     if(reverse[3 * c + 2]) {
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF2DrR_d, 15, x, 1, &beta, gxr + 14, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF2DsR_d, 15, x, 1, &beta, gxs + 14, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF2DrR_d, 15, y, 1, &beta, gyr + 14, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF2DsR_d, 15, y, 1, &beta, gys + 14, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF2DrR_d, 7, x, 1, &beta, gxr + 14, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF2DsR_d, 7, x, 1, &beta, gxs + 14, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF2DrR_d, 7, y, 1, &beta, gyr + 14, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF2DsR_d, 7, y, 1, &beta, gys + 14, 1);
     } else {
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF2Dr_d, 15, x, 1, &beta, gxr + 14, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF2Ds_d, 15, x, 1, &beta, gxs + 14, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF2Dr_d, 15, y, 1, &beta, gyr + 14, 1);
-      cublasDgemv(handle, CUBLAS_OP_N, 15, 7, &alpha, constants->gF2Ds_d, 15, y, 1, &beta, gys + 14, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF2Dr_d, 7, x, 1, &beta, gxr + 14, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF2Ds_d, 7, x, 1, &beta, gxs + 14, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF2Dr_d, 7, y, 1, &beta, gyr + 14, 1);
+      cublasDgemv(handle, CUBLAS_OP_N, 7, 15, &alpha, constants->gF2Ds_d, 7, y, 1, &beta, gys + 14, 1);
     }
   }
 }

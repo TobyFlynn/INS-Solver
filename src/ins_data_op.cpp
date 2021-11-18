@@ -325,10 +325,10 @@ CubatureData::~CubatureData() {
 
 void CubatureData::init() {
   // Initialise geometric factors for calcuating grad matrix
-  op2_gemv(false, 46, 15, 1.0, constants->get_ptr(DGConstants::CUB_VDR), 15, mesh->x, 0.0, mesh->cubature->op_tmp[0]);
-  op2_gemv(false, 46, 15, 1.0, constants->get_ptr(DGConstants::CUB_VDS), 15, mesh->x, 0.0, mesh->cubature->op_tmp[1]);
-  op2_gemv(false, 46, 15, 1.0, constants->get_ptr(DGConstants::CUB_VDR), 15, mesh->y, 0.0, mesh->cubature->op_tmp[2]);
-  op2_gemv(false, 46, 15, 1.0, constants->get_ptr(DGConstants::CUB_VDS), 15, mesh->y, 0.0, mesh->cubature->op_tmp[3]);
+  op2_gemv(false, 46, 15, 1.0, constants->get_ptr(DGConstants::CUB_VDR), 46, mesh->x, 0.0, mesh->cubature->op_tmp[0]);
+  op2_gemv(false, 46, 15, 1.0, constants->get_ptr(DGConstants::CUB_VDS), 46, mesh->x, 0.0, mesh->cubature->op_tmp[1]);
+  op2_gemv(false, 46, 15, 1.0, constants->get_ptr(DGConstants::CUB_VDR), 46, mesh->y, 0.0, mesh->cubature->op_tmp[2]);
+  op2_gemv(false, 46, 15, 1.0, constants->get_ptr(DGConstants::CUB_VDS), 46, mesh->y, 0.0, mesh->cubature->op_tmp[3]);
 
   op_par_loop_init_cubature_grad("init_cubature_grad",mesh->cells,
               op_arg_dat(mesh->cubature->op_tmp[0],-1,OP_ID,46,"double",OP_RW),

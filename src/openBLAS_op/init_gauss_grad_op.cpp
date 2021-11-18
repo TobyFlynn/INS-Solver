@@ -33,20 +33,20 @@ inline void openblas_init_gauss_grad(const int numCells, const double *x,
     double *gyr_c = gyr + c * 21;
     double *gys_c = gys + c * 21;
 
-    cblas_dgemv(CblasColMajor, CblasNoTrans, 15, 7, 1.0, constants->gF0Dr, 15, x_c, 1, 0.0, gxr_c, 1);
-    cblas_dgemv(CblasColMajor, CblasNoTrans, 15, 7, 1.0, constants->gF0Ds, 15, x_c, 1, 0.0, gxs_c, 1);
-    cblas_dgemv(CblasColMajor, CblasNoTrans, 15, 7, 1.0, constants->gF0Dr, 15, y_c, 1, 0.0, gyr_c, 1);
-    cblas_dgemv(CblasColMajor, CblasNoTrans, 15, 7, 1.0, constants->gF0Ds, 15, y_c, 1, 0.0, gys_c, 1);
+    cblas_dgemv(CblasColMajor, CblasNoTrans, 7, 15, 1.0, constants->gF0Dr, 7, x_c, 1, 0.0, gxr_c, 1);
+    cblas_dgemv(CblasColMajor, CblasNoTrans, 7, 15, 1.0, constants->gF0Ds, 7, x_c, 1, 0.0, gxs_c, 1);
+    cblas_dgemv(CblasColMajor, CblasNoTrans, 7, 15, 1.0, constants->gF0Dr, 7, y_c, 1, 0.0, gyr_c, 1);
+    cblas_dgemv(CblasColMajor, CblasNoTrans, 7, 15, 1.0, constants->gF0Ds, 7, y_c, 1, 0.0, gys_c, 1);
 
-    cblas_dgemv(CblasColMajor, CblasNoTrans, 15, 7, 1.0, constants->gF1Dr, 15, x_c, 1, 0.0, gxr_c + 7, 1);
-    cblas_dgemv(CblasColMajor, CblasNoTrans, 15, 7, 1.0, constants->gF1Ds, 15, x_c, 1, 0.0, gxs_c + 7, 1);
-    cblas_dgemv(CblasColMajor, CblasNoTrans, 15, 7, 1.0, constants->gF1Dr, 15, y_c, 1, 0.0, gyr_c + 7, 1);
-    cblas_dgemv(CblasColMajor, CblasNoTrans, 15, 7, 1.0, constants->gF1Ds, 15, y_c, 1, 0.0, gys_c + 7, 1);
+    cblas_dgemv(CblasColMajor, CblasNoTrans, 7, 15, 1.0, constants->gF1Dr, 7, x_c, 1, 0.0, gxr_c + 7, 1);
+    cblas_dgemv(CblasColMajor, CblasNoTrans, 7, 15, 1.0, constants->gF1Ds, 7, x_c, 1, 0.0, gxs_c + 7, 1);
+    cblas_dgemv(CblasColMajor, CblasNoTrans, 7, 15, 1.0, constants->gF1Dr, 7, y_c, 1, 0.0, gyr_c + 7, 1);
+    cblas_dgemv(CblasColMajor, CblasNoTrans, 7, 15, 1.0, constants->gF1Ds, 7, y_c, 1, 0.0, gys_c + 7, 1);
 
-    cblas_dgemv(CblasColMajor, CblasNoTrans, 15, 7, 1.0, constants->gF2Dr, 15, x_c, 1, 0.0, gxr_c + 14, 1);
-    cblas_dgemv(CblasColMajor, CblasNoTrans, 15, 7, 1.0, constants->gF2Ds, 15, x_c, 1, 0.0, gxs_c + 14, 1);
-    cblas_dgemv(CblasColMajor, CblasNoTrans, 15, 7, 1.0, constants->gF2Dr, 15, y_c, 1, 0.0, gyr_c + 14, 1);
-    cblas_dgemv(CblasColMajor, CblasNoTrans, 15, 7, 1.0, constants->gF2Ds, 15, y_c, 1, 0.0, gys_c + 14, 1);
+    cblas_dgemv(CblasColMajor, CblasNoTrans, 7, 15, 1.0, constants->gF2Dr, 7, x_c, 1, 0.0, gxr_c + 14, 1);
+    cblas_dgemv(CblasColMajor, CblasNoTrans, 7, 15, 1.0, constants->gF2Ds, 7, x_c, 1, 0.0, gxs_c + 14, 1);
+    cblas_dgemv(CblasColMajor, CblasNoTrans, 7, 15, 1.0, constants->gF2Dr, 7, y_c, 1, 0.0, gyr_c + 14, 1);
+    cblas_dgemv(CblasColMajor, CblasNoTrans, 7, 15, 1.0, constants->gF2Ds, 7, y_c, 1, 0.0, gys_c + 14, 1);
   }
 }
 

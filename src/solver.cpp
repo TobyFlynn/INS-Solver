@@ -73,6 +73,7 @@ Solver::Solver(std::string filename, int pmethod, int prob) {
 
   op_partition("PARMETIS", "KWAY", mesh->cells, mesh->edge2cells, NULL);
 
+  mesh->init();
   data->init();
   cubatureData->init();
   gaussData->init();
