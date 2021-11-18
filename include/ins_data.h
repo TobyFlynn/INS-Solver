@@ -3,66 +3,16 @@
 
 #include "op_seq.h"
 
-#include <string>
-
-extern double gam;
-extern double mu;
-extern double nu;
-extern double bc_mach;
-extern double bc_alpha;
-extern double bc_p;
-extern double bc_u;
-extern double bc_v;
-extern int FMASK[15];
-extern double ic_u;
-extern double ic_v;
-extern double cubV_g[46 * 15];
-extern double cubW_g[46];
-extern double cubVDr_g[46 * 15];
-extern double cubVDs_g[46 * 15];
-extern double gaussW_g[7];
-extern double gFInterp0_g[7 * 15];
-extern double gFInterp1_g[7 * 15];
-extern double gFInterp2_g[7 * 15];
-extern double gF0Dr_g[7 * 15];
-extern double gF0Ds_g[7 * 15];
-extern double gF1Dr_g[7 * 15];
-extern double gF1Ds_g[7 * 15];
-extern double gF2Dr_g[7 * 15];
-extern double gF2Ds_g[7 * 15];
-extern double gFInterp0R_g[7 * 15];
-extern double gFInterp1R_g[7 * 15];
-extern double gFInterp2R_g[7 * 15];
-extern double gF0DrR_g[7 * 15];
-extern double gF0DsR_g[7 * 15];
-extern double gF1DrR_g[7 * 15];
-extern double gF1DsR_g[7 * 15];
-extern double gF2DrR_g[7 * 15];
-extern double gF2DsR_g[7 * 15];
-extern double lift_drag_vec[5];
+#include "dg_global_constants.h"
+#include "dg_mesh.h"
 
 class INSData {
 public:
-  INSData(std::string filename);
+  INSData(DGMesh *m);
   ~INSData();
   void init();
-  // Pointers used when loading data
-  double *coords;
-  int *cgnsCells;
-  int *edge2node_data;
-  int *edge2cell_data;
-  int *bedge2node_data;
-  int *bedge2cell_data;
-  int *bedge_type_data;
-  int *edgeNum_data;
-  int *bedgeNum_data;
-  int numNodes_g, numCells_g, numEdges_g, numBoundaryEdges_g;
-  int numNodes, numCells, numEdges, numBoundaryEdges;
+
   // OP2 stuff
-  op_set nodes, cells, edges, bedges;
-  op_map cell2nodes, edge2nodes, edge2cells, bedge2nodes, bedge2cells;
-  op_dat node_coords, nodeX, nodeY, x, y, rx, ry, sx, sy, nx,
-         ny, J, sJ, fscale, bedge_type, edgeNum, bedgeNum, reverse;
   op_dat Q[2][2], exQ[2], F[4], N[2][2], flux[2], QT[2], QTT[2];
   op_dat div[4];
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, pRHSex, p, dpdx, dpdy;
@@ -78,20 +28,6 @@ public:
   int viscosity_neumann[3];
 private:
   // Pointers to private memory
-  double *nodeX_data;
-  double *nodeY_data;
-  double *x_data;
-  double *y_data;
-  double *rx_data;
-  double *ry_data;
-  double *sx_data;
-  double *sy_data;
-  double *nx_data;
-  double *ny_data;
-  double *J_data;
-  double *sJ_data;
-  double *fscale_data;
-  bool *reverse_data;
   double *Q_data[2][2];
   double *exQ_data[2];
   double *F_data[4];
@@ -120,24 +56,19 @@ private:
 
 class CubatureData {
 public:
-  CubatureData(INSData *dat);
+  CubatureData(DGMesh *m, INSData *dat);
   ~CubatureData();
   void init();
 
   // mm and OP are stored in column major format
   // OP is the local stiffness matrix used by the Poisson solver
-  op_dat rx, sx, ry, sy, J, mm, Dx, Dy, OP;
+  op_dat Dx, Dy, OP;
   op_dat temp, temp2;
 
 private:
   INSData *data;
+  DGMesh *mesh;
 
-  double *rx_data;
-  double *sx_data;
-  double *ry_data;
-  double *sy_data;
-  double *J_data;
-  double *mm_data;
   double *Dx_data;
   double *Dy_data;
   double *OP_data;
@@ -147,27 +78,22 @@ private:
 
 class GaussData {
 public:
-  GaussData(INSData *dat);
+  GaussData(DGMesh *m, INSData *dat);
   ~GaussData();
   void init();
 
-  op_dat x, y;
-  op_dat rx, sx, ry, sy, sJ, nx, ny, tau, reverse;
+  op_dat rx, sx, ry, sy, tau, reverse;
   op_dat mDx[3], mDy[3], pDx[3], pDy[3], mD[3], pD[3];
   // OP is in column major format
   op_dat OP[3], OPf[3];
 private:
   INSData *data;
+  DGMesh *mesh;
 
-  double *x_data;
-  double *y_data;
   double *rx_data;
   double *sx_data;
   double *ry_data;
   double *sy_data;
-  double *sJ_data;
-  double *nx_data;
-  double *ny_data;
   double *tau_data;
   double *mDx_data[3];
   double *mDy_data[3];

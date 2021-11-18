@@ -20,9 +20,10 @@ inline void init_cubature_grad(double *rx, double *sx, double *ry,  double *sy,
 
   for(int m = 0; m < 46; m++) {
     for(int n = 0; n < 15; n++) {
-      int ind = m * 15 + n;
-      Dx[ind] = rx[m] * cubVDr_g[ind] + sx[m] * cubVDs_g[ind];
-      Dy[ind] = ry[m] * cubVDr_g[ind] + sy[m] * cubVDs_g[ind];
+      int ind_row = m * 15 + n;
+      int ind_col = m + n * 46;
+      Dx[ind_row] = rx[m] * cubVDr_g[ind_col] + sx[m] * cubVDs_g[ind_col];
+      Dy[ind_row] = ry[m] * cubVDr_g[ind_col] + sy[m] * cubVDs_g[ind_col];
     }
   }
 }

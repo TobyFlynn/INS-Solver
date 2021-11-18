@@ -21,25 +21,28 @@ inline void init_gauss_grad(double *rx, double *sx, double *ry,  double *sy,
 
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
-      int ind = m * 15 + n;
-      Dx0[ind] = rx[m] * gF0Dr_g[ind] + sx[m] * gF0Ds_g[ind];
-      Dy0[ind] = ry[m] * gF0Dr_g[ind] + sy[m] * gF0Ds_g[ind];
+      int ind_row = m * 15 + n;
+      int ind_col = m + n * 7;
+      Dx0[ind_row] = rx[m] * gF0Dr_g[ind_col] + sx[m] * gF0Ds_g[ind_col];
+      Dy0[ind_row] = ry[m] * gF0Dr_g[ind_col] + sy[m] * gF0Ds_g[ind_col];
     }
   }
 
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
-      int ind = m * 15 + n;
-      Dx1[ind] = rx[m + 7] * gF1Dr_g[ind] + sx[m + 7] * gF1Ds_g[ind];
-      Dy1[ind] = ry[m + 7] * gF1Dr_g[ind] + sy[m + 7] * gF1Ds_g[ind];
+      int ind_row = m * 15 + n;
+      int ind_col = m + n * 7;
+      Dx1[ind_row] = rx[m + 7] * gF1Dr_g[ind_col] + sx[m + 7] * gF1Ds_g[ind_col];
+      Dy1[ind_row] = ry[m + 7] * gF1Dr_g[ind_col] + sy[m + 7] * gF1Ds_g[ind_col];
     }
   }
 
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
-      int ind = m * 15 + n;
-      Dx2[ind] = rx[m + 14] * gF2Dr_g[ind] + sx[m + 14] * gF2Ds_g[ind];
-      Dy2[ind] = ry[m + 14] * gF2Dr_g[ind] + sy[m + 14] * gF2Ds_g[ind];
+      int ind_row = m * 15 + n;
+      int ind_col = m + n * 7;
+      Dx2[ind_row] = rx[m + 14] * gF2Dr_g[ind_col] + sx[m + 14] * gF2Ds_g[ind_col];
+      Dy2[ind_row] = ry[m + 14] * gF2Dr_g[ind_col] + sy[m + 14] * gF2Ds_g[ind_col];
     }
   }
 }

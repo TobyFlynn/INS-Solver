@@ -38,6 +38,14 @@ set(PETSC_DIR $ENV{PETSC_DIR})
 
 set(PARMETIS_DIR "/home/u1717021/Code/PhD/parmetis-4.0.3/build")
 
+if(NOT OP2DGTOOLKIT_DIR)
+  set(OP2DGTOOLKIT_DIR "/home/u1717021/Code/PhD/OP2-DG-Toolkit/build")
+endif()
+
+if(NOT ARMA_DIR)
+  set(ARMA_DIR "/home/u1717021/Code/PhD/armadillo-10.5.3/build")
+endif()
+
 enable_language(CUDA)
 find_package(CUDAToolkit)
 include_directories(${CUDAToolkit_INCLUDE_DIRS})

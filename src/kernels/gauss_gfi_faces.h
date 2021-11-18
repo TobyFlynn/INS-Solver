@@ -8,46 +8,51 @@ inline void gauss_gfi_faces(const int *edgeNum, const bool *rev,
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
       int indL, indR;
+      int indL_col, indR_col;
       if(!reverse) {
         indL = m * 15 + n;
         indR = m * 15 + n;
+        indL_col = m + n * 7;
+        indR_col = m + n * 7;
       } else {
         indL = m * 15 + n;
         indR = (6 - m) * 15 + n;
+        indL_col = m + n * 7;
+        indR_col = (6 - m) + n * 7;
       }
 
       if(edgeL == 0) {
         if(edgeR == 0) {
-          gf0[0][indL] += gFInterp0_g[indR];
-          gf0[1][indR] += gFInterp0_g[indL];
+          gf0[0][indL] += gFInterp0_g[indR_col];
+          gf0[1][indR] += gFInterp0_g[indL_col];
         } else if(edgeR == 1) {
-          gf0[0][indL] += gFInterp1_g[indR];
-          gf1[1][indR] += gFInterp0_g[indL];
+          gf0[0][indL] += gFInterp1_g[indR_col];
+          gf1[1][indR] += gFInterp0_g[indL_col];
         } else {
-          gf0[0][indL] += gFInterp2_g[indR];
-          gf2[1][indR] += gFInterp0_g[indL];
+          gf0[0][indL] += gFInterp2_g[indR_col];
+          gf2[1][indR] += gFInterp0_g[indL_col];
         }
       } else if(edgeL == 1) {
         if(edgeR == 0) {
-          gf1[0][indL] += gFInterp0_g[indR];
-          gf0[1][indR] += gFInterp1_g[indL];
+          gf1[0][indL] += gFInterp0_g[indR_col];
+          gf0[1][indR] += gFInterp1_g[indL_col];
         } else if(edgeR == 1) {
-          gf1[0][indL] += gFInterp1_g[indR];
-          gf1[1][indR] += gFInterp1_g[indL];
+          gf1[0][indL] += gFInterp1_g[indR_col];
+          gf1[1][indR] += gFInterp1_g[indL_col];
         } else {
-          gf1[0][indL] += gFInterp2_g[indR];
-          gf2[1][indR] += gFInterp1_g[indL];
+          gf1[0][indL] += gFInterp2_g[indR_col];
+          gf2[1][indR] += gFInterp1_g[indL_col];
         }
       } else {
         if(edgeR == 0) {
-          gf2[0][indL] += gFInterp0_g[indR];
-          gf0[1][indR] += gFInterp2_g[indL];
+          gf2[0][indL] += gFInterp0_g[indR_col];
+          gf0[1][indR] += gFInterp2_g[indL_col];
         } else if(edgeR == 1) {
-          gf2[0][indL] += gFInterp1_g[indR];
-          gf1[1][indR] += gFInterp2_g[indL];
+          gf2[0][indL] += gFInterp1_g[indR_col];
+          gf1[1][indR] += gFInterp2_g[indL_col];
         } else {
-          gf2[0][indL] += gFInterp2_g[indR];
-          gf2[1][indR] += gFInterp2_g[indL];
+          gf2[0][indL] += gFInterp2_g[indR_col];
+          gf2[1][indR] += gFInterp2_g[indL_col];
         }
       }
     }
