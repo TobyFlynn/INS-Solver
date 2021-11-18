@@ -7,14 +7,14 @@
 #include <limits>
 
 #include "dg_constants.h"
-#include "blas_calls.h"
+#include "dg_blas_calls.h"
 #include "dg_operators.h"
 #include "load_mesh.h"
 #include "timing.h"
 
 extern Timing *timer;
 extern DGConstants *constants;
-extern double dt;
+extern double dt, nu;
 
 using namespace std;
 
@@ -52,20 +52,20 @@ Solver::Solver(std::string filename, int pmethod, int prob) {
   gaussData = new GaussData(mesh, data);
 
   if(pmethod == 0) {
-    Poisson_M *pressureM = new Poisson_M(data, cubatureData, gaussData);
+    Poisson_M *pressureM = new Poisson_M(mesh, data, cubatureData, gaussData);
     pressureM->setDirichletBCs(pressure_dirichlet);
     pressureM->setNeumannBCs(pressure_neumann);
     pressurePoisson = pressureM;
-    Poisson_M *viscosityM = new Poisson_M(data, cubatureData, gaussData);
+    Poisson_M *viscosityM = new Poisson_M(mesh, data, cubatureData, gaussData);
     viscosityM->setDirichletBCs(viscosity_dirichlet);
     viscosityM->setNeumannBCs(viscosity_neumann);
     viscosityPoisson = viscosityM;
   } else {
-    Poisson_MF2 *pressureMF2 = new Poisson_MF2(data, cubatureData, gaussData);
+    Poisson_MF2 *pressureMF2 = new Poisson_MF2(mesh, data, cubatureData, gaussData);
     pressureMF2->setDirichletBCs(pressure_dirichlet);
     pressureMF2->setNeumannBCs(pressure_neumann);
     pressurePoisson = pressureMF2;
-    Poisson_MF2 *viscosityMF2 = new Poisson_MF2(data, cubatureData, gaussData);
+    Poisson_MF2 *viscosityMF2 = new Poisson_MF2(mesh, data, cubatureData, gaussData);
     viscosityMF2->setDirichletBCs(viscosity_dirichlet);
     viscosityMF2->setNeumannBCs(viscosity_neumann);
     viscosityPoisson = viscosityMF2;
@@ -102,6 +102,7 @@ Solver::~Solver() {
   delete gaussData;
   delete cubatureData;
   delete data;
+  delete mesh;
 }
 
 void Solver::advection(int currentInd, double a0, double a1, double b0,

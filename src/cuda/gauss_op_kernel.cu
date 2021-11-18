@@ -11,8 +11,9 @@ __device__ void gauss_op_gpu( const double *tau, const double *sJ,
 
   for(int ind = 0; ind < 7 * 15; ind++) {
     int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
-    f0_0[ind] = gFInterp0_g_cuda[indT];
-    f0_1[ind] = gFInterp0_g_cuda[indT];
+    int indT_col = ind;
+    f0_0[ind] = gFInterp0_g_cuda[indT_col];
+    f0_1[ind] = gFInterp0_g_cuda[indT_col];
     f0_2[ind] = mD0[indT];
   }
 
@@ -27,8 +28,9 @@ __device__ void gauss_op_gpu( const double *tau, const double *sJ,
 
   for(int ind = 0; ind < 7 * 15; ind++) {
     int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
-    f1_0[ind] = gFInterp1_g_cuda[indT];
-    f1_1[ind] = gFInterp1_g_cuda[indT];
+    int indT_col = ind;
+    f1_0[ind] = gFInterp1_g_cuda[indT_col];
+    f1_1[ind] = gFInterp1_g_cuda[indT_col];
     f1_2[ind] = mD1[indT];
   }
 
@@ -43,8 +45,9 @@ __device__ void gauss_op_gpu( const double *tau, const double *sJ,
 
   for(int ind = 0; ind < 7 * 15; ind++) {
     int indT = ((ind * 15) % (15 * 7)) + (ind / 7);
-    f2_0[ind] = gFInterp2_g_cuda[indT];
-    f2_1[ind] = gFInterp2_g_cuda[indT];
+    int indT_col = ind;
+    f2_0[ind] = gFInterp2_g_cuda[indT_col];
+    f2_1[ind] = gFInterp2_g_cuda[indT_col];
     f2_2[ind] = mD2[indT];
   }
 
@@ -155,10 +158,10 @@ void op_par_loop_gauss_op(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(14);
+  op_timing_realloc(9);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[14].name      = name;
-  OP_kernels[14].count    += 1;
+  OP_kernels[9].name      = name;
+  OP_kernels[9].count    += 1;
 
 
   if (OP_diags>2) {
@@ -169,8 +172,8 @@ void op_par_loop_gauss_op(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_14
-      int nthread = OP_BLOCK_SIZE_14;
+    #ifdef OP_BLOCK_SIZE_9
+      int nthread = OP_BLOCK_SIZE_9;
     #else
       int nthread = OP_block_size;
     #endif
@@ -201,22 +204,22 @@ void op_par_loop_gauss_op(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[14].time     += wall_t2 - wall_t1;
-  OP_kernels[14].transfer += (float)set->size * arg0.size;
-  OP_kernels[14].transfer += (float)set->size * arg1.size;
-  OP_kernels[14].transfer += (float)set->size * arg2.size;
-  OP_kernels[14].transfer += (float)set->size * arg3.size * 2.0f;
-  OP_kernels[14].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[14].transfer += (float)set->size * arg5.size * 2.0f;
-  OP_kernels[14].transfer += (float)set->size * arg6.size;
-  OP_kernels[14].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[14].transfer += (float)set->size * arg8.size * 2.0f;
-  OP_kernels[14].transfer += (float)set->size * arg9.size * 2.0f;
-  OP_kernels[14].transfer += (float)set->size * arg10.size;
-  OP_kernels[14].transfer += (float)set->size * arg11.size * 2.0f;
-  OP_kernels[14].transfer += (float)set->size * arg12.size * 2.0f;
-  OP_kernels[14].transfer += (float)set->size * arg13.size * 2.0f;
-  OP_kernels[14].transfer += (float)set->size * arg14.size * 2.0f;
-  OP_kernels[14].transfer += (float)set->size * arg15.size * 2.0f;
-  OP_kernels[14].transfer += (float)set->size * arg16.size * 2.0f;
+  OP_kernels[9].time     += wall_t2 - wall_t1;
+  OP_kernels[9].transfer += (float)set->size * arg0.size;
+  OP_kernels[9].transfer += (float)set->size * arg1.size;
+  OP_kernels[9].transfer += (float)set->size * arg2.size;
+  OP_kernels[9].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg6.size;
+  OP_kernels[9].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg10.size;
+  OP_kernels[9].transfer += (float)set->size * arg11.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg12.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg13.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg14.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg15.size * 2.0f;
+  OP_kernels[9].transfer += (float)set->size * arg16.size * 2.0f;
 }

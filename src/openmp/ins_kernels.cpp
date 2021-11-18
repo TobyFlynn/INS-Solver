@@ -16,7 +16,6 @@ extern double bc_p;
 extern double bc_u;
 extern double bc_v;
 extern int FMASK[15];
-extern double ic_u;
 extern double ic_v;
 extern double cubW_g[46];
 extern double cubV_g[690];
@@ -41,20 +40,14 @@ extern double gF2DsR_g[105];
 extern double gFInterp0R_g[105];
 extern double gFInterp1R_g[105];
 extern double gFInterp2R_g[105];
-extern double lift_drag_vec[5];
 
 // header
 #include "op_lib_cpp.h"
 
 // user kernel files
-#include "init_nodes_kernel.cpp"
-#include "init_grid_kernel.cpp"
-#include "init_edges_kernel.cpp"
 #include "init_cubature_grad_kernel.cpp"
-#include "init_cubature_kernel.cpp"
 #include "init_cubature_OP_kernel.cpp"
 #include "gauss_reverse_kernel.cpp"
-#include "init_gauss_kernel.cpp"
 #include "gauss_tau_kernel.cpp"
 #include "gauss_tau_bc_kernel.cpp"
 #include "init_gauss_grad_kernel.cpp"
@@ -63,9 +56,6 @@ extern double lift_drag_vec[5];
 #include "gauss_grad_faces_kernel.cpp"
 #include "gauss_op_kernel.cpp"
 #include "gauss_gfi_faces_kernel.cpp"
-#include "div_kernel.cpp"
-#include "curl_kernel.cpp"
-#include "grad_kernel.cpp"
 #include "glb_ind_kernel_kernel.cpp"
 #include "glb_ind_kernelBC_kernel.cpp"
 #include "poisson_mf2_op_kernel.cpp"
@@ -76,9 +66,6 @@ extern double lift_drag_vec[5];
 #include "poisson_mf2_mass_kernel.cpp"
 #include "poisson_mf2_kernel.cpp"
 #include "poisson_mf2_faces_kernel.cpp"
-#include "poisson_test_init_kernel.cpp"
-#include "poisson_test_bc_kernel.cpp"
-#include "poisson_test_error_kernel.cpp"
 #include "save_values_kernel.cpp"
 #include "set_ic_kernel.cpp"
 #include "calc_dt_kernel.cpp"
@@ -94,4 +81,3 @@ extern double lift_drag_vec[5];
 #include "viscosity_bc_kernel.cpp"
 #include "viscosity_rhs_kernel.cpp"
 #include "viscosity_reset_bc_kernel.cpp"
-#include "lift_drag_kernel.cpp"

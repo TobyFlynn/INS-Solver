@@ -5,18 +5,6 @@
 
 #include "op_seq.h"
 
-#include "blas_calls.h"
-#include "operators.h"
-
-#include "kernels/poisson_mf2.h"
-#include "kernels/poisson_mf2_mass.h"
-#include "kernels/poisson_mf2_faces.h"
-#include "kernels/poisson_mf2_op.h"
-#include "kernels/poisson_mf2_opf.h"
-#include "kernels/poisson_mf2_opbf.h"
-#include "kernels/poisson_mf2_bc.h"
-#include "kernels/poisson_mf2_apply_bc.h"
-
 using namespace std;
 
 Poisson_MF2::Poisson_MF2(DGMesh *m, INSData *nsData, CubatureData *cubData, GaussData *gaussData) : Poisson(m, nsData, cubData, gaussData) {
@@ -123,7 +111,7 @@ void Poisson_MF2::calc_rhs(const double *u_d, double *rhs_d) {
                 op_arg_dat(u, -1, OP_ID, 15, "double", OP_READ),
                 op_arg_dat(op1, -1, OP_ID, 15 * 15, "double", OP_READ),
                 op_arg_gbl(&massFactor, 1, "double", OP_READ),
-                op_arg_dat(cData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
+                op_arg_dat(mesh->cubature->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
                 op_arg_dat(rhs, -1, OP_ID, 15, "double", OP_WRITE));
   } else {
     op_par_loop(poisson_mf2, "poisson_mf2", mesh->cells,

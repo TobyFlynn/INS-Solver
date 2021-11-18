@@ -10,18 +10,19 @@ __device__ void poisson_mf2_bc_gpu( const double *tol, const int *bedge_type, co
   if(*bedge_type == *d0 || *bedge_type == *d1 || *bedge_type == *d2) {
     for(int j = 0; j < 7 * 15; j++) {
       int indT = (j % 7) * 15 + (j / 7);
+      int indT_col = j;
       int col  = j % 7;
       int row  = j / 7;
       double val = gaussW_g_cuda[j % 7] * sJ[*bedgeNum * 7 + (j % 7)] * tau[*bedgeNum];
       double mD;
       if(*bedgeNum == 0) {
-        val *= gFInterp0_g_cuda[indT];
+        val *= gFInterp0_g_cuda[indT_col];
         mD = mD0[indT];
       } else if(*bedgeNum == 1) {
-        val *= gFInterp1_g_cuda[indT];
+        val *= gFInterp1_g_cuda[indT_col];
         mD = mD1[indT];
       } else {
-        val *= gFInterp2_g_cuda[indT];
+        val *= gFInterp2_g_cuda[indT_col];
         mD = mD2[indT];
       }
       val -= mD * gaussW_g_cuda[j % 7] * sJ[*bedgeNum * 7 + (j % 7)];
@@ -31,15 +32,16 @@ __device__ void poisson_mf2_bc_gpu( const double *tol, const int *bedge_type, co
   } else {
     for(int j = 0; j < 7 * 15; j++) {
       int indT = (j % 7) * 15 + (j / 7);
+      int indT_col = j;
       int col  = j % 7;
       int row  = j / 7;
       double val = gaussW_g_cuda[j % 7] * sJ[*bedgeNum * 7 + (j % 7)];
       if(*bedgeNum == 0) {
-        val *= gFInterp0_g_cuda[indT];
+        val *= gFInterp0_g_cuda[indT_col];
       } else if(*bedgeNum == 1) {
-        val *= gFInterp1_g_cuda[indT];
+        val *= gFInterp1_g_cuda[indT_col];
       } else {
-        val *= gFInterp2_g_cuda[indT];
+        val *= gFInterp2_g_cuda[indT_col];
       }
       if(fabs(val) > *tol)
         op[row * 7 + col] += val;
@@ -127,10 +129,10 @@ void op_par_loop_poisson_mf2_bc(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(24);
+  op_timing_realloc(16);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[24].name      = name;
-  OP_kernels[24].count    += 1;
+  OP_kernels[16].name      = name;
+  OP_kernels[16].count    += 1;
 
 
   int    ninds   = 5;
@@ -177,8 +179,8 @@ void op_par_loop_poisson_mf2_bc(char const *name, op_set set,
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_24
-      int nthread = OP_BLOCK_SIZE_24;
+    #ifdef OP_BLOCK_SIZE_16
+      int nthread = OP_BLOCK_SIZE_16;
     #else
       int nthread = OP_block_size;
     #endif
@@ -213,5 +215,5 @@ void op_par_loop_poisson_mf2_bc(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[24].time     += wall_t2 - wall_t1;
+  OP_kernels[16].time     += wall_t2 - wall_t1;
 }

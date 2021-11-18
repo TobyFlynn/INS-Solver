@@ -27,17 +27,19 @@ __device__ void init_gauss_grad_neighbour_gpu( const int *reverse, double *rx,
   if(reverse[0]) {
     for(int m = 0; m < 7; m++) {
       for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        Dx0[ind] = rx[m] * gF0DrR_g_cuda[ind] + sx[m] * gF0DsR_g_cuda[ind];
-        Dy0[ind] = ry[m] * gF0DrR_g_cuda[ind] + sy[m] * gF0DsR_g_cuda[ind];
+        int ind_row = m * 15 + n;
+        int ind_col = m + n * 7;
+        Dx0[ind_row] = rx[m] * gF0DrR_g_cuda[ind_col] + sx[m] * gF0DsR_g_cuda[ind_col];
+        Dy0[ind_row] = ry[m] * gF0DrR_g_cuda[ind_col] + sy[m] * gF0DsR_g_cuda[ind_col];
       }
     }
   } else {
     for(int m = 0; m < 7; m++) {
       for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        Dx0[ind] = rx[m] * gF0Dr_g_cuda[ind] + sx[m] * gF0Ds_g_cuda[ind];
-        Dy0[ind] = ry[m] * gF0Dr_g_cuda[ind] + sy[m] * gF0Ds_g_cuda[ind];
+        int ind_row = m * 15 + n;
+        int ind_col = m + n * 7;
+        Dx0[ind_row] = rx[m] * gF0Dr_g_cuda[ind_col] + sx[m] * gF0Ds_g_cuda[ind_col];
+        Dy0[ind_row] = ry[m] * gF0Dr_g_cuda[ind_col] + sy[m] * gF0Ds_g_cuda[ind_col];
       }
     }
   }
@@ -45,17 +47,19 @@ __device__ void init_gauss_grad_neighbour_gpu( const int *reverse, double *rx,
   if(reverse[1]) {
     for(int m = 0; m < 7; m++) {
       for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        Dx1[ind] = rx[m + 7] * gF1DrR_g_cuda[ind] + sx[m + 7] * gF1DsR_g_cuda[ind];
-        Dy1[ind] = ry[m + 7] * gF1DrR_g_cuda[ind] + sy[m + 7] * gF1DsR_g_cuda[ind];
+        int ind_row = m * 15 + n;
+        int ind_col = m + n * 7;
+        Dx1[ind_row] = rx[m + 7] * gF1DrR_g_cuda[ind_col] + sx[m + 7] * gF1DsR_g_cuda[ind_col];
+        Dy1[ind_row] = ry[m + 7] * gF1DrR_g_cuda[ind_col] + sy[m + 7] * gF1DsR_g_cuda[ind_col];
       }
     }
   } else {
     for(int m = 0; m < 7; m++) {
       for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        Dx1[ind] = rx[m + 7] * gF1Dr_g_cuda[ind] + sx[m + 7] * gF1Ds_g_cuda[ind];
-        Dy1[ind] = ry[m + 7] * gF1Dr_g_cuda[ind] + sy[m + 7] * gF1Ds_g_cuda[ind];
+        int ind_row = m * 15 + n;
+        int ind_col = m + n * 7;
+        Dx1[ind_row] = rx[m + 7] * gF1Dr_g_cuda[ind_col] + sx[m + 7] * gF1Ds_g_cuda[ind_col];
+        Dy1[ind_row] = ry[m + 7] * gF1Dr_g_cuda[ind_col] + sy[m + 7] * gF1Ds_g_cuda[ind_col];
       }
     }
   }
@@ -63,17 +67,19 @@ __device__ void init_gauss_grad_neighbour_gpu( const int *reverse, double *rx,
   if(reverse[2]) {
     for(int m = 0; m < 7; m++) {
       for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        Dx2[ind] = rx[m + 14] * gF2DrR_g_cuda[ind] + sx[m + 14] * gF2DsR_g_cuda[ind];
-        Dy2[ind] = ry[m + 14] * gF2DrR_g_cuda[ind] + sy[m + 14] * gF2DsR_g_cuda[ind];
+        int ind_row = m * 15 + n;
+        int ind_col = m + n * 7;
+        Dx2[ind_row] = rx[m + 14] * gF2DrR_g_cuda[ind_col] + sx[m + 14] * gF2DsR_g_cuda[ind_col];
+        Dy2[ind_row] = ry[m + 14] * gF2DrR_g_cuda[ind_col] + sy[m + 14] * gF2DsR_g_cuda[ind_col];
       }
     }
   } else {
     for(int m = 0; m < 7; m++) {
       for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        Dx2[ind] = rx[m + 14] * gF2Dr_g_cuda[ind] + sx[m + 14] * gF2Ds_g_cuda[ind];
-        Dy2[ind] = ry[m + 14] * gF2Dr_g_cuda[ind] + sy[m + 14] * gF2Ds_g_cuda[ind];
+        int ind_row = m * 15 + n;
+        int ind_col = m + n * 7;
+        Dx2[ind_row] = rx[m + 14] * gF2Dr_g_cuda[ind_col] + sx[m + 14] * gF2Ds_g_cuda[ind_col];
+        Dy2[ind_row] = ry[m + 14] * gF2Dr_g_cuda[ind_col] + sy[m + 14] * gF2Ds_g_cuda[ind_col];
       }
     }
   }
@@ -146,10 +152,10 @@ void op_par_loop_init_gauss_grad_neighbour(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(12);
+  op_timing_realloc(7);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[12].name      = name;
-  OP_kernels[12].count    += 1;
+  OP_kernels[7].name      = name;
+  OP_kernels[7].count    += 1;
 
 
   if (OP_diags>2) {
@@ -160,8 +166,8 @@ void op_par_loop_init_gauss_grad_neighbour(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_12
-      int nthread = OP_BLOCK_SIZE_12;
+    #ifdef OP_BLOCK_SIZE_7
+      int nthread = OP_BLOCK_SIZE_7;
     #else
       int nthread = OP_block_size;
     #endif
@@ -186,16 +192,16 @@ void op_par_loop_init_gauss_grad_neighbour(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[12].time     += wall_t2 - wall_t1;
-  OP_kernels[12].transfer += (float)set->size * arg0.size;
-  OP_kernels[12].transfer += (float)set->size * arg1.size * 2.0f;
-  OP_kernels[12].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[12].transfer += (float)set->size * arg3.size * 2.0f;
-  OP_kernels[12].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[12].transfer += (float)set->size * arg5.size * 2.0f;
-  OP_kernels[12].transfer += (float)set->size * arg6.size * 2.0f;
-  OP_kernels[12].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[12].transfer += (float)set->size * arg8.size * 2.0f;
-  OP_kernels[12].transfer += (float)set->size * arg9.size * 2.0f;
-  OP_kernels[12].transfer += (float)set->size * arg10.size * 2.0f;
+  OP_kernels[7].time     += wall_t2 - wall_t1;
+  OP_kernels[7].transfer += (float)set->size * arg0.size;
+  OP_kernels[7].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[7].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[7].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[7].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[7].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[7].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[7].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[7].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[7].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[7].transfer += (float)set->size * arg10.size * 2.0f;
 }

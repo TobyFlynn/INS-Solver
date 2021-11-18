@@ -126,11 +126,11 @@ void Poisson_M::createMassMatrix() {
 
   // Add Cubature OP to mass matrix
   op_arg args[] = {
-    op_arg_dat(cData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(mesh->cubature->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges(mesh->cells, 2, args);
-  double *cub_MM = (double *)cData->mm->data;
+  double *cub_MM = (double *)mesh->cubature->mm->data;
   int *glb       = (int *)glb_ind->data;
 
   for(int i = 0; i < mesh->cells->size; i++) {

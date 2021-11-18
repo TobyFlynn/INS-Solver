@@ -26,6 +26,8 @@ public:
 
   // OP2 Dats
   op_dat bc_dat;
+
+  DGMesh *mesh;
 protected:
   void create_vec(Vec *v, int size = 15);
   void destroy_vec(Vec *v);

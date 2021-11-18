@@ -13,46 +13,51 @@ __device__ void gauss_gfi_faces_gpu( const int *edgeNum, const bool *rev,
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
       int indL, indR;
+      int indL_col, indR_col;
       if(!reverse) {
         indL = m * 15 + n;
         indR = m * 15 + n;
+        indL_col = m + n * 7;
+        indR_col = m + n * 7;
       } else {
         indL = m * 15 + n;
         indR = (6 - m) * 15 + n;
+        indL_col = m + n * 7;
+        indR_col = (6 - m) + n * 7;
       }
 
       if(edgeL == 0) {
         if(edgeR == 0) {
-          gf0[0][indL] += gFInterp0_g_cuda[indR];
-          gf0[1][indR] += gFInterp0_g_cuda[indL];
+          gf0[0][indL] += gFInterp0_g_cuda[indR_col];
+          gf0[1][indR] += gFInterp0_g_cuda[indL_col];
         } else if(edgeR == 1) {
-          gf0[0][indL] += gFInterp1_g_cuda[indR];
-          gf1[1][indR] += gFInterp0_g_cuda[indL];
+          gf0[0][indL] += gFInterp1_g_cuda[indR_col];
+          gf1[1][indR] += gFInterp0_g_cuda[indL_col];
         } else {
-          gf0[0][indL] += gFInterp2_g_cuda[indR];
-          gf2[1][indR] += gFInterp0_g_cuda[indL];
+          gf0[0][indL] += gFInterp2_g_cuda[indR_col];
+          gf2[1][indR] += gFInterp0_g_cuda[indL_col];
         }
       } else if(edgeL == 1) {
         if(edgeR == 0) {
-          gf1[0][indL] += gFInterp0_g_cuda[indR];
-          gf0[1][indR] += gFInterp1_g_cuda[indL];
+          gf1[0][indL] += gFInterp0_g_cuda[indR_col];
+          gf0[1][indR] += gFInterp1_g_cuda[indL_col];
         } else if(edgeR == 1) {
-          gf1[0][indL] += gFInterp1_g_cuda[indR];
-          gf1[1][indR] += gFInterp1_g_cuda[indL];
+          gf1[0][indL] += gFInterp1_g_cuda[indR_col];
+          gf1[1][indR] += gFInterp1_g_cuda[indL_col];
         } else {
-          gf1[0][indL] += gFInterp2_g_cuda[indR];
-          gf2[1][indR] += gFInterp1_g_cuda[indL];
+          gf1[0][indL] += gFInterp2_g_cuda[indR_col];
+          gf2[1][indR] += gFInterp1_g_cuda[indL_col];
         }
       } else {
         if(edgeR == 0) {
-          gf2[0][indL] += gFInterp0_g_cuda[indR];
-          gf0[1][indR] += gFInterp2_g_cuda[indL];
+          gf2[0][indL] += gFInterp0_g_cuda[indR_col];
+          gf0[1][indR] += gFInterp2_g_cuda[indL_col];
         } else if(edgeR == 1) {
-          gf2[0][indL] += gFInterp1_g_cuda[indR];
-          gf1[1][indR] += gFInterp2_g_cuda[indL];
+          gf2[0][indL] += gFInterp1_g_cuda[indR_col];
+          gf1[1][indR] += gFInterp2_g_cuda[indL_col];
         } else {
-          gf2[0][indL] += gFInterp2_g_cuda[indR];
-          gf2[1][indR] += gFInterp2_g_cuda[indL];
+          gf2[0][indL] += gFInterp2_g_cuda[indR_col];
+          gf2[1][indR] += gFInterp2_g_cuda[indL_col];
         }
       }
     }
@@ -787,10 +792,10 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(15);
+  op_timing_realloc(10);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[15].name      = name;
-  OP_kernels[15].count    += 1;
+  OP_kernels[10].name      = name;
+  OP_kernels[10].count    += 1;
 
 
   int    ninds   = 3;
@@ -803,8 +808,8 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_15
-      int nthread = OP_BLOCK_SIZE_15;
+    #ifdef OP_BLOCK_SIZE_10
+      int nthread = OP_BLOCK_SIZE_10;
     #else
       int nthread = OP_block_size;
     #endif
@@ -832,5 +837,5 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[15].time     += wall_t2 - wall_t1;
+  OP_kernels[10].time     += wall_t2 - wall_t1;
 }

@@ -126,11 +126,11 @@ void Poisson_M::createMassMatrix() {
   double *cub_MM = (double *)malloc(15 * 15 * mesh->cells->size * sizeof(double));
   int *glb       = (int *)malloc(mesh->cells->size * sizeof(int));
   op_arg args[] = {
-    op_arg_dat(cData->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
+    op_arg_dat(mesh->cubature->mm, -1, OP_ID, 15 * 15, "double", OP_READ),
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(mesh->cells, 2, args);
-  cudaMemcpy(cub_MM, cData->mm->data_d, cData->mm->set->size * 15 * 15 * sizeof(double), cudaMemcpyDeviceToHost);
+  cudaMemcpy(cub_MM, mesh->cubature->mm->data_d, mesh->cubature->mm->set->size * 15 * 15 * sizeof(double), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb, glb_ind->data_d, glb_ind->set->size * sizeof(int), cudaMemcpyDeviceToHost);
   op_mpi_set_dirtybit_cuda(2, args);
 

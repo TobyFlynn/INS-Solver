@@ -29,8 +29,6 @@ extern "C" {
 #include <cmath>
 #include <limits>
 
-#include "constants/all_constants.h"
-#include "constants.h"
 #include "ins_data.h"
 #include "save_solution.h"
 #include "poisson.h"
@@ -38,6 +36,10 @@ extern "C" {
 #include "solver.h"
 
 using namespace std;
+
+extern double reynolds, froude, weber, nu0, nu1, rho0, rho1, dt, gam;
+extern double ic_u, ic_v, nu, mu, bc_mach, bc_alpha, bc_p, bc_u, bc_v;
+extern double refRho, refMu, refLen, refVel, refSurfTen;
 
 void export_data_init(string filename) {
   ofstream file(filename);
@@ -69,7 +71,6 @@ void export_data(string filename, int iter, double time, double drag,
 }
 
 Timing *timer;
-Constants *constants;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 2);
@@ -77,7 +78,6 @@ int main(int argc, char **argv) {
   timer = new Timing();
   timer->startWallTime();
   timer->startSetup();
-  constants = new Constants();
 
   char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
   gam = 1.4;
   mu = 1e-2;
   nu = 1e-3;
-  bc_u = 1e-6;
+  bc_u = 0.0;
   bc_v = 0.0;
   ic_u = 0.0;
   ic_v = 0.0;
@@ -220,12 +220,11 @@ int main(int argc, char **argv) {
   op_printf("Time to simulate 1 second: %g\n", timer->getWallTime() / time);
   op_printf("Average number of iterations to pressure convergance: %g\n", solver->getAvgPressureConvergance());
   op_printf("Average number of iterations to viscosity convergance: %g\n", solver->getAvgViscosityConvergance());
-  
+
   string op_out_file = outputDir + "op2_timings.csv";
   op_timings_to_csv(op_out_file.c_str());
 
   delete solver;
-  delete constants;
   delete timer;
 
   ierr = PetscFinalize();

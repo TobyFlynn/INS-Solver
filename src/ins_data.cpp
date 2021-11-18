@@ -409,25 +409,25 @@ void GaussData::init() {
               op_arg_dat(pDy[1], -1, OP_ID, 7 * 15, "double", OP_WRITE),
               op_arg_dat(pDy[2], -1, OP_ID, 7 * 15, "double", OP_WRITE));
 
-  op2_gemm(true, false, 15, 15, 7, 1.0, mDx[0], 7, constants->get_ptr(Constants::GAUSS_FINTERP0), 7, 0.0, OP[0], 15);
+  op2_gemm(true, false, 15, 15, 7, 1.0, mDx[0], 7, constants->get_ptr(DGConstants::GAUSS_FINTERP0), 7, 0.0, OP[0], 15);
   op2_gemm_batch(true, true, 15, 15, 7, -1.0, mDx[1], 7, mD[0], 15, 1.0, OP[0], 15);
-  op2_gemm(true, false, 15, 15, 7, -1.0, mDx[2], 7, constants->get_ptr(Constants::GAUSS_FINTERP0), 7, 1.0, OP[0], 15);
+  op2_gemm(true, false, 15, 15, 7, -1.0, mDx[2], 7, constants->get_ptr(DGConstants::GAUSS_FINTERP0), 7, 1.0, OP[0], 15);
 
-  op2_gemm(true, false, 15, 15, 7, 1.0, mDy[0], 7, constants->get_ptr(Constants::GAUSS_FINTERP1), 7, 0.0, OP[1], 15);
+  op2_gemm(true, false, 15, 15, 7, 1.0, mDy[0], 7, constants->get_ptr(DGConstants::GAUSS_FINTERP1), 7, 0.0, OP[1], 15);
   op2_gemm_batch(true, true, 15, 15, 7, -1.0, mDy[1], 7, mD[1], 15, 1.0, OP[1], 15);
-  op2_gemm(true, false, 15, 15, 7, -1.0, mDy[2], 7, constants->get_ptr(Constants::GAUSS_FINTERP1), 7, 1.0, OP[1], 15);
+  op2_gemm(true, false, 15, 15, 7, -1.0, mDy[2], 7, constants->get_ptr(DGConstants::GAUSS_FINTERP1), 7, 1.0, OP[1], 15);
 
-  op2_gemm(true, false, 15, 15, 7, 1.0, pDx[0], 7, constants->get_ptr(Constants::GAUSS_FINTERP2), 7, 0.0, OP[2], 15);
+  op2_gemm(true, false, 15, 15, 7, 1.0, pDx[0], 7, constants->get_ptr(DGConstants::GAUSS_FINTERP2), 7, 0.0, OP[2], 15);
   op2_gemm_batch(true, true, 15, 15, 7, -1.0, pDx[1], 7, mD[2], 15, 1.0, OP[2], 15);
-  op2_gemm(true, false, 15, 15, 7, -1.0, pDx[2], 7, constants->get_ptr(Constants::GAUSS_FINTERP2), 7, 1.0, OP[2], 15);
+  op2_gemm(true, false, 15, 15, 7, -1.0, pDx[2], 7, constants->get_ptr(DGConstants::GAUSS_FINTERP2), 7, 1.0, OP[2], 15);
 
   // Calculate Gauss OPf for each face (contribution to neighbouring element in Poisson matrix)
-  op_par_loop(gauss_gfi_faces, "gauss_gfi_faces", data->edges,
-              op_arg_dat(data->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(data->reverse, -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(pDy[0], -2, data->edge2cells, 7 * 15, "double", OP_INC),
-              op_arg_dat(pDy[1], -2, data->edge2cells, 7 * 15, "double", OP_INC),
-              op_arg_dat(pDy[2], -2, data->edge2cells, 7 * 15, "double", OP_INC));
+  op_par_loop(gauss_gfi_faces, "gauss_gfi_faces", mesh->edges,
+              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(pDy[0], -2, mesh->edge2cells, 7 * 15, "double", OP_INC),
+              op_arg_dat(pDy[1], -2, mesh->edge2cells, 7 * 15, "double", OP_INC),
+              op_arg_dat(pDy[2], -2, mesh->edge2cells, 7 * 15, "double", OP_INC));
 
   op2_gemm_batch(true, true, 15, 15, 7, 1.0, mDx[0], 7, pDy[0], 15, 0.0, OPf[0], 15);
   op2_gemm_batch(true, true, 15, 15, 7, 1.0, mDx[1], 7, pD[0], 15, 1.0, OPf[0], 15);

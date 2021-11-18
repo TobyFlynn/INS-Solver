@@ -12,7 +12,6 @@ extern double bc_p;
 extern double bc_u;
 extern double bc_v;
 extern int FMASK[15];
-extern double ic_u;
 extern double ic_v;
 extern double cubW_g[46];
 extern double cubV_g[690];
@@ -37,20 +36,14 @@ extern double gF2DsR_g[105];
 extern double gFInterp0R_g[105];
 extern double gFInterp1R_g[105];
 extern double gFInterp2R_g[105];
-extern double lift_drag_vec[5];
 
 // header
 #include "op_lib_cpp.h"
 
 // user kernel files
-#include "init_nodes_seqkernel.cpp"
-#include "init_grid_seqkernel.cpp"
-#include "init_edges_seqkernel.cpp"
 #include "init_cubature_grad_seqkernel.cpp"
-#include "init_cubature_seqkernel.cpp"
 #include "init_cubature_OP_seqkernel.cpp"
 #include "gauss_reverse_seqkernel.cpp"
-#include "init_gauss_seqkernel.cpp"
 #include "gauss_tau_seqkernel.cpp"
 #include "gauss_tau_bc_seqkernel.cpp"
 #include "init_gauss_grad_seqkernel.cpp"
@@ -59,9 +52,6 @@ extern double lift_drag_vec[5];
 #include "gauss_grad_faces_seqkernel.cpp"
 #include "gauss_op_seqkernel.cpp"
 #include "gauss_gfi_faces_seqkernel.cpp"
-#include "div_seqkernel.cpp"
-#include "curl_seqkernel.cpp"
-#include "grad_seqkernel.cpp"
 #include "glb_ind_kernel_seqkernel.cpp"
 #include "glb_ind_kernelBC_seqkernel.cpp"
 #include "poisson_mf2_op_seqkernel.cpp"
@@ -72,9 +62,6 @@ extern double lift_drag_vec[5];
 #include "poisson_mf2_mass_seqkernel.cpp"
 #include "poisson_mf2_seqkernel.cpp"
 #include "poisson_mf2_faces_seqkernel.cpp"
-#include "poisson_test_init_seqkernel.cpp"
-#include "poisson_test_bc_seqkernel.cpp"
-#include "poisson_test_error_seqkernel.cpp"
 #include "save_values_seqkernel.cpp"
 #include "set_ic_seqkernel.cpp"
 #include "calc_dt_seqkernel.cpp"
@@ -90,4 +77,3 @@ extern double lift_drag_vec[5];
 #include "viscosity_bc_seqkernel.cpp"
 #include "viscosity_rhs_seqkernel.cpp"
 #include "viscosity_reset_bc_seqkernel.cpp"
-#include "lift_drag_seqkernel.cpp"

@@ -26,7 +26,8 @@ extern "C" {
 
 using namespace std;
 
-Poisson::Poisson(INSData *nsData, CubatureData *cubData, GaussData *gaussData) {
+Poisson::Poisson(DGMesh *m, INSData *nsData, CubatureData *cubData, GaussData *gaussData) {
+  mesh = m;
   data = nsData;
   cData = cubData;
   gData = gaussData;

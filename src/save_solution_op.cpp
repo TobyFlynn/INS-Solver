@@ -32,7 +32,7 @@ extern "C" {
 #include <cmath>
 
 #include "ins_data.h"
-#include "operators.h"
+#include "dg_operators.h"
 
 using namespace std;
 
@@ -63,10 +63,10 @@ void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double
                       vector<double> &u_v, vector<double> &v_v, vector<double> &pr_v,
                       vector<double> &vort_v, vector<cgsize_t> &cells) {
   // Calculate vorticity
-  curl(data, data->Q[ind][0], data->Q[ind][1], data->vorticity);
+  curl(data->mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
   // Get Data from OP2
-  int numCells = op_get_size(data->cells);
+  int numCells = op_get_size(data->mesh->cells);
   double *Ux   = (double *)malloc(15 * numCells * sizeof(double));
   double *Uy   = (double *)malloc(15 * numCells * sizeof(double));
   double *pr   = (double *)malloc(15 * numCells * sizeof(double));
@@ -78,8 +78,8 @@ void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double
   op_fetch_data(data->Q[ind][1], Uy);
   op_fetch_data(data->p, pr);
   op_fetch_data(data->vorticity, vort);
-  op_fetch_data(data->x, x);
-  op_fetch_data(data->y, y);
+  op_fetch_data(data->mesh->x, x);
+  op_fetch_data(data->mesh->y, y);
   // Maps points to sub elements that they are part of.
   // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
   // -1 is just padding to get each line to 6
@@ -185,7 +185,7 @@ void get_data_vectors(INSData *data, int ind, vector<double> &x_v, vector<double
 }
 
 void save_solution_iter(std::string filename, INSData *data, int ind, int iter) {
-  int numCells = op_get_size(data->cells);
+  int numCells = op_get_size(data->mesh->cells);
   vector<double> x_v;
   vector<double> y_v;
   vector<double> u_v;
@@ -249,7 +249,7 @@ void save_solution_iter(std::string filename, INSData *data, int ind, int iter) 
 }
 
 void save_solution_init(std::string filename, INSData *data) {
-  int numCells = op_get_size(data->cells);
+  int numCells = op_get_size(data->mesh->cells);
   vector<double> x_v;
   vector<double> y_v;
   vector<double> u_v;
@@ -375,7 +375,7 @@ void save_solution_finalise(std::string filename, INSData *data, int numIter, do
 }
 
 void save_solution(std::string filename, INSData *data, int ind, double finalTime, double nu) {
-  int numCells = op_get_size(data->cells);
+  int numCells = op_get_size(data->mesh->cells);
   vector<double> x_v;
   vector<double> y_v;
   vector<double> u_v;

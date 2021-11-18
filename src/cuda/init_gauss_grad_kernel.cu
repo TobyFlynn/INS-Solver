@@ -25,25 +25,28 @@ __device__ void init_gauss_grad_gpu( double *rx, double *sx, double *ry,  double
 
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
-      int ind = m * 15 + n;
-      Dx0[ind] = rx[m] * gF0Dr_g_cuda[ind] + sx[m] * gF0Ds_g_cuda[ind];
-      Dy0[ind] = ry[m] * gF0Dr_g_cuda[ind] + sy[m] * gF0Ds_g_cuda[ind];
+      int ind_row = m * 15 + n;
+      int ind_col = m + n * 7;
+      Dx0[ind_row] = rx[m] * gF0Dr_g_cuda[ind_col] + sx[m] * gF0Ds_g_cuda[ind_col];
+      Dy0[ind_row] = ry[m] * gF0Dr_g_cuda[ind_col] + sy[m] * gF0Ds_g_cuda[ind_col];
     }
   }
 
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
-      int ind = m * 15 + n;
-      Dx1[ind] = rx[m + 7] * gF1Dr_g_cuda[ind] + sx[m + 7] * gF1Ds_g_cuda[ind];
-      Dy1[ind] = ry[m + 7] * gF1Dr_g_cuda[ind] + sy[m + 7] * gF1Ds_g_cuda[ind];
+      int ind_row = m * 15 + n;
+      int ind_col = m + n * 7;
+      Dx1[ind_row] = rx[m + 7] * gF1Dr_g_cuda[ind_col] + sx[m + 7] * gF1Ds_g_cuda[ind_col];
+      Dy1[ind_row] = ry[m + 7] * gF1Dr_g_cuda[ind_col] + sy[m + 7] * gF1Ds_g_cuda[ind_col];
     }
   }
 
   for(int m = 0; m < 7; m++) {
     for(int n = 0; n < 15; n++) {
-      int ind = m * 15 + n;
-      Dx2[ind] = rx[m + 14] * gF2Dr_g_cuda[ind] + sx[m + 14] * gF2Ds_g_cuda[ind];
-      Dy2[ind] = ry[m + 14] * gF2Dr_g_cuda[ind] + sy[m + 14] * gF2Ds_g_cuda[ind];
+      int ind_row = m * 15 + n;
+      int ind_col = m + n * 7;
+      Dx2[ind_row] = rx[m + 14] * gF2Dr_g_cuda[ind_col] + sx[m + 14] * gF2Ds_g_cuda[ind_col];
+      Dy2[ind_row] = ry[m + 14] * gF2Dr_g_cuda[ind_col] + sy[m + 14] * gF2Ds_g_cuda[ind_col];
     }
   }
 
@@ -111,10 +114,10 @@ void op_par_loop_init_gauss_grad(char const *name, op_set set,
 
   // initialise timers
   double cpu_t1, cpu_t2, wall_t1, wall_t2;
-  op_timing_realloc(10);
+  op_timing_realloc(5);
   op_timers_core(&cpu_t1, &wall_t1);
-  OP_kernels[10].name      = name;
-  OP_kernels[10].count    += 1;
+  OP_kernels[5].name      = name;
+  OP_kernels[5].count    += 1;
 
 
   if (OP_diags>2) {
@@ -125,8 +128,8 @@ void op_par_loop_init_gauss_grad(char const *name, op_set set,
   if (set_size > 0) {
 
     //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_10
-      int nthread = OP_BLOCK_SIZE_10;
+    #ifdef OP_BLOCK_SIZE_5
+      int nthread = OP_BLOCK_SIZE_5;
     #else
       int nthread = OP_block_size;
     #endif
@@ -150,15 +153,15 @@ void op_par_loop_init_gauss_grad(char const *name, op_set set,
   cutilSafeCall(cudaDeviceSynchronize());
   //update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[10].time     += wall_t2 - wall_t1;
-  OP_kernels[10].transfer += (float)set->size * arg0.size * 2.0f;
-  OP_kernels[10].transfer += (float)set->size * arg1.size * 2.0f;
-  OP_kernels[10].transfer += (float)set->size * arg2.size * 2.0f;
-  OP_kernels[10].transfer += (float)set->size * arg3.size * 2.0f;
-  OP_kernels[10].transfer += (float)set->size * arg4.size * 2.0f;
-  OP_kernels[10].transfer += (float)set->size * arg5.size * 2.0f;
-  OP_kernels[10].transfer += (float)set->size * arg6.size * 2.0f;
-  OP_kernels[10].transfer += (float)set->size * arg7.size * 2.0f;
-  OP_kernels[10].transfer += (float)set->size * arg8.size * 2.0f;
-  OP_kernels[10].transfer += (float)set->size * arg9.size * 2.0f;
+  OP_kernels[5].time     += wall_t2 - wall_t1;
+  OP_kernels[5].transfer += (float)set->size * arg0.size * 2.0f;
+  OP_kernels[5].transfer += (float)set->size * arg1.size * 2.0f;
+  OP_kernels[5].transfer += (float)set->size * arg2.size * 2.0f;
+  OP_kernels[5].transfer += (float)set->size * arg3.size * 2.0f;
+  OP_kernels[5].transfer += (float)set->size * arg4.size * 2.0f;
+  OP_kernels[5].transfer += (float)set->size * arg5.size * 2.0f;
+  OP_kernels[5].transfer += (float)set->size * arg6.size * 2.0f;
+  OP_kernels[5].transfer += (float)set->size * arg7.size * 2.0f;
+  OP_kernels[5].transfer += (float)set->size * arg8.size * 2.0f;
+  OP_kernels[5].transfer += (float)set->size * arg9.size * 2.0f;
 }

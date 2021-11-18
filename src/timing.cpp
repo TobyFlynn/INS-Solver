@@ -60,7 +60,7 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if(rank != 0)
     return;
-    
+
   ofstream file(filename);
 
   // Create first row of csv file (headers of columns)

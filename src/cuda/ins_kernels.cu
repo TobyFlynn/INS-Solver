@@ -41,7 +41,6 @@ __constant__ double gF2DsR_g_cuda[105];
 __constant__ double gFInterp0R_g_cuda[105];
 __constant__ double gFInterp1R_g_cuda[105];
 __constant__ double gFInterp2R_g_cuda[105];
-__constant__ double lift_drag_vec_cuda[5];
 
 //header
 #include "op_lib_cpp.h"
@@ -259,27 +258,15 @@ int size, char *dat, char const *name){
     cutilSafeCall(cudaMemcpyToSymbol(gFInterp2R_g_cuda, dat, dim*size));
   }
   else
-  if (!strcmp(name,"lift_drag_vec")) {
-    if (!strcmp(name,"lift_drag_vec") && size>MAX_CONST_SIZE) {
-      printf("error: MAX_CONST_SIZE not big enough\n"); exit(1);
-    }
-    cutilSafeCall(cudaMemcpyToSymbol(lift_drag_vec_cuda, dat, dim*size));
-  }
-  else
   {
     printf("error: unknown const name\n"); exit(1);
   }
 }
 
 //user kernel files
-#include "init_nodes_kernel.cu"
-#include "init_grid_kernel.cu"
-#include "init_edges_kernel.cu"
 #include "init_cubature_grad_kernel.cu"
-#include "init_cubature_kernel.cu"
 #include "init_cubature_OP_kernel.cu"
 #include "gauss_reverse_kernel.cu"
-#include "init_gauss_kernel.cu"
 #include "gauss_tau_kernel.cu"
 #include "gauss_tau_bc_kernel.cu"
 #include "init_gauss_grad_kernel.cu"
@@ -288,9 +275,6 @@ int size, char *dat, char const *name){
 #include "gauss_grad_faces_kernel.cu"
 #include "gauss_op_kernel.cu"
 #include "gauss_gfi_faces_kernel.cu"
-#include "div_kernel.cu"
-#include "curl_kernel.cu"
-#include "grad_kernel.cu"
 #include "glb_ind_kernel_kernel.cu"
 #include "glb_ind_kernelBC_kernel.cu"
 #include "poisson_mf2_op_kernel.cu"
@@ -301,9 +285,6 @@ int size, char *dat, char const *name){
 #include "poisson_mf2_mass_kernel.cu"
 #include "poisson_mf2_kernel.cu"
 #include "poisson_mf2_faces_kernel.cu"
-#include "poisson_test_init_kernel.cu"
-#include "poisson_test_bc_kernel.cu"
-#include "poisson_test_error_kernel.cu"
 #include "save_values_kernel.cu"
 #include "set_ic_kernel.cu"
 #include "calc_dt_kernel.cu"
@@ -319,4 +300,3 @@ int size, char *dat, char const *name){
 #include "viscosity_bc_kernel.cu"
 #include "viscosity_rhs_kernel.cu"
 #include "viscosity_reset_bc_kernel.cu"
-#include "lift_drag_kernel.cu"
