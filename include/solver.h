@@ -6,6 +6,8 @@
 #include "ins_data.h"
 #include "poisson.h"
 
+#include "dg_mesh.h"
+
 class Solver {
 public:
   Solver(std::string filename, int pmethod, int prob);
@@ -25,6 +27,7 @@ public:
   double getAvgPressureConvergance();
   double getAvgViscosityConvergance();
 
+  DGMesh *mesh;
   INSData *data;
   double dt;
 private:

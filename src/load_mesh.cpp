@@ -31,7 +31,15 @@ void cgns_load_cells<long>(int file, int baseIndex, int zoneIndex, int *cgnsCell
   std::transform(cells.begin(), cells.end(), cgnsCells, [](long x) { return (int)x - 1;});
 }
 
-void load_mesh(std::string filename, INSData *nsData) {
+void load_mesh(std::string filename, double **coords_data, int **cells_data,
+               int **edge2node_data, int **edge2cell_data,
+               int **bedge2node_data, int **bedge2cell_data,
+               int **bedge_type_data, int **edgeNum_data, int **bedgeNum_data,
+               int *numNodes_g, int *numCells_g, int *numEdges_g,
+               int *numBoundaryEdges_g, int *numNodes, int *numCells,
+               int *numEdges, int *numBoundaryEdges, int *pressure_dirichlet,
+               int *pressure_neumann, int *viscosity_dirichlet,
+               int *viscosity_neumann) {
   // Read CGNS grid
   int file;
   if(cg_open(filename.c_str(), CG_MODE_READ, &file)) {
@@ -44,13 +52,13 @@ void load_mesh(std::string filename, INSData *nsData) {
   char zoneName[33];
   // Get zone name and size
   cg_zone_read(file, baseIndex, zoneIndex, zoneName, &cg_numNodes);
-  nsData->numNodes = (int) cg_numNodes;
+  *numNodes = (int) cg_numNodes;
   std::cout << "Zone Name: " << zoneName << std::endl;
-  std::cout << "Zone Size: " << nsData->numNodes << std::endl;
+  std::cout << "Zone Size: " << *numNodes << std::endl;
 
   // Get vertices
-  std::vector<double> x(nsData->numNodes);
-  std::vector<double> y(nsData->numNodes);
+  std::vector<double> x(*numNodes);
+  std::vector<double> y(*numNodes);
   cgsize_t minVertex = 1;
   cgsize_t maxVertex = cg_numNodes;
   cg_coord_read(file, baseIndex, zoneIndex, "CoordinateX",
@@ -58,10 +66,11 @@ void load_mesh(std::string filename, INSData *nsData) {
   cg_coord_read(file, baseIndex, zoneIndex, "CoordinateY",
                 CGNS_ENUMV(RealDouble), &minVertex, &maxVertex, y.data());
 
-  nsData->coords = (double *)malloc(2 * nsData->numNodes * sizeof(double));
+  *coords_data = (double *)malloc(2 * (*numNodes) * sizeof(double));
+  double *coords_ptr = *coords_data;
   for(int i = 0; i < x.size(); i++) {
-    nsData->coords[2 * i] = x[i];
-    nsData->coords[2 * i + 1] = y[i];
+    coords_ptr[2 * i] = x[i];
+    coords_ptr[2 * i + 1] = y[i];
   }
 
   // Get number of sections
@@ -83,9 +92,9 @@ void load_mesh(std::string filename, INSData *nsData) {
   std::cout << " Parent Flag: " << parentFlag << std::endl;
 
   // Get cells
-  nsData->numCells = elementEnd - elementStart + 1;
-  nsData->cgnsCells = (int *)malloc(nsData->numCells * 3 * sizeof(int));
-  cgns_load_cells<cgsize_t>(file, baseIndex, zoneIndex, nsData->cgnsCells, nsData->numCells);
+  *numCells = elementEnd - elementStart + 1;
+  *cells_data = (int *)malloc((*numCells) * 3 * sizeof(int));
+  cgns_load_cells<cgsize_t>(file, baseIndex, zoneIndex, *cells_data, *numCells);
 
   // Get edge data
   cg_gopath(file, "/Base/Zone1/Edges");
@@ -96,22 +105,26 @@ void load_mesh(std::string filename, INSData *nsData) {
   cg_array_info(1, arrayName, &arrayDataType, &arrayRank, arrayDims);
   std::cout << "Array Name: " << arrayName << std::endl;
   std::cout << "Array Dims: " << arrayDims[0] << " " << arrayDims[1] << std::endl;
-  nsData->numEdges = arrayDims[1];
-  nsData->edge2node_data = (int *)malloc(2 * nsData->numEdges * sizeof(int));
-  nsData->edge2cell_data = (int *)malloc(2 * nsData->numEdges * sizeof(int));
-  nsData->edgeNum_data   = (int *)malloc(2 * nsData->numEdges * sizeof(int));
+  *numEdges = arrayDims[1];
+  *edge2node_data = (int *)malloc(2 * (*numEdges) * sizeof(int));
+  *edge2cell_data = (int *)malloc(2 * (*numEdges) * sizeof(int));
+  *edgeNum_data   = (int *)malloc(2 * (*numEdges) * sizeof(int));
   std::vector<int> edgeData(arrayDims[0] * arrayDims[1]);
   cg_array_read(1, edgeData.data());
 
-  for(int i = 0; i < nsData->numEdges; i++) {
+  int *edge2node_ptr = *edge2node_data;
+  int *edge2cell_ptr = *edge2cell_data;
+  int *edgeNum_ptr   = *edgeNum_data;
+
+  for(int i = 0; i < (*numEdges); i++) {
     // - 1 as CGNS counts points from 1 but OP2 counts from 0
     // Cell index do start from one in this data
-    nsData->edge2node_data[i * 2]     = edgeData[i * 6] - 1;
-    nsData->edge2node_data[i * 2 + 1] = edgeData[i * 6 + 1] - 1;
-    nsData->edge2cell_data[i * 2]     = edgeData[i * 6 + 2];
-    nsData->edge2cell_data[i * 2 + 1] = edgeData[i * 6 + 3];
-    nsData->edgeNum_data[i * 2]       = edgeData[i * 6 + 4];
-    nsData->edgeNum_data[i * 2 + 1]   = edgeData[i * 6 + 5];
+    edge2node_ptr[i * 2]     = edgeData[i * 6] - 1;
+    edge2node_ptr[i * 2 + 1] = edgeData[i * 6 + 1] - 1;
+    edge2cell_ptr[i * 2]     = edgeData[i * 6 + 2];
+    edge2cell_ptr[i * 2 + 1] = edgeData[i * 6 + 3];
+    edgeNum_ptr[i * 2]       = edgeData[i * 6 + 4];
+    edgeNum_ptr[i * 2 + 1]   = edgeData[i * 6 + 5];
   }
 
   // Get boundary edge data
@@ -123,23 +136,28 @@ void load_mesh(std::string filename, INSData *nsData) {
   cg_array_info(1, barrayName, &barrayDataType, &barrayRank, barrayDims);
   std::cout << "Array Name: " << barrayName << std::endl;
   std::cout << "Array Dims: " << barrayDims[0] << " " << barrayDims[1] << std::endl;
-  nsData->numBoundaryEdges = barrayDims[1];
-  nsData->bedge2node_data = (int *)malloc(2 * nsData->numBoundaryEdges * sizeof(int));
-  nsData->bedge2cell_data = (int *)malloc(nsData->numBoundaryEdges * sizeof(int));
-  nsData->bedgeNum_data   = (int *)malloc(nsData->numBoundaryEdges * sizeof(int));
-  nsData->bedge_type_data = (int *)malloc(nsData->numBoundaryEdges * sizeof(int));
+  *numBoundaryEdges = barrayDims[1];
+  *bedge2node_data = (int *)malloc(2 * (*numBoundaryEdges) * sizeof(int));
+  *bedge2cell_data = (int *)malloc((*numBoundaryEdges) * sizeof(int));
+  *bedgeNum_data   = (int *)malloc((*numBoundaryEdges) * sizeof(int));
+  *bedge_type_data = (int *)malloc((*numBoundaryEdges) * sizeof(int));
   std::vector<int> bedgeData(barrayDims[0] * barrayDims[1]);
   cg_array_read(1, bedgeData.data());
 
-  for(int i = 0; i < nsData->numBoundaryEdges; i++) {
+  int *bedge2node_ptr = *bedge2node_data;
+  int *bedge2cell_ptr = *bedge2cell_data;
+  int *bedgeNum_ptr   = *bedgeNum_data;
+  int *bedge_type_ptr = *bedge_type_data;
+
+  for(int i = 0; i < (*numBoundaryEdges); i++) {
     // - 1 as CGNS counts points from 1 but OP2 counts from 0
     // Cell index do start from one in this data
-    nsData->bedge2node_data[i * 2]     = bedgeData[i * 5] - 1;
-    nsData->bedge2node_data[i * 2 + 1] = bedgeData[i * 5 + 1] - 1;
-    nsData->bedge2cell_data[i]         = bedgeData[i * 5 + 2];
-    nsData->bedgeNum_data[i]           = bedgeData[i * 5 + 3];
-    nsData->bedge_type_data[i]         = bedgeData[i * 5 + 4];
-    if(nsData->bedge_type_data[i] < 0)
+    bedge2node_ptr[i * 2]     = bedgeData[i * 5] - 1;
+    bedge2node_ptr[i * 2 + 1] = bedgeData[i * 5 + 1] - 1;
+    bedge2cell_ptr[i]         = bedgeData[i * 5 + 2];
+    bedgeNum_ptr[i]           = bedgeData[i * 5 + 3];
+    bedge_type_ptr[i]         = bedgeData[i * 5 + 4];
+    if(bedge_type_ptr[i] < 0)
       std::cerr << "Error reading in boundary edge type" << std::endl;
   }
 
@@ -154,10 +172,10 @@ void load_mesh(std::string filename, INSData *nsData) {
   std::vector<int> bcData(bcarrayDims[0] * bcarrayDims[1]);
   cg_array_read(1, bcData.data());
   for(int i = 0; i < 3; i++) {
-    nsData->pressure_dirichlet[i] = bcData[0 + i];
-    nsData->pressure_neumann[i] = bcData[3 + i];
-    nsData->viscosity_dirichlet[i] = bcData[6 + i];
-    nsData->viscosity_neumann[i] = bcData[9 + i];
+    pressure_dirichlet[i] = bcData[0 + i];
+    pressure_neumann[i] = bcData[3 + i];
+    viscosity_dirichlet[i] = bcData[6 + i];
+    viscosity_neumann[i] = bcData[9 + i];
   }
 
   cg_close(file);
