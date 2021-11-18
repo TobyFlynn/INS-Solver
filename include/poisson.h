@@ -6,16 +6,13 @@
 #include "petscvec.h"
 #include "petscksp.h"
 #include "timing.h"
+#include "dg_mesh.h"
 
-extern double gFInterp0_g[7 * 15];
-extern double gFInterp1_g[7 * 15];
-extern double gFInterp2_g[7 * 15];
-extern double gaussW_g[7];
 extern Timing *timer;
 
 class Poisson {
 public:
-  Poisson(INSData *nsData, CubatureData *cubData, GaussData *gaussData);
+  Poisson(DGMesh *m, INSData *nsData, CubatureData *cubData, GaussData *gaussData);
   ~Poisson();
 
   virtual bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0) = 0;
@@ -51,7 +48,7 @@ protected:
 
 class Poisson_M : public Poisson {
 public:
-  Poisson_M(INSData *data, CubatureData *cubData, GaussData *gaussData);
+  Poisson_M(DGMesh *m, INSData *data, CubatureData *cubData, GaussData *gaussData);
   ~Poisson_M();
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
@@ -85,7 +82,7 @@ private:
 
 class Poisson_MF2 : public Poisson {
 public:
-  Poisson_MF2(INSData *data, CubatureData *cubData, GaussData *gaussData);
+  Poisson_MF2(DGMesh *m, INSData *data, CubatureData *cubData, GaussData *gaussData);
   ~Poisson_MF2();
 
   bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);

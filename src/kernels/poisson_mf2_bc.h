@@ -5,18 +5,19 @@ inline void poisson_mf2_bc(const double *tol, const int *bedge_type, const int *
   if(*bedge_type == *d0 || *bedge_type == *d1 || *bedge_type == *d2) {
     for(int j = 0; j < 7 * 15; j++) {
       int indT = (j % 7) * 15 + (j / 7);
+      int indT_col = j;
       int col  = j % 7;
       int row  = j / 7;
       double val = gaussW_g[j % 7] * sJ[*bedgeNum * 7 + (j % 7)] * tau[*bedgeNum];
       double mD;
       if(*bedgeNum == 0) {
-        val *= gFInterp0_g[indT];
+        val *= gFInterp0_g[indT_col];
         mD = mD0[indT];
       } else if(*bedgeNum == 1) {
-        val *= gFInterp1_g[indT];
+        val *= gFInterp1_g[indT_col];
         mD = mD1[indT];
       } else {
-        val *= gFInterp2_g[indT];
+        val *= gFInterp2_g[indT_col];
         mD = mD2[indT];
       }
       val -= mD * gaussW_g[j % 7] * sJ[*bedgeNum * 7 + (j % 7)];
@@ -26,15 +27,16 @@ inline void poisson_mf2_bc(const double *tol, const int *bedge_type, const int *
   } else {
     for(int j = 0; j < 7 * 15; j++) {
       int indT = (j % 7) * 15 + (j / 7);
+      int indT_col = j;
       int col  = j % 7;
       int row  = j / 7;
       double val = gaussW_g[j % 7] * sJ[*bedgeNum * 7 + (j % 7)];
       if(*bedgeNum == 0) {
-        val *= gFInterp0_g[indT];
+        val *= gFInterp0_g[indT_col];
       } else if(*bedgeNum == 1) {
-        val *= gFInterp1_g[indT];
+        val *= gFInterp1_g[indT_col];
       } else {
-        val *= gFInterp2_g[indT];
+        val *= gFInterp2_g[indT_col];
       }
       if(fabs(val) > *tol)
         op[row * 7 + col] += val;
