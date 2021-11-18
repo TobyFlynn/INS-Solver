@@ -1,5 +1,5 @@
 // Target element size of outer boundary
-lc2 = 0.41 / 10;
+lc2 = 0.41 / 5;
 
 // Bottom left coords
 xL = 0;

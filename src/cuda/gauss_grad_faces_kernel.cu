@@ -94,42 +94,6 @@ __global__ void op_cuda_gauss_grad_faces(
   int start,
   int end,
   int   set_size) {
-  double arg13_l[105];
-  double arg14_l[105];
-  double arg15_l[105];
-  double arg16_l[105];
-  double arg17_l[105];
-  double arg18_l[105];
-  double arg19_l[105];
-  double arg20_l[105];
-  double arg21_l[105];
-  double arg22_l[105];
-  double arg23_l[105];
-  double arg24_l[105];
-  double *arg13_vec[2] = {
-    arg13_l,
-    arg14_l,
-  };
-  double *arg15_vec[2] = {
-    arg15_l,
-    arg16_l,
-  };
-  double *arg17_vec[2] = {
-    arg17_l,
-    arg18_l,
-  };
-  double *arg19_vec[2] = {
-    arg19_l,
-    arg20_l,
-  };
-  double *arg21_vec[2] = {
-    arg21_l,
-    arg22_l,
-  };
-  double *arg23_vec[2] = {
-    arg23_l,
-    arg24_l,
-  };
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
@@ -205,23 +169,23 @@ __global__ void op_cuda_gauss_grad_faces(
        &ind_arg5[105 * map1idx],
        &ind_arg5[105 * map2idx]};
     double* arg13_vec[] = {
-       &ind_arg6[105 * map1idx],
-       &ind_arg6[105 * map2idx]};
+      arg13_l,
+      arg14_l};
     double* arg15_vec[] = {
-       &ind_arg7[105 * map1idx],
-       &ind_arg7[105 * map2idx]};
+      arg15_l,
+      arg16_l};
     double* arg17_vec[] = {
-       &ind_arg8[105 * map1idx],
-       &ind_arg8[105 * map2idx]};
+      arg17_l,
+      arg18_l};
     double* arg19_vec[] = {
-       &ind_arg9[105 * map1idx],
-       &ind_arg9[105 * map2idx]};
+      arg19_l,
+      arg20_l};
     double* arg21_vec[] = {
-       &ind_arg10[105 * map1idx],
-       &ind_arg10[105 * map2idx]};
+      arg21_l,
+      arg22_l};
     double* arg23_vec[] = {
-       &ind_arg11[105 * map1idx],
-       &ind_arg11[105 * map2idx]};
+      arg23_l,
+      arg24_l};
 
     //user-supplied kernel call
     gauss_grad_faces_gpu(arg0+n*2,
@@ -1608,7 +1572,7 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
   if (OP_diags>2) {
     printf(" kernel routine with indirection: gauss_grad_faces\n");
   }
-  int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //set CUDA execution parameters
@@ -1620,7 +1584,7 @@ void op_par_loop_gauss_grad_faces(char const *name, op_set set,
 
     for ( int round=0; round<2; round++ ){
       if (round==1) {
-        op_mpi_wait_all_cuda(nargs, args);
+        op_mpi_wait_all_grouped(nargs, args, 2);
       }
       int start = round==0 ? 0 : set->core_size;
       int end = round==0 ? set->core_size : set->size + set->exec_size;

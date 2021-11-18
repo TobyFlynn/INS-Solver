@@ -71,24 +71,6 @@ __global__ void op_cuda_gauss_gfi_faces(
   int start,
   int end,
   int   set_size) {
-  double arg2_l[105];
-  double arg3_l[105];
-  double arg4_l[105];
-  double arg5_l[105];
-  double arg6_l[105];
-  double arg7_l[105];
-  double *arg2_vec[2] = {
-    arg2_l,
-    arg3_l,
-  };
-  double *arg4_vec[2] = {
-    arg4_l,
-    arg5_l,
-  };
-  double *arg6_vec[2] = {
-    arg6_l,
-    arg7_l,
-  };
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
@@ -122,14 +104,14 @@ __global__ void op_cuda_gauss_gfi_faces(
     map2idx = opDat2Map[n + set_size * 0];
     map3idx = opDat2Map[n + set_size * 1];
     double* arg2_vec[] = {
-       &ind_arg0[105 * map2idx],
-       &ind_arg0[105 * map3idx]};
+      arg2_l,
+      arg3_l};
     double* arg4_vec[] = {
-       &ind_arg1[105 * map2idx],
-       &ind_arg1[105 * map3idx]};
+      arg4_l,
+      arg5_l};
     double* arg6_vec[] = {
-       &ind_arg2[105 * map2idx],
-       &ind_arg2[105 * map3idx]};
+      arg6_l,
+      arg7_l};
 
     //user-supplied kernel call
     gauss_gfi_faces_gpu(arg0+n*2,
@@ -817,7 +799,7 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
   if (OP_diags>2) {
     printf(" kernel routine with indirection: gauss_gfi_faces\n");
   }
-  int set_size = op_mpi_halo_exchanges_cuda(set, nargs, args);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
 
     //set CUDA execution parameters
@@ -829,7 +811,7 @@ void op_par_loop_gauss_gfi_faces(char const *name, op_set set,
 
     for ( int round=0; round<2; round++ ){
       if (round==1) {
-        op_mpi_wait_all_cuda(nargs, args);
+        op_mpi_wait_all_grouped(nargs, args, 2);
       }
       int start = round==0 ? 0 : set->core_size;
       int end = round==0 ? set->core_size : set->size + set->exec_size;

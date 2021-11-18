@@ -79,6 +79,7 @@ extern double lift_drag_vec[5];
 #include "poisson_test_init_kernel.cpp"
 #include "poisson_test_bc_kernel.cpp"
 #include "poisson_test_error_kernel.cpp"
+#include "save_values_kernel.cpp"
 #include "set_ic_kernel.cpp"
 #include "calc_dt_kernel.cpp"
 #include "advection_flux_kernel.cpp"
@@ -94,4 +95,3 @@ extern double lift_drag_vec[5];
 #include "viscosity_rhs_kernel.cpp"
 #include "viscosity_reset_bc_kernel.cpp"
 #include "lift_drag_kernel.cpp"
-#include "save_values_kernel.cpp"
