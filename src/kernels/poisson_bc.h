@@ -1,4 +1,4 @@
-inline void poisson_mf2_bc(const double *tol, const int *bedge_type, const int *bedgeNum,
+inline void poisson_bc(const double *tol, const int *bedge_type, const int *bedgeNum,
                            const int *d0, const int *d1, const int *d2,
                            const double *mD0, const double *mD1, const double *mD2,
                            const double *sJ, const double *tau, double *op) {
@@ -23,8 +23,7 @@ inline void poisson_mf2_bc(const double *tol, const int *bedge_type, const int *
       double val = gaussW_g[j % DG_GF_NP] * sJ[*bedgeNum * DG_GF_NP + (j % DG_GF_NP)] * tau[*bedgeNum];
       val *= gVM[indT_col];
       val -= mD[indT] * gaussW_g[j % DG_GF_NP] * sJ[*bedgeNum * DG_GF_NP + (j % DG_GF_NP)];
-      if(fabs(val) > *tol)
-        op[row * DG_GF_NP + col] += val;
+      op[row * DG_GF_NP + col] = val;
     }
   } else {
     for(int j = 0; j < DG_GF_NP * DG_NP; j++) {
@@ -34,8 +33,7 @@ inline void poisson_mf2_bc(const double *tol, const int *bedge_type, const int *
       int row  = j / DG_GF_NP;
       double val = gaussW_g[j % DG_GF_NP] * sJ[*bedgeNum * DG_GF_NP + (j % DG_GF_NP)];
       val *= gVM[indT_col];
-      if(fabs(val) > *tol)
-        op[row * DG_GF_NP + col] += val;
+      op[row * DG_GF_NP + col] = val;
     }
   }
 }

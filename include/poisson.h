@@ -10,13 +10,15 @@
 
 extern Timing *timer;
 
-class Poisson {
+class PoissonSolve {
 public:
-  Poisson(DGMesh *m, INSData *nsData, CubatureData *cubData, GaussData *gaussData);
-  ~Poisson();
+  PoissonSolve(DGMesh *m, INSData *nsData, CubatureData *cubData, GaussData *gaussData);
+  ~PoissonSolve();
 
-  virtual bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0) = 0;
-  virtual void init() = 0;
+  void init();
+  bool solve(op_dat b_dat, op_dat x_dat);
+  void calc_rhs(const double *u_d, double *rhs_d);
+  void precond(const double *in_d, double *out_d);
 
   double getAverageConvergeIter();
 
@@ -25,92 +27,64 @@ public:
   void setBCValues(op_dat bc);
 
   // OP2 Dats
-  op_dat bc_dat;
+  op_dat op1, op2[2], op_bc;
+  op_dat glb_ind, glb_indL, glb_indR, glb_indBC;
+  op_dat u, rhs, in, out, tmp, pre;
+
+protected:
+  void set_op();
+  void setMatrix();
+  void create_shell_mat(Mat *m);
+  void set_shell_pc(PC pc);
 
   DGMesh *mesh;
-protected:
-  void create_vec(Vec *v, int size);
-  void destroy_vec(Vec *v);
-  void load_vec(Vec *v, op_dat v_dat, int size);
-  void store_vec(Vec *v, op_dat v_dat);
-  void create_mat(Mat *m, int row, int col, int prealloc0, int prealloc1 = 0);
   INSData *data;
   CubatureData *cData;
   GaussData *gData;
 
-  int *dirichlet;
-  int *neumann;
+  int dirichlet[3];
+  int neumann[3];
 
   bool massMat;
   double massFactor;
+  bool block_jacobi_pre;
+  bool pMatInit;
 
-  int numberIter = 0;
-  int solveCount = 0;
-};
+  Mat pMat;
+  KSP ksp;
 
-class Poisson_M : public Poisson {
-public:
-  Poisson_M(DGMesh *m, INSData *data, CubatureData *cubData, GaussData *gaussData);
-  ~Poisson_M();
-
-  bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
-  void init();
-
-  op_dat glb_ind, glb_indL, glb_indR, glb_indBC, op1, op2[2], op_bc;
 private:
+  void create_vec(Vec *v, int size);
+  void destroy_vec(Vec *v);
+  void load_vec(Vec *v, op_dat v_dat, int size);
+  void store_vec(Vec *v, op_dat v_dat);
+  void copy_vec_to_dat(op_dat dat, const double *dat_d);
+  void copy_dat_to_vec(op_dat dat, double *dat_d);
+
   void setGlbInd();
-  void setOp();
-  void setBCOP();
-  void createMatrix();
-  void createMassMatrix();
-  void createBCMatrix();
 
-  Mat pMat, pBCMat, pMMat, op;
-  Vec b, bc, rhs, x;
-  KSP ksp;
+  op_dat bc_dat;
+  Vec b, x;
 
-  bool pMatInit = false;
-  bool pMMatInit = false;
-  bool pBCMatInit = false;
+  int numberIter, solveCount;
 
-  int *glb_ind_data;
-  int *glb_indL_data;
-  int *glb_indR_data;
-  int *glb_indBC_data;
-  double *op1_data;
-  double *op2_data[2];
-  double *op_bc_data;
+  double *op1_data, *op2_data[2], *op_bc_data;
+  int *glb_ind_data, *glb_indL_data, *glb_indR_data, *glb_indBC_data;
+  double *u_data, *rhs_data, *in_data, *out_data, *tmp_data, *pre_data;
 };
 
-class Poisson_MF2 : public Poisson {
+class PressureSolve : public PoissonSolve {
 public:
-  Poisson_MF2(DGMesh *m, INSData *data, CubatureData *cubData, GaussData *gaussData);
-  ~Poisson_MF2();
+  PressureSolve(DGMesh *m, INSData *d, CubatureData *c, GaussData *g);
 
-  bool solve(op_dat b_dat, op_dat x_dat, bool addMass = false, double factor = 0.0);
-  void calc_rhs(const double *u_d, double *rhs_d);
-  void init();
+  void setup();
+};
 
-  op_dat u, rhs, op1, op2[2], op_bc, u_t, rhs_t;
+class ViscositySolve : public PoissonSolve {
+public:
+  ViscositySolve(DGMesh *m, INSData *d, CubatureData *c, GaussData *g);
 
-  void setOp();
-  void setBCOP();
-private:
-  void create_shell_mat(Mat *m);
-  void copy_u(const double *u_d);
-  void copy_rhs(double *rhs_d);
-
-  double *u_data;
-  double *rhs_data;
-  double *op1_data;
-  double *op2_data[2];
-  double *op_bc_data;
-  double *u_t_data;
-  double *rhs_t_data;
-
-  Mat Amat;
-  KSP ksp;
-  Vec b, x;
+  void setup(double mmConst);
 };
 
 #endif

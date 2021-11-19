@@ -1,19 +1,19 @@
 import os
 
 # Order 4
-dg_np        = "15"
-dg_npf       = "5"
-dg_cub_np    = "46"
-dg_g_np      = "21"
-dg_gf_np     = "7"
-dg_sub_cells = "16"
+# dg_np        = "15"
+# dg_npf       = "5"
+# dg_cub_np    = "46"
+# dg_g_np      = "21"
+# dg_gf_np     = "7"
+# dg_sub_cells = "16"
 # Order 3
-# dg_np        = "10"
-# dg_npf       = "4"
-# dg_cub_np    = "36"
-# dg_g_np      = "18"
-# dg_gf_np     = "6"
-# dg_sub_cells = "9"
+dg_np        = "10"
+dg_npf       = "4"
+dg_cub_np    = "36"
+dg_g_np      = "18"
+dg_gf_np     = "6"
+dg_sub_cells = "9"
 # Order 2
 # dg_np        = "6"
 # dg_npf       = "3"

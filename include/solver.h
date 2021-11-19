@@ -33,8 +33,8 @@ public:
 private:
   CubatureData *cubatureData;
   GaussData *gaussData;
-  Poisson *pressurePoisson;
-  Poisson *viscosityPoisson;
+  PressureSolve *pressurePoisson;
+  ViscositySolve *viscosityPoisson;
   int problem;
 };
 

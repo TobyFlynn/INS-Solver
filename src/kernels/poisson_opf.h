@@ -1,4 +1,4 @@
-inline void poisson_mf2_opf(const double *tol, const int *edgeNum, const double *gop0L,
+inline void poisson_opf(const double *tol, const int *edgeNum, const double *gop0L,
                             const double *gop1L, const double *gop2L, const double *gopf0L,
                             const double *gopf1L, const double *gopf2L, double *op2L,
                             double *op1L,
@@ -35,20 +35,18 @@ inline void poisson_mf2_opf(const double *tol, const int *edgeNum, const double 
     for(int n = 0; n < DG_NP; n++) {
       int ind = m * DG_NP + n;
       int colInd = n * DG_NP + m;
-      
+
       double val = 0.5 * gopL[colInd];
       if(fabs(val) > *tol)
         op1L[ind] += val;
       val = -0.5 * gopFL[colInd];
-      if(fabs(val) > *tol)
-        op2L[ind] += val;
+      op2L[ind] = val;
 
       val = 0.5 * gopR[colInd];
       if(fabs(val) > *tol)
         op1R[ind] += val;
       val = -0.5 * gopFR[colInd];
-      if(fabs(val) > *tol)
-        op2R[ind] += val;
+      op2R[ind] = val;
     }
   }
 }
