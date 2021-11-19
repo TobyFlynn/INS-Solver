@@ -8,97 +8,47 @@ inline void poisson_mf2_opf(const double *tol, const int *edgeNum, const double 
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
 
+  const double *gopL, *gopR, *gopFL, *gopFR;
   if(edgeL == 0) {
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
-        int colInd = n * DG_NP + m;
-        double val = 0.5 * gop0L[colInd];
-        if(fabs(val) > *tol) {
-          op1L[ind] += val;
-        }
-        val = -0.5 * gopf0L[colInd];
-        if(fabs(val) > *tol) {
-          op2L[ind] += val;
-        }
-      }
-    }
+    gopL  = gop0L;
+    gopFL = gopf0L;
   } else if(edgeL == 1) {
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
-        int colInd = n * DG_NP + m;
-        double val = 0.5 * gop1L[colInd];
-        if(fabs(val) > *tol) {
-          op1L[ind] += val;
-        }
-        val = -0.5 * gopf1L[colInd];
-        if(fabs(val) > *tol) {
-          op2L[ind] += val;
-        }
-      }
-    }
+    gopL  = gop1L;
+    gopFL = gopf1L;
   } else {
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
-        int colInd = n * DG_NP + m;
-        double val = 0.5 * gop2L[colInd];
-        if(fabs(val) > *tol) {
-          op1L[ind] += val;
-        }
-        val = -0.5 * gopf2L[colInd];
-        if(fabs(val) > *tol) {
-          op2L[ind] += val;
-        }
-      }
-    }
+    gopL  = gop2L;
+    gopFL = gopf2L;
   }
 
   if(edgeR == 0) {
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
-        int colInd = n * DG_NP + m;
-        double val = 0.5 * gop0R[colInd];
-        if(fabs(val) > *tol) {
-          op1R[ind] += val;
-        }
-        val = -0.5 * gopf0R[colInd];
-        if(fabs(val) > *tol) {
-          op2R[ind] += val;
-        }
-      }
-    }
+    gopR  = gop0R;
+    gopFR = gopf0R;
   } else if(edgeR == 1) {
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
-        int colInd = n * DG_NP + m;
-        double val = 0.5 * gop1R[colInd];
-        if(fabs(val) > *tol) {
-          op1R[ind] += val;
-        }
-        val = -0.5 * gopf1R[colInd];
-        if(fabs(val) > *tol) {
-          op2R[ind] += val;
-        }
-      }
-    }
+    gopR  = gop1R;
+    gopFR = gopf1R;
   } else {
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int ind = m * DG_NP + n;
-        int colInd = n * DG_NP + m;
-        double val = 0.5 * gop2R[colInd];
-        if(fabs(val) > *tol) {
-          op1R[ind] += val;
-        }
-        val = -0.5 * gopf2R[colInd];
-        if(fabs(val) > *tol) {
-          op2R[ind] += val;
-        }
-      }
+    gopR  = gop2R;
+    gopFR = gopf2R;
+  }
+
+  for(int m = 0; m < DG_NP; m++) {
+    for(int n = 0; n < DG_NP; n++) {
+      int ind = m * DG_NP + n;
+      int colInd = n * DG_NP + m;
+      
+      double val = 0.5 * gopL[colInd];
+      if(fabs(val) > *tol)
+        op1L[ind] += val;
+      val = -0.5 * gopFL[colInd];
+      if(fabs(val) > *tol)
+        op2L[ind] += val;
+
+      val = 0.5 * gopR[colInd];
+      if(fabs(val) > *tol)
+        op1R[ind] += val;
+      val = -0.5 * gopFR[colInd];
+      if(fabs(val) > *tol)
+        op2R[ind] += val;
     }
   }
 }

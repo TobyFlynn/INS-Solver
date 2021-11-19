@@ -1,24 +1,9 @@
-// TODO double check these
 inline void advection_bc(const int *bedge_type, const int *bedgeNum,
                          const double *t, const int *problem,
                          const double *x, const double *y, const double *q0,
                          const double *q1, double *exQ0, double *exQ1) {
-  int exInd = 0;
-  if(*bedgeNum == 1) {
-    exInd = DG_NPF;
-  } else if(*bedgeNum == 2) {
-    exInd = 2 * DG_NPF;
-  }
-
-  int *fmask;
-
-  if(*bedgeNum == 0) {
-    fmask = FMASK;
-  } else if(*bedgeNum == 1) {
-    fmask = &FMASK[DG_NPF];
-  } else {
-    fmask = &FMASK[2 * DG_NPF];
-  }
+  int exInd = *bedgeNum * DG_NPF;
+  int *fmask = &FMASK[*bedgeNum * DG_NPF];
 
   const double PI = 3.141592653589793238463;
 

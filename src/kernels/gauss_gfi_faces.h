@@ -5,6 +5,30 @@ inline void gauss_gfi_faces(const int *edgeNum, const bool *rev,
   int edgeR = edgeNum[1];
   bool reverse = *rev;
 
+  const double *gVML, *gVMR;
+  double **gFL, **gFR;
+  if(edgeL == 0) {
+    gVMR = gFInterp0_g;
+    gFL  = gf0;
+  } else if(edgeL == 1) {
+    gVMR = gFInterp1_g;
+    gFL  = gf1;
+  } else {
+    gVMR = gFInterp2_g;
+    gFL  = gf2;
+  }
+
+  if(edgeR == 0) {
+    gVML = gFInterp0_g;
+    gFR  = gf0;
+  } else if(edgeR == 1) {
+    gVML = gFInterp1_g;
+    gFR  = gf1;
+  } else {
+    gVML = gFInterp2_g;
+    gFR  = gf2;
+  }
+
   for(int m = 0; m < DG_GF_NP; m++) {
     for(int n = 0; n < DG_NP; n++) {
       int indL, indR;
@@ -21,40 +45,8 @@ inline void gauss_gfi_faces(const int *edgeNum, const bool *rev,
         indR_col = (DG_GF_NP - 1 - m) + n * DG_GF_NP;
       }
 
-      if(edgeL == 0) {
-        if(edgeR == 0) {
-          gf0[0][indL] += gFInterp0_g[indR_col];
-          gf0[1][indR] += gFInterp0_g[indL_col];
-        } else if(edgeR == 1) {
-          gf0[0][indL] += gFInterp1_g[indR_col];
-          gf1[1][indR] += gFInterp0_g[indL_col];
-        } else {
-          gf0[0][indL] += gFInterp2_g[indR_col];
-          gf2[1][indR] += gFInterp0_g[indL_col];
-        }
-      } else if(edgeL == 1) {
-        if(edgeR == 0) {
-          gf1[0][indL] += gFInterp0_g[indR_col];
-          gf0[1][indR] += gFInterp1_g[indL_col];
-        } else if(edgeR == 1) {
-          gf1[0][indL] += gFInterp1_g[indR_col];
-          gf1[1][indR] += gFInterp1_g[indL_col];
-        } else {
-          gf1[0][indL] += gFInterp2_g[indR_col];
-          gf2[1][indR] += gFInterp1_g[indL_col];
-        }
-      } else {
-        if(edgeR == 0) {
-          gf2[0][indL] += gFInterp0_g[indR_col];
-          gf0[1][indR] += gFInterp2_g[indL_col];
-        } else if(edgeR == 1) {
-          gf2[0][indL] += gFInterp1_g[indR_col];
-          gf1[1][indR] += gFInterp2_g[indL_col];
-        } else {
-          gf2[0][indL] += gFInterp2_g[indR_col];
-          gf2[1][indR] += gFInterp2_g[indL_col];
-        }
-      }
+      gFL[0][indL] += gVML[indR_col];
+      gFR[1][indR] += gVMR[indL_col];
     }
   }
 }

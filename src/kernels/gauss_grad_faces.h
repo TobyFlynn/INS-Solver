@@ -8,63 +8,51 @@ inline void gauss_grad_faces(const int *edgeNum, const double **mDx0,
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
 
+  const double **mDxL, **mDyL, **mDxR, **mDyR;
+  double **pDxL, **pDyL, **pDxR, **pDyR;
+  if(edgeL == 0) {
+    mDxR = mDx0;
+    mDyR = mDy0;
+    pDxL = pDx0;
+    pDyL = pDy0;
+  } else if(edgeL == 1) {
+    mDxR = mDx1;
+    mDyR = mDy1;
+    pDxL = pDx1;
+    pDyL = pDy1;
+  } else {
+    mDxR = mDx2;
+    mDyR = mDy2;
+    pDxL = pDx2;
+    pDyL = pDy2;
+  }
+
+  if(edgeR == 0) {
+    mDxL = mDx0;
+    mDyL = mDy0;
+    pDxR = pDx0;
+    pDyR = pDy0;
+  } else if(edgeR == 1) {
+    mDxL = mDx1;
+    mDyL = mDy1;
+    pDxR = pDx1;
+    pDyR = pDy1;
+  } else {
+    mDxL = mDx2;
+    mDyL = mDy2;
+    pDxR = pDx2;
+    pDyR = pDy2;
+  }
+
   for(int m = 0; m < DG_GF_NP; m++) {
     for(int n = 0; n < DG_NP; n++) {
       int indL = m * DG_NP + n;
       int indR = m * DG_NP + n;
 
-      if(edgeL == 0) {
-        if(edgeR == 0) {
-          pDx0[0][indL] += mDx0[1][indR];
-          pDy0[0][indL] += mDy0[1][indR];
-          pDx0[1][indR] += mDx0[0][indL];
-          pDy0[1][indR] += mDy0[0][indL];
-        } else if(edgeR == 1) {
-          pDx0[0][indL] += mDx1[1][indR];
-          pDy0[0][indL] += mDy1[1][indR];
-          pDx1[1][indR] += mDx0[0][indL];
-          pDy1[1][indR] += mDy0[0][indL];
-        } else {
-          pDx0[0][indL] += mDx2[1][indR];
-          pDy0[0][indL] += mDy2[1][indR];
-          pDx2[1][indR] += mDx0[0][indL];
-          pDy2[1][indR] += mDy0[0][indL];
-        }
-      } else if(edgeL == 1) {
-        if(edgeR == 0) {
-          pDx1[0][indL] += mDx0[1][indR];
-          pDy1[0][indL] += mDy0[1][indR];
-          pDx0[1][indR] += mDx1[0][indL];
-          pDy0[1][indR] += mDy1[0][indL];
-        } else if(edgeR == 1) {
-          pDx1[0][indL] += mDx1[1][indR];
-          pDy1[0][indL] += mDy1[1][indR];
-          pDx1[1][indR] += mDx1[0][indL];
-          pDy1[1][indR] += mDy1[0][indL];
-        } else {
-          pDx1[0][indL] += mDx2[1][indR];
-          pDy1[0][indL] += mDy2[1][indR];
-          pDx2[1][indR] += mDx1[0][indL];
-          pDy2[1][indR] += mDy1[0][indL];
-        }
-      } else {
-        if(edgeR == 0) {
-          pDx2[0][indL] += mDx0[1][indR];
-          pDy2[0][indL] += mDy0[1][indR];
-          pDx0[1][indR] += mDx2[0][indL];
-          pDy0[1][indR] += mDy2[0][indL];
-        } else if(edgeR == 1) {
-          pDx2[0][indL] += mDx1[1][indR];
-          pDy2[0][indL] += mDy1[1][indR];
-          pDx1[1][indR] += mDx2[0][indL];
-          pDy1[1][indR] += mDy2[0][indL];
-        } else {
-          pDx2[0][indL] += mDx2[1][indR];
-          pDy2[0][indL] += mDy2[1][indR];
-          pDx2[1][indR] += mDx2[0][indL];
-          pDy2[1][indR] += mDy2[0][indL];
-        }
-      }
+      pDxL[0][indL] += mDxL[1][indR];
+      pDyL[0][indL] += mDyL[1][indR];
+      pDxR[1][indR] += mDxR[0][indL];
+      pDyR[1][indR] += mDyR[0][indL];
     }
   }
 }

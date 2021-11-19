@@ -1,12 +1,7 @@
 inline void pressure_bc2(const int *bedge_type, const int *bedgeNum,
                          const double *t, const int *problem, const double *x,
                          const double *y, double *prBC) {
-  int exInd = 0;
-  if(*bedgeNum == 1) {
-    exInd = DG_GF_NP;
-  } else if(*bedgeNum == 2) {
-    exInd = 2 * DG_GF_NP;
-  }
+  int exInd = *bedgeNum * DG_GF_NP;
 
   const double PI = 3.141592653589793238463;
 
