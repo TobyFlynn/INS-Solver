@@ -5,20 +5,20 @@ inline void gauss_gfi_faces(const int *edgeNum, const bool *rev,
   int edgeR = edgeNum[1];
   bool reverse = *rev;
 
-  for(int m = 0; m < 7; m++) {
-    for(int n = 0; n < 15; n++) {
+  for(int m = 0; m < DG_GF_NP; m++) {
+    for(int n = 0; n < DG_NP; n++) {
       int indL, indR;
       int indL_col, indR_col;
       if(!reverse) {
-        indL = m * 15 + n;
-        indR = m * 15 + n;
-        indL_col = m + n * 7;
-        indR_col = m + n * 7;
+        indL = m * DG_NP + n;
+        indR = m * DG_NP + n;
+        indL_col = m + n * DG_GF_NP;
+        indR_col = m + n * DG_GF_NP;
       } else {
-        indL = m * 15 + n;
-        indR = (6 - m) * 15 + n;
-        indL_col = m + n * 7;
-        indR_col = (6 - m) + n * 7;
+        indL = m * DG_NP + n;
+        indR = (DG_GF_NP - 1 - m) * DG_NP + n;
+        indL_col = m + n * DG_GF_NP;
+        indR_col = (DG_GF_NP - 1 - m) + n * DG_GF_NP;
       }
 
       if(edgeL == 0) {

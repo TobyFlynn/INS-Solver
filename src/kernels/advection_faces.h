@@ -7,23 +7,23 @@ inline void advection_faces(const int *edgeNum, const bool *rev, const double **
 
   // Copy data from R to L
   int exInd = 0;
-  if(edgeL == 1) exInd = 5;
-  else if(edgeL == 2) exInd = 2 * 5;
+  if(edgeL == 1) exInd = DG_NPF;
+  else if(edgeL == 2) exInd = 2 * DG_NPF;
 
   int *fmask;
 
   if(edgeR == 0) {
     fmask = FMASK;
   } else if(edgeR == 1) {
-    fmask = &FMASK[5];
+    fmask = &FMASK[DG_NPF];
   } else {
-    fmask = &FMASK[2 * 5];
+    fmask = &FMASK[2 * DG_NPF];
   }
 
-  for(int i = 0; i < 5; i++) {
+  for(int i = 0; i < DG_NPF; i++) {
     int rInd;
     if(reverse) {
-      rInd = fmask[5 - i - 1];
+      rInd = fmask[DG_NPF - i - 1];
     } else {
       rInd = fmask[i];
     }
@@ -33,21 +33,21 @@ inline void advection_faces(const int *edgeNum, const bool *rev, const double **
 
   // Copy data from L to R
   exInd = 0;
-  if(edgeR == 1) exInd = 5;
-  else if(edgeR == 2) exInd = 2 * 5;
+  if(edgeR == 1) exInd = DG_NPF;
+  else if(edgeR == 2) exInd = 2 * DG_NPF;
 
   if(edgeL == 0) {
     fmask = FMASK;
   } else if(edgeL == 1) {
-    fmask = &FMASK[5];
+    fmask = &FMASK[DG_NPF];
   } else {
-    fmask = &FMASK[2 * 5];
+    fmask = &FMASK[2 * DG_NPF];
   }
 
-  for(int i = 0; i < 5; i++) {
+  for(int i = 0; i < DG_NPF; i++) {
     int lInd;
     if(reverse) {
-      lInd = fmask[5 - i - 1];
+      lInd = fmask[DG_NPF - i - 1];
     } else {
       lInd = fmask[i];
     }

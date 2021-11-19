@@ -1,13 +1,13 @@
 inline void init_cubature_grad(double *rx, double *sx, double *ry,  double *sy,
                                double *Dx, double *Dy) {
   // J = -xs.*yr + xr.*ys
-  double J[46];
-  for(int i = 0; i < 46; i++) {
+  double J[DG_CUB_NP];
+  for(int i = 0; i < DG_CUB_NP; i++) {
     J[i] = -sx[i] * ry[i] + rx[i] * sy[i];
   }
 
   // rx = ys./J; sx =-yr./J; ry =-xs./J; sy = xr./J;
-  for(int i = 0; i < 46; i++) {
+  for(int i = 0; i < DG_CUB_NP; i++) {
     double rx_n = sy[i] / J[i];
     double sx_n = -ry[i] / J[i];
     double ry_n = -sx[i] / J[i];
@@ -18,10 +18,10 @@ inline void init_cubature_grad(double *rx, double *sx, double *ry,  double *sy,
     sy[i] = sy_n;
   }
 
-  for(int m = 0; m < 46; m++) {
-    for(int n = 0; n < 15; n++) {
-      int ind_row = m * 15 + n;
-      int ind_col = m + n * 46;
+  for(int m = 0; m < DG_CUB_NP; m++) {
+    for(int n = 0; n < DG_NP; n++) {
+      int ind_row = m * DG_NP + n;
+      int ind_col = m + n * DG_CUB_NP;
       Dx[ind_row] = rx[m] * cubVDr_g[ind_col] + sx[m] * cubVDs_g[ind_col];
       Dy[ind_row] = ry[m] * cubVDr_g[ind_col] + sy[m] * cubVDs_g[ind_col];
     }

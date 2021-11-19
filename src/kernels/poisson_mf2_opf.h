@@ -9,10 +9,10 @@ inline void poisson_mf2_opf(const double *tol, const int *edgeNum, const double 
   int edgeR = edgeNum[1];
 
   if(edgeL == 0) {
-    for(int m = 0; m < 15; m++) {
-      for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        int colInd = n * 15 + m;
+    for(int m = 0; m < DG_NP; m++) {
+      for(int n = 0; n < DG_NP; n++) {
+        int ind = m * DG_NP + n;
+        int colInd = n * DG_NP + m;
         double val = 0.5 * gop0L[colInd];
         if(fabs(val) > *tol) {
           op1L[ind] += val;
@@ -24,10 +24,10 @@ inline void poisson_mf2_opf(const double *tol, const int *edgeNum, const double 
       }
     }
   } else if(edgeL == 1) {
-    for(int m = 0; m < 15; m++) {
-      for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        int colInd = n * 15 + m;
+    for(int m = 0; m < DG_NP; m++) {
+      for(int n = 0; n < DG_NP; n++) {
+        int ind = m * DG_NP + n;
+        int colInd = n * DG_NP + m;
         double val = 0.5 * gop1L[colInd];
         if(fabs(val) > *tol) {
           op1L[ind] += val;
@@ -39,10 +39,10 @@ inline void poisson_mf2_opf(const double *tol, const int *edgeNum, const double 
       }
     }
   } else {
-    for(int m = 0; m < 15; m++) {
-      for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        int colInd = n * 15 + m;
+    for(int m = 0; m < DG_NP; m++) {
+      for(int n = 0; n < DG_NP; n++) {
+        int ind = m * DG_NP + n;
+        int colInd = n * DG_NP + m;
         double val = 0.5 * gop2L[colInd];
         if(fabs(val) > *tol) {
           op1L[ind] += val;
@@ -56,10 +56,10 @@ inline void poisson_mf2_opf(const double *tol, const int *edgeNum, const double 
   }
 
   if(edgeR == 0) {
-    for(int m = 0; m < 15; m++) {
-      for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        int colInd = n * 15 + m;
+    for(int m = 0; m < DG_NP; m++) {
+      for(int n = 0; n < DG_NP; n++) {
+        int ind = m * DG_NP + n;
+        int colInd = n * DG_NP + m;
         double val = 0.5 * gop0R[colInd];
         if(fabs(val) > *tol) {
           op1R[ind] += val;
@@ -71,10 +71,10 @@ inline void poisson_mf2_opf(const double *tol, const int *edgeNum, const double 
       }
     }
   } else if(edgeR == 1) {
-    for(int m = 0; m < 15; m++) {
-      for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        int colInd = n * 15 + m;
+    for(int m = 0; m < DG_NP; m++) {
+      for(int n = 0; n < DG_NP; n++) {
+        int ind = m * DG_NP + n;
+        int colInd = n * DG_NP + m;
         double val = 0.5 * gop1R[colInd];
         if(fabs(val) > *tol) {
           op1R[ind] += val;
@@ -86,10 +86,10 @@ inline void poisson_mf2_opf(const double *tol, const int *edgeNum, const double 
       }
     }
   } else {
-    for(int m = 0; m < 15; m++) {
-      for(int n = 0; n < 15; n++) {
-        int ind = m * 15 + n;
-        int colInd = n * 15 + m;
+    for(int m = 0; m < DG_NP; m++) {
+      for(int n = 0; n < DG_NP; n++) {
+        int ind = m * DG_NP + n;
+        int colInd = n * DG_NP + m;
         double val = 0.5 * gop2R[colInd];
         if(fabs(val) > *tol) {
           op1R[ind] += val;

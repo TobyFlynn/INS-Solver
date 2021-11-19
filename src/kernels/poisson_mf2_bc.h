@@ -3,12 +3,12 @@ inline void poisson_mf2_bc(const double *tol, const int *bedge_type, const int *
                            const double *mD0, const double *mD1, const double *mD2,
                            const double *sJ, const double *tau, double *op) {
   if(*bedge_type == *d0 || *bedge_type == *d1 || *bedge_type == *d2) {
-    for(int j = 0; j < 7 * 15; j++) {
-      int indT = (j % 7) * 15 + (j / 7);
+    for(int j = 0; j < DG_GF_NP * DG_NP; j++) {
+      int indT = (j % DG_GF_NP) * DG_NP + (j / DG_GF_NP);
       int indT_col = j;
-      int col  = j % 7;
-      int row  = j / 7;
-      double val = gaussW_g[j % 7] * sJ[*bedgeNum * 7 + (j % 7)] * tau[*bedgeNum];
+      int col  = j % DG_GF_NP;
+      int row  = j / DG_GF_NP;
+      double val = gaussW_g[j % DG_GF_NP] * sJ[*bedgeNum * DG_GF_NP + (j % DG_GF_NP)] * tau[*bedgeNum];
       double mD;
       if(*bedgeNum == 0) {
         val *= gFInterp0_g[indT_col];
@@ -20,17 +20,17 @@ inline void poisson_mf2_bc(const double *tol, const int *bedge_type, const int *
         val *= gFInterp2_g[indT_col];
         mD = mD2[indT];
       }
-      val -= mD * gaussW_g[j % 7] * sJ[*bedgeNum * 7 + (j % 7)];
+      val -= mD * gaussW_g[j % DG_GF_NP] * sJ[*bedgeNum * DG_GF_NP + (j % DG_GF_NP)];
       if(fabs(val) > *tol)
-        op[row * 7 + col] += val;
+        op[row * DG_GF_NP + col] += val;
     }
   } else {
-    for(int j = 0; j < 7 * 15; j++) {
-      int indT = (j % 7) * 15 + (j / 7);
+    for(int j = 0; j < DG_GF_NP * DG_NP; j++) {
+      int indT = (j % DG_GF_NP) * DG_NP + (j / DG_GF_NP);
       int indT_col = j;
-      int col  = j % 7;
-      int row  = j / 7;
-      double val = gaussW_g[j % 7] * sJ[*bedgeNum * 7 + (j % 7)];
+      int col  = j % DG_GF_NP;
+      int row  = j / DG_GF_NP;
+      double val = gaussW_g[j % DG_GF_NP] * sJ[*bedgeNum * DG_GF_NP + (j % DG_GF_NP)];
       if(*bedgeNum == 0) {
         val *= gFInterp0_g[indT_col];
       } else if(*bedgeNum == 1) {
@@ -39,7 +39,7 @@ inline void poisson_mf2_bc(const double *tol, const int *bedge_type, const int *
         val *= gFInterp2_g[indT_col];
       }
       if(fabs(val) > *tol)
-        op[row * 7 + col] += val;
+        op[row * DG_GF_NP + col] += val;
     }
   }
 }

@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
   double time = 0.0;
 
   if(save != -1) {
-    save_solution_init(outputDir + "sol.cgns", solver->data);
+    save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data);
     // export_data_init(outputDir + "data.csv");
   }
 
@@ -173,24 +173,19 @@ int main(int argc, char **argv) {
     // Calculate drag and lift coefficients + save data
     if(save != -1 && (i + 1) % save == 0) {
       op_printf("Iteration: %d Time: %g\n", i, time);
-      // timer->startLiftDrag();
-      // double lift, drag;
-      // solver->lift_drag_coeff(&lift, &drag, currentIter % 2);
-      // export_data(outputDir + "data.csv", i, time, drag, lift, pressurePoisson->getAverageConvergeIter(), viscosityPoisson->getAverageConvergeIter());
-      // timer->endLiftDrag();
 
       timer->startSave();
-      save_solution_iter(outputDir + "sol.cgns", solver->data, currentIter % 2, (i + 1) / save);
+      save_solution_iter(outputDir + "sol.cgns", solver->mesh, solver->data, currentIter % 2, (i + 1) / save);
       timer->endSave();
     }
   }
   timer->endMainLoop();
 
   if(save != -1)
-    save_solution_finalise(outputDir + "sol.cgns", solver->data, (iter / save) + 1, solver->dt * save);
+    save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
 
   // Save solution to CGNS file
-  save_solution(outputDir + "end.cgns", solver->data, currentIter % 2, time, nu);
+  save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, time, nu);
 
   timer->endWallTime();
   timer->exportTimings(outputDir + "timings.csv", iter, time);

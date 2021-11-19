@@ -6,9 +6,9 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
                         double *dPdN) {
   int exInd = 0;
   if(*bedgeNum == 1) {
-    exInd = 5;
+    exInd = DG_NPF;
   } else if(*bedgeNum == 2) {
-    exInd = 2 * 5;
+    exInd = 2 * DG_NPF;
   }
 
   int *fmask;
@@ -16,9 +16,9 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
   if(*bedgeNum == 0) {
     fmask = FMASK;
   } else if(*bedgeNum == 1) {
-    fmask = &FMASK[5];
+    fmask = &FMASK[DG_NPF];
   } else {
-    fmask = &FMASK[2 * 5];
+    fmask = &FMASK[2 * DG_NPF];
   }
 
   const double PI = 3.141592653589793238463;
@@ -26,7 +26,7 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
   if(*problem == 0) {
     if(*bedge_type == 0 || *bedge_type == 2 || *bedge_type == 3) {
       // Inflow or Wall
-      for(int i = 0; i < 5; i++) {
+      for(int i = 0; i < DG_NPF; i++) {
         int fInd = fmask[i];
         double res1 = -N0[fInd] - nu * gradCurlVel1[fInd];
         double res2 = -N1[fInd] + nu * gradCurlVel0[fInd];
@@ -36,7 +36,7 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
 
     if(*bedge_type == 0) {
       // Inflow
-      for(int i = 0; i < 5; i++) {
+      for(int i = 0; i < DG_NPF; i++) {
         double y1 = y[fmask[i]];
         double bcdUndt = -pow(0.41, -2.0) * (PI/8.0) * cos((PI * *t) / 8.0) * 6.0 * y1 * (0.41 - y1);
         dPdN[exInd + i] -= bcdUndt;
@@ -45,7 +45,7 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
   } else {
     if(*bedge_type == 0) {
       // Inflow
-      for(int i = 0; i < 5; i++) {
+      for(int i = 0; i < DG_NPF; i++) {
         int fInd = fmask[i];
         double res1 = -N0[fInd] - nu * gradCurlVel1[fInd];
         double res2 = -N1[fInd] + nu * gradCurlVel0[fInd];

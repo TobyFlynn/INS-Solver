@@ -15,10 +15,9 @@ public:
   // OP2 stuff
   op_dat Q[2][2], exQ[2], F[4], N[2][2], flux[2], QT[2], QTT[2];
   op_dat div[4];
-  op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, pRHSex, p, dpdx, dpdy;
+  op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, p, dpdx, dpdy;
   op_dat visRHS[2];
   op_dat prBC, visBC[2];
-  op_dat dQdx[2], dQdy[2];
   op_dat vorticity;
   op_dat save_temp;
 
@@ -38,7 +37,6 @@ private:
   double *gradCurlVel_data[2];
   double *dPdN_data[2];
   double *pRHS_data;
-  double *pRHSex_data;
   double *p_data;
   double *dpdx_data;
   double *dpdy_data;

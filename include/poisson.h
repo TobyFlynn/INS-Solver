@@ -29,9 +29,9 @@ public:
 
   DGMesh *mesh;
 protected:
-  void create_vec(Vec *v, int size = 15);
+  void create_vec(Vec *v, int size);
   void destroy_vec(Vec *v);
-  void load_vec(Vec *v, op_dat v_dat, int size = 15);
+  void load_vec(Vec *v, op_dat v_dat, int size);
   void store_vec(Vec *v, op_dat v_dat);
   void create_mat(Mat *m, int row, int col, int prealloc0, int prealloc1 = 0);
   INSData *data;
