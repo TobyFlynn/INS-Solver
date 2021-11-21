@@ -68,14 +68,8 @@ INSData::INSData(DGMesh *m) {
   vorticity = op_decl_dat(mesh->cells, DG_NP, "double", vorticity_data, "vorticity");
   save_temp = op_decl_dat(mesh->cells, DG_SUB_CELLS, "double", save_temp_data, "save_temp");
 
-  op_decl_const(1, "double", &gam);
-  op_decl_const(1, "double", &mu);
+  op_decl_const(1, "double", &reynolds);
   op_decl_const(1, "double", &nu);
-  op_decl_const(1, "double", &bc_mach);
-  op_decl_const(1, "double", &bc_alpha);
-  op_decl_const(1, "double", &bc_p);
-  op_decl_const(1, "double", &bc_u);
-  op_decl_const(1, "double", &bc_v);
   op_decl_const(3 * DG_NPF, "int", FMASK);
   op_decl_const(1, "double", &ic_u);
   op_decl_const(1, "double", &ic_v);

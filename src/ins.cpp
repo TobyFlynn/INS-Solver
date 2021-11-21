@@ -75,9 +75,27 @@ int main(int argc, char **argv) {
   ic_u = 0.0;
   ic_v = 0.0;
 
-  op_printf("gam: %g\n", gam);
-  op_printf("mu: %g\n", mu);
-  op_printf("nu: %g\n", nu);
+  refRho     = 1.0;
+  refMu      = 1.0e-3;
+  refLen     = 0.41;
+  refVel     = 1.5;
+  refSurfTen = 0.0756;
+
+  // Set Reynolds number
+  reynolds = refRho * refVel * refLen / refMu;
+  // Set Froude number
+  froude = refVel / sqrt(9.8 * refLen);
+  // Set Weber number
+  weber = refRho * refVel * refLen / refSurfTen;
+
+  // op_printf("gam: %g\n", gam);
+  // op_printf("mu: %g\n", mu);
+  // op_printf("nu: %g\n", nu);
+  op_printf("refRho: %g\n", refRho);
+  op_printf("refMu: %g\n", refMu);
+  op_printf("refLen: %g\n", refLen);
+  op_printf("refVel: %g\n", refVel);
+  op_printf("reynolds: %g\n", reynolds);
 
   // Get input from args
   int iter = 1;

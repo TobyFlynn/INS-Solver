@@ -14,7 +14,7 @@
 
 extern Timing *timer;
 extern DGConstants *constants;
-extern double dt, nu;
+extern double dt, reynolds, refVel;
 
 using namespace std;
 
@@ -80,7 +80,7 @@ Solver::Solver(std::string filename, int prob) {
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_gbl(&dt, 1, "double", OP_MIN));
-  dt = dt / 25.0;
+  dt = dt / (DG_ORDER * DG_ORDER * refVel);
   op_printf("dt: %g\n", dt);
 }
 
@@ -152,7 +152,6 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_gbl(&a1, 1, "double", OP_READ),
               op_arg_gbl(&b0, 1, "double", OP_READ),
               op_arg_gbl(&b1, 1, "double", OP_READ),
-              op_arg_gbl(&g0, 1, "double", OP_READ),
               op_arg_gbl(&dt, 1, "double", OP_READ),
               op_arg_dat(data->Q[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->Q[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
@@ -204,7 +203,6 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   op_par_loop(pressure_rhs, "pressure_rhs", mesh->cells,
               op_arg_gbl(&b0, 1, "double", OP_READ),
               op_arg_gbl(&b1, 1, "double", OP_READ),
-              op_arg_gbl(&g0, 1, "double", OP_READ),
               op_arg_gbl(&dt, 1, "double", OP_READ),
               op_arg_dat(mesh->J, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->sJ, -1, OP_ID, 3 * DG_NPF, "double", OP_READ),
@@ -227,9 +225,8 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   grad(mesh, data->p, data->dpdx, data->dpdy);
 
   // Calculate new velocity intermediate values
-  double factor = dt / g0;
   op_par_loop(pressure_update_vel, "pressure_update_vel", mesh->cells,
-              op_arg_gbl(&factor, 1, "double", OP_READ),
+              op_arg_gbl(&dt, 1, "double", OP_READ),
               op_arg_dat(data->dpdx, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->dpdy, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->QT[0], -1, OP_ID, DG_NP, "double", OP_READ),
@@ -263,7 +260,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   op2_gemv_batch(false, DG_NP, DG_NP, 1.0, mesh->cubature->mm, DG_NP, data->QTT[0], 0.0, data->visRHS[0]);
   op2_gemv_batch(false, DG_NP, DG_NP, 1.0, mesh->cubature->mm, DG_NP, data->QTT[1], 0.0, data->visRHS[1]);
 
-  double factor = g0 / (nu * dt);
+  double factor = reynolds / dt;
   op_par_loop(viscosity_rhs, "viscosity_rhs", mesh->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
               op_arg_dat(mesh->J, -1, OP_ID, DG_NP, "double", OP_READ),
@@ -276,6 +273,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
   // Call PETSc linear solver
   timer->startViscosityLinearSolve();
+  factor = g0 * reynolds / dt;
   viscosityPoisson->setup(factor);
   viscosityPoisson->setBCValues(data->visBC[0]);
   bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0]);
