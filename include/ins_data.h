@@ -13,41 +13,18 @@ public:
   void init();
 
   // OP2 stuff
-  op_dat Q[2][2], exQ[2], F[4], N[2][2], flux[2], QT[2], QTT[2], gQ[2];
-  op_dat div[4];
+  op_dat Q[2][2], F[4], N[2][2], flux[2], QT[2], QTT[2], gQ[2];
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, p, dpdx, dpdy;
-  op_dat visRHS[2];
-  op_dat prBC, visBC[2];
-  op_dat vorticity;
-  op_dat save_temp;
+  op_dat visRHS[2], prBC, visBC[2], vorticity, save_temp;
+  op_dat tmp_dg_np[4];
 
   DGMesh *mesh;
 private:
   // Pointers to private memory
-  double *Q_data[2][2];
-  double *exQ_data[2];
-  double *F_data[4];
-  double *N_data[2][2];
-  double *flux_data[2];
-  double *QT_data[2];
-  double *QTT_data[2];
-  double *gQ_data[2];
-  double *div_data[4];
-  double *divVelT_data;
-  double *curlVel_data;
-  double *gradCurlVel_data[2];
-  double *dPdN_data[2];
-  double *pRHS_data;
-  double *p_data;
-  double *dpdx_data;
-  double *dpdy_data;
-  double *visRHS_data[2];
-  double *prBC_data;
-  double *visBC_data[2];
-  double *dQdx_data[2];
-  double *dQdy_data[2];
-  double *vorticity_data;
-  double *save_temp_data;
+  double *Q_data[2][2], *N_data[2][2], *flux_data[2], *QT_data[2];
+  double *QTT_data[2], *gQ_data[2], *dPdN_data[2], *p_data, *prBC_data;
+  double *visBC_data[2], *vorticity_data, *save_temp_data;
+  double *tmp_dg_np_data[4];
 };
 
 class CubatureData {
