@@ -18,7 +18,7 @@ extern double dt, nu;
 
 using namespace std;
 
-Solver::Solver(std::string filename, int pmethod, int prob) {
+Solver::Solver(std::string filename, int prob) {
   problem = prob;
 
   // Ownership of the pointers is passed to DGMesh
@@ -93,6 +93,7 @@ Solver::~Solver() {
   delete mesh;
 }
 
+// Calculate Nonlinear Terms
 void Solver::advection(int currentInd, double a0, double a1, double b0,
                        double b1, double g0, double t) {
   // Calculate flux values
@@ -107,14 +108,24 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
   div(mesh, data->F[0], data->F[1], data->N[currentInd][0]);
   div(mesh, data->F[2], data->F[3], data->N[currentInd][1]);
 
+  op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->Q[currentInd][0], 0.0, data->gQ[0]);
+  op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->Q[currentInd][1], 0.0, data->gQ[1]);
+
+  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+              op_arg_dat(data->flux[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
+              op_arg_dat(data->flux[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+
   // Exchange values on edges between elements
   op_par_loop(advection_faces, "advection_faces", mesh->edges,
-              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(data->Q[currentInd][0], -2, mesh->edge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(data->Q[currentInd][1], -2, mesh->edge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(data->exQ[0], -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_INC),
-              op_arg_dat(data->exQ[1], -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_INC));
+              op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(data->gQ[0],     -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->gQ[1],     -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->nx, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->ny, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->flux[0],   -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
+              op_arg_dat(data->flux[1],   -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
 
   // Enforce BCs
   op_par_loop(advection_bc, "advection_bc", mesh->bedges,
@@ -122,27 +133,18 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&t, 1, "double", OP_READ),
               op_arg_gbl(&problem, 1, "int", OP_READ),
-              op_arg_dat(mesh->x, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(data->Q[currentInd][0], 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(data->Q[currentInd][1], 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(data->exQ[0], 0, mesh->bedge2cells, 3 * DG_NPF, "double", OP_INC),
-              op_arg_dat(data->exQ[1], 0, mesh->bedge2cells, 3 * DG_NPF, "double", OP_INC));
+              op_arg_dat(mesh->gauss->x,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->y,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->gQ[0],     0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->gQ[1],     0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->flux[0],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
+              op_arg_dat(data->flux[1],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
 
-  // Calculate numberical flux across edges
-  op_par_loop(advection_numerical_flux, "advection_numerical_flux", mesh->cells,
-              op_arg_dat(mesh->fscale,  -1, OP_ID, 3 * DG_NPF, "double", OP_READ),
-              op_arg_dat(mesh->nx,      -1, OP_ID, 3 * DG_NPF, "double", OP_READ),
-              op_arg_dat(mesh->ny,      -1, OP_ID, 3 * DG_NPF, "double", OP_READ),
-              op_arg_dat(data->Q[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->Q[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->exQ[0],  -1, OP_ID, 3 * DG_NPF, "double", OP_RW),
-              op_arg_dat(data->exQ[1],  -1, OP_ID, 3 * DG_NPF, "double", OP_RW),
-              op_arg_dat(data->flux[0], -1, OP_ID, 3 * DG_NPF, "double", OP_WRITE),
-              op_arg_dat(data->flux[1], -1, OP_ID, 3 * DG_NPF, "double", OP_WRITE));
-
-  op2_gemv(false, DG_NP, 3 * DG_NPF, 1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->flux[0], 1.0, data->N[currentInd][0]);
-  op2_gemv(false, DG_NP, 3 * DG_NPF, 1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, data->flux[1], 1.0, data->N[currentInd][1]);
+  op2_gemv(true, DG_NP, DG_G_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->flux[0], 1.0, data->N[currentInd][0]);
+  op2_gemv(true, DG_NP, DG_G_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->flux[1], 1.0, data->N[currentInd][1]);
 
   // Calculate the intermediate velocity values
   op_par_loop(advection_intermediate_vel, "advection_intermediate_vel", mesh->cells,

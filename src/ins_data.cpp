@@ -25,10 +25,11 @@ INSData::INSData(DGMesh *m) {
     Q_data[1][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
     QT_data[i]     = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
     QTT_data[i]    = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+    gQ_data[i]     = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
     N_data[0][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
     N_data[1][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
     exQ_data[i]    = (double *)calloc(3 * DG_NPF * mesh->numCells, sizeof(double));
-    flux_data[i]   = (double *)calloc(3 * DG_NPF * mesh->numCells, sizeof(double));
+    flux_data[i]   = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
     dPdN_data[i]   = (double *)calloc(3 * DG_NPF * mesh->numCells, sizeof(double));
     visRHS_data[i] = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
     visBC_data[i]  = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
@@ -60,6 +61,8 @@ INSData::INSData(DGMesh *m) {
     QT[i] = op_decl_dat(mesh->cells, DG_NP, "double", QT_data[i], Qname.c_str());
     Qname = "QTT" + to_string(i);
     QTT[i] = op_decl_dat(mesh->cells, DG_NP, "double", QTT_data[i], Qname.c_str());
+    string gQname = "gQ" + to_string(i);
+    gQ[i] = op_decl_dat(mesh->cells, DG_G_NP, "double", gQ_data[i], gQname.c_str());
     string Nname = "N0" + to_string(i);
     N[0][i] = op_decl_dat(mesh->cells, DG_NP, "double", N_data[0][i], Nname.c_str());
     Nname = "N1" + to_string(i);
@@ -67,7 +70,7 @@ INSData::INSData(DGMesh *m) {
     string exQname = "exQ" + to_string(i);
     exQ[i] = op_decl_dat(mesh->cells, 3 * DG_NPF, "double", exQ_data[i], exQname.c_str());
     string fluxname = "flux" + to_string(i);
-    flux[i] = op_decl_dat(mesh->cells, 3 * DG_NPF, "double", flux_data[i], fluxname.c_str());
+    flux[i] = op_decl_dat(mesh->cells, DG_G_NP, "double", flux_data[i], fluxname.c_str());
     string gradCurlVelname = "gradCurlVel" + to_string(i);
     gradCurlVel[i] = op_decl_dat(mesh->cells, DG_NP, "double", gradCurlVel_data[i], gradCurlVelname.c_str());
     string dPdNname = "dPdN" + to_string(i);
@@ -133,7 +136,7 @@ INSData::~INSData() {
     free(Q_data[1][i]);
     free(QT_data[i]);
     free(QTT_data[i]);
-
+    free(gQ_data[i]);
     free(N_data[0][i]);
     free(N_data[1][i]);
     free(exQ_data[i]);

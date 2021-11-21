@@ -10,7 +10,7 @@
 
 class Solver {
 public:
-  Solver(std::string filename, int pmethod, int prob);
+  Solver(std::string filename, int prob);
   ~Solver();
 
   void advection(int currentInd, double a0, double a1, double b0, double b1,

@@ -13,7 +13,7 @@ public:
   void init();
 
   // OP2 stuff
-  op_dat Q[2][2], exQ[2], F[4], N[2][2], flux[2], QT[2], QTT[2];
+  op_dat Q[2][2], exQ[2], F[4], N[2][2], flux[2], QT[2], QTT[2], gQ[2];
   op_dat div[4];
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, p, dpdx, dpdy;
   op_dat visRHS[2];
@@ -31,6 +31,7 @@ private:
   double *flux_data[2];
   double *QT_data[2];
   double *QTT_data[2];
+  double *gQ_data[2];
   double *div_data[4];
   double *divVelT_data;
   double *curlVel_data;

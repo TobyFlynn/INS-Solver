@@ -87,9 +87,6 @@ int main(int argc, char **argv) {
   int save = -1;
   PetscOptionsGetInt(NULL, NULL, "-save", &save, &found);
 
-  int pmethod = 0;
-  PetscOptionsGetInt(NULL, NULL, "-pmethod", &pmethod, &found);
-
   int problem = 0;
   PetscOptionsGetInt(NULL, NULL, "-problem", &problem, &found);
 
@@ -116,7 +113,7 @@ int main(int argc, char **argv) {
 
   bc_alpha = 0.0;
 
-  Solver *solver = new Solver(filename, pmethod, problem);
+  Solver *solver = new Solver(filename, problem);
 
   double a0 = 1.0;
   double a1 = 0.0;
