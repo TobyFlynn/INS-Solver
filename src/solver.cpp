@@ -49,10 +49,8 @@ Solver::Solver(std::string filename, int prob) {
 
   data = new INSData(mesh);
   ls = new LS(mesh, data);
-  cubatureData = new CubatureData(mesh, data);
-  gaussData = new GaussData(mesh, data);
-  pressurePoisson = new PressureSolve(mesh, data, cubatureData, gaussData);
-  viscosityPoisson = new ViscositySolve(mesh, data, cubatureData, gaussData);
+  pressurePoisson = new PressureSolve(mesh, data);
+  viscosityPoisson = new ViscositySolve(mesh, data);
 
   pressurePoisson->setDirichletBCs(pressure_dirichlet);
   pressurePoisson->setNeumannBCs(pressure_neumann);
@@ -64,8 +62,6 @@ Solver::Solver(std::string filename, int prob) {
   mesh->init();
   data->init();
   ls->init();
-  cubatureData->init();
-  gaussData->init();
   pressurePoisson->init();
   viscosityPoisson->init();
 
@@ -89,8 +85,6 @@ Solver::Solver(std::string filename, int prob) {
 Solver::~Solver() {
   delete viscosityPoisson;
   delete pressurePoisson;
-  delete gaussData;
-  delete cubatureData;
   delete ls;
   delete data;
   delete mesh;

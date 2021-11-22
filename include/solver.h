@@ -33,8 +33,6 @@ public:
   LS *ls;
   double dt;
 private:
-  CubatureData *cubatureData;
-  GaussData *gaussData;
   PressureSolve *pressurePoisson;
   ViscositySolve *viscosityPoisson;
   int problem;

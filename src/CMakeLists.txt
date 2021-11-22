@@ -1,38 +1,32 @@
 set(KERNEL_HEADERS kernels/set_ic.h kernels/calc_dt.h kernels/save_values.h)
-list(APPEND KERNEL_HEADERS kernels/init_cubature_grad.h kernels/init_cubature_OP.h)
-list(APPEND KERNEL_HEADERS kernels/gauss_tau.h kernels/gauss_tau_bc.h kernels/init_gauss_grad.h kernels/init_gauss_grad_neighbour.h kernels/gauss_grad_faces.h kernels/init_gauss_grad2.h kernels/gauss_op.h kernels/gauss_gfi_faces.h kernels/gauss_reverse.h)
 list(APPEND KERNEL_HEADERS kernels/advection_flux.h kernels/advection_faces.h kernels/advection_bc.h kernels/advection_intermediate_vel.h)
 list(APPEND KERNEL_HEADERS kernels/pressure_bc.h kernels/pressure_bc2.h kernels/pressure_rhs.h kernels/pressure_update_vel.h)
 list(APPEND KERNEL_HEADERS kernels/viscosity_rhs.h kernels/viscosity_bc.h)
 
-set(OPENBLAS_SRC openBLAS_op/init_gauss_grad_op.cpp openBLAS_op/init_gauss_grad_neighbour_op.cpp)
-
-set(CUBLAS_SRC cuBLAS_op/init_gauss_grad_op.cu cuBLAS_op/init_gauss_grad_neighbour_op.cu)
-
-set(COMMON_SRC solver_op.cpp poisson_op.cpp ins_data_op.cpp timing_op.cpp shared_save_functions.cpp ls_op.cpp)
+set(COMMON_SRC solver_op.cpp poisson_op.cpp poisson_sub_mat_op.cpp ins_data_op.cpp timing_op.cpp shared_save_functions.cpp ls_op.cpp)
 set(CPU_SRC poisson_cpu_op.cpp utils_op.cpp)
 set(GPU_SRC poisson_gpu_op.cu utils_op.cu)
 set(SN_SRC save_solution_op.cpp load_mesh.cpp)
 set(MPI_SRC save_solution_mpi_op.cpp load_mesh_mpi.cpp mpi_helper_func.cpp)
 
-op2_application(ins_openmp LIBS op2_openmp op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${SN_SRC} ${OPENBLAS_SRC} openmp/ins_kernels.cpp ${KERNEL_HEADERS})
+op2_application(ins_openmp LIBS op2_openmp op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${SN_SRC} openmp/ins_kernels.cpp ${KERNEL_HEADERS})
 target_include_directories(ins_openmp PUBLIC ${CGNS_DIR}/include ${ARMA_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${OPENBLAS_DIR}/include ${OP2DGTOOLKIT_DIR}/include ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(ins_openmp ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so -L${ARMA_DIR}/lib -larmadillo -L${OPENBLAS_DIR}/lib -lopenblas ${OP2DGTOOLKIT_DIR}/lib/libop2dgtoolkit_openmp.so)
 target_compile_definitions(ins_openmp PRIVATE DG_ORDER=3)
 
-op2_application(ins_cuda LIBS op2_cuda op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${GPU_SRC} ${SN_SRC} ${CUBLAS_SRC} cuda/ins_kernels.cu ${KERNEL_HEADERS})
+op2_application(ins_cuda LIBS op2_cuda op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${GPU_SRC} ${SN_SRC} cuda/ins_kernels.cu ${KERNEL_HEADERS})
 target_compile_definitions(ins_cuda PUBLIC -DBUILD_CUDA)
 target_include_directories(ins_cuda PUBLIC ${CGNS_DIR}/include ${ARMA_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${CUDAToolkit_INCLUDE_DIRS} ${OP2DGTOOLKIT_DIR}/include ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(ins_cuda ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so -L${ARMA_DIR}/lib -larmadillo CUDA::cudart_static CUDA::cublas ${OP2DGTOOLKIT_DIR}/lib/libop2dgtoolkit_cuda.so)
 set_property(TARGET ins_cuda PROPERTY CUDA_ARCHITECTURES OFF)
 target_compile_definitions(ins_cuda PRIVATE OP2_DG_CUDA INS_CUDA DG_ORDER=3)
 
-op2_application(ins_mpi_openmp LIBS op2_mpi op2_openmp op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${MPI_SRC} ${OPENBLAS_SRC} openmp/ins_kernels.cpp ${KERNEL_HEADERS})
+op2_application(ins_mpi_openmp LIBS op2_mpi op2_openmp op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${MPI_SRC} openmp/ins_kernels.cpp ${KERNEL_HEADERS})
 target_include_directories(ins_mpi_openmp PUBLIC ${CGNS_DIR}/include ${ARMA_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${OPENBLAS_DIR}/include ${OP2DGTOOLKIT_DIR}/include ${PROJECT_SOURCE_DIR}/include ${PARMETIS_DIR}/include)
 target_link_libraries(ins_mpi_openmp ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so -L${ARMA_DIR}/lib -larmadillo ${PARMETIS_DIR}/lib/libparmetis.a -L${OPENBLAS_DIR}/lib -lopenblas ${OP2DGTOOLKIT_DIR}/lib/libop2dgtoolkit_mpi_openmp.so)
 target_compile_definitions(ins_mpi_openmp PRIVATE INS_MPI DG_ORDER=3)
 
-op2_application(ins_mpi_cuda LIBS op2_mpi_cuda op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${GPU_SRC} ${MPI_SRC} ${CUBLAS_SRC} cuda/ins_kernels.cu ${KERNEL_HEADERS})
+op2_application(ins_mpi_cuda LIBS op2_mpi_cuda op2_hdf5 SOURCES ins_op.cpp ${COMMON_SRC} ${GPU_SRC} ${MPI_SRC} cuda/ins_kernels.cu ${KERNEL_HEADERS})
 target_compile_definitions(ins_mpi_cuda PUBLIC -DBUILD_CUDA)
 target_include_directories(ins_mpi_cuda PUBLIC ${CGNS_DIR}/include ${ARMA_DIR}/include ${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include ${CUDAToolkit_INCLUDE_DIRS} ${OP2DGTOOLKIT_DIR}/include ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(ins_mpi_cuda ${CGNS_DIR}/lib/libcgns.so ${PETSC_DIR}/arch-linux-c-debug/lib/libpetsc.so -L${ARMA_DIR}/lib -larmadillo CUDA::cudart_static CUDA::cublas ${OP2DGTOOLKIT_DIR}/lib/libop2dgtoolkit_mpi_cuda.so)

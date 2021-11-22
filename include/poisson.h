@@ -12,7 +12,7 @@ extern Timing *timer;
 
 class PoissonSolve {
 public:
-  PoissonSolve(DGMesh *m, INSData *nsData, CubatureData *cubData, GaussData *gaussData);
+  PoissonSolve(DGMesh *m, INSData *nsData);
   ~PoissonSolve();
 
   void init();
@@ -39,8 +39,6 @@ protected:
 
   DGMesh *mesh;
   INSData *data;
-  CubatureData *cData;
-  GaussData *gData;
 
   int dirichlet[3];
   int neumann[3];
@@ -63,6 +61,9 @@ private:
 
   void setGlbInd();
 
+  void calc_cub_sub_mat();
+  void calc_gauss_sub_mat();
+
   op_dat bc_dat;
   Vec b, x;
 
@@ -75,14 +76,14 @@ private:
 
 class PressureSolve : public PoissonSolve {
 public:
-  PressureSolve(DGMesh *m, INSData *d, CubatureData *c, GaussData *g);
+  PressureSolve(DGMesh *m, INSData *d);
 
   void setup();
 };
 
 class ViscositySolve : public PoissonSolve {
 public:
-  ViscositySolve(DGMesh *m, INSData *d, CubatureData *c, GaussData *g);
+  ViscositySolve(DGMesh *m, INSData *d);
 
   void setup(double mmConst);
 };

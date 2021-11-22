@@ -9,11 +9,9 @@
 
 using namespace std;
 
-PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData, CubatureData *cubData, GaussData *gaussData) {
+PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData) {
   mesh = m;
   data = nsData;
-  cData = cubData;
-  gData = gaussData;
 
   numberIter = 0;
   solveCount = 0;
@@ -170,42 +168,9 @@ void PoissonSolve::precond(const double *in_d, double *out_d) {
 void PoissonSolve::set_op() {
   double tol = 1e-15;
 
-  op_par_loop(poisson_op, "poisson_op", mesh->cells,
-              op_arg_dat(cData->OP, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_gbl(&tol, 1, "double", OP_READ),
-              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE));
+  calc_cub_sub_mat();
 
-  op_par_loop(poisson_opf, "poisson_opf", mesh->edges,
-              op_arg_gbl(&tol, 1, "double", OP_READ),
-              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(gData->OP[0], 0, mesh->edge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->OP[1], 0, mesh->edge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->OP[2], 0, mesh->edge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->OPf[0], 0, mesh->edge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->OPf[1], 0, mesh->edge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->OPf[2], 0, mesh->edge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(op1, 0, mesh->edge2cells, DG_NP * DG_NP, "double", OP_INC),
-              op_arg_dat(gData->OP[0], 1, mesh->edge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->OP[1], 1, mesh->edge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->OP[2], 1, mesh->edge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->OPf[0], 1, mesh->edge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->OPf[1], 1, mesh->edge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->OPf[2], 1, mesh->edge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(op1, 1, mesh->edge2cells, DG_NP * DG_NP, "double", OP_INC));
-
-  op_par_loop(poisson_opbf, "poisson_opbf", mesh->bedges,
-              op_arg_gbl(&tol, 1, "double", OP_READ),
-              op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),
-              op_arg_gbl(&dirichlet[1], 1, "int", OP_READ),
-              op_arg_gbl(&dirichlet[2], 1, "int", OP_READ),
-              op_arg_dat(gData->OP[0], 0, mesh->bedge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->OP[1], 0, mesh->bedge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->OP[2], 0, mesh->bedge2cells, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(op1, 0, mesh->bedge2cells, DG_NP * DG_NP, "double", OP_INC));
+  calc_gauss_sub_mat();
 
   if(massMat) {
     op_par_loop(poisson_mm, "poisson_mm", mesh->cells,
@@ -221,21 +186,6 @@ void PoissonSolve::set_op() {
 
     inv_blas(mesh, tmp, pre);
   }
-
-  // If not dirichlet BC, kernel will assume it is a neumann bc
-  op_par_loop(poisson_bc, "poisson_bc", mesh->bedges,
-              op_arg_gbl(&tol, 1, "double", OP_READ),
-              op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),
-              op_arg_gbl(&dirichlet[1], 1, "int", OP_READ),
-              op_arg_gbl(&dirichlet[2], 1, "int", OP_READ),
-              op_arg_dat(gData->mD[0], 0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->mD[1], 0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(gData->mD[2], 0, mesh->bedge2cells, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gData->tau, 0, mesh->bedge2cells, 3, "double", OP_READ),
-              op_arg_dat(op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
 }
 
 void PoissonSolve::setDirichletBCs(int *d) {
@@ -261,9 +211,9 @@ double PoissonSolve::getAverageConvergeIter() {
   return res;
 }
 
-PressureSolve::PressureSolve(DGMesh *m, INSData *d, CubatureData *c, GaussData *g) : PoissonSolve(m, d, c, g) {}
+PressureSolve::PressureSolve(DGMesh *m, INSData *d) : PoissonSolve(m, d) {}
 
-ViscositySolve::ViscositySolve(DGMesh *m, INSData *d, CubatureData *c, GaussData *g) : PoissonSolve(m, d, c, g) {}
+ViscositySolve::ViscositySolve(DGMesh *m, INSData *d) : PoissonSolve(m, d) {}
 
 void PressureSolve::setup() {
   massMat = false;
