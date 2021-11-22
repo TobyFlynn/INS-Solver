@@ -14,17 +14,16 @@ public:
 
   // OP2 stuff
   op_dat Q[2][2], F[4], N[2][2], flux[2], QT[2], QTT[2], gQ[2];
-  op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, p, dpdx, dpdy;
-  op_dat visRHS[2], prBC, visBC[2], vorticity, save_temp;
-  op_dat tmp_dg_np[4];
+  op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, p, dpdx, dpdy, gP;
+  op_dat pFluxX, pFluxY, visRHS[2], prBC, visBC[2], vorticity, save_temp;
+  op_dat tmp_dg_np[4], tmp_dg_g_np[4];
 
   DGMesh *mesh;
 private:
   // Pointers to private memory
-  double *Q_data[2][2], *N_data[2][2], *flux_data[2], *QT_data[2];
-  double *QTT_data[2], *gQ_data[2], *dPdN_data[2], *p_data, *prBC_data;
-  double *visBC_data[2], *vorticity_data, *save_temp_data;
-  double *tmp_dg_np_data[4];
+  double *Q_data[2][2], *N_data[2][2], *QT_data[2], *QTT_data[2], *dPdN_data[2];
+  double *p_data, *prBC_data, *vorticity_data, *save_temp_data;
+  double *tmp_dg_np_data[4], *tmp_dg_g_np_data[4];
 };
 
 class CubatureData {

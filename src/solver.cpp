@@ -224,6 +224,25 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   // Calculate gradient of pressure
   grad(mesh, data->p, data->dpdx, data->dpdy);
 
+  op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->p, 0.0, data->gP);
+
+  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+              op_arg_dat(data->pFluxX, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
+              op_arg_dat(data->pFluxY, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+
+  op_par_loop(pressure_grad_flux, "pressure_grad_flux", mesh->edges,
+              op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(mesh->gauss->nx, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->ny, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->gP,        -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->pFluxX,    -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
+              op_arg_dat(data->pFluxY,    -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
+
+  op2_gemv(true, DG_NP, DG_G_NP, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->pFluxX, 1.0, data->dpdx);
+  op2_gemv(true, DG_NP, DG_G_NP, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->pFluxY, 1.0, data->dpdy);
+
   // Calculate new velocity intermediate values
   op_par_loop(pressure_update_vel, "pressure_update_vel", mesh->cells,
               op_arg_gbl(&dt, 1, "double", OP_READ),
@@ -243,6 +262,11 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
                        double b1, double g0, double t) {
   timer->startViscositySetup();
   double time = t + dt;
+
+  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+              op_arg_dat(data->visBC[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
+              op_arg_dat(data->visBC[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+
   // Get BCs for viscosity solve
   op_par_loop(viscosity_bc, "viscosity_bc", mesh->bedges,
               op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
@@ -263,11 +287,8 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   double factor = reynolds / dt;
   op_par_loop(viscosity_rhs, "viscosity_rhs", mesh->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
-              op_arg_dat(mesh->J, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->visRHS[0], -1, OP_ID, DG_NP, "double", OP_RW),
-              op_arg_dat(data->visRHS[1], -1, OP_ID, DG_NP, "double", OP_RW),
-              op_arg_dat(data->visBC[0], -1, OP_ID, DG_G_NP, "double", OP_RW),
-              op_arg_dat(data->visBC[1], -1, OP_ID, DG_G_NP, "double", OP_RW));
+              op_arg_dat(data->visRHS[1], -1, OP_ID, DG_NP, "double", OP_RW));
 
   timer->endViscositySetup();
 
@@ -281,11 +302,6 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   viscosityPoisson->setBCValues(data->visBC[1]);
   bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1]);
   timer->endViscosityLinearSolve();
-
-  // Reset BC dats ready for next iteration
-  op_par_loop(viscosity_reset_bc, "viscosity_reset_bc", mesh->cells,
-              op_arg_dat(data->visBC[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
-              op_arg_dat(data->visBC[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
 
   return convergedX && convergedY;
 }
