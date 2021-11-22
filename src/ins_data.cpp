@@ -16,8 +16,10 @@ using namespace std;
 INSData::INSData(DGMesh *m) {
   mesh = m;
   // Initialise memory
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 10; i++) {
     tmp_dg_np_data[i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+  }
+  for(int i = 0; i < 4; i++) {
     tmp_dg_g_np_data[i] = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
   }
   for(int i = 0; i < 2; i++) {
@@ -35,10 +37,12 @@ INSData::INSData(DGMesh *m) {
   save_temp_data = (double *)calloc(DG_SUB_CELLS * mesh->numCells, sizeof(double));
 
   // Declare OP2 datasets
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 10; i++) {
     string name    = "tmp_dg_np" + to_string(i);
     tmp_dg_np[i]   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_dg_np_data[i], name.c_str());
-    name           = "tmp_dg_g_np" + to_string(i);
+  }
+  for(int i = 0; i < 4; i++) {
+    string name    = "tmp_dg_g_np" + to_string(i);
     tmp_dg_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, "double", tmp_dg_g_np_data[i], name.c_str());
   }
   for(int i = 0; i < 2; i++) {
@@ -93,8 +97,10 @@ INSData::INSData(DGMesh *m) {
 }
 
 INSData::~INSData() {
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 10; i++) {
     free(tmp_dg_np_data[i]);
+  }
+  for(int i = 0; i < 4; i++) {
     free(tmp_dg_g_np_data[i]);
   }
   for(int i = 0; i < 2; i++) {

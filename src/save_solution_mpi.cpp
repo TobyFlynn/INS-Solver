@@ -15,13 +15,14 @@
 #include "mpi_helper_func.h"
 #include "dg_mesh.h"
 #include "ins_data.h"
+#include "ls.h"
 #include "dg_operators.h"
 #include "utils.h"
 #include "shared_save_functions.h"
 
 using namespace std;
 
-void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int ind, int iter) {
+void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int ind, LS *ls, int iter) {
   // Calculate vorticity
   curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
@@ -81,6 +82,18 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, vortIndex, &minCell, &maxCell, vort_data);
   free(vort_data);
 
+  int sIndex;
+  if(ls) {
+    op_par_loop(save_values, "save_values", mesh->cells,
+                op_arg_dat(ls->s,           -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
+
+    double *s_data = getOP2Array(data->save_temp);
+    cgp_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Surface", &sIndex);
+    cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, sIndex, &minCell, &maxCell, vort_data);
+    free(s_data);
+  }
+
   float exp[5];
   cg_goto(file, baseIndex, "end");
   cg_dataclass_write(CGNS_ENUMV(Dimensional));
@@ -102,10 +115,16 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", vortIndex, "end");
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
+  if(ls) {
+    exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = 0.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+    cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", sIndex, "end");
+    cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+  }
+
   cgp_close(file);
 }
 
-void save_solution_init(std::string filename, DGMesh *mesh, INSData *data) {
+void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *ls) {
   // Calculate vorticity
   curl(mesh, data->Q[0][0], data->Q[0][1], data->vorticity);
   // Gather onto root process
@@ -251,6 +270,18 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data) {
   cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, vortIndex, &minCell, &maxCell, vort_data);
   free(vort_data);
 
+  int sIndex;
+  if(ls) {
+    op_par_loop(save_values, "save_values", mesh->cells,
+                op_arg_dat(ls->step_s,      -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
+
+    double *s_data = getOP2Array(data->save_temp);
+    cgp_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Surface", &sIndex);
+    cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, sIndex, &minCell, &maxCell, vort_data);
+    free(s_data);
+  }
+
   float exp[5];
   cg_goto(file, baseIndex, "end");
   cg_dataclass_write(CGNS_ENUMV(Dimensional));
@@ -271,6 +302,12 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data) {
   exp[0] = 0.0f; exp[1] = 0.0f; exp[2] = -1.0f; exp[3] = 0.0f; exp[4] = 0.0f;
   cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", vortIndex, "end");
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+
+  if(ls) {
+    exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = 0.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+    cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", sIndex, "end");
+    cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+  }
 
   cgp_close(file);
 
@@ -340,7 +377,8 @@ void save_solution_finalise(std::string filename, int numIter, double dt) {
 }
 
 
-void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, double finalTime, double nu) {
+void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
+                   LS *ls, double finalTime, double nu) {
   // Calculate vorticity
   curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
@@ -351,6 +389,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, d
   double *vort = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
   double *x    = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
   double *y    = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
+  double *s    = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
 
   op_fetch_data(data->Q[ind][0], Ux);
   op_fetch_data(data->Q[ind][1], Uy);
@@ -358,6 +397,9 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, d
   op_fetch_data(data->vorticity, vort);
   op_fetch_data(mesh->x, x);
   op_fetch_data(mesh->y, y);
+  if(ls) {
+    op_fetch_data(ls->step_s, s);
+  }
 
   // Gather onto root process
   int rank;
@@ -371,6 +413,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, d
   double *vort_g = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
   double *x_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
   double *y_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+  double *s_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
 
   gather_double_array(Ux_g, Ux, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
   gather_double_array(Uy_g, Uy, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
@@ -378,6 +421,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, d
   gather_double_array(vort_g, vort, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
   gather_double_array(x_g, x, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
   gather_double_array(y_g, y, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
+  gather_double_array(s_g, s, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
 
   int file;
   if (cgp_open(filename.c_str(), CG_MODE_WRITE, &file)) {
@@ -390,24 +434,25 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, d
   vector<double> v_v;
   vector<double> pr_v;
   vector<double> vort_v;
+  vector<double> s_v;
   vector<cgsize_t> cells(3 * mesh->numCells_g * DG_SUB_CELLS);
 
   if(rank == 0) {
     if(DG_ORDER == 4) {
-      get_data_vectors_order_4(x_v, y_v, u_v, v_v, pr_v, vort_v, cells,
-                               Ux_g, Uy_g, pr_g, vort_g, x_g, y_g,
+      get_data_vectors_order_4(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells,
+                               Ux_g, Uy_g, pr_g, vort_g, x_g, y_g, s_g,
                                mesh->numCells_g);
     } else if(DG_ORDER == 3) {
-      get_data_vectors_order_3(x_v, y_v, u_v, v_v, pr_v, vort_v, cells,
-                               Ux_g, Uy_g, pr_g, vort_g, x_g, y_g,
+      get_data_vectors_order_3(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells,
+                               Ux_g, Uy_g, pr_g, vort_g, x_g, y_g, s_g,
                                mesh->numCells_g);
     } else if(DG_ORDER == 2) {
-      get_data_vectors_order_2(x_v, y_v, u_v, v_v, pr_v, vort_v, cells,
-                               Ux_g, Uy_g, pr_g, vort_g, x_g, y_g,
+      get_data_vectors_order_2(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells,
+                               Ux_g, Uy_g, pr_g, vort_g, x_g, y_g, s_g,
                                mesh->numCells_g);
     } else {
-      get_data_vectors_order_1(x_v, y_v, u_v, v_v, pr_v, vort_v, cells,
-                               Ux_g, Uy_g, pr_g, vort_g, x_g, y_g,
+      get_data_vectors_order_1(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, cells,
+                               Ux_g, Uy_g, pr_g, vort_g, x_g, y_g, s_g,
                                mesh->numCells_g);
     }
   }
@@ -518,6 +563,19 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, d
     cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, vortIndex, &min, &max, NULL);
   }
 
+  // Write surface
+  int sIndex;
+  cgp_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), "Surface", &sIndex);
+  if(rank == 0) {
+    cgsize_t min = 1;
+    cgsize_t max = s_v.size();
+    cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, sIndex, &min, &max, s_v.data());
+  } else {
+    cgsize_t min = 0;
+    cgsize_t max = 0;
+    cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, sIndex, &min, &max, NULL);
+  }
+
   float exp[5];
   cg_goto(file, baseIndex, "end");
   cg_dataclass_write(CGNS_ENUMV(Dimensional));
@@ -539,6 +597,10 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, d
   cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", vortIndex, "end");
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
+  exp[0] = 0.0f; exp[1] = 1.0f; exp[2] = 0.0f; exp[3] = 0.0f; exp[4] = 0.0f;
+  cg_goto(file, baseIndex, "Zone_t", zoneIndex, "FlowSolution_t", flowIndex, "DataArray_t", sIndex, "end");
+  cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
+
   cgsize_t dim[2] = {1, 2};
   double infoData[] = {finalTime, nu};
   cg_gopath(file, "/Base/Zone1");
@@ -558,12 +620,14 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, d
 
   cgp_close(file);
 
+  free(s);
   free(Ux);
   free(Uy);
   free(pr);
   free(vort);
   free(x);
   free(y);
+  free(s_g);
   free(Ux_g);
   free(Uy_g);
   free(pr_g);

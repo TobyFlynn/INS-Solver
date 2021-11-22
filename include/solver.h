@@ -5,6 +5,7 @@
 
 #include "ins_data.h"
 #include "poisson.h"
+#include "ls.h"
 
 #include "dg_mesh.h"
 
@@ -22,13 +23,14 @@ public:
   bool viscosity(int currentInd, double a0, double a1, double b0, double b1,
                  double g0, double t);
 
-  void lift_drag_coeff(double *lift, double *drag, int ind);
+  void update_surface(int currentInd);
 
   double getAvgPressureConvergance();
   double getAvgViscosityConvergance();
 
   DGMesh *mesh;
   INSData *data;
+  LS *ls;
   double dt;
 private:
   CubatureData *cubatureData;

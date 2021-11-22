@@ -334,9 +334,9 @@ void get_cells_order_1(vector<double> &x_v, vector<double> &y_v,
 void get_data_vectors_order_4(vector<double> &x_v, vector<double> &y_v,
                               vector<double> &u_v, vector<double> &v_v,
                               vector<double> &pr_v, vector<double> &vort_v,
-                              vector<cgsize_t> &cells,
+                              vector<double> &s_v, vector<cgsize_t> &cells,
                               double *Ux, double *Uy, double *pr, double *vort,
-                              double *x, double *y, int numCells) {
+                              double *x, double *y, double *s, int numCells) {
   // Maps points to sub elements that they are part of.
   // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
   // -1 is just padding to get each line to 6
@@ -391,6 +391,7 @@ void get_data_vectors_order_4(vector<double> &x_v, vector<double> &y_v,
         res.first->second->v    = Uy[ind + p];
         res.first->second->pr   = pr[ind + p];
         res.first->second->vort = vort[ind + p];
+        res.first->second->s    = s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
@@ -405,6 +406,7 @@ void get_data_vectors_order_4(vector<double> &x_v, vector<double> &y_v,
         res.first->second->v    += Uy[ind + p];
         res.first->second->pr   += pr[ind + p];
         res.first->second->vort += vort[ind + p];
+        res.first->second->s    += s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
@@ -427,6 +429,7 @@ void get_data_vectors_order_4(vector<double> &x_v, vector<double> &y_v,
     v_v.push_back(p.second->v / p.second->counter);
     pr_v.push_back(p.second->pr / p.second->counter);
     vort_v.push_back(p.second->vort / p.second->counter);
+    s_v.push_back(p.second->s / p.second->counter);
     for(int i = 0; i < p.second->cells.size(); i++) {
       cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
     }
@@ -437,9 +440,9 @@ void get_data_vectors_order_4(vector<double> &x_v, vector<double> &y_v,
 void get_data_vectors_order_3(vector<double> &x_v, vector<double> &y_v,
                               vector<double> &u_v, vector<double> &v_v,
                               vector<double> &pr_v, vector<double> &vort_v,
-                              vector<cgsize_t> &cells,
+                              vector<double> &s_v, vector<cgsize_t> &cells,
                               double *Ux, double *Uy, double *pr, double *vort,
-                              double *x, double *y, int numCells) {
+                              double *x, double *y, double *s, int numCells) {
   // Maps points to sub elements that they are part of.
   // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
   // -1 is just padding to get each line to 6
@@ -484,6 +487,7 @@ void get_data_vectors_order_3(vector<double> &x_v, vector<double> &y_v,
         res.first->second->v    = Uy[ind + p];
         res.first->second->pr   = pr[ind + p];
         res.first->second->vort = vort[ind + p];
+        res.first->second->s    = s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 9 + cellMask[p][m]);
@@ -498,6 +502,7 @@ void get_data_vectors_order_3(vector<double> &x_v, vector<double> &y_v,
         res.first->second->v    += Uy[ind + p];
         res.first->second->pr   += pr[ind + p];
         res.first->second->vort += vort[ind + p];
+        res.first->second->s    += s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 9 + cellMask[p][m]);
@@ -520,6 +525,7 @@ void get_data_vectors_order_3(vector<double> &x_v, vector<double> &y_v,
     v_v.push_back(p.second->v / p.second->counter);
     pr_v.push_back(p.second->pr / p.second->counter);
     vort_v.push_back(p.second->vort / p.second->counter);
+    s_v.push_back(p.second->s / p.second->counter);
     for(int i = 0; i < p.second->cells.size(); i++) {
       cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
     }
@@ -530,9 +536,9 @@ void get_data_vectors_order_3(vector<double> &x_v, vector<double> &y_v,
 void get_data_vectors_order_2(vector<double> &x_v, vector<double> &y_v,
                               vector<double> &u_v, vector<double> &v_v,
                               vector<double> &pr_v, vector<double> &vort_v,
-                              vector<cgsize_t> &cells,
+                              vector<double> &s_v, vector<cgsize_t> &cells,
                               double *Ux, double *Uy, double *pr, double *vort,
-                              double *x, double *y, int numCells) {
+                              double *x, double *y, double *s, int numCells) {
   // Maps points to sub elements that they are part of.
   // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
   // -1 is just padding to get each line to 6
@@ -569,6 +575,7 @@ void get_data_vectors_order_2(vector<double> &x_v, vector<double> &y_v,
         res.first->second->v    = Uy[ind + p];
         res.first->second->pr   = pr[ind + p];
         res.first->second->vort = vort[ind + p];
+        res.first->second->s    = s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 4 + cellMask[p][m]);
@@ -583,6 +590,7 @@ void get_data_vectors_order_2(vector<double> &x_v, vector<double> &y_v,
         res.first->second->v    += Uy[ind + p];
         res.first->second->pr   += pr[ind + p];
         res.first->second->vort += vort[ind + p];
+        res.first->second->s    += s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 4 + cellMask[p][m]);
@@ -605,6 +613,7 @@ void get_data_vectors_order_2(vector<double> &x_v, vector<double> &y_v,
     v_v.push_back(p.second->v / p.second->counter);
     pr_v.push_back(p.second->pr / p.second->counter);
     vort_v.push_back(p.second->vort / p.second->counter);
+    s_v.push_back(p.second->s / p.second->counter);
     for(int i = 0; i < p.second->cells.size(); i++) {
       cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
     }
@@ -615,9 +624,9 @@ void get_data_vectors_order_2(vector<double> &x_v, vector<double> &y_v,
 void get_data_vectors_order_1(vector<double> &x_v, vector<double> &y_v,
                               vector<double> &u_v, vector<double> &v_v,
                               vector<double> &pr_v, vector<double> &vort_v,
-                              vector<cgsize_t> &cells,
+                              vector<double> &s_v, vector<cgsize_t> &cells,
                               double *Ux, double *Uy, double *pr, double *vort,
-                              double *x, double *y, int numCells) {
+                              double *x, double *y, double *s, int numCells) {
   // Maps points to sub elements that they are part of.
   // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
   // -1 is just padding to get each line to 6
@@ -648,6 +657,7 @@ void get_data_vectors_order_1(vector<double> &x_v, vector<double> &y_v,
         res.first->second->v    = Uy[ind + p];
         res.first->second->pr   = pr[ind + p];
         res.first->second->vort = vort[ind + p];
+        res.first->second->s    = s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 1 + cellMask[p][m]);
@@ -662,6 +672,7 @@ void get_data_vectors_order_1(vector<double> &x_v, vector<double> &y_v,
         res.first->second->v    += Uy[ind + p];
         res.first->second->pr   += pr[ind + p];
         res.first->second->vort += vort[ind + p];
+        res.first->second->s    += s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 1 + cellMask[p][m]);
@@ -684,6 +695,7 @@ void get_data_vectors_order_1(vector<double> &x_v, vector<double> &y_v,
     v_v.push_back(p.second->v / p.second->counter);
     pr_v.push_back(p.second->pr / p.second->counter);
     vort_v.push_back(p.second->vort / p.second->counter);
+    s_v.push_back(p.second->s / p.second->counter);
     for(int i = 0; i < p.second->cells.size(); i++) {
       cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
     }

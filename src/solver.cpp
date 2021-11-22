@@ -48,6 +48,7 @@ Solver::Solver(std::string filename, int prob) {
                     numEdges, numBoundaryEdges);
 
   data = new INSData(mesh);
+  ls = new LS(mesh, data);
   cubatureData = new CubatureData(mesh, data);
   gaussData = new GaussData(mesh, data);
   pressurePoisson = new PressureSolve(mesh, data, cubatureData, gaussData);
@@ -62,6 +63,7 @@ Solver::Solver(std::string filename, int prob) {
 
   mesh->init();
   data->init();
+  ls->init();
   cubatureData->init();
   gaussData->init();
   pressurePoisson->init();
@@ -89,6 +91,7 @@ Solver::~Solver() {
   delete pressurePoisson;
   delete gaussData;
   delete cubatureData;
+  delete ls;
   delete data;
   delete mesh;
 }
@@ -306,6 +309,12 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   return convergedX && convergedY;
 }
 
+void Solver::update_surface(int currentInd) {
+  timer->startSurface();
+  ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
+  ls->step(dt);
+  timer->endSurface();
+}
 
 double Solver::getAvgPressureConvergance() {
   return pressurePoisson->getAverageConvergeIter();

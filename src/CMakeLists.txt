@@ -9,7 +9,7 @@ set(OPENBLAS_SRC openBLAS_op/init_gauss_grad_op.cpp openBLAS_op/init_gauss_grad_
 
 set(CUBLAS_SRC cuBLAS_op/init_gauss_grad_op.cu cuBLAS_op/init_gauss_grad_neighbour_op.cu)
 
-set(COMMON_SRC solver_op.cpp poisson_op.cpp ins_data_op.cpp timing_op.cpp shared_save_functions.cpp)
+set(COMMON_SRC solver_op.cpp poisson_op.cpp ins_data_op.cpp timing_op.cpp shared_save_functions.cpp ls_op.cpp)
 set(CPU_SRC poisson_cpu_op.cpp utils_op.cpp)
 set(GPU_SRC poisson_gpu_op.cu utils_op.cu)
 set(SN_SRC save_solution_op.cpp load_mesh.cpp)

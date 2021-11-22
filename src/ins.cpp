@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
   double time = 0.0;
 
   if(save != -1) {
-    save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data);
+    save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);
     // export_data_init(outputDir + "data.csv");
   }
 
@@ -182,6 +182,8 @@ int main(int argc, char **argv) {
     }
     timer->endViscosity();
 
+    solver->update_surface(currentIter % 2);
+
     currentIter++;
     time += solver->dt;
 
@@ -190,7 +192,7 @@ int main(int argc, char **argv) {
       op_printf("Iteration: %d Time: %g\n", i, time);
 
       timer->startSave();
-      save_solution_iter(outputDir + "sol.cgns", solver->mesh, solver->data, currentIter % 2, (i + 1) / save);
+      save_solution_iter(outputDir + "sol.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, (i + 1) / save);
       timer->endSave();
     }
   }
@@ -200,7 +202,7 @@ int main(int argc, char **argv) {
     save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
 
   // Save solution to CGNS file
-  save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, time, nu);
+  save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, time, nu);
 
   timer->endWallTime();
   timer->exportTimings(outputDir + "timings.csv", iter, time);

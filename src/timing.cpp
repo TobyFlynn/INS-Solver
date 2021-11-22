@@ -20,7 +20,7 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << "Advection" << ",";
   file << "Pressure" << ",";
   file << "Viscosity" << ",";
-  file << "Lift/Drag" << ",";
+  file << "Surface" << ",";
   file << "Save" << ",";
   file << "Pressure Setup" << ",";
   file << "Pressure Linear Solve" << ",";
@@ -40,7 +40,7 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << to_string(totalAdvection) << ",";
   file << to_string(totalPressure) << ",";
   file << to_string(totalViscosity) << ",";
-  file << to_string(totalLiftDrag) << ",";
+  file << to_string(totalSurface) << ",";
   file << to_string(totalSave) << ",";
   file << to_string(totalPressureSetup) << ",";
   file << to_string(totalPressureLinearSolve) << ",";
@@ -72,7 +72,7 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << "Advection" << ",";
   file << "Pressure" << ",";
   file << "Viscosity" << ",";
-  file << "Lift/Drag" << ",";
+  file << "Surface" << ",";
   file << "Save" << ",";
   file << "Pressure Setup" << ",";
   file << "Pressure Linear Solve" << ",";
@@ -92,7 +92,7 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << to_string(totalAdvection) << ",";
   file << to_string(totalPressure) << ",";
   file << to_string(totalViscosity) << ",";
-  file << to_string(totalLiftDrag) << ",";
+  file << to_string(totalSurface) << ",";
   file << to_string(totalSave) << ",";
   file << to_string(totalPressureSetup) << ",";
   file << to_string(totalPressureLinearSolve) << ",";
@@ -163,12 +163,12 @@ void Timing::endViscosity() {
   totalViscosity += viscosity2 - viscosity1;
 }
 
-void Timing::startLiftDrag() {
-  op_timers(&cpu1, &liftDrag1);
+void Timing::startSurface() {
+  op_timers(&cpu1, &surface1);
 }
-void Timing::endLiftDrag() {
-  op_timers(&cpu2, &liftDrag2);
-  totalLiftDrag += liftDrag2 - liftDrag1;
+void Timing::endSurface() {
+  op_timers(&cpu2, &surface2);
+  totalSurface += surface2 - surface1;
 }
 
 void Timing::startSave() {
