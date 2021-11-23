@@ -32,7 +32,6 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData) {
   rhs_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   in_data  = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   out_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  tmp_data = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
   pre_data = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
 
   glb_ind   = op_decl_dat(mesh->cells, 1, "int", glb_ind_data, "poisson_glb_ind");
@@ -49,7 +48,6 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData) {
   rhs = op_decl_dat(mesh->cells, DG_NP, "double", rhs_data, "poisson_rhs");
   in  = op_decl_dat(mesh->cells, DG_NP, "double", in_data, "poisson_in");
   out = op_decl_dat(mesh->cells, DG_NP, "double", out_data, "poisson_out");
-  tmp = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_data, "poisson_tmp");
   pre = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", pre_data, "poisson_pre");
 }
 
@@ -68,7 +66,6 @@ PoissonSolve::~PoissonSolve() {
   free(rhs_data);
   free(in_data);
   free(out_data);
-  free(tmp_data);
   free(pre_data);
 
   destroy_vec(&b);
@@ -180,11 +177,7 @@ void PoissonSolve::set_op() {
   }
 
   if(block_jacobi_pre) {
-    op_par_loop(poisson_tmp, "poisson_tmp", mesh->cells,
-                op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-                op_arg_dat(tmp, -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE));
-
-    inv_blas(mesh, tmp, pre);
+    inv_blas(mesh, op1, pre);
   }
 }
 

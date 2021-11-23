@@ -29,7 +29,7 @@ public:
   // OP2 Dats
   op_dat op1, op2[2], op_bc;
   op_dat glb_ind, glb_indL, glb_indR, glb_indBC;
-  op_dat u, rhs, in, out, tmp, pre;
+  op_dat u, rhs, in, out, pre;
 
 protected:
   void set_op();
@@ -71,7 +71,7 @@ private:
 
   double *op1_data, *op2_data[2], *op_bc_data;
   int *glb_ind_data, *glb_indL_data, *glb_indR_data, *glb_indBC_data;
-  double *u_data, *rhs_data, *in_data, *out_data, *tmp_data, *pre_data;
+  double *u_data, *rhs_data, *in_data, *out_data, *pre_data;
 };
 
 class PressureSolve : public PoissonSolve {

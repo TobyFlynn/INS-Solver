@@ -118,9 +118,9 @@ inline void poisson_gauss_grad(const int *edgeNum, const bool *reverse,
   for(int m = 0; m < DG_NP; m++) {
     for(int n = 0; n < DG_NP; n++) {
       // op col-major
-      // int c_ind = m + n * DG_NP;
+      int c_ind = m + n * DG_NP;
       // op row-major
-      int c_ind = m * DG_NP + n;
+      // int c_ind = m * DG_NP + n;
       op2L[c_ind] = 0.0;
       op2R[c_ind] = 0.0;
       for(int k = 0; k < DG_GF_NP; k++) {

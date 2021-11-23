@@ -21,9 +21,9 @@ inline void poisson_cubature_op(const double *rx, const double *sx,
   for(int m = 0; m < DG_NP; m++) {
     for(int n = 0; n < DG_NP; n++) {
       // op col-major
-      // int c_ind = m + n * DG_NP;
+      int c_ind = m + n * DG_NP;
       // op row-major
-      int c_ind = m * DG_NP + n;
+      // int c_ind = m * DG_NP + n;
       op[c_ind] = 0.0;
       for(int k = 0; k < DG_CUB_NP; k++) {
         // Dx' and Dy'

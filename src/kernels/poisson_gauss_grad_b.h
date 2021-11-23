@@ -71,9 +71,9 @@ inline void poisson_gauss_grad_b(const int *btype, const int *edgeNum,
     for(int m = 0; m < DG_NP; m++) {
       for(int n = 0; n < DG_NP; n++) {
         // op col-major
-        // int c_ind = m + n * DG_NP;
+        int c_ind = m + n * DG_NP;
         // op row-major
-        int c_ind = m * DG_NP + n;
+        // int c_ind = m * DG_NP + n;
         for(int k = 0; k < DG_GF_NP; k++) {
           // Dx' and Dy'
           int a_ind = m * DG_GF_NP + k;
@@ -94,7 +94,7 @@ inline void poisson_gauss_grad_b(const int *btype, const int *edgeNum,
       double val = gaussW_g[j % DG_GF_NP] * sJ[*edgeNum * DG_GF_NP + (j % DG_GF_NP)] * tau;
       val *= gVM[indT_col];
       val -= mD[indT_col] * gaussW_g[j % DG_GF_NP] * sJ[*edgeNum * DG_GF_NP + (j % DG_GF_NP)];
-      op_bc[row * DG_GF_NP + col] = val;
+      op_bc[row + col * DG_NP] = val;
     }
   } else {
     // Nothing for main matrix
@@ -105,7 +105,7 @@ inline void poisson_gauss_grad_b(const int *btype, const int *edgeNum,
       int row  = j / DG_GF_NP;
       double val = gaussW_g[j % DG_GF_NP] * sJ[*edgeNum * DG_GF_NP + (j % DG_GF_NP)];
       val *= gVM[indT_col];
-      op_bc[row * DG_GF_NP + col] = val;
+      op_bc[row + col * DG_NP] = val;
     }
   }
 }

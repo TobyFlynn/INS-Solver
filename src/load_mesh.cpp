@@ -53,8 +53,6 @@ void load_mesh(std::string filename, double **coords_data, int **cells_data,
   // Get zone name and size
   cg_zone_read(file, baseIndex, zoneIndex, zoneName, &cg_numNodes);
   *numNodes = (int) cg_numNodes;
-  std::cout << "Zone Name: " << zoneName << std::endl;
-  std::cout << "Zone Size: " << *numNodes << std::endl;
 
   // Get vertices
   std::vector<double> x(*numNodes);
@@ -76,7 +74,6 @@ void load_mesh(std::string filename, double **coords_data, int **cells_data,
   // Get number of sections
   int numSections;
   cg_nsections(file, baseIndex, zoneIndex, &numSections);
-  std::cout << "Number of sections: " << numSections << std::endl << std::endl;
 
   // Get cell section
   char sectionName[33];
@@ -85,11 +82,6 @@ void load_mesh(std::string filename, double **coords_data, int **cells_data,
   int elementNumBoundary, parentFlag;
   cg_section_read(file, baseIndex, zoneIndex, 1, sectionName, &elementType,
                   &elementStart, &elementEnd, &elementNumBoundary, &parentFlag);
-  std::cout << "Section 1: " << sectionName << std::endl;
-  std::cout << "Element Type: " << ElementTypeName[elementType] << std::endl;
-  std::cout << "Start: " << elementStart << " End: " << elementEnd << std::endl;
-  std::cout << "Element Number Boundary: " << elementNumBoundary;
-  std::cout << " Parent Flag: " << parentFlag << std::endl;
 
   // Get cells
   *numCells = elementEnd - elementStart + 1;
@@ -103,8 +95,6 @@ void load_mesh(std::string filename, double **coords_data, int **cells_data,
   int arrayRank;
   cgsize_t arrayDims[2];
   cg_array_info(1, arrayName, &arrayDataType, &arrayRank, arrayDims);
-  std::cout << "Array Name: " << arrayName << std::endl;
-  std::cout << "Array Dims: " << arrayDims[0] << " " << arrayDims[1] << std::endl;
   *numEdges = arrayDims[1];
   *edge2node_data = (int *)malloc(2 * (*numEdges) * sizeof(int));
   *edge2cell_data = (int *)malloc(2 * (*numEdges) * sizeof(int));
@@ -134,8 +124,6 @@ void load_mesh(std::string filename, double **coords_data, int **cells_data,
   int barrayRank;
   cgsize_t barrayDims[2];
   cg_array_info(1, barrayName, &barrayDataType, &barrayRank, barrayDims);
-  std::cout << "Array Name: " << barrayName << std::endl;
-  std::cout << "Array Dims: " << barrayDims[0] << " " << barrayDims[1] << std::endl;
   *numBoundaryEdges = barrayDims[1];
   *bedge2node_data = (int *)malloc(2 * (*numBoundaryEdges) * sizeof(int));
   *bedge2cell_data = (int *)malloc((*numBoundaryEdges) * sizeof(int));
@@ -167,8 +155,6 @@ void load_mesh(std::string filename, double **coords_data, int **cells_data,
   int bcarrayRank;
   cgsize_t bcarrayDims[2];
   cg_array_info(1, bcarrayName, &bcarrayDataType, &bcarrayRank, bcarrayDims);
-  std::cout << "Array Name: " << bcarrayName << std::endl;
-  std::cout << "Array Dims: " << bcarrayDims[0] << " " << bcarrayDims[1] << std::endl;
   std::vector<int> bcData(bcarrayDims[0] * bcarrayDims[1]);
   cg_array_read(1, bcData.data());
   for(int i = 0; i < 3; i++) {
