@@ -115,6 +115,7 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
 
   // Exchange values on edges between elements
   op_par_loop(advection_faces, "advection_faces", mesh->edges,
+              op_arg_dat(mesh->order,     -2, mesh->edge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
               op_arg_dat(data->gQ[0],     -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
@@ -127,6 +128,7 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
 
   // Enforce BCs
   op_par_loop(advection_bc, "advection_bc", mesh->bedges,
+              op_arg_dat(mesh->order,       0, mesh->bedge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&t, 1, "double", OP_READ),

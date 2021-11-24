@@ -1,11 +1,14 @@
-inline void advection_bc(const int *bedge_type, const int *bedgeNum,
-                         const double *t, const int *problem,
+inline void advection_bc(const int *p, const int *bedge_type,
+                         const int *bedgeNum, const double *t, const int *problem,
                          const double *x, const double *y, const double *q0,
                          const double *q1, const double *nx, const double *ny,
                          const double *sJ, double *flux0, double *flux1) {
   const int exInd = *bedgeNum * DG_GF_NP;
   double pQ0[DG_GF_NP], pQ1[DG_GF_NP];
   const double PI = 3.141592653589793238463;
+
+  // Get constants
+  const double *gaussW = &gaussW_g[(*p - 1) * DG_GF_NP];
 
   // Set boundary velocities
   if(*problem == 0) {
@@ -75,7 +78,7 @@ inline void advection_bc(const int *bedge_type, const int *bedgeNum,
     double pF2 = pQ0[i] * pQ1[i];
     double pF3 = pQ1[i] * pQ1[i];
     // Numerical flux
-    flux0[ind] += 0.5 * gaussW_g[i] * sJ[ind] * (-nx[ind] * (mF0 - pF0) - ny[ind] * (mF1 - pF1) - maxVel * (pQ0[i] - q0[ind]));
-    flux1[ind] += 0.5 * gaussW_g[i] * sJ[ind] * (-nx[ind] * (mF2 - pF2) - ny[ind] * (mF3 - pF3) - maxVel * (pQ1[i] - q1[ind]));
+    flux0[ind] += 0.5 * gaussW[i] * sJ[ind] * (-nx[ind] * (mF0 - pF0) - ny[ind] * (mF1 - pF1) - maxVel * (pQ0[i] - q0[ind]));
+    flux1[ind] += 0.5 * gaussW[i] * sJ[ind] * (-nx[ind] * (mF2 - pF2) - ny[ind] * (mF3 - pF3) - maxVel * (pQ1[i] - q1[ind]));
   }
 }

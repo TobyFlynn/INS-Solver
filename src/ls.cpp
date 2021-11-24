@@ -16,6 +16,8 @@ LS::LS(DGMesh *m, INSData *d) {
   mesh = m;
   data = d;
 
+  gInput_data = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
+
   s_data      = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   step_s_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   nx_data     = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
@@ -32,8 +34,7 @@ LS::LS(DGMesh *m, INSData *d) {
   modal_data     = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   local_vis_data = (double *)calloc(mesh->numCells, sizeof(double));
 
-  exAdvec_data = (double *)calloc(3 * DG_NPF * mesh->numCells, sizeof(double));
-  nFlux_data   = (double *)calloc(3 * DG_NPF * mesh->numCells, sizeof(double));
+  gInput = op_decl_dat(mesh->cells, DG_G_NP, "double", gInput_data, "gInput");
 
   s      = op_decl_dat(mesh->cells, DG_NP, "double", s_data, "s");
   step_s = op_decl_dat(mesh->cells, DG_NP, "double", step_s_data, "step");
@@ -50,12 +51,11 @@ LS::LS(DGMesh *m, INSData *d) {
 
   modal     = op_decl_dat(mesh->cells, DG_NP, "double", modal_data, "modal");
   local_vis = op_decl_dat(mesh->cells, 1, "double", local_vis_data, "local_vis");
-
-  exAdvec = op_decl_dat(mesh->cells, 3 * DG_NPF, "double", exAdvec_data, "exAdvec");
-  nFlux   = op_decl_dat(mesh->cells, 3 * DG_NPF, "double", nFlux_data, "nFlux");
 }
 
 LS::~LS() {
+  free(gInput_data);
+
   free(s_data);
   free(step_s_data);
   free(nx_data);
@@ -71,9 +71,6 @@ LS::~LS() {
 
   free(modal_data);
   free(local_vis_data);
-
-  free(exAdvec_data);
-  free(nFlux_data);
 }
 
 void LS::init() {
@@ -101,6 +98,11 @@ void LS::init() {
   sigmax = data->tmp_dg_np[8];
   sigmay = data->tmp_dg_np[9];
   sigTmp = data->tmp_dg_np[4];
+
+  exAdvec = data->tmp_dg_g_np[0];
+  nFlux   = data->tmp_dg_g_np[1];
+  gU      = data->tmp_dg_g_np[2];
+  gV      = data->tmp_dg_g_np[3];
 
   dsldx = data->tmp_dg_g_np[0];
   dsrdx = data->tmp_dg_g_np[1];
@@ -176,17 +178,21 @@ void LS::step(double dt) {
 }
 
 void LS::advec_step(op_dat input, op_dat output) {
-  op_par_loop(zero_npf, "zero_npf", mesh->cells,
-              op_arg_dat(exAdvec, -1, OP_ID, 3 * DG_NPF, "double", OP_WRITE),
-              op_arg_dat(nFlux,   -1, OP_ID, 3 * DG_NPF, "double", OP_WRITE));
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, input, 0.0, gInput);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, u, 0.0, gU);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, v, 0.0, gV);
+
+  op_par_loop(zero_npf, "zero_g_np", mesh->cells,
+              op_arg_dat(exAdvec, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
+              op_arg_dat(nFlux,   -1, OP_ID, DG_G_NP, "double", OP_WRITE));
 
   // Get neighbouring values of q on internal edges
   op_par_loop(ls_advec_edges, "ls_advec_edges", mesh->edges,
               op_arg_dat(mesh->order,   -2, mesh->edge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(input,         -2, mesh->edge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(exAdvec,       -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_INC));
+              op_arg_dat(gInput,        -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(exAdvec,       -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
 
   // Enforce boundary conditions
   op_par_loop(ls_advec_bedges, "ls_advec_bedges", mesh->bedges,
@@ -195,8 +201,8 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->x, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->y, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(input,   0, mesh->bedge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(exAdvec, 0, mesh->bedge2cells, 3 * DG_NPF, "double", OP_INC));
+              op_arg_dat(gInput,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(exAdvec, 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
 
   op_par_loop(ls_advec_flux, "ls_advec_flux", mesh->cells,
               op_arg_dat(input, -1, OP_ID, DG_NP, "double", OP_READ),
@@ -221,17 +227,17 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(mesh->ry, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->sx, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->sy, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(input,    -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(exAdvec,  -1, OP_ID, 3 * DG_NPF, "double", OP_READ),
-              op_arg_dat(u,        -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(v,        -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->fscale, -1, OP_ID, 3 * DG_NPF, "double", OP_READ),
-              op_arg_dat(mesh->nx,     -1, OP_ID, 3 * DG_NPF, "double", OP_READ),
-              op_arg_dat(mesh->ny,     -1, OP_ID, 3 * DG_NPF, "double", OP_READ),
-              op_arg_dat(nFlux,        -1, OP_ID, 3 * DG_NPF, "double", OP_WRITE),
-              op_arg_dat(output,       -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_dat(gInput,   -1, OP_ID, DG_G_NP, "double", OP_READ),
+              op_arg_dat(exAdvec,  -1, OP_ID, DG_G_NP, "double", OP_READ),
+              op_arg_dat(gU,       -1, OP_ID, DG_G_NP, "double", OP_READ),
+              op_arg_dat(gV,       -1, OP_ID, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->sJ, -1, OP_ID, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->nx, -1, OP_ID, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->ny, -1, OP_ID, DG_G_NP, "double", OP_READ),
+              op_arg_dat(nFlux,  -1, OP_ID, DG_G_NP, "double", OP_WRITE),
+              op_arg_dat(output, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(mesh, false, -1.0, DGConstants::LIFT, nFlux, 1.0, output);
+  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, nFlux, 1.0, output);
 }
 
 void LS::reinit_ls() {

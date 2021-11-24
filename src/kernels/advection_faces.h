@@ -1,4 +1,4 @@
-inline void advection_faces(const int *edgeNum, const bool *rev,
+inline void advection_faces(const int **p, const int *edgeNum, const bool *rev,
                             const double **q0, const double **q1,
                             const double **nx, const double **ny,
                             const double **sJ, double **flux0, double **flux1) {
@@ -6,6 +6,9 @@ inline void advection_faces(const int *edgeNum, const bool *rev,
   const int edgeL = edgeNum[0];
   const int edgeR = edgeNum[1];
   const bool reverse = *rev;
+
+  // Get constants
+  const double *gaussW = &gaussW_g[(p[0][0] - 1) * DG_GF_NP];
 
   const int exIndL = edgeL * DG_GF_NP;
   const int exIndR = edgeR * DG_GF_NP;
@@ -47,10 +50,10 @@ inline void advection_faces(const int *edgeNum, const bool *rev,
     double rF2 = q0[1][rInd] * q1[1][rInd];
     double rF3 = q1[1][rInd] * q1[1][rInd];
     // Numerical flux LHS
-    flux0[0][lInd] += 0.5 * gaussW_g[i] * sJ[0][lInd] * (-nx[0][lInd] * (lF0 - rF0) - ny[0][lInd] * (lF1 - rF1) - maxVel * (q0[1][rInd] - q0[0][lInd]));
-    flux1[0][lInd] += 0.5 * gaussW_g[i] * sJ[0][lInd] * (-nx[0][lInd] * (lF2 - rF2) - ny[0][lInd] * (lF3 - rF3) - maxVel * (q1[1][rInd] - q1[0][lInd]));
+    flux0[0][lInd] += 0.5 * gaussW[i] * sJ[0][lInd] * (-nx[0][lInd] * (lF0 - rF0) - ny[0][lInd] * (lF1 - rF1) - maxVel * (q0[1][rInd] - q0[0][lInd]));
+    flux1[0][lInd] += 0.5 * gaussW[i] * sJ[0][lInd] * (-nx[0][lInd] * (lF2 - rF2) - ny[0][lInd] * (lF3 - rF3) - maxVel * (q1[1][rInd] - q1[0][lInd]));
     // Numerical flux RHS
-    flux0[1][rInd] += 0.5 * gaussW_g[i] * sJ[1][rInd] * (-nx[1][rInd] * (rF0 - lF0) - ny[1][rInd] * (rF1 - lF1) - maxVel * (q0[0][lInd] - q0[1][rInd]));
-    flux1[1][rInd] += 0.5 * gaussW_g[i] * sJ[1][rInd] * (-nx[1][rInd] * (rF2 - lF2) - ny[1][rInd] * (rF3 - lF3) - maxVel * (q1[0][lInd] - q1[1][rInd]));
+    flux0[1][rInd] += 0.5 * gaussW[i] * sJ[1][rInd] * (-nx[1][rInd] * (rF0 - lF0) - ny[1][rInd] * (rF1 - lF1) - maxVel * (q0[0][lInd] - q0[1][rInd]));
+    flux1[1][rInd] += 0.5 * gaussW[i] * sJ[1][rInd] * (-nx[1][rInd] * (rF2 - lF2) - ny[1][rInd] * (rF3 - lF3) - maxVel * (q1[0][lInd] - q1[1][rInd]));
   }
 }
