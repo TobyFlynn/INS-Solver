@@ -141,8 +141,10 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->flux[0],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
               op_arg_dat(data->flux[1],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
 
-  op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->flux[0], 1.0, data->N[currentInd][0]);
-  op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->flux[1], 1.0, data->N[currentInd][1]);
+  // op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->flux[0], 1.0, data->N[currentInd][0]);
+  // op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->flux[1], 1.0, data->N[currentInd][1]);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], 1.0, data->N[currentInd][0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], 1.0, data->N[currentInd][1]);
 
   // Calculate the intermediate velocity values
   op_par_loop(advection_intermediate_vel, "advection_intermediate_vel", mesh->cells,
@@ -240,8 +242,10 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->pFluxX,    -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
               op_arg_dat(data->pFluxY,    -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
 
-  op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, data->pFluxX, 1.0, data->dpdx);
-  op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, data->pFluxY, 1.0, data->dpdy);
+  // op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, data->pFluxX, 1.0, data->dpdx);
+  // op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, data->pFluxY, 1.0, data->dpdy);
+  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->pFluxX, 1.0, data->dpdx);
+  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->pFluxY, 1.0, data->dpdy);
 
   // Calculate new velocity intermediate values
   op_par_loop(pressure_update_vel, "pressure_update_vel", mesh->cells,
