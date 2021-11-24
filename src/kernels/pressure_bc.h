@@ -1,18 +1,21 @@
 inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
-                        const double *t, const int *problem, const double *x,
-                        const double *y, const double *nx, const double *ny,
-                        const double *N0, const double *N1,
+                        const int *p, const double *t, const int *problem,
+                        const double *x, const double *y, const double *nx,
+                        const double *ny, const double *N0, const double *N1,
                         const double *gradCurlVel0, const double *gradCurlVel1,
                         double *dPdN) {
-  int exInd = *bedgeNum * DG_NPF;
-  int *fmask = &FMASK[*bedgeNum * DG_NPF];
+  // Get constants for this element's order
+  const int dg_npf = DG_CONSTANTS[(*p - 1) * 5 + 1];
+  const int *fmask = &FMASK[(*p - 1) * 3 * DG_NPF];
+  fmask = &fmask[*bedgeNum * dg_npf];
+  const int exInd = *bedgeNum * dg_npf;
 
   const double PI = 3.141592653589793238463;
 
   if(*problem == 0) {
     if(*bedge_type == 0 || *bedge_type == 2 || *bedge_type == 3) {
       // Inflow or Wall
-      for(int i = 0; i < DG_NPF; i++) {
+      for(int i = 0; i < dg_npf; i++) {
         int fInd = fmask[i];
         double res1 = -N0[fInd] - gradCurlVel1[fInd] / reynolds;
         double res2 = -N1[fInd] + gradCurlVel0[fInd] / reynolds;
@@ -22,7 +25,7 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
 
     if(*bedge_type == 0) {
       // Inflow
-      for(int i = 0; i < DG_NPF; i++) {
+      for(int i = 0; i < dg_npf; i++) {
         double y1 = y[fmask[i]];
         double bcdUndt = -(PI/8.0) * cos((PI * *t) / 8.0) * 4.0 * y1 * (1.0 - y1);
         dPdN[exInd + i] -= bcdUndt;
@@ -31,7 +34,7 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
   } else {
     if(*bedge_type == 0) {
       // Inflow
-      for(int i = 0; i < DG_NPF; i++) {
+      for(int i = 0; i < dg_npf; i++) {
         int fInd = fmask[i];
         double res1 = -N0[fInd] - nu * gradCurlVel1[fInd];
         double res2 = -N1[fInd] + nu * gradCurlVel0[fInd];

@@ -54,7 +54,7 @@ void export_data(string filename, int iter, double time, double drag,
 Timing *timer;
 
 int main(int argc, char **argv) {
-  op_init(argc, argv, 2);
+  op_init(argc, argv, 1);
 
   timer = new Timing();
   timer->startWallTime();

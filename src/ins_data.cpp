@@ -67,23 +67,12 @@ INSData::INSData(DGMesh *m) {
 
   op_decl_const(1, "double", &reynolds);
   op_decl_const(1, "double", &nu);
-  op_decl_const(3 * DG_NPF, "int", FMASK);
   op_decl_const(1, "double", &ic_u);
   op_decl_const(1, "double", &ic_v);
-  op_decl_const(DG_CUB_NP, "double", cubW_g);
-  op_decl_const(DG_CUB_NP * DG_NP, "double", cubV_g);
-  op_decl_const(DG_CUB_NP * DG_NP, "double", cubVDr_g);
-  op_decl_const(DG_CUB_NP * DG_NP, "double", cubVDs_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF0Dr_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF0Ds_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF1Dr_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF1Ds_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF2Dr_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gF2Ds_g);
-  op_decl_const(DG_GF_NP, "double", gaussW_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gFInterp0_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gFInterp1_g);
-  op_decl_const(DG_GF_NP * DG_NP, "double", gFInterp2_g);
+  op_decl_const(3 * 5, "int", DG_CONSTANTS);
+  op_decl_const(3 * 3 * DG_NPF, "int", FMASK);
+  op_decl_const(3 * DG_CUB_NP, "double", cubW_g);
+  op_decl_const(3 * DG_GF_NP, "double", gaussW_g);
 }
 
 INSData::~INSData() {

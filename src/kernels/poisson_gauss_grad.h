@@ -1,4 +1,9 @@
-inline void poisson_gauss_grad(const int *edgeNum, const bool *reverse,
+inline void poisson_gauss_grad(const int **p, const double *gF0Dr,
+                               const double *gF0Ds, const double *gF1Dr,
+                               const double *gF1Ds, const double *gF2Dr,
+                               const double *gF2Ds, const double *gFInterp0,
+                               const double *gFInterp1, const double *gFInterp2,
+                               const int *edgeNum, const bool *reverse,
                                const double **x, const double **y,
                                const double **sJ, const double **nx,
                                const double **ny, const double **fscale,
@@ -7,40 +12,46 @@ inline void poisson_gauss_grad(const int *edgeNum, const bool *reverse,
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
 
+  // Get constants
+  const int dg_np      = DG_CONSTANTS[(p[0][0] - 1) * 5];
+  const int dg_npf     = DG_CONSTANTS[(p[0][0] - 1) * 5 + 1];
+  const int dg_gf_np   = DG_CONSTANTS[(p[0][0] - 1) * 5 + 4];
+  const double *gaussW = &gaussW_g[(p[0][0] - 1) * DG_GF_NP];
+
   const double *gDrL, *gDsL, *gDrR, *gDsR, *gVML, *gVMR;
 
   if(edgeL == 0) {
-    gDrL = gF0Dr_g;
-    gDsL = gF0Ds_g;
-    gVML = gFInterp0_g;
+    gDrL = &gF0Dr[(p[0][0] - 1) * DG_GF_NP * DG_NP];
+    gDsL = &gF0Ds[(p[0][0] - 1) * DG_GF_NP * DG_NP];
+    gVML = &gFInterp0[(p[0][0] - 1) * DG_GF_NP * DG_NP];
   } else if(edgeL == 1) {
-    gDrL = gF1Dr_g;
-    gDsL = gF1Ds_g;
-    gVML = gFInterp1_g;
+    gDrL = &gF1Dr[(p[0][0] - 1) * DG_GF_NP * DG_NP];
+    gDsL = &gF1Ds[(p[0][0] - 1) * DG_GF_NP * DG_NP];
+    gVML = &gFInterp1[(p[0][0] - 1) * DG_GF_NP * DG_NP];
   } else {
-    gDrL = gF2Dr_g;
-    gDsL = gF2Ds_g;
-    gVML = gFInterp2_g;
+    gDrL = &gF2Dr[(p[0][0] - 1) * DG_GF_NP * DG_NP];
+    gDsL = &gF2Ds[(p[0][0] - 1) * DG_GF_NP * DG_NP];
+    gVML = &gFInterp2[(p[0][0] - 1) * DG_GF_NP * DG_NP];
   }
 
   if(edgeR == 0) {
-    gDrR = gF0Dr_g;
-    gDsR = gF0Ds_g;
-    gVMR = gFInterp0_g;
+    gDrR = &gF0Dr[(p[0][0] - 1) * DG_GF_NP * DG_NP];
+    gDsR = &gF0Ds[(p[0][0] - 1) * DG_GF_NP * DG_NP];
+    gVMR = &gFInterp0[(p[0][0] - 1) * DG_GF_NP * DG_NP];
   } else if(edgeR == 1) {
-    gDrR = gF1Dr_g;
-    gDsR = gF1Ds_g;
-    gVMR = gFInterp1_g;
+    gDrR = &gF1Dr[(p[0][0] - 1) * DG_GF_NP * DG_NP];
+    gDsR = &gF1Ds[(p[0][0] - 1) * DG_GF_NP * DG_NP];
+    gVMR = &gFInterp1[(p[0][0] - 1) * DG_GF_NP * DG_NP];
   } else {
-    gDrR = gF2Dr_g;
-    gDsR = gF2Ds_g;
-    gVMR = gFInterp2_g;
+    gDrR = &gF2Dr[(p[0][0] - 1) * DG_GF_NP * DG_NP];
+    gDsR = &gF2Ds[(p[0][0] - 1) * DG_GF_NP * DG_NP];
+    gVMR = &gFInterp2[(p[0][0] - 1) * DG_GF_NP * DG_NP];
   }
 
   double rxL[DG_GF_NP], sxL[DG_GF_NP], ryL[DG_GF_NP], syL[DG_GF_NP];
   double rxR[DG_GF_NP], sxR[DG_GF_NP], ryR[DG_GF_NP], syR[DG_GF_NP];
 
-  for(int m = 0; m < DG_GF_NP; m++) {
+  for(int m = 0; m < dg_gf_np; m++) {
     rxL[m] = 0.0;
     sxL[m] = 0.0;
     ryL[m] = 0.0;
@@ -49,8 +60,8 @@ inline void poisson_gauss_grad(const int *edgeNum, const bool *reverse,
     sxR[m] = 0.0;
     ryR[m] = 0.0;
     syR[m] = 0.0;
-    for(int n = 0; n < DG_NP; n++) {
-      int ind = m + n * DG_GF_NP;
+    for(int n = 0; n < dg_np; n++) {
+      int ind = m + n * dg_gf_np;
       rxL[m] += gDrL[ind] * x[0][n];
       sxL[m] += gDsL[ind] * x[0][n];
       ryL[m] += gDrL[ind] * y[0][n];
@@ -80,17 +91,17 @@ inline void poisson_gauss_grad(const int *edgeNum, const bool *reverse,
     syR[m] = sy_nR;
   }
 
-  const int exIndL = edgeL * DG_GF_NP;
-  const int exIndR = edgeR * DG_GF_NP;
+  const int exIndL = edgeL * dg_gf_np;
+  const int exIndR = edgeR * dg_gf_np;
   double mDL[DG_GF_NP * DG_NP], mDR[DG_GF_NP * DG_NP], pDL[DG_GF_NP * DG_NP], pDR[DG_GF_NP * DG_NP];
-  for(int m = 0; m < DG_GF_NP; m++) {
-    for(int n = 0; n < DG_NP; n++) {
-      int ind = m + n * DG_GF_NP;
+  for(int m = 0; m < dg_gf_np; m++) {
+    for(int n = 0; n < dg_np; n++) {
+      int ind = m + n * dg_gf_np;
       int p_ind, p_norm_indL, p_norm_indR;
       if(*reverse) {
-        p_ind = DG_GF_NP - 1 - m + n * DG_GF_NP;
-        p_norm_indL = exIndL + DG_GF_NP - 1 - m;
-        p_norm_indR = exIndR + DG_GF_NP - 1 - m;
+        p_ind = dg_gf_np - 1 - m + n * dg_gf_np;
+        p_norm_indL = exIndL + dg_gf_np - 1 - m;
+        p_norm_indR = exIndR + dg_gf_np - 1 - m;
       } else {
         p_ind = ind;
         p_norm_indL = exIndL + m;
@@ -109,46 +120,46 @@ inline void poisson_gauss_grad(const int *edgeNum, const bool *reverse,
   }
 
   double tau;
-  if(fscale[0][edgeL * DG_NPF] > fscale[1][edgeR * DG_NPF]) {
-    tau = 20 * 25 * fscale[0][edgeL * DG_NPF];
+  if(fscale[0][edgeL * dg_npf] > fscale[1][edgeR * dg_npf]) {
+    tau = 20 * 25 * fscale[0][edgeL * dg_npf];
   } else {
-    tau = 20 * 25 * fscale[1][edgeR * DG_NPF];
+    tau = 20 * 25 * fscale[1][edgeR * dg_npf];
   }
 
-  for(int m = 0; m < DG_NP; m++) {
-    for(int n = 0; n < DG_NP; n++) {
+  for(int m = 0; m < dg_np; m++) {
+    for(int n = 0; n < dg_np; n++) {
       // op col-major
-      int c_ind = m + n * DG_NP;
+      int c_ind = m + n * dg_np;
       // op row-major
-      // int c_ind = m * DG_NP + n;
+      // int c_ind = m * dg_np + n;
       op2L[c_ind] = 0.0;
       op2R[c_ind] = 0.0;
-      for(int k = 0; k < DG_GF_NP; k++) {
+      for(int k = 0; k < dg_gf_np; k++) {
         // Dx' and Dy'
-        int a_ind = m * DG_GF_NP + k;
+        int a_ind = m * dg_gf_np + k;
         // Dx and Dy
-        int b_ind = n * DG_GF_NP + k;
+        int b_ind = n * dg_gf_np + k;
 
         int b_indP;
         if(*reverse) {
-          b_indP = n * DG_GF_NP + DG_GF_NP - k - 1;
+          b_indP = n * dg_gf_np + dg_gf_np - k - 1;
         } else {
-          b_indP = n * DG_GF_NP + k;
+          b_indP = n * dg_gf_np + k;
         }
 
-        op1L[c_ind] += 0.5 * gaussW_g[k] * sJ[0][exIndL + k] * tau * gVML[a_ind] * gVML[b_ind];
-        op1L[c_ind] += -0.5 * gaussW_g[k] * sJ[0][exIndL + k] * gVML[a_ind] * mDL[b_ind];
-        op1L[c_ind] += -0.5 * gaussW_g[k] * sJ[0][exIndL + k] * mDL[a_ind] * gVML[b_ind];
-        op1R[c_ind] += 0.5 * gaussW_g[k] * sJ[1][exIndR + k] * tau * gVMR[a_ind] * gVMR[b_ind];
-        op1R[c_ind] += -0.5 * gaussW_g[k] * sJ[1][exIndR + k] * gVMR[a_ind] * mDR[b_ind];
-        op1R[c_ind] += -0.5 * gaussW_g[k] * sJ[1][exIndR + k] * mDR[a_ind] * gVMR[b_ind];
+        op1L[c_ind] += 0.5 * gaussW[k] * sJ[0][exIndL + k] * tau * gVML[a_ind] * gVML[b_ind];
+        op1L[c_ind] += -0.5 * gaussW[k] * sJ[0][exIndL + k] * gVML[a_ind] * mDL[b_ind];
+        op1L[c_ind] += -0.5 * gaussW[k] * sJ[0][exIndL + k] * mDL[a_ind] * gVML[b_ind];
+        op1R[c_ind] += 0.5 * gaussW[k] * sJ[1][exIndR + k] * tau * gVMR[a_ind] * gVMR[b_ind];
+        op1R[c_ind] += -0.5 * gaussW[k] * sJ[1][exIndR + k] * gVMR[a_ind] * mDR[b_ind];
+        op1R[c_ind] += -0.5 * gaussW[k] * sJ[1][exIndR + k] * mDR[a_ind] * gVMR[b_ind];
 
-        op2L[c_ind] += -0.5 * gaussW_g[k] * sJ[0][exIndL + k] * tau * gVML[a_ind] * gVMR[b_indP];
-        op2L[c_ind] += -0.5 * gaussW_g[k] * sJ[0][exIndL + k] * gVML[a_ind] * pDL[b_ind];
-        op2L[c_ind] += 0.5 * gaussW_g[k] * sJ[0][exIndL + k] * mDL[a_ind] * gVMR[b_indP];
-        op2R[c_ind] += -0.5 * gaussW_g[k] * sJ[1][exIndR + k] * tau * gVMR[a_ind] * gVML[b_indP];
-        op2R[c_ind] += -0.5 * gaussW_g[k] * sJ[1][exIndR + k] * gVMR[a_ind] * pDR[b_ind];
-        op2R[c_ind] += 0.5 * gaussW_g[k] * sJ[1][exIndR + k] * mDR[a_ind] * gVML[b_indP];
+        op2L[c_ind] += -0.5 * gaussW[k] * sJ[0][exIndL + k] * tau * gVML[a_ind] * gVMR[b_indP];
+        op2L[c_ind] += -0.5 * gaussW[k] * sJ[0][exIndL + k] * gVML[a_ind] * pDL[b_ind];
+        op2L[c_ind] += 0.5 * gaussW[k] * sJ[0][exIndL + k] * mDL[a_ind] * gVMR[b_indP];
+        op2R[c_ind] += -0.5 * gaussW[k] * sJ[1][exIndR + k] * tau * gVMR[a_ind] * gVML[b_indP];
+        op2R[c_ind] += -0.5 * gaussW[k] * sJ[1][exIndR + k] * gVMR[a_ind] * pDR[b_ind];
+        op2R[c_ind] += 0.5 * gaussW[k] * sJ[1][exIndR + k] * mDR[a_ind] * gVML[b_indP];
       }
     }
   }

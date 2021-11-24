@@ -3,15 +3,19 @@
 #include "op_seq.h"
 
 #include "dg_blas_calls.h"
+#include "dg_op2_blas.h"
 
 void PoissonSolve::calc_cub_sub_mat() {
   // Initialise geometric factors for calcuating grad matrix
-  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDR), DG_CUB_NP, mesh->x, 0.0, mesh->cubature->op_tmp[0]);
-  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDS), DG_CUB_NP, mesh->x, 0.0, mesh->cubature->op_tmp[1]);
-  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDR), DG_CUB_NP, mesh->y, 0.0, mesh->cubature->op_tmp[2]);
-  op2_gemv(false, DG_CUB_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::CUB_VDS), DG_CUB_NP, mesh->y, 0.0, mesh->cubature->op_tmp[3]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB_VDR, mesh->x, 0.0, mesh->cubature->op_tmp[0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB_VDS, mesh->x, 0.0, mesh->cubature->op_tmp[1]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB_VDR, mesh->y, 0.0, mesh->cubature->op_tmp[2]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB_VDS, mesh->y, 0.0, mesh->cubature->op_tmp[3]);
 
   op_par_loop(poisson_cubature_op, "poisson_cubature_op", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(cubVDr_g, DG_ORDER * DG_CUB_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(cubVDs_g, DG_ORDER * DG_CUB_NP * DG_NP, "double", OP_READ),
               op_arg_dat(mesh->cubature->op_tmp[0], -1, OP_ID, DG_CUB_NP, "double", OP_READ),
               op_arg_dat(mesh->cubature->op_tmp[1], -1, OP_ID, DG_CUB_NP, "double", OP_READ),
               op_arg_dat(mesh->cubature->op_tmp[2], -1, OP_ID, DG_CUB_NP, "double", OP_READ),
@@ -21,7 +25,18 @@ void PoissonSolve::calc_cub_sub_mat() {
 }
 
 void PoissonSolve::calc_gauss_sub_mat() {
+  // TODO change for edges with different orders on each side
   op_par_loop(poisson_gauss_grad, "poisson_gauss_grad", mesh->edges,
+              op_arg_dat(mesh->order, -2, mesh->edge2cells, 1, "int", OP_READ),
+              op_arg_gbl(gF0Dr_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gF0Ds_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gF1Dr_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gF1Ds_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gF2Dr_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gF2Ds_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gFInterp0_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gFInterp1_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gFInterp2_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
               op_arg_dat(mesh->x, -2, mesh->edge2cells, DG_NP, "double", OP_READ),
@@ -37,6 +52,16 @@ void PoissonSolve::calc_gauss_sub_mat() {
 
   // If not dirichlet BC, kernel will assume it is a neumann bc
   op_par_loop(poisson_gauss_grad_b, "poisson_gauss_grad_b", mesh->bedges,
+              op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
+              op_arg_gbl(gF0Dr_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gF0Ds_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gF1Dr_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gF1Ds_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gF2Dr_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gF2Ds_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gFInterp0_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gFInterp1_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(gFInterp2_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
               op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),

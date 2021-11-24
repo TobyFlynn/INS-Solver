@@ -1,10 +1,14 @@
-inline void sigma_flux(const int *edgeNum, const bool *rev, const double **sJ,
-                       const double **nx, const double **ny, const double **s,
-                       const double **vis, double **sigFx, double **sigFy) {
+inline void sigma_flux(const int **p, const int *edgeNum, const bool *rev,
+                       const double **sJ, const double **nx, const double **ny,
+                       const double **s, const double **vis, double **sigFx,
+                       double **sigFy) {
   // Work out which edge for each element
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
   bool reverse = *rev;
+
+  // Get constants
+  const double *gaussW = &gaussW_g[(p[0][0] - 1) * DG_GF_NP];
 
   // Do left element first
   int exIndL = edgeL * DG_GF_NP;
@@ -35,8 +39,8 @@ inline void sigma_flux(const int *edgeNum, const bool *rev, const double **sJ,
     }
     double flux = wL * s[0][lInd] + wR * s[1][rInd];
     flux *= kL;
-    sigFx[0][lInd] += gaussW_g[i] * sJ[0][lInd] * nx[0][lInd] * flux;
-    sigFy[0][lInd] += gaussW_g[i] * sJ[0][lInd] * ny[0][lInd] * flux;
+    sigFx[0][lInd] += gaussW[i] * sJ[0][lInd] * nx[0][lInd] * flux;
+    sigFy[0][lInd] += gaussW[i] * sJ[0][lInd] * ny[0][lInd] * flux;
   }
 
   for(int i = 0; i < DG_GF_NP; i++) {
@@ -49,7 +53,7 @@ inline void sigma_flux(const int *edgeNum, const bool *rev, const double **sJ,
     }
     double flux = wL * s[0][lInd] + wR * s[1][rInd];
     flux *= kR;
-    sigFx[1][rInd] += gaussW_g[i] * sJ[1][rInd] * nx[1][rInd] * flux;
-    sigFy[1][rInd] += gaussW_g[i] * sJ[1][rInd] * ny[1][rInd] * flux;
+    sigFx[1][rInd] += gaussW[i] * sJ[1][rInd] * nx[1][rInd] * flux;
+    sigFy[1][rInd] += gaussW[i] * sJ[1][rInd] * ny[1][rInd] * flux;
   }
 }

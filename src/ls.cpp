@@ -8,6 +8,7 @@
 
 #include "dg_constants.h"
 #include "dg_blas_calls.h"
+#include "dg_op2_blas.h"
 #include "dg_operators.h"
 #include "dg_compiler_defs.h"
 
@@ -181,6 +182,7 @@ void LS::advec_step(op_dat input, op_dat output) {
 
   // Get neighbouring values of q on internal edges
   op_par_loop(ls_advec_edges, "ls_advec_edges", mesh->edges,
+              op_arg_dat(mesh->order,   -2, mesh->edge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
               op_arg_dat(input,         -2, mesh->edge2cells, DG_NP, "double", OP_READ),
@@ -188,6 +190,7 @@ void LS::advec_step(op_dat input, op_dat output) {
 
   // Enforce boundary conditions
   op_par_loop(ls_advec_bedges, "ls_advec_bedges", mesh->bedges,
+              op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->x, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
@@ -202,13 +205,14 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(F,     -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(G,     -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(false, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::DRW), DG_NP, F, 0.0, dFdr);
-  op2_gemv(false, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::DSW), DG_NP, F, 0.0, dFds);
-  op2_gemv(false, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::DRW), DG_NP, G, 0.0, dGdr);
-  op2_gemv(false, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::DSW), DG_NP, G, 0.0, dGds);
+  op2_gemv(mesh, false, 1.0, DGConstants::DRW, F, 0.0, dFdr);
+  op2_gemv(mesh, false, 1.0, DGConstants::DSW, F, 0.0, dFds);
+  op2_gemv(mesh, false, 1.0, DGConstants::DRW, G, 0.0, dGdr);
+  op2_gemv(mesh, false, 1.0, DGConstants::DSW, G, 0.0, dGds);
 
   // Calculate vectors F an G from q for each cell
   op_par_loop(ls_advec_rhs, "ls_advec_rhs", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(dFdr,     -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(dFds,     -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(dGdr,     -1, OP_ID, DG_NP, "double", OP_READ),
@@ -227,7 +231,7 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(nFlux,        -1, OP_ID, 3 * DG_NPF, "double", OP_WRITE),
               op_arg_dat(output,       -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(false, DG_NP, 3 * DG_NPF, -1.0, constants->get_ptr(DGConstants::LIFT), DG_NP, nFlux, 1.0, output);
+  op2_gemv(mesh, false, -1.0, DGConstants::LIFT, nFlux, 1.0, output);
 }
 
 void LS::reinit_ls() {
@@ -256,7 +260,7 @@ void LS::reinit_ls() {
                 op_arg_dat(rkQ,   -1, OP_ID, DG_NP, "double", OP_RW));
 
     for(int j = 0; j < 3; j++) {
-      op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, rkQ, 0.0, gS);
+      op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, rkQ, 0.0, gS);
 
       op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
                   op_arg_dat(dsldx, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
@@ -267,6 +271,7 @@ void LS::reinit_ls() {
                   op_arg_dat(dsrdy, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
 
       op_par_loop(ls_flux, "ls_flux", mesh->edges,
+                  op_arg_dat(mesh->order,     -2, mesh->edge2cells, 1, "int", OP_READ),
                   op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
                   op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
                   op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
@@ -279,6 +284,7 @@ void LS::reinit_ls() {
                   op_arg_dat(dsrdy, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
 
       op_par_loop(ls_bflux, "ls_bflux", mesh->bedges,
+                  op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
                   op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                   op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
                   op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
@@ -300,10 +306,10 @@ void LS::reinit_ls() {
                   op_arg_dat(dpldy, -1, OP_ID, DG_NP, "double", OP_WRITE),
                   op_arg_dat(dprdy, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-      op2_gemv(true, DG_NP, DG_G_NP, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, dsldx, 1.0, dpldx);
-      op2_gemv(true, DG_NP, DG_G_NP, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, dsrdx, 1.0, dprdx);
-      op2_gemv(true, DG_NP, DG_G_NP, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, dsldy, 1.0, dpldy);
-      op2_gemv(true, DG_NP, DG_G_NP, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, dsrdy, 1.0, dprdy);
+      op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, dsldx, 1.0, dpldx);
+      op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, dsrdx, 1.0, dprdx);
+      op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, dsldy, 1.0, dpldy);
+      op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, dsrdy, 1.0, dprdy);
 
       inv_mass(mesh, dpldx);
       inv_mass(mesh, dprdx);
@@ -357,9 +363,8 @@ void LS::calc_diff() {
               op_arg_dat(sigmaFx, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(sigmaFy, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
 
-  // op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, sigTmp, 0.0, gSigTmp);
-
   op_par_loop(sigma_flux, "sigma_flux", mesh->edges,
+              op_arg_dat(mesh->order,     -2, mesh->edge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
               op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
@@ -371,6 +376,7 @@ void LS::calc_diff() {
               op_arg_dat(sigmaFy,   -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
 
   op_par_loop(sigma_bflux, "sigma_bflux", mesh->bedges,
+              op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
@@ -380,8 +386,8 @@ void LS::calc_diff() {
               op_arg_dat(sigmaFx,   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
               op_arg_dat(sigmaFy,   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
 
-  op2_gemv(true, DG_NP, DG_G_NP, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, sigmaFx, 1.0, sigmax);
-  op2_gemv(true, DG_NP, DG_G_NP, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, sigmaFy, 1.0, sigmay);
+  op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, sigmaFx, 1.0, sigmax);
+  op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, sigmaFy, 1.0, sigmay);
 
   inv_mass(mesh, sigmax);
   inv_mass(mesh, sigmay);
@@ -398,10 +404,11 @@ void LS::calc_diff() {
   cub_div_weak(mesh, sigmax, sigmay, diff);
   // div_weak(mesh, sigmax, sigmay, diff);
 
-  op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, sigmax, 0.0, gSigmax);
-  op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, sigmay, 0.0, gSigmay);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, sigmax, 0.0, gSigmax);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, sigmay, 0.0, gSigmay);
 
   op_par_loop(diff_flux, "diff_flux", mesh->edges,
+              op_arg_dat(mesh->order,     -2, mesh->edge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
               op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
@@ -414,6 +421,7 @@ void LS::calc_diff() {
               op_arg_dat(diffF,     -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
 
   op_par_loop(diff_bflux, "diff_bflux", mesh->bedges,
+              op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
@@ -424,7 +432,7 @@ void LS::calc_diff() {
               op_arg_dat(gSigmax,   0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(diffF,     0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
 
-  op2_gemv(true, DG_NP, DG_G_NP, -1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, diffF, 1.0, diff);
+  op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, diffF, 1.0, diff);
 
   inv_mass(mesh, diff);
 }
@@ -434,6 +442,7 @@ bool LS::reinit_needed() {
   int count = 0;
   grad(mesh, s, dsdx, dsdy);
   op_par_loop(ls_reinit_check, "ls_reinit_check", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&alpha, 1, "double", OP_READ),
               op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(dsdx,  -1, OP_ID, DG_NP, "double", OP_READ),
@@ -452,8 +461,6 @@ void LS::update_values() {
               op_arg_dat(s,         -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(step_s,    -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  // op2_gemv(false, DG_G_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::GAUSS_INTERP), DG_G_NP, data->nu, 0.0, data->gNu);
-
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
   grad(mesh, s, nx, ny);
 
@@ -462,10 +469,11 @@ void LS::update_values() {
 
 void LS::calc_local_diff_const() {
   // Get modal coefficients from nodal representation
-  op2_gemv(false, DG_NP, DG_NP, 1.0, constants->get_ptr(DGConstants::INV_V), DG_NP, s, 0.0, modal);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, modal);
 
   // Group modal coefficients using quadratic mean (with skyline pessimization)
   op_par_loop(ls_local_vis, "ls_local_vis", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&epsilon,   1, "double", OP_READ),
               op_arg_dat(modal,     -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(local_vis, -1, OP_ID, 1, "double", OP_WRITE));
