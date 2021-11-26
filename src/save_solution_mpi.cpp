@@ -23,6 +23,17 @@
 using namespace std;
 
 void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int ind, LS *ls, int iter) {
+  op_par_loop(save_order, "save_order", mesh->cells,
+              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
+
+  std::vector<op_dat> dats_to_update;
+  dats_to_update.push_back(data->Q[0][0]);
+  dats_to_update.push_back(data->Q[0][1]);
+  dats_to_update.push_back(data->Q[1][0]);
+  dats_to_update.push_back(data->Q[1][1]);
+  dats_to_update.push_back(ls->s);
+  mesh->update_order(data->new_order, dats_to_update);
+
   // Calculate vorticity
   curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
@@ -122,6 +133,14 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   }
 
   cgp_close(file);
+
+  op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
+              op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(&ls->alpha,       1, "double", OP_READ),
+              op_arg_dat(ls->s,           -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
+
+  mesh->update_order(data->new_order, dats_to_update);
 }
 
 void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *ls) {
@@ -273,7 +292,7 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   int sIndex;
   if(ls) {
     op_par_loop(save_values, "save_values", mesh->cells,
-                op_arg_dat(ls->step_s,      -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(ls->s,      -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_dat(data->save_temp, -1, OP_ID, DG_SUB_CELLS, "double", OP_WRITE));
 
     double *s_data = getOP2Array(data->save_temp);
@@ -379,6 +398,17 @@ void save_solution_finalise(std::string filename, int numIter, double dt) {
 
 void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
                    LS *ls, double finalTime, double nu) {
+  op_par_loop(save_order, "save_order", mesh->cells,
+              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
+
+  std::vector<op_dat> dats_to_update;
+  dats_to_update.push_back(data->Q[0][0]);
+  dats_to_update.push_back(data->Q[0][1]);
+  dats_to_update.push_back(data->Q[1][0]);
+  dats_to_update.push_back(data->Q[1][1]);
+  dats_to_update.push_back(ls->s);
+  mesh->update_order(data->new_order, dats_to_update);
+
   // Calculate vorticity
   curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
@@ -398,7 +428,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   op_fetch_data(mesh->x, x);
   op_fetch_data(mesh->y, y);
   if(ls) {
-    op_fetch_data(ls->step_s, s);
+    op_fetch_data(ls->s, s);
   }
 
   // Gather onto root process
@@ -634,4 +664,12 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   free(vort_g);
   free(x_g);
   free(y_g);
+
+  op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
+              op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(&ls->alpha,       1, "double", OP_READ),
+              op_arg_dat(ls->s,           -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
+
+  mesh->update_order(data->new_order, dats_to_update);
 }

@@ -236,8 +236,7 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(nFlux,  -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(output, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  // op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, nFlux, 1.0, output);
-  op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, nFlux, 0.0, output);
+  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, nFlux, 1.0, output);
 }
 
 void LS::reinit_ls() {
