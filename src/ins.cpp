@@ -201,6 +201,17 @@ int main(int argc, char **argv) {
   if(save != -1)
     save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
 
+  op_par_loop(save_order, "save_order", solver->mesh->cells,
+              op_arg_dat(solver->data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
+
+  std::vector<op_dat> dats_to_update;
+  dats_to_update.push_back(solver->data->Q[0][0]);
+  dats_to_update.push_back(solver->data->Q[0][1]);
+  dats_to_update.push_back(solver->data->Q[1][0]);
+  dats_to_update.push_back(solver->data->Q[1][1]);
+  dats_to_update.push_back(solver->ls->step_s);
+  solver->mesh->update_order(solver->data->new_order, dats_to_update);
+
   // Save solution to CGNS file
   save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, time, nu);
 

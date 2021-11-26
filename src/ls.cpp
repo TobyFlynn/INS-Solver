@@ -4,6 +4,7 @@
 
 #include <limits>
 #include <cmath>
+#include <vector>
 // #include <iostream>
 
 #include "dg_constants.h"
@@ -199,8 +200,6 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->x, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
               op_arg_dat(gInput,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(exAdvec, 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
 
@@ -237,7 +236,8 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(nFlux,  -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(output, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, nFlux, 1.0, output);
+  // op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, nFlux, 1.0, output);
+  op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, nFlux, 0.0, output);
 }
 
 void LS::reinit_ls() {
@@ -462,10 +462,26 @@ bool LS::reinit_needed() {
 }
 
 void LS::update_values() {
+  op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
+              op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(&alpha,           1, "double", OP_READ),
+              op_arg_dat(s,               -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
+
+  std::vector<op_dat> dats_to_update;
+  dats_to_update.push_back(data->Q[0][0]);
+  dats_to_update.push_back(data->Q[0][1]);
+  dats_to_update.push_back(data->Q[1][0]);
+  dats_to_update.push_back(data->Q[1][1]);
+  dats_to_update.push_back(s);
+
+  mesh->update_order(data->new_order, dats_to_update);
+
+
   op_par_loop(ls_step, "ls_step", mesh->cells,
-              op_arg_gbl(&alpha, 1, "double", OP_READ),
-              op_arg_dat(s,         -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(step_s,    -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_gbl(&alpha,  1, "double", OP_READ),
+              op_arg_dat(s,      -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(step_s, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
   grad(mesh, s, nx, ny);

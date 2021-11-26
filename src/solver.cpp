@@ -143,10 +143,10 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->flux[0],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
               op_arg_dat(data->flux[1],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
 
-  // op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->flux[0], 1.0, data->N[currentInd][0]);
-  // op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->flux[1], 1.0, data->N[currentInd][1]);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], 1.0, data->N[currentInd][0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], 1.0, data->N[currentInd][1]);
+  op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->flux[0], 1.0, data->N[currentInd][0]);
+  op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->flux[1], 1.0, data->N[currentInd][1]);
+  // op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], 1.0, data->N[currentInd][0]);
+  // op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], 1.0, data->N[currentInd][1]);
 
   // Calculate the intermediate velocity values
   op_par_loop(advection_intermediate_vel, "advection_intermediate_vel", mesh->cells,
@@ -170,6 +170,22 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
 bool Solver::pressure(int currentInd, double a0, double a1, double b0,
                       double b1, double g0, double t) {
   timer->startPressureSetup();
+  op_par_loop(save_order, "save_order", mesh->cells,
+              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
+
+  std::vector<op_dat> dats_to_update;
+  dats_to_update.push_back(data->Q[0][0]);
+  dats_to_update.push_back(data->Q[0][1]);
+  dats_to_update.push_back(data->Q[1][0]);
+  dats_to_update.push_back(data->Q[1][1]);
+  dats_to_update.push_back(data->QT[0]);
+  dats_to_update.push_back(data->QT[1]);
+  dats_to_update.push_back(data->N[0][0]);
+  dats_to_update.push_back(data->N[0][1]);
+  dats_to_update.push_back(data->N[1][0]);
+  dats_to_update.push_back(data->N[1][1]);
+  mesh->update_order(data->new_order, dats_to_update);
+
   div(mesh, data->QT[0], data->QT[1], data->divVelT);
   curl(mesh, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
   grad(mesh, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
@@ -317,13 +333,27 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1]);
   timer->endViscosityLinearSolve();
 
+  op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
+              op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(&ls->alpha,       1, "double", OP_READ),
+              op_arg_dat(ls->s,           -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
+
+  std::vector<op_dat> dats_to_update;
+  dats_to_update.push_back(data->Q[0][0]);
+  dats_to_update.push_back(data->Q[0][1]);
+  dats_to_update.push_back(data->Q[1][0]);
+  dats_to_update.push_back(data->Q[1][1]);
+  dats_to_update.push_back(ls->s);
+
+  mesh->update_order(data->new_order, dats_to_update);
+
   return convergedX && convergedY;
 }
 
 void Solver::update_surface(int currentInd) {
   timer->startSurface();
-  // ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
-  ls->setVelField(data->Q[0][0], data->Q[0][1]);
+  ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
   ls->step(dt);
   timer->endSurface();
 }

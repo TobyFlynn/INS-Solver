@@ -34,6 +34,7 @@ INSData::INSData(DGMesh *m) {
   prBC_data      = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
   vorticity_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   save_temp_data = (double *)calloc(DG_SUB_CELLS * mesh->numCells, sizeof(double));
+  new_order_data = (int *)calloc(mesh->numCells, sizeof(int));
 
   // Declare OP2 datasets
   for(int i = 0; i < 10; i++) {
@@ -64,6 +65,7 @@ INSData::INSData(DGMesh *m) {
   prBC      = op_decl_dat(mesh->cells, DG_G_NP, "double", prBC_data, "prBC");
   vorticity = op_decl_dat(mesh->cells, DG_NP, "double", vorticity_data, "vorticity");
   save_temp = op_decl_dat(mesh->cells, DG_SUB_CELLS, "double", save_temp_data, "save_temp");
+  new_order = op_decl_dat(mesh->cells, 1, "int", new_order_data, "new_order");
 
   op_decl_const(1, "double", &reynolds);
   op_decl_const(1, "double", &nu);
@@ -95,6 +97,7 @@ INSData::~INSData() {
   free(prBC_data);
   free(vorticity_data);
   free(save_temp_data);
+  free(new_order_data);
 }
 
 void INSData::init() {

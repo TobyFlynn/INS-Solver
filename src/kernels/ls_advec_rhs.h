@@ -6,12 +6,11 @@ inline void ls_advec_rhs(const int *p, const double *dFdr, const double *dFds,
                          const double *nx, const double *ny, double *nFlux,
                          double *output) {
   // Get constants
-  const int dg_np  = DG_CONSTANTS[(*p - 1) * 5];
+  // const int dg_np  = DG_CONSTANTS[(*p - 1) * 5];
   const int dg_npf = DG_CONSTANTS[(*p - 1) * 5 + 1];
-  const int *fmask = &FMASK[(*p - 1) * 3 * DG_NPF];
   const double *gaussW = &gaussW_g[(*p - 1) * DG_GF_NP];
 
-  for(int i = 0; i < dg_np; i++) {
+  for(int i = 0; i < DG_NP; i++) {
     output[i] = rx[i] * dFdr[i] + sx[i] * dFds[i] + ry[i] * dGdr[i] + sy[i] * dGds[i];
   }
 
