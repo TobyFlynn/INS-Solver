@@ -31,6 +31,7 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   dats_to_update.push_back(data->Q[0][1]);
   dats_to_update.push_back(data->Q[1][0]);
   dats_to_update.push_back(data->Q[1][1]);
+  dats_to_update.push_back(data->p);
   dats_to_update.push_back(ls->s);
   mesh->update_order(data->new_order, dats_to_update);
 
@@ -406,6 +407,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   dats_to_update.push_back(data->Q[0][1]);
   dats_to_update.push_back(data->Q[1][0]);
   dats_to_update.push_back(data->Q[1][1]);
+  dats_to_update.push_back(data->p);
   dats_to_update.push_back(ls->s);
   mesh->update_order(data->new_order, dats_to_update);
 

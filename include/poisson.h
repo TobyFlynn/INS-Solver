@@ -31,6 +31,8 @@ public:
   op_dat glb_ind, glb_indL, glb_indR, glb_indBC;
   op_dat u, rhs, in, out, pre;
 
+  int unknowns;
+
 protected:
   void set_op();
   void setMatrix();
@@ -52,9 +54,9 @@ protected:
   KSP ksp;
 
 private:
-  void create_vec(Vec *v, int size);
+  void create_vec(Vec *v);
   void destroy_vec(Vec *v);
-  void load_vec(Vec *v, op_dat v_dat, int size);
+  void load_vec(Vec *v, op_dat v_dat);
   void store_vec(Vec *v, op_dat v_dat);
   void copy_vec_to_dat(op_dat dat, const double *dat_d);
   void copy_dat_to_vec(op_dat dat, double *dat_d);

@@ -4,31 +4,119 @@
 #include "mpi_helper_func.h"
 #endif
 
+#include "dg_utils.h"
+
 // Copy PETSc vec array to OP2 dat
 void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   op_arg copy_args[] = {
-    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE)
+    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE),
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
-  cudaMemcpy(dat->data_d, dat_d, dat->set->size * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
-  op_mpi_set_dirtybit_cuda(1, copy_args);
+  op_mpi_halo_exchanges_cuda(dat->set, 2, copy_args);
+
+  int setSize = dat->set->size;
+  int *tempOrder = (int *)malloc(setSize * sizeof(int));
+  cudaMemcpy(tempOrder, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+
+  int vec_ind = 0;
+  int block_start = 0;
+  int block_count = 0;
+  for(int i = 0; i < setSize; i++) {
+    const int N = tempOrder[i];
+
+    if(N == DG_ORDER) {
+      if(block_count == 0) {
+        block_start = i;
+        block_count++;
+        continue;
+      } else {
+        block_count++;
+        continue;
+      }
+    } else {
+      if(block_count != 0) {
+        double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
+        cudaMemcpy(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+        vec_ind += DG_NP * block_count;
+      }
+      block_count = 0;
+    }
+
+    double *v_c = (double *)dat->data_d + i * dat->dim;
+    int Np, Nfp;
+    DGUtils::basic_constants(N, &Np, &Nfp);
+
+    cudaMemcpy(v_c, dat_d + vec_ind, Np * sizeof(double), cudaMemcpyDeviceToDevice);
+    vec_ind += Np;
+  }
+
+  if(block_count != 0) {
+    double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
+    cudaMemcpy(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+    vec_ind += DG_NP * block_count;
+  }
+
+  op_mpi_set_dirtybit_cuda(2, copy_args);
 }
 
 // Copy OP2 dat to PETSc vec array
 void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
   op_arg copy_args[] = {
-    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ)
+    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
-  cudaMemcpy(dat_d, dat->data_d, dat->set->size * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
-  op_mpi_set_dirtybit_cuda(1, copy_args);
+  op_mpi_halo_exchanges_cuda(dat->set, 2, copy_args);
+
+  int setSize = dat->set->size;
+  int *tempOrder = (int *)malloc(setSize * sizeof(int));
+  cudaMemcpy(tempOrder, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+
+  int vec_ind = 0;
+  int block_start = 0;
+  int block_count = 0;
+  for(int i = 0; i < setSize; i++) {
+    const int N = tempOrder[i];
+
+    if(N == DG_ORDER) {
+      if(block_count == 0) {
+        block_start = i;
+        block_count++;
+        continue;
+      } else {
+        block_count++;
+        continue;
+      }
+    } else {
+      if(block_count != 0) {
+        const double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
+        cudaMemcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+        vec_ind += DG_NP * block_count;
+      }
+      block_count = 0;
+    }
+
+    const double *v_c = (double *)dat->data_d + i * dat->dim;
+    int Np, Nfp;
+    DGUtils::basic_constants(N, &Np, &Nfp);
+
+    cudaMemcpy(dat_d + vec_ind, v_c, Np * sizeof(double), cudaMemcpyDeviceToDevice);
+    vec_ind += Np;
+  }
+  
+  if(block_count != 0) {
+    const double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
+    cudaMemcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+    vec_ind += DG_NP * block_count;
+  }
+
+  op_mpi_set_dirtybit_cuda(2, copy_args);
 }
 
 // Create a PETSc vector for GPUs
-void PoissonSolve::create_vec(Vec *v, int size) {
+void PoissonSolve::create_vec(Vec *v) {
   VecCreate(PETSC_COMM_WORLD, v);
   VecSetType(*v, VECCUDA);
-  VecSetSizes(*v, size * mesh->cells->size, PETSC_DECIDE);
+  VecSetSizes(*v, unknowns, PETSC_DECIDE);
 }
 
 // Destroy a PETSc vector
@@ -37,15 +125,31 @@ void PoissonSolve::destroy_vec(Vec *v) {
 }
 
 // Load a PETSc vector with values from an OP2 dat for GPUs
-void PoissonSolve::load_vec(Vec *v, op_dat v_dat, int size) {
+void PoissonSolve::load_vec(Vec *v, op_dat v_dat) {
   double *v_ptr;
   VecCUDAGetArray(*v, &v_ptr);
   op_arg vec_petsc_args[] = {
-    op_arg_dat(v_dat, -1, OP_ID, size, "double", OP_READ)
+    op_arg_dat(v_dat, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges_cuda(mesh->cells, 1, vec_petsc_args);
-  cudaMemcpy(v_ptr, (double *)v_dat->data_d, size * v_dat->set->size * sizeof(double), cudaMemcpyDeviceToDevice);
-  op_mpi_set_dirtybit_cuda(1, vec_petsc_args);
+  op_mpi_halo_exchanges_cuda(mesh->cells, 2, vec_petsc_args);
+
+  int setSize = v_dat->set->size;
+  int *tempOrder = (int *)malloc(setSize * sizeof(int));
+  cudaMemcpy(tempOrder, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+
+  int vec_ind = 0;
+  for(int i = 0; i < setSize; i++) {
+    const double *v_c = (double *)v_dat->data_d + i * v_dat->dim;
+    const int N       = tempOrder[i];
+    int Np, Nfp;
+    DGUtils::basic_constants(N, &Np, &Nfp);
+
+    cudaMemcpy(v_ptr + vec_ind, v_c, Np * sizeof(double), cudaMemcpyDeviceToDevice);
+    vec_ind += Np;
+  }
+
+  op_mpi_set_dirtybit_cuda(2, vec_petsc_args);
   VecCUDARestoreArray(*v, &v_ptr);
 }
 
@@ -54,11 +158,27 @@ void PoissonSolve::store_vec(Vec *v, op_dat v_dat) {
   const double *v_ptr;
   VecCUDAGetArrayRead(*v, &v_ptr);
   op_arg vec_petsc_args[] = {
-    op_arg_dat(v_dat, -1, OP_ID, DG_NP, "double", OP_WRITE)
+    op_arg_dat(v_dat, -1, OP_ID, DG_NP, "double", OP_WRITE),
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges_cuda(mesh->cells, 1, vec_petsc_args);
-  cudaMemcpy((double *)v_dat->data_d, v_ptr, DG_NP * v_dat->set->size * sizeof(double), cudaMemcpyDeviceToDevice);
-  op_mpi_set_dirtybit_cuda(1, vec_petsc_args);
+  op_mpi_halo_exchanges_cuda(mesh->cells, 2, vec_petsc_args);
+
+  int setSize = v_dat->set->size;
+  int *tempOrder = (int *)malloc(setSize * sizeof(int));
+  cudaMemcpy(tempOrder, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+
+  int vec_ind = 0;
+  for(int i = 0; i < setSize; i++) {
+    double *v_c = (double *)v_dat->data_d + i * v_dat->dim;
+    const int N = tempOrder[i];
+    int Np, Nfp;
+    DGUtils::basic_constants(N, &Np, &Nfp);
+
+    cudaMemcpy(v_c, v_ptr + vec_ind, Np * sizeof(double), cudaMemcpyDeviceToDevice);
+    vec_ind += Np;
+  }
+
+  op_mpi_set_dirtybit_cuda(2, vec_petsc_args);
   VecCUDARestoreArrayRead(*v, &v_ptr);
 }
 
@@ -78,7 +198,7 @@ PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
 }
 
 void PoissonSolve::create_shell_mat(Mat *m) {
-  MatCreateShell(PETSC_COMM_WORLD, DG_NP * mesh->cells->size, DG_NP * mesh->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
+  MatCreateShell(PETSC_COMM_WORLD, unknowns, unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
   MatShellSetOperation(*m, MATOP_MULT, (void(*)(void))matAMult);
   MatShellSetVecType(*m, VECCUDA);
 }

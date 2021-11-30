@@ -210,10 +210,11 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(F,     -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(G,     -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(mesh, false, 1.0, DGConstants::DRW, F, 0.0, dFdr);
-  op2_gemv(mesh, false, 1.0, DGConstants::DSW, F, 0.0, dFds);
-  op2_gemv(mesh, false, 1.0, DGConstants::DRW, G, 0.0, dGdr);
-  op2_gemv(mesh, false, 1.0, DGConstants::DSW, G, 0.0, dGds);
+  // op2_gemv(mesh, false, 1.0, DGConstants::DRW, F, 0.0, dFdr);
+  // op2_gemv(mesh, false, 1.0, DGConstants::DSW, F, 0.0, dFds);
+  // op2_gemv(mesh, false, 1.0, DGConstants::DRW, G, 0.0, dGdr);
+  // op2_gemv(mesh, false, 1.0, DGConstants::DSW, G, 0.0, dGds);
+  cub_div_weak(mesh, F, G, output);
 
   // Calculate vectors F an G from q for each cell
   op_par_loop(ls_advec_rhs, "ls_advec_rhs", mesh->cells,
@@ -236,7 +237,11 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(nFlux,  -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(output, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, nFlux, 1.0, output);
+  // op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, nFlux, 1.0, output);
+  // op2_gemv(mesh, false, 1.0, DGConstants::MASS, F, 0.0, output);
+  op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, nFlux, 1.0, output);
+  // op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS, dFdr, 0.0, output);
+  inv_mass(mesh, output);
 }
 
 void LS::reinit_ls() {
@@ -472,10 +477,10 @@ void LS::update_values() {
   dats_to_update.push_back(data->Q[0][1]);
   dats_to_update.push_back(data->Q[1][0]);
   dats_to_update.push_back(data->Q[1][1]);
+  dats_to_update.push_back(data->p);
   dats_to_update.push_back(s);
 
   mesh->update_order(data->new_order, dats_to_update);
-
 
   op_par_loop(ls_step, "ls_step", mesh->cells,
               op_arg_gbl(&alpha,  1, "double", OP_READ),

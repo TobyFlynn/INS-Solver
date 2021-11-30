@@ -170,21 +170,6 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
 bool Solver::pressure(int currentInd, double a0, double a1, double b0,
                       double b1, double g0, double t) {
   timer->startPressureSetup();
-  op_par_loop(save_order, "save_order", mesh->cells,
-              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
-
-  std::vector<op_dat> dats_to_update;
-  dats_to_update.push_back(data->Q[0][0]);
-  dats_to_update.push_back(data->Q[0][1]);
-  dats_to_update.push_back(data->Q[1][0]);
-  dats_to_update.push_back(data->Q[1][1]);
-  dats_to_update.push_back(data->QT[0]);
-  dats_to_update.push_back(data->QT[1]);
-  dats_to_update.push_back(data->N[0][0]);
-  dats_to_update.push_back(data->N[0][1]);
-  dats_to_update.push_back(data->N[1][0]);
-  dats_to_update.push_back(data->N[1][1]);
-  mesh->update_order(data->new_order, dats_to_update);
 
   div(mesh, data->QT[0], data->QT[1], data->divVelT);
   curl(mesh, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
@@ -332,21 +317,6 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   viscosityPoisson->setBCValues(data->visBC[1]);
   bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1]);
   timer->endViscosityLinearSolve();
-
-  op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
-              op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&ls->alpha,       1, "double", OP_READ),
-              op_arg_dat(ls->s,           -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
-
-  std::vector<op_dat> dats_to_update;
-  dats_to_update.push_back(data->Q[0][0]);
-  dats_to_update.push_back(data->Q[0][1]);
-  dats_to_update.push_back(data->Q[1][0]);
-  dats_to_update.push_back(data->Q[1][1]);
-  dats_to_update.push_back(ls->s);
-
-  mesh->update_order(data->new_order, dats_to_update);
 
   return convergedX && convergedY;
 }
