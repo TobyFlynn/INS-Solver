@@ -132,7 +132,7 @@ void LS::init() {
               op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s,       -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  reinit_ls();
+  // reinit_ls();
   update_values();
 }
 
@@ -172,8 +172,8 @@ void LS::step(double dt) {
               op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(rk[2], -1, OP_ID, DG_NP, "double", OP_READ));
 
-  if(reinit_needed())
-    reinit_ls();
+  // if(reinit_needed())
+  //   reinit_ls();
 
   update_values();
 }
@@ -183,7 +183,7 @@ void LS::advec_step(op_dat input, op_dat output) {
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, u, 0.0, gU);
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, v, 0.0, gV);
 
-  op_par_loop(zero_npf, "zero_g_np", mesh->cells,
+  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
               op_arg_dat(exAdvec, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(nFlux,   -1, OP_ID, DG_G_NP, "double", OP_WRITE));
 
@@ -210,11 +210,10 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(F,     -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(G,     -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  // op2_gemv(mesh, false, 1.0, DGConstants::DRW, F, 0.0, dFdr);
-  // op2_gemv(mesh, false, 1.0, DGConstants::DSW, F, 0.0, dFds);
-  // op2_gemv(mesh, false, 1.0, DGConstants::DRW, G, 0.0, dGdr);
-  // op2_gemv(mesh, false, 1.0, DGConstants::DSW, G, 0.0, dGds);
-  cub_div_weak(mesh, F, G, output);
+  op2_gemv(mesh, false, 1.0, DGConstants::DRW, F, 0.0, dFdr);
+  op2_gemv(mesh, false, 1.0, DGConstants::DSW, F, 0.0, dFds);
+  op2_gemv(mesh, false, 1.0, DGConstants::DRW, G, 0.0, dGdr);
+  op2_gemv(mesh, false, 1.0, DGConstants::DSW, G, 0.0, dGds);
 
   // Calculate vectors F an G from q for each cell
   op_par_loop(ls_advec_rhs, "ls_advec_rhs", mesh->cells,
@@ -237,11 +236,7 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(nFlux,  -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(output, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  // op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, nFlux, 1.0, output);
-  // op2_gemv(mesh, false, 1.0, DGConstants::MASS, F, 0.0, output);
-  op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, nFlux, 1.0, output);
-  // op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS, dFdr, 0.0, output);
-  inv_mass(mesh, output);
+  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, nFlux, 1.0, output);
 }
 
 void LS::reinit_ls() {
