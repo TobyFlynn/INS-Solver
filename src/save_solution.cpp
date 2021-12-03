@@ -145,7 +145,7 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
 
   op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
               op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&ls->alpha,       1, "double", OP_READ),
+              op_arg_gbl(&ls->order_width, 1, "double", OP_READ),
               op_arg_dat(ls->s,           -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
 
@@ -492,7 +492,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, L
 
   op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
               op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&ls->alpha,       1, "double", OP_READ),
+              op_arg_gbl(&ls->order_width, 1, "double", OP_READ),
               op_arg_dat(ls->s,           -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
 

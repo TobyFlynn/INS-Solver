@@ -34,6 +34,12 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData) {
   out_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   pre_data = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
 
+  factor_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+  gFactor_data  = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
+  cFactor_data  = (double *)calloc(DG_CUB_NP * mesh->numCells, sizeof(double));
+  mmFactor_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+  h_data        = (double *)calloc(mesh->numCells, sizeof(double));
+
   glb_ind   = op_decl_dat(mesh->cells, 1, "int", glb_ind_data, "poisson_glb_ind");
   glb_indL  = op_decl_dat(mesh->edges, 1, "int", glb_indL_data, "poisson_glb_indL");
   glb_indR  = op_decl_dat(mesh->edges, 1, "int", glb_indR_data, "poisson_glb_indR");
@@ -49,6 +55,12 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData) {
   in  = op_decl_dat(mesh->cells, DG_NP, "double", in_data, "poisson_in");
   out = op_decl_dat(mesh->cells, DG_NP, "double", out_data, "poisson_out");
   pre = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", pre_data, "poisson_pre");
+
+  factor   = op_decl_dat(mesh->cells, DG_NP, "double", factor_data, "poisson_factor");
+  gFactor  = op_decl_dat(mesh->cells, DG_G_NP, "double", gFactor_data, "poisson_gFactor");
+  cFactor  = op_decl_dat(mesh->cells, DG_CUB_NP, "double", cFactor_data, "poisson_cFactor");
+  mmFactor = op_decl_dat(mesh->cells, DG_NP, "double", mmFactor_data, "poisson_mmFactor");
+  h        = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
 }
 
 PoissonSolve::~PoissonSolve() {
@@ -68,6 +80,12 @@ PoissonSolve::~PoissonSolve() {
   free(out_data);
   free(pre_data);
 
+  free(factor_data);
+  free(gFactor_data);
+  free(cFactor_data);
+  free(mmFactor_data);
+  free(h_data);
+
   if(pMatInit)
     MatDestroy(&pMat);
 }
@@ -81,15 +99,31 @@ void PoissonSolve::init() {
   op_par_loop(glb_ind_kernelBC, "glb_ind_kernelBC", mesh->bedges,
               op_arg_dat(glb_ind, 0, mesh->bedge2cells, 1, "int", OP_READ),
               op_arg_dat(glb_indBC, -1, OP_ID, 1, "int", OP_WRITE));
+
+  op_par_loop(poisson_h, "poisson_h", mesh->cells,
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
+              op_arg_dat(h, -1, OP_ID, 1, "double", OP_WRITE));
 }
 
 bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   KSPCreate(PETSC_COMM_WORLD, &ksp);
-  KSPSetType(ksp, KSPCG);
+  KSPSetType(ksp, KSPGMRES);
   KSPSetTolerances(ksp, 1e-6, 1e-50, 1e5, 1e4);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
 
   KSPSetOperators(ksp, pMat, pMat);
+
+  PC pc;
+  KSPGetPC(ksp, &pc);
+  PCSetType(pc, PCGAMG);
+  PCGAMGSetNSmooths(pc, 4);
+  PCGAMGSetSquareGraph(pc, 1);
+  PCGAMGSetNlevels(pc, 20);
+  PCMGSetLevels(pc, 20, NULL);
+  PCMGSetCycleType(pc, PC_MG_CYCLE_W);
+  PCGAMGSetRepartition(pc, PETSC_TRUE);
+  PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
 
   op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
               op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
@@ -178,10 +212,7 @@ void PoissonSolve::set_op() {
   calc_gauss_sub_mat();
 
   if(massMat) {
-    op_par_loop(poisson_mm, "poisson_mm", mesh->cells,
-                op_arg_gbl(&massFactor, 1, "double", OP_READ),
-                op_arg_dat(mesh->cubature->mm, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-                op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_INC));
+    calc_mm_mat();
   }
 
   if(block_jacobi_pre) {
@@ -223,12 +254,17 @@ void PressureSolve::setup() {
               op_arg_gbl(&unknowns, 1, "int", OP_INC));
 
   massMat = false;
+
+  op_par_loop(poisson_pr_fact, "poisson_pr_fact", mesh->cells,
+              op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(factor,    -1, OP_ID, DG_NP, "double", OP_WRITE));
+
   set_op();
 
-  // setMatrix();
+  setMatrix();
 
-  create_shell_mat(&pMat);
-  pMatInit = true;
+  // create_shell_mat(&pMat);
+  // pMatInit = true;
 }
 
 void ViscositySolve::setup(double mmConst) {
@@ -241,10 +277,19 @@ void ViscositySolve::setup(double mmConst) {
   massFactor = mmConst;
   // block_jacobi_pre = true;
 
+  op_par_loop(poisson_vis_fact, "poisson_vis_fact", mesh->cells,
+              op_arg_gbl(&mmConst,   1, "double", OP_READ),
+              op_arg_dat(data->mu,  -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(factor,    -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(mmFactor,  -1, OP_ID, DG_NP, "double", OP_WRITE));
+
   set_op();
 
-  create_shell_mat(&pMat);
-  pMatInit = true;
+  setMatrix();
+
+  // create_shell_mat(&pMat);
+  // pMatInit = true;
 
   // PC pc;
   // KSPGetPC(ksp, &pc);

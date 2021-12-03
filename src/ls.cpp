@@ -123,7 +123,9 @@ void LS::init() {
 
   // alpha = 8.0 * h;
   // alpha = 2.0 * h / DG_ORDER;
+  // order_width = 2.0 * h;
   alpha = 2.0 * h;
+  order_width = 4.0 * h;
   epsilon = h / DG_ORDER;
   reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
@@ -186,7 +188,7 @@ void LS::step(double dt) {
 
   op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
               op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&alpha,           1, "double", OP_READ),
+              op_arg_gbl(&order_width,     1, "double", OP_READ),
               op_arg_dat(s,               -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
 
@@ -511,9 +513,11 @@ bool LS::reinit_needed() {
 
 void LS::update_values() {
   op_par_loop(ls_step, "ls_step", mesh->cells,
-              op_arg_gbl(&alpha,  1, "double", OP_READ),
-              op_arg_dat(s,      -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(step_s, -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_gbl(&alpha,     1, "double", OP_READ),
+              op_arg_dat(s,         -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(step_s,    -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->mu,  -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
   grad(mesh, s, nx, ny);

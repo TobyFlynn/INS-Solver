@@ -1,7 +1,8 @@
 inline void poisson_cubature_op(const int *p, const double *cubVDr,
                                 const double *cubVDs, const double *rx,
                                 const double *sx, const double *ry,
-                                const double *sy, const double *J, double *op) {
+                                const double *sy, const double *J,
+                                const double *factor, double *op) {
   // Get constants
   const int dg_np        = DG_CONSTANTS[(*p - 1) * 5];
   const int dg_cub_np    = DG_CONSTANTS[(*p - 1) * 5 + 2];
@@ -39,7 +40,7 @@ inline void poisson_cubature_op(const int *p, const double *cubVDr,
         // Dx and Dy
         int b_ind = n * dg_cub_np + k;
 
-        op[c_ind] += J[k] * cubW[k] * (Dx[a_ind] * Dx[b_ind] + Dy[a_ind] * Dy[b_ind]);
+        op[c_ind] += J[k] * cubW[k] * factor[k] * (Dx[a_ind] * Dx[b_ind] + Dy[a_ind] * Dy[b_ind]);
       }
     }
   }

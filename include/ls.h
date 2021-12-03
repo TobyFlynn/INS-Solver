@@ -30,7 +30,7 @@ public:
   op_dat sigmax, sigmay, sigmaFx, sigmaFy, gSigmax, gSigmay, sigTmp, gSigTmp, diff, diffF;
   op_dat modal, local_vis;
 
-  double alpha;
+  double alpha, order_width;
 private:
   void advec_step(op_dat input, op_dat output);
   void reinit_ls();

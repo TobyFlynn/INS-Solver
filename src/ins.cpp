@@ -18,7 +18,7 @@
 
 using namespace std;
 
-extern double reynolds, froude, weber, nu0, nu1, rho0, rho1, dt, gam;
+extern double reynolds, froude, weber, mu0, mu1, rho0, rho1, dt, gam;
 extern double ic_u, ic_v, nu, mu, bc_mach, bc_alpha, bc_p, bc_u, bc_v;
 extern double refRho, refMu, refLen, refVel, refSurfTen;
 
@@ -74,6 +74,11 @@ int main(int argc, char **argv) {
   bc_v = 0.0;
   ic_u = 0.0;
   ic_v = 0.0;
+
+  mu0  = 1.0;
+  mu1  = 1.0;
+  rho0 = 1.0;
+  rho1 = 2.0;
 
   refRho     = 1.0;
   refMu      = 1.0e-3;

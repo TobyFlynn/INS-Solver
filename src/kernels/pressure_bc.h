@@ -3,7 +3,7 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
                         const double *x, const double *y, const double *nx,
                         const double *ny, const double *N0, const double *N1,
                         const double *gradCurlVel0, const double *gradCurlVel1,
-                        double *dPdN) {
+                        const double *rho, double *dPdN) {
   // Get constants for this element's order
   const int dg_npf = DG_CONSTANTS[(*p - 1) * 5 + 1];
   const int *fmask = &FMASK[(*p - 1) * 3 * DG_NPF];
@@ -17,8 +17,8 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
       // Inflow or Wall
       for(int i = 0; i < dg_npf; i++) {
         int fInd = fmask[i];
-        double res1 = -N0[fInd] - gradCurlVel1[fInd] / reynolds;
-        double res2 = -N1[fInd] + gradCurlVel0[fInd] / reynolds;
+        double res1 = -N0[fInd] - gradCurlVel1[fInd] / (reynolds * rho[fInd]);
+        double res2 = -N1[fInd] + gradCurlVel0[fInd] / (reynolds * rho[fInd]);
         dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
       }
     }

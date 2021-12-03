@@ -210,7 +210,7 @@ void PoissonSolve::setMatrix() {
   }
   MatCreate(PETSC_COMM_WORLD, &pMat);
   pMatInit = true;
-  MatSetSizes(pMat, DG_NP * mesh->cells->size, DG_NP * mesh->cells->size, PETSC_DECIDE, PETSC_DECIDE);
+  MatSetSizes(pMat, unknowns, unknowns, PETSC_DECIDE, PETSC_DECIDE);
 
   #ifdef INS_MPI
   MatSetType(pMat, MATMPIAIJCUSPARSE);
@@ -224,30 +224,43 @@ void PoissonSolve::setMatrix() {
   // Add cubature OP to Poisson matrix
   op_arg args[] = {
     op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ)
+    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges_cuda(mesh->cells, 2, args);
+  op_mpi_halo_exchanges_cuda(mesh->cells, 3, args);
   double *op1_data = (double *)malloc(DG_NP * DG_NP * mesh->cells->size * sizeof(double));
-  int *glb = (int *)malloc(mesh->cells->size * sizeof(int));
+  int *glb   = (int *)malloc(mesh->cells->size * sizeof(int));
+  int *order = (int *)malloc(mesh->cells->size * sizeof(int));
   cudaMemcpy(op1_data, op1->data_d, op1->set->size * DG_NP * DG_NP * sizeof(double), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb, glb_ind->data_d, glb_ind->set->size * sizeof(int), cudaMemcpyDeviceToHost);
-  op_mpi_set_dirtybit_cuda(2, args);
+  cudaMemcpy(order, mesh->order->data_d, mesh->order->set->size * sizeof(int), cudaMemcpyDeviceToHost);
+  op_mpi_set_dirtybit_cuda(3, args);
 
+  int currentRow = 0;
+  int currentCol = 0;
   for(int i = 0; i < mesh->cells->size; i++) {
     int global_ind = glb[i];
+    int Np, Nfp;
+    DGUtils::basic_constants(order[i], &Np, &Nfp);
+
     // Convert data to row major format
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int row = global_ind * DG_NP + m;
-        int col = global_ind * DG_NP + n;
-        double val = op1_data[i * DG_NP * DG_NP + m + n * DG_NP];
+    for(int m = 0; m < Np; m++) {
+      for(int n = 0; n < Np; n++) {
+        int row = currentRow + m;
+        int col = currentCol + n;
+        double val = op1_data[i * DG_NP * DG_NP + m + n * Np];
         MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
       }
     }
+
+    glb[i] = currentRow;
+    currentRow += Np;
+    currentCol += Np;
   }
 
   free(op1_data);
-  free(glb);
+  // free(glb);
+  // free(order);
 
   op_arg edge_args[] = {
     op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
@@ -270,23 +283,28 @@ void PoissonSolve::setMatrix() {
   for(int i = 0; i < mesh->edges->size; i++) {
     int leftElement = glb_l[i];
     int rightElement = glb_r[i];
+    int leftRow  = glb[leftElement];
+    int rightRow = glb[rightElement];
+    int NpL, NpR, Nfp;
+    DGUtils::basic_constants(order[leftElement], &NpL, &Nfp);
+    DGUtils::basic_constants(order[rightElement], &NpR, &Nfp);
 
     // Gauss OPf
     // Convert data to row major format
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int row = leftElement * DG_NP + m;
-        int col = rightElement * DG_NP + n;
-        double val = op2L_data[i * DG_NP * DG_NP + m + n * DG_NP];
+    for(int m = 0; m < NpL; m++) {
+      for(int n = 0; n < NpR; n++) {
+        int row = leftRow + m;
+        int col = rightRow + n;
+        double val = op2L_data[i * DG_NP * DG_NP + m + n * NpL];
         MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
       }
     }
     // Convert data to row major format
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int row = rightElement * DG_NP + m;
-        int col = leftElement * DG_NP + n;
-        double val = op2R_data[i * DG_NP * DG_NP + m + n * DG_NP];
+    for(int m = 0; m < NpR; m++) {
+      for(int n = 0; n < NpL; n++) {
+        int row = rightRow + m;
+        int col = leftRow + n;
+        double val = op2R_data[i * DG_NP * DG_NP + m + n * NpR];
         MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
       }
     }
@@ -296,6 +314,9 @@ void PoissonSolve::setMatrix() {
   free(op2R_data);
   free(glb_l);
   free(glb_r);
+
+  free(glb);
+  free(order);
 
   op_mpi_set_dirtybit_cuda(4, edge_args);
 

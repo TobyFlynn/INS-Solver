@@ -7,8 +7,9 @@ inline void poisson_gauss_grad_b(const int *p, const double *gF0Dr,
                                  const int *d0, const int *d1, const int *d2,
                                  const double *x, const double *y,
                                  const double *sJ, const double *nx,
-                                 const double *ny, const double *fscale,
-                                 double *op1, double *op_bc) {
+                                 const double *ny, const double *h,
+                                 const double *factor, double *op1,
+                                 double *op_bc) {
   const double *gVM;
   if(*edgeNum == 0) {
     gVM = &gFInterp0[(*p - 1) * DG_GF_NP * DG_NP];
@@ -70,11 +71,16 @@ inline void poisson_gauss_grad_b(const int *p, const double *gF0Dr,
 
         double Dx = rx[m] * gDr[ind] + sx[m] * gDs[ind];
         double Dy = ry[m] * gDr[ind] + sy[m] * gDs[ind];
-        mD[ind]   = nx[exInd + m] * Dx + ny[exInd + m] * Dy;
+        mD[ind]   = factor[exInd + m] * (nx[exInd + m] * Dx + ny[exInd + m] * Dy);
       }
     }
 
-    double tau = 20 * 25 * fscale[*edgeNum * dg_npf];
+    double tau[DG_GF_NP];
+    for(int i = 0; i < DG_GF_NP; i++) {
+      int ind = *edgeNum * DG_GF_NP + i;
+      tau[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * (*h) * factor[ind];
+    }
+
     // Main matrix
     for(int m = 0; m < dg_np; m++) {
       for(int n = 0; n < dg_np; n++) {
@@ -87,7 +93,7 @@ inline void poisson_gauss_grad_b(const int *p, const double *gF0Dr,
           int a_ind = m * dg_gf_np + k;
           // Dx and Dy
           int b_ind = n * dg_gf_np + k;
-          op1[c_ind] += gaussW[k] * sJ[exInd + k] * tau * gVM[a_ind] * gVM[b_ind];
+          op1[c_ind] += gaussW[k] * sJ[exInd + k] * tau[k] * gVM[a_ind] * gVM[b_ind];
           op1[c_ind] += -gaussW[k] * sJ[exInd + k] * gVM[a_ind] * mD[b_ind];
           op1[c_ind] += -gaussW[k] * sJ[exInd + k] * mD[a_ind] * gVM[b_ind];
         }
@@ -99,7 +105,7 @@ inline void poisson_gauss_grad_b(const int *p, const double *gF0Dr,
       int indT_col = j;
       int col  = j % dg_gf_np;
       int row  = j / dg_gf_np;
-      double val = gaussW[j % dg_gf_np] * sJ[*edgeNum * dg_gf_np + (j % dg_gf_np)] * tau;
+      double val = gaussW[j % dg_gf_np] * sJ[*edgeNum * dg_gf_np + (j % dg_gf_np)] * tau[j % dg_gf_np];
       val *= gVM[indT_col];
       val -= mD[indT_col] * gaussW[j % dg_gf_np] * sJ[*edgeNum * dg_gf_np + (j % dg_gf_np)];
       op_bc[row + col * dg_np] = val;
