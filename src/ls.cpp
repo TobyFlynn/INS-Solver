@@ -122,7 +122,8 @@ void LS::init() {
               op_arg_gbl(&h, 1, "double", OP_MIN));
 
   // alpha = 8.0 * h;
-  alpha = 2.0 * h / DG_ORDER;
+  // alpha = 2.0 * h / DG_ORDER;
+  alpha = 2.0 * h;
   epsilon = h / DG_ORDER;
   reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
@@ -175,6 +176,30 @@ void LS::step(double dt) {
   // if(reinit_needed())
   //   reinit_ls();
 
+  // Reset LS in boundary cells (this needs is a work around, needs to be fixed properly later)
+  // Also has a data race, but all will be setting to same value so should be okay
+  op_par_loop(ls_bcell_reset, "ls_bcell_reset", mesh->bedges,
+              op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
+              op_arg_dat(mesh->x,     0, mesh->bedge2cells, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->y,     0, mesh->bedge2cells, DG_NP, "double", OP_READ),
+              op_arg_dat(s,           0, mesh->bedge2cells, DG_NP, "double", OP_WRITE));
+
+  op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
+              op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(&alpha,           1, "double", OP_READ),
+              op_arg_dat(s,               -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
+
+  std::vector<op_dat> dats_to_update;
+  dats_to_update.push_back(data->Q[0][0]);
+  dats_to_update.push_back(data->Q[0][1]);
+  dats_to_update.push_back(data->Q[1][0]);
+  dats_to_update.push_back(data->Q[1][1]);
+  dats_to_update.push_back(data->p);
+  dats_to_update.push_back(s);
+
+  mesh->update_order(data->new_order, dats_to_update);
+
   update_values();
 }
 
@@ -200,6 +225,8 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->gauss->x,    0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->y,    0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(gInput,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(exAdvec, 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
 
@@ -244,9 +271,31 @@ void LS::reinit_ls() {
   calc_local_diff_const();
 
   // cub_grad(mesh, s, dsdx, dsdy);
+  // grad(mesh, s, dsdx, dsdy);
+  // inv_mass(mesh, dsdx);
+  // inv_mass(mesh, dsdy);
+  // Calculate gradient of pressure
   grad(mesh, s, dsdx, dsdy);
-  inv_mass(mesh, dsdx);
-  inv_mass(mesh, dsdy);
+
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, s, 0.0, gS);
+
+  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+              op_arg_dat(dsldx, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
+              op_arg_dat(dsldy, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+
+  op_par_loop(pressure_grad_flux, "pressure_grad_flux", mesh->edges,
+              op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(mesh->gauss->nx, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->ny, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(gS,    -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(dsldx, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
+              op_arg_dat(dsldy, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
+
+  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, dsldx, 1.0, dsdx);
+  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, dsldy, 1.0, dsdy);
+
   op_par_loop(ls_sign, "ls_sign", mesh->cells,
               op_arg_gbl(&alpha, 1, "double", OP_READ),
               op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_READ),
@@ -461,22 +510,6 @@ bool LS::reinit_needed() {
 }
 
 void LS::update_values() {
-  op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
-              op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&alpha,           1, "double", OP_READ),
-              op_arg_dat(s,               -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
-
-  std::vector<op_dat> dats_to_update;
-  dats_to_update.push_back(data->Q[0][0]);
-  dats_to_update.push_back(data->Q[0][1]);
-  dats_to_update.push_back(data->Q[1][0]);
-  dats_to_update.push_back(data->Q[1][1]);
-  dats_to_update.push_back(data->p);
-  dats_to_update.push_back(s);
-
-  mesh->update_order(data->new_order, dats_to_update);
-
   op_par_loop(ls_step, "ls_step", mesh->cells,
               op_arg_gbl(&alpha,  1, "double", OP_READ),
               op_arg_dat(s,      -1, OP_ID, DG_NP, "double", OP_READ),

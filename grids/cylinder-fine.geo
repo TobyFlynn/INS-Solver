@@ -1,19 +1,19 @@
 // Target element size of outer boundary
-lc2 = 0.41 / 4;
+lc2 = (0.41 / 10) / 0.41;
 
 // Bottom left coords
 xL = 0;
 yL = 0;
 
 // Top right coords
-xR = 2.2;
-yR = 0.41;
+xR = 2.2 / 0.41;
+yR = 0.41 / 0.41;
 
-p5 = newp; Point(p5) = {0.2, 0.2, 0, lc2};
-p6 = newp; Point(p6) = {0.25, 0.2, 0, lc2};
-p7 = newp; Point(p7) = {0.2, 0.15, 0, lc2};
-p8 = newp; Point(p8) = {0.15, 0.2, 0, lc2};
-p9 = newp; Point(p9) = {0.2, 0.25, 0, lc2};
+p5 = newp; Point(p5) = {0.2 / 0.41, 0.2 / 0.41, 0, lc2};
+p6 = newp; Point(p6) = {0.25 / 0.41, 0.2 / 0.41, 0, lc2};
+p7 = newp; Point(p7) = {0.2 / 0.41, 0.15 / 0.41, 0, lc2};
+p8 = newp; Point(p8) = {0.15 / 0.41, 0.2 / 0.41, 0, lc2};
+p9 = newp; Point(p9) = {0.2 / 0.41, 0.25 / 0.41, 0, lc2};
 
 Circle(1) = {p6, p5, p7};
 Circle(2) = {p7, p5, p8};

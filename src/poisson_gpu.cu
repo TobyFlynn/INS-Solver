@@ -102,7 +102,7 @@ void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
     cudaMemcpy(dat_d + vec_ind, v_c, Np * sizeof(double), cudaMemcpyDeviceToDevice);
     vec_ind += Np;
   }
-  
+
   if(block_count != 0) {
     const double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
     cudaMemcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
@@ -128,28 +128,9 @@ void PoissonSolve::destroy_vec(Vec *v) {
 void PoissonSolve::load_vec(Vec *v, op_dat v_dat) {
   double *v_ptr;
   VecCUDAGetArray(*v, &v_ptr);
-  op_arg vec_petsc_args[] = {
-    op_arg_dat(v_dat, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
-  };
-  op_mpi_halo_exchanges_cuda(mesh->cells, 2, vec_petsc_args);
 
-  int setSize = v_dat->set->size;
-  int *tempOrder = (int *)malloc(setSize * sizeof(int));
-  cudaMemcpy(tempOrder, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+  copy_dat_to_vec(v_dat, v_ptr);
 
-  int vec_ind = 0;
-  for(int i = 0; i < setSize; i++) {
-    const double *v_c = (double *)v_dat->data_d + i * v_dat->dim;
-    const int N       = tempOrder[i];
-    int Np, Nfp;
-    DGUtils::basic_constants(N, &Np, &Nfp);
-
-    cudaMemcpy(v_ptr + vec_ind, v_c, Np * sizeof(double), cudaMemcpyDeviceToDevice);
-    vec_ind += Np;
-  }
-
-  op_mpi_set_dirtybit_cuda(2, vec_petsc_args);
   VecCUDARestoreArray(*v, &v_ptr);
 }
 
@@ -157,28 +138,9 @@ void PoissonSolve::load_vec(Vec *v, op_dat v_dat) {
 void PoissonSolve::store_vec(Vec *v, op_dat v_dat) {
   const double *v_ptr;
   VecCUDAGetArrayRead(*v, &v_ptr);
-  op_arg vec_petsc_args[] = {
-    op_arg_dat(v_dat, -1, OP_ID, DG_NP, "double", OP_WRITE),
-    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
-  };
-  op_mpi_halo_exchanges_cuda(mesh->cells, 2, vec_petsc_args);
 
-  int setSize = v_dat->set->size;
-  int *tempOrder = (int *)malloc(setSize * sizeof(int));
-  cudaMemcpy(tempOrder, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+  copy_vec_to_dat(v_dat, v_ptr);
 
-  int vec_ind = 0;
-  for(int i = 0; i < setSize; i++) {
-    double *v_c = (double *)v_dat->data_d + i * v_dat->dim;
-    const int N = tempOrder[i];
-    int Np, Nfp;
-    DGUtils::basic_constants(N, &Np, &Nfp);
-
-    cudaMemcpy(v_c, v_ptr + vec_ind, Np * sizeof(double), cudaMemcpyDeviceToDevice);
-    vec_ind += Np;
-  }
-
-  op_mpi_set_dirtybit_cuda(2, vec_petsc_args);
   VecCUDARestoreArrayRead(*v, &v_ptr);
 }
 

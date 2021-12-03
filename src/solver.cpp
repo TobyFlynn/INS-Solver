@@ -205,6 +205,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   }
 
   // Calculate RHS of pressure solve
+  // This assumes that the boundaries will always be order DG_ORDER
   op_par_loop(pressure_rhs, "pressure_rhs", mesh->cells,
               op_arg_gbl(&b0, 1, "double", OP_READ),
               op_arg_gbl(&b1, 1, "double", OP_READ),

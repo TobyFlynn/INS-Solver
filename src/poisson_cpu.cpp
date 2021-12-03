@@ -22,14 +22,41 @@ void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   const int *p = (int *)mesh->order->data;
 
   int vec_ind = 0;
+  int block_start = 0;
+  int block_count = 0;
   for(int i = 0; i < setSize; i++) {
-    double *v_c = (double *)dat->data + i * dat->dim;
     const int N = p[i];
+
+    if(N == DG_ORDER) {
+      if(block_count == 0) {
+        block_start = i;
+        block_count++;
+        continue;
+      } else {
+        block_count++;
+        continue;
+      }
+    } else {
+      if(block_count != 0) {
+        double *block_start_dat_c = (double *)dat->data + block_start * dat->dim;
+        memcpy(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(double));
+        vec_ind += DG_NP * block_count;
+      }
+      block_count = 0;
+    }
+
+    double *v_c = (double *)dat->data + i * dat->dim;
     int Np, Nfp;
     DGUtils::basic_constants(N, &Np, &Nfp);
 
     memcpy(v_c, dat_d + vec_ind, Np * sizeof(double));
     vec_ind += Np;
+  }
+
+  if(block_count != 0) {
+    double *block_start_dat_c = (double *)dat->data + block_start * dat->dim;
+    memcpy(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(double));
+    vec_ind += DG_NP * block_count;
   }
 
   op_mpi_set_dirtybit(2, copy_args);
@@ -47,14 +74,41 @@ void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
   const int *p = (int *)mesh->order->data;
 
   int vec_ind = 0;
+  int block_start = 0;
+  int block_count = 0;
   for(int i = 0; i < setSize; i++) {
+    const int N = p[i];
+
+    if(N == DG_ORDER) {
+      if(block_count == 0) {
+        block_start = i;
+        block_count++;
+        continue;
+      } else {
+        block_count++;
+        continue;
+      }
+    } else {
+      if(block_count != 0) {
+        const double *block_start_dat_c = (double *)dat->data + block_start * dat->dim;
+        memcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double));
+        vec_ind += DG_NP * block_count;
+      }
+      block_count = 0;
+    }
+
     const double *v_c = (double *)dat->data + i * dat->dim;
-    const int N       = p[i];
     int Np, Nfp;
     DGUtils::basic_constants(N, &Np, &Nfp);
 
     memcpy(dat_d + vec_ind, v_c, Np * sizeof(double));
     vec_ind += Np;
+  }
+
+  if(block_count != 0) {
+    const double *block_start_dat_c = (double *)dat->data + block_start * dat->dim;
+    memcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double));
+    vec_ind += DG_NP * block_count;
   }
 
   op_mpi_set_dirtybit(2, copy_args);
@@ -76,27 +130,9 @@ void PoissonSolve::destroy_vec(Vec *v) {
 void PoissonSolve::load_vec(Vec *v, op_dat v_dat) {
   double *v_ptr;
   VecGetArray(*v, &v_ptr);
-  op_arg vec_petsc_args[] = {
-    op_arg_dat(v_dat, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
-  };
-  op_mpi_halo_exchanges(mesh->cells, 2, vec_petsc_args);
 
-  int setSize = v_dat->set->size;
-  const int *p = (int *)mesh->order->data;
+  copy_dat_to_vec(v_dat, v_ptr);
 
-  int vec_ind = 0;
-  for(int i = 0; i < setSize; i++) {
-    const double *v_c = (double *)v_dat->data + i * v_dat->dim;
-    const int N       = p[i];
-    int Np, Nfp;
-    DGUtils::basic_constants(N, &Np, &Nfp);
-
-    memcpy(v_ptr + vec_ind, v_c, Np * sizeof(double));
-    vec_ind += Np;
-  }
-
-  op_mpi_set_dirtybit(2, vec_petsc_args);
   VecRestoreArray(*v, &v_ptr);
 }
 
@@ -104,27 +140,9 @@ void PoissonSolve::load_vec(Vec *v, op_dat v_dat) {
 void PoissonSolve::store_vec(Vec *v, op_dat v_dat) {
   const double *v_ptr;
   VecGetArrayRead(*v, &v_ptr);
-  op_arg vec_petsc_args[] = {
-    op_arg_dat(v_dat, -1, OP_ID, DG_NP, "double", OP_WRITE),
-    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
-  };
-  op_mpi_halo_exchanges(mesh->cells, 2, vec_petsc_args);
 
-  int setSize = v_dat->set->size;
-  const int *p = (int *)mesh->order->data;
+  copy_vec_to_dat(v_dat, v_ptr);
 
-  int vec_ind = 0;
-  for(int i = 0; i < setSize; i++) {
-    double *v_c = (double *)v_dat->data + i * v_dat->dim;
-    const int N = p[i];
-    int Np, Nfp;
-    DGUtils::basic_constants(N, &Np, &Nfp);
-
-    memcpy(v_c, v_ptr + vec_ind, Np * sizeof(double));
-    vec_ind += Np;
-  }
-
-  op_mpi_set_dirtybit(2, vec_petsc_args);
   VecRestoreArrayRead(*v, &v_ptr);
 }
 
