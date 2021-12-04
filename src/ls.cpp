@@ -135,6 +135,22 @@ void LS::init() {
               op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s,       -1, OP_ID, DG_NP, "double", OP_WRITE));
 
+  op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
+              op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(&order_width,     1, "double", OP_READ),
+              op_arg_dat(s,               -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
+
+  std::vector<op_dat> dats_to_update;
+  dats_to_update.push_back(data->Q[0][0]);
+  dats_to_update.push_back(data->Q[0][1]);
+  dats_to_update.push_back(data->Q[1][0]);
+  dats_to_update.push_back(data->Q[1][1]);
+  dats_to_update.push_back(data->p);
+  dats_to_update.push_back(s);
+
+  mesh->update_order(data->new_order, dats_to_update);
+
   // reinit_ls();
   update_values();
 }
