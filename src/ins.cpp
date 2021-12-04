@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
   mu0  = 1.0;
   mu1  = 1.0;
   rho0 = 1.0;
-  rho1 = 2.0;
+  rho1 = 1.0;
 
   refRho     = 1.0;
   refMu      = 1.0e-3;

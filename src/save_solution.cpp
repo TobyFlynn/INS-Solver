@@ -18,17 +18,26 @@
 using namespace std;
 
 void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int ind, LS *ls, int iter) {
-  op_par_loop(save_order, "save_order", mesh->cells,
-              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
+  // Calculate vorticity
+  curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
-  std::vector<op_dat> dats_to_update;
-  dats_to_update.push_back(data->Q[0][0]);
-  dats_to_update.push_back(data->Q[0][1]);
-  dats_to_update.push_back(data->Q[1][0]);
-  dats_to_update.push_back(data->Q[1][1]);
-  dats_to_update.push_back(data->p);
-  dats_to_update.push_back(ls->s);
-  mesh->update_order(data->new_order, dats_to_update);
+  std::vector<op_dat> dats_to_save;
+  dats_to_save.push_back(data->Q[ind][0]);
+  dats_to_save.push_back(data->Q[ind][1]);
+  dats_to_save.push_back(data->vorticity);
+  dats_to_save.push_back(data->p);
+  dats_to_save.push_back(ls->s);
+  dats_to_save.push_back(mesh->x);
+  dats_to_save.push_back(mesh->y);
+  std::vector<op_dat> dats_out;
+  dats_out.push_back(data->tmp_dg_np[0]);
+  dats_out.push_back(data->tmp_dg_np[1]);
+  dats_out.push_back(data->tmp_dg_np[2]);
+  dats_out.push_back(data->tmp_dg_np[3]);
+  dats_out.push_back(data->tmp_dg_np[4]);
+  dats_out.push_back(data->tmp_dg_np[5]);
+  dats_out.push_back(data->tmp_dg_np[6]);
+  mesh->interp_to_max_order(dats_to_save, dats_out);
 
   int numCells = op_get_size(mesh->cells);
   vector<double> x_v;
@@ -40,9 +49,6 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   vector<double> s_v;
   vector<cgsize_t> cells(3 * numCells * DG_SUB_CELLS);
 
-  // Calculate vorticity
-  curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
-
   // Get Data from OP2
   double *Ux_g   = (double *)malloc(DG_NP * numCells * sizeof(double));
   double *Uy_g   = (double *)malloc(DG_NP * numCells * sizeof(double));
@@ -52,14 +58,14 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   double *y_g    = (double *)malloc(DG_NP * numCells * sizeof(double));
   double *s_g    = (double *)calloc(DG_NP * numCells, sizeof(double));
 
-  op_fetch_data(data->Q[ind][0], Ux_g);
-  op_fetch_data(data->Q[ind][1], Uy_g);
-  op_fetch_data(data->p, pr_g);
-  op_fetch_data(data->vorticity, vort_g);
-  op_fetch_data(mesh->x, x_g);
-  op_fetch_data(mesh->y, y_g);
+  op_fetch_data(data->tmp_dg_np[0], Ux_g);
+  op_fetch_data(data->tmp_dg_np[1], Uy_g);
+  op_fetch_data(data->tmp_dg_np[2], vort_g);
+  op_fetch_data(data->tmp_dg_np[3], pr_g);
+  op_fetch_data(data->tmp_dg_np[5], x_g);
+  op_fetch_data(data->tmp_dg_np[6], y_g);
   if(ls) {
-    op_fetch_data(ls->s, s_g);
+    op_fetch_data(data->tmp_dg_np[4], s_g);
   }
 
   if(DG_ORDER == 4) {
@@ -142,14 +148,6 @@ void save_solution_iter(std::string filename, DGMesh *mesh, INSData *data, int i
   cg_exponents_write(CGNS_ENUMV(RealSingle), exp);
 
   cg_close(file);
-
-  op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
-              op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&ls->order_width, 1, "double", OP_READ),
-              op_arg_dat(ls->s,           -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
-
-  mesh->update_order(data->new_order, dats_to_update);
 }
 
 void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *ls) {
@@ -166,6 +164,24 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   // Calculate vorticity
   curl(mesh, data->Q[0][0], data->Q[0][1], data->vorticity);
 
+  std::vector<op_dat> dats_to_save;
+  dats_to_save.push_back(data->Q[0][0]);
+  dats_to_save.push_back(data->Q[0][1]);
+  dats_to_save.push_back(data->vorticity);
+  dats_to_save.push_back(data->p);
+  dats_to_save.push_back(ls->s);
+  dats_to_save.push_back(mesh->x);
+  dats_to_save.push_back(mesh->y);
+  std::vector<op_dat> dats_out;
+  dats_out.push_back(data->tmp_dg_np[0]);
+  dats_out.push_back(data->tmp_dg_np[1]);
+  dats_out.push_back(data->tmp_dg_np[2]);
+  dats_out.push_back(data->tmp_dg_np[3]);
+  dats_out.push_back(data->tmp_dg_np[4]);
+  dats_out.push_back(data->tmp_dg_np[5]);
+  dats_out.push_back(data->tmp_dg_np[6]);
+  mesh->interp_to_max_order(dats_to_save, dats_out);
+
   // Get Data from OP2
   double *Ux_g   = (double *)malloc(DG_NP * numCells * sizeof(double));
   double *Uy_g   = (double *)malloc(DG_NP * numCells * sizeof(double));
@@ -175,14 +191,14 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   double *y_g    = (double *)malloc(DG_NP * numCells * sizeof(double));
   double *s_g    = (double *)calloc(DG_NP * numCells, sizeof(double));
 
-  op_fetch_data(data->Q[0][0], Ux_g);
-  op_fetch_data(data->Q[0][1], Uy_g);
-  op_fetch_data(data->p, pr_g);
-  op_fetch_data(data->vorticity, vort_g);
-  op_fetch_data(mesh->x, x_g);
-  op_fetch_data(mesh->y, y_g);
+  op_fetch_data(data->tmp_dg_np[0], Ux_g);
+  op_fetch_data(data->tmp_dg_np[1], Uy_g);
+  op_fetch_data(data->tmp_dg_np[2], vort_g);
+  op_fetch_data(data->tmp_dg_np[3], pr_g);
+  op_fetch_data(data->tmp_dg_np[5], x_g);
+  op_fetch_data(data->tmp_dg_np[6], y_g);
   if(ls) {
-    op_fetch_data(ls->s, s_g);
+    op_fetch_data(data->tmp_dg_np[4], s_g);
   }
 
   if(DG_ORDER == 4) {
@@ -330,18 +346,6 @@ void save_solution_finalise(std::string filename, int numIter, double dt) {
 }
 
 void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, LS *ls, double finalTime, double nu) {
-  op_par_loop(save_order, "save_order", mesh->cells,
-              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
-
-  std::vector<op_dat> dats_to_update;
-  dats_to_update.push_back(data->Q[0][0]);
-  dats_to_update.push_back(data->Q[0][1]);
-  dats_to_update.push_back(data->Q[1][0]);
-  dats_to_update.push_back(data->Q[1][1]);
-  dats_to_update.push_back(data->p);
-  dats_to_update.push_back(ls->s);
-  mesh->update_order(data->new_order, dats_to_update);
-
   int numCells = op_get_size(mesh->cells);
   vector<double> x_v;
   vector<double> y_v;
@@ -355,6 +359,24 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, L
   // Calculate vorticity
   curl(mesh, data->Q[ind][0], data->Q[ind][1], data->vorticity);
 
+  std::vector<op_dat> dats_to_save;
+  dats_to_save.push_back(data->Q[ind][0]);
+  dats_to_save.push_back(data->Q[ind][1]);
+  dats_to_save.push_back(data->vorticity);
+  dats_to_save.push_back(data->p);
+  dats_to_save.push_back(ls->s);
+  dats_to_save.push_back(mesh->x);
+  dats_to_save.push_back(mesh->y);
+  std::vector<op_dat> dats_out;
+  dats_out.push_back(data->tmp_dg_np[0]);
+  dats_out.push_back(data->tmp_dg_np[1]);
+  dats_out.push_back(data->tmp_dg_np[2]);
+  dats_out.push_back(data->tmp_dg_np[3]);
+  dats_out.push_back(data->tmp_dg_np[4]);
+  dats_out.push_back(data->tmp_dg_np[5]);
+  dats_out.push_back(data->tmp_dg_np[6]);
+  mesh->interp_to_max_order(dats_to_save, dats_out);
+
   // Get Data from OP2
   double *Ux_g   = (double *)malloc(DG_NP * numCells * sizeof(double));
   double *Uy_g   = (double *)malloc(DG_NP * numCells * sizeof(double));
@@ -364,14 +386,14 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, L
   double *y_g    = (double *)malloc(DG_NP * numCells * sizeof(double));
   double *s_g    = (double *)calloc(DG_NP * numCells, sizeof(double));
 
-  op_fetch_data(data->Q[ind][0], Ux_g);
-  op_fetch_data(data->Q[ind][1], Uy_g);
-  op_fetch_data(data->p, pr_g);
-  op_fetch_data(data->vorticity, vort_g);
-  op_fetch_data(mesh->x, x_g);
-  op_fetch_data(mesh->y, y_g);
+  op_fetch_data(data->tmp_dg_np[0], Ux_g);
+  op_fetch_data(data->tmp_dg_np[1], Uy_g);
+  op_fetch_data(data->tmp_dg_np[2], vort_g);
+  op_fetch_data(data->tmp_dg_np[3], pr_g);
+  op_fetch_data(data->tmp_dg_np[5], x_g);
+  op_fetch_data(data->tmp_dg_np[6], y_g);
   if(ls) {
-    op_fetch_data(ls->s, s_g);
+    op_fetch_data(data->tmp_dg_np[4], s_g);
   }
 
   if(DG_ORDER == 4) {
@@ -489,12 +511,4 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, L
   cg_array_write("info", CGNS_ENUMV(RealDouble), 2, dim, infoData);
 
   cg_close(file);
-
-  op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
-              op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&ls->order_width, 1, "double", OP_READ),
-              op_arg_dat(ls->s,           -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
-
-  mesh->update_order(data->new_order, dats_to_update);
 }
