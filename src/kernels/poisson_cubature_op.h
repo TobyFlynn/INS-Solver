@@ -41,6 +41,7 @@ inline void poisson_cubature_op(const int *p, const double *cubVDr,
         int b_ind = n * dg_cub_np + k;
 
         op[c_ind] += J[k] * cubW[k] * factor[k] * (Dx[a_ind] * Dx[b_ind] + Dy[a_ind] * Dy[b_ind]);
+        // op[c_ind] += J[k] * cubW[k] * (Dx[a_ind] * Dx[b_ind] + Dy[a_ind] * Dy[b_ind]);
       }
     }
   }

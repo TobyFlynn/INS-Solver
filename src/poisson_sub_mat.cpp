@@ -52,6 +52,7 @@ void PoissonSolve::calc_gauss_sub_mat() {
               op_arg_dat(mesh->gauss->ny, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(h,       -2, mesh->edge2cells, 1, "double", OP_READ),
               op_arg_dat(gFactor, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->fscale, -2, mesh->edge2cells, 3 * DG_NPF, "double", OP_READ),
               op_arg_dat(op1, 0, mesh->edge2cells, DG_NP * DG_NP, "double", OP_INC),
               op_arg_dat(op1, 1, mesh->edge2cells, DG_NP * DG_NP, "double", OP_INC),
               op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE),
@@ -81,6 +82,7 @@ void PoissonSolve::calc_gauss_sub_mat() {
               op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(h,       0, mesh->bedge2cells, 1, "double", OP_READ),
               op_arg_dat(gFactor, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->fscale, 0, mesh->bedge2cells, 3 * DG_NPF, "double", OP_READ),
               op_arg_dat(op1, 0, mesh->bedge2cells, DG_NP * DG_NP, "double", OP_INC),
               op_arg_dat(op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
 }

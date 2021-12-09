@@ -8,7 +8,7 @@ inline void poisson_gauss_grad_b(const int *p, const double *gF0Dr,
                                  const double *x, const double *y,
                                  const double *sJ, const double *nx,
                                  const double *ny, const double *h,
-                                 const double *factor, double *op1,
+                                 const double *factor, const double *fscale, double *op1,
                                  double *op_bc) {
   const double *gVM;
   if(*edgeNum == 0) {
@@ -72,14 +72,18 @@ inline void poisson_gauss_grad_b(const int *p, const double *gF0Dr,
         double Dx = rx[m] * gDr[ind] + sx[m] * gDs[ind];
         double Dy = ry[m] * gDr[ind] + sy[m] * gDs[ind];
         mD[ind]   = factor[exInd + m] * (nx[exInd + m] * Dx + ny[exInd + m] * Dy);
+        // mD[ind]   = nx[exInd + m] * Dx + ny[exInd + m] * Dy;
       }
     }
 
     double tau[DG_GF_NP];
     for(int i = 0; i < DG_GF_NP; i++) {
       int ind = *edgeNum * DG_GF_NP + i;
-      tau[i] = (DG_ORDER + 1) * (DG_ORDER + 2) * (*h) * factor[ind];
+      // tau[i] = (*p + 1) * (*p + 2) * fscale[*edgeNum * dg_npf] * factor[ind];
+      tau[i] = 20 * 25 * fscale[*edgeNum * dg_npf] * factor[ind];
     }
+
+    // double tau = 20 * 25 * fscale[*edgeNum * dg_npf];
 
     // Main matrix
     for(int m = 0; m < dg_np; m++) {
