@@ -2,6 +2,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(INS-Solver CXX)
 
+enable_language(C)
+
 # Import compiler flags for all build types
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fopenmp")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
@@ -16,6 +18,8 @@ include_directories(${OP2_DIR}/include)
 if(NOT OP2DGTOOLKIT_DIR)
   set(OP2DGTOOLKIT_DIR "/gpfs/users/tsf79-sxa03/OP2-DG-Toolkit/build")
 endif()
+include_directories(${OP2DGTOOLKIT_DIR}/include)
+
 include_directories(${CGNS_DIR}/include)
 
 if(NOT ARMA_DIR)
