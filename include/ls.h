@@ -21,7 +21,7 @@ public:
   INSData *data;
 
   op_dat u, v;
-  op_dat s, step_s, nx, ny, curv;
+  op_dat s, step_s, nx, ny, curv, diracDelta;
   op_dat rk[3], rkQ;
   op_dat F, G, dFdr, dFds, dGdr, dGds, gInput, gU, gV, nFlux, exAdvec;
 
@@ -42,7 +42,7 @@ private:
   double h, epsilon, reinit_dt;
   int numSteps;
 
-  double *s_data, *step_s_data, *nx_data, *ny_data, *curv_data;
+  double *s_data, *step_s_data, *nx_data, *ny_data, *curv_data, *diracDelta_data;
   double *sign_data, *gS_data, *gSigTmp_data, *diff_data, *diffF_data;
   double *modal_data, *local_vis_data, *gInput_data;
 };

@@ -49,8 +49,8 @@ Solver::Solver(std::string filename, int prob) {
 
   data = new INSData(mesh);
   ls = new LS(mesh, data);
-  pressurePoisson = new PressureSolve(mesh, data);
-  viscosityPoisson = new ViscositySolve(mesh, data);
+  pressurePoisson = new PressureSolve(mesh, data, ls);
+  viscosityPoisson = new ViscositySolve(mesh, data, ls);
 
   pressurePoisson->setDirichletBCs(pressure_dirichlet);
   pressurePoisson->setNeumannBCs(pressure_neumann);

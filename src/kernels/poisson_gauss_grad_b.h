@@ -8,7 +8,7 @@ inline void poisson_gauss_grad_b(const int *p, const double *gF0Dr,
                                  const double *x, const double *y,
                                  const double *sJ, const double *nx,
                                  const double *ny, const double *h,
-                                 const double *factor, const double *fscale, double *op1,
+                                 const double *factor, const double *delta, const double *fscale, double *op1,
                                  double *op_bc) {
   const double *gVM;
   if(*edgeNum == 0) {
@@ -80,7 +80,10 @@ inline void poisson_gauss_grad_b(const int *p, const double *gF0Dr,
     for(int i = 0; i < DG_GF_NP; i++) {
       int ind = *edgeNum * DG_GF_NP + i;
       // tau[i] = (*p + 1) * (*p + 2) * fscale[*edgeNum * dg_npf] * factor[ind];
-      tau[i] = 20 * 25 * fscale[*edgeNum * dg_npf] * factor[ind];
+      tau[i] = 0.5 * (*p + 1) * (*p + 2) * (*h) * factor[ind];
+      // tau[i] = 0.5 * (1.0 + delta[ind]) * (*p + 1) * (*p + 2) * (*h) * factor[ind];
+      // tau[i] = 25 * fscale[*edgeNum * dg_npf] * factor[ind];
+      // tau[i] = 20 * 25 * fscale[*edgeNum * dg_npf] * factor[ind];
     }
 
     // double tau = 20 * 25 * fscale[*edgeNum * dg_npf];

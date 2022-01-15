@@ -1,8 +1,8 @@
 // Target element size of naca0012
-lc = 0.01;
+lc = 0.05;
 
 // Number of points describing the upper surface
-num = 100;
+num = 40;
 
 deltaX = (Pi / 2.0) / num;
 xRef = 0.0;
@@ -41,7 +41,7 @@ Curve Loop(1) = {1:2*num-2};
 //Plane Surface(1) = {1};
 
 // Target element size of outer boundary
-lc2 = 1;
+lc2 = 1.5;
 
 // Bottom left coords
 xL = -5;

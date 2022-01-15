@@ -76,13 +76,13 @@ int main(int argc, char **argv) {
   ic_v = 0.0;
 
   mu0  = 1.0;
-  mu1  = 1.0;
+  mu1  = 100.0;
   rho0 = 1.0;
-  rho1 = 1.0;
+  rho1 = 1000.0;
 
   refRho     = 1.0;
-  refMu      = 1.0e-3;
-  refLen     = 0.41;
+  refMu      = 1.0e-5;
+  refLen     = 0.001;
   refVel     = 1.5;
   refSurfTen = 0.0756;
 
@@ -163,6 +163,7 @@ int main(int argc, char **argv) {
       b0 = 2.0;
       b1 = -1.0;
     }
+
     timer->startAdvection();
     solver->advection(currentIter % 2, a0, a1, b0, b1, g0, time);
     timer->endAdvection();
@@ -187,7 +188,8 @@ int main(int argc, char **argv) {
     }
     timer->endViscosity();
 
-    solver->update_surface(currentIter % 2);
+    // solver->update_surface(currentIter % 2);
+    // solver->update_surface(1);
 
     currentIter++;
     time += solver->dt;

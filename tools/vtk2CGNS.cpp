@@ -58,6 +58,22 @@ int getBoundaryEdgeNum(const string &type, double x0, double y0, double x1, doub
       // Top/Bottom Wall
       return 3;
     }
+  } else if(type == "airfoil") {
+    if(x0 == x1 && x0 < -4.9) {
+      // Inflow
+      return 0;
+    } else if(x0 == x1 && x0 > 4.9) {
+      // Outflow
+      return 1;
+    } else if(x0 > -1.0 && x1 > -1.0 && x0 < 2.0 && x1 < 2.0
+              && y0 > -1.0 && y1 > -1.0 && y0 < 1.0 && y1 < 1.0) {
+      // Airfoil Wall
+      return 2;
+    } else {
+      cout << "TOP/BOTTOM Wall" << endl;
+      // Top/Bottom Wall
+      return 2;
+    }
   } else if(type == "poisson-test-0") {
     if(y0 == y1 && y0 > 0.5) {
       // Neumann BC y = 1
@@ -124,6 +140,23 @@ int getBoundaryEdgeNum(const string &type, double x0, double y0, double x1, doub
 
 void getBCs(const string &type, int *bc_data) {
   if(type == "cylinder") {
+    // Pressure Dirichlet
+    bc_data[0] = 1; bc_data[1] = -1; bc_data[2] = -1;
+    // Pressure Neumann
+    bc_data[3] = 0; bc_data[4] = 2; bc_data[5] = 3;
+    // Viscosity Dirichlet
+    bc_data[6] = 0; bc_data[7] = 2; bc_data[8] = 3;
+    // Viscosity Neumann
+    bc_data[9] = 1; bc_data[10] = -1; bc_data[11] = -1;
+  } else if(type == "airfoil") {
+    // // Pressure Dirichlet
+    // bc_data[0] = 1; bc_data[1] = 3; bc_data[2] = -1;
+    // // Pressure Neumann
+    // bc_data[3] = 0; bc_data[4] = 2; bc_data[5] = -1;
+    // // Viscosity Dirichlet
+    // bc_data[6] = 0; bc_data[7] = 2; bc_data[8] = -1;
+    // // Viscosity Neumann
+    // bc_data[9] = 1; bc_data[10] = 3; bc_data[11] = -1;
     // Pressure Dirichlet
     bc_data[0] = 1; bc_data[1] = -1; bc_data[2] = -1;
     // Pressure Neumann

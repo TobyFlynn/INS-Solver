@@ -85,7 +85,46 @@ void gather_double_array(double *g_array, double *l_array, int comm_size,
   free(displs);
 }
 
-int get_global_start_index(op_set set) {
+void gather_int_array(int *g_array, int *l_array, int comm_size, int g_size,
+                      int l_size, int elem_size) {
+  int *sendcnts = (int *)malloc(comm_size * sizeof(int));
+  int *displs = (int *)malloc(comm_size * sizeof(int));
+  int disp = 0;
+
+  for (int i = 0; i < comm_size; i++) {
+    sendcnts[i] = elem_size * compute_local_size(g_size, comm_size, i);
+  }
+  for (int i = 0; i < comm_size; i++) {
+    displs[i] = disp;
+    disp = disp + sendcnts[i];
+  }
+
+  MPI_Gatherv(l_array, l_size * elem_size, MPI_INT, g_array, sendcnts,
+              displs, MPI_INT, 0, MPI_COMM_WORLD);
+
+  free(sendcnts);
+  free(displs);
+}
+
+int get_global_mat_start_ind(int unknowns) {
+  int rank, comm_size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+
+  int *sizes = (int *)malloc(comm_size * sizeof(int));
+
+  MPI_Allgather(&unknowns, 1, MPI_INT, sizes, 1, MPI_INT, MPI_COMM_WORLD);
+
+  int index = 0;
+  for(int i = 0; i < rank; i++) {
+    index += sizes[i];
+  }
+
+  free(sizes);
+  return index;
+}
+
+int get_global_element_start_ind(op_set set) {
   int rank, comm_size;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);

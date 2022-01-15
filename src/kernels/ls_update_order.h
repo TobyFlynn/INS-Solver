@@ -6,7 +6,7 @@ inline void ls_update_order(const int *p, const double *alpha, const double *s,
   *order = DG_ORDER;
   for(int i = 0; i < dg_np; i++) {
     if(fabs(s[i]) < *alpha) {
-      *order = 1;
+      // *order = 1;
     }
   }
 }

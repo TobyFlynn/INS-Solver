@@ -7,7 +7,7 @@ inline void poisson_gauss_grad(const int **p, const double *gF0Dr,
                                const double **x, const double **y,
                                const double **sJ, const double **nx,
                                const double **ny, const double **h,
-                               const double **factor, const double **fscale, double *op1L,
+                               const double **factor, const double **delta, const double **fscale, double *op1L,
                                double *op1R, double *op2L, double *op2R) {
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
@@ -155,6 +155,7 @@ inline void poisson_gauss_grad(const int **p, const double *gF0Dr,
 
   // Left edge
   double tauL[DG_GF_NP];
+  double maxtau = 0.0;
   for(int i = 0; i < DG_GF_NP; i++) {
     int indL = edgeL * DG_GF_NP + i;
     int indR;
@@ -164,11 +165,20 @@ inline void poisson_gauss_grad(const int **p, const double *gF0Dr,
       indR = edgeR * DG_GF_NP + i;
 
     // tauL[i] = (p[0][0] + 1) * (p[0][0] + 2) * fmax(fscale[0][edgeL * dg_npfL] * factor[0][indL], fscale[1][edgeR * dg_npfR] * factor[1][indR]);
-    tauL[i] = 20 * 25 * fmax(fscale[0][edgeL * dg_npfL] * factor[0][indL], fscale[1][edgeR * dg_npfR] * factor[1][indR]);
+    // tauL[i] = 25 * fmax(fscale[0][edgeL * dg_npfL] * factor[0][indL], fscale[1][edgeR * dg_npfR] * factor[1][indR]);
+    // tauL[i] = fmax((p[0][0] + 1) * (p[0][0] + 2) * fscale[0][edgeL * dg_npfL] * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * fscale[1][edgeR * dg_npfR] * factor[1][indR]);
+    tauL[i] = 0.5 * fmax((p[0][0] + 1) * (p[0][0] + 2) * h[0][0] * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * h[1][0] * factor[1][indR]);
+    // tauL[i] = 0.5 * fmax((1.0 + delta[0][indL]) * (p[0][0] + 1) * (p[0][0] + 2) * h[0][0] * factor[0][indL], (1.0 + delta[1][indR]) * (p[1][0] + 1) * (p[1][0] + 2) * h[1][0] * factor[1][indR]);
+    if(tauL[i] > maxtau) maxtau = tauL[i];
+  }
+
+  for(int i = 0; i < DG_GF_NP; i++) {
+    tauL[i] = maxtau;
   }
 
   // Right edge
   double tauR[DG_GF_NP];
+  maxtau = 0.0;
   for(int i = 0; i < DG_GF_NP; i++) {
     int indR = edgeR * DG_GF_NP + i;
     int indL;
@@ -178,7 +188,15 @@ inline void poisson_gauss_grad(const int **p, const double *gF0Dr,
       indL = edgeL * DG_GF_NP + i;
 
     // tauR[i] = (p[1][0] + 1) * (p[1][0] + 2) * fmax(fscale[0][edgeL * dg_npfL] * factor[0][indL], fscale[1][edgeR * dg_npfR] * factor[1][indR]);
-    tauR[i] = 20 * 25 * fmax(fscale[0][edgeL * dg_npfL] * factor[0][indL], fscale[1][edgeR * dg_npfR] * factor[1][indR]);
+    // tauR[i] = 25 * fmax(fscale[0][edgeL * dg_npfL] * factor[0][indL], fscale[1][edgeR * dg_npfR] * factor[1][indR]);
+    // tauR[i] = fmax((p[0][0] + 1) * (p[0][0] + 2) * fscale[0][edgeL * dg_npfL] * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * fscale[1][edgeR * dg_npfR] * factor[1][indR]);
+    tauR[i] = 0.5 * fmax((p[0][0] + 1) * (p[0][0] + 2) * h[0][0] * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * h[1][0] * factor[1][indR]);
+    // tauR[i] = 0.5 * fmax((1.0 + delta[0][indL]) * (p[0][0] + 1) * (p[0][0] + 2) * h[0][0] * factor[0][indL], (1.0 + delta[1][indR]) * (p[1][0] + 1) * (p[1][0] + 2) * h[1][0] * factor[1][indR]);
+    if(tauR[i] > maxtau) maxtau = tauR[i];
+  }
+
+  for(int i = 0; i < DG_GF_NP; i++) {
+    tauR[i] = maxtau;
   }
 
   // double tau;

@@ -7,12 +7,13 @@
 #include "petscksp.h"
 #include "timing.h"
 #include "dg_mesh.h"
+#include "ls.h"
 
 extern Timing *timer;
 
 class PoissonSolve {
 public:
-  PoissonSolve(DGMesh *m, INSData *nsData);
+  PoissonSolve(DGMesh *m, INSData *nsData, LS *s);
   ~PoissonSolve();
 
   void init();
@@ -30,7 +31,8 @@ public:
   op_dat op1, op2[2], op_bc;
   op_dat glb_ind, glb_indL, glb_indR, glb_indBC;
   op_dat u, rhs, in, out, pre;
-  op_dat factor, gFactor, cFactor, mmFactor, h;
+  op_dat factor, gFactor, cFactor, mmFactor, h, gDelta;
+  op_dat orderL, orderR, orderBC;
 
   int unknowns;
 
@@ -39,9 +41,12 @@ protected:
   void setMatrix();
   void create_shell_mat(Mat *m);
   void set_shell_pc(PC pc);
+  int get_local_unknowns();
+  void update_glb_ind();
 
   DGMesh *mesh;
   INSData *data;
+  LS *ls;
 
   int dirichlet[3];
   int neumann[3];
@@ -77,18 +82,20 @@ private:
   int *glb_ind_data, *glb_indL_data, *glb_indR_data, *glb_indBC_data;
   double *u_data, *rhs_data, *in_data, *out_data, *pre_data;
   double *factor_data, *gFactor_data, *cFactor_data, *mmFactor_data, *h_data;
+  double *gDelta_data;
+  int *orderL_data, *orderR_data, *orderBC_data;
 };
 
 class PressureSolve : public PoissonSolve {
 public:
-  PressureSolve(DGMesh *m, INSData *d);
+  PressureSolve(DGMesh *m, INSData *d, LS *s);
 
   void setup();
 };
 
 class ViscositySolve : public PoissonSolve {
 public:
-  ViscositySolve(DGMesh *m, INSData *d);
+  ViscositySolve(DGMesh *m, INSData *d, LS *s);
 
   void setup(double mmConst);
 };

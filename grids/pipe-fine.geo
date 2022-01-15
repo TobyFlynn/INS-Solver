@@ -7,7 +7,7 @@ yL = 0;
 
 // Top right coords
 xR = 2.2 / 0.41;
-yR = 0.41 / 0.41;
+yR = 4 * 0.41 / 0.41;
 
 
 // Outline points

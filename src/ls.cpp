@@ -24,6 +24,7 @@ LS::LS(DGMesh *m, INSData *d) {
   nx_data     = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   ny_data     = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   curv_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+  diracDelta_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
 
   sign_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   gS_data     = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
@@ -42,6 +43,7 @@ LS::LS(DGMesh *m, INSData *d) {
   nx     = op_decl_dat(mesh->cells, DG_NP, "double", nx_data, "ls-nx");
   ny     = op_decl_dat(mesh->cells, DG_NP, "double", ny_data, "ls-ny");
   curv   = op_decl_dat(mesh->cells, DG_NP, "double", curv_data, "curv");
+  diracDelta = op_decl_dat(mesh->cells, DG_NP, "double", diracDelta_data, "diracDelta");
 
   sign   = op_decl_dat(mesh->cells, DG_NP, "double", sign_data, "sign");
   gS     = op_decl_dat(mesh->cells, DG_G_NP, "double", gS_data, "gS");
@@ -62,6 +64,7 @@ LS::~LS() {
   free(nx_data);
   free(ny_data);
   free(curv_data);
+  free(diracDelta_data);
 
   free(sign_data);
   free(gS_data);
@@ -115,25 +118,27 @@ void LS::init() {
   gSigmax = data->tmp_dg_g_np[2];
   gSigmay = data->tmp_dg_g_np[3];
 
-  h = std::numeric_limits<double>::max();
-  op_par_loop(calc_h, "calc_h", mesh->cells,
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_gbl(&h, 1, "double", OP_MIN));
-
-  // alpha = 8.0 * h;
-  // alpha = 2.0 * h / DG_ORDER;
-  // order_width = 2.0 * h;
-  alpha = 2.0 * h;
-  order_width = 4.0 * h;
-  epsilon = h / DG_ORDER;
-  reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
-  numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
-
   op_par_loop(init_surface, "init_surface", mesh->cells,
               op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s,       -1, OP_ID, DG_NP, "double", OP_WRITE));
+
+  // h = std::numeric_limits<double>::max();
+  h = 0.0;
+  op_par_loop(calc_h, "calc_h", mesh->cells,
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
+              op_arg_dat(s, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_gbl(&h, 1, "double", OP_MAX));
+
+  // alpha = 2.0 * h / DG_ORDER;
+  // order_width = 2.0 * h;
+  // epsilon = h / DG_ORDER;
+  alpha = 6.0 * h;
+  order_width = 6.0 * h;
+  epsilon = h;
+  reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
+  numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
 
   op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
               op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
@@ -150,6 +155,11 @@ void LS::init() {
   dats_to_update.push_back(s);
 
   mesh->update_order(data->new_order, dats_to_update);
+
+  op_par_loop(init_surface, "init_surface", mesh->cells,
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(s,       -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   // reinit_ls();
   update_values();
@@ -196,11 +206,13 @@ void LS::step(double dt) {
 
   // Reset LS in boundary cells (this needs is a work around, needs to be fixed properly later)
   // Also has a data race, but all will be setting to same value so should be okay
+  /*
   op_par_loop(ls_bcell_reset, "ls_bcell_reset", mesh->bedges,
               op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->x,     0, mesh->bedge2cells, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->y,     0, mesh->bedge2cells, DG_NP, "double", OP_READ),
               op_arg_dat(s,           0, mesh->bedge2cells, DG_NP, "double", OP_WRITE));
+  */
 
   op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
               op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
@@ -532,6 +544,7 @@ void LS::update_values() {
               op_arg_gbl(&alpha,     1, "double", OP_READ),
               op_arg_dat(s,         -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(step_s,    -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(diracDelta,-1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->mu,  -1, OP_ID, DG_NP, "double", OP_WRITE));
 
