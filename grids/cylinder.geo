@@ -1,5 +1,5 @@
 // Target element size of outer boundary
-lc2 = 1.0 / 10;
+lc2 = (0.41 / 5) / 0.41;
 
 // Bottom left coords
 xL = 0;
@@ -7,7 +7,7 @@ yL = 0;
 
 // Top right coords
 xR = 2.2 / 0.41;
-yR = 1.0;
+yR = 0.41 / 0.41;
 
 p5 = newp; Point(p5) = {0.2 / 0.41, 0.2 / 0.41, 0, lc2};
 p6 = newp; Point(p6) = {0.25 / 0.41, 0.2 / 0.41, 0, lc2};

@@ -11,7 +11,7 @@
 
 class Solver {
 public:
-  Solver(std::string filename, bool pre, int prob);
+  Solver(std::string filename, int prob);
   ~Solver();
 
   void advection(int currentInd, double a0, double a1, double b0, double b1,
@@ -28,8 +28,8 @@ public:
   double getAvgPressureConvergance();
   double getAvgViscosityConvergance();
 
-  INSData *data;
   DGMesh *mesh;
+  INSData *data;
   LS *ls;
   double dt;
 private:

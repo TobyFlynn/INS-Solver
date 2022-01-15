@@ -10,11 +10,12 @@ using namespace std;
 struct Point {
   double x;
   double y;
-  double u;
-  double v;
-  double pr;
-  double vort;
-  double s;
+  double u, u_min, u_max;
+  double v, v_min, v_max;
+  double pr, pr_min, pr_max;
+  double vort, vort_min, vort_max;
+  double s, s_min, s_max;
+  double o;
   vector<int> cells;
   vector<int> pointNum;
   int counter;
@@ -334,9 +335,10 @@ void get_cells_order_1(vector<double> &x_v, vector<double> &y_v,
 void get_data_vectors_order_4(vector<double> &x_v, vector<double> &y_v,
                               vector<double> &u_v, vector<double> &v_v,
                               vector<double> &pr_v, vector<double> &vort_v,
-                              vector<double> &s_v, vector<cgsize_t> &cells,
-                              double *Ux, double *Uy, double *pr, double *vort,
-                              double *x, double *y, double *s, int numCells) {
+                              vector<double> &s_v, vector<double> &o_v,
+                              vector<cgsize_t> &cells, double *Ux, double *Uy,
+                              double *pr, double *vort, double *x, double *y,
+                              double *s, int *o, int numCells) {
   // Maps points to sub elements that they are part of.
   // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
   // -1 is just padding to get each line to 6
@@ -385,13 +387,24 @@ void get_data_vectors_order_4(vector<double> &x_v, vector<double> &y_v,
       unique_ptr<Point> point = make_unique<Point>();
       auto res = pointMap.insert(make_pair(coords, move(point)));
       if(res.second) {
-        res.first->second->x    = x[ind + p];
-        res.first->second->y    = y[ind + p];
-        res.first->second->u    = Ux[ind + p];
-        res.first->second->v    = Uy[ind + p];
-        res.first->second->pr   = pr[ind + p];
-        res.first->second->vort = vort[ind + p];
-        res.first->second->s    = s[ind + p];
+        res.first->second->x        = x[ind + p];
+        res.first->second->y        = y[ind + p];
+        res.first->second->o        = (double)o[c];
+        res.first->second->u        = Ux[ind + p];
+        res.first->second->u_min    = Ux[ind + p];
+        res.first->second->u_max    = Ux[ind + p];
+        res.first->second->v        = Uy[ind + p];
+        res.first->second->v_min    = Uy[ind + p];
+        res.first->second->v_max    = Uy[ind + p];
+        res.first->second->pr       = pr[ind + p];
+        res.first->second->pr_min   = pr[ind + p];
+        res.first->second->pr_max   = pr[ind + p];
+        res.first->second->vort     = vort[ind + p];
+        res.first->second->vort_min = vort[ind + p];
+        res.first->second->vort_max = vort[ind + p];
+        res.first->second->s        = s[ind + p];
+        res.first->second->s_min    = s[ind + p];
+        res.first->second->s_max    = s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
@@ -402,11 +415,24 @@ void get_data_vectors_order_4(vector<double> &x_v, vector<double> &y_v,
         }
         res.first->second->counter = 1;
       } else {
+        res.first->second->o    += (double)o[c];
         res.first->second->u    += Ux[ind + p];
         res.first->second->v    += Uy[ind + p];
         res.first->second->pr   += pr[ind + p];
         res.first->second->vort += vort[ind + p];
         res.first->second->s    += s[ind + p];
+
+        res.first->second->u_min    = Ux[ind + p] < res.first->second->u_min ? Ux[ind + p] : res.first->second->u_min;
+        res.first->second->v_min    = Uy[ind + p] < res.first->second->v_min ? Uy[ind + p] : res.first->second->v_min;
+        res.first->second->pr_min   = pr[ind + p] < res.first->second->pr_min ? pr[ind + p] : res.first->second->pr_min;
+        res.first->second->vort_min = vort[ind + p] < res.first->second->vort_min ? vort[ind + p] : res.first->second->vort_min;
+        res.first->second->s_min    = s[ind + p] < res.first->second->s_min ? s[ind + p] : res.first->second->s_min;
+
+        res.first->second->u_max    = Ux[ind + p] > res.first->second->u_max ? Ux[ind + p] : res.first->second->u_max;
+        res.first->second->v_max    = Uy[ind + p] > res.first->second->v_max ? Uy[ind + p] : res.first->second->v_max;
+        res.first->second->pr_max   = pr[ind + p] > res.first->second->pr_max ? pr[ind + p] : res.first->second->pr_max;
+        res.first->second->vort_max = vort[ind + p] > res.first->second->vort_max ? vort[ind + p] : res.first->second->vort_max;
+        res.first->second->s_max    = s[ind + p] > res.first->second->s_max ? s[ind + p] : res.first->second->s_max;
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 16 + cellMask[p][m]);
@@ -425,6 +451,7 @@ void get_data_vectors_order_4(vector<double> &x_v, vector<double> &y_v,
   for(auto const &p : pointMap) {
     x_v.push_back(p.second->x);
     y_v.push_back(p.second->y);
+    o_v.push_back(p.second->o / p.second->counter);
     u_v.push_back(p.second->u / p.second->counter);
     v_v.push_back(p.second->v / p.second->counter);
     pr_v.push_back(p.second->pr / p.second->counter);
@@ -433,6 +460,11 @@ void get_data_vectors_order_4(vector<double> &x_v, vector<double> &y_v,
     for(int i = 0; i < p.second->cells.size(); i++) {
       cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
     }
+    // u_v.push_back(abs(p.second->u_max - p.second->u_min));
+    // v_v.push_back(abs(p.second->v_max - p.second->v_min));
+    // pr_v.push_back(abs(p.second->pr_max - p.second->pr_min));
+    // vort_v.push_back(abs(p.second->vort_max - p.second->vort_min));
+    // s_v.push_back(abs(p.second->s_max - p.second->s_min));
     index++;
   }
 }
@@ -440,9 +472,10 @@ void get_data_vectors_order_4(vector<double> &x_v, vector<double> &y_v,
 void get_data_vectors_order_3(vector<double> &x_v, vector<double> &y_v,
                               vector<double> &u_v, vector<double> &v_v,
                               vector<double> &pr_v, vector<double> &vort_v,
-                              vector<double> &s_v, vector<cgsize_t> &cells,
-                              double *Ux, double *Uy, double *pr, double *vort,
-                              double *x, double *y, double *s, int numCells) {
+                              vector<double> &s_v, vector<double> &o_v,
+                              vector<cgsize_t> &cells, double *Ux, double *Uy,
+                              double *pr, double *vort, double *x, double *y,
+                              double *s, int *o, int numCells) {
   // Maps points to sub elements that they are part of.
   // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
   // -1 is just padding to get each line to 6
@@ -481,13 +514,24 @@ void get_data_vectors_order_3(vector<double> &x_v, vector<double> &y_v,
       unique_ptr<Point> point = make_unique<Point>();
       auto res = pointMap.insert(make_pair(coords, move(point)));
       if(res.second) {
-        res.first->second->x    = x[ind + p];
-        res.first->second->y    = y[ind + p];
-        res.first->second->u    = Ux[ind + p];
-        res.first->second->v    = Uy[ind + p];
-        res.first->second->pr   = pr[ind + p];
-        res.first->second->vort = vort[ind + p];
-        res.first->second->s    = s[ind + p];
+        res.first->second->x        = x[ind + p];
+        res.first->second->y        = y[ind + p];
+        res.first->second->o        = (double)o[c];
+        res.first->second->u        = Ux[ind + p];
+        res.first->second->u_min    = Ux[ind + p];
+        res.first->second->u_max    = Ux[ind + p];
+        res.first->second->v        = Uy[ind + p];
+        res.first->second->v_min    = Uy[ind + p];
+        res.first->second->v_max    = Uy[ind + p];
+        res.first->second->pr       = pr[ind + p];
+        res.first->second->pr_min   = pr[ind + p];
+        res.first->second->pr_max   = pr[ind + p];
+        res.first->second->vort     = vort[ind + p];
+        res.first->second->vort_min = vort[ind + p];
+        res.first->second->vort_max = vort[ind + p];
+        res.first->second->s        = s[ind + p];
+        res.first->second->s_min    = s[ind + p];
+        res.first->second->s_max    = s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 9 + cellMask[p][m]);
@@ -498,11 +542,24 @@ void get_data_vectors_order_3(vector<double> &x_v, vector<double> &y_v,
         }
         res.first->second->counter = 1;
       } else {
+        res.first->second->o    += (double)o[c];
         res.first->second->u    += Ux[ind + p];
         res.first->second->v    += Uy[ind + p];
         res.first->second->pr   += pr[ind + p];
         res.first->second->vort += vort[ind + p];
         res.first->second->s    += s[ind + p];
+
+        res.first->second->u_min    = Ux[ind + p] < res.first->second->u_min ? Ux[ind + p] : res.first->second->u_min;
+        res.first->second->v_min    = Uy[ind + p] < res.first->second->v_min ? Uy[ind + p] : res.first->second->v_min;
+        res.first->second->pr_min   = pr[ind + p] < res.first->second->pr_min ? pr[ind + p] : res.first->second->pr_min;
+        res.first->second->vort_min = vort[ind + p] < res.first->second->vort_min ? vort[ind + p] : res.first->second->vort_min;
+        res.first->second->s_min    = s[ind + p] < res.first->second->s_min ? s[ind + p] : res.first->second->s_min;
+
+        res.first->second->u_max    = Ux[ind + p] > res.first->second->u_max ? Ux[ind + p] : res.first->second->u_max;
+        res.first->second->v_max    = Uy[ind + p] > res.first->second->v_max ? Uy[ind + p] : res.first->second->v_max;
+        res.first->second->pr_max   = pr[ind + p] > res.first->second->pr_max ? pr[ind + p] : res.first->second->pr_max;
+        res.first->second->vort_max = vort[ind + p] > res.first->second->vort_max ? vort[ind + p] : res.first->second->vort_max;
+        res.first->second->s_max    = s[ind + p] > res.first->second->s_max ? s[ind + p] : res.first->second->s_max;
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 9 + cellMask[p][m]);
@@ -521,6 +578,7 @@ void get_data_vectors_order_3(vector<double> &x_v, vector<double> &y_v,
   for(auto const &p : pointMap) {
     x_v.push_back(p.second->x);
     y_v.push_back(p.second->y);
+    o_v.push_back(p.second->o / p.second->counter);
     u_v.push_back(p.second->u / p.second->counter);
     v_v.push_back(p.second->v / p.second->counter);
     pr_v.push_back(p.second->pr / p.second->counter);
@@ -529,6 +587,11 @@ void get_data_vectors_order_3(vector<double> &x_v, vector<double> &y_v,
     for(int i = 0; i < p.second->cells.size(); i++) {
       cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
     }
+    // u_v.push_back(abs(p.second->u_max - p.second->u_min));
+    // v_v.push_back(abs(p.second->v_max - p.second->v_min));
+    // pr_v.push_back(abs(p.second->pr_max - p.second->pr_min));
+    // vort_v.push_back(abs(p.second->vort_max - p.second->vort_min));
+    // s_v.push_back(abs(p.second->s_max - p.second->s_min));
     index++;
   }
 }
@@ -536,9 +599,10 @@ void get_data_vectors_order_3(vector<double> &x_v, vector<double> &y_v,
 void get_data_vectors_order_2(vector<double> &x_v, vector<double> &y_v,
                               vector<double> &u_v, vector<double> &v_v,
                               vector<double> &pr_v, vector<double> &vort_v,
-                              vector<double> &s_v, vector<cgsize_t> &cells,
-                              double *Ux, double *Uy, double *pr, double *vort,
-                              double *x, double *y, double *s, int numCells) {
+                              vector<double> &s_v, vector<double> &o_v,
+                              vector<cgsize_t> &cells, double *Ux, double *Uy,
+                              double *pr, double *vort, double *x, double *y,
+                              double *s, int *o, int numCells) {
   // Maps points to sub elements that they are part of.
   // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
   // -1 is just padding to get each line to 6
@@ -569,13 +633,24 @@ void get_data_vectors_order_2(vector<double> &x_v, vector<double> &y_v,
       unique_ptr<Point> point = make_unique<Point>();
       auto res = pointMap.insert(make_pair(coords, move(point)));
       if(res.second) {
-        res.first->second->x    = x[ind + p];
-        res.first->second->y    = y[ind + p];
-        res.first->second->u    = Ux[ind + p];
-        res.first->second->v    = Uy[ind + p];
-        res.first->second->pr   = pr[ind + p];
-        res.first->second->vort = vort[ind + p];
-        res.first->second->s    = s[ind + p];
+        res.first->second->x        = x[ind + p];
+        res.first->second->y        = y[ind + p];
+        res.first->second->o        = (double)o[c];
+        res.first->second->u        = Ux[ind + p];
+        res.first->second->u_min    = Ux[ind + p];
+        res.first->second->u_max    = Ux[ind + p];
+        res.first->second->v        = Uy[ind + p];
+        res.first->second->v_min    = Uy[ind + p];
+        res.first->second->v_max    = Uy[ind + p];
+        res.first->second->pr       = pr[ind + p];
+        res.first->second->pr_min   = pr[ind + p];
+        res.first->second->pr_max   = pr[ind + p];
+        res.first->second->vort     = vort[ind + p];
+        res.first->second->vort_min = vort[ind + p];
+        res.first->second->vort_max = vort[ind + p];
+        res.first->second->s        = s[ind + p];
+        res.first->second->s_min    = s[ind + p];
+        res.first->second->s_max    = s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 4 + cellMask[p][m]);
@@ -586,11 +661,24 @@ void get_data_vectors_order_2(vector<double> &x_v, vector<double> &y_v,
         }
         res.first->second->counter = 1;
       } else {
+        res.first->second->o    += (double)o[c];
         res.first->second->u    += Ux[ind + p];
         res.first->second->v    += Uy[ind + p];
         res.first->second->pr   += pr[ind + p];
         res.first->second->vort += vort[ind + p];
         res.first->second->s    += s[ind + p];
+
+        res.first->second->u_min    = Ux[ind + p] < res.first->second->u_min ? Ux[ind + p] : res.first->second->u_min;
+        res.first->second->v_min    = Uy[ind + p] < res.first->second->v_min ? Uy[ind + p] : res.first->second->v_min;
+        res.first->second->pr_min   = pr[ind + p] < res.first->second->pr_min ? pr[ind + p] : res.first->second->pr_min;
+        res.first->second->vort_min = vort[ind + p] < res.first->second->vort_min ? vort[ind + p] : res.first->second->vort_min;
+        res.first->second->s_min    = s[ind + p] < res.first->second->s_min ? s[ind + p] : res.first->second->s_min;
+
+        res.first->second->u_max    = Ux[ind + p] > res.first->second->u_max ? Ux[ind + p] : res.first->second->u_max;
+        res.first->second->v_max    = Uy[ind + p] > res.first->second->v_max ? Uy[ind + p] : res.first->second->v_max;
+        res.first->second->pr_max   = pr[ind + p] > res.first->second->pr_max ? pr[ind + p] : res.first->second->pr_max;
+        res.first->second->vort_max = vort[ind + p] > res.first->second->vort_max ? vort[ind + p] : res.first->second->vort_max;
+        res.first->second->s_max    = s[ind + p] > res.first->second->s_max ? s[ind + p] : res.first->second->s_max;
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 4 + cellMask[p][m]);
@@ -609,6 +697,7 @@ void get_data_vectors_order_2(vector<double> &x_v, vector<double> &y_v,
   for(auto const &p : pointMap) {
     x_v.push_back(p.second->x);
     y_v.push_back(p.second->y);
+    o_v.push_back(p.second->o / p.second->counter);
     u_v.push_back(p.second->u / p.second->counter);
     v_v.push_back(p.second->v / p.second->counter);
     pr_v.push_back(p.second->pr / p.second->counter);
@@ -617,6 +706,11 @@ void get_data_vectors_order_2(vector<double> &x_v, vector<double> &y_v,
     for(int i = 0; i < p.second->cells.size(); i++) {
       cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
     }
+    // u_v.push_back(abs(p.second->u_max - p.second->u_min));
+    // v_v.push_back(abs(p.second->v_max - p.second->v_min));
+    // pr_v.push_back(abs(p.second->pr_max - p.second->pr_min));
+    // vort_v.push_back(abs(p.second->vort_max - p.second->vort_min));
+    // s_v.push_back(abs(p.second->s_max - p.second->s_min));
     index++;
   }
 }
@@ -624,9 +718,10 @@ void get_data_vectors_order_2(vector<double> &x_v, vector<double> &y_v,
 void get_data_vectors_order_1(vector<double> &x_v, vector<double> &y_v,
                               vector<double> &u_v, vector<double> &v_v,
                               vector<double> &pr_v, vector<double> &vort_v,
-                              vector<double> &s_v, vector<cgsize_t> &cells,
-                              double *Ux, double *Uy, double *pr, double *vort,
-                              double *x, double *y, double *s, int numCells) {
+                              vector<double> &s_v, vector<double> &o_v,
+                              vector<cgsize_t> &cells, double *Ux, double *Uy,
+                              double *pr, double *vort, double *x, double *y,
+                              double *s, int *o, int numCells) {
   // Maps points to sub elements that they are part of.
   // Each line is 6 long (as 6 is the max number of sub elements within an original element that a point can be part of)
   // -1 is just padding to get each line to 6
@@ -651,13 +746,24 @@ void get_data_vectors_order_1(vector<double> &x_v, vector<double> &y_v,
       unique_ptr<Point> point = make_unique<Point>();
       auto res = pointMap.insert(make_pair(coords, move(point)));
       if(res.second) {
-        res.first->second->x    = x[ind + p];
-        res.first->second->y    = y[ind + p];
-        res.first->second->u    = Ux[ind + p];
-        res.first->second->v    = Uy[ind + p];
-        res.first->second->pr   = pr[ind + p];
-        res.first->second->vort = vort[ind + p];
-        res.first->second->s    = s[ind + p];
+        res.first->second->x        = x[ind + p];
+        res.first->second->y        = y[ind + p];
+        res.first->second->o        = (double)o[c];
+        res.first->second->u        = Ux[ind + p];
+        res.first->second->u_min    = Ux[ind + p];
+        res.first->second->u_max    = Ux[ind + p];
+        res.first->second->v        = Uy[ind + p];
+        res.first->second->v_min    = Uy[ind + p];
+        res.first->second->v_max    = Uy[ind + p];
+        res.first->second->pr       = pr[ind + p];
+        res.first->second->pr_min   = pr[ind + p];
+        res.first->second->pr_max   = pr[ind + p];
+        res.first->second->vort     = vort[ind + p];
+        res.first->second->vort_min = vort[ind + p];
+        res.first->second->vort_max = vort[ind + p];
+        res.first->second->s        = s[ind + p];
+        res.first->second->s_min    = s[ind + p];
+        res.first->second->s_max    = s[ind + p];
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 1 + cellMask[p][m]);
@@ -668,11 +774,24 @@ void get_data_vectors_order_1(vector<double> &x_v, vector<double> &y_v,
         }
         res.first->second->counter = 1;
       } else {
+        res.first->second->o    += (double)o[c];
         res.first->second->u    += Ux[ind + p];
         res.first->second->v    += Uy[ind + p];
         res.first->second->pr   += pr[ind + p];
         res.first->second->vort += vort[ind + p];
         res.first->second->s    += s[ind + p];
+
+        res.first->second->u_min    = Ux[ind + p] < res.first->second->u_min ? Ux[ind + p] : res.first->second->u_min;
+        res.first->second->v_min    = Uy[ind + p] < res.first->second->v_min ? Uy[ind + p] : res.first->second->v_min;
+        res.first->second->pr_min   = pr[ind + p] < res.first->second->pr_min ? pr[ind + p] : res.first->second->pr_min;
+        res.first->second->vort_min = vort[ind + p] < res.first->second->vort_min ? vort[ind + p] : res.first->second->vort_min;
+        res.first->second->s_min    = s[ind + p] < res.first->second->s_min ? s[ind + p] : res.first->second->s_min;
+
+        res.first->second->u_max    = Ux[ind + p] > res.first->second->u_max ? Ux[ind + p] : res.first->second->u_max;
+        res.first->second->v_max    = Uy[ind + p] > res.first->second->v_max ? Uy[ind + p] : res.first->second->v_max;
+        res.first->second->pr_max   = pr[ind + p] > res.first->second->pr_max ? pr[ind + p] : res.first->second->pr_max;
+        res.first->second->vort_max = vort[ind + p] > res.first->second->vort_max ? vort[ind + p] : res.first->second->vort_max;
+        res.first->second->s_max    = s[ind + p] > res.first->second->s_max ? s[ind + p] : res.first->second->s_max;
         for(int m = 0; m < 6; m++) {
           if(cellMask[p][m] >= 0) {
             res.first->second->cells.push_back(c * 1 + cellMask[p][m]);
@@ -691,6 +810,7 @@ void get_data_vectors_order_1(vector<double> &x_v, vector<double> &y_v,
   for(auto const &p : pointMap) {
     x_v.push_back(p.second->x);
     y_v.push_back(p.second->y);
+    o_v.push_back(p.second->o / p.second->counter);
     u_v.push_back(p.second->u / p.second->counter);
     v_v.push_back(p.second->v / p.second->counter);
     pr_v.push_back(p.second->pr / p.second->counter);
@@ -699,6 +819,11 @@ void get_data_vectors_order_1(vector<double> &x_v, vector<double> &y_v,
     for(int i = 0; i < p.second->cells.size(); i++) {
       cells[p.second->cells[i] * 3 + p.second->pointNum[i]] = index + 1;
     }
+    // u_v.push_back(abs(p.second->u_max - p.second->u_min));
+    // v_v.push_back(abs(p.second->v_max - p.second->v_min));
+    // pr_v.push_back(abs(p.second->pr_max - p.second->pr_min));
+    // vort_v.push_back(abs(p.second->vort_max - p.second->vort_min));
+    // s_v.push_back(abs(p.second->s_max - p.second->s_min));
     index++;
   }
 }

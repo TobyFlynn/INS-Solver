@@ -4,35 +4,138 @@
 
 #ifdef INS_MPI
 #include "mpi_helper_func.h"
+#include <iostream>
+#include "op_mpi_core.h"
 #endif
 
-#include "dg_compiler_defs.h"
+#include "dg_utils.h"
+
+int PoissonSolve::get_local_unknowns() {
+  op_arg op2_args[] = {
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges(mesh->order->set, 1, op2_args);
+  const int setSize = mesh->order->set->size;
+  const int *p = (int *)mesh->order->data;
+  int local_unkowns = 0;
+  for(int i = 0; i < setSize; i++) {
+    int Np, Nfp;
+    DGUtils::basic_constants(p[i], &Np, &Nfp);
+    local_unkowns += Np;
+  }
+  op_mpi_set_dirtybit(1, op2_args);
+  return local_unkowns;
+}
 
 // Copy PETSc vec array to OP2 dat
 void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   op_arg copy_args[] = {
-    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE)
+    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE),
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges(dat->set, 1, copy_args);
-  memcpy(dat->data, dat_d, dat->set->size * DG_NP * sizeof(double));
-  op_mpi_set_dirtybit(1, copy_args);
+  op_mpi_halo_exchanges(dat->set, 2, copy_args);
+
+  int setSize = dat->set->size;
+  const int *p = (int *)mesh->order->data;
+
+  int vec_ind = 0;
+  int block_start = 0;
+  int block_count = 0;
+  for(int i = 0; i < setSize; i++) {
+    const int N = p[i];
+
+    if(N == DG_ORDER) {
+      if(block_count == 0) {
+        block_start = i;
+        block_count++;
+        continue;
+      } else {
+        block_count++;
+        continue;
+      }
+    } else {
+      if(block_count != 0) {
+        double *block_start_dat_c = (double *)dat->data + block_start * dat->dim;
+        memcpy(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(double));
+        vec_ind += DG_NP * block_count;
+      }
+      block_count = 0;
+    }
+
+    double *v_c = (double *)dat->data + i * dat->dim;
+    int Np, Nfp;
+    DGUtils::basic_constants(N, &Np, &Nfp);
+
+    memcpy(v_c, dat_d + vec_ind, Np * sizeof(double));
+    vec_ind += Np;
+  }
+
+  if(block_count != 0) {
+    double *block_start_dat_c = (double *)dat->data + block_start * dat->dim;
+    memcpy(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(double));
+    vec_ind += DG_NP * block_count;
+  }
+
+  op_mpi_set_dirtybit(2, copy_args);
 }
 
 // Copy OP2 dat to PETSc vec array
 void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
   op_arg copy_args[] = {
-    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ)
+    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges(dat->set, 1, copy_args);
-  memcpy(dat_d, dat->data, dat->set->size * DG_NP * sizeof(double));
-  op_mpi_set_dirtybit(1, copy_args);
+  op_mpi_halo_exchanges(dat->set, 2, copy_args);
+
+  int setSize = dat->set->size;
+  const int *p = (int *)mesh->order->data;
+
+  int vec_ind = 0;
+  int block_start = 0;
+  int block_count = 0;
+  for(int i = 0; i < setSize; i++) {
+    const int N = p[i];
+
+    if(N == DG_ORDER) {
+      if(block_count == 0) {
+        block_start = i;
+        block_count++;
+        continue;
+      } else {
+        block_count++;
+        continue;
+      }
+    } else {
+      if(block_count != 0) {
+        const double *block_start_dat_c = (double *)dat->data + block_start * dat->dim;
+        memcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double));
+        vec_ind += DG_NP * block_count;
+      }
+      block_count = 0;
+    }
+
+    const double *v_c = (double *)dat->data + i * dat->dim;
+    int Np, Nfp;
+    DGUtils::basic_constants(N, &Np, &Nfp);
+
+    memcpy(dat_d + vec_ind, v_c, Np * sizeof(double));
+    vec_ind += Np;
+  }
+
+  if(block_count != 0) {
+    const double *block_start_dat_c = (double *)dat->data + block_start * dat->dim;
+    memcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double));
+    vec_ind += DG_NP * block_count;
+  }
+
+  op_mpi_set_dirtybit(2, copy_args);
 }
 
 // Create a PETSc vector for CPUs
-void PoissonSolve::create_vec(Vec *v, int size) {
+void PoissonSolve::create_vec(Vec *v) {
   VecCreate(PETSC_COMM_WORLD, v);
   VecSetType(*v, VECSTANDARD);
-  VecSetSizes(*v, size * mesh->cells->size, PETSC_DECIDE);
+  VecSetSizes(*v, unknowns, PETSC_DECIDE);
 }
 
 // Destroy a PETSc vector
@@ -41,15 +144,12 @@ void PoissonSolve::destroy_vec(Vec *v) {
 }
 
 // Load a PETSc vector with values from an OP2 dat for CPUs
-void PoissonSolve::load_vec(Vec *v, op_dat v_dat, int size) {
+void PoissonSolve::load_vec(Vec *v, op_dat v_dat) {
   double *v_ptr;
   VecGetArray(*v, &v_ptr);
-  op_arg vec_petsc_args[] = {
-    op_arg_dat(v_dat, -1, OP_ID, size, "double", OP_READ)
-  };
-  op_mpi_halo_exchanges(mesh->cells, 1, vec_petsc_args);
-  memcpy(v_ptr, (double *)v_dat->data, size * v_dat->set->size * sizeof(double));
-  op_mpi_set_dirtybit(1, vec_petsc_args);
+
+  copy_dat_to_vec(v_dat, v_ptr);
+
   VecRestoreArray(*v, &v_ptr);
 }
 
@@ -57,12 +157,9 @@ void PoissonSolve::load_vec(Vec *v, op_dat v_dat, int size) {
 void PoissonSolve::store_vec(Vec *v, op_dat v_dat) {
   const double *v_ptr;
   VecGetArrayRead(*v, &v_ptr);
-  op_arg vec_petsc_args[] = {
-    op_arg_dat(v_dat, -1, OP_ID, DG_NP, "double", OP_WRITE)
-  };
-  op_mpi_halo_exchanges(mesh->cells, 1, vec_petsc_args);
-  memcpy((double *)v_dat->data, v_ptr, DG_NP * v_dat->set->size * sizeof(double));
-  op_mpi_set_dirtybit(1, vec_petsc_args);
+
+  copy_vec_to_dat(v_dat, v_ptr);
+
   VecRestoreArrayRead(*v, &v_ptr);
 }
 
@@ -82,7 +179,7 @@ PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
 }
 
 void PoissonSolve::create_shell_mat(Mat *m) {
-  MatCreateShell(PETSC_COMM_WORLD, DG_NP * mesh->cells->size, DG_NP * mesh->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
+  MatCreateShell(PETSC_COMM_WORLD, unknowns, unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
   MatShellSetOperation(*m, MATOP_MULT, (void(*)(void))matAMult);
   MatShellSetVecType(*m, VECSTANDARD);
 }
@@ -110,102 +207,123 @@ void PoissonSolve::set_shell_pc(PC pc) {
 void PoissonSolve::setGlbInd() {
   int global_ind = 0;
   #ifdef INS_MPI
-  global_ind = get_global_start_index(glb_ind->set);
+  global_ind = get_global_mat_start_ind(unknowns);
   #endif
   op_arg args[] = {
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE)
   };
-  op_mpi_halo_exchanges(mesh->cells, 1, args);
+  op_mpi_halo_exchanges(mesh->cells, 2, args);
+
+  const int *p = (int *)mesh->order->data;
   int *data_ptr = (int *)glb_ind->data;
+  int ind = global_ind;
   for(int i = 0; i < mesh->cells->size; i++) {
-    data_ptr[i] = global_ind + i;
+    int Np, Nfp;
+    DGUtils::basic_constants(p[i], &Np, &Nfp);
+    data_ptr[i] = ind;
+    ind += Np;
   }
-  op_mpi_set_dirtybit(1, args);
+
+  op_mpi_set_dirtybit(2, args);
 }
 
 void PoissonSolve::setMatrix() {
-  if(matCreated) {
-    MatDestroy(&Amat);
+  if(pMatInit) {
+    MatDestroy(&pMat);
   }
-  MatCreate(PETSC_COMM_WORLD, &Amat);
-  matCreated = true;
-  MatSetSizes(Amat, DG_NP * mesh->cells->size, DG_NP * mesh->cells->size, PETSC_DECIDE, PETSC_DECIDE);
+  MatCreate(PETSC_COMM_WORLD, &pMat);
+  pMatInit = true;
+  MatSetSizes(pMat, unknowns, unknowns, PETSC_DECIDE, PETSC_DECIDE);
 
   #ifdef INS_MPI
-  MatSetType(Amat, MATMPIAIJ);
-  MatMPIAIJSetPreallocation(Amat, DG_NP * 4, NULL, 0, NULL);
+  MatSetType(pMat, MATMPIAIJ);
+  MatMPIAIJSetPreallocation(pMat, DG_NP * 4, NULL, 0, NULL);
   #else
-  MatSetType(Amat, MATSEQAIJ);
-  MatSeqAIJSetPreallocation(Amat, DG_NP * 4, NULL);
+  MatSetType(pMat, MATSEQAIJ);
+  MatSeqAIJSetPreallocation(pMat, DG_NP * 4, NULL);
   #endif
-  MatSetOption(Amat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+  MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
 
   // Add cubature OP to Poisson matrix
   op_arg args[] = {
     op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ)
+    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges(mesh->cells, 2, args);
-  double *op1_data = (double *)op1->data;
-  int *glb = (int *)glb_ind->data;
+  op_mpi_halo_exchanges(mesh->cells, 3, args);
+  const double *op1_data = (double *)op1->data;
+  const int *glb = (int *)glb_ind->data;
+  const int *p = (int *)mesh->order->data;
 
   for(int i = 0; i < mesh->cells->size; i++) {
-    int global_ind = glb[i];
+    int Np, Nfp;
+    DGUtils::basic_constants(p[i], &Np, &Nfp);
+    int currentRow = glb[i];
+    int currentCol = glb[i];
+
     // Convert data to row major format
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int row = global_ind * DG_NP + m;
-        int col = global_ind * DG_NP + n;
-        double val = op1_data[i * DG_NP * DG_NP + m * DG_NP + n];
-        MatSetValues(Amat, 1, &row, 1, &col, &val, INSERT_VALUES);
+    for(int m = 0; m < Np; m++) {
+      for(int n = 0; n < Np; n++) {
+        int row = currentRow + m;
+        int col = currentCol + n;
+        double val = op1_data[i * DG_NP * DG_NP + m + n * Np];
+        MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
       }
     }
   }
 
-  op_mpi_set_dirtybit(2, args);
+  op_mpi_set_dirtybit(3, args);
 
   op_arg edge_args[] = {
     op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
     op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
     op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ)
+    op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(orderL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(orderR, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges(mesh->edges, 4, edge_args);
+  op_mpi_halo_exchanges(mesh->edges, 6, edge_args);
 
-  double *op2L_data = (double *)op2[0]->data;
-  double *op2R_data = (double *)op2[1]->data;
-  int *glb_l = (int *)glb_indL->data;
-  int *glb_r = (int *)glb_indR->data;
+  const double *op2L_data = (double *)op2[0]->data;
+  const double *op2R_data = (double *)op2[1]->data;
+  const int *glb_l = (int *)glb_indL->data;
+  const int *glb_r = (int *)glb_indR->data;
+  const int *p_l = (int *)orderL->data;
+  const int *p_r = (int *)orderR->data;
 
   // Add Gauss OP and OPf to Poisson matrix
   for(int i = 0; i < mesh->edges->size; i++) {
-    int leftElement = glb_l[i];
-    int rightElement = glb_r[i];
+    int leftRow = glb_l[i];
+    int rightRow = glb_r[i];
+    int NpL, NpR, Nfp;
+    DGUtils::basic_constants(p_l[i], &NpL, &Nfp);
+    DGUtils::basic_constants(p_r[i], &NpR, &Nfp);
 
     // Gauss OPf
     // Convert data to row major format
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int row = leftElement * DG_NP + m;
-        int col = rightElement * DG_NP + n;
-        double val = op2L_data[i * DG_NP * DG_NP + m * DG_NP + n];
-        MatSetValues(Amat, 1, &row, 1, &col, &val, INSERT_VALUES);
+    for(int m = 0; m < NpL; m++) {
+      for(int n = 0; n < NpR; n++) {
+        int row = leftRow + m;
+        int col = rightRow + n;
+        double val = op2L_data[i * DG_NP * DG_NP + m + n * NpL];
+        MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
       }
     }
 
     // Convert data to row major format
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < DG_NP; n++) {
-        int row = rightElement * DG_NP + m;
-        int col = leftElement * DG_NP + n;
-        double val = op2R_data[i * DG_NP * DG_NP + m * DG_NP + n];
-        MatSetValues(Amat, 1, &row, 1, &col, &val, INSERT_VALUES);
+    for(int m = 0; m < NpR; m++) {
+      for(int n = 0; n < NpL; n++) {
+        int row = rightRow + m;
+        int col = leftRow + n;
+        double val = op2R_data[i * DG_NP * DG_NP + m + n * NpR];
+        MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
       }
     }
   }
 
-  op_mpi_set_dirtybit(4, edge_args);
+  op_mpi_set_dirtybit(6, edge_args);
 
-  MatAssemblyBegin(Amat, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(Amat, MAT_FINAL_ASSEMBLY);
+  MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
 }

@@ -10,7 +10,6 @@
 #include <cmath>
 #include <limits>
 
-#include "dg_constants.h"
 #include "ins_data.h"
 #include "save_solution.h"
 #include "timing.h"
@@ -18,18 +17,47 @@
 
 using namespace std;
 
-Timing *timer;
-DGConstants *constants;
+extern double reynolds, froude, weber, mu0, mu1, rho0, rho1, dt, gam;
+extern double ic_u, ic_v, nu, mu, bc_mach, bc_alpha, bc_p, bc_u, bc_v;
+extern double refRho, refMu, refLen, refVel, refSurfTen;
 
-extern double reynolds, froude, weber, nu0, nu1, rho0, rho1, ic_u, ic_v;
+void export_data_init(string filename) {
+  ofstream file(filename);
+
+  // Create first row of csv file (headers of columns)
+  file << "Iteration" << ",";
+  file << "Time" << ",";
+  file << "Drag Coefficient" << ",";
+  file << "Lift Coefficient" << ",";
+  file << "Avg. Pressure Convergance" << ",";
+  file << "Avg. Viscosity Convergance" << endl;
+
+  file.close();
+}
+
+void export_data(string filename, int iter, double time, double drag,
+                 double lift, double avgPr, double avgVis) {
+  ofstream file(filename, ios::app);
+
+  // Create first row of csv file (headers of columns)
+  file << to_string(iter) << ",";
+  file << to_string(time) << ",";
+  file << to_string(drag) << ",";
+  file << to_string(lift) << ",";
+  file << to_string(avgPr) << ",";
+  file << to_string(avgVis) << endl;
+
+  file.close();
+}
+
+Timing *timer;
 
 int main(int argc, char **argv) {
-  op_init(argc, argv, 2);
+  op_init(argc, argv, 1);
 
   timer = new Timing();
   timer->startWallTime();
   timer->startSetup();
-  constants = new DGConstants();
 
   char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
@@ -38,25 +66,40 @@ int main(int argc, char **argv) {
     return ierr;
   }
 
-  // Phi > 0
-  nu0 = 1.0;
-  rho0 = 1.0;
-  // Phi < 0
-  nu1 = 1.0;
-  rho1 = 1.0;
-
+  gam = 1.4;
+  mu = 1e-2;
+  nu = 1e-3;
+  bc_u = 0.0;
+  bc_v = 0.0;
   ic_u = 0.0;
   ic_v = 0.0;
 
-  double refRho = 1.204;
-  double refMu  = 1.825e-5;
-  double refLen = 0.001;
-  double refVel = 1.0;
+  mu0  = 1.0;
+  mu1  = 100.0;
+  rho0 = 1.0;
+  rho1 = 1000.0;
+
+  refRho     = 1.0;
+  refMu      = 1.0e-5;
+  refLen     = 0.001;
+  refVel     = 1.5;
+  refSurfTen = 0.0756;
 
   // Set Reynolds number
   reynolds = refRho * refVel * refLen / refMu;
   // Set Froude number
   froude = refVel / sqrt(9.8 * refLen);
+  // Set Weber number
+  weber = refRho * refVel * refLen / refSurfTen;
+
+  // op_printf("gam: %g\n", gam);
+  // op_printf("mu: %g\n", mu);
+  // op_printf("nu: %g\n", nu);
+  op_printf("refRho: %g\n", refRho);
+  op_printf("refMu: %g\n", refMu);
+  op_printf("refLen: %g\n", refLen);
+  op_printf("refVel: %g\n", refVel);
+  op_printf("reynolds: %g\n", reynolds);
 
   // Get input from args
   int iter = 1;
@@ -65,9 +108,6 @@ int main(int argc, char **argv) {
 
   int save = -1;
   PetscOptionsGetInt(NULL, NULL, "-save", &save, &found);
-
-  int pre = 0;
-  PetscOptionsGetInt(NULL, NULL, "-pre", &pre, &found);
 
   int problem = 0;
   PetscOptionsGetInt(NULL, NULL, "-problem", &problem, &found);
@@ -98,14 +138,7 @@ int main(int argc, char **argv) {
   PetscOptionsGetReal(NULL, NULL, "-rho0", &rho0, &found);
   PetscOptionsGetReal(NULL, NULL, "-rho1", &rho1, &found);
 
-  op_printf("nu0: %g\n", nu0);
-  op_printf("nu1: %g\n", nu1);
-  op_printf("rho0: %g\n", rho0);
-  op_printf("rho1: %g\n", rho1);
-  op_printf("reynolds: %g\n", reynolds);
-  op_printf("froude: %g\n", froude);
-
-  Solver *solver = new Solver(filename, pre > 0, problem);
+  Solver *solver = new Solver(filename, problem);
 
   double a0 = 1.0;
   double a1 = 0.0;
@@ -117,6 +150,7 @@ int main(int argc, char **argv) {
 
   if(save != -1) {
     save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);
+    // export_data_init(outputDir + "data.csv");
   }
 
   timer->endSetup();
@@ -131,6 +165,7 @@ int main(int argc, char **argv) {
       b0 = 2.0;
       b1 = -1.0;
     }
+
     timer->startAdvection();
     solver->advection(currentIter % 2, a0, a1, b0, b1, g0, time);
     timer->endAdvection();
@@ -155,7 +190,8 @@ int main(int argc, char **argv) {
     }
     timer->endViscosity();
 
-    solver->update_surface(currentIter % 2);
+    // solver->update_surface(currentIter % 2);
+    // solver->update_surface(1);
 
     currentIter++;
     time += solver->dt;
@@ -175,7 +211,7 @@ int main(int argc, char **argv) {
     save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
 
   // Save solution to CGNS file
-  save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, time, nu0);
+  save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, time, nu);
 
   timer->endWallTime();
   timer->exportTimings(outputDir + "timings.csv", iter, time);
@@ -191,7 +227,6 @@ int main(int argc, char **argv) {
   op_timings_to_csv(op_out_file.c_str());
 
   delete solver;
-  delete constants;
   delete timer;
 
   ierr = PetscFinalize();
