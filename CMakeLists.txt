@@ -9,7 +9,7 @@ set(CUDA_NVCC_FLAGS "-arch=sm_70 -Xcompiler -mno-float128")
 
 # Default OP2 location for me
 if(NOT OP2_DIR)
-  set(OP2_DIR "/home/u1717021/Code/PhD/OP2-Common/op2")
+  set(OP2_DIR "/gpfs/users/tsf79-sxa03/OP2-Common/op2")
 endif()
 include_directories(${OP2_DIR}/include)
 
@@ -24,7 +24,7 @@ endif()
 include_directories(${ARMA_DIR}/include)
 
 set(PETSC_DIR $ENV{PETSC_DIR})
-include_directories(${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include)
+include_directories(${PETSC_DIR}/include)
 
 find_package(OpenBLAS)
 include_directories(${OpenBLAS_INCLUDE_DIRS})
@@ -33,7 +33,7 @@ enable_language(CUDA)
 find_package(CUDAToolkit)
 include_directories(${CUDAToolkit_INCLUDE_DIRS})
 set(CMAKE_CUDA_COMPILER ${CUDAToolkit_NVCC_EXECUTABLE})
-set(CMAKE_CUDA_ARCHITECTURES 75)
+set(CMAKE_CUDA_ARCHITECTURES 70)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 

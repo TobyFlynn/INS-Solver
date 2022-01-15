@@ -4,6 +4,8 @@ set(GPU_SRC poisson_gpu_op.cu utils_op.cu)
 set(SN_SRC save_solution_op.cpp load_mesh.cpp)
 set(MPI_SRC save_solution_mpi_op.cpp load_mesh_mpi.cpp mpi_helper_func.cpp)
 
+set(GFORT_LIB /gpfs/users/shared/apps/core/gcc/7.3.0/lib64/libgfortran.so.4)
+
 add_executable(ins_openmp ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${SN_SRC} openmp/ins_kernels.cpp)
 target_link_libraries(ins_openmp -L${OP2_DIR}/lib -lop2_openmp -lop2_hdf5 libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so -L${ARMA_DIR}/lib64 -larmadillo ${OpenBLAS_LIBRARIES} ${OP2DGTOOLKIT_DIR}/lib/libop2dgtoolkit_openmp.so ${GFORT_LIB})
 target_compile_definitions(ins_openmp PRIVATE DG_ORDER=3)
