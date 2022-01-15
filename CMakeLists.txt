@@ -21,7 +21,7 @@ include_directories(${CGNS_DIR}/include)
 if(NOT ARMA_DIR)
   set(ARMA_DIR "/gpfs/users/tsf79-sxa03/armadillo-10.6.1/build")
 endif()
-include_directories(${OPENBLAS_DIR}/include)
+include_directories(${ARMA_DIR}/include)
 
 set(PETSC_DIR $ENV{PETSC_DIR})
 include_directories(${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include)
