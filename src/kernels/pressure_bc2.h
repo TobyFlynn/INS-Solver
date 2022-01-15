@@ -11,7 +11,7 @@ inline void pressure_bc2(const int *bedge_type, const int *bedgeNum,
       for(int i = 0; i < DG_GF_NP; i++) {
         double y1 = y[exInd + i];
         double x1 = x[exInd + i];
-        prBC[exInd + i] += -cos(2.0 * PI * x1) * cos(2.0 * PI * y1) * exp(-nu[exInd + i] * 8.0 * PI * PI * *t);
+        prBC[exInd + i] += -cos(2.0 * PI * x1) * cos(2.0 * PI * y1) * exp(-8.0 * PI * PI * *t);
       }
     }
   }

@@ -4,12 +4,6 @@
 
 #include <iostream>
 
-#include "dg_constants.h"
-#include "dg_blas_calls.h"
-#include "dg_compiler_defs.h"
-
-extern DGConstants *constants;
-
 #include "dg_blas_calls.h"
 
 using namespace std;
