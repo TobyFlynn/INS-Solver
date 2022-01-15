@@ -1,8 +1,8 @@
-#ifndef __INS_POISSON_H
-#define __INS_POISSON_H
+#ifndef __POISSON_H
+#define __POISSON_H
 
-#include "ins_data.h"
 #include "op_seq.h"
+#include "ins_data.h"
 #include "petscvec.h"
 #include "petscksp.h"
 #include "timing.h"
@@ -21,20 +21,11 @@ public:
   void calc_rhs(const double *u_d, double *rhs_d);
   void precond(const double *in_d, double *out_d);
 
-  void init();
-  bool solve(op_dat b_dat, op_dat x_dat);
-  void calc_rhs(const double *u_d, double *rhs_d);
-  void precond(const double *in_d, double *out_d);
+  double getAverageConvergeIter();
 
   void setDirichletBCs(int *d);
   void setNeumannBCs(int *n);
   void setBCValues(op_dat bc);
-  double getAverageConvergeIter();
-
-  op_dat u, rhs, h, op1, op2[2], op_bc;
-  op_dat factor, gFactor, cFactor, mmFactor;
-  op_dat glb_ind, glb_indL, glb_indR, glb_indBC;
-  op_dat in, out, tmp, pre;
 
   // OP2 Dats
   op_dat op1, op2[2], op_bc;

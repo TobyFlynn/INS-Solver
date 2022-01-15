@@ -12,6 +12,7 @@
 
 #include "ins_data.h"
 #include "save_solution.h"
+#include "poisson.h"
 #include "timing.h"
 #include "solver.h"
 
@@ -133,10 +134,7 @@ int main(int argc, char **argv) {
     outputDir += "/";
   }
 
-  PetscOptionsGetReal(NULL, NULL, "-mu0", &nu0, &found);
-  PetscOptionsGetReal(NULL, NULL, "-mu1", &nu1, &found);
-  PetscOptionsGetReal(NULL, NULL, "-rho0", &rho0, &found);
-  PetscOptionsGetReal(NULL, NULL, "-rho1", &rho1, &found);
+  bc_alpha = 0.0;
 
   Solver *solver = new Solver(filename, problem);
 
@@ -196,7 +194,7 @@ int main(int argc, char **argv) {
     currentIter++;
     time += solver->dt;
 
-    // Save data
+    // Calculate drag and lift coefficients + save data
     if(save != -1 && (i + 1) % save == 0) {
       op_printf("Iteration: %d Time: %g\n", i, time);
 
