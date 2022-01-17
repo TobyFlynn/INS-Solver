@@ -27,8 +27,8 @@ if(NOT ARMA_DIR)
 endif()
 include_directories(${ARMA_DIR}/include)
 
-set(PETSC_DIR $ENV{PETSC_DIR})
-include_directories(${PETSC_DIR}/include)
+set(PETSC_DIR $ENV{PETSC_DIR}/arch-linux-c-debug)
+include_directories($ENV{PETSC_DIR}/include ${PETSC_DIR}/include)
 
 find_package(OpenBLAS)
 include_directories(${OpenBLAS_INCLUDE_DIRS})
