@@ -37,7 +37,7 @@ public:
 protected:
   void set_op();
   void setMatrix();
-  void create_shell_mat(Mat *m);
+  void create_shell_mat();
   void set_shell_pc(PC pc);
   int get_local_unknowns();
   void update_glb_ind();

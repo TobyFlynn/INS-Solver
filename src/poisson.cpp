@@ -146,10 +146,8 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   KSPGetPC(ksp, &pc);
 
   if(massMat) {
-    PCSetType(pc, PCEISENSTAT);
-    // PCSORSetOmega(pc, 1.0);
-    // PCSORSetIterations(pc, 10, 10);
-    // PCSORSetSymmetric(pc, SOR_FORWARD_SWEEP);
+    PCSetType(pc, PCSHELL);
+    set_shell_pc(pc);
   } else {
     PCSetType(pc, PCGAMG);
     PCGAMGSetNSmooths(pc, 4);
@@ -312,7 +310,7 @@ void ViscositySolve::setup(double mmConst) {
 
   massMat = true;
   massFactor = mmConst;
-  // block_jacobi_pre = true;
+  block_jacobi_pre = true;
 
   op_par_loop(poisson_vis_fact, "poisson_vis_fact", mesh->cells,
               op_arg_gbl(&mmConst,   1, "double", OP_READ),
@@ -323,12 +321,11 @@ void ViscositySolve::setup(double mmConst) {
 
   set_op();
 
-  timer->startBuildMat();
-  setMatrix();
-  timer->endBuildMat();
+  // timer->startBuildMat();
+  // setMatrix();
+  // timer->endBuildMat();
 
-  // create_shell_mat(&pMat);
-  // pMatInit = true;
+  create_shell_mat();
 
   // PC pc;
   // KSPGetPC(ksp, &pc);

@@ -178,10 +178,15 @@ PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
   return 0;
 }
 
-void PoissonSolve::create_shell_mat(Mat *m) {
-  MatCreateShell(PETSC_COMM_WORLD, unknowns, unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
-  MatShellSetOperation(*m, MATOP_MULT, (void(*)(void))matAMult);
-  MatShellSetVecType(*m, VECCUDA);
+void PoissonSolve::create_shell_mat() {
+  if(pMatInit)
+    MatDestroy(&pMat);
+
+  MatCreateShell(PETSC_COMM_WORLD, unknowns, unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, &pMat);
+  MatShellSetOperation(pMat, MATOP_MULT, (void(*)(void))matAMult);
+  MatShellSetVecType(pMat, VECCUDA);
+
+  pMatInit = true;
 }
 
 PetscErrorCode precon(PC pc, Vec x, Vec y) {
@@ -237,9 +242,9 @@ void PoissonSolve::setGlbInd() {
 }
 
 void PoissonSolve::setMatrix() {
-  if(pMatInit) {
+  if(pMatInit)
     MatDestroy(&pMat);
-  }
+
   MatCreate(PETSC_COMM_WORLD, &pMat);
   pMatInit = true;
   MatSetSizes(pMat, unknowns, unknowns, PETSC_DECIDE, PETSC_DECIDE);
