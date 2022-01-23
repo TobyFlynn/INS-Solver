@@ -9,8 +9,6 @@
 #include "dg_mesh.h"
 #include "ls.h"
 
-extern Timing *timer;
-
 class PoissonSolve {
 public:
   PoissonSolve(DGMesh *m, INSData *nsData, LS *s);

@@ -9,6 +9,8 @@
 
 using namespace std;
 
+extern Timing *timer;
+
 PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
   mesh = m;
   data = nsData;
@@ -142,14 +144,22 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
 
   PC pc;
   KSPGetPC(ksp, &pc);
-  PCSetType(pc, PCGAMG);
-  PCGAMGSetNSmooths(pc, 4);
-  PCGAMGSetSquareGraph(pc, 1);
-  PCGAMGSetNlevels(pc, 20);
-  PCMGSetLevels(pc, 20, NULL);
-  PCMGSetCycleType(pc, PC_MG_CYCLE_W);
-  PCGAMGSetRepartition(pc, PETSC_TRUE);
-  PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
+
+  if(massMat) {
+    PCSetType(pc, PCEISENSTAT);
+    // PCSORSetOmega(pc, 1.0);
+    // PCSORSetIterations(pc, 10, 10);
+    // PCSORSetSymmetric(pc, SOR_FORWARD_SWEEP);
+  } else {
+    PCSetType(pc, PCGAMG);
+    PCGAMGSetNSmooths(pc, 4);
+    PCGAMGSetSquareGraph(pc, 1);
+    PCGAMGSetNlevels(pc, 20);
+    PCMGSetLevels(pc, 20, NULL);
+    PCMGSetCycleType(pc, PC_MG_CYCLE_W);
+    PCGAMGSetRepartition(pc, PETSC_TRUE);
+    PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
+  }
 
   op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
               op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
@@ -164,7 +174,10 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   load_vec(&b, b_dat);
   load_vec(&x, x_dat);
 
+  timer->startKSPSolve();
   KSPSolve(ksp, b, x);
+  timer->endKSPSolve();
+
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
   KSPConvergedReason reason;
@@ -285,7 +298,9 @@ void PressureSolve::setup() {
 
   set_op();
 
+  timer->startBuildMat();
   setMatrix();
+  timer->endBuildMat();
 
   // create_shell_mat(&pMat);
   // pMatInit = true;
@@ -308,7 +323,9 @@ void ViscositySolve::setup(double mmConst) {
 
   set_op();
 
+  timer->startBuildMat();
   setMatrix();
+  timer->endBuildMat();
 
   // create_shell_mat(&pMat);
   // pMatInit = true;
