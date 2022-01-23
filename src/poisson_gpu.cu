@@ -270,21 +270,20 @@ void PoissonSolve::setMatrix() {
   cudaMemcpy(order, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
   op_mpi_set_dirtybit_cuda(3, args);
 
+  MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_FALSE);
+
   for(int i = 0; i < setSize; i++) {
     int Np, Nfp;
     DGUtils::basic_constants(order[i], &Np, &Nfp);
     int currentRow = glb[i];
     int currentCol = glb[i];
-
-    // Convert data to row major format
-    for(int m = 0; m < Np; m++) {
-      for(int n = 0; n < Np; n++) {
-        int row = currentRow + m;
-        int col = currentCol + n;
-        double val = op1_data[i * DG_NP * DG_NP + m + n * Np];
-        MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
-      }
+    int idxm[DG_NP], idxn[DG_NP];
+    for(int n = 0; n < DG_NP; n++) {
+      idxm[n] = currentRow + n;
+      idxn[n] = currentCol + n;
     }
+
+    MatSetValues(pMat, Np, idxm, Np, idxn, &op1_data[i * DG_NP * DG_NP], INSERT_VALUES);
   }
 
   free(op1_data);
@@ -322,25 +321,14 @@ void PoissonSolve::setMatrix() {
     DGUtils::basic_constants(order_l[i], &NpL, &Nfp);
     DGUtils::basic_constants(order_r[i], &NpR, &Nfp);
 
-    // Gauss OPf
-    // Convert data to row major format
-    for(int m = 0; m < NpL; m++) {
-      for(int n = 0; n < NpR; n++) {
-        int row = leftRow + m;
-        int col = rightRow + n;
-        double val = op2L_data[i * DG_NP * DG_NP + m + n * NpL];
-        MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
-      }
+    int idxl[DG_NP], idxr[DG_NP];
+    for(int n = 0; n < DG_NP; n++) {
+      idxl[n] = leftRow + n;
+      idxr[n] = rightRow + n;
     }
-    // Convert data to row major format
-    for(int m = 0; m < NpR; m++) {
-      for(int n = 0; n < NpL; n++) {
-        int row = rightRow + m;
-        int col = leftRow + n;
-        double val = op2R_data[i * DG_NP * DG_NP + m + n * NpR];
-        MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
-      }
-    }
+
+    MatSetValues(pMat, NpL, idxl, NpR, idxr, &op2L_data[i * DG_NP * DG_NP], INSERT_VALUES);
+    MatSetValues(pMat, NpR, idxr, NpL, idxl, &op2R_data[i * DG_NP * DG_NP], INSERT_VALUES);
   }
 
   free(op2L_data);
