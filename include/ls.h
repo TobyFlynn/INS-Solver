@@ -25,7 +25,7 @@ public:
   op_dat rk[3], rkQ;
   op_dat F, G, dFdr, dFds, dGdr, dGds, gInput, gU, gV, nFlux, exAdvec;
 
-  op_dat dsdx, dsdy, sign, gS;
+  op_dat dsdx, dsdy, sign, gS, gNxF, gNyF;
   op_dat dsldx, dsrdx, dsldy, dsrdy, dpldx, dprdx, dpldy, dprdy;
   op_dat sigmax, sigmay, sigmaFx, sigmaFy, gSigmax, gSigmay, sigTmp, gSigTmp, diff, diffF;
   op_dat modal, local_vis;

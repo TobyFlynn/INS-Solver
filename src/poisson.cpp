@@ -106,6 +106,8 @@ PoissonSolve::~PoissonSolve() {
 
   if(pMatInit)
     MatDestroy(&pMat);
+
+  KSPDestroy(&ksp);
 }
 
 void PoissonSolve::init() {
@@ -113,6 +115,22 @@ void PoissonSolve::init() {
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(h, -1, OP_ID, 1, "double", OP_WRITE));
+
+  KSPCreate(PETSC_COMM_WORLD, &ksp);
+  KSPSetType(ksp, KSPGMRES);
+  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e2);
+  KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
+
+  PC pc;
+  KSPGetPC(ksp, &pc);
+  PCSetType(pc, PCGAMG);
+  PCGAMGSetNSmooths(pc, 4);
+  PCGAMGSetSquareGraph(pc, 1);
+  PCGAMGSetNlevels(pc, 20);
+  PCMGSetLevels(pc, 20, NULL);
+  PCMGSetCycleType(pc, PC_MG_CYCLE_W);
+  PCGAMGSetRepartition(pc, PETSC_TRUE);
+  PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
 }
 
 void PoissonSolve::update_glb_ind() {
@@ -135,29 +153,7 @@ void PoissonSolve::update_glb_ind() {
 }
 
 bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
-  KSPCreate(PETSC_COMM_WORLD, &ksp);
-  KSPSetType(ksp, KSPGMRES);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e2);
-  KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
-
   KSPSetOperators(ksp, pMat, pMat);
-
-  PC pc;
-  KSPGetPC(ksp, &pc);
-
-  if(massMat) {
-    PCSetType(pc, PCSHELL);
-    set_shell_pc(pc);
-  } else {
-    PCSetType(pc, PCGAMG);
-    PCGAMGSetNSmooths(pc, 4);
-    PCGAMGSetSquareGraph(pc, 1);
-    PCGAMGSetNlevels(pc, 20);
-    PCMGSetLevels(pc, 20, NULL);
-    PCMGSetCycleType(pc, PC_MG_CYCLE_W);
-    PCGAMGSetRepartition(pc, PETSC_TRUE);
-    PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
-  }
 
   op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
               op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
@@ -199,8 +195,6 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
 
   destroy_vec(&b);
   destroy_vec(&x);
-
-  KSPDestroy(&ksp);
 
   return converged;
 }
@@ -327,8 +321,8 @@ void ViscositySolve::setup(double mmConst) {
 
   create_shell_mat();
 
-  // PC pc;
-  // KSPGetPC(ksp, &pc);
-  // PCSetType(pc, PCSHELL);
-  // set_shell_pc(pc);
+  PC pc;
+  KSPGetPC(ksp, &pc);
+  PCSetType(pc, PCSHELL);
+  set_shell_pc(pc);
 }
