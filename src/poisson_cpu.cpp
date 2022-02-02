@@ -178,10 +178,15 @@ PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
   return 0;
 }
 
-void PoissonSolve::create_shell_mat(Mat *m) {
-  MatCreateShell(PETSC_COMM_WORLD, unknowns, unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, m);
-  MatShellSetOperation(*m, MATOP_MULT, (void(*)(void))matAMult);
-  MatShellSetVecType(*m, VECSTANDARD);
+void PoissonSolve::create_shell_mat() {
+  if(pMatInit)
+    MatDestroy(&pMat);
+
+  MatCreateShell(PETSC_COMM_WORLD, unknowns, unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, &pMat);
+  MatShellSetOperation(pMat, MATOP_MULT, (void(*)(void))matAMult);
+  MatShellSetVecType(pMat, VECSTANDARD);
+
+  pMatInit = true;
 }
 
 PetscErrorCode precon(PC pc, Vec x, Vec y) {
@@ -229,9 +234,9 @@ void PoissonSolve::setGlbInd() {
 }
 
 void PoissonSolve::setMatrix() {
-  if(pMatInit) {
+  if(pMatInit)
     MatDestroy(&pMat);
-  }
+
   MatCreate(PETSC_COMM_WORLD, &pMat);
   pMatInit = true;
   MatSetSizes(pMat, unknowns, unknowns, PETSC_DECIDE, PETSC_DECIDE);
@@ -256,21 +261,21 @@ void PoissonSolve::setMatrix() {
   const int *glb = (int *)glb_ind->data;
   const int *p = (int *)mesh->order->data;
 
+  MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_FALSE);
+
   for(int i = 0; i < mesh->cells->size; i++) {
     int Np, Nfp;
     DGUtils::basic_constants(p[i], &Np, &Nfp);
     int currentRow = glb[i];
     int currentCol = glb[i];
 
-    // Convert data to row major format
-    for(int m = 0; m < Np; m++) {
-      for(int n = 0; n < Np; n++) {
-        int row = currentRow + m;
-        int col = currentCol + n;
-        double val = op1_data[i * DG_NP * DG_NP + m + n * Np];
-        MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
-      }
+    int idxm[DG_NP], idxn[DG_NP];
+    for(int n = 0; n < DG_NP; n++) {
+      idxm[n] = currentRow + n;
+      idxn[n] = currentCol + n;
     }
+
+    MatSetValues(pMat, Np, idxm, Np, idxn, &op1_data[i * DG_NP * DG_NP], INSERT_VALUES);
   }
 
   op_mpi_set_dirtybit(3, args);
@@ -300,30 +305,26 @@ void PoissonSolve::setMatrix() {
     DGUtils::basic_constants(p_l[i], &NpL, &Nfp);
     DGUtils::basic_constants(p_r[i], &NpR, &Nfp);
 
-    // Gauss OPf
-    // Convert data to row major format
-    for(int m = 0; m < NpL; m++) {
-      for(int n = 0; n < NpR; n++) {
-        int row = leftRow + m;
-        int col = rightRow + n;
-        double val = op2L_data[i * DG_NP * DG_NP + m + n * NpL];
-        MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
-      }
+    int idxl[DG_NP], idxr[DG_NP];
+    for(int n = 0; n < DG_NP; n++) {
+      idxl[n] = leftRow + n;
+      idxr[n] = rightRow + n;
     }
 
-    // Convert data to row major format
-    for(int m = 0; m < NpR; m++) {
-      for(int n = 0; n < NpL; n++) {
-        int row = rightRow + m;
-        int col = leftRow + n;
-        double val = op2R_data[i * DG_NP * DG_NP + m + n * NpR];
-        MatSetValues(pMat, 1, &row, 1, &col, &val, INSERT_VALUES);
-      }
-    }
+    MatSetValues(pMat, NpL, idxl, NpR, idxr, &op2L_data[i * DG_NP * DG_NP], INSERT_VALUES);
+    MatSetValues(pMat, NpR, idxr, NpL, idxl, &op2R_data[i * DG_NP * DG_NP], INSERT_VALUES);
   }
 
   op_mpi_set_dirtybit(6, edge_args);
 
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
+}
+
+void PressureSolve::setAMGXMat() {
+
+}
+
+void PressureSolve::uploadAMGXVec(AMGX_vector_handle *vec, op_dat dat) {
+
 }

@@ -11,7 +11,7 @@ target_link_libraries(ins_openmp -L${OP2_DIR}/lib -lop2_openmp -lop2_hdf5 libcgn
 target_compile_definitions(ins_openmp PRIVATE DG_ORDER=3)
 
 add_executable(ins_cuda ins_op.cpp ${COMMON_SRC} ${GPU_SRC} ${SN_SRC} cuda/ins_kernels.cu)
-target_link_libraries(ins_cuda -L${OP2_DIR}/lib -lop2_cuda -lop2_hdf5 libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so -L${ARMA_DIR}/lib64 -larmadillo ${OpenBLAS_LIBRARIES} ${OP2DGTOOLKIT_DIR}/lib/libop2dgtoolkit_cuda.so ${GFORT_LIB} CUDA::cudart_static CUDA::cublas)
+target_link_libraries(ins_cuda -L${OP2_DIR}/lib -lop2_cuda -lop2_hdf5 libcgns.so libhdf5.so ${PETSC_DIR}/lib/libpetsc.so -L${ARMA_DIR}/lib64 -larmadillo ${OpenBLAS_LIBRARIES} -L${AMGX_DIR}/lib -lamgxsh ${OP2DGTOOLKIT_DIR}/lib/libop2dgtoolkit_cuda.so ${GFORT_LIB} CUDA::cudart_static CUDA::cublas)
 target_compile_definitions(ins_cuda PRIVATE BUILD_CUDA OP2_DG_CUDA INS_CUDA DG_ORDER=3)
 
 add_executable(ins_mpi_openmp ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${MPI_SRC} openmp/ins_kernels.cpp)
