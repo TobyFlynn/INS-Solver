@@ -5,6 +5,12 @@
 #endif
 
 #include "dg_utils.h"
+#include <vector>
+#include <utility>
+#include <iostream>
+#include <fstream>
+
+using namespace std;
 
 int PoissonSolve::get_local_unknowns() {
   op_arg op2_args[] = {
@@ -277,6 +283,10 @@ void PoissonSolve::setMatrix() {
 
   MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_FALSE);
 
+  ofstream out("out.txt");
+  out << "%%MatrixMarket matrix coordinate real general" << endl;
+  out << to_string(mesh->cells->size * DG_NP) << " " << to_string(mesh->cells->size * DG_NP) << " " << to_string(mesh->cells->size * DG_NP * DG_NP + 2 * mesh->edges->size * DG_NP * DG_NP) << endl;
+
   for(int i = 0; i < setSize; i++) {
     int Np, Nfp;
     DGUtils::basic_constants(order[i], &Np, &Nfp);
@@ -289,6 +299,11 @@ void PoissonSolve::setMatrix() {
     }
 
     MatSetValues(pMat, Np, idxm, Np, idxn, &op1_data[i * DG_NP * DG_NP], INSERT_VALUES);
+    for(int n = 0; n < DG_NP; n++) {
+      for(int m = 0; m < DG_NP; m++) {
+        out << to_string(idxm[n]) << " " << to_string(idxn[m]) << " " << to_string(op1_data[i * DG_NP * DG_NP + m * DG_NP + n]) << endl;
+      }
+    }
   }
 
   free(op1_data);
@@ -334,7 +349,21 @@ void PoissonSolve::setMatrix() {
 
     MatSetValues(pMat, NpL, idxl, NpR, idxr, &op2L_data[i * DG_NP * DG_NP], INSERT_VALUES);
     MatSetValues(pMat, NpR, idxr, NpL, idxl, &op2R_data[i * DG_NP * DG_NP], INSERT_VALUES);
+
+    for(int n = 0; n < DG_NP; n++) {
+      for(int m = 0; m < DG_NP; m++) {
+        out << to_string(idxl[n]) << " " << to_string(idxr[m]) << " " << to_string(op2L_data[i * DG_NP * DG_NP + m * DG_NP + n]) << endl;
+      }
+    }
+
+    for(int n = 0; n < DG_NP; n++) {
+      for(int m = 0; m < DG_NP; m++) {
+        out << to_string(idxr[n]) << " " << to_string(idxl[m]) << " " << to_string(op2R_data[i * DG_NP * DG_NP + m * DG_NP + n]) << endl;
+      }
+    }
   }
+
+  out.close();
 
   free(op2L_data);
   free(op2R_data);
@@ -348,4 +377,122 @@ void PoissonSolve::setMatrix() {
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
 
+}
+
+void PressureSolve::setAMGXMat() {
+  const int mat_size_in_blocks = mesh->cells->size * DG_NP;
+  const int num_blocks = mesh->cells->size * DG_NP * DG_NP + 2 * mesh->edges->size * DG_NP * DG_NP;
+  const int block_size = 1;
+
+  op_arg op2_cell_args[] = {
+    op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ)
+  };
+
+  op_arg op2_edge_args[] = {
+    op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ)
+  };
+
+  double *diag_mat_data_d, *ordered_mat_data_d;
+  cudaMalloc((void**)&diag_mat_data_d, mesh->cells->size * DG_NP * DG_NP * sizeof(double));
+  cudaMalloc((void**)&ordered_mat_data_d, num_blocks * block_size * sizeof(double));
+  int *glb_l = (int *)malloc(mesh->edges->size * sizeof(int));
+  int *glb_r = (int *)malloc(mesh->edges->size * sizeof(int));
+
+  op_mpi_halo_exchanges_cuda(mesh->cells, 1, op2_cell_args);
+  cudaMemcpy(diag_mat_data_d, op1->data_d, mesh->cells->size * DG_NP * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+  op_mpi_set_dirtybit_cuda(1, op2_cell_args);
+  op_mpi_halo_exchanges_cuda(mesh->edges, 4, op2_edge_args);
+  cudaMemcpy(glb_l, glb_indL->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_r, glb_indR->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
+
+  const double *unordered_op1_d  = diag_mat_data_d;
+  const double *unordered_op2L_d = op2[0]->data_d;
+  const double *unordered_op2R_d = op2[1]->data_d;
+
+  int *row_ptrs = (int *)calloc(mat_size_in_blocks + 1, sizeof(int));
+  int *col_ptrs = (int *)calloc(num_blocks, sizeof(int));
+
+  int current_col_ptrs_index = 0;
+  int current_amgx_row = 0;
+  for(int current_cell = 0; current_cell < mesh->cells->size; current_cell++) {
+    vector<pair<int, const double *>> data_ptrs;
+
+    data_ptrs.push_back(make_pair(current_cell * DG_NP, &unordered_op1_d[current_cell * DG_NP * DG_NP]));
+
+    // Search op2L and op2R for blocks on this row
+    for(int i = 0; i < mesh->edges->size; i++) {
+      if(glb_l[i] / DG_NP == current_cell && glb_l[i] != glb_r[i]) {
+        data_ptrs.push_back(make_pair(glb_r[i], &unordered_op2L_d[i * DG_NP * DG_NP]));
+      }
+
+      if(glb_r[i] / DG_NP == current_cell && glb_l[i] != glb_r[i]) {
+        data_ptrs.push_back(make_pair(glb_l[i], &unordered_op2R_d[i * DG_NP * DG_NP]));
+      }
+    }
+
+    sort(data_ptrs.begin(), data_ptrs.end());
+
+    for(int i = 0; i < DG_NP; i++) {
+      row_ptrs[current_amgx_row] = current_col_ptrs_index;
+      for(int n = 0; n < data_ptrs.size(); n++) {
+        cudaMemcpy(ordered_mat_data_d + current_col_ptrs_index, data_ptrs[n].second + i * DG_NP, DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+        for(int col = data_ptrs[n].first; col < data_ptrs[n].first + DG_NP; col++) {
+          col_ptrs[current_col_ptrs_index] = col;
+          current_col_ptrs_index++;
+        }
+      }
+      current_amgx_row++;
+    }
+  }
+
+  op_mpi_set_dirtybit_cuda(4, op2_edge_args);
+
+  row_ptrs[mat_size_in_blocks] = num_blocks;
+
+  op_printf("Number of blocks: %i\ncol_ptr_index: %i\n", num_blocks, current_col_ptrs_index);
+
+  int *row_ptrs_d, *col_ptrs_d;
+  cudaMalloc((void**)&row_ptrs_d, (mat_size_in_blocks + 1) * sizeof(int));
+  cudaMalloc((void**)&col_ptrs_d, num_blocks * sizeof(int));
+
+  cudaMemcpy(row_ptrs_d, row_ptrs, (mat_size_in_blocks + 1) * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(col_ptrs_d, col_ptrs, num_blocks * sizeof(int), cudaMemcpyHostToDevice);
+
+  free(col_ptrs);
+  free(row_ptrs);
+
+  free(glb_l);
+  free(glb_r);
+
+  AMGX_SAFE_CALL(AMGX_matrix_upload_all(matrix, mat_size_in_blocks, num_blocks, block_size, block_size, row_ptrs_d, col_ptrs_d, (void *)ordered_mat_data_d, nullptr));
+
+  cudaFree(col_ptrs_d);
+  cudaFree(row_ptrs_d);
+  cudaFree(ordered_mat_data_d);
+  cudaFree(diag_mat_data_d);
+}
+
+void PressureSolve::uploadAMGXVec(AMGX_vector_handle *vec, op_dat dat) {
+  op_arg op2_args[] = {
+    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(dat->set, 1, op2_args);
+
+  AMGX_SAFE_CALL(AMGX_vector_upload(*vec, mesh->cells->size * DG_NP, 1, (void *)dat->data_d));
+
+  op_mpi_set_dirtybit_cuda(1, op2_args);
+}
+
+void PressureSolve::downloadAMGXVec(AMGX_vector_handle *vec, op_dat dat) {
+  op_arg op2_args[] = {
+    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE)
+  };
+  op_mpi_halo_exchanges_cuda(dat->set, 1, op2_args);
+
+  AMGX_SAFE_CALL(AMGX_vector_download(*vec, (void *)dat->data_d));
+
+  op_mpi_set_dirtybit_cuda(1, op2_args);
 }

@@ -40,6 +40,11 @@ if(NOT ARMA_DIR)
 endif()
 include_directories(${ARMA_DIR}/include)
 
+if(NOT AMGX_DIR)
+  set(AMGX_DIR "/home/u1717021/Code/PhD/AMGX/build")
+endif()
+include_directories(${AMGX_DIR}/include)
+
 enable_language(CUDA)
 find_package(CUDAToolkit)
 include_directories(${CUDAToolkit_INCLUDE_DIRS})

@@ -320,3 +320,11 @@ void PoissonSolve::setMatrix() {
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
 }
+
+void PressureSolve::setAMGXMat() {
+
+}
+
+void PressureSolve::uploadAMGXVec(AMGX_vector_handle *vec, op_dat dat) {
+
+}

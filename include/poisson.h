@@ -1,6 +1,25 @@
 #ifndef __POISSON_H
 #define __POISSON_H
 
+//#include "amgx_config.h"
+#include "amgx_c.h"
+
+#define AMGX_SAFE_CALL(rc) \
+{ \
+  AMGX_RC err;     \
+  char msg[4096];   \
+  switch(err = (rc)) {    \
+  case AMGX_RC_OK: \
+    break; \
+  default: \
+    fprintf(stderr, "AMGX ERROR: file %s line %6d\n", __FILE__, __LINE__); \
+    AMGX_get_error_string(err, msg, 4096);\
+    fprintf(stderr, "AMGX ERROR: %s\n", msg); \
+    AMGX_abort(NULL,1);\
+    break; \
+  } \
+}
+
 #include "op_seq.h"
 #include "ins_data.h"
 #include "petscvec.h"
@@ -57,6 +76,10 @@ protected:
   Mat pMat;
   KSP ksp;
 
+  op_dat bc_dat;
+
+  int numberIter, solveCount;
+
 private:
   void create_vec(Vec *v);
   void destroy_vec(Vec *v);
@@ -71,10 +94,7 @@ private:
   void calc_gauss_sub_mat();
   void calc_mm_mat();
 
-  op_dat bc_dat;
   Vec b, x;
-
-  int numberIter, solveCount;
 
   double *op1_data, *op2_data[2], *op_bc_data;
   int *glb_ind_data, *glb_indL_data, *glb_indR_data, *glb_indBC_data;
@@ -87,8 +107,22 @@ private:
 class PressureSolve : public PoissonSolve {
 public:
   PressureSolve(DGMesh *m, INSData *d, LS *s);
+  ~PressureSolve();
 
   void setup();
+  bool solve(op_dat b_dat, op_dat x_dat);
+
+private:
+  void setAMGXMat();
+  void uploadAMGXVec(AMGX_vector_handle *vec, op_dat dat);
+  void downloadAMGXVec(AMGX_vector_handle *vec, op_dat dat);
+
+  AMGX_matrix_handle matrix;
+  AMGX_vector_handle rhs;
+  AMGX_vector_handle soln;
+  AMGX_resources_handle rsrc;
+  AMGX_solver_handle solver;
+  AMGX_config_handle config;
 };
 
 class ViscositySolve : public PoissonSolve {
