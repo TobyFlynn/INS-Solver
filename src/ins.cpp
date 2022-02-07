@@ -22,6 +22,35 @@ extern double reynolds, froude, weber, mu0, mu1, rho0, rho1, dt, gam;
 extern double ic_u, ic_v, nu, mu, bc_mach, bc_alpha, bc_p, bc_u, bc_v;
 extern double refRho, refMu, refLen, refVel, refSurfTen;
 
+void export_data_init(string filename) {
+  ofstream file(filename);
+
+  // Create first row of csv file (headers of columns)
+  file << "Iteration" << ",";
+  file << "Time" << ",";
+  file << "Drag Coefficient" << ",";
+  file << "Lift Coefficient" << ",";
+  file << "Avg. Pressure Convergance" << ",";
+  file << "Avg. Viscosity Convergance" << endl;
+
+  file.close();
+}
+
+void export_data(string filename, int iter, double time, double drag,
+                 double lift, double avgPr, double avgVis) {
+  ofstream file(filename, ios::app);
+
+  // Create first row of csv file (headers of columns)
+  file << to_string(iter) << ",";
+  file << to_string(time) << ",";
+  file << to_string(drag) << ",";
+  file << to_string(lift) << ",";
+  file << to_string(avgPr) << ",";
+  file << to_string(avgVis) << endl;
+
+  file.close();
+}
+
 Timing *timer;
 
 int main(int argc, char **argv) {
@@ -62,15 +91,16 @@ int main(int argc, char **argv) {
   // Set Froude number
   froude = refVel / sqrt(9.8 * refLen);
   // Set Weber number
-  weber = refRho * refVel * refVel * refLen / refSurfTen;
+  weber = refRho * refVel * refLen / refSurfTen;
 
+  // op_printf("gam: %g\n", gam);
+  // op_printf("mu: %g\n", mu);
+  // op_printf("nu: %g\n", nu);
   op_printf("refRho: %g\n", refRho);
   op_printf("refMu: %g\n", refMu);
   op_printf("refLen: %g\n", refLen);
   op_printf("refVel: %g\n", refVel);
   op_printf("reynolds: %g\n", reynolds);
-  op_printf("froude: %g\n", froude);
-  op_printf("weber: %g\n", weber);
 
   // Get input from args
   int iter = 1;
@@ -116,8 +146,10 @@ int main(int argc, char **argv) {
   int currentIter = 0;
   double time = 0.0;
 
-  if(save != -1)
+  if(save != -1) {
     save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);
+    // export_data_init(outputDir + "data.csv");
+  }
 
   timer->endSetup();
   timer->startMainLoop();
@@ -156,7 +188,8 @@ int main(int argc, char **argv) {
     }
     timer->endViscosity();
 
-    solver->update_surface(currentIter % 2);
+    // solver->update_surface(currentIter % 2);
+    // solver->update_surface(1);
 
     currentIter++;
     time += solver->dt;

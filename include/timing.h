@@ -45,11 +45,14 @@ public:
   void startViscosityLinearSolve();
   void endViscosityLinearSolve();
 
-  void startKSPSolve();
-  void endKSPSolve();
+  void startLinearSolveMF();
+  void endLinearSolveMF();
 
-  void startBuildMat();
-  void endBuildMat();
+  void startLinearSolveMFMatMult();
+  void endLinearSolveMFMatMult();
+
+  void startLinearSolveMFRHS();
+  void endLinearSolveMFRHS();
 
 private:
   double cpu1, cpu2;
@@ -90,11 +93,14 @@ private:
   double totalViscosityLinearSolve = 0.0;
   double viscosityLinearSolve1, viscosityLinearSolve2;
 
-  double totalKSPSolve = 0.0;
-  double KSPSolve1, KSPSolve2;
+  double totalLinearSolveMF = 0.0;
+  double linearSolveMF1, linearSolveMF2;
 
-  double totalBuildMat = 0.0;
-  double buildMat1, buildMat2;
+  double totalLinearSolveMFMatMult = 0.0;
+  double linearSolveMFMatMult1, linearSolveMFMatMult2;
+
+  double totalLinearSolveMFRHS = 0.0;
+  double linearSolveMFRHS1, linearSolveMFRHS2;
 };
 
 #endif

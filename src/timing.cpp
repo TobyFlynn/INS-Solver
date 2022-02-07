@@ -26,8 +26,9 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << "Pressure Linear Solve" << ",";
   file << "Viscosity Setup" << ",";
   file << "Viscosity Linear Solve" << ",";
-  file << "KSP Solve" << ",";
-  file << "Build Mat";
+  file << "Linear Solve MF" << ",";
+  file << "Linear Solve MF Mat Mult" << ",";
+  file << "Linear Solve MF RHS";
   file << endl;
 
   // Output timing data
@@ -45,8 +46,9 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << to_string(totalPressureLinearSolve) << ",";
   file << to_string(totalViscositySetup) << ",";
   file << to_string(totalViscosityLinearSolve) << ",";
-  file << to_string(totalKSPSolve) << ",";
-  file << to_string(totalBuildMat);
+  file << to_string(totalLinearSolveMF) << ",";
+  file << to_string(totalLinearSolveMFMatMult) << ",";
+  file << to_string(totalLinearSolveMFRHS);
   file << endl;
 
   file.close();
@@ -76,8 +78,9 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << "Pressure Linear Solve" << ",";
   file << "Viscosity Setup" << ",";
   file << "Viscosity Linear Solve" << ",";
-  file << "KSP Solve" << ",";
-  file << "Build Mat";
+  file << "Linear Solve MF" << ",";
+  file << "Linear Solve MF Mat Mult" << ",";
+  file << "Linear Solve MF RHS";
   file << endl;
 
   // Output timing data
@@ -95,8 +98,9 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << to_string(totalPressureLinearSolve) << ",";
   file << to_string(totalViscositySetup) << ",";
   file << to_string(totalViscosityLinearSolve) << ",";
-  file << to_string(totalKSPSolve) << ",";
-  file << to_string(totalBuildMat);
+  file << to_string(totalLinearSolveMF) << ",";
+  file << to_string(totalLinearSolveMFMatMult) << ",";
+  file << to_string(totalLinearSolveMFRHS);
   file << endl;
 
   file.close();
@@ -207,18 +211,26 @@ void Timing::endViscosityLinearSolve() {
   totalViscosityLinearSolve += viscosityLinearSolve2 - viscosityLinearSolve1;
 }
 
-void Timing::startKSPSolve() {
-  op_timers(&cpu1, &KSPSolve1);
+void Timing::startLinearSolveMF() {
+  op_timers(&cpu1, &linearSolveMF1);
 }
-void Timing::endKSPSolve() {
-  op_timers(&cpu2, &KSPSolve2);
-  totalKSPSolve += KSPSolve2 - KSPSolve1;
+void Timing::endLinearSolveMF() {
+  op_timers(&cpu2, &linearSolveMF2);
+  totalLinearSolveMF += linearSolveMF2 - linearSolveMF1;
 }
 
-void Timing::startBuildMat() {
-  op_timers(&cpu1, &buildMat1);
+void Timing::startLinearSolveMFMatMult() {
+  op_timers(&cpu1, &linearSolveMFMatMult1);
 }
-void Timing::endBuildMat() {
-  op_timers(&cpu2, &buildMat2);
-  totalBuildMat += buildMat2 - buildMat1;
+void Timing::endLinearSolveMFMatMult() {
+  op_timers(&cpu2, &linearSolveMFMatMult2);
+  totalLinearSolveMFMatMult += linearSolveMFMatMult2 - linearSolveMFMatMult1;
+}
+
+void Timing::startLinearSolveMFRHS() {
+  op_timers(&cpu1, &linearSolveMFRHS1);
+}
+void Timing::endLinearSolveMFRHS() {
+  op_timers(&cpu2, &linearSolveMFRHS2);
+  totalLinearSolveMFRHS += linearSolveMFRHS2 - linearSolveMFRHS1;
 }

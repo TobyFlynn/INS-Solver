@@ -28,7 +28,7 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
       for(int i = 0; i < dg_npf; i++) {
         double y1 = y[fmask[i]];
         double bcdUndt = -(PI/8.0) * cos((PI * *t) / 8.0) * 4.0 * y1 * (1.0 - y1);
-        // dPdN[exInd + i] -= bcdUndt;
+        dPdN[exInd + i] -= bcdUndt;
       }
     }
   } else {

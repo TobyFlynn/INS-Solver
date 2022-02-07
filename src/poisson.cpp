@@ -8,8 +8,6 @@
 
 using namespace std;
 
-extern Timing *timer;
-
 PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
   mesh = m;
   data = nsData;
@@ -105,8 +103,6 @@ PoissonSolve::~PoissonSolve() {
 
   if(pMatInit)
     MatDestroy(&pMat);
-
-  KSPDestroy(&ksp);
 }
 
 void PoissonSolve::init() {
@@ -114,27 +110,6 @@ void PoissonSolve::init() {
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(h, -1, OP_ID, 1, "double", OP_WRITE));
-
-  KSPCreate(PETSC_COMM_WORLD, &ksp);
-  KSPSetType(ksp, KSPGMRES);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e2);
-  KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
-
-  PC pc;
-  KSPGetPC(ksp, &pc);
-  PCSetType(pc, PCGAMG);
-  PCGAMGSetNSmooths(pc, 4);
-  PCGAMGSetSquareGraph(pc, 1);
-  PCGAMGSetNlevels(pc, 20);
-  PCMGSetLevels(pc, 20, NULL);
-  PCMGSetCycleType(pc, PC_MG_CYCLE_W);
-  PCGAMGSetRepartition(pc, PETSC_TRUE);
-  PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
-
-  // AMGX_resources_create_simple(&rsrc);
-  // AMGX_matrix_create(&matrix, rsrc, AMGX_mode_dDDI);
-  // AMGX_vector_create(&rhs, rsrc, AMGX_mode_dDDI);
-  // AMGX_vector_create(&soln, rsrc, AMGX_mode_dDDI);
 }
 
 void PoissonSolve::update_glb_ind() {
@@ -157,7 +132,23 @@ void PoissonSolve::update_glb_ind() {
 }
 
 bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
+  KSPCreate(PETSC_COMM_WORLD, &ksp);
+  KSPSetType(ksp, KSPGMRES);
+  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e2);
+  KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
+
   KSPSetOperators(ksp, pMat, pMat);
+
+  PC pc;
+  KSPGetPC(ksp, &pc);
+  PCSetType(pc, PCGAMG);
+  PCGAMGSetNSmooths(pc, 4);
+  PCGAMGSetSquareGraph(pc, 1);
+  PCGAMGSetNlevels(pc, 20);
+  PCMGSetLevels(pc, 20, NULL);
+  PCMGSetCycleType(pc, PC_MG_CYCLE_W);
+  PCGAMGSetRepartition(pc, PETSC_TRUE);
+  PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
 
   op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
               op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
@@ -172,10 +163,7 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   load_vec(&b, b_dat);
   load_vec(&x, x_dat);
 
-  timer->startKSPSolve();
   KSPSolve(ksp, b, x);
-  timer->endKSPSolve();
-
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
   KSPConvergedReason reason;
@@ -199,6 +187,8 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
 
   destroy_vec(&b);
   destroy_vec(&x);
+
+  KSPDestroy(&ksp);
 
   return converged;
 }
@@ -278,61 +268,7 @@ double PoissonSolve::getAverageConvergeIter() {
   return res;
 }
 
-PressureSolve::PressureSolve(DGMesh *m, INSData *d, LS *s) : PoissonSolve(m, d, s) {
-  AMGX_SAFE_CALL(AMGX_initialize());
-  AMGX_SAFE_CALL(AMGX_initialize_plugins());
-
-  AMGX_SAFE_CALL(AMGX_config_create_from_file(&config, "/home/u1717021/Code/PhD/INS-Solver/linear_solve_config/FGMRES_CLASSICAL_AGGRESSIVE_HMIS.json"));
-
-  AMGX_resources_create_simple(&rsrc, config);
-  AMGX_matrix_create(&matrix, rsrc, AMGX_mode_dDDI);
-  AMGX_vector_create(&rhs, rsrc, AMGX_mode_dDDI);
-  AMGX_vector_create(&soln, rsrc, AMGX_mode_dDDI);
-  AMGX_solver_create(&solver, rsrc, AMGX_mode_dDDI, config);
-}
-
-PressureSolve::~PressureSolve() {
-  AMGX_solver_destroy(solver);
-  AMGX_vector_destroy(soln);
-  AMGX_vector_destroy(rhs);
-  AMGX_matrix_destroy(matrix);
-  AMGX_resources_destroy(rsrc);
-
-  AMGX_finalize_plugins();
-  AMGX_finalize();
-}
-
-bool PressureSolve::solve(op_dat b_dat, op_dat x_dat) {
-  op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
-              op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(bc_dat, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(b_dat,  0, mesh->bedge2cells, DG_NP, "double", OP_INC));
-
-
-  uploadAMGXVec(&rhs, b_dat);
-  uploadAMGXVec(&soln, x_dat);
-
-  AMGX_solver_setup(solver, matrix);
-  AMGX_solver_solve(solver, rhs, soln);
-
-  AMGX_SOLVE_STATUS status;
-  AMGX_solver_get_status(solver, &status);
-
-  int numIt;
-  AMGX_solver_get_iterations_number(solver, &numIt);
-  if(status != AMGX_SOLVE_SUCCESS) {
-    cout << "Number of iterations for linear solver: " << numIt << endl;
-    return false;
-  }
-  numberIter += numIt;
-  solveCount++;
-
-  downloadAMGXVec(&soln, x_dat);
-
-  return true;
-}
+PressureSolve::PressureSolve(DGMesh *m, INSData *d, LS *s) : PoissonSolve(m, d, s) {}
 
 ViscositySolve::ViscositySolve(DGMesh *m, INSData *d, LS *s) : PoissonSolve(m, d, s) {}
 
@@ -348,19 +284,7 @@ void PressureSolve::setup() {
 
   set_op();
 
-  // setMatrix();
-
-  op_par_loop(poisson_transpose_cells, "poisson_transpose_cells", mesh->cells,
-              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_RW));
-
-  op_par_loop(poisson_transpose_edges, "poisson_transpose_edges", mesh->edges,
-              op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_RW),
-              op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_RW));
-
-  timer->startBuildMat();
-  // setMatrix();
-  setAMGXMat();
-  timer->endBuildMat();
+  setMatrix();
 
   // create_shell_mat(&pMat);
   // pMatInit = true;
@@ -372,7 +296,7 @@ void ViscositySolve::setup(double mmConst) {
 
   massMat = true;
   massFactor = mmConst;
-  block_jacobi_pre = true;
+  // block_jacobi_pre = true;
 
   op_par_loop(poisson_vis_fact, "poisson_vis_fact", mesh->cells,
               op_arg_gbl(&mmConst,   1, "double", OP_READ),
@@ -383,14 +307,13 @@ void ViscositySolve::setup(double mmConst) {
 
   set_op();
 
-  // timer->startBuildMat();
-  // setMatrix();
-  // timer->endBuildMat();
+  setMatrix();
 
-  create_shell_mat();
+  // create_shell_mat(&pMat);
+  // pMatInit = true;
 
-  PC pc;
-  KSPGetPC(ksp, &pc);
-  PCSetType(pc, PCSHELL);
-  set_shell_pc(pc);
+  // PC pc;
+  // KSPGetPC(ksp, &pc);
+  // PCSetType(pc, PCSHELL);
+  // set_shell_pc(pc);
 }

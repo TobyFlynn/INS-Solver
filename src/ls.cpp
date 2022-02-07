@@ -121,9 +121,6 @@ void LS::init() {
   gSigmax = data->tmp_dg_g_np[2];
   gSigmay = data->tmp_dg_g_np[3];
 
-  gNxF = data->tmp_dg_g_np[0];
-  gNyF = data->tmp_dg_g_np[1];
-
   op_par_loop(init_surface, "init_surface", mesh->cells,
               op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
@@ -140,10 +137,8 @@ void LS::init() {
   // alpha = 2.0 * h / DG_ORDER;
   // order_width = 2.0 * h;
   // epsilon = h / DG_ORDER;
-  // alpha = 6.0 * h;
-  // order_width = 6.0 * h;
-  alpha = 1.0 * h;
-  order_width = 1.0 * h;
+  alpha = 6.0 * h;
+  order_width = 6.0 * h;
   epsilon = h;
   reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
@@ -222,7 +217,6 @@ void LS::step(double dt) {
               op_arg_dat(s,           0, mesh->bedge2cells, DG_NP, "double", OP_WRITE));
   */
 
-  /*
   op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
               op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&order_width,     1, "double", OP_READ),
@@ -238,7 +232,6 @@ void LS::step(double dt) {
   dats_to_update.push_back(s);
 
   mesh->update_order(data->new_order, dats_to_update);
-  */
 
   update_values();
 }
@@ -558,30 +551,9 @@ void LS::update_values() {
               op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->mu,  -1, OP_ID, DG_NP, "double", OP_WRITE));
 
+  // Assume | grad s | is approx 1 so this is sufficient for getting normals
   grad(mesh, s, nx, ny);
 
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, s, 0.0, gS);
-
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
-              op_arg_dat(gNxF, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
-              op_arg_dat(gNyF, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
-
-  op_par_loop(ls_normal_flux, "ls_normal_flux", mesh->edges,
-              op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(mesh->gauss->nx, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gS,   -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gNxF, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
-              op_arg_dat(gNyF, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
-
-  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, gNxF, 1.0, nx);
-  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, gNyF, 1.0, ny);
-
-  op_par_loop(ls_normalise, "ls_normalise", mesh->cells,
-              op_arg_dat(nx, -1, OP_ID, DG_NP, "double", OP_RW),
-              op_arg_dat(ny, -1, OP_ID, DG_NP, "double", OP_RW));
   div(mesh, nx, ny, curv);
 }
 

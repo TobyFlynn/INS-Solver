@@ -22,15 +22,13 @@ INSData::INSData(DGMesh *m) {
     tmp_dg_g_np_data[i] = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
   }
   for(int i = 0; i < 2; i++) {
-    Q_data[0][i]        = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    Q_data[1][i]        = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    QT_data[i]          = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    QTT_data[i]         = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    N_data[0][i]        = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    N_data[1][i]        = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    surf_ten_data[0][i] = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    surf_ten_data[1][i] = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    dPdN_data[i]        = (double *)calloc(3 * DG_NPF * mesh->numCells, sizeof(double));
+    Q_data[0][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+    Q_data[1][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+    QT_data[i]     = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+    QTT_data[i]    = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+    N_data[0][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+    N_data[1][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+    dPdN_data[i]   = (double *)calloc(3 * DG_NPF * mesh->numCells, sizeof(double));
   }
   p_data         = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   prBC_data      = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
@@ -50,24 +48,20 @@ INSData::INSData(DGMesh *m) {
     tmp_dg_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, "double", tmp_dg_g_np_data[i], name.c_str());
   }
   for(int i = 0; i < 2; i++) {
-    string name    = "Q0" + to_string(i);
-    Q[0][i]        = op_decl_dat(mesh->cells, DG_NP, "double", Q_data[0][i], name.c_str());
-    name           = "Q1" + to_string(i);
-    Q[1][i]        = op_decl_dat(mesh->cells, DG_NP, "double", Q_data[1][i], name.c_str());
-    name           = "QT" + to_string(i);
-    QT[i]          = op_decl_dat(mesh->cells, DG_NP, "double", QT_data[i], name.c_str());
-    name           = "QTT" + to_string(i);
-    QTT[i]         = op_decl_dat(mesh->cells, DG_NP, "double", QTT_data[i], name.c_str());
-    name           = "N0" + to_string(i);
-    N[0][i]        = op_decl_dat(mesh->cells, DG_NP, "double", N_data[0][i], name.c_str());
-    name           = "N1" + to_string(i);
-    N[1][i]        = op_decl_dat(mesh->cells, DG_NP, "double", N_data[1][i], name.c_str());
-    name           = "ST0" + to_string(i);
-    surf_ten[0][i] = op_decl_dat(mesh->cells, DG_NP, "double", surf_ten_data[0][i], name.c_str());
-    name           = "ST1" + to_string(i);
-    surf_ten[1][i] = op_decl_dat(mesh->cells, DG_NP, "double", surf_ten_data[1][i], name.c_str());
-    name           = "dPdN" + to_string(i);
-    dPdN[i]        = op_decl_dat(mesh->cells, 3 * DG_NPF, "double", dPdN_data[i], name.c_str());
+    string name = "Q0" + to_string(i);
+    Q[0][i]     = op_decl_dat(mesh->cells, DG_NP, "double", Q_data[0][i], name.c_str());
+    name        = "Q1" + to_string(i);
+    Q[1][i]     = op_decl_dat(mesh->cells, DG_NP, "double", Q_data[1][i], name.c_str());
+    name        = "QT" + to_string(i);
+    QT[i]       = op_decl_dat(mesh->cells, DG_NP, "double", QT_data[i], name.c_str());
+    name        = "QTT" + to_string(i);
+    QTT[i]      = op_decl_dat(mesh->cells, DG_NP, "double", QTT_data[i], name.c_str());
+    name        = "N0" + to_string(i);
+    N[0][i]     = op_decl_dat(mesh->cells, DG_NP, "double", N_data[0][i], name.c_str());
+    name        = "N1" + to_string(i);
+    N[1][i]     = op_decl_dat(mesh->cells, DG_NP, "double", N_data[1][i], name.c_str());
+    name        = "dPdN" + to_string(i);
+    dPdN[i]     = op_decl_dat(mesh->cells, 3 * DG_NPF, "double", dPdN_data[i], name.c_str());
   }
   p         = op_decl_dat(mesh->cells, DG_NP, "double", p_data, "p");
   prBC      = op_decl_dat(mesh->cells, DG_G_NP, "double", prBC_data, "prBC");
@@ -78,8 +72,6 @@ INSData::INSData(DGMesh *m) {
   mu        = op_decl_dat(mesh->cells, DG_NP, "double", mu_data, "mu");
 
   op_decl_const(1, "double", &reynolds);
-  op_decl_const(1, "double", &weber);
-  op_decl_const(1, "double", &froude);
   op_decl_const(1, "double", &mu0);
   op_decl_const(1, "double", &mu1);
   op_decl_const(1, "double", &rho0);
@@ -107,8 +99,6 @@ INSData::~INSData() {
     free(QTT_data[i]);
     free(N_data[0][i]);
     free(N_data[1][i]);
-    free(surf_ten_data[0][i]);
-    free(surf_ten_data[1][i]);
     free(dPdN_data[i]);
   }
   free(p_data);

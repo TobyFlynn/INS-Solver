@@ -146,16 +146,6 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
   op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], 1.0, data->N[currentInd][0]);
   op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], 1.0, data->N[currentInd][1]);
 
-  // Kernel to calculate surface tension force
-  op_par_loop(advection_surface_tension, "advection_surface_tension", mesh->cells,
-              op_arg_dat(ls->diracDelta, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(ls->curv,       -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(ls->nx,         -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(ls->ny,         -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(ls->s,          -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->surf_ten[currentInd][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(data->surf_ten[currentInd][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
-
   // Calculate the intermediate velocity values
   op_par_loop(advection_intermediate_vel, "advection_intermediate_vel", mesh->cells,
               op_arg_gbl(&a0, 1, "double", OP_READ),
@@ -171,10 +161,6 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->N[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->N[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->N[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->surf_ten[currentInd][0],    -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->surf_ten[currentInd][1],    -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->surf_ten[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->surf_ten[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->QT[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->QT[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 }
