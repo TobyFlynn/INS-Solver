@@ -33,11 +33,6 @@ include_directories($ENV{PETSC_DIR}/include ${PETSC_DIR}/include)
 find_package(OpenBLAS)
 include_directories(${OpenBLAS_INCLUDE_DIRS})
 
-if(NOT AMGX_DIR)
-  set(AMGX_DIR "/gpfs/users/tsf79-sxa03/AMGX/build")
-endif()
-include_directories(${AMGX_DIR}/include)
-
 enable_language(CUDA)
 find_package(CUDAToolkit)
 include_directories(${CUDAToolkit_INCLUDE_DIRS})
