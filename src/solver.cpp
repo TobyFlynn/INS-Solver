@@ -132,7 +132,6 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&t, 1, "double", OP_READ),
-              op_arg_gbl(&problem, 1, "int", OP_READ),
               op_arg_dat(mesh->gauss->x,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(mesh->gauss->y,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(data->gQ[0],     0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
@@ -179,7 +178,6 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
               op_arg_gbl(&t, 1, "double", OP_READ),
-              op_arg_gbl(&problem, 1, "int", OP_READ),
               op_arg_dat(mesh->x, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->y, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->nx, 0, mesh->bedge2cells, 3 * DG_NPF, "double", OP_READ),
@@ -190,18 +188,6 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->gradCurlVel[1], 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
               op_arg_dat(data->rho, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
               op_arg_dat(data->dPdN[currentInd], 0, mesh->bedge2cells, 3 * DG_NPF, "double", OP_INC));
-
-  if(problem == 1) {
-    // TODO - update for p-adaptivity
-    op_par_loop(pressure_bc2, "pressure_bc2", mesh->bedges,
-                op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-                op_arg_gbl(&t, 1, "double", OP_READ),
-                op_arg_gbl(&problem, 1, "int", OP_READ),
-                op_arg_dat(mesh->gauss->x, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->y, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(data->prBC, 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
-  }
 
   // Calculate RHS of pressure solve
   // This assumes that the boundaries will always be order DG_ORDER
@@ -278,7 +264,6 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&time, 1, "double", OP_READ),
-              op_arg_gbl(&problem, 1, "int", OP_READ),
               op_arg_dat(mesh->gauss->x, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(mesh->gauss->y, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),

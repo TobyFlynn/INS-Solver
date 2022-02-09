@@ -56,6 +56,7 @@ protected:
 
   Mat pMat;
   KSP ksp;
+  int solveCount;
 
 private:
   void create_vec(Vec *v);
@@ -74,7 +75,7 @@ private:
   op_dat bc_dat;
   Vec b, x;
 
-  int numberIter, solveCount;
+  int numberIter;
 
   double *op1_data, *op2_data[2], *op_bc_data;
   int *glb_ind_data, *glb_indL_data, *glb_indR_data, *glb_indBC_data;

@@ -83,11 +83,13 @@ int main(int argc, char **argv) {
   refRho     = 1.0;
   refMu      = 1.0e-5;
   refLen     = 0.001;
-  refVel     = 1.5;
+  // refVel     = 1.5;
   refSurfTen = 0.0756;
 
   // Set Reynolds number
-  reynolds = refRho * refVel * refLen / refMu;
+  // reynolds = refRho * refVel * refLen / refMu;
+  reynolds = 100.0;
+  refVel   = reynolds * refMu / (refRho * refLen);
   // Set Froude number
   froude = refVel / sqrt(9.8 * refLen);
   // Set Weber number
@@ -101,6 +103,11 @@ int main(int argc, char **argv) {
   op_printf("refLen: %g\n", refLen);
   op_printf("refVel: %g\n", refVel);
   op_printf("reynolds: %g\n", reynolds);
+
+  op_printf("mu0: %g\n", mu0);
+  op_printf("mu1: %g\n", mu1);
+  op_printf("rho0: %g\n", rho0);
+  op_printf("rho1: %g\n", rho1);
 
   // Get input from args
   int iter = 1;

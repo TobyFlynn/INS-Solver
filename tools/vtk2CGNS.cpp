@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
 
   cout << "Number of points: " << x.size() << endl;
   cout << "VTK Number of points: " << grid->GetNumberOfPoints() << endl;
-  cout << "Number of cell: " << elements.size() << endl;
+  cout << "Number of cell: " << elements.size() / 3 << endl;
 
   // Add edges to edge map if not already contained in mapping
   // If already added then update cell field
