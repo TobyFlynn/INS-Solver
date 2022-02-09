@@ -120,6 +120,9 @@ int main(int argc, char **argv) {
   int problem = 0;
   PetscOptionsGetInt(NULL, NULL, "-problem", &problem, &found);
 
+  double endTime = 0.0;
+  PetscOptionsGetReal(NULL, NULL, "-time", &endTime, &found);
+
   char inputFile[255];
   PetscOptionsGetString(NULL, NULL, "-input", inputFile, 255, &found);
   if(!found) {
@@ -156,6 +159,18 @@ int main(int argc, char **argv) {
   if(save != -1) {
     save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);
     // export_data_init(outputDir + "data.csv");
+  }
+
+  int numIterHalfSec = 0;
+  if(endTime > 0.0) {
+    if(endTime > 0.5) {
+      numIterHalfSec = ceil(0.5 / solver->getDT());
+      solver->updateDT(endTime / (double)numIterHalfSec);
+      iter = ceil(endTime / solver->getDT());
+    } else {
+      iter = ceil(endTime / solver->getDT());
+      solver->updateDT(endTime / (double)iter);
+    }
   }
 
   timer->endSetup();

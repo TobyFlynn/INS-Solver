@@ -320,3 +320,14 @@ double Solver::getAvgPressureConvergance() {
 double Solver::getAvgViscosityConvergance() {
   return viscosityPoisson->getAverageConvergeIter();
 }
+
+double Solver::getDT() {
+  return dt;
+}
+
+void Solver::updateDT(double newDT) {
+  if(newDT < dt) {
+    dt = newDT;
+  }
+  op_printf("New dt: %g\n", dt);
+}

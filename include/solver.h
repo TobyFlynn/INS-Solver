@@ -28,6 +28,9 @@ public:
   double getAvgPressureConvergance();
   double getAvgViscosityConvergance();
 
+  double getDT();
+  void updateDT(double newDT);
+
   DGMesh *mesh;
   INSData *data;
   LS *ls;
