@@ -1,6 +1,6 @@
 // Target element size of outer boundary
-coarse = 0.0163;
-fine = 0.0042;
+coarse = 0.07;
+fine = 0.017;
 
 // Bottom left coords
 xL = 0;
