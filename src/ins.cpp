@@ -156,21 +156,26 @@ int main(int argc, char **argv) {
   int currentIter = 0;
   double time = 0.0;
 
-  if(save != -1) {
-    save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);
-    // export_data_init(outputDir + "data.csv");
-  }
-
   int numIterHalfSec = 0;
   if(endTime > 0.0) {
     if(endTime > 0.5) {
       numIterHalfSec = ceil(0.5 / solver->getDT());
-      solver->updateDT(endTime / (double)numIterHalfSec);
+      solver->updateDT(0.5 / (double)numIterHalfSec);
       iter = ceil(endTime / solver->getDT());
     } else {
       iter = ceil(endTime / solver->getDT());
       solver->updateDT(endTime / (double)iter);
     }
+  }
+
+  if(save == -1 && numIterHalfSec > 0)
+    save = numIterHalfSec;
+
+  op_printf("Saving solution every %d iterations (%g seconds)\n", save, save * solver->getDT());
+
+  if(save != -1) {
+    save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);
+    // export_data_init(outputDir + "data.csv");
   }
 
   timer->endSetup();
