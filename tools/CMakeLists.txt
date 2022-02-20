@@ -15,3 +15,7 @@ target_link_libraries(matlab2CGNS ${CGNS_DIR}/lib/libcgns.so)
 add_executable(vortexError vortexError.cpp)
 target_include_directories(vortexError PUBLIC ${CGNS_DIR}/include)
 target_link_libraries(vortexError ${CGNS_DIR}/lib/libcgns.so)
+
+add_executable(interpolateFromCGNS interpolateFromCGNS.cpp)
+target_include_directories(interpolateFromCGNS PUBLIC ${CGNS_DIR}/include)
+target_link_libraries(interpolateFromCGNS ${CGNS_DIR}/lib/libcgns.so ${OP2DGTOOLKIT_DIR}/lib/libdgtoolkit.so -L${ARMA_DIR}/lib -larmadillo -L${OPENBLAS_DIR}/lib -lopenblas)
