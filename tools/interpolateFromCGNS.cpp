@@ -23,6 +23,7 @@ static struct option options[] = {
   {"points", required_argument, 0, 0},
   {"grid",   required_argument, 0, 0},
   {"sol",    required_argument, 0, 0},
+  {"out",    required_argument, 0, 0},
   {0,    0,                  0,  0}
 };
 
@@ -64,11 +65,13 @@ int main(int argc, char **argv) {
   string pointsFileName = "";
   string gridFileName = "";
   string solFileName = "";
+  string outFileName = "";
   int opt_index = 0;
   while(getopt_long_only(argc, argv, "", options, &opt_index) != -1) {
     if(strcmp((char*)options[opt_index].name,"points") == 0) pointsFileName = optarg;
     if(strcmp((char*)options[opt_index].name,"grid") == 0) gridFileName = optarg;
     if(strcmp((char*)options[opt_index].name,"sol") == 0) solFileName = optarg;
+    if(strcmp((char*)options[opt_index].name,"out") == 0) outFileName = optarg;
   }
 
   arma::vec x_, y_;
@@ -105,9 +108,8 @@ int main(int argc, char **argv) {
   interpolate_to_points(x_points, y_points, cells, velx_points, vely_points, pr_points);
 
   // Save interpolated points to text file
-  string outFile = "interpolated-points.txt";
-  save_interpolated_points(outFile, x_points, y_points, velx_points, vely_points, pr_points);
-  cout << "Saved interpolated points to \"" << outFile << "\"" << endl;
+  save_interpolated_points(outFileName, x_points, y_points, velx_points, vely_points, pr_points);
+  cout << "Saved interpolated points to \"" << outFileName << "\"" << endl;
 
   return 0;
 }
@@ -126,7 +128,7 @@ void load_points(const string &fileName, vector<double> &x, vector<double> &y) {
   // Read in points (each line contains one point "x y")
   string line;
   while(getline(file, line)) {
-    int pos = line.find(" ");
+    int pos = line.find(",");
     if(pos != string::npos) {
       string x_str = line.substr(0, pos);
       string y_str = line.substr(pos + 1, line.size());
@@ -373,11 +375,6 @@ void interpolate_to_points(const vector<double> &x, const vector<double> &y,
   for(int i = 0; i < cells.size(); i++) {
     for(int j = 0; j < x.size(); j++) {
       if(is_point_in_cell(x[j], y[j], cells[i])) {
-        // cout << "Point (" << to_string(x[j]) << ", " << to_string(y[j]) << ") is in cell:" << endl;
-        // cout << "  (" << to_string(cells[i].x[0]) << ", " << to_string(cells[i].y[0]) << ") (";
-        // cout << to_string(cells[i].x[3]) << ", " << to_string(cells[i].y[3]) << ") (";
-        // cout << to_string(cells[i].x[9]) << ", " << to_string(cells[i].y[9]) << ")" << endl;
-
         // Set new interp point at index 1
         arma::vec new_x(cells[i].x, 10);
         arma::vec new_y(cells[i].y, 10);
@@ -417,9 +414,6 @@ void interpolate_to_points(const vector<double> &x, const vector<double> &y,
         velx[j] = new_velx[1];
         vely[j] = new_vely[1];
         pr[j]   = new_pr[1];
-
-        // cout << "New values for point (" << to_string(x[j]) << ", " << to_string(y[j]) << ") are:" << endl;
-        // cout << "  (" << to_string(new_x[1]) << ", " << to_string(new_y[1]) << ") " << to_string(new_velx[1]) << "," << to_string(new_vely[1]) << "," << to_string(new_pr[1]) << endl;
       }
     }
   }
@@ -433,9 +427,9 @@ void save_interpolated_points(const string &fileName, const vector<double> &x,
                               const vector<double> &vely, const vector<double> &pr) {
   ofstream out(fileName.c_str());
 
-  out << "X,Y,VelX,VelY,Pr" << endl;
+  out << "X,Y,Z,VelX,VelY,Pr" << endl;
   for(int i = 0; i < x.size(); i++) {
-    out << to_string(x[i]) << "," << to_string(y[i]) << "," << to_string(velx[i]) << "," << to_string(vely[i]) << "," << to_string(pr[i]) << endl;
+    out << to_string(x[i]) << "," << to_string(y[i]) << ",0.0," << to_string(velx[i]) << "," << to_string(vely[i]) << "," << to_string(pr[i]) << endl;
   }
 
   out.close();

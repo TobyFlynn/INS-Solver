@@ -62,3 +62,16 @@ cp ../src/end.cgns
 ./vortexError
 ```
 The absolute error values at each grid point will then be saved to `err.cgns`.
+
+To run the interpolation tool:
+```
+cd build/tools
+./interpolateFromCGNS -points /path/to/file_with_points_to_interpolate_to.txt -grid /path/to/original_grid.cgns -sol /path/to/output_file_from_ins.cgns -out /path/to/file_to_save_interpolated_data.txt
+```
+
+The format of the `file_with_points_to_interpolate_to.txt` file is a CSV file without headers:
+```
+0.0,0.0
+1.0,0.5
+0.2,0.75
+```
