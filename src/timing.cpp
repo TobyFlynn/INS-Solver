@@ -11,43 +11,22 @@ using namespace std;
 void Timing::exportTimings(std::string filename, int iter, double time) {
   ofstream file(filename);
 
-  // Create first row of csv file (headers of columns)
-  file << "Iterations" << ",";
-  file << "Final Time" << ",";
-  file << "Wall Time" << ",";
-  file << "Setup" << ",";
-  file << "Main Loop" << ",";
-  file << "Advection" << ",";
-  file << "Pressure" << ",";
-  file << "Viscosity" << ",";
-  file << "Surface" << ",";
-  file << "Save" << ",";
-  file << "Pressure Setup" << ",";
-  file << "Pressure Linear Solve" << ",";
-  file << "Viscosity Setup" << ",";
-  file << "Viscosity Linear Solve" << ",";
-  file << "KSP Solve" << ",";
-  file << "Build Mat";
-  file << endl;
-
-  // Output timing data
-  file << to_string(iter) << ",";
-  file << to_string(time) << ",";
-  file << to_string(totalWallTime) << ",";
-  file << to_string(totalSetup) << ",";
-  file << to_string(totalMainLoop) << ",";
-  file << to_string(totalAdvection) << ",";
-  file << to_string(totalPressure) << ",";
-  file << to_string(totalViscosity) << ",";
-  file << to_string(totalSurface) << ",";
-  file << to_string(totalSave) << ",";
-  file << to_string(totalPressureSetup) << ",";
-  file << to_string(totalPressureLinearSolve) << ",";
-  file << to_string(totalViscositySetup) << ",";
-  file << to_string(totalViscosityLinearSolve) << ",";
-  file << to_string(totalKSPSolve) << ",";
-  file << to_string(totalBuildMat);
-  file << endl;
+  file << "Iterations" << "," << iter << endl;
+  file << "Final Time" << "," << time << endl;
+  file << "Wall Time" << "," << totalWallTime << endl;
+  file << "Setup" << "," << totalSetup << endl;
+  file << "Main Loop" << "," << totalMainLoop << endl;
+  file << "Advection" << "," << totalAdvection << endl;
+  file << "Pressure" << "," << totalPressure << endl;
+  file << "Viscosity" << "," << totalViscosity << endl;
+  file << "Surface" << "," << totalSurface << endl;
+  file << "Save" << "," << totalSave << endl;
+  file << "Pressure Setup" << "," << totalPressureSetup << endl;
+  file << "Pressure Linear Solve" << "," << totalPressureLinearSolve << endl;
+  file << "Viscosity Setup" << "," << totalViscositySetup << endl;
+  file << "Viscosity Linear Solve" << "," << totalViscosityLinearSolve << endl;
+  file << "KSP Solve" << "," << totalKSPSolve << endl;
+  file << "Build Mat" << "," << totalBuildMat << endl;
 
   file.close();
 }
@@ -61,43 +40,22 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
 
   ofstream file(filename);
 
-  // Create first row of csv file (headers of columns)
-  file << "Iterations" << ",";
-  file << "Final Time" << ",";
-  file << "Wall Time" << ",";
-  file << "Setup" << ",";
-  file << "Main Loop" << ",";
-  file << "Advection" << ",";
-  file << "Pressure" << ",";
-  file << "Viscosity" << ",";
-  file << "Surface" << ",";
-  file << "Save" << ",";
-  file << "Pressure Setup" << ",";
-  file << "Pressure Linear Solve" << ",";
-  file << "Viscosity Setup" << ",";
-  file << "Viscosity Linear Solve" << ",";
-  file << "KSP Solve" << ",";
-  file << "Build Mat";
-  file << endl;
-
-  // Output timing data
-  file << to_string(iter) << ",";
-  file << to_string(time) << ",";
-  file << to_string(totalWallTime) << ",";
-  file << to_string(totalSetup) << ",";
-  file << to_string(totalMainLoop) << ",";
-  file << to_string(totalAdvection) << ",";
-  file << to_string(totalPressure) << ",";
-  file << to_string(totalViscosity) << ",";
-  file << to_string(totalSurface) << ",";
-  file << to_string(totalSave) << ",";
-  file << to_string(totalPressureSetup) << ",";
-  file << to_string(totalPressureLinearSolve) << ",";
-  file << to_string(totalViscositySetup) << ",";
-  file << to_string(totalViscosityLinearSolve) << ",";
-  file << to_string(totalKSPSolve) << ",";
-  file << to_string(totalBuildMat);
-  file << endl;
+  file << "Iterations" << "," << iter << endl;
+  file << "Final Time" << "," << time << endl;
+  file << "Wall Time" << "," << totalWallTime << endl;
+  file << "Setup" << "," << totalSetup << endl;
+  file << "Main Loop" << "," << totalMainLoop << endl;
+  file << "Advection" << "," << totalAdvection << endl;
+  file << "Pressure" << "," << totalPressure << endl;
+  file << "Viscosity" << "," << totalViscosity << endl;
+  file << "Surface" << "," << totalSurface << endl;
+  file << "Save" << "," << totalSave << endl;
+  file << "Pressure Setup" << "," << totalPressureSetup << endl;
+  file << "Pressure Linear Solve" << "," << totalPressureLinearSolve << endl;
+  file << "Viscosity Setup" << "," << totalViscositySetup << endl;
+  file << "Viscosity Linear Solve" << "," << totalViscosityLinearSolve << endl;
+  file << "KSP Solve" << "," << totalKSPSolve << endl;
+  file << "Build Mat" << "," << totalBuildMat << endl;
 
   file.close();
 }
