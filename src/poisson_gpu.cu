@@ -260,7 +260,7 @@ void PoissonSolve::setMatrix() {
 
   // Add cubature OP to Poisson matrix
   op_arg args[] = {
-    op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(pMatrix->op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
@@ -270,7 +270,7 @@ void PoissonSolve::setMatrix() {
   double *op1_data = (double *)malloc(DG_NP * DG_NP * setSize * sizeof(double));
   int *glb   = (int *)malloc(setSize * sizeof(int));
   int *order = (int *)malloc(setSize * sizeof(int));
-  cudaMemcpy(op1_data, op1->data_d, setSize * DG_NP * DG_NP * sizeof(double), cudaMemcpyDeviceToHost);
+  cudaMemcpy(op1_data, pMatrix->op1->data_d, setSize * DG_NP * DG_NP * sizeof(double), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb, glb_ind->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(order, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
   op_mpi_set_dirtybit_cuda(3, args);
@@ -296,8 +296,8 @@ void PoissonSolve::setMatrix() {
   free(order);
 
   op_arg edge_args[] = {
-    op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-    op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(pMatrix->op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(pMatrix->op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
     op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(orderL, -1, OP_ID, 1, "int", OP_READ),
@@ -311,8 +311,8 @@ void PoissonSolve::setMatrix() {
   int *order_l = (int *)malloc(mesh->edges->size * sizeof(int));
   int *order_r = (int *)malloc(mesh->edges->size * sizeof(int));
 
-  cudaMemcpy(op2L_data, op2[0]->data_d, DG_NP * DG_NP * mesh->edges->size * sizeof(double), cudaMemcpyDeviceToHost);
-  cudaMemcpy(op2R_data, op2[1]->data_d, DG_NP * DG_NP * mesh->edges->size * sizeof(double), cudaMemcpyDeviceToHost);
+  cudaMemcpy(op2L_data, pMatrix->op2[0]->data_d, DG_NP * DG_NP * mesh->edges->size * sizeof(double), cudaMemcpyDeviceToHost);
+  cudaMemcpy(op2R_data, pMatrix->op2[1]->data_d, DG_NP * DG_NP * mesh->edges->size * sizeof(double), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb_l, glb_indL->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb_r, glb_indR->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(order_l, orderL->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);

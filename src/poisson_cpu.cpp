@@ -252,12 +252,12 @@ void PoissonSolve::setMatrix() {
 
   // Add cubature OP to Poisson matrix
   op_arg args[] = {
-    op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(pMatrix->op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges(mesh->cells, 3, args);
-  const double *op1_data = (double *)op1->data;
+  const double *op1_data = (double *)pMatrix->op1->data;
   const int *glb = (int *)glb_ind->data;
   const int *p = (int *)mesh->order->data;
 
@@ -281,8 +281,8 @@ void PoissonSolve::setMatrix() {
   op_mpi_set_dirtybit(3, args);
 
   op_arg edge_args[] = {
-    op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-    op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(pMatrix->op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(pMatrix->op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
     op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(orderL, -1, OP_ID, 1, "int", OP_READ),
@@ -290,8 +290,8 @@ void PoissonSolve::setMatrix() {
   };
   op_mpi_halo_exchanges(mesh->edges, 6, edge_args);
 
-  const double *op2L_data = (double *)op2[0]->data;
-  const double *op2R_data = (double *)op2[1]->data;
+  const double *op2L_data = (double *)pMatrix->op2[0]->data;
+  const double *op2R_data = (double *)pMatrix->op2[1]->data;
   const int *glb_l = (int *)glb_indL->data;
   const int *glb_r = (int *)glb_indR->data;
   const int *p_l = (int *)orderL->data;
