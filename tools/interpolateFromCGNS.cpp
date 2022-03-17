@@ -38,8 +38,8 @@ struct DGCell {
 
 struct cmpCoords {
     bool operator()(const pair<double,double>& a, const pair<double,double>& b) const {
-        bool xCmp = abs(a.first - b.first) < 1e-8;
-        bool yCmp = abs(a.second - b.second) < 1e-8;
+        bool xCmp = abs(a.first - b.first) < 1e-10;
+        bool yCmp = abs(a.second - b.second) < 1e-10;
         if(xCmp && yCmp) {
           return false;
         }
@@ -337,8 +337,8 @@ void link_sol_to_cells(const vector<double> &x, const vector<double> &y,
     pair<double,double> coords = make_pair(x[p], y[p]);
     auto pt = pointMap.find(coords);
     if(pt == pointMap.end()) {
-      cerr << "ERROR: Did not find solution point within point map" << endl;
-      exit(-1);
+      cerr << "ERROR: Did not find solution point within point map (" << coords.first << "," << coords.second << ")" << endl;
+      // exit(-1);
     }
     int numCells = pt->second->cells.size();
     for(int i = 0; i < numCells; i++) {
