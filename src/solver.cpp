@@ -51,11 +51,14 @@ Solver::Solver(std::string filename, int prob) {
   ls = new LS(mesh, data);
   pressurePoisson = new PressureSolve(mesh, data, ls);
   viscosityPoisson = new ViscositySolve(mesh, data, ls);
+  pressurePMultigrid = new PressurePMultigrid(mesh, data);
 
   pressurePoisson->setDirichletBCs(pressure_dirichlet);
   pressurePoisson->setNeumannBCs(pressure_neumann);
   viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
   viscosityPoisson->setNeumannBCs(viscosity_neumann);
+  pressurePMultigrid->setDirichletBCs(pressure_dirichlet);
+  pressurePMultigrid->setNeumannBCs(pressure_neumann);
 
   op_partition("PARMETIS", "KWAY", mesh->cells, mesh->edge2cells, NULL);
 
@@ -64,6 +67,7 @@ Solver::Solver(std::string filename, int prob) {
   ls->init();
   pressurePoisson->init();
   viscosityPoisson->init();
+  pressurePMultigrid->init();
 
   // Set initial conditions
   op_par_loop(set_ic, "set_ic", mesh->cells,
@@ -85,6 +89,7 @@ Solver::Solver(std::string filename, int prob) {
 Solver::~Solver() {
   delete viscosityPoisson;
   delete pressurePoisson;
+  delete pressurePMultigrid;
   delete ls;
   delete data;
   delete mesh;
@@ -221,9 +226,14 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
 
   // Call PETSc linear solver
   timer->startPressureLinearSolve();
+  /*
   pressurePoisson->setup();
   pressurePoisson->setBCValues(data->prBC);
   bool converged = pressurePoisson->solve(data->pRHS, data->p);
+  */
+  pressurePMultigrid->setup();
+  pressurePMultigrid->setBCValues(data->prBC);
+  bool converged = pressurePMultigrid->solve(data->pRHS, data->p);
   timer->endPressureLinearSolve();
 
   // Calculate gradient of pressure

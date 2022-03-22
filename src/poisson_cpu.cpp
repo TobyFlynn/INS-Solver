@@ -1,4 +1,5 @@
 #include "poisson.h"
+#include "p_multigrid.h"
 
 #include "op_seq.h"
 
@@ -10,7 +11,7 @@
 
 #include "dg_utils.h"
 
-int PoissonSolve::get_local_unknowns() {
+int get_local_unkowns__(DGMesh *mesh) {
   op_arg op2_args[] = {
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
@@ -27,8 +28,16 @@ int PoissonSolve::get_local_unknowns() {
   return local_unkowns;
 }
 
+int PoissonSolve::get_local_unknowns() {
+  return get_local_unkowns__(mesh);
+}
+
+int PMultigrid::get_local_unknowns() {
+  return get_local_unkowns__(mesh);
+}
+
 // Copy PETSc vec array to OP2 dat
-void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
+void copy_vec_to_dat__(DGMesh *mesh, op_dat dat, const double *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
@@ -79,8 +88,16 @@ void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   op_mpi_set_dirtybit(2, copy_args);
 }
 
+void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
+  copy_vec_to_dat__(mesh, dat, dat_d);
+}
+
+void PMultigrid::copy_vec_to_dat(op_dat dat, const double *dat_d) {
+  copy_vec_to_dat__(mesh, dat, dat_d);
+}
+
 // Copy OP2 dat to PETSc vec array
-void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
+void copy_dat_to_vec__(DGMesh *mesh, op_dat dat, double *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
@@ -131,8 +148,22 @@ void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
   op_mpi_set_dirtybit(2, copy_args);
 }
 
+void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
+  copy_dat_to_vec__(mesh, dat, dat_d);
+}
+
+void PMultigrid::copy_dat_to_vec(op_dat dat, double *dat_d) {
+  copy_dat_to_vec__(mesh, dat, dat_d);
+}
+
 // Create a PETSc vector for CPUs
 void PoissonSolve::create_vec(Vec *v) {
+  VecCreate(PETSC_COMM_WORLD, v);
+  VecSetType(*v, VECSTANDARD);
+  VecSetSizes(*v, unknowns, PETSC_DECIDE);
+}
+
+void PMultigrid::create_vec(Vec *v) {
   VecCreate(PETSC_COMM_WORLD, v);
   VecSetType(*v, VECSTANDARD);
   VecSetSizes(*v, unknowns, PETSC_DECIDE);
@@ -153,8 +184,26 @@ void PoissonSolve::load_vec(Vec *v, op_dat v_dat) {
   VecRestoreArray(*v, &v_ptr);
 }
 
+void PMultigrid::load_vec(Vec *v, op_dat v_dat) {
+  double *v_ptr;
+  VecGetArray(*v, &v_ptr);
+
+  copy_dat_to_vec(v_dat, v_ptr);
+
+  VecRestoreArray(*v, &v_ptr);
+}
+
 // Load an OP2 dat with the values from a PETSc vector for CPUs
 void PoissonSolve::store_vec(Vec *v, op_dat v_dat) {
+  const double *v_ptr;
+  VecGetArrayRead(*v, &v_ptr);
+
+  copy_vec_to_dat(v_dat, v_ptr);
+
+  VecRestoreArrayRead(*v, &v_ptr);
+}
+
+void PMultigrid::store_vec(Vec *v, op_dat v_dat) {
   const double *v_ptr;
   VecGetArrayRead(*v, &v_ptr);
 
@@ -187,6 +236,27 @@ void PoissonSolve::create_shell_mat() {
   MatShellSetVecType(pMat, VECSTANDARD);
 
   pMatInit = true;
+}
+
+PetscErrorCode matBMult(Mat A, Vec x, Vec y) {
+  PMultigrid *p_multigrid;
+  MatShellGetContext(A, &p_multigrid);
+  const double *x_ptr;
+  double *y_ptr;
+  VecGetArrayRead(x, &x_ptr);
+  VecGetArray(y, &y_ptr);
+
+  p_multigrid->calc_rhs(x_ptr, y_ptr);
+
+  VecRestoreArrayRead(x, &x_ptr);
+  VecRestoreArray(y, &y_ptr);
+  return 0;
+}
+
+void PMultigrid::create_shell_mat(Mat *mat) {
+  MatCreateShell(PETSC_COMM_WORLD, unknowns, unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, mat);
+  MatShellSetOperation(*mat, MATOP_MULT, (void(*)(void))matBMult);
+  MatShellSetVecType(*mat, VECSTANDARD);
 }
 
 PetscErrorCode precon(PC pc, Vec x, Vec y) {

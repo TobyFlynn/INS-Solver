@@ -5,6 +5,7 @@
 
 #include "ins_data.h"
 #include "poisson.h"
+#include "p_multigrid.h"
 #include "ls.h"
 
 #include "dg_mesh.h"
@@ -35,6 +36,7 @@ public:
 private:
   PressureSolve *pressurePoisson;
   ViscositySolve *viscosityPoisson;
+  PressurePMultigrid *pressurePMultigrid;
   int problem;
 };
 
