@@ -5,6 +5,7 @@
 
 #include "ins_data.h"
 #include "poisson.h"
+#include "poisson_HYPRE.h"
 #include "ls.h"
 
 #include "dg_mesh.h"
@@ -33,6 +34,7 @@ public:
   LS *ls;
   double dt;
 private:
+  PressureSolveHYPRE *poissonHYPRE;
   PressureSolve *pressurePoisson;
   ViscositySolve *viscosityPoisson;
   int problem;

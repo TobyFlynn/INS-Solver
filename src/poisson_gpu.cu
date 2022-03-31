@@ -1,4 +1,5 @@
 #include "poisson.h"
+#include "poisson_HYPRE.h"
 
 #ifdef INS_MPI
 #include "mpi_helper_func.h"
@@ -7,6 +8,25 @@
 #include "dg_utils.h"
 
 int PoissonSolve::get_local_unknowns() {
+  op_arg op2_args[] = {
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(mesh->order->set, 1, op2_args);
+  const int setSize = mesh->order->set->size;
+  int *tempOrder = (int *)malloc(setSize * sizeof(int));
+  cudaMemcpy(tempOrder, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+  int local_unkowns = 0;
+  for(int i = 0; i < setSize; i++) {
+    int Np, Nfp;
+    DGUtils::basic_constants(tempOrder[i], &Np, &Nfp);
+    local_unkowns += Np;
+  }
+  free(tempOrder);
+  op_mpi_set_dirtybit_cuda(1, op2_args);
+  return local_unkowns;
+}
+
+int PoissonSolveHYPRE::get_local_unknowns() {
   op_arg op2_args[] = {
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
@@ -241,6 +261,38 @@ void PoissonSolve::setGlbInd() {
   free(tempOrder);
 }
 
+void PoissonSolveHYPRE::setGlbInd() {
+  int global_ind = 0;
+  #ifdef INS_MPI
+  global_ind = get_global_mat_start_ind(unknowns);
+  #endif
+  op_arg args[] = {
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE)
+  };
+  op_mpi_halo_exchanges_cuda(mesh->cells, 2, args);
+
+  const int setSize = mesh->cells->size;
+  int *tempOrder = (int *)malloc(setSize * sizeof(int));
+  cudaMemcpy(tempOrder, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+  int *data_ptr = (int *)malloc(setSize * sizeof(int));
+  cudaMemcpy(data_ptr, glb_ind->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+
+  int ind = global_ind;
+  for(int i = 0; i < mesh->cells->size; i++) {
+    int Np, Nfp;
+    DGUtils::basic_constants(tempOrder[i], &Np, &Nfp);
+    data_ptr[i] = ind;
+    ind += Np;
+  }
+
+  cudaMemcpy(glb_ind->data_d, data_ptr, setSize * sizeof(int), cudaMemcpyHostToDevice);
+
+  op_mpi_set_dirtybit_cuda(2, args);
+  free(data_ptr);
+  free(tempOrder);
+}
+
 void PoissonSolve::setMatrix() {
   if(pMatInit)
     MatDestroy(&pMat);
@@ -348,4 +400,207 @@ void PoissonSolve::setMatrix() {
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
 
+}
+
+void PoissonSolveHYPRE::setMatrix() {
+  // Add cubature OP to Poisson matrix
+  op_arg args[] = {
+    op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(mesh->cells, 3, args);
+
+  const int setSize = mesh->cells->size;
+  int *glb   = (int *)malloc(setSize * sizeof(int));
+  int *order = (int *)malloc(setSize * sizeof(int));
+  double *op1_data;
+  cudaMallocManaged(&op1_data, DG_NP * DG_NP * setSize * sizeof(double));
+  cudaMemcpy(op1_data, op1->data_d, setSize * DG_NP * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(glb, glb_ind->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(order, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+  op_mpi_set_dirtybit_cuda(3, args);
+
+  int *idxm, *idxn, *nCols;
+  cudaMallocManaged(&idxm, DG_NP * sizeof(int));
+  cudaMallocManaged(&idxn, DG_NP * DG_NP * sizeof(int));
+  cudaMallocManaged(&nCols, DG_NP * sizeof(int));
+
+  for(int i = 0; i < setSize; i++) {
+    int Np, Nfp;
+    DGUtils::basic_constants(order[i], &Np, &Nfp);
+    int currentRow = glb[i];
+    int currentCol = glb[i];
+    for(int n = 0; n < DG_NP; n++) {
+      idxm[n] = currentRow + n;
+      nCols[n] = Np;
+      for(int m = 0; m < DG_NP; m++) {
+        idxn[n * DG_NP + m] = currentCol + m;
+      }
+    }
+
+    HYPRE_IJMatrixAddToValues(mat, Np, nCols, idxm, idxn, &op1_data[i * DG_NP * DG_NP]);
+  }
+
+  cudaFree(op1_data);
+  cudaFree(idxm);
+  cudaFree(idxn);
+
+  free(glb);
+  free(order);
+
+  op_arg edge_args[] = {
+    op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(orderL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(orderR, -1, OP_ID, 1, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(mesh->edges, 6, edge_args);
+  int *glb_l = (int *)malloc(mesh->edges->size * sizeof(int));
+  int *glb_r = (int *)malloc(mesh->edges->size * sizeof(int));
+  int *order_l = (int *)malloc(mesh->edges->size * sizeof(int));
+  int *order_r = (int *)malloc(mesh->edges->size * sizeof(int));
+
+  double *op2L_data, *op2R_data;
+  cudaMallocManaged(&op2L_data, DG_NP * DG_NP * mesh->edges->size * sizeof(double));
+  cudaMallocManaged(&op2R_data, DG_NP * DG_NP * mesh->edges->size * sizeof(double));
+
+  cudaMemcpy(op2L_data, op2[0]->data_d, DG_NP * DG_NP * mesh->edges->size * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(op2R_data, op2[1]->data_d, DG_NP * DG_NP * mesh->edges->size * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(glb_l, glb_indL->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_r, glb_indR->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(order_l, orderL->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(order_r, orderR->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
+
+  int *idxlm, *idxln, *idxrm, *idxrn;
+  cudaMallocManaged(&idxlm, DG_NP * sizeof(int));
+  cudaMallocManaged(&idxln, DG_NP * DG_NP * sizeof(int));
+  cudaMallocManaged(&idxrm, DG_NP * sizeof(int));
+  cudaMallocManaged(&idxrn, DG_NP * DG_NP * sizeof(int));
+
+  // Transpose sub matrices
+  for(int i = 0; i < mesh->edges->size; i++) {
+    for(int m = 0; m < DG_NP; m++) {
+      for(int n = 0; n < m; n++) {
+        double tmp = op2L_data[i * DG_NP * DG_NP + m * DG_NP + n];
+        op2L_data[i * DG_NP * DG_NP + m * DG_NP + n] = op2L_data[i * DG_NP * DG_NP + n * DG_NP + m];
+        op2L_data[i * DG_NP * DG_NP + n * DG_NP + m] = tmp;
+
+        tmp = op2R_data[i * DG_NP * DG_NP + m * DG_NP + n];
+        op2R_data[i * DG_NP * DG_NP + m * DG_NP + n] = op2R_data[i * DG_NP * DG_NP + n * DG_NP + m];
+        op2R_data[i * DG_NP * DG_NP + n * DG_NP + m] = tmp;
+      }
+    }
+  }
+
+  // Add Gauss OP and OPf to Poisson matrix
+  for(int i = 0; i < mesh->edges->size; i++) {
+    int leftRow = glb_l[i];
+    int rightRow = glb_r[i];
+    int NpL, NpR, Nfp;
+    DGUtils::basic_constants(order_l[i], &NpL, &Nfp);
+    DGUtils::basic_constants(order_r[i], &NpR, &Nfp);
+
+    for(int n = 0; n < DG_NP; n++) {
+      idxlm[n] = leftRow + n;
+      idxrm[n] = rightRow + n;
+      nCols[n] = DG_NP;
+      for(int m = 0; m < DG_NP; m++) {
+        idxln[n * DG_NP + m] = rightRow + m;
+        idxrn[n * DG_NP + m] = leftRow + m;
+      }
+    }
+
+    HYPRE_IJMatrixAddToValues(mat, DG_NP, nCols, idxlm, idxln, &op2L_data[i * DG_NP * DG_NP]);
+    HYPRE_IJMatrixAddToValues(mat, DG_NP, nCols, idxrm, idxrn, &op2R_data[i * DG_NP * DG_NP]);
+  }
+
+  cudaFree(op2L_data);
+  cudaFree(op2R_data);
+  cudaFree(idxlm);
+  cudaFree(idxln);
+  cudaFree(idxrm);
+  cudaFree(idxrn);
+  cudaFree(nCols);
+  free(glb_l);
+  free(glb_r);
+  free(order_l);
+  free(order_r);
+
+  op_mpi_set_dirtybit_cuda(6, edge_args);
+}
+
+void PoissonSolveHYPRE::set_b(op_dat b_dat) {
+  op_arg copy_args[] = {
+    op_arg_dat(b_dat, -1, OP_ID, DG_NP, "double", OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(b_dat->set, 1, copy_args);
+
+  int setSize = b_dat->set->size;
+
+  double *b_data;
+  cudaMallocManaged(&b_data, DG_NP * setSize * sizeof(double));
+  cudaMemcpy(b_data, b_dat->data_d, DG_NP * setSize * sizeof(double), cudaMemcpyDeviceToDevice);
+  int *ind;
+  cudaMallocManaged(&ind, DG_NP * setSize * sizeof(int));
+  for(int i = 0; i < DG_NP * setSize; i++) {
+    ind[i] = i;
+  }
+
+  HYPRE_IJVectorSetValues(ij_b, DG_NP * setSize, ind, b_data);
+
+  cudaFree(b_data);
+  cudaFree(ind);
+  op_mpi_set_dirtybit_cuda(1, copy_args);
+}
+
+void PoissonSolveHYPRE::set_x(op_dat x_dat) {
+  op_arg copy_args[] = {
+    op_arg_dat(x_dat, -1, OP_ID, DG_NP, "double", OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(x_dat->set, 1, copy_args);
+
+  int setSize = x_dat->set->size;
+
+  double *x_data;
+  cudaMallocManaged(&x_data, DG_NP * setSize * sizeof(double));
+  cudaMemcpy(x_data, x_dat->data_d, DG_NP * setSize * sizeof(double), cudaMemcpyDeviceToDevice);
+  int *ind;
+  cudaMallocManaged(&ind, DG_NP * setSize * sizeof(int));
+  for(int i = 0; i < DG_NP * setSize; i++) {
+    ind[i] = i;
+  }
+
+  HYPRE_IJVectorSetValues(ij_x, DG_NP * setSize, ind, x_data);
+
+  cudaFree(x_data);
+  cudaFree(ind);
+  op_mpi_set_dirtybit_cuda(1, copy_args);
+}
+
+void PoissonSolveHYPRE::get_x(op_dat x_dat) {
+  op_arg copy_args[] = {
+    op_arg_dat(x_dat, -1, OP_ID, DG_NP, "double", OP_WRITE)
+  };
+  op_mpi_halo_exchanges_cuda(x_dat->set, 1, copy_args);
+
+  int setSize = x_dat->set->size;
+
+  double *x_data;
+  cudaMallocManaged(&x_data, DG_NP * setSize * sizeof(double));
+  int *ind;
+  cudaMallocManaged(&ind, DG_NP * setSize * sizeof(int));
+  for(int i = 0; i < DG_NP * setSize; i++) {
+    ind[i] = i;
+  }
+
+  HYPRE_IJVectorGetValues(ij_x, DG_NP * setSize, ind, x_data);
+
+  cudaMemcpy(x_dat->data_d, x_data, DG_NP * setSize * sizeof(double), cudaMemcpyDeviceToDevice);
+
+  cudaFree(x_data);
+  cudaFree(ind);
+  op_mpi_set_dirtybit_cuda(1, copy_args);
 }

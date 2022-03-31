@@ -24,6 +24,12 @@ if(NOT OPENBLAS_DIR)
 endif()
 include_directories(${OPENBLAS_DIR}/include)
 
+# HYPRE library for me
+if(NOT HYPRE_DIR)
+  set(HYPRE_DIR "/home/u1717021/Code/PhD/hypre/src/hypre")
+endif()
+include_directories(${HYPRE_DIR}/include)
+
 set(PETSC_DIR $ENV{PETSC_DIR})
 include_directories(${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include)
 
