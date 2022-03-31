@@ -414,37 +414,33 @@ void PoissonSolveHYPRE::setMatrix() {
   const int setSize = mesh->cells->size;
   int *glb   = (int *)malloc(setSize * sizeof(int));
   int *order = (int *)malloc(setSize * sizeof(int));
-  double *op1_data;
-  cudaMallocManaged(&op1_data, DG_NP * DG_NP * setSize * sizeof(double));
-  cudaMemcpy(op1_data, op1->data_d, setSize * DG_NP * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
   cudaMemcpy(glb, glb_ind->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(order, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
-  op_mpi_set_dirtybit_cuda(3, args);
 
   int *idxm, *idxn, *nCols;
-  cudaMallocManaged(&idxm, DG_NP * sizeof(int));
-  cudaMallocManaged(&idxn, DG_NP * DG_NP * sizeof(int));
-  cudaMallocManaged(&nCols, DG_NP * sizeof(int));
+  cudaMallocManaged(&idxm, DG_NP * setSize * sizeof(int));
+  cudaMallocManaged(&idxn, DG_NP * DG_NP * setSize * sizeof(int));
+  cudaMallocManaged(&nCols, DG_NP * setSize * sizeof(int));
 
   for(int i = 0; i < setSize; i++) {
-    int Np, Nfp;
-    DGUtils::basic_constants(order[i], &Np, &Nfp);
     int currentRow = glb[i];
     int currentCol = glb[i];
     for(int n = 0; n < DG_NP; n++) {
-      idxm[n] = currentRow + n;
-      nCols[n] = Np;
+      idxm[i * DG_NP + n] = currentRow + n;
+      nCols[i * DG_NP + n] = DG_NP;
       for(int m = 0; m < DG_NP; m++) {
-        idxn[n * DG_NP + m] = currentCol + m;
+        idxn[i * DG_NP * DG_NP + n * DG_NP + m] = currentCol + m;
       }
     }
-
-    HYPRE_IJMatrixAddToValues(mat, Np, nCols, idxm, idxn, &op1_data[i * DG_NP * DG_NP]);
   }
 
-  cudaFree(op1_data);
+  HYPRE_IJMatrixAddToValues(mat, DG_NP * setSize, nCols, idxm, idxn, (double *)op1->data_d);
+
+  op_mpi_set_dirtybit_cuda(3, args);
+
   cudaFree(idxm);
   cudaFree(idxn);
+  cudaFree(nCols);
 
   free(glb);
   free(order);
@@ -463,67 +459,43 @@ void PoissonSolveHYPRE::setMatrix() {
   int *order_l = (int *)malloc(mesh->edges->size * sizeof(int));
   int *order_r = (int *)malloc(mesh->edges->size * sizeof(int));
 
-  double *op2L_data, *op2R_data;
-  cudaMallocManaged(&op2L_data, DG_NP * DG_NP * mesh->edges->size * sizeof(double));
-  cudaMallocManaged(&op2R_data, DG_NP * DG_NP * mesh->edges->size * sizeof(double));
-
-  cudaMemcpy(op2L_data, op2[0]->data_d, DG_NP * DG_NP * mesh->edges->size * sizeof(double), cudaMemcpyDeviceToDevice);
-  cudaMemcpy(op2R_data, op2[1]->data_d, DG_NP * DG_NP * mesh->edges->size * sizeof(double), cudaMemcpyDeviceToDevice);
   cudaMemcpy(glb_l, glb_indL->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb_r, glb_indR->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(order_l, orderL->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(order_r, orderR->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
 
-  int *idxlm, *idxln, *idxrm, *idxrn;
-  cudaMallocManaged(&idxlm, DG_NP * sizeof(int));
-  cudaMallocManaged(&idxln, DG_NP * DG_NP * sizeof(int));
-  cudaMallocManaged(&idxrm, DG_NP * sizeof(int));
-  cudaMallocManaged(&idxrn, DG_NP * DG_NP * sizeof(int));
-
-  // Transpose sub matrices
-  for(int i = 0; i < mesh->edges->size; i++) {
-    for(int m = 0; m < DG_NP; m++) {
-      for(int n = 0; n < m; n++) {
-        double tmp = op2L_data[i * DG_NP * DG_NP + m * DG_NP + n];
-        op2L_data[i * DG_NP * DG_NP + m * DG_NP + n] = op2L_data[i * DG_NP * DG_NP + n * DG_NP + m];
-        op2L_data[i * DG_NP * DG_NP + n * DG_NP + m] = tmp;
-
-        tmp = op2R_data[i * DG_NP * DG_NP + m * DG_NP + n];
-        op2R_data[i * DG_NP * DG_NP + m * DG_NP + n] = op2R_data[i * DG_NP * DG_NP + n * DG_NP + m];
-        op2R_data[i * DG_NP * DG_NP + n * DG_NP + m] = tmp;
-      }
-    }
-  }
+  int *idxlm, *idxln, *idxrm, *idxrn, *nCols2;
+  cudaMallocManaged(&idxlm, DG_NP * mesh->edges->size * sizeof(int));
+  cudaMallocManaged(&idxln, DG_NP * DG_NP * mesh->edges->size * sizeof(int));
+  cudaMallocManaged(&idxrm, DG_NP * mesh->edges->size * sizeof(int));
+  cudaMallocManaged(&idxrn, DG_NP * DG_NP * mesh->edges->size * sizeof(int));
+  cudaMallocManaged(&nCols2, DG_NP * mesh->edges->size * sizeof(int));
 
   // Add Gauss OP and OPf to Poisson matrix
   for(int i = 0; i < mesh->edges->size; i++) {
     int leftRow = glb_l[i];
     int rightRow = glb_r[i];
-    int NpL, NpR, Nfp;
-    DGUtils::basic_constants(order_l[i], &NpL, &Nfp);
-    DGUtils::basic_constants(order_r[i], &NpR, &Nfp);
 
     for(int n = 0; n < DG_NP; n++) {
-      idxlm[n] = leftRow + n;
-      idxrm[n] = rightRow + n;
-      nCols[n] = DG_NP;
+      idxlm[i * DG_NP + n] = leftRow + n;
+      idxrm[i * DG_NP + n] = rightRow + n;
+      nCols2[i * DG_NP + n] = DG_NP;
       for(int m = 0; m < DG_NP; m++) {
-        idxln[n * DG_NP + m] = rightRow + m;
-        idxrn[n * DG_NP + m] = leftRow + m;
+        idxln[i * DG_NP * DG_NP + n * DG_NP + m] = rightRow + m;
+        idxrn[i * DG_NP * DG_NP + n * DG_NP + m] = leftRow + m;
       }
     }
-
-    HYPRE_IJMatrixAddToValues(mat, DG_NP, nCols, idxlm, idxln, &op2L_data[i * DG_NP * DG_NP]);
-    HYPRE_IJMatrixAddToValues(mat, DG_NP, nCols, idxrm, idxrn, &op2R_data[i * DG_NP * DG_NP]);
   }
 
-  cudaFree(op2L_data);
-  cudaFree(op2R_data);
+  HYPRE_IJMatrixAddToValues(mat, DG_NP * mesh->edges->size, nCols2, idxlm, idxln, (double *)op2[0]->data_d);
+  HYPRE_IJMatrixAddToValues(mat, DG_NP * mesh->edges->size, nCols2, idxrm, idxrn, (double *)op2[1]->data_d);
+
   cudaFree(idxlm);
   cudaFree(idxln);
   cudaFree(idxrm);
   cudaFree(idxrn);
-  cudaFree(nCols);
+  cudaFree(nCols2);
+
   free(glb_l);
   free(glb_r);
   free(order_l);

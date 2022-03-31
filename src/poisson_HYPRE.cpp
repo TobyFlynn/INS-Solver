@@ -193,6 +193,7 @@ bool PoissonSolveHYPRE::solve(op_dat b_dat, op_dat x_dat) {
 
   HYPRE_IJVectorDestroy(ij_x);
   HYPRE_IJVectorDestroy(ij_b);
+  HYPRE_IJMatrixDestroy(mat);
 
   return true;
 }
@@ -277,6 +278,13 @@ void PressureSolveHYPRE::setup() {
               op_arg_dat(factor,    -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   set_op();
+
+  op_par_loop(transpose_cells, "transpose_cells", mesh->cells,
+              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_RW));
+
+  op_par_loop(transpose_edges, "transpose_edges", mesh->edges,
+              op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_RW),
+              op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_RW));
 
   HYPRE_IJMatrixCreate(MPI_COMM_WORLD, 0, unknowns - 1, 0, unknowns - 1, &mat);
   HYPRE_IJMatrixSetObjectType(mat, HYPRE_PARCSR);
