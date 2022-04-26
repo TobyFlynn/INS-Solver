@@ -6,6 +6,7 @@
 #include "timing.h"
 #include "dg_mesh.h"
 #include "ls.h"
+#include "poisson_mat.h"
 
 #include "HYPRE_config.h"
 #include "HYPRE_krylov.h"
@@ -31,16 +32,16 @@ public:
   void setBCValues(op_dat bc);
 
   // OP2 Dats
-  op_dat op1, op2[2], op_bc;
   op_dat glb_ind, glb_indL, glb_indR, glb_indBC;
   op_dat u, rhs, in, out, pre;
-  op_dat factor, gFactor, cFactor, mmFactor, h, gDelta;
+  op_dat factor, mmFactor;
   op_dat orderL, orderR, orderBC;
 
   int unknowns;
 
+  PoissonMat *pMatrix;
+
 protected:
-  void set_op();
   void setMatrix();
   /*
   void create_shell_mat();
@@ -75,9 +76,6 @@ private:
 
   void setGlbInd();
 
-  void calc_cub_sub_mat();
-  void calc_gauss_sub_mat();
-
   void set_b(op_dat b_dat);
   void set_x(op_dat x_dat);
   void get_x(op_dat x_dat);
@@ -86,11 +84,9 @@ private:
 
   int numberIter, solveCount;
 
-  double *op1_data, *op2_data[2], *op_bc_data;
   int *glb_ind_data, *glb_indL_data, *glb_indR_data, *glb_indBC_data;
   double *u_data, *rhs_data, *in_data, *out_data, *pre_data;
-  double *factor_data, *gFactor_data, *cFactor_data, *mmFactor_data, *h_data;
-  double *gDelta_data;
+  double *factor_data, *mmFactor_data;
   int *orderL_data, *orderR_data, *orderBC_data;
 };
 
