@@ -47,7 +47,6 @@ protected:
   void create_shell_mat();
   void set_shell_pc(PC pc);
   */
-  int get_local_unknowns();
   void update_glb_ind();
 
   DGMesh *mesh;

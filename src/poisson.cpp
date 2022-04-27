@@ -6,6 +6,7 @@
 #include "op_seq.h"
 
 #include "dg_blas_calls.h"
+#include "petsc_utils.h"
 
 using namespace std;
 
@@ -140,11 +141,11 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
               op_arg_dat(bc_dat, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(b_dat,  0, mesh->bedge2cells, DG_NP, "double", OP_INC));
 
-  create_vec(&b);
-  create_vec(&x);
+  PETScUtils::create_vec(&b, unknowns);
+  PETScUtils::create_vec(&x, unknowns);
 
-  load_vec(&b, b_dat);
-  load_vec(&x, x_dat);
+  PETScUtils::dat_to_vec(&b, b_dat);
+  PETScUtils::dat_to_vec(&x, x_dat);
 
   timer->startKSPSolve();
   KSPSolve(ksp, b, x);
@@ -169,10 +170,10 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   // Get solution
   Vec solution;
   KSPGetSolution(ksp, &solution);
-  store_vec(&solution, x_dat);
+  PETScUtils::vec_to_dat(&solution, x_dat);
 
-  destroy_vec(&b);
-  destroy_vec(&x);
+  PETScUtils::destroy_vec(&b);
+  PETScUtils::destroy_vec(&x);
 
   KSPDestroy(&ksp);
 
@@ -182,23 +183,23 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
 // Matrix-free Mat-Vec mult function
 void PoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
   // Copy u to OP2 dat
-  copy_vec_to_dat(u, u_d);
+  PETScUtils::ptr_to_dat(u, u_d);
 
   pMatrix->mult(u, rhs);
 
-  copy_dat_to_vec(rhs, rhs_d);
+  PETScUtils::dat_to_ptr(rhs, rhs_d);
 }
 
 // Matrix-free block-jacobi preconditioning function
 void PoissonSolve::precond(const double *in_d, double *out_d) {
-  copy_vec_to_dat(in, in_d);
+  PETScUtils::ptr_to_dat(in, in_d);
 
   op_par_loop(poisson_pre, "poisson_pre", mesh->cells,
               op_arg_dat(in,  -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(pre, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
               op_arg_dat(out, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  copy_dat_to_vec(out, out_d);
+  PETScUtils::dat_to_ptr(out, out_d);
 }
 
 void PoissonSolve::setDirichletBCs(int *d) {
@@ -225,7 +226,7 @@ PressureSolve::PressureSolve(DGMesh *m, INSData *d, LS *s) : PoissonSolve(m, d, 
 ViscositySolve::ViscositySolve(DGMesh *m, INSData *d, LS *s) : PoissonSolve(m, d, s) {}
 
 void PressureSolve::setup() {
-  unknowns = get_local_unknowns();
+  unknowns = mesh->get_local_vec_unknowns();
   update_glb_ind();
 
   massMat = false;
@@ -242,7 +243,7 @@ void PressureSolve::setup() {
 }
 
 void ViscositySolve::setup(double mmConst) {
-  unknowns = get_local_unknowns();
+  unknowns = mesh->get_local_vec_unknowns();
   update_glb_ind();
 
   massMat = true;

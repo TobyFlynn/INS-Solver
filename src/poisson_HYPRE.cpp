@@ -232,7 +232,7 @@ double PoissonSolve::getAverageConvergeIter() {
 PressureSolveHYPRE::PressureSolveHYPRE(DGMesh *m, INSData *d, LS *s) : PoissonSolveHYPRE(m, d, s) {}
 
 void PressureSolveHYPRE::setup() {
-  unknowns = get_local_unknowns();
+  unknowns = mesh->get_local_vec_unknowns();
   update_glb_ind();
 
   op_par_loop(poisson_pr_fact, "poisson_pr_fact", mesh->cells,

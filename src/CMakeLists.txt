@@ -1,6 +1,6 @@
 set(COMMON_SRC solver_op.cpp poisson_op.cpp poisson_HYPRE_op.cpp poisson_mat_op.cpp ins_data_op.cpp timing_op.cpp shared_save_functions.cpp ls_op.cpp)
-set(CPU_SRC poisson_cpu_op.cpp utils_op.cpp)
-set(GPU_SRC poisson_gpu_op.cu utils_op.cu)
+set(CPU_SRC poisson_cpu_op.cpp utils/utils.cpp utils/petsc_utils.cpp)
+set(GPU_SRC poisson_gpu_op.cu utils/utils.cu utils/petsc_utils.cu)
 set(SN_SRC save_solution_op.cpp load_mesh.cpp)
 set(MPI_SRC save_solution_mpi_op.cpp load_mesh_mpi.cpp mpi_helper_func.cpp)
 
