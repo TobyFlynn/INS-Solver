@@ -6,6 +6,7 @@
 #include "op_seq.h"
 
 #include "dg_blas_calls.h"
+#include "hypre_utils.h"
 
 using namespace std;
 
@@ -131,22 +132,10 @@ bool PoissonSolveHYPRE::solve(op_dat b_dat, op_dat x_dat) {
               op_arg_dat(bc_dat, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(b_dat,  0, mesh->bedge2cells, DG_NP, "double", OP_INC));
 
-  HYPRE_IJVectorCreate(MPI_COMM_WORLD, 0, unknowns - 1, &ij_x);
-  HYPRE_IJVectorSetObjectType(ij_x, HYPRE_PARCSR);
-  HYPRE_IJVectorInitialize(ij_x);
-
-  set_x(x_dat);
-
-  HYPRE_IJVectorAssemble(ij_x);
+  HYPREUtils::dat_to_new_vec(x_dat, &ij_x, unknowns);
   HYPRE_IJVectorGetObject(ij_x, (void **) &par_x);
 
-  HYPRE_IJVectorCreate(MPI_COMM_WORLD, 0, unknowns - 1, &ij_b);
-  HYPRE_IJVectorSetObjectType(ij_b, HYPRE_PARCSR);
-  HYPRE_IJVectorInitialize(ij_b);
-
-  set_b(b_dat);
-
-  HYPRE_IJVectorAssemble(ij_b);
+  HYPREUtils::dat_to_new_vec(b_dat, &ij_b, unknowns);
   HYPRE_IJVectorGetObject(ij_b, (void **) &par_b);
 
   HYPRE_ParCSRPCGSetPrecond(solver, HYPRE_BoomerAMGSolve, HYPRE_BoomerAMGSetup,
@@ -161,7 +150,7 @@ bool PoissonSolveHYPRE::solve(op_dat b_dat, op_dat x_dat) {
   HYPRE_ParCSRPCGGetNumIterations(solver, &numIt);
   cout << "Number of it: " << numIt << endl;
 
-  get_x(x_dat);
+  HYPREUtils::vec_to_dat(x_dat, &ij_x, unknowns);
 
   HYPRE_IJVectorDestroy(ij_x);
   HYPRE_IJVectorDestroy(ij_b);
@@ -169,44 +158,6 @@ bool PoissonSolveHYPRE::solve(op_dat b_dat, op_dat x_dat) {
 
   return true;
 }
-
-/*
-// Matrix-free Mat-Vec mult function
-void PoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
-  // Copy u to OP2 dat
-  copy_vec_to_dat(u, u_d);
-
-  op_par_loop(poisson_cells, "poisson_cells", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(u,   -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(rhs, -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-  op_par_loop(poisson_edges, "poisson_edges", mesh->edges,
-              op_arg_dat(mesh->order, 0, mesh->edge2cells, 1, "int", OP_READ),
-              op_arg_dat(u,           0, mesh->edge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(op2[0],     -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(rhs,         0, mesh->edge2cells, DG_NP, "double", OP_INC),
-              op_arg_dat(mesh->order, 1, mesh->edge2cells, 1, "int", OP_READ),
-              op_arg_dat(u,           1, mesh->edge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(op2[1],     -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(rhs,         1, mesh->edge2cells, DG_NP, "double", OP_INC));
-
-  copy_dat_to_vec(rhs, rhs_d);
-}
-
-// Matrix-free block-jacobi preconditioning function
-void PoissonSolve::precond(const double *in_d, double *out_d) {
-  copy_vec_to_dat(in, in_d);
-
-  op_par_loop(poisson_pre, "poisson_pre", mesh->cells,
-              op_arg_dat(in,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(pre, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(out, -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-  copy_dat_to_vec(out, out_d);
-}
-*/
 
 void PoissonSolveHYPRE::setDirichletBCs(int *d) {
   pMatrix->setDirichletBCs(d);
@@ -242,9 +193,7 @@ void PressureSolveHYPRE::setup() {
   pMatrix->calc_mat(factor);
   pMatrix->transpose();
 
-  HYPRE_IJMatrixCreate(MPI_COMM_WORLD, 0, unknowns - 1, 0, unknowns - 1, &mat);
-  HYPRE_IJMatrixSetObjectType(mat, HYPRE_PARCSR);
-  HYPRE_IJMatrixInitialize(mat);
+  HYPREUtils::create_matrix(&mat, unknowns);
 
   // Set matrix values
   setMatrix();

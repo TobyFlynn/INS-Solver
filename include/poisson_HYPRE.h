@@ -64,20 +64,7 @@ protected:
   int neumann[3];
 
 private:
-  /*
-  void create_vec(Vec *v);
-  void destroy_vec(Vec *v);
-  void load_vec(Vec *v, op_dat v_dat);
-  void store_vec(Vec *v, op_dat v_dat);
-  void copy_vec_to_dat(op_dat dat, const double *dat_d);
-  void copy_dat_to_vec(op_dat dat, double *dat_d);
-  */
-
   void setGlbInd();
-
-  void set_b(op_dat b_dat);
-  void set_x(op_dat x_dat);
-  void get_x(op_dat x_dat);
 
   op_dat bc_dat;
 

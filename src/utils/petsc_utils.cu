@@ -8,14 +8,14 @@
  */
 
 // Create a PETSc Vec that will work with GPUs
-void create_vec(Vec *v, int local_unknowns) {
+void PETScUtils::create_vec(Vec *v, int local_unknowns) {
   VecCreate(PETSC_COMM_WORLD, v);
   VecSetType(*v, VECCUDA);
   VecSetSizes(*v, local_unknowns, PETSC_DECIDE);
 }
 
 // Destroy a PETSc Vec
-void destroy_vec(Vec *v) {
+void PETScUtils::destroy_vec(Vec *v) {
   VecDestroy(v);
 }
 
