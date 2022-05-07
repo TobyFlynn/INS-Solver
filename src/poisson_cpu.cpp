@@ -1,4 +1,5 @@
 #include "poisson.h"
+#include "poisson_HYPRE.h"
 
 #include "op_seq.h"
 
@@ -57,6 +58,30 @@ void PoissonSolve::set_shell_pc(PC pc) {
 }
 
 void PoissonSolve::setGlbInd() {
+  int global_ind = 0;
+  #ifdef INS_MPI
+  global_ind = get_global_mat_start_ind(unknowns);
+  #endif
+  op_arg args[] = {
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE)
+  };
+  op_mpi_halo_exchanges(mesh->cells, 2, args);
+
+  const int *p = (int *)mesh->order->data;
+  int *data_ptr = (int *)glb_ind->data;
+  int ind = global_ind;
+  for(int i = 0; i < mesh->cells->size; i++) {
+    int Np, Nfp;
+    DGUtils::basic_constants(p[i], &Np, &Nfp);
+    data_ptr[i] = ind;
+    ind += Np;
+  }
+
+  op_mpi_set_dirtybit(2, args);
+}
+
+void PoissonSolveHYPRE::setGlbInd() {
   int global_ind = 0;
   #ifdef INS_MPI
   global_ind = get_global_mat_start_ind(unknowns);
@@ -166,4 +191,89 @@ void PoissonSolve::setMatrix() {
 
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
+}
+
+void PoissonSolveHYPRE::setMatrix() {
+  // Add cubature OP to Poisson matrix
+  op_arg args[] = {
+    op_arg_dat(pMatrix->op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges(mesh->cells, 3, args);
+
+  const int setSize = mesh->cells->size;
+  const int *glb    = (int *)glb_ind->data;
+  const int *order  = (int *)mesh->order->data;
+
+  int *idxm  = (int *)malloc(DG_NP * setSize * sizeof(int));
+  int *idxn  = (int *)malloc(DG_NP * DG_NP * setSize * sizeof(int));
+  int *nCols = (int *)malloc(DG_NP * setSize * sizeof(int));
+
+  for(int i = 0; i < setSize; i++) {
+    int currentRow = glb[i];
+    int currentCol = glb[i];
+    for(int n = 0; n < DG_NP; n++) {
+      idxm[i * DG_NP + n] = currentRow + n;
+      nCols[i * DG_NP + n] = DG_NP;
+      for(int m = 0; m < DG_NP; m++) {
+        idxn[i * DG_NP * DG_NP + n * DG_NP + m] = currentCol + m;
+      }
+    }
+  }
+
+  HYPRE_IJMatrixAddToValues(mat, DG_NP * setSize, nCols, idxm, idxn, (double *)pMatrix->op1->data);
+
+  op_mpi_set_dirtybit(3, args);
+
+  free(idxm);
+  free(idxn);
+  free(nCols);
+
+  op_arg edge_args[] = {
+    op_arg_dat(pMatrix->op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(pMatrix->op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(orderL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(orderR, -1, OP_ID, 1, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges(mesh->edges, 6, edge_args);
+  const int *glb_l   = (int *)glb_indL->data;
+  const int *glb_r   = (int *)glb_indR->data;
+  const int *order_l = (int *)orderL->data;
+  const int *order_r = (int *)orderR->data;
+
+  int *idxlm  = (int *)malloc(DG_NP * mesh->edges->size * sizeof(int));
+  int *idxln  = (int *)malloc(DG_NP * DG_NP * mesh->edges->size * sizeof(int));
+  int *idxrm  = (int *)malloc(DG_NP * mesh->edges->size * sizeof(int));
+  int *idxrn  = (int *)malloc(DG_NP * DG_NP * mesh->edges->size * sizeof(int));
+  int *nCols2 = (int *)malloc(DG_NP * mesh->edges->size * sizeof(int));
+
+  // Add Gauss OP and OPf to Poisson matrix
+  for(int i = 0; i < mesh->edges->size; i++) {
+    int leftRow = glb_l[i];
+    int rightRow = glb_r[i];
+
+    for(int n = 0; n < DG_NP; n++) {
+      idxlm[i * DG_NP + n] = leftRow + n;
+      idxrm[i * DG_NP + n] = rightRow + n;
+      nCols2[i * DG_NP + n] = DG_NP;
+      for(int m = 0; m < DG_NP; m++) {
+        idxln[i * DG_NP * DG_NP + n * DG_NP + m] = rightRow + m;
+        idxrn[i * DG_NP * DG_NP + n * DG_NP + m] = leftRow + m;
+      }
+    }
+  }
+
+  HYPRE_IJMatrixAddToValues(mat, DG_NP * mesh->edges->size, nCols2, idxlm, idxln, (double *)pMatrix->op2[0]->data);
+  HYPRE_IJMatrixAddToValues(mat, DG_NP * mesh->edges->size, nCols2, idxrm, idxrn, (double *)pMatrix->op2[1]->data);
+
+  free(idxlm);
+  free(idxln);
+  free(idxrm);
+  free(idxrn);
+  free(nCols2);
+
+  op_mpi_set_dirtybit(6, edge_args);
 }

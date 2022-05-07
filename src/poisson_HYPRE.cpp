@@ -83,11 +83,7 @@ PoissonSolveHYPRE::~PoissonSolveHYPRE() {
 }
 
 void PoissonSolveHYPRE::init() {
-  HYPRE_Init();
-  HYPRE_SetMemoryLocation(HYPRE_MEMORY_DEVICE);
-  HYPRE_SetExecutionPolicy(HYPRE_EXEC_DEVICE);
-  HYPRE_SetSpGemmUseCusparse(false);
-  HYPRE_SetUseGpuRand(true);
+  HYPREUtils::init_hypre();
 
   HYPRE_ParCSRPCGCreate(MPI_COMM_WORLD, &solver);
   HYPRE_ParCSRPCGSetLogging(solver, 1);
