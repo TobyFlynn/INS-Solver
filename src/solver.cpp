@@ -72,6 +72,12 @@ Solver::Solver(std::string filename, int prob) {
               op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->Q[0][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->Q[0][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+  op_par_loop(set_ic, "set_ic", mesh->cells,
+              op_arg_gbl(&problem, 1, "int", OP_READ),
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->Q[1][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->Q[1][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   dt = numeric_limits<double>::max();
   op_par_loop(calc_dt, "calc_dt", mesh->cells,

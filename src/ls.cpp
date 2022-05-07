@@ -26,16 +26,6 @@ LS::LS(DGMesh *m, INSData *d) {
   curv_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   diracDelta_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
 
-  sign_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  gS_data     = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
-
-  gSigTmp_data = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
-  diff_data    = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  diffF_data   = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
-
-  modal_data     = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  local_vis_data = (double *)calloc(mesh->numCells, sizeof(double));
-
   gInput = op_decl_dat(mesh->cells, DG_G_NP, "double", gInput_data, "gInput");
 
   s      = op_decl_dat(mesh->cells, DG_NP, "double", s_data, "s");
@@ -44,16 +34,6 @@ LS::LS(DGMesh *m, INSData *d) {
   ny     = op_decl_dat(mesh->cells, DG_NP, "double", ny_data, "ls-ny");
   curv   = op_decl_dat(mesh->cells, DG_NP, "double", curv_data, "curv");
   diracDelta = op_decl_dat(mesh->cells, DG_NP, "double", diracDelta_data, "diracDelta");
-
-  sign   = op_decl_dat(mesh->cells, DG_NP, "double", sign_data, "sign");
-  gS     = op_decl_dat(mesh->cells, DG_G_NP, "double", gS_data, "gS");
-
-  gSigTmp = op_decl_dat(mesh->cells, DG_G_NP, "double", gSigTmp_data, "gSigTmp");
-  diff    = op_decl_dat(mesh->cells, DG_NP, "double", diff_data, "diff");
-  diffF   = op_decl_dat(mesh->cells, DG_G_NP, "double", diffF_data, "diffF");
-
-  modal     = op_decl_dat(mesh->cells, DG_NP, "double", modal_data, "modal");
-  local_vis = op_decl_dat(mesh->cells, 1, "double", local_vis_data, "local_vis");
 }
 
 LS::~LS() {
@@ -65,16 +45,6 @@ LS::~LS() {
   free(ny_data);
   free(curv_data);
   free(diracDelta_data);
-
-  free(sign_data);
-  free(gS_data);
-
-  free(gSigTmp_data);
-  free(diff_data);
-  free(diffF_data);
-
-  free(modal_data);
-  free(local_vis_data);
 }
 
 void LS::init() {
@@ -88,35 +58,16 @@ void LS::init() {
   dGdr = data->tmp_dg_np[6];
   dGds = data->tmp_dg_np[7];
 
-  dpldx = data->tmp_dg_np[4];
-  dprdx = data->tmp_dg_np[5];
-  dpldy = data->tmp_dg_np[6];
-  dprdy = data->tmp_dg_np[7];
-
   F = data->tmp_dg_np[8];
   G = data->tmp_dg_np[9];
 
   dsdx = data->tmp_dg_np[8];
   dsdy = data->tmp_dg_np[9];
 
-  sigmax = data->tmp_dg_np[8];
-  sigmay = data->tmp_dg_np[9];
-  sigTmp = data->tmp_dg_np[4];
-
   exAdvec = data->tmp_dg_g_np[0];
   nFlux   = data->tmp_dg_g_np[1];
   gU      = data->tmp_dg_g_np[2];
   gV      = data->tmp_dg_g_np[3];
-
-  dsldx = data->tmp_dg_g_np[0];
-  dsrdx = data->tmp_dg_g_np[1];
-  dsldy = data->tmp_dg_g_np[2];
-  dsrdy = data->tmp_dg_g_np[3];
-
-  sigmaFx = data->tmp_dg_g_np[0];
-  sigmaFy = data->tmp_dg_g_np[1];
-  gSigmax = data->tmp_dg_g_np[2];
-  gSigmay = data->tmp_dg_g_np[3];
 
   op_par_loop(init_surface, "init_surface", mesh->cells,
               op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
@@ -213,7 +164,7 @@ void LS::step(double dt) {
               op_arg_dat(mesh->y,     0, mesh->bedge2cells, DG_NP, "double", OP_READ),
               op_arg_dat(s,           0, mesh->bedge2cells, DG_NP, "double", OP_WRITE));
   */
-
+  /*
   op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
               op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&order_width,     1, "double", OP_READ),
@@ -229,7 +180,7 @@ void LS::step(double dt) {
   dats_to_update.push_back(s);
 
   mesh->update_order(data->new_order, dats_to_update);
-
+  */
   update_values();
 }
 
@@ -297,228 +248,7 @@ void LS::advec_step(op_dat input, op_dat output) {
 }
 
 void LS::reinit_ls() {
-  // std::cout << "***reinit ls***" << std::endl;
-  calc_local_diff_const();
 
-  // cub_grad(mesh, s, dsdx, dsdy);
-  // grad(mesh, s, dsdx, dsdy);
-  // inv_mass(mesh, dsdx);
-  // inv_mass(mesh, dsdy);
-  // Calculate gradient of pressure
-  grad(mesh, s, dsdx, dsdy);
-
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, s, 0.0, gS);
-
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
-              op_arg_dat(dsldx, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
-              op_arg_dat(dsldy, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
-
-  op_par_loop(pressure_grad_flux, "pressure_grad_flux", mesh->edges,
-              op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(mesh->gauss->nx, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gS,    -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(dsldx, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
-              op_arg_dat(dsldy, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
-
-  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, dsldx, 1.0, dsdx);
-  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, dsldy, 1.0, dsdy);
-
-  op_par_loop(ls_sign, "ls_sign", mesh->cells,
-              op_arg_gbl(&alpha, 1, "double", OP_READ),
-              op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(dsdx,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(dsdy,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(sign,  -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-  for(int i = 0; i < numSteps; i++) {
-    int x = -1;
-    op_par_loop(set_rkQ, "set_rkQ", mesh->cells,
-                op_arg_gbl(&x, 1, "int", OP_READ),
-                op_arg_gbl(&reinit_dt, 1, "double", OP_READ),
-                op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(rk[0], -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(rkQ,   -1, OP_ID, DG_NP, "double", OP_RW));
-
-    for(int j = 0; j < 3; j++) {
-      op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, rkQ, 0.0, gS);
-
-      op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
-                  op_arg_dat(dsldx, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
-                  op_arg_dat(dsrdx, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
-
-      op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
-                  op_arg_dat(dsldy, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
-                  op_arg_dat(dsrdy, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
-
-      op_par_loop(ls_flux, "ls_flux", mesh->edges,
-                  op_arg_dat(mesh->order,     -2, mesh->edge2cells, 1, "int", OP_READ),
-                  op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
-                  op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
-                  op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-                  op_arg_dat(mesh->gauss->nx, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-                  op_arg_dat(mesh->gauss->ny, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-                  op_arg_dat(gS,    -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-                  op_arg_dat(dsldx, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
-                  op_arg_dat(dsrdx, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
-                  op_arg_dat(dsldy, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
-                  op_arg_dat(dsrdy, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
-
-      op_par_loop(ls_bflux, "ls_bflux", mesh->bedges,
-                  op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
-                  op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                  op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-                  op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-                  op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-                  op_arg_dat(gS,    0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-                  op_arg_dat(dsldx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
-                  op_arg_dat(dsrdx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
-                  op_arg_dat(dsldy, 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
-                  op_arg_dat(dsrdy, 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
-
-      cub_grad_weak(mesh, rkQ, dsdx, dsdy);
-      // grad_weak(mesh, rkQ, dsdx, dsdy);
-
-      op_par_loop(ls_copy, "ls_copy", mesh->cells,
-                  op_arg_dat(dsdx,  -1, OP_ID, DG_NP, "double", OP_READ),
-                  op_arg_dat(dsdy,  -1, OP_ID, DG_NP, "double", OP_READ),
-                  op_arg_dat(dpldx, -1, OP_ID, DG_NP, "double", OP_WRITE),
-                  op_arg_dat(dprdx, -1, OP_ID, DG_NP, "double", OP_WRITE),
-                  op_arg_dat(dpldy, -1, OP_ID, DG_NP, "double", OP_WRITE),
-                  op_arg_dat(dprdy, -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-      op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, dsldx, 1.0, dpldx);
-      op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, dsrdx, 1.0, dprdx);
-      op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, dsldy, 1.0, dpldy);
-      op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, dsrdy, 1.0, dprdy);
-
-      inv_mass(mesh, dpldx);
-      inv_mass(mesh, dprdx);
-      inv_mass(mesh, dpldy);
-      inv_mass(mesh, dprdy);
-
-      op_par_loop(ls_rhs, "ls_rhs", mesh->cells,
-                  op_arg_dat(sign,  -1, OP_ID, DG_NP, "double", OP_READ),
-                  op_arg_dat(dpldx, -1, OP_ID, DG_NP, "double", OP_READ),
-                  op_arg_dat(dprdx, -1, OP_ID, DG_NP, "double", OP_READ),
-                  op_arg_dat(dpldy, -1, OP_ID, DG_NP, "double", OP_READ),
-                  op_arg_dat(dprdy, -1, OP_ID, DG_NP, "double", OP_READ),
-                  op_arg_dat(rk[j], -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-      calc_diff();
-
-      op_par_loop(ls_add_diff, "ls_add_diff", mesh->cells,
-                  op_arg_dat(diff,  -1, OP_ID, DG_NP, "double", OP_READ),
-                  op_arg_dat(rk[j], -1, OP_ID, DG_NP, "double", OP_RW));
-
-      if(j != 2) {
-        op_par_loop(set_rkQ, "set_rkQ", mesh->cells,
-                    op_arg_gbl(&j, 1, "int", OP_READ),
-                    op_arg_gbl(&reinit_dt, 1, "double", OP_READ),
-                    op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_READ),
-                    op_arg_dat(rk[0], -1, OP_ID, DG_NP, "double", OP_READ),
-                    op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
-                    op_arg_dat(rkQ,   -1, OP_ID, DG_NP, "double", OP_RW));
-      }
-    }
-    op_par_loop(update_Q, "update_Q", mesh->cells,
-                op_arg_gbl(&reinit_dt, 1, "double", OP_READ),
-                op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_RW),
-                op_arg_dat(rk[0], -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(rk[2], -1, OP_ID, DG_NP, "double", OP_READ));
-  }
-}
-
-void LS::calc_diff() {
-  op_par_loop(sigma_mult, "sigma_mult", mesh->cells,
-              op_arg_dat(local_vis, -1, OP_ID, 1, "double", OP_READ),
-              op_arg_dat(rkQ,       -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(sigTmp,    -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-  // Calculate sigma
-  cub_grad_weak(mesh, sigTmp, sigmax, sigmay);
-  // grad_weak(mesh, sigTmp, sigmax, sigmay);
-
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
-              op_arg_dat(sigmaFx, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
-              op_arg_dat(sigmaFy, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
-
-  op_par_loop(sigma_flux, "sigma_flux", mesh->edges,
-              op_arg_dat(mesh->order,     -2, mesh->edge2cells, 1, "int", OP_READ),
-              op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->nx, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gS,        -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(local_vis, -2, mesh->edge2cells, 1, "double", OP_READ),
-              op_arg_dat(sigmaFx,   -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
-              op_arg_dat(sigmaFy,   -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
-
-  op_par_loop(sigma_bflux, "sigma_bflux", mesh->bedges,
-              op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gS,        0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(local_vis, 0, mesh->bedge2cells, 1, "double", OP_READ),
-              op_arg_dat(sigmaFx,   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
-              op_arg_dat(sigmaFy,   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
-
-  op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, sigmaFx, 1.0, sigmax);
-  op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, sigmaFy, 1.0, sigmay);
-
-  inv_mass(mesh, sigmax);
-  inv_mass(mesh, sigmay);
-
-  op_par_loop(zero_g_np1, "zero_g_np1", mesh->cells,
-              op_arg_dat(diffF, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
-
-  // Calculate diffusion
-  op_par_loop(diff_mult, "diff_mult", mesh->cells,
-              op_arg_dat(local_vis, -1, OP_ID, 1, "double", OP_READ),
-              op_arg_dat(sigmax,    -1, OP_ID, DG_NP, "double", OP_RW),
-              op_arg_dat(sigmay,    -1, OP_ID, DG_NP, "double", OP_RW));
-
-  cub_div_weak(mesh, sigmax, sigmay, diff);
-  // div_weak(mesh, sigmax, sigmay, diff);
-
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, sigmax, 0.0, gSigmax);
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, sigmay, 0.0, gSigmay);
-
-  op_par_loop(diff_flux, "diff_flux", mesh->edges,
-              op_arg_dat(mesh->order,     -2, mesh->edge2cells, 1, "int", OP_READ),
-              op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->nx, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gS,        -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(local_vis, -2, mesh->edge2cells, 1, "double", OP_READ),
-              op_arg_dat(gSigmax,   -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gSigmay,   -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(diffF,     -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
-
-  op_par_loop(diff_bflux, "diff_bflux", mesh->bedges,
-              op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gS,        0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(local_vis, 0, mesh->bedge2cells, 1, "double", OP_READ),
-              op_arg_dat(gSigmax,   0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gSigmax,   0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(diffF,     0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
-
-  op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, diffF, 1.0, diff);
-
-  inv_mass(mesh, diff);
 }
 
 bool LS::reinit_needed() {
@@ -552,16 +282,4 @@ void LS::update_values() {
   grad(mesh, s, nx, ny);
 
   div(mesh, nx, ny, curv);
-}
-
-void LS::calc_local_diff_const() {
-  // Get modal coefficients from nodal representation
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, modal);
-
-  // Group modal coefficients using quadratic mean (with skyline pessimization)
-  op_par_loop(ls_local_vis, "ls_local_vis", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&epsilon,   1, "double", OP_READ),
-              op_arg_dat(modal,     -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(local_vis, -1, OP_ID, 1, "double", OP_WRITE));
 }

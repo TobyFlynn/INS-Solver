@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
       b0 = 2.0;
       b1 = -1.0;
     }
-
+    /*
     timer->startAdvection();
     solver->advection(currentIter % 2, a0, a1, b0, b1, g0, time);
     timer->endAdvection();
@@ -187,8 +187,8 @@ int main(int argc, char **argv) {
       break;
     }
     timer->endViscosity();
-
-    // solver->update_surface(currentIter % 2);
+    */
+    solver->update_surface(currentIter % 2);
     // solver->update_surface(1);
 
     currentIter++;
