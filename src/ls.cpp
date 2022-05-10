@@ -5,7 +5,9 @@
 #include <limits>
 #include <cmath>
 #include <vector>
-// #include <iostream>
+
+#include <iostream>
+#include <fstream>
 
 #include "dg_constants.h"
 #include "dg_blas_calls.h"
@@ -26,6 +28,9 @@ LS::LS(DGMesh *m, INSData *d) {
   curv_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   diracDelta_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
 
+  s_sample_x_data = (double *)calloc(3 * mesh->numCells, sizeof(double));
+  s_sample_y_data = (double *)calloc(3 * mesh->numCells, sizeof(double));
+
   gInput = op_decl_dat(mesh->cells, DG_G_NP, "double", gInput_data, "gInput");
 
   s      = op_decl_dat(mesh->cells, DG_NP, "double", s_data, "s");
@@ -34,6 +39,9 @@ LS::LS(DGMesh *m, INSData *d) {
   ny     = op_decl_dat(mesh->cells, DG_NP, "double", ny_data, "ls-ny");
   curv   = op_decl_dat(mesh->cells, DG_NP, "double", curv_data, "curv");
   diracDelta = op_decl_dat(mesh->cells, DG_NP, "double", diracDelta_data, "diracDelta");
+
+  s_sample_x = op_decl_dat(mesh->cells, 3, "double", s_sample_x_data, "s_sample_x");
+  s_sample_y = op_decl_dat(mesh->cells, 3, "double", s_sample_y_data, "s_sample_y");
 }
 
 LS::~LS() {
@@ -45,6 +53,9 @@ LS::~LS() {
   free(ny_data);
   free(curv_data);
   free(diracDelta_data);
+
+  free(s_sample_x_data);
+  free(s_sample_y_data);
 }
 
 void LS::init() {
@@ -63,6 +74,12 @@ void LS::init() {
 
   dsdx = data->tmp_dg_np[8];
   dsdy = data->tmp_dg_np[9];
+
+  s_modal    = data->tmp_dg_np[0];
+  dsdr_modal = data->tmp_dg_np[1];
+  dsds_modal = data->tmp_dg_np[2];
+  dsdr       = data->tmp_dg_np[3];
+  dsds       = data->tmp_dg_np[4];
 
   exAdvec = data->tmp_dg_g_np[0];
   nFlux   = data->tmp_dg_g_np[1];
@@ -112,8 +129,8 @@ void LS::init() {
               op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s,       -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  // reinit_ls();
-  update_values();
+  reinit_ls();
+  // update_values();
 }
 
 void LS::setVelField(op_dat u1, op_dat v1) {
@@ -248,7 +265,42 @@ void LS::advec_step(op_dat input, op_dat output) {
 }
 
 void LS::reinit_ls() {
+  op2_gemv(mesh, false, 1.0, DGConstants::DR, s, 0.0, dsdr);
+  op2_gemv(mesh, false, 1.0, DGConstants::DS, s, 0.0, dsds);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, s_modal);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsdr, 0.0, dsdr_modal);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsds, 0.0, dsds_modal);
 
+  op_par_loop(sample_interface, "sample_interface", mesh->cells,
+              op_arg_gbl(&h, 1, "double", OP_READ),
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
+              op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(s_modal,     -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(dsdr_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(dsds_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(s_sample_x,  -1, OP_ID, 3, "double", OP_WRITE),
+              op_arg_dat(s_sample_y,  -1, OP_ID, 3, "double", OP_WRITE));
+
+  op_arg op2_args[] = {
+    op_arg_dat(s_sample_x, -1, OP_ID, 3, "double", OP_READ),
+    op_arg_dat(s_sample_y, -1, OP_ID, 3, "double", OP_READ)
+  };
+  op_mpi_halo_exchanges(s_sample_x->set, 2, op2_args);
+
+  std::string fileName = "interface_sample_points.txt";
+  std::ofstream out_file(fileName.c_str());
+  out_file << "X,Y,Z" << std::endl;
+
+  const double *x_coords = (double *)s_sample_x->data;
+  const double *y_coords = (double *)s_sample_y->data;
+  for(int i = 0; i < 3 * mesh->numCells; i++) {
+    out_file << x_coords[i] << "," << y_coords[i] << ",0.0" << std::endl;
+  }
+
+  out_file.close();
+
+  op_mpi_set_dirtybit(2, op2_args);
 }
 
 bool LS::reinit_needed() {

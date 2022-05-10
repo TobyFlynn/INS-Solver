@@ -27,6 +27,8 @@ public:
 
   op_dat dsdx, dsdy;
 
+  op_dat s_modal, dsdr_modal, dsds_modal, dsdr, dsds, s_sample_x, s_sample_y;
+
   double alpha, order_width;
 private:
   void advec_step(op_dat input, op_dat output);
@@ -39,6 +41,7 @@ private:
 
   double *s_data, *step_s_data, *nx_data, *ny_data, *curv_data, *diracDelta_data;
   double *gInput_data;
+  double *s_sample_x_data, *s_sample_y_data;
 };
 
 #endif
