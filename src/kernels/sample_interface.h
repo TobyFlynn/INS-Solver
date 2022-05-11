@@ -89,8 +89,16 @@ inline void sample_interface(const double *h, const double *x, const double *y,
     if(positive0 != surface[i] > 0.0)
       interface = true;
   }
-  if(!interface)
+  if(!interface) {
+    sample_x[0] = NAN;
+    sample_y[0] = NAN;
+    sample_x[1] = NAN;
+    sample_y[1] = NAN;
+    sample_x[2] = NAN;
+    sample_y[2] = NAN;
     return;
+  }
+
   // Initial positions of sample points (in r-s coords)
   sample_x[0] = -0.55158350755530561;
   sample_y[0] = -0.55158350755530561;
@@ -131,13 +139,13 @@ inline void sample_interface(const double *h, const double *x, const double *y,
 
       // Check within original element
       if(!is_point_in_cell(sample_x[p], sample_y[p], x, y)) {
-        sample_x[p] = 0.0;
-        sample_y[p] = 0.0;
+        sample_x[p] = NAN;
+        sample_y[p] = NAN;
       }
     } else {
       // TODO handle this properly
-      sample_x[p] = 0.0;
-      sample_y[p] = 0.0;
+      sample_x[p] = NAN;
+      sample_y[p] = NAN;
     }
   }
 }

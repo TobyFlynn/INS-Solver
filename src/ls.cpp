@@ -15,6 +15,8 @@
 #include "dg_operators.h"
 #include "dg_compiler_defs.h"
 
+#include "kd_tree.h"
+
 LS::LS(DGMesh *m, INSData *d) {
   mesh = m;
   data = d;
@@ -299,6 +301,8 @@ void LS::reinit_ls() {
   }
 
   out_file.close();
+
+  KDTree kdtree((double *)s_sample_x->data, (double *)s_sample_y->data, 3 * mesh->numCells);
 
   op_mpi_set_dirtybit(2, op2_args);
 }
