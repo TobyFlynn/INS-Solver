@@ -30,6 +30,16 @@ KDTree::KDTree(const double *x, const double *y, const int num) {
   construct_tree(points.begin(), points.end(), 0);
 }
 
+double KDTree::closest_point(const double x, const double y) {
+  double closest_distance = -1.0;
+  int closest_ind = -1;
+  int current_ind = 0;
+  int axis = 0;
+
+  nearest_neighbour(x, y, current_ind, axis, closest_ind, closest_distance);
+  return closest_distance;
+}
+
 int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>::iterator pts_end, int axis) {
   if(axis == 0) {
     sort(pts_start, pts_end, compareX);
@@ -61,4 +71,76 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
   nodes[node_ind].r = right_child;
 
   return node_ind;
+}
+
+void KDTree::nearest_neighbour(const double x, const double y, int current_ind, int axis, int &closest_ind, double &closest_distance) {
+  if(current_ind == -1) return;
+  double distance = (x - nodes[current_ind].coord.x) * (x - nodes[current_ind].coord.x)
+                     + (y - nodes[current_ind].coord.y) * (y - nodes[current_ind].coord.y);
+  // Check if leaf node
+  if(nodes[current_ind].l == -1 && nodes[current_ind].r == -1) {
+    // Check if first leaf node
+    if(closest_ind == -1) {
+      closest_ind = current_ind;
+      closest_distance = distance;
+      return;
+    }
+
+    // Check if this leaf node is closer than current best
+    if(distance < closest_distance) {
+      closest_ind = current_ind;
+      closest_distance = distance;
+    }
+    return;
+  }
+
+  // If not leaf node, search tree as if inserting on the way down
+  if(axis == 0) {
+    if(x < nodes[current_ind].coord.x) {
+      nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance);
+    } else {
+      nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance);
+    }
+  } else {
+    if(y < nodes[current_ind].coord.y) {
+      nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance);
+    } else {
+      nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance);
+    }
+  }
+
+  // Check if current node is better than current best
+  if(distance < closest_distance || closest_ind == -1) {
+    closest_ind = current_ind;
+    closest_distance = distance;
+  }
+
+  // Check if there could be a closer point on the other side of the plane
+  if(axis == 0) {
+    double plane_distance = (x - nodes[current_ind].coord.x) * (x - nodes[current_ind].coord.x);
+    if(plane_distance > closest_distance) {
+      // No possible better node on other side of this node
+      return;
+    } else {
+      // Potentially better node on other side so search there
+      if(x < nodes[current_ind].coord.x) {
+        nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance);
+      } else {
+        nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance);
+      }
+    }
+  } else {
+    double plane_distance = (y - nodes[current_ind].coord.y) * (y - nodes[current_ind].coord.y);
+    if(plane_distance > closest_distance) {
+      // No possible better node on other side of this node
+      return;
+    } else {
+      // Potentially better node on other side so search there
+      if(y < nodes[current_ind].coord.y) {
+        nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance);
+      } else {
+        nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance);
+      }
+    }
+  }
 }

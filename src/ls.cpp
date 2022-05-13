@@ -286,9 +286,12 @@ void LS::reinit_ls() {
 
   op_arg op2_args[] = {
     op_arg_dat(s_sample_x, -1, OP_ID, 3, "double", OP_READ),
-    op_arg_dat(s_sample_y, -1, OP_ID, 3, "double", OP_READ)
+    op_arg_dat(s_sample_y, -1, OP_ID, 3, "double", OP_READ),
+    op_arg_dat(mesh->x, -1, OP_ID, 3DG_NP, "double", OP_READ),
+    op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(s, -1, OP_ID, DG_NP, "double", OP_WRITE)
   };
-  op_mpi_halo_exchanges(s_sample_x->set, 2, op2_args);
+  op_mpi_halo_exchanges(s_sample_x->set, 5, op2_args);
 
   std::string fileName = "interface_sample_points.txt";
   std::ofstream out_file(fileName.c_str());
@@ -304,7 +307,14 @@ void LS::reinit_ls() {
 
   KDTree kdtree((double *)s_sample_x->data, (double *)s_sample_y->data, 3 * mesh->numCells);
 
-  op_mpi_set_dirtybit(2, op2_args);
+  const double *mesh_x_coords = (double *)mesh->x->data;
+  const double *mesh_y_coords = (double *)mesh->y->data;
+  double *dists = (double *)s->data;
+  for(int i = 0; i < DG_NP * mesh->numCells; i++) {
+    dists[i] = kdtree.closest_point(mesh_x_coords[i], mesh_y_coords[i]);
+  }
+
+  op_mpi_set_dirtybit(5, op2_args);
 }
 
 bool LS::reinit_needed() {
