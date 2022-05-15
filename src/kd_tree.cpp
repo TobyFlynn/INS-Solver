@@ -23,6 +23,8 @@ KDTree::KDTree(const double *x, const double *y, const int num) {
       KDCoord pt;
       pt.x = x[i];
       pt.y = y[i];
+      pt.cell = i / DG_NP;
+      pt.node = i % DG_NP;
       points.push_back(pt);
     }
   }
@@ -30,14 +32,15 @@ KDTree::KDTree(const double *x, const double *y, const int num) {
   construct_tree(points.begin(), points.end(), 0);
 }
 
-double KDTree::closest_point(const double x, const double y) {
+KDCoord KDTree::closest_point(const double x, const double y) {
   double closest_distance = -1.0;
   int closest_ind = -1;
   int current_ind = 0;
   int axis = 0;
+  KDCoord result;
 
-  nearest_neighbour(x, y, current_ind, axis, closest_ind, closest_distance);
-  return closest_distance;
+  nearest_neighbour(x, y, current_ind, axis, closest_ind, closest_distance, result);
+  return result;
 }
 
 int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>::iterator pts_end, int axis) {
@@ -73,7 +76,7 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
   return node_ind;
 }
 
-void KDTree::nearest_neighbour(const double x, const double y, int current_ind, int axis, int &closest_ind, double &closest_distance) {
+void KDTree::nearest_neighbour(const double x, const double y, int current_ind, int axis, int &closest_ind, double &closest_distance, KDCoord &pt) {
   if(current_ind == -1) return;
   double distance = (x - nodes[current_ind].coord.x) * (x - nodes[current_ind].coord.x)
                      + (y - nodes[current_ind].coord.y) * (y - nodes[current_ind].coord.y);
@@ -83,6 +86,7 @@ void KDTree::nearest_neighbour(const double x, const double y, int current_ind, 
     if(closest_ind == -1) {
       closest_ind = current_ind;
       closest_distance = distance;
+      pt = nodes[current_ind].coord;
       return;
     }
 
@@ -90,6 +94,7 @@ void KDTree::nearest_neighbour(const double x, const double y, int current_ind, 
     if(distance < closest_distance) {
       closest_ind = current_ind;
       closest_distance = distance;
+      pt = nodes[current_ind].coord;
     }
     return;
   }
@@ -97,15 +102,15 @@ void KDTree::nearest_neighbour(const double x, const double y, int current_ind, 
   // If not leaf node, search tree as if inserting on the way down
   if(axis == 0) {
     if(x < nodes[current_ind].coord.x) {
-      nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance);
+      nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance, pt);
     } else {
-      nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance);
+      nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance, pt);
     }
   } else {
     if(y < nodes[current_ind].coord.y) {
-      nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance);
+      nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance, pt);
     } else {
-      nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance);
+      nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance, pt);
     }
   }
 
@@ -113,6 +118,7 @@ void KDTree::nearest_neighbour(const double x, const double y, int current_ind, 
   if(distance < closest_distance || closest_ind == -1) {
     closest_ind = current_ind;
     closest_distance = distance;
+    pt = nodes[current_ind].coord;
   }
 
   // Check if there could be a closer point on the other side of the plane
@@ -124,9 +130,9 @@ void KDTree::nearest_neighbour(const double x, const double y, int current_ind, 
     } else {
       // Potentially better node on other side so search there
       if(x < nodes[current_ind].coord.x) {
-        nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance);
+        nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance, pt);
       } else {
-        nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance);
+        nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance, pt);
       }
     }
   } else {
@@ -137,9 +143,9 @@ void KDTree::nearest_neighbour(const double x, const double y, int current_ind, 
     } else {
       // Potentially better node on other side so search there
       if(y < nodes[current_ind].coord.y) {
-        nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance);
+        nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance, pt);
       } else {
-        nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance);
+        nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance, pt);
       }
     }
   }

@@ -389,8 +389,8 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, L
   dats_to_save.push_back(data->Q[ind][1]);
   dats_to_save.push_back(data->vorticity);
   dats_to_save.push_back(data->p);
-  // dats_to_save.push_back(ls->s);
-  dats_to_save.push_back(ls->step_s);
+  dats_to_save.push_back(ls->s);
+  // dats_to_save.push_back(ls->step_s);
   dats_to_save.push_back(mesh->x);
   dats_to_save.push_back(mesh->y);
   std::vector<op_dat> dats_out;

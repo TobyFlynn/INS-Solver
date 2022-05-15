@@ -16,6 +16,7 @@
 #include "dg_compiler_defs.h"
 
 #include "kd_tree.h"
+#include "utils.h"
 
 LS::LS(DGMesh *m, INSData *d) {
   mesh = m;
@@ -30,8 +31,8 @@ LS::LS(DGMesh *m, INSData *d) {
   curv_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   diracDelta_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
 
-  s_sample_x_data = (double *)calloc(3 * mesh->numCells, sizeof(double));
-  s_sample_y_data = (double *)calloc(3 * mesh->numCells, sizeof(double));
+  s_sample_x_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+  s_sample_y_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
 
   gInput = op_decl_dat(mesh->cells, DG_G_NP, "double", gInput_data, "gInput");
 
@@ -42,8 +43,8 @@ LS::LS(DGMesh *m, INSData *d) {
   curv   = op_decl_dat(mesh->cells, DG_NP, "double", curv_data, "curv");
   diracDelta = op_decl_dat(mesh->cells, DG_NP, "double", diracDelta_data, "diracDelta");
 
-  s_sample_x = op_decl_dat(mesh->cells, 3, "double", s_sample_x_data, "s_sample_x");
-  s_sample_y = op_decl_dat(mesh->cells, 3, "double", s_sample_y_data, "s_sample_y");
+  s_sample_x = op_decl_dat(mesh->cells, DG_NP, "double", s_sample_x_data, "s_sample_x");
+  s_sample_y = op_decl_dat(mesh->cells, DG_NP, "double", s_sample_y_data, "s_sample_y");
 }
 
 LS::~LS() {
@@ -77,11 +78,14 @@ void LS::init() {
   dsdx = data->tmp_dg_np[8];
   dsdy = data->tmp_dg_np[9];
 
-  s_modal    = data->tmp_dg_np[0];
-  dsdr_modal = data->tmp_dg_np[1];
-  dsds_modal = data->tmp_dg_np[2];
-  dsdr       = data->tmp_dg_np[3];
-  dsds       = data->tmp_dg_np[4];
+  s_modal     = data->tmp_dg_np[0];
+  dsdr_modal  = data->tmp_dg_np[1];
+  dsds_modal  = data->tmp_dg_np[2];
+  dsdr        = data->tmp_dg_np[3];
+  dsds        = data->tmp_dg_np[4];
+  dsdr2_modal = data->tmp_dg_np[5];
+  dsdrs_modal = data->tmp_dg_np[6];
+  dsds2_modal = data->tmp_dg_np[7];
 
   exAdvec = data->tmp_dg_g_np[0];
   nFlux   = data->tmp_dg_g_np[1];
@@ -269,29 +273,46 @@ void LS::advec_step(op_dat input, op_dat output) {
 void LS::reinit_ls() {
   op2_gemv(mesh, false, 1.0, DGConstants::DR, s, 0.0, dsdr);
   op2_gemv(mesh, false, 1.0, DGConstants::DS, s, 0.0, dsds);
+  op2_gemv(mesh, false, 1.0, DGConstants::DR, dsdr, 0.0, s_modal);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s_modal, 0.0, dsdr2_modal);
+  op2_gemv(mesh, false, 1.0, DGConstants::DS, dsdr, 0.0, s_modal);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s_modal, 0.0, dsdrs_modal);
+  op2_gemv(mesh, false, 1.0, DGConstants::DS, dsds, 0.0, s_modal);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s_modal, 0.0, dsds2_modal);
   op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, s_modal);
   op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsdr, 0.0, dsdr_modal);
   op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsds, 0.0, dsds_modal);
 
+  DGConstants dg_const(DG_ORDER);
+
   op_par_loop(sample_interface, "sample_interface", mesh->cells,
-              op_arg_gbl(&h, 1, "double", OP_READ),
+              op_arg_gbl(dg_const.r, DG_NP, "double", OP_READ),
+              op_arg_gbl(dg_const.s, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s_modal,     -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(dsdr_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(dsds_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(s_sample_x,  -1, OP_ID, 3, "double", OP_WRITE),
-              op_arg_dat(s_sample_y,  -1, OP_ID, 3, "double", OP_WRITE));
+              op_arg_dat(s_sample_x,  -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(s_sample_y,  -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   op_arg op2_args[] = {
-    op_arg_dat(s_sample_x, -1, OP_ID, 3, "double", OP_READ),
-    op_arg_dat(s_sample_y, -1, OP_ID, 3, "double", OP_READ),
+    op_arg_dat(s_sample_x, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(s_sample_y, -1, OP_ID, DG_NP, "double", OP_READ),
     op_arg_dat(mesh->x, -1, OP_ID, 3DG_NP, "double", OP_READ),
     op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(s, -1, OP_ID, DG_NP, "double", OP_WRITE)
+    op_arg_dat(s, -1, OP_ID, DG_NP, "double", OP_RW),
+    op_arg_dat(s_modal, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(dsdr_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(dsds_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(dsdr2_modal, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(dsdrs_modal, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(dsds2_modal, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
+    op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ)
   };
-  op_mpi_halo_exchanges(s_sample_x->set, 5, op2_args);
+  op_mpi_halo_exchanges(s_sample_x->set, 13, op2_args);
 
   std::string fileName = "interface_sample_points.txt";
   std::ofstream out_file(fileName.c_str());
@@ -299,22 +320,52 @@ void LS::reinit_ls() {
 
   const double *x_coords = (double *)s_sample_x->data;
   const double *y_coords = (double *)s_sample_y->data;
-  for(int i = 0; i < 3 * mesh->numCells; i++) {
-    out_file << x_coords[i] << "," << y_coords[i] << ",0.0" << std::endl;
+  for(int i = 0; i < DG_NP * mesh->numCells; i++) {
+    if(!isnan(x_coords[i]) && !isnan(y_coords[i]))
+      out_file << x_coords[i] << "," << y_coords[i] << ",0.0" << std::endl;
   }
 
   out_file.close();
 
-  KDTree kdtree((double *)s_sample_x->data, (double *)s_sample_y->data, 3 * mesh->numCells);
+  KDTree kdtree((double *)s_sample_x->data, (double *)s_sample_y->data, DG_NP * mesh->numCells);
 
   const double *mesh_x_coords = (double *)mesh->x->data;
   const double *mesh_y_coords = (double *)mesh->y->data;
   double *dists = (double *)s->data;
   for(int i = 0; i < DG_NP * mesh->numCells; i++) {
-    dists[i] = kdtree.closest_point(mesh_x_coords[i], mesh_y_coords[i]);
+    // Get closest sample point
+    bool negative = dists[i] < 0.0;
+    KDCoord tmp = kdtree.closest_point(mesh_x_coords[i], mesh_y_coords[i]);
+    // dists[i] = (tmp.x - mesh_x_coords[i]) * (tmp.x - mesh_x_coords[i]) + (tmp.y - mesh_y_coords[i]) * (tmp.y - mesh_y_coords[i]);
+    // dists[i] = sqrt(dists[i]);
+    // if(negative) dists[i] *= -1.0;
+
+    // Now use Newton method to get real closest point
+    double current_x = tmp.x;
+    double current_y = tmp.y;
+    const double *s_modal_current_cell = ((double *)s_modal->data) + tmp.cell * DG_NP;
+    const double *dsdr_modal_current_cell = ((double *)dsdr_modal->data) + tmp.cell * DG_NP;
+    const double *dsds_modal_current_cell = ((double *)dsds_modal->data) + tmp.cell * DG_NP;
+    const double *dsdr2_modal_current_cell = ((double *)dsdr2_modal->data) + tmp.cell * DG_NP;
+    const double *dsdrs_modal_current_cell = ((double *)dsdrs_modal->data) + tmp.cell * DG_NP;
+    const double *dsds2_modal_current_cell = ((double *)dsds2_modal->data) + tmp.cell * DG_NP;
+    const double *cellX = ((double *)mesh->nodeX->data) + tmp.cell * 3;
+    const double *cellY = ((double *)mesh->nodeY->data) + tmp.cell * 3;
+    newton_method(mesh_x_coords[i], mesh_y_coords[i], current_x, current_y,
+                  s_modal_current_cell, dsdr_modal_current_cell,
+                  dsds_modal_current_cell, dsdr2_modal_current_cell,
+                  dsdrs_modal_current_cell, dsds2_modal_current_cell, cellX, cellY);
+    dists[i] = (current_x - mesh_x_coords[i]) * (current_x - mesh_x_coords[i]) + (current_y - mesh_y_coords[i]) * (current_y - mesh_y_coords[i]);
+    dists[i] = sqrt(dists[i]);
+    if(negative) dists[i] *= -1.0;
   }
 
-  op_mpi_set_dirtybit(5, op2_args);
+  op_mpi_set_dirtybit(13, op2_args);
+
+  op_par_loop(ls_reinit_diff, "ls_reinit_diff", mesh->cells,
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(s,       -1, OP_ID, DG_NP, "double", OP_RW));
 }
 
 bool LS::reinit_needed() {
