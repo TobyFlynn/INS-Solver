@@ -31,8 +31,10 @@ inline void sample_interface(const double *r, const double *s,
     bool converged = false;
     for(int step = 0; step < 10; step++) {
       double surf = eval_at_pt(sample_x[p], sample_y[p], s_modal);
-      double dsdx = eval_at_pt(sample_x[p], sample_y[p], dsdx_modal);
-      double dsdy = eval_at_pt(sample_x[p], sample_y[p], dsdy_modal);
+      double dsdx, dsdy;
+      eval_grad_at_pt(sample_x[p], sample_y[p], s_modal, dsdx, dsdy);
+      // double dsdx = eval_at_pt(sample_x[p], sample_y[p], dsdx_modal);
+      // double dsdy = eval_at_pt(sample_x[p], sample_y[p], dsdy_modal);
 
       double sqrnorm = dsdx * dsdx + dsdy * dsdy;
       if(sqrnorm > 0.0) {

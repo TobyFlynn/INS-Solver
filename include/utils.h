@@ -11,6 +11,12 @@ double rs_to_xy(const double r, const double s, double &x, double &y, const doub
 
 double eval_at_pt(const double r, const double s, const double *modal);
 
+void eval_grad_at_pt(const double r, const double s, const double *modal,
+                     double &dr, double &ds);
+
+void eval_hessian_at_pt(const double r, const double s, const double *modal,
+                        double &dr2, double &drs, double &ds2);
+
 bool is_point_in_cell(const double x, const double y, const double *cellX, const double *cellY);
 
 void newton_method(const double node_x, const double node_y,

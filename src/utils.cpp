@@ -49,6 +49,56 @@ double eval_at_pt(const double r, const double s, const double *modal) {
   return new_val;
 }
 
+void eval_grad_at_pt(const double r, const double s, const double *modal,
+                     double &dr, double &ds) {
+  double a = -1.0;
+  if(s != 1.0)
+    a = 2.0 * (1.0 + r) / (1.0 - s) - 1.0;
+  double b = s;
+  arma::vec a_(1);
+  arma::vec b_(1);
+  a_[0] = a;
+  b_[0] = b;
+
+  dr = 0.0;
+  ds = 0.0;
+  int modal_ind = 0;
+  arma::vec dr_v, ds_v;
+  for(int x_ = 0; x_ <= 3; x_++) {
+    for(int y_ = 0; y_ <= 3 - x_; y_++) {
+      DGUtils::gradSimplex2DP(a_, b_, x_, y_, dr_v, ds_v);
+      dr += modal[modal_ind] * dr_v[0];
+      ds += modal[modal_ind++] * ds_v[0];
+    }
+  }
+}
+
+void eval_hessian_at_pt(const double r, const double s, const double *modal,
+                        double &dr2, double &drs, double &ds2) {
+  double a = -1.0;
+  if(s != 1.0)
+    a = 2.0 * (1.0 + r) / (1.0 - s) - 1.0;
+  double b = s;
+  arma::vec a_(1);
+  arma::vec b_(1);
+  a_[0] = a;
+  b_[0] = b;
+
+  dr2 = 0.0;
+  drs = 0.0;
+  ds2 = 0.0;
+  int modal_ind = 0;
+  arma::vec dr2_v, drs_v, ds2_v;
+  for(int x_ = 0; x_ <= 3; x_++) {
+    for(int y_ = 0; y_ <= 3 - x_; y_++) {
+      DGUtils::hessianSimplex2DP(a_, b_, x_, y_, dr2_v, drs_v, ds2_v);
+      dr2 += modal[modal_ind] * dr2_v[0];
+      drs += modal[modal_ind] * drs_v[0];
+      ds2 += modal[modal_ind++] * ds2_v[0];
+    }
+  }
+}
+
 bool is_point_in_cell(const double x, const double y, const double *cellX, const double *cellY) {
   double ABx = cellX[1] - cellX[0];
   double ABy = cellY[1] - cellY[0];
@@ -122,13 +172,16 @@ void newton_method(const double node_x, const double node_y,
     double pt_s_old = pt_s;
     // Evaluate surface and gradient at current guess
     double surface    = eval_at_pt(pt_r, pt_s, s_modal);
-    double surface_dr = eval_at_pt(pt_r, pt_s, dsdr_modal);
-    double surface_ds = eval_at_pt(pt_r, pt_s, dsds_modal);
+    double surface_dr, surface_ds;
+    eval_grad_at_pt(pt_r, pt_s, s_modal, surface_dr, surface_ds);
+    // double surface_dr = eval_at_pt(pt_r, pt_s, dsdr_modal);
+    // double surface_ds = eval_at_pt(pt_r, pt_s, dsds_modal);
     // Evaluate Hessian
     double hessian[3];
-    hessian[0] = eval_at_pt(pt_r, pt_s, dsdr2_modal);
-    hessian[1] = eval_at_pt(pt_r, pt_s, dsdrs_modal);
-    hessian[2] = eval_at_pt(pt_r, pt_s, dsds2_modal);
+    eval_hessian_at_pt(pt_r, pt_s, s_modal, hessian[0], hessian[1], hessian[2]);
+    // hessian[0] = eval_at_pt(pt_r, pt_s, dsdr2_modal);
+    // hessian[1] = eval_at_pt(pt_r, pt_s, dsdrs_modal);
+    // hessian[2] = eval_at_pt(pt_r, pt_s, dsds2_modal);
 
     // Check if |nabla(surface)| = 0, if so then return
     double gradsqrnorm = surface_dr * surface_dr + surface_ds * surface_ds;
