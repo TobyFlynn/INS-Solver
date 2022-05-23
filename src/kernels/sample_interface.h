@@ -14,7 +14,7 @@ inline void sample_interface(const double *r, const double *s,
       interface = true;
   }
   if(!interface) {
-    for(int i = 0; i < DG_NP; i++) {
+    for(int i = 0; i < LS_SAMPLE_NP; i++) {
       sample_x[i] = NAN;
       sample_y[i] = NAN;
     }
@@ -22,12 +22,12 @@ inline void sample_interface(const double *r, const double *s,
   }
 
   // Initial positions of sample points (in r-s coords)
-  for(int i = 0; i < DG_NP; i++) {
-    sample_x[i] = r[i];
-    sample_y[i] = s[i];
+  for(int i = 0; i < LS_SAMPLE_NP; i++) {
+    sample_x[i] = r[i] * 0.9;
+    sample_y[i] = s[i] * 0.9;
   }
 
-  for(int p = 0; p < DG_NP; p++) {
+  for(int p = 0; p < LS_SAMPLE_NP; p++) {
     bool converged = false;
     for(int step = 0; step < 10; step++) {
       double surf = eval_at_pt(sample_x[p], sample_y[p], s_modal);
@@ -46,7 +46,7 @@ inline void sample_interface(const double *r, const double *s,
       sample_y[p] -= dsdy;
 
       // Converged
-      if(dsdx * dsdx + dsdy * dsdy < 1.5 * 1e-2 * 1e-2) {
+      if(dsdx * dsdx + dsdy * dsdy < 1.5 * 1e-8) {
         converged = true;
         break;
       }

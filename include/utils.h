@@ -5,9 +5,9 @@
 
 double *getOP2Array(op_dat dat);
 
-double xy_to_rs(const double x, const double y, double &r, double &s, const double *cellX, const double *cellY);
+void xy_to_rs(const double x, const double y, double &r, double &s, const double *cellX, const double *cellY);
 
-double rs_to_xy(const double r, const double s, double &x, double &y, const double *cellX, const double *cellY);
+void rs_to_xy(const double r, const double s, double &x, double &y, const double *cellX, const double *cellY);
 
 double eval_at_pt(const double r, const double s, const double *modal);
 
@@ -24,6 +24,6 @@ void newton_method(const double node_x, const double node_y,
                    const double *s_modal, const double *dsdr_modal,
                    const double *dsds_modal, const double *dsdr2_modal,
                    const double *dsdrs_modal, const double *dsds2_modal,
-                   const double *cellX, const double *cellY);
+                   const double *cellX, const double *cellY, const double rx, const double sx, const double ry, const double sy);
 
 #endif

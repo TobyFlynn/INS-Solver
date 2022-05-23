@@ -23,8 +23,8 @@ KDTree::KDTree(const double *x, const double *y, const int num) {
       KDCoord pt;
       pt.x = x[i];
       pt.y = y[i];
-      pt.cell = i / DG_NP;
-      pt.node = i % DG_NP;
+      pt.cell = i / LS_SAMPLE_NP;
+      pt.node = i % LS_SAMPLE_NP;
       points.push_back(pt);
     }
   }

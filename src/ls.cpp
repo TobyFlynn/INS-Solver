@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include "dg_constants.h"
+#include "dg_utils.h"
 #include "dg_blas_calls.h"
 #include "dg_op2_blas.h"
 #include "dg_operators.h"
@@ -31,8 +32,8 @@ LS::LS(DGMesh *m, INSData *d) {
   curv_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   diracDelta_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
 
-  s_sample_x_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  s_sample_y_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+  s_sample_x_data = (double *)calloc(LS_SAMPLE_NP * mesh->numCells, sizeof(double));
+  s_sample_y_data = (double *)calloc(LS_SAMPLE_NP * mesh->numCells, sizeof(double));
 
   gInput = op_decl_dat(mesh->cells, DG_G_NP, "double", gInput_data, "gInput");
 
@@ -43,8 +44,8 @@ LS::LS(DGMesh *m, INSData *d) {
   curv   = op_decl_dat(mesh->cells, DG_NP, "double", curv_data, "curv");
   diracDelta = op_decl_dat(mesh->cells, DG_NP, "double", diracDelta_data, "diracDelta");
 
-  s_sample_x = op_decl_dat(mesh->cells, DG_NP, "double", s_sample_x_data, "s_sample_x");
-  s_sample_y = op_decl_dat(mesh->cells, DG_NP, "double", s_sample_y_data, "s_sample_y");
+  s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", s_sample_x_data, "s_sample_x");
+  s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", s_sample_y_data, "s_sample_y");
 }
 
 LS::~LS() {
@@ -105,6 +106,7 @@ void LS::init() {
               op_arg_dat(s, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_gbl(&h, 1, "double", OP_MAX));
 
+  op_printf("h: %g\n", h);
   // alpha = 2.0 * h / DG_ORDER;
   // order_width = 2.0 * h;
   // epsilon = h / DG_ORDER;
@@ -283,24 +285,26 @@ void LS::reinit_ls() {
   op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsdr, 0.0, dsdr_modal);
   op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsds, 0.0, dsds_modal);
 
-  DGConstants dg_const(DG_ORDER);
+  arma::vec x_, y_, r_, s_;
+  DGUtils::setRefXY(6, x_, y_);
+  DGUtils::xy2rs(x_, y_, r_, s_);
 
   op_par_loop(sample_interface, "sample_interface", mesh->cells,
-              op_arg_gbl(dg_const.r, DG_NP, "double", OP_READ),
-              op_arg_gbl(dg_const.s, DG_NP, "double", OP_READ),
+              op_arg_gbl(r_.memptr(), LS_SAMPLE_NP, "double", OP_READ),
+              op_arg_gbl(s_.memptr(), LS_SAMPLE_NP, "double", OP_READ),
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s_modal,     -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(dsdr_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(dsds_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(s_sample_x,  -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(s_sample_y,  -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_dat(s_sample_x,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE),
+              op_arg_dat(s_sample_y,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE));
 
   op_arg op2_args[] = {
-    op_arg_dat(s_sample_x, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(s_sample_y, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->x, -1, OP_ID, 3DG_NP, "double", OP_READ),
+    op_arg_dat(s_sample_x, -1, OP_ID, LS_SAMPLE_NP, "double", OP_READ),
+    op_arg_dat(s_sample_y, -1, OP_ID, LS_SAMPLE_NP, "double", OP_READ),
+    op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
     op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
     op_arg_dat(s, -1, OP_ID, DG_NP, "double", OP_RW),
     op_arg_dat(s_modal, -1, OP_ID, DG_NP, "double", OP_READ),
@@ -310,9 +314,13 @@ void LS::reinit_ls() {
     op_arg_dat(dsdrs_modal, -1, OP_ID, DG_NP, "double", OP_READ),
     op_arg_dat(dsds2_modal, -1, OP_ID, DG_NP, "double", OP_READ),
     op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
-    op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ)
+    op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
+    op_arg_dat(mesh->rx, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(mesh->sx, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(mesh->ry, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(mesh->sy, -1, OP_ID, DG_NP, "double", OP_READ)
   };
-  op_mpi_halo_exchanges(s_sample_x->set, 13, op2_args);
+  op_mpi_halo_exchanges(s_sample_x->set, 17, op2_args);
 
   std::string fileName = "interface_sample_points.txt";
   std::ofstream out_file(fileName.c_str());
@@ -320,14 +328,14 @@ void LS::reinit_ls() {
 
   const double *x_coords = (double *)s_sample_x->data;
   const double *y_coords = (double *)s_sample_y->data;
-  for(int i = 0; i < DG_NP * mesh->numCells; i++) {
+  for(int i = 0; i < LS_SAMPLE_NP * mesh->numCells; i++) {
     if(!isnan(x_coords[i]) && !isnan(y_coords[i]))
       out_file << x_coords[i] << "," << y_coords[i] << ",0.0" << std::endl;
   }
 
   out_file.close();
 
-  KDTree kdtree((double *)s_sample_x->data, (double *)s_sample_y->data, DG_NP * mesh->numCells);
+  KDTree kdtree((double *)s_sample_x->data, (double *)s_sample_y->data, LS_SAMPLE_NP * mesh->numCells);
 
   const double *mesh_x_coords = (double *)mesh->x->data;
   const double *mesh_y_coords = (double *)mesh->y->data;
@@ -351,16 +359,20 @@ void LS::reinit_ls() {
     const double *dsds2_modal_current_cell = ((double *)dsds2_modal->data) + tmp.cell * DG_NP;
     const double *cellX = ((double *)mesh->nodeX->data) + tmp.cell * 3;
     const double *cellY = ((double *)mesh->nodeY->data) + tmp.cell * 3;
+    const double rx = *(((double *)mesh->rx->data) + tmp.cell * DG_NP);
+    const double sx = *(((double *)mesh->sx->data) + tmp.cell * DG_NP);
+    const double ry = *(((double *)mesh->ry->data) + tmp.cell * DG_NP);
+    const double sy = *(((double *)mesh->sy->data) + tmp.cell * DG_NP);
     newton_method(mesh_x_coords[i], mesh_y_coords[i], current_x, current_y,
                   s_modal_current_cell, dsdr_modal_current_cell,
                   dsds_modal_current_cell, dsdr2_modal_current_cell,
-                  dsdrs_modal_current_cell, dsds2_modal_current_cell, cellX, cellY);
+                  dsdrs_modal_current_cell, dsds2_modal_current_cell, cellX, cellY, rx, sx, ry, sy);
     dists[i] = (current_x - mesh_x_coords[i]) * (current_x - mesh_x_coords[i]) + (current_y - mesh_y_coords[i]) * (current_y - mesh_y_coords[i]);
     dists[i] = sqrt(dists[i]);
     if(negative) dists[i] *= -1.0;
   }
 
-  op_mpi_set_dirtybit(13, op2_args);
+  op_mpi_set_dirtybit(17, op2_args);
 
   op_par_loop(ls_reinit_diff, "ls_reinit_diff", mesh->cells,
               op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),

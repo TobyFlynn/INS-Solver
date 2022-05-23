@@ -14,6 +14,7 @@ dg_cub_np    = "36"
 dg_g_np      = "18"
 dg_gf_np     = "6"
 dg_sub_cells = "9"
+ls_sample_np = "28"
 # Order 2
 # dg_np        = "6"
 # dg_npf       = "3"
@@ -49,6 +50,7 @@ for f in inputfiles:
     newdata = newdata.replace("DG_G_NP", dg_g_np)
     newdata = newdata.replace("DG_GF_NP", dg_gf_np)
     newdata = newdata.replace("DG_SUB_CELLS", dg_sub_cells)
+    newdata = newdata.replace("LS_SAMPLE_NP", ls_sample_np)
 
     with open("gen/" + f, "w") as file:
         file.write(newdata)
