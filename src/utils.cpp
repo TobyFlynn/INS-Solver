@@ -15,93 +15,6 @@ double *getOP2Array(op_dat dat) {
   return res;
 }
 
-void xy_to_rs(const double x, const double y, double &r, double &s, const double *cellX, const double *cellY) {
-  double l2 = (cellY[1] - cellY[2]) * (x - cellX[2]) + (cellX[2] - cellX[1]) * (y - cellY[2]);
-  l2 = l2 / ((cellY[1] - cellY[2]) * (cellX[0] - cellX[2]) + (cellX[2] - cellX[1]) * (cellY[0] - cellY[2]));
-  double l3 = (cellY[2] - cellY[0]) * (x - cellX[2]) + (cellX[0] - cellX[2]) * (y - cellY[2]);
-  l3 = l3 / ((cellY[1] - cellY[2]) * (cellX[0] - cellX[2]) + (cellX[2] - cellX[1]) * (cellY[0] - cellY[2]));
-  double l1 = 1.0 - l2 - l3;
-  s = 2.0 * l1 - 1.0;
-  r = 2.0 * l3 - 1.0;
-}
-
-void rs_to_xy(const double r, const double s, double &x, double &y, const double *cellX, const double *cellY) {
-  x = 0.5 * (-(r + s) * cellX[0] + (1.0 + r) * cellX[1] + (1.0 + s) * cellX[2]);
-  y = 0.5 * (-(r + s) * cellY[0] + (1.0 + r) * cellY[1] + (1.0 + s) * cellY[2]);
-}
-
-double eval_at_pt(const double r, const double s, const double *modal) {
-  double a = -1.0;
-  if(s != 1.0)
-    a = 2.0 * (1.0 + r) / (1.0 - s) - 1.0;
-  double b = s;
-  arma::vec a_(1);
-  arma::vec b_(1);
-  a_[0] = a;
-  b_[0] = b;
-
-  double new_val = 0.0;
-  int modal_ind = 0;
-  for(int x_ = 0; x_ <= 3; x_++) {
-    for(int y_ = 0; y_ <= 3 - x_; y_++) {
-      arma::vec res = DGUtils::simplex2DP(a_, b_, x_, y_);
-      new_val += modal[modal_ind++] * res[0];
-    }
-  }
-
-  return new_val;
-}
-
-void eval_grad_at_pt(const double r, const double s, const double *modal,
-                     double &dr, double &ds) {
-  double a = -1.0;
-  if(s != 1.0)
-    a = 2.0 * (1.0 + r) / (1.0 - s) - 1.0;
-  double b = s;
-  arma::vec a_(1);
-  arma::vec b_(1);
-  a_[0] = a;
-  b_[0] = b;
-
-  dr = 0.0;
-  ds = 0.0;
-  int modal_ind = 0;
-  arma::vec dr_v, ds_v;
-  for(int x_ = 0; x_ <= 3; x_++) {
-    for(int y_ = 0; y_ <= 3 - x_; y_++) {
-      DGUtils::gradSimplex2DP(a_, b_, x_, y_, dr_v, ds_v);
-      dr += modal[modal_ind] * dr_v[0];
-      ds += modal[modal_ind++] * ds_v[0];
-    }
-  }
-}
-
-void eval_hessian_at_pt(const double r, const double s, const double *modal,
-                        double &dr2, double &drs, double &ds2) {
-  double a = -1.0;
-  if(s != 1.0)
-    a = 2.0 * (1.0 + r) / (1.0 - s) - 1.0;
-  double b = s;
-  arma::vec a_(1);
-  arma::vec b_(1);
-  a_[0] = a;
-  b_[0] = b;
-
-  dr2 = 0.0;
-  drs = 0.0;
-  ds2 = 0.0;
-  int modal_ind = 0;
-  arma::vec dr2_v, drs_v, ds2_v;
-  for(int x_ = 0; x_ <= 3; x_++) {
-    for(int y_ = 0; y_ <= 3 - x_; y_++) {
-      DGUtils::hessianSimplex2DP(a_, b_, x_, y_, dr2_v, drs_v, ds2_v);
-      dr2 += modal[modal_ind] * dr2_v[0];
-      drs += modal[modal_ind] * drs_v[0];
-      ds2 += modal[modal_ind++] * ds2_v[0];
-    }
-  }
-}
-
 bool is_point_in_cell(const double x, const double y, const double *cellX, const double *cellY) {
   double ABx = cellX[1] - cellX[0];
   double ABy = cellY[1] - cellY[0];
@@ -166,8 +79,8 @@ void newton_method(const double node_x, const double node_y,
                    const double *cellX, const double *cellY, const double rx, const double sx, const double ry, const double sy) {
   double lambda = 0.0;
   double node_r, node_s, pt_r, pt_s;
-  xy_to_rs(node_x, node_y, node_r, node_s, cellX, cellY);
-  xy_to_rs(closest_pt_x, closest_pt_y, pt_r, pt_s, cellX, cellY);
+  DGUtils::global_xy_to_rs(node_x, node_y, node_r, node_s, cellX, cellY);
+  DGUtils::global_xy_to_rs(closest_pt_x, closest_pt_y, pt_r, pt_s, cellX, cellY);
   double init_r = pt_r;
   double init_s = pt_s;
   double pt_x = closest_pt_x;
@@ -181,16 +94,16 @@ void newton_method(const double node_x, const double node_y,
     double pt_x_old = pt_x;
     double pt_y_old = pt_y;
     // Evaluate surface and gradient at current guess
-    double surface = eval_at_pt(pt_r, pt_s, s_modal);
+    double surface = DGUtils::val_at_pt(pt_r, pt_s, s_modal);
     double surface_dr, surface_ds;
-    eval_grad_at_pt(pt_r, pt_s, s_modal, surface_dr, surface_ds);
+    DGUtils::grad_at_pt(pt_r, pt_s, s_modal, surface_dr, surface_ds);
     const double surface_dx = rx * surface_dr + sx * surface_ds;
     const double surface_dy = ry * surface_dr + sy * surface_ds;
     // double surface_dr = eval_at_pt(pt_r, pt_s, dsdr_modal);
     // double surface_ds = eval_at_pt(pt_r, pt_s, dsds_modal);
     // Evaluate Hessian
     double hessian_tmp[3];
-    eval_hessian_at_pt(pt_r, pt_s, s_modal, hessian_tmp[0], hessian_tmp[1], hessian_tmp[2]);
+    DGUtils::hessian_at_pt(pt_r, pt_s, s_modal, hessian_tmp[0], hessian_tmp[1], hessian_tmp[2]);
     double hessian[3];
     hessian[0] = rx * rx * hessian_tmp[0] + sx * sx * hessian_tmp[2];
     hessian[1] = rx * ry * hessian_tmp[1] + sx * sy * hessian_tmp[1];
@@ -264,7 +177,6 @@ void newton_method(const double node_x, const double node_y,
       break;
   }
 
-  // rs_to_xy(pt_r, pt_s, closest_pt_x, closest_pt_y, cellX, cellY);
   closest_pt_x = pt_x;
   closest_pt_y = pt_y;
 }

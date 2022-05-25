@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "dg_utils.h"
 
 
 inline void sample_interface(const double *r, const double *s,
@@ -30,9 +31,9 @@ inline void sample_interface(const double *r, const double *s,
   for(int p = 0; p < LS_SAMPLE_NP; p++) {
     bool converged = false;
     for(int step = 0; step < 10; step++) {
-      double surf = eval_at_pt(sample_x[p], sample_y[p], s_modal);
+      double surf = DGUtils::val_at_pt(sample_x[p], sample_y[p], s_modal);
       double dsdx, dsdy;
-      eval_grad_at_pt(sample_x[p], sample_y[p], s_modal, dsdx, dsdy);
+      DGUtils::grad_at_pt(sample_x[p], sample_y[p], s_modal, dsdx, dsdy);
       // double dsdx = eval_at_pt(sample_x[p], sample_y[p], dsdx_modal);
       // double dsdy = eval_at_pt(sample_x[p], sample_y[p], dsdy_modal);
 
@@ -57,7 +58,7 @@ inline void sample_interface(const double *r, const double *s,
       double r = sample_x[p];
       double s = sample_y[p];
       double new_x, new_y;
-      rs_to_xy(r, s, new_x, new_y, x, y);
+      DGUtils::rs_to_global_xy(r, s, new_x, new_y, x, y);
       sample_x[p] = new_x;
       sample_y[p] = new_y;
 
