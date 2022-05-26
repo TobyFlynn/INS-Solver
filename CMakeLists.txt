@@ -2,6 +2,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(INS-Solver CXX)
 
+enable_language(C)
+
 # Import compiler flags for all build types
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fopenmp")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
@@ -26,9 +28,7 @@ if(NOT OP2DGTOOLKIT_DIR)
 endif()
 include_directories(${OP2DGTOOLKIT_DIR}/include)
 
-if(NOT ARMA_DIR)
-  set(ARMA_DIR "/gpfs/users/tsf79-sxa03/armadillo-10.6.1/build")
-endif()
+set(ARMA_DIR $ENV{ARMA_DIR})
 include_directories(${ARMA_DIR}/include)
 
 enable_language(CUDA)
