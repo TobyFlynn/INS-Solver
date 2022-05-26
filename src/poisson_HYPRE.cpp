@@ -144,7 +144,7 @@ bool PoissonSolveHYPRE::solve(op_dat b_dat, op_dat x_dat) {
 
   int numIt = 0;
   HYPRE_ParCSRPCGGetNumIterations(solver, &numIt);
-  cout << "Number of it: " << numIt << endl;
+  // cout << "Number of it: " << numIt << endl;
 
   HYPREUtils::vec_to_dat(x_dat, &ij_x, unknowns);
 
