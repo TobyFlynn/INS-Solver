@@ -83,11 +83,13 @@ int main(int argc, char **argv) {
   refRho     = 1.0;
   refMu      = 1.0e-5;
   refLen     = 0.001;
-  refVel     = 1.5;
+  // refVel     = 1.5;
   refSurfTen = 0.0756;
 
   // Set Reynolds number
-  reynolds = refRho * refVel * refLen / refMu;
+  // reynolds = refRho * refVel * refLen / refMu;
+  reynolds = 100.0;
+  refVel   = reynolds * refMu / (refRho * refLen);
   // Set Froude number
   froude = refVel / sqrt(9.8 * refLen);
   // Set Weber number
@@ -102,6 +104,11 @@ int main(int argc, char **argv) {
   op_printf("refVel: %g\n", refVel);
   op_printf("reynolds: %g\n", reynolds);
 
+  op_printf("mu0: %g\n", mu0);
+  op_printf("mu1: %g\n", mu1);
+  op_printf("rho0: %g\n", rho0);
+  op_printf("rho1: %g\n", rho1);
+
   // Get input from args
   int iter = 1;
   PetscBool found;
@@ -112,6 +119,9 @@ int main(int argc, char **argv) {
 
   int problem = 0;
   PetscOptionsGetInt(NULL, NULL, "-problem", &problem, &found);
+
+  double endTime = 0.0;
+  PetscOptionsGetReal(NULL, NULL, "-time", &endTime, &found);
 
   char inputFile[255];
   PetscOptionsGetString(NULL, NULL, "-input", inputFile, 255, &found);
@@ -145,6 +155,23 @@ int main(int argc, char **argv) {
   double g0 = 1.0;
   int currentIter = 0;
   double time = 0.0;
+
+  int numIterHalfSec = 0;
+  if(endTime > 0.0) {
+    if(endTime > 0.5) {
+      numIterHalfSec = ceil(0.5 / solver->dt);
+      solver->dt = 0.5 / (double)numIterHalfSec;
+      iter = ceil(endTime / solver->dt);
+    } else {
+      iter = ceil(endTime / solver->dt);
+      solver->dt = endTime / (double)iter;
+    }
+  }
+
+  if(save == -1 && numIterHalfSec > 0)
+    save = numIterHalfSec;
+
+  op_printf("Saving solution every %d iterations (%g seconds)\n", save, save * solver->getDT());
 
   if(save != -1) {
     save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);
