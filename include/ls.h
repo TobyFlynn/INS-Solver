@@ -37,7 +37,7 @@ private:
   bool reinit_needed();
   void update_values();
 
-  double h, epsilon, reinit_dt;
+  double h, epsilon, reinit_dt, reinit_width;
   int numSteps;
 
   double *s_data, *step_s_data, *nx_data, *ny_data, *curv_data, *diracDelta_data;

@@ -2,12 +2,16 @@
 #define __INS_TIMING_H
 
 #include <string>
+#include <map>
 
 class Timing {
 public:
   void exportTimings(std::string filename, int iter, double time);
   double getWallTime();
   double getMainLoop();
+
+  void startTimer(std::string name);
+  void endTimer(std::string name);
 
   void startWallTime();
   void endWallTime();
@@ -52,6 +56,8 @@ public:
   void endBuildMat();
 
 private:
+  std::map<std::string,double> startTime, totalTime;
+
   double cpu1, cpu2;
 
   double totalWallTime = 0.0;

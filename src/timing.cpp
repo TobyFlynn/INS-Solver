@@ -27,7 +27,10 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << "Viscosity Setup" << ",";
   file << "Viscosity Linear Solve" << ",";
   file << "KSP Solve" << ",";
-  file << "Build Mat";
+  file << "Build Mat" << ",";
+  for (auto it = totalTime.begin(); it != totalTime.end(); it++) {
+    file << it->first << ",";
+  }
   file << endl;
 
   // Output timing data
@@ -46,7 +49,10 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << to_string(totalViscositySetup) << ",";
   file << to_string(totalViscosityLinearSolve) << ",";
   file << to_string(totalKSPSolve) << ",";
-  file << to_string(totalBuildMat);
+  file << to_string(totalBuildMat) << ",";
+  for (auto it = totalTime.begin(); it != totalTime.end(); it++) {
+    file << it->second << ",";
+  }
   file << endl;
 
   file.close();
@@ -77,7 +83,10 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << "Viscosity Setup" << ",";
   file << "Viscosity Linear Solve" << ",";
   file << "KSP Solve" << ",";
-  file << "Build Mat";
+  file << "Build Mat" << ",";
+  for (auto it = totalTime.begin(); it != totalTime.end(); it++) {
+    file << it->first << ",";
+  }
   file << endl;
 
   // Output timing data
@@ -96,12 +105,27 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << to_string(totalViscositySetup) << ",";
   file << to_string(totalViscosityLinearSolve) << ",";
   file << to_string(totalKSPSolve) << ",";
-  file << to_string(totalBuildMat);
+  file << to_string(totalBuildMat) << ",";
+  for (auto it = totalTime.begin(); it != totalTime.end(); it++) {
+    file << it->second << ",";
+  }
   file << endl;
 
   file.close();
 }
 #endif
+
+void Timing::startTimer(std::string name) {
+  double cpu, wall;
+  op_timers(&cpu, &wall);
+  startTime[name] = wall;
+}
+
+void Timing::endTimer(std::string name) {
+  double cpu, wall;
+  op_timers(&cpu, &wall);
+  totalTime[name] += wall - startTime[name];
+}
 
 double Timing::getWallTime() {
   return totalWallTime;
