@@ -19,11 +19,10 @@ void eval_hessian_at_pt(const double r, const double s, const double *modal,
 
 bool is_point_in_cell(const double x, const double y, const double *cellX, const double *cellY);
 
-void newton_method(const double node_x, const double node_y,
-                   double &closest_pt_x, double &closest_pt_y,
-                   const double *s_modal, const double *dsdr_modal,
-                   const double *dsds_modal, const double *dsdr2_modal,
-                   const double *dsdrs_modal, const double *dsds2_modal,
-                   const double *cellX, const double *cellY, const double rx, const double sx, const double ry, const double sy);
+void newton_method(const int numPts, double *s, double *closest_x,
+                   double *closest_y, int *cell_ind, const double *x,
+                   const double *y, const double *s_modal, const double *cell_x,
+                   const double *cell_y, const double *rx, const double *sx,
+                   const double *ry, const double *sy, const double h);
 
 #endif

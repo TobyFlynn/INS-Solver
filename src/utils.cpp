@@ -71,12 +71,11 @@ bool is_point_in_cell(const double x, const double y, const double *cellX, const
   }
 }
 
-void newton_method(const double node_x, const double node_y,
+void newton_kernel(const double node_x, const double node_y,
                    double &closest_pt_x, double &closest_pt_y,
-                   const double *s_modal, const double *dsdr_modal,
-                   const double *dsds_modal, const double *dsdr2_modal,
-                   const double *dsdrs_modal, const double *dsds2_modal,
-                   const double *cellX, const double *cellY, const double rx, const double sx, const double ry, const double sy) {
+                   const double *s_modal, const double *cellX,
+                   const double *cellY, const double rx, const double sx,
+                   const double ry, const double sy, const double h) {
   double lambda = 0.0;
   double node_r, node_s, pt_r, pt_s;
   DGUtils::global_xy_to_rs(node_x, node_y, node_r, node_s, cellX, cellY);
@@ -87,7 +86,6 @@ void newton_method(const double node_x, const double node_y,
   double pt_y = closest_pt_y;
   double init_x = closest_pt_x;
   double init_y = closest_pt_y;
-  const double h = 0.00288675;
   for(int step = 0; step < 10; step++) {
     double pt_r_old = pt_r;
     double pt_s_old = pt_s;
@@ -179,4 +177,19 @@ void newton_method(const double node_x, const double node_y,
 
   closest_pt_x = pt_x;
   closest_pt_y = pt_y;
+}
+
+void newton_method(const int numPts, double *s, double *closest_x,
+                   double *closest_y, int *cell_ind, const double *x,
+                   const double *y, const double *s_modal, const double *cell_x,
+                   const double *cell_y, const double *rx, const double *sx,
+                   const double *ry, const double *sy, const double h) {
+  #pragma omp parallel for
+  for(int i = 0; i < numPts; i++) {
+    const int ind_np = cell_ind[i] * DG_NP;
+    const int ind_3  = cell_ind[i] * 3;
+    newton_kernel(x[i], y[i], closest_x[i], closest_y[i], &s_modal[ind_np],
+                  &cell_x[ind_3], &cell_y[ind_3], rx[ind_np], sx[ind_np],
+                  ry[ind_np], sy[ind_np], h);
+  }
 }

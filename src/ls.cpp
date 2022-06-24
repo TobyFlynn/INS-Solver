@@ -22,6 +22,8 @@
 
 extern Timing *timer;
 
+int counter;
+
 LS::LS(DGMesh *m, INSData *d) {
   mesh = m;
   data = d;
@@ -142,7 +144,7 @@ void LS::init() {
               op_arg_dat(s,       -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   reinit_ls();
-  // update_values();
+  update_values();
 }
 
 void LS::setVelField(op_dat u1, op_dat v1) {
@@ -181,8 +183,11 @@ void LS::step(double dt) {
               op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(rk[2], -1, OP_ID, DG_NP, "double", OP_READ));
 
-  // if(reinit_needed())
-  //   reinit_ls();
+  counter++;
+  if(counter > 9) {
+    reinit_ls();
+    counter = 0;
+  }
 
   // Reset LS in boundary cells (this needs is a work around, needs to be fixed properly later)
   // Also has a data race, but all will be setting to same value so should be okay
@@ -274,137 +279,6 @@ void LS::advec_step(op_dat input, op_dat output) {
               op_arg_dat(output, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, nFlux, 1.0, output);
-}
-
-void LS::reinit_ls() {
-  timer->startTimer("LS - Sample Interface");
-  op2_gemv(mesh, false, 1.0, DGConstants::DR, s, 0.0, dsdr);
-  op2_gemv(mesh, false, 1.0, DGConstants::DS, s, 0.0, dsds);
-  op2_gemv(mesh, false, 1.0, DGConstants::DR, dsdr, 0.0, s_modal);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s_modal, 0.0, dsdr2_modal);
-  op2_gemv(mesh, false, 1.0, DGConstants::DS, dsdr, 0.0, s_modal);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s_modal, 0.0, dsdrs_modal);
-  op2_gemv(mesh, false, 1.0, DGConstants::DS, dsds, 0.0, s_modal);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s_modal, 0.0, dsds2_modal);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, s_modal);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsdr, 0.0, dsdr_modal);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsds, 0.0, dsds_modal);
-
-  arma::vec x_, y_, r_, s_;
-  DGUtils::setRefXY(6, x_, y_);
-  DGUtils::xy2rs(x_, y_, r_, s_);
-
-  op_par_loop(sample_interface, "sample_interface", mesh->cells,
-              op_arg_gbl(r_.memptr(), LS_SAMPLE_NP, "double", OP_READ),
-              op_arg_gbl(s_.memptr(), LS_SAMPLE_NP, "double", OP_READ),
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(s_modal,     -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(dsdr_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(dsds_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(s_sample_x,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE),
-              op_arg_dat(s_sample_y,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE));
-
-  timer->endTimer("LS - Sample Interface");
-
-  op_arg op2_args[] = {
-    op_arg_dat(s_sample_x, -1, OP_ID, LS_SAMPLE_NP, "double", OP_READ),
-    op_arg_dat(s_sample_y, -1, OP_ID, LS_SAMPLE_NP, "double", OP_READ),
-    op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(s, -1, OP_ID, DG_NP, "double", OP_RW),
-    op_arg_dat(s_modal, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(dsdr_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(dsds_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(dsdr2_modal, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(dsdrs_modal, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(dsds2_modal, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
-    op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
-    op_arg_dat(mesh->rx, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->sx, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->ry, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->sy, -1, OP_ID, DG_NP, "double", OP_READ)
-  };
-  op_mpi_halo_exchanges(s_sample_x->set, 17, op2_args);
-
-  /*
-  std::string fileName = "interface_sample_points.txt";
-  std::ofstream out_file(fileName.c_str());
-  out_file << "X,Y,Z" << std::endl;
-
-  const double *x_coords = (double *)s_sample_x->data;
-  const double *y_coords = (double *)s_sample_y->data;
-  for(int i = 0; i < LS_SAMPLE_NP * mesh->numCells; i++) {
-    if(!isnan(x_coords[i]) && !isnan(y_coords[i]))
-      out_file << x_coords[i] << "," << y_coords[i] << ",0.0" << std::endl;
-  }
-
-  out_file.close();
-  */
-
-  timer->startTimer("LS - Construct K-D Tree");
-  KDTree kdtree((double *)s_sample_x->data, (double *)s_sample_y->data, LS_SAMPLE_NP * mesh->numCells);
-  timer->endTimer("LS - Construct K-D Tree");
-
-  const double *mesh_x_coords = (double *)mesh->x->data;
-  const double *mesh_y_coords = (double *)mesh->y->data;
-  double *dists = (double *)s->data;
-
-  timer->startTimer("LS - Newton Method");
-  #pragma omp parallel for
-  for(int i = 0; i < mesh->numCells; i++) {
-    if(fabs(dists[i * DG_NP]) < reinit_width) {
-      for(int j = 0; j < DG_NP; j++) {
-        int index = i * DG_NP + j;
-        // Get closest sample point
-        bool negative = dists[index] < 0.0;
-        KDCoord tmp = kdtree.closest_point(mesh_x_coords[index], mesh_y_coords[index]);
-
-        // Now use Newton method to get real closest point
-        double current_x = tmp.x;
-        double current_y = tmp.y;
-        const double *s_modal_current_cell = ((double *)s_modal->data) + tmp.cell * DG_NP;
-        const double *dsdr_modal_current_cell = ((double *)dsdr_modal->data) + tmp.cell * DG_NP;
-        const double *dsds_modal_current_cell = ((double *)dsds_modal->data) + tmp.cell * DG_NP;
-        const double *dsdr2_modal_current_cell = ((double *)dsdr2_modal->data) + tmp.cell * DG_NP;
-        const double *dsdrs_modal_current_cell = ((double *)dsdrs_modal->data) + tmp.cell * DG_NP;
-        const double *dsds2_modal_current_cell = ((double *)dsds2_modal->data) + tmp.cell * DG_NP;
-        const double *cellX = ((double *)mesh->nodeX->data) + tmp.cell * 3;
-        const double *cellY = ((double *)mesh->nodeY->data) + tmp.cell * 3;
-        const double rx = *(((double *)mesh->rx->data) + tmp.cell * DG_NP);
-        const double sx = *(((double *)mesh->sx->data) + tmp.cell * DG_NP);
-        const double ry = *(((double *)mesh->ry->data) + tmp.cell * DG_NP);
-        const double sy = *(((double *)mesh->sy->data) + tmp.cell * DG_NP);
-        newton_method(mesh_x_coords[index], mesh_y_coords[index], current_x, current_y,
-                      s_modal_current_cell, dsdr_modal_current_cell,
-                      dsds_modal_current_cell, dsdr2_modal_current_cell,
-                      dsdrs_modal_current_cell, dsds2_modal_current_cell, cellX, cellY, rx, sx, ry, sy);
-        dists[index] = (current_x - mesh_x_coords[index]) * (current_x - mesh_x_coords[index]) + (current_y - mesh_y_coords[index]) * (current_y - mesh_y_coords[index]);
-        dists[index] = sqrt(dists[index]);
-        if(negative) dists[index] *= -1.0;
-      }
-    } else {
-      for(int j = 0; j < DG_NP; j++) {
-        int index = i * DG_NP + j;
-        // Get closest sample point
-        bool negative = dists[index] < 0.0;
-        KDCoord tmp = kdtree.closest_point(mesh_x_coords[index], mesh_y_coords[index]);
-        dists[index] = (tmp.x - mesh_x_coords[index]) * (tmp.x - mesh_x_coords[index]) + (tmp.y - mesh_y_coords[index]) * (tmp.y - mesh_y_coords[index]);
-        dists[index] = sqrt(dists[index]);
-        if(negative) dists[index] *= -1.0;
-      }
-    }
-  }
-  timer->endTimer("LS - Newton Method");
-
-  op_mpi_set_dirtybit(17, op2_args);
-
-  op_par_loop(ls_reinit_diff, "ls_reinit_diff", mesh->cells,
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(s,       -1, OP_ID, DG_NP, "double", OP_RW));
 }
 
 bool LS::reinit_needed() {
