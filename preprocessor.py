@@ -14,7 +14,7 @@ dg_cub_np    = "36"
 dg_g_np      = "18"
 dg_gf_np     = "6"
 dg_sub_cells = "9"
-ls_sample_np = "28"
+ls_sample_np = "15"
 # Order 2
 # dg_np        = "6"
 # dg_npf       = "3"

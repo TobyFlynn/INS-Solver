@@ -18,6 +18,22 @@ extern double dt, reynolds, refVel;
 
 using namespace std;
 
+void Solver::reverse_vel() {
+  int tmp = 1;
+  op_par_loop(set_ic, "set_ic", mesh->cells,
+              op_arg_gbl(&tmp, 1, "int", OP_READ),
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->Q[0][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->Q[0][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+  op_par_loop(set_ic, "set_ic", mesh->cells,
+              op_arg_gbl(&tmp, 1, "int", OP_READ),
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->Q[1][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->Q[1][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+}
+
 Solver::Solver(std::string filename, int prob) {
   problem = prob;
 

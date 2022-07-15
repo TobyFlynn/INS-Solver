@@ -14,6 +14,8 @@ public:
   Solver(std::string filename, int prob);
   ~Solver();
 
+  void reverse_vel();
+
   void advection(int currentInd, double a0, double a1, double b0, double b1,
                  double g0, double t);
 

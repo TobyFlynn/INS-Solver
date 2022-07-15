@@ -80,15 +80,11 @@ void newton_kernel(const double node_x, const double node_y,
   double node_r, node_s, pt_r, pt_s;
   DGUtils::global_xy_to_rs(node_x, node_y, node_r, node_s, cellX, cellY);
   DGUtils::global_xy_to_rs(closest_pt_x, closest_pt_y, pt_r, pt_s, cellX, cellY);
-  double init_r = pt_r;
-  double init_s = pt_s;
   double pt_x = closest_pt_x;
   double pt_y = closest_pt_y;
   double init_x = closest_pt_x;
   double init_y = closest_pt_y;
   for(int step = 0; step < 10; step++) {
-    double pt_r_old = pt_r;
-    double pt_s_old = pt_s;
     double pt_x_old = pt_x;
     double pt_y_old = pt_y;
     // Evaluate surface and gradient at current guess
@@ -97,8 +93,6 @@ void newton_kernel(const double node_x, const double node_y,
     DGUtils::grad_at_pt(pt_r, pt_s, s_modal, surface_dr, surface_ds);
     const double surface_dx = rx * surface_dr + sx * surface_ds;
     const double surface_dy = ry * surface_dr + sy * surface_ds;
-    // double surface_dr = eval_at_pt(pt_r, pt_s, dsdr_modal);
-    // double surface_ds = eval_at_pt(pt_r, pt_s, dsds_modal);
     // Evaluate Hessian
     double hessian_tmp[3];
     DGUtils::hessian_at_pt(pt_r, pt_s, s_modal, hessian_tmp[0], hessian_tmp[1], hessian_tmp[2]);
@@ -106,9 +100,6 @@ void newton_kernel(const double node_x, const double node_y,
     hessian[0] = rx * rx * hessian_tmp[0] + sx * sx * hessian_tmp[2];
     hessian[1] = rx * ry * hessian_tmp[1] + sx * sy * hessian_tmp[1];
     hessian[2] = ry * ry * hessian_tmp[0] + sy * sy * hessian_tmp[2];
-    // hessian[0] = eval_at_pt(pt_r, pt_s, dsdr2_modal);
-    // hessian[1] = eval_at_pt(pt_r, pt_s, dsdrs_modal);
-    // hessian[2] = eval_at_pt(pt_r, pt_s, dsds2_modal);
 
     // Check if |nabla(surface)| = 0, if so then return
     double gradsqrnorm = surface_dx * surface_dx + surface_dy * surface_dy;
@@ -136,7 +127,7 @@ void newton_kernel(const double node_x, const double node_y,
 
     hessianf(2, 2) = 0.0;
 
-    if(arma::cond(hessianf) > 1e3) {
+    if(true || arma::cond(hessianf) > 1e3) {
       double delta1_x = (surface / gradsqrnorm) * surface_dx;
       double delta1_y = (surface / gradsqrnorm) * surface_dy;
       lambda = ((node_x - pt_x) * surface_dx + (node_y - pt_y) * surface_dy) / gradsqrnorm;
@@ -164,15 +155,17 @@ void newton_kernel(const double node_x, const double node_y,
     }
 
     // Gone outside the element, return
-    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > h * h) {
-      pt_x = pt_x_old;
-      pt_y = pt_y_old;
-      break;
-    }
+    // if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > h * h) {
+    //   pt_x = pt_x_old;
+    //   pt_y = pt_y_old;
+    //   break;
+    // }
 
     // Converged, no more steps required
-    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) < 1e-8)
+    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) < 1e-12)
       break;
+
+    DGUtils::global_xy_to_rs(pt_x, pt_y, pt_r, pt_s, cellX, cellY);
   }
 
   closest_pt_x = pt_x;
@@ -191,5 +184,11 @@ void newton_method(const int numPts, double *s, double *closest_x,
     newton_kernel(x[i], y[i], closest_x[i], closest_y[i], &s_modal[ind_np],
                   &cell_x[ind_3], &cell_y[ind_3], rx[ind_np], sx[ind_np],
                   ry[ind_np], sy[ind_np], h);
+    double s_ = s[i];
+    bool negative = s[i] < 0.0;
+    s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
+    s[i] = sqrt(s[i]);
+    if(negative) s[i] *= -1.0;
+    if(fabs(s_ - s[i]) < 1e-5) s[i] = s_;
   }
 }

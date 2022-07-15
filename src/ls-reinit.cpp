@@ -24,14 +24,14 @@ extern Timing *timer;
 
 void LS::reinit_ls() {
   timer->startTimer("LS - Sample Interface");
-  op2_gemv(mesh, false, 1.0, DGConstants::DR, s, 0.0, dsdr);
-  op2_gemv(mesh, false, 1.0, DGConstants::DS, s, 0.0, dsds);
+  // op2_gemv(mesh, false, 1.0, DGConstants::DR, s, 0.0, dsdr);
+  // op2_gemv(mesh, false, 1.0, DGConstants::DS, s, 0.0, dsds);
   op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, s_modal);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsdr, 0.0, dsdr_modal);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsds, 0.0, dsds_modal);
+  // op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsdr, 0.0, dsdr_modal);
+  // op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsds, 0.0, dsds_modal);
 
   arma::vec x_, y_, r_, s_;
-  DGUtils::setRefXY(6, x_, y_);
+  DGUtils::setRefXY(4, x_, y_);
   DGUtils::xy2rs(x_, y_, r_, s_);
 
   op_par_loop(sample_interface, "sample_interface", mesh->cells,
@@ -41,8 +41,10 @@ void LS::reinit_ls() {
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s_modal,     -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(dsdr_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(dsds_modal,  -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->rx,    -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->sx,    -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->ry,    -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->sy,    -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s_sample_x,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE),
               op_arg_dat(s_sample_y,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE));
 

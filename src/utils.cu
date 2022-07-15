@@ -335,15 +335,12 @@ __global__ void newton_kernel(const int numPts, const int *cell_ind, double *s,
   double node_r, node_s, pt_r, pt_s;
   global_xy_to_rs_u(x_l, y_l, node_r, node_s, cell_x_l, cell_y_l);
   global_xy_to_rs_u(closest_x_l, closest_y_l, pt_r, pt_s, cell_x_l, cell_y_l);
-  double init_r = pt_r;
-  double init_s = pt_s;
   double pt_x = closest_x_l;
   double pt_y = closest_y_l;
   double init_x = closest_x_l;
   double init_y = closest_y_l;
   for(int step = 0; step < 10; step++) {
-    double pt_r_old = pt_r;
-    double pt_s_old = pt_s;
+    global_xy_to_rs_u(pt_x, pt_y, pt_r, pt_s, cell_x_l, cell_y_l);
     double pt_x_old = pt_x;
     double pt_y_old = pt_y;
     // Evaluate surface and gradient at current guess
@@ -415,21 +412,23 @@ __global__ void newton_kernel(const int numPts, const int *cell_ind, double *s,
     }
 
     // Gone outside the element, return
-    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > h * h) {
-      pt_x = pt_x_old;
-      pt_y = pt_y_old;
-      break;
-    }
+    // if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > h * h) {
+    //   pt_x = pt_x_old;
+    //   pt_y = pt_y_old;
+    //   break;
+    // }
 
     // Converged, no more steps required
-    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) < 1e-8)
+    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) < 1e-18)
       break;
   }
 
+  double s_ = s[tid];
   bool negative = s[tid] < 0.0;
   s[tid] = (pt_x - x_l) * (pt_x - x_l) + (pt_y - y_l) * (pt_y - y_l);
   s[tid] = sqrt(s[tid]);
   if(negative) s[tid] *= -1.0;
+  if(fabs(s_ - s[tid]) < 1e-5) s[tid] = s_;
 }
 
 void newton_method(const int numPts, double *s, double *closest_x,

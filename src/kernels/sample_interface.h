@@ -60,6 +60,17 @@ void rs_to_global_xy(const double r, const double s, double &x, double &y,
   y = 0.5 * (-(r + s) * cellY[0] + (1.0 + r) * cellY[1] + (1.0 + s) * cellY[2]);
 }
 
+void global_xy_to_rs(const double x, const double y, double &r, double &s,
+                     const double *cellX, const double *cellY) {
+  double l2 = (cellY[1] - cellY[2]) * (x - cellX[2]) + (cellX[2] - cellX[1]) * (y - cellY[2]);
+  l2 = l2 / ((cellY[1] - cellY[2]) * (cellX[0] - cellX[2]) + (cellX[2] - cellX[1]) * (cellY[0] - cellY[2]));
+  double l3 = (cellY[2] - cellY[0]) * (x - cellX[2]) + (cellX[0] - cellX[2]) * (y - cellY[2]);
+  l3 = l3 / ((cellY[1] - cellY[2]) * (cellX[0] - cellX[2]) + (cellX[2] - cellX[1]) * (cellY[0] - cellY[2]));
+  double l1 = 1.0 - l2 - l3;
+  s = 2.0 * l1 - 1.0;
+  r = 2.0 * l3 - 1.0;
+}
+
 double jacobiP(const double x, const double alpha, const double beta,
                const int N) {
   double gamma0 = pow(2.0, alpha + beta + 1.0) / (alpha + beta + 1.0) *
@@ -185,36 +196,42 @@ void grad_at_pt(const double r, const double s, const double *modal,
 
 inline void sample_interface(const double *r, const double *s, const double *x,
                              const double *y, const double *surface,
-                             const double *s_modal, const double *dsdx_modal,
-                             const double *dsdy_modal, double *sample_x,
+                             const double *s_modal, const double *rx,
+                             const double *sx, const double *ry,
+                             const double *sy, double *sample_x,
                              double *sample_y) {
   // Check that the cell contains the interface
-  bool positive0 = surface[0] > 0.0;
-  bool interface = false;
-  for(int i = 1; i < DG_NP; i++) {
-    if(positive0 != surface[i] > 0.0)
-      interface = true;
-  }
-  if(!interface) {
-    for(int i = 0; i < LS_SAMPLE_NP; i++) {
-      sample_x[i] = NAN;
-      sample_y[i] = NAN;
-    }
-    return;
-  }
+  // bool positive0 = surface[0] > 0.0;
+  // bool interface = false;
+  // for(int i = 1; i < DG_NP; i++) {
+  //   if(positive0 != surface[i] > 0.0)
+  //     interface = true;
+  // }
+  // if(!interface) {
+  //   for(int i = 0; i < LS_SAMPLE_NP; i++) {
+  //     sample_x[i] = NAN;
+  //     sample_y[i] = NAN;
+  //   }
+  //   return;
+  // }
+
+  double sample_r[LS_SAMPLE_NP], sample_s[LS_SAMPLE_NP];
 
   // Initial positions of sample points (in r-s coords)
   for(int i = 0; i < LS_SAMPLE_NP; i++) {
-    sample_x[i] = r[i] * 0.9;
-    sample_y[i] = s[i] * 0.9;
+    sample_r[i] = r[i] * 0.9;
+    sample_s[i] = s[i] * 0.9;
+    rs_to_global_xy(sample_r[i], sample_s[i], sample_x[i], sample_y[i], x, y);
   }
 
   for(int p = 0; p < LS_SAMPLE_NP; p++) {
     bool converged = false;
     for(int step = 0; step < 10; step++) {
-      double surf = val_at_pt(sample_x[p], sample_y[p], s_modal);
-      double dsdx, dsdy;
-      grad_at_pt(sample_x[p], sample_y[p], s_modal, dsdx, dsdy);
+      double surf = val_at_pt(sample_r[p], sample_s[p], s_modal);
+      double dsdr, dsds;
+      grad_at_pt(sample_r[p], sample_s[p], s_modal, dsdr, dsds);
+      double dsdx = rx[0] * dsdr + sx[0] * dsds;
+      double dsdy = ry[0] * dsdr + sy[0] * dsds;
 
       double sqrnorm = dsdx * dsdx + dsdy * dsdy;
       if(sqrnorm > 0.0) {
@@ -226,21 +243,16 @@ inline void sample_interface(const double *r, const double *s, const double *x,
       sample_y[p] -= dsdy;
 
       // Converged
-      if(dsdx * dsdx + dsdy * dsdy < 1.5 * 1e-8) {
+      if(dsdx * dsdx + dsdy * dsdy < 1e-12) {
         converged = true;
         break;
       }
+
+      global_xy_to_rs(sample_x[p], sample_y[p], sample_r[p], sample_s[p], x, y);
     }
 
     // Convert to x-y coords
     if(converged) {
-      double r_ = sample_x[p];
-      double s_ = sample_y[p];
-      double new_x, new_y;
-      rs_to_global_xy(r_, s_, new_x, new_y, x, y);
-      sample_x[p] = new_x;
-      sample_y[p] = new_y;
-
       // Check within original element
       if(!is_point_in_cell_(sample_x[p], sample_y[p], x, y)) {
         sample_x[p] = NAN;

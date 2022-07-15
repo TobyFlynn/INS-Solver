@@ -40,6 +40,7 @@ KDCoord KDTree::closest_point(const double x, const double y) {
   KDCoord result;
 
   nearest_neighbour(x, y, current_ind, axis, closest_ind, closest_distance, result);
+
   return result;
 }
 
