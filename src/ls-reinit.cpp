@@ -24,27 +24,12 @@ extern Timing *timer;
 
 void LS::reinit_ls() {
   timer->startTimer("LS - Sample Interface");
-  // op2_gemv(mesh, false, 1.0, DGConstants::DR, s, 0.0, dsdr);
-  // op2_gemv(mesh, false, 1.0, DGConstants::DS, s, 0.0, dsds);
   op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, s_modal);
-  // op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsdr, 0.0, dsdr_modal);
-  // op2_gemv(mesh, false, 1.0, DGConstants::INV_V, dsds, 0.0, dsds_modal);
-
-  arma::vec x_, y_, r_, s_;
-  DGUtils::setRefXY(4, x_, y_);
-  DGUtils::xy2rs(x_, y_, r_, s_);
 
   op_par_loop(sample_interface, "sample_interface", mesh->cells,
-              op_arg_gbl(r_.memptr(), LS_SAMPLE_NP, "double", OP_READ),
-              op_arg_gbl(s_.memptr(), LS_SAMPLE_NP, "double", OP_READ),
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(s_modal,     -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->rx,    -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->sx,    -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->ry,    -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->sy,    -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s_sample_x,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE),
               op_arg_dat(s_sample_y,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE));
 
@@ -65,6 +50,19 @@ void LS::reinit_ls() {
     op_arg_dat(mesh->sy, -1, OP_ID, DG_NP, "double", OP_READ)
   };
   op_mpi_halo_exchanges(s_sample_x->set, 12, op2_args);
+
+  std::string fileName = "interface_sample_points.txt";
+  std::ofstream out_file(fileName.c_str());
+  out_file << "X,Y,Z" << std::endl;
+
+  const double *x_coords = (double *)s_sample_x->data;
+  const double *y_coords = (double *)s_sample_y->data;
+  for(int i = 0; i < LS_SAMPLE_NP * mesh->numCells; i++) {
+    if(!isnan(x_coords[i]) && !isnan(y_coords[i]))
+      out_file << x_coords[i] << "," << y_coords[i] << ",0.0" << std::endl;
+  }
+
+  out_file.close();
 
   timer->startTimer("LS - Construct K-D Tree");
   KDTree kdtree((double *)s_sample_x->data, (double *)s_sample_y->data, LS_SAMPLE_NP * mesh->numCells);
@@ -87,11 +85,8 @@ void LS::reinit_ls() {
     cell_ind[i]  = tmp.cell;
   }
 
-  newton_method(DG_NP * mesh->numCells, (double *)s->data, closest_x, closest_y,
-                cell_ind, mesh_x_coords, mesh_y_coords, (double *)s_modal->data,
-                (double *)mesh->nodeX->data, (double *)mesh->nodeY->data,
-                (double *)mesh->rx->data, (double *)mesh->sx->data,
-                (double *)mesh->ry->data, (double *)mesh->sy->data, h);
+  newton_method(DG_NP * mesh->numCells, closest_x, closest_y, mesh_x_coords, mesh_y_coords,
+                cell_ind, mesh->edge2cells, mesh->x, mesh->y, s, h);
 
   free(closest_x);
   free(closest_y);
