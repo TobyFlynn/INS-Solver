@@ -50,10 +50,11 @@ inputfiles = []
 
 for dirpath, _, filenames in os.walk("src"):
     for f in filenames:
-        tmp  = dirpath + "/" + f
-        tmp2 = tmp.split("/")
-        tmp3 = "/".join(tmp2[1:])
-        inputfiles.append(tmp3)
+        if f[0] != '.':
+            tmp  = dirpath + "/" + f
+            tmp2 = tmp.split("/")
+            tmp3 = "/".join(tmp2[1:])
+            inputfiles.append(tmp3)
 
 for f in inputfiles:
     filedata = None
