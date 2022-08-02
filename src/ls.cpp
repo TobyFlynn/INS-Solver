@@ -115,8 +115,8 @@ void LS::init() {
   // alpha = 2.0 * h / DG_ORDER;
   // order_width = 2.0 * h;
   // epsilon = h / DG_ORDER;
-  alpha = 6.0 * h;
-  order_width = 6.0 * h;
+  alpha = 12.0 * h;
+  order_width = 12.0 * h;
   epsilon = h;
   reinit_width = 10.0 * h;
   reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
@@ -189,15 +189,6 @@ void LS::step(double dt) {
     counter = 0;
   }
 
-  // Reset LS in boundary cells (this needs is a work around, needs to be fixed properly later)
-  // Also has a data race, but all will be setting to same value so should be okay
-  /*
-  op_par_loop(ls_bcell_reset, "ls_bcell_reset", mesh->bedges,
-              op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_dat(mesh->x,     0, mesh->bedge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y,     0, mesh->bedge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(s,           0, mesh->bedge2cells, DG_NP, "double", OP_WRITE));
-  */
   /*
   op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
               op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),

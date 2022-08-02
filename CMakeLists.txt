@@ -8,43 +8,45 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 
 # Default OP2 location for me
 if(NOT OP2_DIR)
-  set(OP2_DIR "/home/u1717021/Code/PhD/OP2-Common/op2")
+  set(OP2_DIR "/dcs/pg20/u1717021/PhD/OP2-Common/op2")
 endif()
 include_directories(${OP2_DIR}/include)
 
 # CGNS library for me
 if(NOT CGNS_DIR)
-  set(CGNS_DIR "/home/u1717021/Code/PhD/CGNS/build")
+  set(CGNS_DIR "/dcs/pg20/u1717021/PhD/apps")
 endif()
 include_directories(${CGNS_DIR}/include)
 
 # OpenBLAS library for me
 if(NOT OPENBLAS_DIR)
-  set(OPENBLAS_DIR "/opt/OpenBLAS")
+  set(OPENBLAS_DIR "/dcs/pg20/u1717021/PhD/apps")
 endif()
 include_directories(${OPENBLAS_DIR}/include)
 
-set(PETSC_DIR $ENV{PETSC_DIR})
-include_directories(${PETSC_DIR}/include ${PETSC_DIR}/arch-linux-c-debug/include)
+if(NOT PETSC_DIR)
+  set(PETSC_DIR $ENV{PETSC_DIR})
+endif()
+include_directories(${PETSC_DIR}/include)
 
-set(PARMETIS_DIR "/home/u1717021/Code/PhD/parmetis-4.0.3/build")
+set(PARMETIS_DIR "/dcs/pg20/u1717021/PhD/apps")
 include_directories(${PARMETIS_DIR}/include)
 
 if(NOT OP2DGTOOLKIT_DIR)
-  set(OP2DGTOOLKIT_DIR "/home/u1717021/Code/PhD/OP2-DG-Toolkit/build")
+  set(OP2DGTOOLKIT_DIR "/dcs/pg20/u1717021/PhD/OP2-DG-Toolkit/build")
 endif()
 include_directories(${OP2DGTOOLKIT_DIR}/include)
 
 if(NOT ARMA_DIR)
-  set(ARMA_DIR "/home/u1717021/Code/PhD/armadillo-10.5.3/build")
+  set(ARMA_DIR "/dcs/pg20/u1717021/PhD/apps")
 endif()
 include_directories(${ARMA_DIR}/include)
 
-enable_language(CUDA)
-find_package(CUDAToolkit)
-include_directories(${CUDAToolkit_INCLUDE_DIRS})
-set(CMAKE_CUDA_COMPILER ${CUDAToolkit_NVCC_EXECUTABLE})
-set(CMAKE_CUDA_ARCHITECTURES 75)
+#enable_language(CUDA)
+#find_package(CUDAToolkit)
+#include_directories(${CUDAToolkit_INCLUDE_DIRS})
+#set(CMAKE_CUDA_COMPILER ${CUDAToolkit_NVCC_EXECUTABLE})
+#set(CMAKE_CUDA_ARCHITECTURES 75)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
