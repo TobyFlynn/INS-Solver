@@ -151,3 +151,11 @@ void KDTree::nearest_neighbour(const double x, const double y, int current_ind, 
     }
   }
 }
+
+std::set<int> KDTree::get_cell_inds() {
+  std::set<int> result;
+  for(int i = 0; i < nodes.size(); i++) {
+    result.insert(nodes[i].coord.cell);
+  }
+  return result;
+}

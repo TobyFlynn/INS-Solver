@@ -8,6 +8,8 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <map>
+#include <set>
 
 #include "dg_constants.h"
 #include "dg_utils.h"
@@ -18,7 +20,8 @@
 
 #include "kd_tree.h"
 #include "timing.h"
-#include "ls_reinit_stencil.h"
+#include "ls_reinit_poly.h"
+#include "utils.h"
 
 extern Timing *timer;
 
@@ -60,16 +63,13 @@ bool newtoncp_gepp(arma::mat &A, arma::vec &b) {
 
 bool newton_kernel(double &closest_pt_x, double &closest_pt_y,
                    const double node_x, const double node_y,
-                   const int cell_ind, op_map edge_map, op_dat x_dat, op_dat y_dat,
-                   op_dat s_dat, const double h) {
+                   const int cell_ind, PolyApprox &p, const double h) {
   double lambda = 0.0;
   bool converged = false;
   double pt_x = closest_pt_x;
   double pt_y = closest_pt_y;
   double init_x = closest_pt_x;
   double init_y = closest_pt_y;
-
-  PolyApprox p(3, cell_ind, edge_map, x_dat, y_dat, s_dat);
 
   for(int step = 0; step < 10; step++) {
     double pt_x_old = pt_x;
@@ -156,31 +156,28 @@ bool newton_kernel(double &closest_pt_x, double &closest_pt_y,
 }
 
 void newton_method(const int numPts, double *closest_x, double *closest_y, const double *x, const double *y,
-                   int *cell_ind, op_map edge_map, op_dat x_dat, op_dat y_dat, op_dat s_dat, const double h) {
+                   int *cell_ind, std::map<int,PolyApprox> &polyMap, double *s, const double h) {
   int numNonConv = 0;
   int numReinit = 0;
-  double *s_ptr = (double *)s_dat->data;
-  double *s_new = (double *)calloc(numPts, sizeof(double));
+
   #pragma omp parallel for
   for(int i = 0; i < numPts; i++) {
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
     for(int j = 0; j < DG_NP; j++) {
-      if(fabs(s_ptr[start_ind + j]) < 0.05) {
+      if(fabs(s[start_ind + j]) < 0.05) {
         reinit = true;
       }
     }
 
-    s_new[i] = s_ptr[i];
-
     if(reinit) {
       bool tmp = newton_kernel(closest_x[i], closest_y[i], x[i], y[i], cell_ind[i], 
-                               edge_map, x_dat, y_dat, s_dat, h);
+                               polyMap.at(cell_ind[i]), h);
       if(tmp) {
-        bool negative = s_ptr[i] < 0.0;
-        s_new[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
-        s_new[i] = sqrt(s_new[i]);
-        if(negative) s_new[i] *= -1.0;
+        bool negative = s[i] < 0.0;
+        s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
+        s[i] = sqrt(s[i]);
+        if(negative) s[i] *= -1.0;
       }
       if(!tmp) {
         #pragma omp atomic
@@ -190,10 +187,6 @@ void newton_method(const int numPts, double *closest_x, double *closest_y, const
       numReinit++;
     }
   }
-
-  memcpy(s_ptr, s_new, numPts * sizeof(double));
-
-  free(s_new);
   
   if(numNonConv != 0 || numReinit == 0)
     std::cout << numNonConv << " non-converged points out of " << numReinit << " points reinitialised" << std::endl;
@@ -201,8 +194,6 @@ void newton_method(const int numPts, double *closest_x, double *closest_y, const
 
 void LS::reinit_ls() {
   timer->startTimer("LS - Sample Interface");
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, s_modal);
-
   op_par_loop(sample_interface, "sample_interface", mesh->cells,
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
@@ -212,43 +203,43 @@ void LS::reinit_ls() {
 
   timer->endTimer("LS - Sample Interface");
 
-  op_arg op2_args[] = {
-    op_arg_dat(s_sample_x, -1, OP_ID, LS_SAMPLE_NP, "double", OP_READ),
-    op_arg_dat(s_sample_y, -1, OP_ID, LS_SAMPLE_NP, "double", OP_READ),
-    op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(s, -1, OP_ID, DG_NP, "double", OP_RW),
-    op_arg_dat(s_modal, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
-    op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
-    op_arg_dat(mesh->rx, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->sx, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->ry, -1, OP_ID, DG_NP, "double", OP_READ),
-    op_arg_dat(mesh->sy, -1, OP_ID, DG_NP, "double", OP_READ)
-  };
-  op_mpi_halo_exchanges(s_sample_x->set, 12, op2_args);
-
-  std::string fileName = "interface_sample_points.txt";
-  std::ofstream out_file(fileName.c_str());
-  out_file << "X,Y,Z" << std::endl;
-
-  const double *x_coords = (double *)s_sample_x->data;
-  const double *y_coords = (double *)s_sample_y->data;
-  for(int i = 0; i < LS_SAMPLE_NP * mesh->numCells; i++) {
-    if(!isnan(x_coords[i]) && !isnan(y_coords[i]))
-      out_file << x_coords[i] << "," << y_coords[i] << ",0.0" << std::endl;
-  }
-
-  out_file.close();
-
   timer->startTimer("LS - Construct K-D Tree");
-  KDTree kdtree((double *)s_sample_x->data, (double *)s_sample_y->data, LS_SAMPLE_NP * mesh->numCells);
+  const double *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
+  const double *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
+
+  KDTree kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->numCells);
+
+  releaseOP2PtrHost(s_sample_x, OP_READ, sample_pts_x);
+  releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
   timer->endTimer("LS - Construct K-D Tree");
 
-  const double *mesh_x_coords = (double *)mesh->x->data;
-  const double *mesh_y_coords = (double *)mesh->y->data;
+  timer->startTimer("LS - Construct Poly Approx");
+  // Get cell inds that require polynomial approximations
+  std::set<int> cell_inds = kdtree.get_cell_inds();
+
+  // Map of cell ind to polynomial approximations
+  std::map<int,PolyApprox> polyMap;
+
+  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
+  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
+  const double *s_ptr = getOP2PtrHost(s, OP_READ);
+
+  // Populate map
+  for(auto it = cell_inds.begin(); it != cell_inds.end(); it++) {
+    PolyApprox p(3, *it, mesh->edge2cells, x_ptr, y_ptr, s_ptr);
+    polyMap.insert({*it, p});
+  }
+
+  releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
+  releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
+  releaseOP2PtrHost(s, OP_READ, s_ptr);
+
+  timer->endTimer("LS - Construct Poly Approx");
 
   timer->startTimer("LS - Newton Method");
+  x_ptr = getOP2PtrHost(mesh->x, OP_READ);
+  y_ptr = getOP2PtrHost(mesh->y, OP_READ);
+
   double *closest_x = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   double *closest_y = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   int *cell_ind     = (int *)calloc(DG_NP * mesh->numCells, sizeof(int));
@@ -256,19 +247,24 @@ void LS::reinit_ls() {
   #pragma omp parallel for
   for(int i = 0; i < DG_NP * mesh->numCells; i++) {
     // Get closest sample point
-    KDCoord tmp = kdtree.closest_point(mesh_x_coords[i], mesh_y_coords[i]);
+    KDCoord tmp = kdtree.closest_point(x_ptr[i], y_ptr[i]);
     closest_x[i] = tmp.x;
     closest_y[i] = tmp.y;
     cell_ind[i]  = tmp.cell;
   }
 
-  newton_method(DG_NP * mesh->numCells, closest_x, closest_y, mesh_x_coords, mesh_y_coords,
-                cell_ind, mesh->edge2cells, mesh->x, mesh->y, s, h);
+  double *surface_ptr = getOP2PtrHost(s, OP_RW);
+
+  newton_method(DG_NP * mesh->numCells, closest_x, closest_y, x_ptr, y_ptr,
+                cell_ind, polyMap, surface_ptr, h);
+
+  releaseOP2PtrHost(s, OP_RW, surface_ptr);
 
   free(closest_x);
   free(closest_y);
   free(cell_ind);
-  timer->endTimer("LS - Newton Method");
 
-  op_mpi_set_dirtybit(12, op2_args);
+  releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
+  releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
+  timer->endTimer("LS - Newton Method");
 }

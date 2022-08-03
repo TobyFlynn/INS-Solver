@@ -1,9 +1,11 @@
 #include "op_seq.h"
 
-#include "ls_reinit_stencil.h"
+#include "ls_reinit_poly.h"
 
 #include <map>
 #include <iostream>
+
+#include "utils.h"
 
 using namespace std;
 
@@ -15,9 +17,7 @@ bool vec_contains(const int val, const vector<int> &vec) {
   return false;
 }
 
-void PolyApprox::get_offset(const int ind, op_dat x_dat, op_dat y_dat) {
-  const double *x_ptr = (double *)x_dat->data;
-  const double *y_ptr = (double *)y_dat->data;
+void PolyApprox::get_offset(const int ind, const double *x_ptr, const double *y_ptr) {
   // offset_x = x_ptr[ind * DG_NP];
   // offset_y = y_ptr[ind * DG_NP];
   offset_x = 0.0;
@@ -102,14 +102,11 @@ struct cmpCoords {
     }
 };
 
-void PolyApprox::stencil_data(const vector<int> &stencil, op_dat x_dat, op_dat y_dat, 
-                              op_dat s_dat, vector<double> &x, vector<double> &y, 
+void PolyApprox::stencil_data(const vector<int> &stencil, const double *x_ptr, 
+                              const double *y_ptr, const double *s_ptr, 
+                              vector<double> &x, vector<double> &y, 
                               vector<double> &s) {
   map<Coord, Point, cmpCoords> pointMap;
-  // TODO surround in OP2 MPI exchange thing if necessary
-  const double *x_ptr = (double *)x_dat->data;
-  const double *y_ptr = (double *)y_dat->data;
-  const double *s_ptr = (double *)s_dat->data;
 
   for(int i = 0; i < stencil.size(); i++) {
     for(int n = 0; n < 6; n++) {
@@ -151,9 +148,9 @@ void num_pts_pos_neg(const vector<double> &s, int &pos, int &neg) {
 }
 
 PolyApprox::PolyApprox(const int order, const int cell_ind, op_map edge_map, 
-                       op_dat x_dat, op_dat y_dat, op_dat s_dat) {
+                       const double *x_ptr, const double *y_ptr, const double *s_ptr) {
   N = order;
-  get_offset(cell_ind, x_dat, y_dat);
+  get_offset(cell_ind, x_ptr, y_ptr);
   
   vector<int> stencil;
   if(N == 2)
@@ -161,7 +158,7 @@ PolyApprox::PolyApprox(const int order, const int cell_ind, op_map edge_map,
   else
     stencil_ind(cell_ind, 2, edge_map, stencil);
   vector<double> x_vec, y_vec, s_vec;
-  stencil_data(stencil, x_dat, y_dat, s_dat, x_vec, y_vec, s_vec);
+  stencil_data(stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_vec);
 
   // Make sure equal number of points on each side of the line
   int pts_needed = num_coeff();
@@ -484,4 +481,8 @@ int PolyApprox::num_pts() {
   } else {
     return 0;
   }
+}
+
+double PolyApprox::get_coeff(int ind) {
+  return coeff[ind];
 }

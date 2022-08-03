@@ -14,7 +14,7 @@ cd gen
 python3 $OP2_TRANSLATOR ins.cpp \
         ins_data.cpp solver.cpp poisson.cpp \
         poisson_sub_mat.cpp timing.cpp ls.cpp \
-        poisson_cpu.cpp utils.cpp ls-reinit.cpp \
+        poisson_cpu.cpp utils.cpp ls_reinit.cpp \
         save_solution.cpp kernels/
 
 sed -i '10i extern double reynolds;' openmp/ins_kernels.cpp
@@ -30,6 +30,7 @@ cmake .. \
   -DCGNS_DIR=/dcs/pg20/u1717021/PhD/apps \
   -DOPENBLAS_DIR=/dcs/pg20/u1717021/PhD/apps \
   -DPETSC_DIR=$PETSC_DIR \
+  -DPART_LIB_NAME=PARMETIS \
   -DPARMETIS_DIR=/dcs/pg20/u1717021/PhD/apps \
   -DOP2DGTOOLKIT_DIR=/dcs/pg20/u1717021/PhD/OP2-DG-Toolkit/build \
   -DARMA_DIR=/dcs/pg20/u1717021/PhD/apps

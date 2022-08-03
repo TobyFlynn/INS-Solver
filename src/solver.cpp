@@ -73,7 +73,7 @@ Solver::Solver(std::string filename, int prob) {
   viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
   viscosityPoisson->setNeumannBCs(viscosity_neumann);
 
-  op_partition("PARMETIS", "KWAY", mesh->cells, mesh->edge2cells, NULL);
+  op_partition("OP2_PARTITIONER", "KWAY", mesh->cells, mesh->edge2cells, NULL);
 
   mesh->init();
   data->init();

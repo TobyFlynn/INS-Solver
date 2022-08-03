@@ -27,8 +27,7 @@ public:
 
   op_dat dsdx, dsdy;
 
-  op_dat s_modal, dsdr_modal, dsds_modal, dsdr, dsds, s_sample_x, s_sample_y;
-  op_dat dsdr2_modal, dsdrs_modal, dsds2_modal;
+  op_dat s_sample_x, s_sample_y;
 
   double alpha, order_width;
 private:

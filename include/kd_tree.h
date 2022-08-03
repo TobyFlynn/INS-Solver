@@ -2,6 +2,7 @@
 #define __INS_KD_TREE_H
 
 #include <vector>
+#include <set>
 
 struct KDCoord {
   double x;
@@ -21,6 +22,7 @@ public:
   KDTree(const double *x, const double *y, const int num);
 
   KDCoord closest_point(const double x, const double y);
+  std::set<int> get_cell_inds();
 
 private:
   int construct_tree(std::vector<KDCoord>::iterator pts_start, std::vector<KDCoord>::iterator pts_end, int axis);

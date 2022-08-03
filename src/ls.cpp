@@ -84,15 +84,6 @@ void LS::init() {
   dsdx = data->tmp_dg_np[8];
   dsdy = data->tmp_dg_np[9];
 
-  s_modal     = data->tmp_dg_np[0];
-  dsdr_modal  = data->tmp_dg_np[1];
-  dsds_modal  = data->tmp_dg_np[2];
-  dsdr        = data->tmp_dg_np[3];
-  dsds        = data->tmp_dg_np[4];
-  dsdr2_modal = data->tmp_dg_np[5];
-  dsdrs_modal = data->tmp_dg_np[6];
-  dsds2_modal = data->tmp_dg_np[7];
-
   exAdvec = data->tmp_dg_g_np[0];
   nFlux   = data->tmp_dg_g_np[1];
   gU      = data->tmp_dg_g_np[2];
@@ -184,7 +175,7 @@ void LS::step(double dt) {
               op_arg_dat(rk[2], -1, OP_ID, DG_NP, "double", OP_READ));
 
   counter++;
-  if(counter > 9) {
+  if(counter > 49) {
     reinit_ls();
     counter = 0;
   }

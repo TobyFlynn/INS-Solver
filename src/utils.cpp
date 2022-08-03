@@ -2,8 +2,34 @@
 
 #include <memory>
 #include <iostream>
+#include <stdexcept>
 
 #include "dg_utils.h"
+
+double *getOP2PtrDevice(op_dat dat, op_access acc) {
+  throw std::runtime_error("\ngetOP2PtrDevice not implemented for CPU\n");
+}
+
+void releaseOP2PtrDevice(op_dat dat, op_access acc, const double *ptr) {
+  throw std::runtime_error("\releaseOP2PtrDevice not implemented for CPU\n");
+}
+
+double *getOP2PtrHost(op_dat dat, op_access acc) {
+  op_arg args[] = {
+    op_arg_dat(dat, -1, OP_ID, dat->dim, "double", acc)
+  };
+  return (double *)dat->data;
+}
+
+void releaseOP2PtrHost(op_dat dat, op_access acc, const double *ptr) {
+  op_arg args[] = {
+    op_arg_dat(dat, -1, OP_ID, dat->dim, "double", acc)
+  };
+
+  op_mpi_set_dirtybit(1, args);
+
+  ptr = nullptr;
+}
 
 double *getOP2Array(op_dat dat) {
   op_arg args[] = {
