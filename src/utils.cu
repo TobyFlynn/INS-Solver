@@ -42,7 +42,7 @@ void releaseOP2PtrHost(op_dat dat, op_access acc, const double *ptr) {
 
   op_mpi_set_dirtybit_cuda(1, args);
 
-  free(ptr);
+  free((void *)ptr);
   ptr = nullptr;
 }
 

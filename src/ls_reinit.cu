@@ -80,9 +80,6 @@ __global__ void newton_kernel(const int numPts, const int *cell_ind, double *s,
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   if(tid >= numPts) return;
 
-  const int ind_np = cell_ind[tid] * DG_NP;
-  const int ind_3  = cell_ind[tid] * 3;
-
   const double x_l         = x[tid];
   const double y_l         = y[tid];
   const double closest_x_l = closest_x[tid];
@@ -103,7 +100,7 @@ __global__ void newton_kernel(const int numPts, const int *cell_ind, double *s,
     pe->grad_at(cell_ind[tid], pt_x, pt_y, surface_dx, surface_dy);
     // Evaluate Hessian
     double hessian[3];
-    pe->hessian_at(pt_x, pt_y, hessian[0], hessian[1], hessian[2]);
+    pe->hessian_at(cell_ind[tid], pt_x, pt_y, hessian[0], hessian[1], hessian[2]);
 
     // Check if |nabla(surface)| = 0, if so then return
     double gradsqrnorm = surface_dx * surface_dx + surface_dy * surface_dy;

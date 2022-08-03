@@ -65,11 +65,12 @@ endif()
 include_directories(${ARMA_DIR}/include)
 set(ARMA_LIB "-L${ARMA_DIR}/lib -larmadillo")
 
-#enable_language(CUDA)
-#find_package(CUDAToolkit)
-#include_directories(${CUDAToolkit_INCLUDE_DIRS})
-#set(CMAKE_CUDA_COMPILER ${CUDAToolkit_NVCC_EXECUTABLE})
-#set(CMAKE_CUDA_ARCHITECTURES 75)
+enable_language(CUDA)
+find_package(CUDAToolkit)
+include_directories(${CUDAToolkit_INCLUDE_DIRS})
+set(CMAKE_CUDA_COMPILER ${CUDAToolkit_NVCC_EXECUTABLE})
+set(CMAKE_CUDA_ARCHITECTURES 70 75)
+set(CMAKE_CUDA_FLAGS "-Xcompiler -mno-float128")
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 

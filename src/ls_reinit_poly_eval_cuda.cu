@@ -22,7 +22,7 @@ PolyEval::~PolyEval() {
 int PolyEval::convert_ind(const int cell_ind) {
   return indMap.at(cell_ind);
 }
-
+/*
 // For now just assume 3rd order poly
 __device__ double PolyEval::val_at(const int cell_ind, const double x, const double y) {
   double res = 0.0;
@@ -72,3 +72,4 @@ __device__ void PolyEval::hessian_at(const int cell_ind, const double x, const d
   dy2 += 2.0 * coeff[cell_ind * 10 + 8] * x;
   dy2 += 6.0 * coeff[cell_ind * 10 + 9] * y;
 }
+*/
