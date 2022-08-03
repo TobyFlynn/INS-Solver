@@ -6,7 +6,7 @@ endif()
 
 add_executable(vtk2CGNS vtk2CGNS.cpp)
 target_include_directories(vtk2CGNS PUBLIC ${VTK_USE_FILE})
-target_link_libraries(vtk2CGNS ${CGNS_LIB} ${VTK_LIBRARIES})
+target_link_libraries(vtk2CGNS ${CGNS_LIB} ${VTK_LIBRARIES} ${EXTRA_LIBS})
 
 #add_executable(matlab2CGNS matlab2CGNS.cpp)
 #target_link_libraries(matlab2CGNS ${CGNS_LIB})
