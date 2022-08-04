@@ -33,6 +33,8 @@ cmake .. \
   -DPART_LIB_NAME=PARMETIS \
   -DPARMETIS_DIR=/dcs/pg20/u1717021/PhD/apps \
   -DOP2DGTOOLKIT_DIR=/dcs/pg20/u1717021/PhD/OP2-DG-Toolkit/build \
-  -DARMA_DIR=/dcs/pg20/u1717021/PhD/apps
+  -DARMA_DIR=/dcs/pg20/u1717021/PhD/apps \
+  -DBUILD_SN=ON \
+  -DBUILD_CPU=ON
 
 make
