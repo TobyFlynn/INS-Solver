@@ -63,7 +63,7 @@ bool newtoncp_gepp(arma::mat &A, arma::vec &b) {
 
 bool newton_kernel(double &closest_pt_x, double &closest_pt_y,
                    const double node_x, const double node_y,
-                   const int cell_ind, PolyApprox &p, const double h) {
+                   PolyApprox &p, const double h) {
   double lambda = 0.0;
   bool converged = false;
   double pt_x = closest_pt_x;
@@ -156,7 +156,7 @@ bool newton_kernel(double &closest_pt_x, double &closest_pt_y,
 }
 
 void newton_method(const int numPts, double *closest_x, double *closest_y, const double *x, const double *y,
-                   int *cell_ind, std::map<int,PolyApprox> &polyMap, double *s, const double h) {
+                   int *poly_ind, std::vector<PolyApprox> &polys, double *s, const double h) {
   int numNonConv = 0;
   int numReinit = 0;
 
@@ -171,8 +171,7 @@ void newton_method(const int numPts, double *closest_x, double *closest_y, const
     }
 
     if(reinit) {
-      bool tmp = newton_kernel(closest_x[i], closest_y[i], x[i], y[i], cell_ind[i], 
-                               polyMap.at(cell_ind[i]), h);
+      bool tmp = newton_kernel(closest_x[i], closest_y[i], x[i], y[i], polys[poly_ind[i]], h);
       if(tmp) {
         bool negative = s[i] < 0.0;
         s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
@@ -207,42 +206,22 @@ void LS::reinit_ls() {
   const double *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
   const double *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
 
-  KDTree kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->numCells);
+  KDTree kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->numCells, mesh, s);
 
   releaseOP2PtrHost(s_sample_x, OP_READ, sample_pts_x);
   releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
   timer->endTimer("LS - Construct K-D Tree");
 
-  timer->startTimer("LS - Construct Poly Approx");
-  // Get cell inds that require polynomial approximations
-  std::set<int> cell_inds = kdtree.get_cell_inds();
-
   // Map of cell ind to polynomial approximations
-  std::map<int,PolyApprox> polyMap;
-
-  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
-  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
-  const double *s_ptr = getOP2PtrHost(s, OP_READ);
-
-  // Populate map
-  for(auto it = cell_inds.begin(); it != cell_inds.end(); it++) {
-    PolyApprox p(3, *it, mesh->edge2cells, x_ptr, y_ptr, s_ptr);
-    polyMap.insert({*it, p});
-  }
-
-  releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
-  releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
-  releaseOP2PtrHost(s, OP_READ, s_ptr);
-
-  timer->endTimer("LS - Construct Poly Approx");
+  std::vector<PolyApprox> polys = kdtree.get_polys();
 
   timer->startTimer("LS - Newton Method");
-  x_ptr = getOP2PtrHost(mesh->x, OP_READ);
-  y_ptr = getOP2PtrHost(mesh->y, OP_READ);
+  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
+  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
 
   double *closest_x = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   double *closest_y = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  int *cell_ind     = (int *)calloc(DG_NP * mesh->numCells, sizeof(int));
+  int *poly_ind     = (int *)calloc(DG_NP * mesh->numCells, sizeof(int));
 
   #pragma omp parallel for
   for(int i = 0; i < DG_NP * mesh->numCells; i++) {
@@ -250,19 +229,19 @@ void LS::reinit_ls() {
     KDCoord tmp = kdtree.closest_point(x_ptr[i], y_ptr[i]);
     closest_x[i] = tmp.x;
     closest_y[i] = tmp.y;
-    cell_ind[i]  = tmp.cell;
+    poly_ind[i]  = tmp.poly;
   }
 
   double *surface_ptr = getOP2PtrHost(s, OP_RW);
 
   newton_method(DG_NP * mesh->numCells, closest_x, closest_y, x_ptr, y_ptr,
-                cell_ind, polyMap, surface_ptr, h);
+                poly_ind, polys, surface_ptr, h);
 
   releaseOP2PtrHost(s, OP_RW, surface_ptr);
 
   free(closest_x);
   free(closest_y);
-  free(cell_ind);
+  free(poly_ind);
 
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
   releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);

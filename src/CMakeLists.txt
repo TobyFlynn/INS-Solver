@@ -1,10 +1,10 @@
 set(COMMON_SRC solver_op.cpp poisson_op/poisson_op.cpp poisson_op/poisson_sub_mat_op.cpp)
 list(APPEND COMMON_SRC ins_data_op.cpp timing_op.cpp io/shared_save_functions.cpp)
-list(APPEND COMMON_SRC ls/kd_tree.cpp ls_op/ls_op.cpp ls/ls_reinit_poly.cpp)
+list(APPEND COMMON_SRC ls_op/ls_op.cpp ls/ls_reinit_poly.cpp)
 set(CPU_SRC poisson_op/poisson_cpu_op.cpp utils_op.cpp ls_op/ls_reinit_op.cpp)
 set(GPU_SRC poisson_op/poisson_gpu_op.cu utils_op.cu ls_op/ls_reinit_op.cu ls/ls_reinit_poly_eval_cuda.cu)
-set(SN_SRC io_op/save_solution_op.cpp io/load_mesh.cpp)
-set(MPI_SRC io_op/save_solution_mpi_op.cpp io/load_mesh_mpi.cpp mpi_helper_func.cpp)
+set(SN_SRC ls/kd_tree.cpp io_op/save_solution_op.cpp io/load_mesh.cpp)
+set(MPI_SRC ls/kd_tree_mpi.cpp io_op/save_solution_mpi_op.cpp io/load_mesh_mpi.cpp mpi_helper_func.cpp)
 
 if(BUILD_SN AND BUILD_CPU)
   add_executable(ins_openmp ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${SN_SRC} openmp/ins_kernels.cpp)

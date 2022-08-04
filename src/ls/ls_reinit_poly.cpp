@@ -147,9 +147,9 @@ void num_pts_pos_neg(const vector<double> &s, int &pos, int &neg) {
   }
 }
 
-PolyApprox::PolyApprox(const int order, const int cell_ind, op_map edge_map, 
-                       const double *x_ptr, const double *y_ptr, const double *s_ptr) {
-  N = order;
+PolyApprox::PolyApprox(const int cell_ind, op_map edge_map, 
+                       const double *x_ptr, const double *y_ptr, 
+                       const double *s_ptr) {
   get_offset(cell_ind, x_ptr, y_ptr);
   
   vector<int> stencil;
@@ -201,6 +201,14 @@ PolyApprox::PolyApprox(const int order, const int cell_ind, op_map edge_map,
     set_3rd_order_coeff(x_vec, y_vec, s_vec);
   } else if(N == 4) {
     set_4th_order_coeff(x_vec, y_vec, s_vec);
+  }
+}
+
+PolyApprox::PolyApprox(std::vector<double> &c, double off_x, double off_y) {
+  offset_x = off_x;
+  offset_y = off_y;
+  for(auto const &co : c) {
+    coeff.push_back(co);
   }
 }
 
@@ -485,4 +493,9 @@ int PolyApprox::num_pts() {
 
 double PolyApprox::get_coeff(int ind) {
   return coeff[ind];
+}
+
+void PolyApprox::get_offsets(double &x, double &y) {
+  x = offset_x;
+  y = offset_y;
 }

@@ -10,20 +10,22 @@
 
 class PolyApprox {
 public:
-  PolyApprox(const int order, const int cell_ind, 
-             op_map edge_map, const double *x_ptr,
+  PolyApprox(const int cell_ind, op_map edge_map, const double *x_ptr,
              const double *y_ptr, const double *s_ptr);
+  PolyApprox(std::vector<double> &c, double off_x, double off_y);
 
   double val_at(const double x, const double y);
   void grad_at(const double x, const double y, double &dx, double &dy);
   void hessian_at(const double x, const double y, double &dx2, 
                   double &dxy, double &dy2);
-  int num_coeff();
   double get_coeff(int ind);
+  void get_offsets(double &x, double &y);
+
+  static const int N = 3;
+  static int num_coeff();
 private:
   double offset_x, offset_y;
   std::vector<double> coeff;
-  int N;
 
   void get_offset(const int ind, const double *x_ptr, const double *y_ptr);
   void stencil_data(const std::vector<int> &stencil, const double *x_ptr, const double *y_ptr, 

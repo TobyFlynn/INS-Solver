@@ -72,7 +72,7 @@ __device__ bool newtoncp_gepp(double A[][3], double *b) {
   return true;
 }
 
-__global__ void newton_kernel(const int numPts, const int *cell_ind, double *s,
+__global__ void newton_kernel(const int numPts, const int *poly_ind, double *s,
                               const double *x, const double *y,
                               double *closest_x, double *closest_y,
                               PolyEval *pe, const double h) {
@@ -95,12 +95,12 @@ __global__ void newton_kernel(const int numPts, const int *cell_ind, double *s,
     double pt_x_old = pt_x;
     double pt_y_old = pt_y;
     // Evaluate surface and gradient at current guess
-    double surface = pe->val_at(cell_ind[tid], pt_x, pt_y);
+    double surface = pe->val_at(poly_ind[tid], pt_x, pt_y);
     double surface_dx, surface_dy;
-    pe->grad_at(cell_ind[tid], pt_x, pt_y, surface_dx, surface_dy);
+    pe->grad_at(poly_ind[tid], pt_x, pt_y, surface_dx, surface_dy);
     // Evaluate Hessian
     double hessian[3];
-    pe->hessian_at(cell_ind[tid], pt_x, pt_y, hessian[0], hessian[1], hessian[2]);
+    pe->hessian_at(poly_ind[tid], pt_x, pt_y, hessian[0], hessian[1], hessian[2]);
 
     // Check if |nabla(surface)| = 0, if so then return
     double gradsqrnorm = surface_dx * surface_dx + surface_dy * surface_dy;
@@ -175,7 +175,7 @@ __global__ void newton_kernel(const int numPts, const int *cell_ind, double *s,
 }
 
 void newton_method(const int numPts, double *closest_x, double *closest_y, 
-                   const double *x, const double *y, int *cell_ind, 
+                   const double *x, const double *y, int *poly_ind, 
                    PolyEval *pe, double *s, const double h) {
   int threadsPerBlock, blocks;
   if(numPts < THREADS_PER_BLOCK) {
@@ -188,7 +188,7 @@ void newton_method(const int numPts, double *closest_x, double *closest_y,
       blocks++;
   }
 
-  newton_kernel<<<blocks, threadsPerBlock>>>(numPts, cell_ind, s, x, y,
+  newton_kernel<<<blocks, threadsPerBlock>>>(numPts, poly_ind, s, x, y,
                                              closest_x, closest_y, pe, h);
 }
 
@@ -213,35 +213,17 @@ void LS::reinit_ls() {
   releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
   timer->endTimer("LS - Construct K-D Tree");
 
-  timer->startTimer("LS - Construct Poly Approx");
-  // Get cell inds that require polynomial approximations
-  std::set<int> cell_inds = kdtree.get_cell_inds();
-
   // Map of cell ind to polynomial approximations
-  std::map<int,PolyApprox> polyMap;
+  std::vector<PolyApprox> polys = kdtree.get_polys();
 
-  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
-  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
-  const double *s_ptr = getOP2PtrHost(s, OP_READ);
-
-  // Populate map
-  for(auto it = cell_inds.begin(); it != cell_inds.end(); it++) {
-    PolyApprox p(3, *it, mesh->edge2cells, x_ptr, y_ptr, s_ptr);
-    polyMap.insert({*it, p});
-  }
-
-  releaseOP2PtrHost(s, OP_READ, s_ptr);
-
-  PolyEval pe(polyMap);
-
-  timer->endTimer("LS - Construct Poly Approx");
+  PolyEval pe(polys);
 
   timer->startTimer("LS - Newton Method");
   double *closest_x, *closest_y;
-  int *cell_ind;
+  int *poly_ind;
   cudaMallocManaged(&closest_x, DG_NP * mesh->numCells * sizeof(double));
   cudaMallocManaged(&closest_y, DG_NP * mesh->numCells * sizeof(double));
-  cudaMallocManaged(&cell_ind, DG_NP * mesh->numCells * sizeof(int));
+  cudaMallocManaged(&poly_ind, DG_NP * mesh->numCells * sizeof(int));
 
   #pragma omp parallel for
   for(int i = 0; i < DG_NP * mesh->numCells; i++) {
@@ -250,7 +232,7 @@ void LS::reinit_ls() {
     closest_x[i] = tmp.x;
     closest_y[i] = tmp.y;
     // Convert OP2 cell ind to PolyEval ind (minimise indirection for CUDA)
-    cell_ind[i]  = pe.convert_ind(tmp.cell);
+    poly_ind[i]  = tmp.poly;
   }
 
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
@@ -261,7 +243,7 @@ void LS::reinit_ls() {
   double *s_ptr_d = getOP2PtrDevice(s, OP_RW);
 
   newton_method(DG_NP * mesh->numCells, closest_x, closest_y, x_ptr_d,
-                y_ptr_d, cell_ind, &pe, s_ptr_d, h);
+                y_ptr_d, poly_ind, &pe, s_ptr_d, h);
   
   releaseOP2PtrDevice(s, OP_RW, s_ptr_d);
   releaseOP2PtrDevice(mesh->x, OP_READ, x_ptr_d);
@@ -269,6 +251,6 @@ void LS::reinit_ls() {
 
   cudaFree(closest_x);
   cudaFree(closest_y);
-  cudaFree(cell_ind);
+  cudaFree(poly_ind);
   timer->endTimer("LS - Newton Method");
 }

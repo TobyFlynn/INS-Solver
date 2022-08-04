@@ -3,6 +3,7 @@
 #include <cmath>
 #include <algorithm>
 #include <iostream>
+#include <cstddef>
 
 #include "timing.h"
 #include "utils.h"
@@ -21,6 +22,8 @@ bool compareY(KDCoord a, KDCoord b) {
 
 KDTree::KDTree(const double *x, const double *y, const int num, 
                DGMesh *mesh, op_dat s) {
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   n = 0;
   vector<KDCoord> points;
   for(int i = 0; i < num; i++) {
@@ -30,6 +33,7 @@ KDTree::KDTree(const double *x, const double *y, const int num,
       pt.x = x[i];
       pt.y = y[i];
       pt.poly = i / LS_SAMPLE_NP;
+      pt.rank = rank;
       points.push_back(pt);
     }
   }
@@ -38,6 +42,105 @@ KDTree::KDTree(const double *x, const double *y, const int num,
   construct_polys(points, mesh, s);
   update_poly_inds(points);
 
+  // Initial MPI MVP is to just gather all and then construct full local kd-tree
+  // Will obviously improve after getting this working as this involves a 
+  // ridiculous amount of comms
+  int comm_size;
+  MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+
+  // Create datatype for KDCoord
+  int blockLenghts[]  = {2, 2};
+  MPI_Aint displacements[] = {offsetof(KDCoord, x), offsetof(KDCoord, poly)};
+  MPI_Datatype types[] = {MPI_DOUBLE, MPI_INT};
+  MPI_Datatype MPI_KDCoord_Type;
+
+  MPI_Type_create_struct(2, blockLenghts, displacements, types, &MPI_KDCoord_Type);
+  MPI_Type_commit(&MPI_KDCoord_Type);
+
+  // Get info necessary for all gather v of KDCoords
+  int *sizes = (int *)malloc(comm_size * sizeof(int));
+  int *disp  = (int *)malloc(comm_size * sizeof(int));
+  MPI_Allgather(&n, 1, MPI_INT, sizes, 1, MPI_INT, MPI_COMM_WORLD);
+  int curDisp = 0;
+  for(int i = 0; i < comm_size; i++) {
+    disp[i] = curDisp;
+    curDisp += sizes[i];
+  }
+  int numCoords_g = curDisp;
+
+  // All gather v of KDCoords
+  KDCoord *recvbuf = (KDCoord *)malloc(numCoords_g * sizeof(KDCoord));
+  MPI_Allgatherv(points.data(), n, MPI_KDCoord_Type, recvbuf, sizes, disp, MPI_KDCoord_Type, MPI_COMM_WORLD);
+
+  // Pack PolyApprox data
+  int coeffPerPoly = PolyApprox::num_coeff();
+  int polyStride = 2 + coeffPerPoly;
+  int numPoly = polys.size();
+  double *polySendBuf = (double *)malloc(polyStride * numPoly * sizeof(double));
+  int polyInd = 0;
+  for(auto &poly : polys) {
+    int ind = polyInd * polyStride;
+    double x, y;
+    poly.get_offsets(x, y);
+    polySendBuf[ind]     = x;
+    polySendBuf[ind + 1] = y;
+
+    for(int i = 0 ; i < coeffPerPoly; i++) {
+      polySendBuf[ind + i + 2] = poly.get_coeff(i);
+    }
+
+    polyInd++;
+  }
+
+  // Get data needed for all gather v of PolyApprox
+  MPI_Allgather(&numPoly, 1, MPI_INT, sizes, 1, MPI_INT, MPI_COMM_WORLD);
+  curDisp = 0;
+  for(int i = 0; i < comm_size; i++) {
+    disp[i] = curDisp;
+    curDisp += sizes[i];
+  }
+  int numPoly_g = curDisp;
+
+  // All gather v of PolyApprox
+  MPI_Datatype MPI_Poly_type;
+  MPI_Type_contiguous(polyStride, MPI_DOUBLE, &MPI_Poly_type);
+  MPI_Type_commit(&MPI_Poly_type);
+  
+  double *recvbufPoly = (double *)malloc(numPoly_g * polyStride * sizeof(double));
+  MPI_Allgatherv(polySendBuf, numPoly, MPI_Poly_type, recvbufPoly, sizes, disp, MPI_Poly_type, MPI_COMM_WORLD);
+
+  // Reconstruct points vector and poly map
+  points.clear();
+  for(int i = 0; i < numCoords_g; i++) {
+    KDCoord currentCoord = recvbuf[i];
+    // Update poly ind now that polys from all ranks have been gathered
+    currentCoord.poly = disp[currentCoord.rank] + currentCoord.poly;
+    points.push_back(currentCoord);
+  }
+
+  polys.clear();
+  for(int i = 0; i < numPoly_g; i++) {
+    int ind = i * polyStride;
+    double x = recvbufPoly[ind];
+    double y = recvbufPoly[ind + 1];
+    std::vector<double> co;
+    for(int j = 0; j < coeffPerPoly; j++) {
+      co.push_back(recvbufPoly[ind + 2 + j]);
+    }
+    PolyApprox p(co, x, y);
+    polys.push_back(p);
+  }
+
+  // Clean up
+  free(recvbufPoly);
+  MPI_Type_free(&MPI_Poly_type);
+  free(polySendBuf);
+  free(disp);
+  free(sizes);
+  MPI_Type_free(&MPI_KDCoord_Type);
+  free(recvbuf);
+
+  // Construct local complete tree
   construct_tree(points.begin(), points.end(), 0);
 }
 
