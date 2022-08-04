@@ -14,8 +14,11 @@ Dependencies:
 Directory structure:
 - The 'src' directory contains the code for the Incompressible Navier-Stokes solver.
   - The 'kernels' directory contains all the OP2 kernels.
+  - The 'io' directory contains code used to load the grid and save the solution.
+  - The 'ls' directory contains code related to representing the interface between fluids using the level set method.
+  - The 'poisson' directory contains code relating to solving the Poisson equation.
 - The 'tools' directory contains an unstructured VTK to CGNS mesh conversion code.
-- The 'grids' directory contains some sample grids. The code is currently set up to deal with `cylinder.vtk` and `cylinder2.vtk`.
+- The 'grids' directory contains some sample grids. 
 
 Build instructions: see the example build script, `build.sh`, that demonstrates the preprocessing, OP2 translation, CMake and Make steps.
 
