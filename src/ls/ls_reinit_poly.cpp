@@ -25,54 +25,28 @@ void PolyApprox::get_offset(const int ind, const double *x_ptr, const double *y_
 }
 
 // Get vector of indices that make up stencil around central_ind
-void PolyApprox::stencil_ind(const int central_ind, const int num_sweeps,
+void PolyApprox::stencil_ind(const int central_ind, const int num_elements,
                              op_map edge_map, vector<int> &stencil) {
-  vector<int> sweep1;
-  const int numEdges = edge_map->from->size;
-  if(num_sweeps > 0) {
-    for(int i = 0; i < numEdges * 2; i++) {
-      if(edge_map->map[i] == central_ind) {
-        if(i % 2 == 0) {
-          sweep1.push_back(edge_map->map[i + 1]);
-        } else {
-          sweep1.push_back(edge_map->map[i - 1]);
-        }
-
-        if(sweep1.size() == 3)
-          break;
-      }
-    }
-  }
-
-  vector<int> sweep2;
-  if(num_sweeps > 1) {
-    for(int i = 0; i < numEdges * 2; i++) {
-      if(vec_contains(edge_map->map[i], sweep1)) {
-        if(i % 2 == 0) {
-          if(edge_map->map[i + 1] != central_ind)
-            sweep2.push_back(edge_map->map[i + 1]);
-        } else {
-          if(edge_map->map[i - 1] != central_ind)
-            sweep2.push_back(edge_map->map[i - 1]);
-        }
-
-        if(sweep2.size() == 6)
-          break;
-      }
-    }
-  }
-
   stencil.push_back(central_ind);
-
-  if(num_sweeps > 0) {
-    for(int i = 0; i < sweep1.size(); i++) {
-      stencil.push_back(sweep1[i]);
+  const int numEdges = edge_map->from->size;
+  while(stencil.size() < num_elements) {
+    // Separate vec so stencil doesn't become unbalanced
+    vector<int> new_elements;
+    for(int i = 0; i < numEdges * 2; i++) {
+      if(vec_contains(edge_map->map[i], stencil)) {
+        if(i % 2 == 0) {
+          if(!vec_contains(edge_map->map[i] + 1, stencil))
+            new_elements.push_back(edge_map->map[i + 1]);
+        } else {
+          if(!vec_contains(edge_map->map[i] - 1, stencil))
+            new_elements.push_back(edge_map->map[i - 1]);
+        }
+      }
     }
-  }
-
-  if(num_sweeps > 1) {
-    for(int i = 0; i < sweep2.size(); i++) {
-      stencil.push_back(sweep2[i]);
+    if(new_elements.size() == 0)
+      break;
+    for(int i = 0; i < new_elements.size(); i++) {
+      stencil.push_back(new_elements[i]);
     }
   }
 }
@@ -154,9 +128,9 @@ PolyApprox::PolyApprox(const int cell_ind, op_map edge_map,
   
   vector<int> stencil;
   if(N == 2)
-    stencil_ind(cell_ind, 1, edge_map, stencil);
+    stencil_ind(cell_ind, 4, edge_map, stencil);
   else
-    stencil_ind(cell_ind, 2, edge_map, stencil);
+    stencil_ind(cell_ind, 10, edge_map, stencil);
   vector<double> x_vec, y_vec, s_vec;
   stencil_data(stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_vec);
 

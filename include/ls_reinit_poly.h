@@ -31,7 +31,7 @@ private:
   void stencil_data(const std::vector<int> &stencil, const double *x_ptr, const double *y_ptr, 
                     const double *s_ptr, std::vector<double> &x, std::vector<double> &y, 
                     std::vector<double> &s);
-  void stencil_ind(const int central_ind, const int num_sweeps, op_map edge_map, 
+  void stencil_ind(const int central_ind, const int num_elements, op_map edge_map, 
                    std::vector<int> &stencil);
   int num_pts();
 
