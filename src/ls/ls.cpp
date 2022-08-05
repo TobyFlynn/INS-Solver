@@ -144,6 +144,7 @@ void LS::setVelField(op_dat u1, op_dat v1) {
 }
 
 void LS::step(double dt) {
+  timer->startTimer("LS - Advection");
   int x = -1;
   op_par_loop(set_rkQ, "set_rkQ", mesh->cells,
               op_arg_gbl(&x,     1, "int", OP_READ),
@@ -173,7 +174,8 @@ void LS::step(double dt) {
               op_arg_dat(rk[0], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(rk[2], -1, OP_ID, DG_NP, "double", OP_READ));
-
+  timer->endTimer("LS - Advection");
+  
   counter++;
   if(counter > 49) {
     reinit_ls();

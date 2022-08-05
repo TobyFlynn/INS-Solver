@@ -172,9 +172,9 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   load_vec(&b, b_dat);
   load_vec(&x, x_dat);
 
-  timer->startKSPSolve();
+  timer->startTimer("KSPSolve");
   KSPSolve(ksp, b, x);
-  timer->endKSPSolve();
+  timer->endTimer("KSPSolve");
 
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
@@ -296,9 +296,9 @@ void PressureSolve::setup() {
 
   set_op();
 
-  timer->startBuildMat();
+  timer->startTimer("Build Mat");
   setMatrix();
-  timer->endBuildMat();
+  timer->endTimer("Build Mat");
 
   // create_shell_mat(&pMat);
   // pMatInit = true;

@@ -192,6 +192,7 @@ void newton_method(const int numPts, double *closest_x, double *closest_y, const
 }
 
 void LS::reinit_ls() {
+  timer->startTimer("LS - Reinit");
   timer->startTimer("LS - Sample Interface");
   op_par_loop(sample_interface, "sample_interface", mesh->cells,
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
@@ -246,4 +247,5 @@ void LS::reinit_ls() {
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
   releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
   timer->endTimer("LS - Newton Method");
+  timer->endTimer("LS - Reinit");
 }

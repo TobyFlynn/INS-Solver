@@ -57,8 +57,8 @@ int main(int argc, char **argv) {
   op_init(argc, argv, 1);
 
   timer = new Timing();
-  timer->startWallTime();
-  timer->startSetup();
+  timer->startTimer("Wall Time");
+  timer->startTimer("Setup");
 
   char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
@@ -151,8 +151,8 @@ int main(int argc, char **argv) {
     // export_data_init(outputDir + "data.csv");
   }
 
-  timer->endSetup();
-  timer->startMainLoop();
+  timer->endTimer("Setup");
+  timer->startTimer("Main Loop");
 
   for(int i = 0; i < iter; i++) {
     // Switch from forwards Euler time integration to second-order Adams-Bashford after first iteration
@@ -164,11 +164,11 @@ int main(int argc, char **argv) {
       b1 = -1.0;
     }
 
-    timer->startAdvection();
+    timer->startTimer("Advection");
     solver->advection(currentIter % 2, a0, a1, b0, b1, g0, time);
-    timer->endAdvection();
+    timer->endTimer("Advection");
 
-    timer->startPressure();
+    timer->startTimer("Pressure");
     bool converged = solver->pressure(currentIter % 2, a0, a1, b0, b1, g0, time);
     if(!converged) {
       op_printf("******** ERROR ********\n");
@@ -176,9 +176,9 @@ int main(int argc, char **argv) {
       op_printf("Iteration: %d Time: %g\n", i, time);
       break;
     }
-    timer->endPressure();
+    timer->endTimer("Pressure");
 
-    timer->startViscosity();
+    timer->startTimer("Viscosity");
     converged = solver->viscosity(currentIter % 2, a0, a1, b0, b1, g0, time);
     if(!converged) {
       op_printf("******** ERROR ********\n");
@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
       op_printf("Iteration: %d Time: %g\n", i, time);
       break;
     }
-    timer->endViscosity();
+    timer->endTimer("Viscosity");
 
     solver->update_surface(currentIter % 2);
 
@@ -197,12 +197,12 @@ int main(int argc, char **argv) {
     if(save != -1 && (i + 1) % save == 0) {
       op_printf("Iteration: %d Time: %g\n", i, time);
 
-      timer->startSave();
+      timer->startTimer("Save");
       save_solution_iter(outputDir + "sol.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, (i + 1) / save);
-      timer->endSave();
+      timer->endTimer("Save");
     }
   }
-  timer->endMainLoop();
+  timer->endTimer("Main Loop");
 
   if(save != -1)
     save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
@@ -210,13 +210,13 @@ int main(int argc, char **argv) {
   // Save solution to CGNS file
   save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, time, nu);
 
-  timer->endWallTime();
-  timer->exportTimings(outputDir + "timings.csv", iter, time);
+  timer->endTimer("Wall Time");
+  timer->exportTimings(outputDir + "timings.txt", iter, time);
 
   op_printf("Final time: %g\n", time);
-  op_printf("Wall time: %g\n", timer->getWallTime());
-  op_printf("Solve time: %g\n", timer->getMainLoop());
-  op_printf("Time to simulate 1 second: %g\n", timer->getWallTime() / time);
+  op_printf("Wall time: %g\n", timer->getTime("Wall Time"));
+  op_printf("Solve time: %g\n", timer->getTime("Main Loop"));
+  op_printf("Time to simulate 1 second: %g\n", timer->getTime("Wall Time") / time);
   op_printf("Average number of iterations to pressure convergance: %g\n", solver->getAvgPressureConvergance());
   op_printf("Average number of iterations to viscosity convergance: %g\n", solver->getAvgViscosityConvergance());
 
