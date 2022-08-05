@@ -2,32 +2,25 @@
 A Discontinuous Galerkin FEM CFD application. Solves the Incompressible Navier-Stokes equations.
 
 Dependencies:
-- OP2
-- CGNS
-- VTK
-- cuBLAS
-- OpenBLAS
-- PETSc
+- OP2 (for unstructure mesh operations)
+- CGNS (INS mesh I/O)
+- PETSc (for linear solves)
+- VTK (Gmsh outputs mesh in VTK, a tool in the repo then converts this to a CGNS file)
+- Armadillo (required by OP2-DG-Toolkit)
+- cuBLAS (required by OP2-DG-Toolkit)
+- OpenBLAS (required by OP2-DG-Toolkit)
+- ParMETIS or PT-SCOTCH (required by OP2 and OP2-DG-Toolkit)
 
 Directory structure:
 - The 'src' directory contains the code for the Incompressible Navier-Stokes solver.
-  - The 'constants' directory contains precomputed matrices exported from MATLAB.
-  - The 'cuBLAS' directory contains functions that perform the required BLAS operations on OP2 dats.
-  - The 'openBLAS' directory is the same as above but for OpenBLAS.
   - The 'kernels' directory contains all the OP2 kernels.
-  - All other directories are created by the OP2 code generation.
+  - The 'io' directory contains code used to load the grid and save the solution.
+  - The 'ls' directory contains code related to representing the interface between fluids using the level set method.
+  - The 'poisson' directory contains code relating to solving the Poisson equation.
 - The 'tools' directory contains an unstructured VTK to CGNS mesh conversion code.
-- The 'grids' directory contains some sample grids. The code is currently set up to deal with `cylinder.vtk` and `cylinder2.vtk`.
+- The 'grids' directory contains some sample grids. 
 
-Build instructions:
-```
-mkdir build
-cd build
-cmake ..
-make
-```
-
-CMakeLists.txt sets the locations of libraries to what I have on my system but you can change these by passing the following flags to the CMake command: `OP2_DIR` and `CGNS_DIR`.
+Build instructions: see the example build script, `build.sh`, that demonstrates the preprocessing, OP2 translation, CMake and Make steps.
 
 Creating CGNS grid:
 ```
@@ -41,27 +34,15 @@ Running INS:
 ```
 cd build/src
 cp ../tools/cylinder.cgns .
-./ins_cuda -iter 1000 -pmethod 1 -input cylinder.cgns
-./ins_openmp -iter 1000 -pmethod 1 -input cylinder.cgns
+./ins_cuda -iter 1000 -input cylinder.cgns
+./ins_openmp -iter 1000 -input cylinder.cgns
 ```
 
 You can then use Paraview to view the end result which is stored in `end.cgns`. Flags for the INS solver are:
 - `-iter` the number of iterations to run for
-- `-pmethod` the method for Poisson solver (`0` for explicit matrix, `1` for matrix free)
 - `-input` the input grid file
 - `-output` the output directory (by default the same directory as the executable)
-- `-save` save the flow every `x` iterations (currently only on the single node solvers)
-- `-problem` the problem that the solver is solving (`0` for the cylinder problem, `1` for the vortex problem)
-
-To run the vortex error checker:
-```
-cd build/src
-./ins_cuda -iter 100 -pmethod 1 -input cylinder.cgns -problem 1
-cd ../tools
-cp ../src/end.cgns
-./vortexError
-```
-The absolute error values at each grid point will then be saved to `err.cgns`.
+- `-save` save the flow every `x` iterations in a file called `sol.cgns`
 
 To run the interpolation tool:
 ```

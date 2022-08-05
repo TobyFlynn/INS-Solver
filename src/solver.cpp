@@ -1,3 +1,6 @@
+#define STRINGIFY2(X) #X
+#define STRINGIFY(X) STRINGIFY2(X)
+
 #include "solver.h"
 
 // Include OP2 stuff
@@ -17,6 +20,22 @@ extern Timing *timer;
 extern double dt, reynolds, refVel;
 
 using namespace std;
+
+void Solver::reverse_vel() {
+  int tmp = 1;
+  op_par_loop(set_ic, "set_ic", mesh->cells,
+              op_arg_gbl(&tmp, 1, "int", OP_READ),
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->Q[0][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->Q[0][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+  op_par_loop(set_ic, "set_ic", mesh->cells,
+              op_arg_gbl(&tmp, 1, "int", OP_READ),
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->Q[1][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->Q[1][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+}
 
 Solver::Solver(std::string filename, int prob) {
   problem = prob;
@@ -57,7 +76,7 @@ Solver::Solver(std::string filename, int prob) {
   viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
   viscosityPoisson->setNeumannBCs(viscosity_neumann);
 
-  op_partition("PARMETIS", "KWAY", mesh->cells, mesh->edge2cells, NULL);
+  op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->edge2cells, NULL);
 
   mesh->init();
   data->init();
@@ -72,6 +91,12 @@ Solver::Solver(std::string filename, int prob) {
               op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->Q[0][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->Q[0][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+  op_par_loop(set_ic, "set_ic", mesh->cells,
+              op_arg_gbl(&problem, 1, "int", OP_READ),
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->Q[1][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->Q[1][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   dt = numeric_limits<double>::max();
   op_par_loop(calc_dt, "calc_dt", mesh->cells,
@@ -167,7 +192,7 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
 
 bool Solver::pressure(int currentInd, double a0, double a1, double b0,
                       double b1, double g0, double t) {
-  timer->startPressureSetup();
+  timer->startTimer("Pressure Setup");
 
   div(mesh, data->QT[0], data->QT[1], data->divVelT);
   curl(mesh, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
@@ -217,14 +242,14 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
 
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, data->dPdN[(currentInd + 1) % 2], 1.0, data->divVelT);
   op2_gemv(mesh, false, 1.0, DGConstants::MASS, data->divVelT, 0.0, data->pRHS);
-  timer->endPressureSetup();
+  timer->endTimer("Pressure Setup");
 
   // Call PETSc linear solver
-  timer->startPressureLinearSolve();
+  timer->startTimer("Pressure Linear Solve");
   pressurePoisson->setup();
   pressurePoisson->setBCValues(data->prBC);
   bool converged = pressurePoisson->solve(data->pRHS, data->p);
-  timer->endPressureLinearSolve();
+  timer->endTimer("Pressure Linear Solve");
 
   // Calculate gradient of pressure
   grad(mesh, data->p, data->dpdx, data->dpdy);
@@ -266,7 +291,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
 
 bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
                        double b1, double g0, double t) {
-  timer->startViscositySetup();
+  timer->startTimer("Viscosity Setup");
   double time = t + dt;
 
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
@@ -305,10 +330,10 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->visRHS[0], -1, OP_ID, DG_NP, "double", OP_RW),
               op_arg_dat(data->visRHS[1], -1, OP_ID, DG_NP, "double", OP_RW));
 
-  timer->endViscositySetup();
+  timer->endTimer("Viscosity Setup");
 
   // Call PETSc linear solver
-  timer->startViscosityLinearSolve();
+  timer->startTimer("Viscosity Linear Solve");
   factor = g0 * reynolds / dt;
   viscosityPoisson->setup(factor);
   viscosityPoisson->setBCValues(data->visBC[0]);
@@ -316,16 +341,16 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
   viscosityPoisson->setBCValues(data->visBC[1]);
   bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1]);
-  timer->endViscosityLinearSolve();
+  timer->endTimer("Viscosity Linear Solve");
 
   return convergedX && convergedY;
 }
 
 void Solver::update_surface(int currentInd) {
-  timer->startSurface();
+  timer->startTimer("Surface");
   ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
   ls->step(dt);
-  timer->endSurface();
+  timer->endTimer("Surface");
 }
 
 double Solver::getAvgPressureConvergance() {

@@ -25,26 +25,23 @@ public:
   op_dat rk[3], rkQ;
   op_dat F, G, dFdr, dFds, dGdr, dGds, gInput, gU, gV, nFlux, exAdvec;
 
-  op_dat dsdx, dsdy, sign, gS;
-  op_dat dsldx, dsrdx, dsldy, dsrdy, dpldx, dprdx, dpldy, dprdy;
-  op_dat sigmax, sigmay, sigmaFx, sigmaFy, gSigmax, gSigmay, sigTmp, gSigTmp, diff, diffF;
-  op_dat modal, local_vis;
+  op_dat dsdx, dsdy;
+
+  op_dat s_sample_x, s_sample_y;
 
   double alpha, order_width;
 private:
   void advec_step(op_dat input, op_dat output);
   void reinit_ls();
-  void calc_diff();
   bool reinit_needed();
   void update_values();
-  void calc_local_diff_const();
 
-  double h, epsilon, reinit_dt;
+  double h, epsilon, reinit_dt, reinit_width;
   int numSteps;
 
   double *s_data, *step_s_data, *nx_data, *ny_data, *curv_data, *diracDelta_data;
-  double *sign_data, *gS_data, *gSigTmp_data, *diff_data, *diffF_data;
-  double *modal_data, *local_vis_data, *gInput_data;
+  double *gInput_data;
+  double *s_sample_x_data, *s_sample_y_data;
 };
 
 #endif
