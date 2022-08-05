@@ -35,6 +35,7 @@ include_directories(${PETSC_DIR}/include)
 set(PETSC_LIB "-L${PETSC_DIR}/lib -lpetsc")
 
 if(BUILD_MPI)
+  find_package(MPI REQUIRED)
   if(NOT PART_LIB_NAME)
     message(FATAL_ERROR "PART_LIB_NAME is not specified")
   endif()

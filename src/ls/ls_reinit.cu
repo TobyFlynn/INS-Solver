@@ -207,7 +207,7 @@ void LS::reinit_ls() {
   const double *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
   const double *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
 
-  KDTree kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->numCells);
+  KDTree kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->numCells, mesh, s);
 
   releaseOP2PtrHost(s_sample_x, OP_READ, sample_pts_x);
   releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
@@ -219,6 +219,9 @@ void LS::reinit_ls() {
   PolyEval pe(polys);
 
   timer->startTimer("LS - Newton Method");
+  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
+  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
+
   double *closest_x, *closest_y;
   int *poly_ind;
   cudaMallocManaged(&closest_x, DG_NP * mesh->numCells * sizeof(double));

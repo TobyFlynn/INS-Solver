@@ -5,6 +5,8 @@
 #include <iostream>
 #include <cstddef>
 
+#include "mpi.h"
+
 #include "timing.h"
 #include "utils.h"
 
