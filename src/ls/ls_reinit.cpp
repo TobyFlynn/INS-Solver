@@ -216,7 +216,6 @@ void LS::reinit_ls() {
   // Map of cell ind to polynomial approximations
   std::vector<PolyApprox> polys = kdtree.get_polys();
 
-  timer->startTimer("LS - Newton Method");
   const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
   const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
 
@@ -224,6 +223,7 @@ void LS::reinit_ls() {
   double *closest_y = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   int *poly_ind     = (int *)calloc(DG_NP * mesh->numCells, sizeof(int));
 
+  timer->startTimer("LS - Query K-D Tree");
   #pragma omp parallel for
   for(int i = 0; i < DG_NP * mesh->numCells; i++) {
     // Get closest sample point
@@ -232,7 +232,10 @@ void LS::reinit_ls() {
     closest_y[i] = tmp.y;
     poly_ind[i]  = tmp.poly;
   }
+  timer->endTimer("LS - Query K-D Tree");
 
+
+  timer->startTimer("LS - Newton Method");
   double *surface_ptr = getOP2PtrHost(s, OP_RW);
 
   newton_method(DG_NP * mesh->numCells, closest_x, closest_y, x_ptr, y_ptr,

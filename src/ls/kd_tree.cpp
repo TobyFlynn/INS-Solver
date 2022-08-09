@@ -174,6 +174,8 @@ void KDTree::construct_polys(vector<KDCoord> &points, DGMesh *mesh, op_dat s) {
   // Get cell inds that require polynomial approximations
   std::set<int> cellInds = cell_inds(points);
 
+  map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->edge2cells);
+
   const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
   const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
   const double *s_ptr = getOP2PtrHost(s, OP_READ);
@@ -181,7 +183,8 @@ void KDTree::construct_polys(vector<KDCoord> &points, DGMesh *mesh, op_dat s) {
   // Populate map
   int i = 0;
   for(auto it = cellInds.begin(); it != cellInds.end(); it++) {
-    PolyApprox p(*it, mesh->edge2cells, x_ptr, y_ptr, s_ptr);
+    set<int> stencil = stencils.at(*it);
+    PolyApprox p(*it, stencil, x_ptr, y_ptr, s_ptr);
     polys.push_back(p);
     cell2polyMap.insert({*it, i});
     i++;

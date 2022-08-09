@@ -219,7 +219,6 @@ void LS::reinit_ls() {
 
   PolyEval pe(polys);
 
-  timer->startTimer("LS - Newton Method");
   const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
   const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
 
@@ -229,6 +228,7 @@ void LS::reinit_ls() {
   cudaMallocManaged(&closest_y, DG_NP * mesh->numCells * sizeof(double));
   cudaMallocManaged(&poly_ind, DG_NP * mesh->numCells * sizeof(int));
 
+  timer->startTimer("LS - Query K-D Tree");
   #pragma omp parallel for
   for(int i = 0; i < DG_NP * mesh->numCells; i++) {
     // Get closest sample point
@@ -238,10 +238,12 @@ void LS::reinit_ls() {
     // Convert OP2 cell ind to PolyEval ind (minimise indirection for CUDA)
     poly_ind[i]  = tmp.poly;
   }
+  timer->endTimer("LS - Query K-D Tree");
 
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
   releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
 
+  timer->startTimer("LS - Newton Method");
   const double *x_ptr_d = getOP2PtrDevice(mesh->x, OP_READ);
   const double *y_ptr_d = getOP2PtrDevice(mesh->y, OP_READ);
   double *s_ptr_d = getOP2PtrDevice(s, OP_RW);
