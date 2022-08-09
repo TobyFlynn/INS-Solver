@@ -12,23 +12,24 @@ extern Timing *timer;
 using namespace std;
 
 bool compareX(KDCoord a, KDCoord b) {
-  return a.x < b.x;
+  return a.x_rot < b.x_rot;
 }
 
 bool compareY(KDCoord a, KDCoord b) {
-  return a.y < b.y;
+  return a.y_rot < b.y_rot;
 }
 
 KDTree::KDTree(const double *x, const double *y, const int num, 
                DGMesh *mesh, op_dat s) {
   n = 0;
-  vector<KDCoord> points;
   for(int i = 0; i < num; i++) {
     if(!isnan(x[i]) && !isnan(y[i])) {
       n++;
       KDCoord pt;
       pt.x = x[i];
       pt.y = y[i];
+      pt.x_rot = x[i];
+      pt.y_rot = y[i];
       pt.poly = i / LS_SAMPLE_NP;
       points.push_back(pt);
     }
@@ -38,22 +39,142 @@ KDTree::KDTree(const double *x, const double *y, const int num,
   construct_polys(points, mesh, s);
   update_poly_inds(points);
 
-  construct_tree(points.begin(), points.end(), 0);
+  construct_tree(points.begin(), points.end(), false, 0);
 }
 
-KDCoord KDTree::closest_point(const double x, const double y) {
-  double closest_distance = -1.0;
-  int closest_ind = -1;
+KDCoord KDTree::closest_point(double x, double y) {
+  double closest_distance = std::numeric_limits<double>::max();
+  vector<KDCoord>::iterator res = points.end();
   int current_ind = 0;
-  int axis = 0;
-  KDCoord result;
 
-  nearest_neighbour(x, y, current_ind, axis, closest_ind, closest_distance, result);
+  nearest_neighbour(x, y, current_ind, res, closest_distance);
 
-  return result;
+  return *res;
 }
 
-int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>::iterator pts_end, int axis) {
+int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>::iterator pts_end, bool has_transformed, int level) {
+  KDNode node;
+  node.l = -1;
+  node.r = -1;
+
+  // Bounding box and mean
+  node.x_min = pts_start->x_rot;
+  node.x_max = pts_start->x_rot;
+  node.y_min = pts_start->y_rot;
+  node.y_max = pts_start->y_rot;
+  double x_avg = pts_start->x_rot;
+  double y_avg = pts_start->y_rot;
+  for(auto it = pts_start + 1; it != pts_end; it++) {
+    x_avg += it->x_rot;
+    y_avg += it->y_rot;
+    if(node.x_min > it->x_rot) node.x_min = it->x_rot;
+    if(node.y_min > it->y_rot) node.y_min = it->y_rot;
+    if(node.x_max < it->x_rot) node.x_max = it->x_rot;
+    if(node.y_max < it->y_rot) node.y_max = it->y_rot;
+  }
+  x_avg /= (double)(pts_end - pts_start);
+  y_avg /= (double)(pts_end - pts_start);
+
+  if(pts_end - pts_start <= leaf_size) {
+    node.start = pts_start;
+    node.end = pts_end;
+    nodes.push_back(node);
+    int node_ind = nodes.size() - 1;
+    return node_ind;
+  }
+
+  // Construct splitting node
+
+  // Split across axis with greatest extent
+  int axis = 0;
+  if(node.x_max - node.x_min < node.y_max - node.y_min)
+    axis = 1;
+  
+  // Do rotational transform if necessary
+  bool transform = !has_transformed && level > 5 && pts_end - pts_start >= leaf_size * 4;
+  if(transform) {
+    double hole_radius_sqr = 0.0;
+    if(axis == 0) {
+      hole_radius_sqr = 0.05 * (node.x_max - node.x_min) * 0.05 * (node.x_max - node.x_min);
+    } else {
+      hole_radius_sqr = 0.05 * (node.y_max - node.y_min) * 0.05 * (node.y_max - node.y_min);
+    }
+
+    arma::vec normal(2);
+    normal(0) = 1.0;
+    normal(1) = 0.0;
+
+    for(auto it = pts_start; it != pts_end; it++) {
+      double x_tmp = it->x_rot - x_avg;
+      double y_tmp = it->y_rot - y_avg;
+      double msqr = x_tmp * x_tmp + y_tmp * y_tmp;
+      if(msqr > hole_radius_sqr) {
+        double tmp_dot = x_tmp * normal(0) + y_tmp * normal(1);
+        normal(0) -= x_tmp * tmp_dot / msqr;
+        normal(1) -= y_tmp * tmp_dot / msqr;
+      }
+    }
+
+    double msqr = normal(0) * normal(0) + normal(1) * normal(1);
+    if(msqr == 0.0) {
+      normal(0) = 1.0;
+    } else {
+      normal(0) /= sqrt(msqr);
+      normal(1) /= sqrt(msqr);
+    }
+
+    double min_alpha = pts_start->x_rot * normal(0) + pts_start->y_rot * normal(1);
+    double max_alpha = min_alpha;
+    for(auto it = pts_start + 1; it != pts_end; it++) {
+      double alpha = it->x_rot * normal[0] + it->y_rot * normal[1];
+      if(alpha > max_alpha) max_alpha = alpha;
+      if(alpha < min_alpha) min_alpha = alpha;
+    }
+
+    double max_extent = node.x_max - node.x_min;
+    if(axis == 1)
+      max_extent = node.y_max - node.y_min;
+    if(max_alpha - min_alpha < 0.1 * max_extent) {
+      // Calculate orthonormal basis via Householder matrix
+      arma::mat axes(2, 2);
+      int j = fabs(normal(0)) < fabs(normal(1)) ? 0 : 1;
+      arma::vec u = normal;
+      u(j) -= 1.0;
+      double u_norm = sqrt(u(0) * u(0) + u(1) * u(1));
+      u = u / u_norm;
+      for(int dim = 0; dim < 2; dim++) {
+        for(int i = 0; i < 2; i++) {
+          axes(dim, i) = (dim == i ? 1.0 : 0.0) - 2.0 * u(dim) * u(i);
+        }
+      }
+
+      // Apply coord transformation
+      double alpha_x = axes(0,0) * pts_start->x_rot + axes(0,1) * pts_start->y_rot;
+      double alpha_y = axes(1,0) * pts_start->x_rot + axes(1,1) * pts_start->y_rot;
+      pts_start->x_rot = alpha_x;
+      pts_start->y_rot = alpha_y;
+      double b_min_x = alpha_x;
+      double b_max_x = alpha_x;
+      double b_min_y = alpha_y;
+      double b_max_y = alpha_y;
+
+      for(auto it = pts_start + 1; it != pts_end; it++) {
+        alpha_x = axes(0,0) * it->x_rot + axes(0,1) * it->y_rot;
+        alpha_y = axes(1,0) * it->x_rot + axes(1,1) * it->y_rot;
+        it->x_rot = alpha_x;
+        it->y_rot = alpha_y;
+        if(alpha_x < b_min_x) b_min_x = alpha_x;
+        if(alpha_x > b_max_x) b_max_x = alpha_x;
+        if(alpha_y < b_min_y) b_min_y = alpha_y;
+        if(alpha_y > b_max_y) b_max_y = alpha_y;
+      }
+
+      node.rot = axes;
+      axis = b_max_x - b_min_x >= b_max_y - b_min_y ? 0 : 1;
+      has_transformed = true;
+    }
+  }
+
   if(axis == 0) {
     sort(pts_start, pts_end, compareX);
   } else {
@@ -62,10 +183,7 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
 
   // Create node with median point for this axis
   vector<KDCoord>::iterator median = pts_start + (pts_end - pts_start) / 2;
-  KDNode node;
-  node.l = -1;
-  node.r = -1;
-  node.coord = *median;
+  node.axis = axis;
   nodes.push_back(node);
   int node_ind = nodes.size() - 1;
   int left_child  = -1;
@@ -74,9 +192,9 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
   // Recursive calls
   if(pts_end - pts_start > 1) {
     if(median - pts_start >= 1)
-      left_child = construct_tree(pts_start, median, (axis + 1) % 2);
+      left_child = construct_tree(pts_start, median, has_transformed, level + 1);
     if(pts_end - (median + 1) >= 1)
-      right_child = construct_tree(median + 1, pts_end, (axis + 1) % 2);
+      right_child = construct_tree(median + 1, pts_end, has_transformed, level + 1);
   }
 
   // Set children after recursive calls (to prevent seg fault caused by the vector being reallocated)
@@ -86,76 +204,59 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
   return node_ind;
 }
 
-void KDTree::nearest_neighbour(const double x, const double y, int current_ind, int axis, int &closest_ind, double &closest_distance, KDCoord &pt) {
-  if(current_ind == -1) return;
-  double distance = (x - nodes[current_ind].coord.x) * (x - nodes[current_ind].coord.x)
-                     + (y - nodes[current_ind].coord.y) * (y - nodes[current_ind].coord.y);
-  // Check if leaf node
-  if(nodes[current_ind].l == -1 && nodes[current_ind].r == -1) {
-    // Check if first leaf node
-    if(closest_ind == -1) {
-      closest_ind = current_ind;
-      closest_distance = distance;
-      pt = nodes[current_ind].coord;
-      return;
-    }
+double KDTree::bb_sqr_dist(const int node_ind, const double x, const double y) {
+  double sqr_dist = 0.0;
+  if(x < nodes[node_ind].x_min)
+    sqr_dist += (x - nodes[node_ind].x_min) * (x - nodes[node_ind].x_min);
+  else if(x > nodes[node_ind].x_max)
+    sqr_dist += (x - nodes[node_ind].x_max) * (x - nodes[node_ind].x_max);
+  
+  if(y < nodes[node_ind].y_min)
+    sqr_dist += (y - nodes[node_ind].y_min) * (y - nodes[node_ind].y_min);
+  else if(y > nodes[node_ind].y_max)
+    sqr_dist += (y - nodes[node_ind].y_max) * (y - nodes[node_ind].y_max);
+  
+  return sqr_dist;
+}
 
-    // Check if this leaf node is closer than current best
-    if(distance < closest_distance) {
-      closest_ind = current_ind;
-      closest_distance = distance;
-      pt = nodes[current_ind].coord;
+void KDTree::nearest_neighbour(double x, double y, int current_ind, vector<KDCoord>::iterator &closest_pt, double &closest_distance) {
+  if(nodes[current_ind].l == -1 && nodes[current_ind].r == -1) {
+    // Leaf node
+    for(auto it = nodes[current_ind].start; it != nodes[current_ind].end; it++) {
+      double sqr_dist = (it->x_rot - x) * (it->x_rot - x) + (it->y_rot - y) * (it->y_rot - y);
+      if(closest_distance > sqr_dist) {
+        closest_distance = sqr_dist;
+        closest_pt = it;
+      }
     }
     return;
   }
 
-  // If not leaf node, search tree as if inserting on the way down
-  if(axis == 0) {
-    if(x < nodes[current_ind].coord.x) {
-      nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance, pt);
-    } else {
-      nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance, pt);
-    }
-  } else {
-    if(y < nodes[current_ind].coord.y) {
-      nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance, pt);
-    } else {
-      nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance, pt);
-    }
+  // Non leaf node
+
+  // Apply transform
+  if(nodes[current_ind].rot.n_elem > 1) {
+    double new_x = nodes[current_ind].rot(0,0) * x + nodes[current_ind].rot(0,1) * y;
+    double new_y = nodes[current_ind].rot(1,0) * x + nodes[current_ind].rot(1,1) * y;
+    x = new_x;
+    y = new_y;
   }
 
-  // Check if current node is better than current best
-  if(distance < closest_distance || closest_ind == -1) {
-    closest_ind = current_ind;
-    closest_distance = distance;
-    pt = nodes[current_ind].coord;
-  }
+  double dist_l = bb_sqr_dist(nodes[current_ind].l, x, y);
+  double dist_r = bb_sqr_dist(nodes[current_ind].r, x, y);
 
-  // Check if there could be a closer point on the other side of the plane
-  if(axis == 0) {
-    double plane_distance = (x - nodes[current_ind].coord.x) * (x - nodes[current_ind].coord.x);
-    if(plane_distance > closest_distance) {
-      // No possible better node on other side of this node
-      return;
-    } else {
-      // Potentially better node on other side so search there
-      if(x < nodes[current_ind].coord.x) {
-        nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance, pt);
-      } else {
-        nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance, pt);
+  if(dist_l < dist_r) {
+    if(dist_l < closest_distance) {
+      nearest_neighbour(x, y, nodes[current_ind].l, closest_pt, closest_distance);
+      if(dist_r < closest_distance) {
+        nearest_neighbour(x, y, nodes[current_ind].r, closest_pt, closest_distance);
       }
     }
   } else {
-    double plane_distance = (y - nodes[current_ind].coord.y) * (y - nodes[current_ind].coord.y);
-    if(plane_distance > closest_distance) {
-      // No possible better node on other side of this node
-      return;
-    } else {
-      // Potentially better node on other side so search there
-      if(y < nodes[current_ind].coord.y) {
-        nearest_neighbour(x, y, nodes[current_ind].r, (axis + 1) % 2, closest_ind, closest_distance, pt);
-      } else {
-        nearest_neighbour(x, y, nodes[current_ind].l, (axis + 1) % 2, closest_ind, closest_distance, pt);
+    if(dist_r < closest_distance) {
+      nearest_neighbour(x, y, nodes[current_ind].r, closest_pt, closest_distance);
+      if(dist_l < closest_distance) {
+        nearest_neighbour(x, y, nodes[current_ind].l, closest_pt, closest_distance);
       }
     }
   }
