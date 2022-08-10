@@ -41,7 +41,8 @@ KDTreeMPI::KDTreeMPI(const double *x, const double *y, const int num,
   update_poly_inds(points);
 
   // Construct local complete tree
-  construct_tree(points.begin(), points.end(), false, 0);
+  if(n > 0)
+    construct_tree(points.begin(), points.end(), false, 0);
 }
 
 vector<vector<KDCoord>::iterator> KDTreeMPI::local_search(const int num_pts, const double *x, const double *y) {
@@ -241,7 +242,7 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   // 2) Get comm of ranks that contain nodes to be reinitialised (num_pts != 0)
   MPI_Comm Reinit_comm;
   int Reinit_comm_size, Reinit_comm_rank;
-  if(num_pts != 0.0) {
+  if(num_pts != 0) {
     MPI_Comm_split(MPI_COMM_WORLD, 0, 0, &Reinit_comm);
     MPI_Comm_size(Reinit_comm, &Reinit_comm_size);
     MPI_Comm_rank(Reinit_comm, &Reinit_comm_rank);

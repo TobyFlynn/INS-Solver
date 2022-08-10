@@ -219,7 +219,7 @@ void LS::reinit_ls() {
 
   int num_pts_to_reinit = 0;
   std::vector<double> x_vec, y_vec;
-  for(int i = 0; i < mesh->x->set->size; i++) {
+  for(int i = 0; i < DG_NP * mesh->numCells; i++) {
     if(fabs(s_ptr[i]) < 0.05) {
       num_pts_to_reinit++;
       x_vec.push_back(x_ptr[i]);
