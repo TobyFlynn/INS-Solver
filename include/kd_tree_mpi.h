@@ -87,7 +87,7 @@ private:
   void round1_prepare_send_recv(const int num_pts, const double *x, const double *y, 
                                 const int Reinit_comm_size, std::map<int,std::vector<int>> &rank_to_pt_inds,
                                 int *num_pts_to_recv, int *send_inds, int *recv_inds, 
-                                double *pts_to_send, double *pts_to_recv, std::vector<int> &pt_send_rcv_map,
+                                double **pts_to_send, double **pts_to_recv, std::vector<int> &pt_send_rcv_map,
                                 int &num_remote_pts);
   void round1_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, 
                     int *num_pts_to_send, int *num_pts_to_recv, double *pts_to_send, double *pts_to_recv, 
@@ -96,7 +96,7 @@ private:
                          int *num_pts_to_send, int *num_pts_to_recv);
   void round1_send_results(const int Reinit_comm_rank, const int Reinit_comm_size, const int num_pts, const int num_remote_pts,
                            int *num_pts_to_send, int *num_pts_to_recv, int *send_inds, int *recv_inds,
-                           std::vector<std::vector<KDCoord>::iterator> &remote_closest, MPIKDResponse *response,
+                           std::vector<std::vector<KDCoord>::iterator> &remote_closest, MPIKDResponse **response,
                            MPI_Datatype *mpi_type, MPI_Comm *mpi_comm);
 
   std::vector<KDNode> nodes;
