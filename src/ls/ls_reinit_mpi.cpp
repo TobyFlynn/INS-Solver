@@ -18,7 +18,7 @@
 #include "dg_operators.h"
 #include "dg_compiler_defs.h"
 
-#include "kd_tree.h"
+#include "kd_tree_mpi.h"
 #include "timing.h"
 #include "ls_reinit_poly.h"
 #include "utils.h"
@@ -207,12 +207,33 @@ void LS::reinit_ls() {
   const double *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
   const double *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
 
-  KDTree kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->numCells, mesh, s);
+  KDTreeMPI kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->numCells, mesh, s);
 
   releaseOP2PtrHost(s_sample_x, OP_READ, sample_pts_x);
   releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
   timer->endTimer("LS - Construct K-D Tree");
 
+  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
+  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
+  const double *s_ptr = getOP2PtrHost(s, OP_READ);
+
+  int num_pts_to_reinit = 0;
+  std::vector<double> x_vec, y_vec;
+  for(int i = 0; i < mesh->x->set->size; i++) {
+    if(fabs(s_ptr[i]) < 0.05) {
+      num_pts_to_reinit++;
+      x_vec.push_back(x_ptr[i]);
+      y_vec.push_back(y_ptr[i]);
+    }
+  }
+
+  kdtree.closest_point(num_pts_to_reinit, x_vec.data(), y_vec.data());
+
+  releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
+  releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
+  releaseOP2PtrHost(s, OP_READ, s_ptr);
+
+/*
   const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
   const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
 
@@ -234,7 +255,6 @@ void LS::reinit_ls() {
   std::vector<PolyApprox> polys = kdtree.get_polys();
   timer->endTimer("LS - Query K-D Tree");
 
-
   timer->startTimer("LS - Newton Method");
   double *surface_ptr = getOP2PtrHost(s, OP_RW);
 
@@ -250,5 +270,6 @@ void LS::reinit_ls() {
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
   releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
   timer->endTimer("LS - Newton Method");
+*/
   timer->endTimer("LS - Reinit");
 }
