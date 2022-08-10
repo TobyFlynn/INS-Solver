@@ -7,6 +7,8 @@
 #include <set>
 #include <map>
 
+#include "mpi.h"
+
 #include "dg_mesh.h"
 #include "ls_reinit_poly.h"
 
@@ -77,6 +79,25 @@ private:
 
   std::vector<std::vector<KDCoord>::iterator> local_search(const int num_pts, const double *x, const double *y);
   std::vector<std::vector<KDCoord>::iterator> local_search(const int num_pts, const double *pts);
+
+  void get_global_bounding_boxes(MPI_Comm *mpi_comm, MPIBB *mpi_bb);
+  void round1_get_pts_to_send_to_ranks(const int num_pts, const double *x, const double *y,
+                                       const MPIBB *mpi_bb, const int Reinit_comm_size,
+                                       int *num_pts_to_send, std::map<int,std::vector<int>> &rank_to_pt_inds);
+  void round1_prepare_send_recv(const int num_pts, const double *x, const double *y, 
+                                const int Reinit_comm_size, std::map<int,std::vector<int>> &rank_to_pt_inds,
+                                int *num_pts_to_recv, int *send_inds, int *recv_inds, 
+                                double *pts_to_send, double *pts_to_recv, std::vector<int> &pt_send_rcv_map,
+                                int &num_remote_pts);
+  void round1_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, 
+                    int *num_pts_to_send, int *num_pts_to_recv, double *pts_to_send, double *pts_to_recv, 
+                    int *send_inds, int *recv_inds, MPI_Request *requests);
+  void round1_wait_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Request *requests, 
+                         int *num_pts_to_send, int *num_pts_to_recv);
+  void round1_send_results(const int Reinit_comm_rank, const int Reinit_comm_size, const int num_pts, const int num_remote_pts,
+                           int *num_pts_to_send, int *num_pts_to_recv, int *send_inds, int *recv_inds,
+                           std::vector<std::vector<KDCoord>::iterator> &remote_closest, MPIKDResponse *response,
+                           MPI_Datatype *mpi_type, MPI_Comm *mpi_comm);
 
   std::vector<KDNode> nodes;
   std::vector<KDCoord> points;

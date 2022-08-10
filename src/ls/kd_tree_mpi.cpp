@@ -5,8 +5,6 @@
 #include <iostream>
 #include <cstddef>
 
-#include "mpi.h"
-
 #include "timing.h"
 #include "utils.h"
 
@@ -70,33 +68,7 @@ vector<vector<KDCoord>::iterator> KDTreeMPI::local_search(const int num_pts, con
   return local_closest;
 }
 
-void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *y) {
-  // 1) Get comm of ranks that contain a local k-d tree
-  MPI_Comm KD_comm;
-  int KD_comm_size, KD_comm_rank;
-  if(nodes.size() > 0) {
-    MPI_Comm_split(MPI_COMM_WORLD, 0, 0, &KD_comm);
-    MPI_Comm_size(KD_comm, &KD_comm_size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &KD_comm_rank);
-  } else {
-    MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &KD_comm);
-  }
-
-  // 2) Get comm of ranks that contain nodes to be reinitialised (num_pts != 0)
-  MPI_Comm Reinit_comm;
-  int Reinit_comm_size, Reinit_comm_rank;
-  if(num_pts != 0.0) {
-    MPI_Comm_split(MPI_COMM_WORLD, 0, 0, &Reinit_comm);
-    MPI_Comm_size(Reinit_comm, &Reinit_comm_size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &Reinit_comm_rank);
-  } else {
-    MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &Reinit_comm);
-  }
-
-  if(num_pts == 0)
-    return;
-
-  // 3) Share bounding box of each MPI rank
+void KDTreeMPI::get_global_bounding_boxes(MPI_Comm *mpi_comm, MPIBB *mpi_bb) {
   double bounding_box[4];
   if(nodes.size() > 0) {
     bounding_box[0] = nodes[0].x_min;
@@ -110,61 +82,50 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
     bounding_box[3] = NAN;
   }
 
-  double *bb_recv_buf = (double *)calloc(4 * Reinit_comm_size, sizeof(double));
-  MPI_Allgather(bounding_box, 4, MPI_DOUBLE, bb_recv_buf, 4, MPI_DOUBLE, Reinit_comm);
+  int comm_size;
+  MPI_Comm_size(*mpi_comm, &comm_size);
 
-  MPIBB mpi_bb[Reinit_comm_size];
-  for(int i = 0; i < Reinit_comm_size; i++) {
+  double *bb_recv_buf = (double *)calloc(4 * comm_size, sizeof(double));
+  MPI_Allgather(bounding_box, 4, MPI_DOUBLE, bb_recv_buf, 4, MPI_DOUBLE, *mpi_comm);
+
+  for(int i = 0; i < comm_size; i++) {
     mpi_bb[i].x_min = bb_recv_buf[i * 4];
     mpi_bb[i].x_max = bb_recv_buf[i * 4 + 1];
     mpi_bb[i].y_min = bb_recv_buf[i * 4 + 2];
     mpi_bb[i].y_max = bb_recv_buf[i * 4 + 3];
   }
+  free(bb_recv_buf);
+}
 
-  // 4) Non-blocking communication of ranks that have no local k-d tree
-  //    saying which process they are sending their points too
-  int num_pts_to_send[Reinit_comm_size];
-  for(int i = 0; i < Reinit_comm_size; i++) {
-    num_pts_to_send[i] = 0;
-  }
-  map<int,vector<int>> rank_to_pt_inds;
-  for(int i = 0; i < Reinit_comm_size; i++) {
-    vector<int> empty_vec;
-    rank_to_pt_inds.insert({i, empty_vec});
-  }
-  if(nodes.size() == 0) {
-    // Work out which points to send to which processor
-    for(int i = 0; i < num_pts; i++) {
-      // For each point check which bounding box is closest
-      double closest_dist = std::numeric_limits<double>::max();
-      int closest_rank = -1;
-      for(int rank = 0; rank < Reinit_comm_size; rank++) {
-        if(!isnan(mpi_bb[rank].x_min)) {
-          double dist = bb_sqr_dist(mpi_bb[rank], x[i], y[i]);
-          if(dist < closest_dist) {
-            closest_dist = dist;
-            closest_rank = rank;
-          }
+void KDTreeMPI::round1_get_pts_to_send_to_ranks(const int num_pts, const double *x, const double *y,
+                                                const MPIBB *mpi_bb, const int Reinit_comm_size,
+                                                int *num_pts_to_send, map<int,vector<int>> &rank_to_pt_inds) {
+  // Work out which points to send to which processor
+  for(int i = 0; i < num_pts; i++) {
+    // For each point check which bounding box is closest
+    double closest_dist = std::numeric_limits<double>::max();
+    int closest_rank = -1;
+    for(int rank = 0; rank < Reinit_comm_size; rank++) {
+      if(!isnan(mpi_bb[rank].x_min)) {
+        double dist = bb_sqr_dist(mpi_bb[rank], x[i], y[i]);
+        if(dist < closest_dist) {
+          closest_dist = dist;
+          closest_rank = rank;
         }
       }
-      // Add 1 to num of points to send to closest rank
-      num_pts_to_send[closest_rank]++;
-      // Add this pt index to the list of pts to send to closest rank
-      rank_to_pt_inds.at(closest_rank).push_back(i);
     }
+    // Add 1 to num of points to send to closest rank
+    num_pts_to_send[closest_rank]++;
+    // Add this pt index to the list of pts to send to closest rank
+    rank_to_pt_inds.at(closest_rank).push_back(i);
   }
+}
 
-  // Tell each process how many points to expect to receive from each process
-  int num_pts_to_recv[Reinit_comm_size];
-  MPI_Alltoall(num_pts_to_send, Reinit_comm_size, MPI_INT, num_pts_to_recv, Reinit_comm_size, MPI_INT, Reinit_comm);
-
-  // Pack points to send to each process
-  double *pts_to_send;
-  double *pts_to_recv;
-  int send_inds[Reinit_comm_size];
-  int recv_inds[Reinit_comm_size];
-  vector<int> pt_send_rcv_map;
-  int num_remote_pts = 0;
+void KDTreeMPI::round1_prepare_send_recv(const int num_pts, const double *x, const double *y, 
+                                         const int Reinit_comm_size, map<int,vector<int>> &rank_to_pt_inds,
+                                         int *num_pts_to_recv, int *send_inds, int *recv_inds, 
+                                         double *pts_to_send, double *pts_to_recv, vector<int> &pt_send_rcv_map,
+                                         int &num_remote_pts) {
   if(nodes.size() == 0) {
     pts_to_send = (double *)calloc(num_pts * 2, sizeof(double));
     int ind = 0;
@@ -180,21 +141,24 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
       }
     }
   } else {
+    num_remote_pts = 0;
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
       recv_inds[rank] = num_remote_pts * 2;
       num_remote_pts += num_pts_to_recv[rank];
     }
     pts_to_recv = (double *)calloc(num_remote_pts * 2, sizeof(double));
   }
+}
 
-  // The actual non blocking comms
-  MPI_Request requests[Reinit_comm_size];
+void KDTreeMPI::round1_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, 
+                             int *num_pts_to_send, int *num_pts_to_recv, double *pts_to_send, double *pts_to_recv, 
+                             int *send_inds, int *recv_inds, MPI_Request *requests) {
   if(nodes.size() == 0) {
     // The sends
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
       if(rank != Reinit_comm_rank && num_pts_to_send[rank] != 0) {
         double *send_buf = &pts_to_send[send_inds[rank]];
-        MPI_Isend(send_buf, 2 * num_pts_to_send[rank], MPI_DOUBLE, rank, 0, Reinit_comm, &requests[rank]);
+        MPI_Isend(send_buf, 2 * num_pts_to_send[rank], MPI_DOUBLE, rank, 0, *mpi_comm, &requests[rank]);
       }
     }
   } else {
@@ -202,19 +166,14 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
       if(rank != Reinit_comm_rank && num_pts_to_recv[rank] != 0) {
         double *recv_buf = &pts_to_recv[recv_inds[rank]];
-        MPI_Isend(recv_buf, 2 * num_pts_to_recv[rank], MPI_DOUBLE, rank, 0, Reinit_comm, &requests[rank]);
+        MPI_Isend(recv_buf, 2 * num_pts_to_recv[rank], MPI_DOUBLE, rank, 0, *mpi_comm, &requests[rank]);
       }
     }
   }
+}
 
-  // 5) Ranks with a local k-d tree perform local k-d tree searches,
-  //    overlaping with step 4
-  vector<vector<KDCoord>::iterator> local_closest;
-  if(nodes.size() > 0) {
-    local_closest = local_search(num_pts, x, y);
-  }
-
-  // 6) Wait on step 4 and then process these nodes on the relevant ranks
+void KDTreeMPI::round1_wait_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Request *requests, 
+                                  int *num_pts_to_send, int *num_pts_to_recv) {
   if(nodes.size() == 0) {
     // The sends
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
@@ -232,27 +191,19 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
       }
     }
   }
+}
 
-  // Now search local k-d tree using these nodes
-  vector<vector<KDCoord>::iterator> remote_closest;
-  if(nodes.size() > 0) {
-    local_closest = local_search(num_remote_pts, pts_to_recv);
-  }
-
-  // 7) Send back the results of step 6
-  MPIKDResponse *response;
-  int blockLenghts[]  = {2, 1};
-  MPI_Aint displacements[] = {offsetof(MPIKDResponse, x), offsetof(MPIKDResponse, poly)};
-  MPI_Datatype types[] = {MPI_DOUBLE, MPI_INT};
-  MPI_Datatype MPI_MPIKDResponse_Type;
-  MPI_Type_create_struct(2, blockLenghts, displacements, types, &MPI_MPIKDResponse_Type);
-  MPI_Type_commit(&MPI_MPIKDResponse_Type);
+void KDTreeMPI::round1_send_results(const int Reinit_comm_rank, const int Reinit_comm_size, const int num_pts, const int num_remote_pts,
+                                    int *num_pts_to_send, int *num_pts_to_recv, int *send_inds, int *recv_inds,
+                                    vector<vector<KDCoord>::iterator> &remote_closest, MPIKDResponse *response,
+                                    MPI_Datatype *mpi_type, MPI_Comm *mpi_comm) {
+  MPI_Request requests[Reinit_comm_size];
   if(nodes.size() == 0) {
     response = (MPIKDResponse *)calloc(num_pts, sizeof(MPIKDResponse));
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
       if(rank != Reinit_comm_rank && num_pts_to_send[rank] != 0) {
         MPIKDResponse *recv_buf = &response[send_inds[rank] / 2];
-        MPI_Isend(recv_buf, num_pts_to_send[rank], MPI_DOUBLE, rank, 0, Reinit_comm, &requests[rank]);
+        MPI_Irecv(recv_buf, num_pts_to_send[rank], *mpi_type, rank, 0, *mpi_comm, &requests[rank]);
       }
     }
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
@@ -271,7 +222,7 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
       if(rank != Reinit_comm_rank && num_pts_to_recv[rank] != 0) {
         MPIKDResponse *send_buf = &response[recv_inds[rank] / 2];
-        MPI_Isend(send_buf, num_pts_to_recv[rank], MPI_MPIKDResponse_Type, rank, 0, Reinit_comm, &requests[rank]);
+        MPI_Isend(send_buf, num_pts_to_recv[rank], *mpi_type, rank, 0, *mpi_comm, &requests[rank]);
       }
     }
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
@@ -281,6 +232,91 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
       }
     }
   }
+}
+
+void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *y) {
+  // 2) Get comm of ranks that contain nodes to be reinitialised (num_pts != 0)
+  MPI_Comm Reinit_comm;
+  int Reinit_comm_size, Reinit_comm_rank;
+  if(num_pts != 0.0) {
+    MPI_Comm_split(MPI_COMM_WORLD, 0, 0, &Reinit_comm);
+    MPI_Comm_size(Reinit_comm, &Reinit_comm_size);
+    MPI_Comm_rank(Reinit_comm, &Reinit_comm_rank);
+  } else {
+    MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &Reinit_comm);
+  }
+
+  if(num_pts == 0)
+    return;
+
+  // 3) Share bounding box of each MPI rank
+  MPIBB mpi_bb[Reinit_comm_size];
+  get_global_bounding_boxes(&Reinit_comm, mpi_bb);
+
+  // 4) Non-blocking communication of ranks that have no local k-d tree
+  //    saying which process they are sending their points too
+  int num_pts_to_send[Reinit_comm_size];
+  for(int i = 0; i < Reinit_comm_size; i++) {
+    num_pts_to_send[i] = 0;
+  }
+  map<int,vector<int>> rank_to_pt_inds;
+  for(int i = 0; i < Reinit_comm_size; i++) {
+    vector<int> empty_vec;
+    rank_to_pt_inds.insert({i, empty_vec});
+  }
+  if(nodes.size() == 0) {
+    round1_get_pts_to_send_to_ranks(num_pts, x, y, mpi_bb, Reinit_comm_size,
+                                    num_pts_to_send, rank_to_pt_inds);
+  }
+
+  // Tell each process how many points to expect to receive from each process
+  int num_pts_to_recv[Reinit_comm_size];
+  MPI_Alltoall(num_pts_to_send, Reinit_comm_size, MPI_INT, num_pts_to_recv, Reinit_comm_size, MPI_INT, Reinit_comm);
+
+  // Pack points to send to each process
+  double *pts_to_send;
+  double *pts_to_recv;
+  int send_inds[Reinit_comm_size];
+  int recv_inds[Reinit_comm_size];
+  vector<int> pt_send_rcv_map;
+  int num_remote_pts;
+  round1_prepare_send_recv(num_pts, x, y, Reinit_comm_size, rank_to_pt_inds,
+                           num_pts_to_recv,send_inds, recv_inds, 
+                           pts_to_send, pts_to_recv, pt_send_rcv_map, num_remote_pts);
+
+  // The actual non blocking comms
+  MPI_Request requests[Reinit_comm_size];
+  round1_comms(Reinit_comm_rank, Reinit_comm_size, &Reinit_comm, num_pts_to_send, num_pts_to_recv,
+               pts_to_send, pts_to_recv, send_inds, recv_inds, requests);
+
+  // 5) Ranks with a local k-d tree perform local k-d tree searches,
+  //    overlaping with step 4
+  vector<vector<KDCoord>::iterator> local_closest;
+  if(nodes.size() > 0) {
+    local_closest = local_search(num_pts, x, y);
+  }
+
+  // 6) Wait on step 4 and then process these nodes on the relevant ranks
+  round1_wait_comms(Reinit_comm_rank, Reinit_comm_size, requests, 
+                    num_pts_to_send, num_pts_to_recv);
+
+  // Now search local k-d tree using these nodes
+  vector<vector<KDCoord>::iterator> remote_closest;
+  if(nodes.size() > 0) {
+    local_closest = local_search(num_remote_pts, pts_to_recv);
+  }
+
+  // 7) Send back the results of step 6
+  MPIKDResponse *response;
+  int blockLenghts[]  = {2, 1};
+  MPI_Aint displacements[] = {offsetof(MPIKDResponse, x), offsetof(MPIKDResponse, poly)};
+  MPI_Datatype types[] = {MPI_DOUBLE, MPI_INT};
+  MPI_Datatype MPI_MPIKDResponse_Type;
+  MPI_Type_create_struct(2, blockLenghts, displacements, types, &MPI_MPIKDResponse_Type);
+  MPI_Type_commit(&MPI_MPIKDResponse_Type);
+  round1_send_results(Reinit_comm_rank, Reinit_comm_size, num_pts, num_remote_pts,
+                      num_pts_to_send, num_pts_to_recv, send_inds, recv_inds,
+                      remote_closest, response, &MPI_MPIKDResponse_Type, &Reinit_comm);
 
   // 8) Blocking communication of points to ranks that could potentially 
   //    contain closer points
@@ -348,9 +384,7 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   } else {
     free(pts_to_recv);
   }
-  free(bb_recv_buf);
   MPI_Comm_free(&Reinit_comm);
-  MPI_Comm_free(&KD_comm);
 }
 
 int KDTreeMPI::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>::iterator pts_end, bool has_transformed, int level) {
