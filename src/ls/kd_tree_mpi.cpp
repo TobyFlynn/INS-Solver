@@ -133,7 +133,7 @@ void KDTreeMPI::round1_prepare_send_recv(const int num_pts, const double *x, con
     int ind = 0;
     // Iterate over each rank
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
-      send_inds[rank] = ind * 2;
+      send_inds[rank] = ind;
       // Iterate over all points to send to this specific rank
       for(const auto &pt : rank_to_pt_inds.at(rank)) {
         pts_send[ind * 2]     = x[pt];
@@ -145,7 +145,7 @@ void KDTreeMPI::round1_prepare_send_recv(const int num_pts, const double *x, con
   } else {
     num_remote_pts = 0;
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
-      recv_inds[rank] = num_remote_pts * 2;
+      recv_inds[rank] = num_remote_pts;
       num_remote_pts += num_pts_to_recv[rank];
     }
     *pts_to_recv = (double *)calloc(num_remote_pts * 2, sizeof(double));
@@ -159,7 +159,7 @@ void KDTreeMPI::round1_comms(const int Reinit_comm_rank, const int Reinit_comm_s
     // The sends
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
       if(rank != Reinit_comm_rank && num_pts_to_send[rank] != 0) {
-        double *send_buf = &pts_to_send[send_inds[rank]];
+        double *send_buf = &pts_to_send[send_inds[rank] * 2];
         MPI_Isend(send_buf, 2 * num_pts_to_send[rank], MPI_DOUBLE, rank, 0, *mpi_comm, &requests[rank]);
       }
     }
@@ -167,7 +167,7 @@ void KDTreeMPI::round1_comms(const int Reinit_comm_rank, const int Reinit_comm_s
     // The receives
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
       if(rank != Reinit_comm_rank && num_pts_to_recv[rank] != 0) {
-        double *recv_buf = &pts_to_recv[recv_inds[rank]];
+        double *recv_buf = &pts_to_recv[recv_inds[rank] * 2];
         MPI_Irecv(recv_buf, 2 * num_pts_to_recv[rank], MPI_DOUBLE, rank, 0, *mpi_comm, &requests[rank]);
       }
     }
@@ -205,7 +205,7 @@ void KDTreeMPI::round1_send_results(const int Reinit_comm_rank, const int Reinit
     MPIKDResponse *resp = *response;
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
       if(rank != Reinit_comm_rank && num_pts_to_send[rank] != 0) {
-        MPIKDResponse *recv_buf = &resp[send_inds[rank] / 2];
+        MPIKDResponse *recv_buf = &resp[send_inds[rank]];
         MPI_Irecv(recv_buf, num_pts_to_send[rank], *mpi_type, rank, 0, *mpi_comm, &requests[rank]);
       }
     }
@@ -225,7 +225,7 @@ void KDTreeMPI::round1_send_results(const int Reinit_comm_rank, const int Reinit
     }
     for(int rank = 0; rank < Reinit_comm_size; rank++) {
       if(rank != Reinit_comm_rank && num_pts_to_recv[rank] != 0) {
-        MPIKDResponse *send_buf = &resp[recv_inds[rank] / 2];
+        MPIKDResponse *send_buf = &resp[recv_inds[rank]];
         MPI_Isend(send_buf, num_pts_to_recv[rank], *mpi_type, rank, 0, *mpi_comm, &requests[rank]);
       }
     }
@@ -282,8 +282,9 @@ vector<QueryPt> KDTreeMPI::populate_query_pts(const int num_pts, const double *x
 }
 
 void KDTreeMPI::round2_pack_query_pts(const int Reinit_comm_size, int *num_pts_to_send, int *send_inds, 
-                                      map<int,vector<int>> &rank_to_qp, vector<QueryPt*> &nonLockedIn, 
-                                      double **round2_pts_to_send, vector<QueryPt*> &qp_ptrs) {
+                                      vector<QueryPt*> &nonLockedIn, double **round2_pts_to_send, 
+                                      vector<QueryPt*> &qp_ptrs) {
+  map<int,vector<int>> rank_to_qp;
   for(int rank = 0; rank < Reinit_comm_size; rank++) {
     vector<int> empty_vec;
     rank_to_qp.insert({rank, empty_vec});
@@ -682,11 +683,9 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   }
 
   // Pack data to send to remote ranks (some pts may be sent to multiple ranks)
-  map<int,vector<int>> rank_to_qp;
-  vector<double> x_vec, y_vec;
   double *round2_pts_to_send;
   vector<QueryPt*> qp_ptrs;
-  round2_pack_query_pts(Reinit_comm_size, num_pts_to_send, send_inds, rank_to_qp, 
+  round2_pack_query_pts(Reinit_comm_size, num_pts_to_send, send_inds, 
                         nonLockedIn, &round2_pts_to_send, qp_ptrs);
   
   // Tell each process how many points to expect to receive from each process

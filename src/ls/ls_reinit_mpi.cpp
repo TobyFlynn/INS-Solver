@@ -221,22 +221,48 @@ void LS::reinit_ls() {
   int num_pts_to_reinit = 0;
   std::vector<double> x_vec, y_vec;
   for(int i = 0; i < DG_NP * mesh->numCells; i++) {
-    if(fabs(s_ptr[i]) < 0.05) {
+    int start_ind = (i / DG_NP) * DG_NP;
+    bool reinit = false;
+    for(int j = 0; j < DG_NP; j++) {
+      if(fabs(s[start_ind + j]) < 0.05) {
+        reinit = true;
+      }
+    }
+    if(reinit) {
       num_pts_to_reinit++;
       x_vec.push_back(x_ptr[i]);
       y_vec.push_back(y_ptr[i]);
     }
   }
+  std::vector<double> cx_vec(num_pts_to_reinit), cy_vec(num_pts_to_reinit);
+  std::vector<int> p_vec(num_pts_to_reinit);
 
-  releaseOP2PtrHost(s, OP_READ, s_ptr);
+  kdtree.closest_point(num_pts_to_reinit, x_vec.data(), y_vec.data(), cx_vec.data(), cy_vec.data(), p_vec.data());
+
+  std::vector<PolyApprox> polys = kdtree.get_polys();
 
   double *closest_x = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   double *closest_y = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   int *poly_ind     = (int *)calloc(DG_NP * mesh->numCells, sizeof(int));
 
-  kdtree.closest_point(num_pts_to_reinit, x_vec.data(), y_vec.data(), closest_x, closest_y, poly_ind);
+  int count = 0;
+  for(int i = 0; i < DG_NP * mesh->numCells; i++) {
+    int start_ind = (i / DG_NP) * DG_NP;
+    bool reinit = false;
+    for(int j = 0; j < DG_NP; j++) {
+      if(fabs(s[start_ind + j]) < 0.05) {
+        reinit = true;
+      }
+    }
+    if(reinit) {
+      closest_x[i] = cx_vec[count];
+      closest_y[i] = cy_vec[count];
+      poly_ind[i] = p_vec[count];
+      count++;=
+    }
+  }
 
-  std::vector<PolyApprox> polys = kdtree.get_polys();
+  releaseOP2PtrHost(s, OP_READ, s_ptr);
   timer->endTimer("LS - Query K-D Tree");
 
   timer->startTimer("LS - Newton Method");

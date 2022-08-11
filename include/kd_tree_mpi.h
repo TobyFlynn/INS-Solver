@@ -103,8 +103,8 @@ private:
                                    const int Reinit_comm_size, MPIBB *mpi_bb, int *num_pts_to_send, MPIKDResponse *response, 
                                    std::vector<int> &pt_send_rcv_map, std::vector<std::vector<KDCoord>::iterator> &local_closest);
   void round2_pack_query_pts(const int Reinit_comm_size, int *num_pts_to_send, int *send_inds, 
-                             std::map<int,std::vector<int>> &rank_to_qp, std::vector<QueryPt*> &nonLockedIn, 
-                             double **round2_pts_to_send, std::vector<QueryPt*> &qp_ptrs);
+                             std::vector<QueryPt*> &nonLockedIn, double **round2_pts_to_send, 
+                             std::vector<QueryPt*> &qp_ptrs);
   void round2_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, int *num_pts_to_send, int *num_pts_to_recv, 
                              int *send_inds, int *recv_inds, double *round2_pts_to_send, double **round2_pts_to_recv);
   void round2_results_comm(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, MPI_Datatype *mpi_type,
