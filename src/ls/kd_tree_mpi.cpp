@@ -238,6 +238,122 @@ void KDTreeMPI::round1_send_results(const int Reinit_comm_rank, const int Reinit
   }
 }
 
+vector<QueryPt> KDTreeMPI::populate_query_pts(const int num_pts, const double *x, const double *y, const int Reinit_comm_rank, 
+                                   const int Reinit_comm_size, MPIBB *mpi_bb, int *num_pts_to_send, MPIKDResponse *response, 
+                                   vector<int> &pt_send_rcv_map, vector<vector<KDCoord>::iterator> &local_closest) {
+  vector<QueryPt> queryPoints;
+  if(nodes.size() > 0) {
+    for(int i = 0; i < num_pts; i++) {
+      QueryPt qp;
+      qp.ind = i;
+      qp.x = x[i];
+      qp.y = y[i];
+      qp.closest_x = local_closest[i]->x;
+      qp.closest_y = local_closest[i]->y;
+      qp.poly = local_closest[i]->poly;
+      qp.closest_rank = Reinit_comm_rank;
+      qp.lockedin = check_if_locked_in(qp, Reinit_comm_size, mpi_bb);
+      queryPoints.push_back(qp);
+    }
+  } else {
+    int currentRank = 0;
+    int num_pts_to_send_acc[Reinit_comm_size];
+    num_pts_to_send_acc[0] = num_pts_to_send[0];
+    for(int i = 1; i < Reinit_comm_size; i++) {
+      num_pts_to_send_acc[i] = num_pts_to_send_acc[i - 1] + num_pts_to_send[i];
+    }
+    for(int i = 0; i < num_pts; i++) {
+      while(num_pts_to_send_acc[currentRank] <= i) {
+        currentRank++;
+      }
+      QueryPt qp;
+      qp.ind = pt_send_rcv_map[i];
+      qp.x = x[qp.ind];
+      qp.y = y[qp.ind];
+      qp.closest_x = response[i].x;
+      qp.closest_y = response[i].y;
+      qp.poly = response[i].poly;
+      qp.closest_rank = currentRank;
+      qp.lockedin = check_if_locked_in(qp, Reinit_comm_size, mpi_bb);
+      queryPoints.push_back(qp);
+    }
+  }
+  return queryPoints;
+}
+
+void KDTreeMPI::round2_pack_query_pts(const int Reinit_comm_size, int *num_pts_to_send, int *send_inds, 
+                                      map<int,vector<int>> &rank_to_qp, vector<QueryPt*> &nonLockedIn, 
+                                      double **round2_pts_to_send) {
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    vector<int> empty_vec;
+    rank_to_qp.insert({rank, empty_vec});
+    num_pts_to_send[rank] = 0;
+  }
+  int total = 0;
+  for(int i = 0; i < nonLockedIn.size(); i++) {
+    for(auto rank : nonLockedIn[i]->potential_ranks) {
+      rank_to_qp.at(rank).push_back(i);
+      num_pts_to_send[rank]++;
+      total++;
+    }
+  }
+  *round2_pts_to_send = (double *)calloc(total * 2, sizeof(double));
+  double *send_ptr = *round2_pts_to_send;
+  int count = 0;
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    send_inds[rank] = count;
+    for(int i = 0; i < rank_to_qp.at(rank).size(); i++) {
+      int qp_ind = rank_to_qp.at(rank)[i];
+      send_ptr[2 * count] = nonLockedIn[qp_ind]->x;
+      send_ptr[2 * count + 1] = nonLockedIn[qp_ind]->y;
+      count++;
+    }
+  }
+}
+
+void KDTreeMPI::round2_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, int *num_pts_to_send, int *num_pts_to_recv, 
+                             int *send_inds, int *recv_inds, double *round2_pts_to_send, double **round2_pts_to_recv) {
+  recv_inds[0] = 0;
+  for(int rank = 1; rank < Reinit_comm_size; rank++) {
+    recv_inds[rank] = recv_inds[rank - 1] + num_pts_to_recv[rank - 1];
+  }
+  int total_recv = recv_inds[Reinit_comm_size - 1] + num_pts_to_recv[Reinit_comm_size - 1];
+  *round2_pts_to_recv = (double *)calloc(total_recv * 2, sizeof(double));
+  double *recv_ptr = *round2_pts_to_recv;
+
+  MPI_Request send_rq[Reinit_comm_size];
+  MPI_Request recv_rq[Reinit_comm_size];
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    if(rank != Reinit_comm_rank) {
+      // Send
+      if(num_pts_to_send[rank] != 0) {
+        double *send_buf = &round2_pts_to_send[send_inds[rank] * 2];
+        MPI_Isend(send_buf, 2 * num_pts_to_send[rank], MPI_DOUBLE, rank, 0, *mpi_comm, &send_rq[rank]);
+      }
+      // Recv
+      if(num_pts_to_recv[rank] != 0) {
+        double *recv_buf = &recv_ptr[recv_inds[rank] * 2];
+        MPI_Irecv(recv_buf, 2 * num_pts_to_recv[rank], MPI_DOUBLE, rank, 0, *mpi_comm, &recv_rq[rank]);
+      }
+    }
+  }
+
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    if(rank != Reinit_comm_rank) {
+      // Send
+      if(num_pts_to_send[rank] != 0) {
+        MPI_Wait(&send_rq[rank], MPI_STATUS_IGNORE);
+        MPI_Request_free(&send_rq[rank]);
+      }
+      // Recv
+      if(num_pts_to_recv[rank] != 0) {
+        MPI_Wait(&recv_rq[rank], MPI_STATUS_IGNORE);
+        MPI_Request_free(&recv_rq[rank]);
+      }
+    }
+  }
+}
+
 void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *y) {
   // 2) Get comm of ranks that contain nodes to be reinitialised (num_pts != 0)
   MPI_Comm Reinit_comm;
@@ -326,54 +442,38 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   //    contain closer points
 
   // Work out which points could have closer points
-  vector<QueryPt> queryPoints;
-  if(nodes.size() > 0) {
-    for(int i = 0; i < num_pts; i++) {
-      QueryPt qp;
-      qp.ind = i;
-      qp.x = x[i];
-      qp.y = y[i];
-      qp.closest_x = local_closest[i]->x;
-      qp.closest_y = local_closest[i]->y;
-      qp.poly = local_closest[i]->poly;
-      qp.closest_rank = Reinit_comm_rank;
-      qp.lockedin = check_if_locked_in(qp, Reinit_comm_size, mpi_bb);
-      queryPoints.push_back(qp);
-    }
-  } else {
-    int currentRank = 0;
-    int num_pts_to_send_acc[Reinit_comm_size];
-    num_pts_to_send_acc[0] = num_pts_to_send[0];
-    for(int i = 1; i < Reinit_comm_size; i++) {
-      num_pts_to_send_acc[i] = num_pts_to_send_acc[i - 1] + num_pts_to_send[i];
-    }
-    for(int i = 0; i < num_pts; i++) {
-      while(num_pts_to_send_acc[currentRank] <= i) {
-        currentRank++;
-      }
-      QueryPt qp;
-      qp.ind = pt_send_rcv_map[i];
-      qp.x = x[qp.ind];
-      qp.y = y[qp.ind];
-      qp.closest_x = response[i].x;
-      qp.closest_y = response[i].y;
-      qp.poly = response[i].poly;
-      qp.closest_rank = currentRank;
-      qp.lockedin = check_if_locked_in(qp, Reinit_comm_size, mpi_bb);
-      queryPoints.push_back(qp);
-    }
-  }
+  vector<QueryPt> queryPoints = populate_query_pts(num_pts, x, y, Reinit_comm_rank, Reinit_comm_size, 
+                                                   mpi_bb, num_pts_to_send, response, pt_send_rcv_map,
+                                                   local_closest);
 
   // Get non locked in points that will need to be sent
-  vector<QueryPt> nonLockedIn;
+  vector<QueryPt*> nonLockedIn;
   for(auto &qp : queryPoints) {
     if(!qp.lockedin) {
-      nonLockedIn.push_back(qp);
+      nonLockedIn.push_back(&qp);
     }
   }
-  cout << "Number of non locked in query points: " << nonLockedIn.size() << endl;
+
+  // Pack data to send to remote ranks (some pts may be sent to multiple ranks)
+  map<int,vector<int>> rank_to_qp;
+  vector<double> x_vec, y_vec;
+  double *round2_pts_to_send;
+  round2_pack_query_pts(Reinit_comm_size, num_pts_to_send, send_inds, rank_to_qp, 
+                        nonLockedIn, &round2_pts_to_send);
+  
+  // Tell each process how many points to expect to receive from each process
+  MPI_Alltoall(num_pts_to_send, 1, MPI_INT, num_pts_to_recv, 1, MPI_INT, Reinit_comm);
+
+  // Round 2 comms (blocking)
+  double *round2_pts_to_recv;
+  round2_comms(Reinit_comm_rank, Reinit_comm_size, &Reinit_comm, num_pts_to_send, num_pts_to_recv, 
+               send_inds, recv_inds, round2_pts_to_send, &round2_pts_to_recv);
 
   // 9) Do search for other ranks' points
+  remote_closest.clear();
+  if(nodes.size() > 0) {
+    remote_closest = local_search(num_remote_pts, pts_to_recv);
+  }
 
   // 10) Return results
 
@@ -381,6 +481,8 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   //     and associated polynomial approximation
 
   // 12) Free MPI stuff
+  free(round2_pts_to_recv);
+  free(round2_pts_to_send);
   MPI_Type_free(&MPI_MPIKDResponse_Type);
   free(response);
   if(nodes.size() == 0) {
@@ -575,13 +677,14 @@ double KDTreeMPI::bb_sqr_dist(const MPIBB bb, const double x, const double y) {
 
 bool KDTreeMPI::check_if_locked_in(QueryPt &qp, const int num_ranks, const MPIBB *bb) {
   double sqr_dist = (qp.x - qp.closest_x) * (qp.x - qp.closest_x) + (qp.y - qp.closest_y) * (qp.y - qp.closest_y);
+  qp.potential_ranks.clear();
   for(int rank = 0; rank < num_ranks; rank++) {
     if(rank != qp.closest_rank && !isnan(bb[rank].x_min)) {
       double bb_dist = bb_sqr_dist(bb[rank], qp.x, qp.y);
-      if(bb_dist < sqr_dist) return false;
+      if(bb_dist < sqr_dist) qp.potential_ranks.push_back(rank);
     }
   }
-  return true;
+  return qp.potential_ranks.size() == 0;
 }
 
 void KDTreeMPI::nearest_neighbour(double x, double y, int current_ind, vector<KDCoord>::iterator &closest_pt, double &closest_distance) {

@@ -57,6 +57,7 @@ struct QueryPt {
   int closest_rank;
   int poly;
   bool lockedin;
+  std::vector<int> potential_ranks;
 };
 
 class KDTreeMPI {
@@ -98,6 +99,14 @@ private:
                            int *num_pts_to_send, int *num_pts_to_recv, int *send_inds, int *recv_inds,
                            std::vector<std::vector<KDCoord>::iterator> &remote_closest, MPIKDResponse **response,
                            MPI_Datatype *mpi_type, MPI_Comm *mpi_comm);
+  std::vector<QueryPt> populate_query_pts(const int num_pts, const double *x, const double *y, const int Reinit_comm_rank, 
+                                   const int Reinit_comm_size, MPIBB *mpi_bb, int *num_pts_to_send, MPIKDResponse *response, 
+                                   std::vector<int> &pt_send_rcv_map, std::vector<std::vector<KDCoord>::iterator> &local_closest);
+  void round2_pack_query_pts(const int Reinit_comm_size, int *num_pts_to_send, int *send_inds, 
+                             std::map<int,std::vector<int>> &rank_to_qp, std::vector<QueryPt*> &nonLockedIn, 
+                             double **round2_pts_to_send);
+  void round2_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, int *num_pts_to_send, int *num_pts_to_recv, 
+                             int *send_inds, int *recv_inds, double *round2_pts_to_send, double **round2_pts_to_recv);
 
   std::vector<KDNode> nodes;
   std::vector<KDCoord> points;
