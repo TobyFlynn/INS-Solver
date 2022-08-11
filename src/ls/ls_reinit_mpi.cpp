@@ -213,6 +213,7 @@ void LS::reinit_ls() {
   releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
   timer->endTimer("LS - Construct K-D Tree");
 
+  timer->startTimer("LS - Query K-D Tree");
   const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
   const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
   const double *s_ptr = getOP2PtrHost(s, OP_READ);
@@ -227,31 +228,14 @@ void LS::reinit_ls() {
     }
   }
 
-  kdtree.closest_point(num_pts_to_reinit, x_vec.data(), y_vec.data());
-
-  releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
-  releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
   releaseOP2PtrHost(s, OP_READ, s_ptr);
-
-/*
-  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
-  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
 
   double *closest_x = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   double *closest_y = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   int *poly_ind     = (int *)calloc(DG_NP * mesh->numCells, sizeof(int));
 
-  timer->startTimer("LS - Query K-D Tree");
-  #pragma omp parallel for
-  for(int i = 0; i < DG_NP * mesh->numCells; i++) {
-    // Get closest sample point
-    KDCoord tmp = kdtree.closest_point(x_ptr[i], y_ptr[i]);
-    closest_x[i] = tmp.x;
-    closest_y[i] = tmp.y;
-    poly_ind[i]  = tmp.poly;
-  }
+  kdtree.closest_point(num_pts_to_reinit, x_vec.data(), y_vec.data(), closest_x, closest_y, poly_ind);
 
-  // Map of cell ind to polynomial approximations
   std::vector<PolyApprox> polys = kdtree.get_polys();
   timer->endTimer("LS - Query K-D Tree");
 
@@ -270,6 +254,6 @@ void LS::reinit_ls() {
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
   releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
   timer->endTimer("LS - Newton Method");
-*/
+
   timer->endTimer("LS - Reinit");
 }

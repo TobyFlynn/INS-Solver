@@ -430,7 +430,157 @@ void KDTreeMPI::round2_update_qp(const int Reinit_comm_size, int *num_pts_to_sen
   }
 }
 
-void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *y) {
+void KDTreeMPI::get_list_of_polys_wanted(const int Reinit_comm_rank, const int Reinit_comm_size, vector<QueryPt> &queryPoints,
+                                         int *poly_recv_inds, int *num_polys_req, vector<int> &polys_wanted) {
+  map<int,set<int>> rank_to_polys;
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    set<int> empty_set;
+    rank_to_polys.insert({rank, empty_set});
+  }
+  for(const auto &qp : queryPoints) {
+    if(qp.closest_rank != Reinit_comm_rank) {
+      rank_to_polys.at(qp.closest_rank).insert(qp.poly);
+    }
+  }
+  // Get list of polys wanted
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    poly_recv_inds[rank] = polys_wanted.size();
+    num_polys_req[rank] = rank_to_polys.at(rank).size();
+    for(const auto &pl : rank_to_polys.at(rank)) {
+      polys_wanted.push_back(pl);
+    }
+  }
+}
+
+void KDTreeMPI::send_list_of_poly_inds(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, 
+                                       int *num_polys_snd, int *num_polys_req, int *poly_send_inds, int *poly_recv_inds,
+                                       int **poly_list_to_send, vector<int> &polys_wanted) {
+  poly_send_inds[0] = 0;
+  for(int rank = 1; rank < Reinit_comm_size; rank++) {
+    poly_send_inds[rank] = poly_send_inds[rank - 1] + num_polys_snd[rank - 1];
+  }
+  int total_poly_snd = poly_send_inds[Reinit_comm_size - 1] + num_polys_snd[Reinit_comm_size - 1];
+  *poly_list_to_send = (int *)calloc(total_poly_snd, sizeof(int));
+
+  MPI_Request send_rq[Reinit_comm_size];
+  MPI_Request recv_rq[Reinit_comm_size];
+  int *poly_list_wanted = polys_wanted.data();
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    if(rank != Reinit_comm_rank) {
+      // Send
+      if(num_polys_req[rank] != 0) {
+        int *send_buf = &poly_list_wanted[poly_recv_inds[rank]];
+        MPI_Isend(send_buf, num_polys_req[rank], MPI_INT, rank, 0, *mpi_comm, &send_rq[rank]);
+      }
+      // Recv
+      if(num_polys_snd[rank] != 0) {
+        int *recv_buf = &(*poly_list_to_send)[poly_send_inds[rank]];
+        MPI_Irecv(recv_buf, num_polys_snd[rank], MPI_INT, rank, 0, *mpi_comm, &recv_rq[rank]);
+      }
+    }
+  }
+
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    if(rank != Reinit_comm_rank) {
+      // Send
+      if(num_polys_req[rank] != 0) {
+        MPI_Wait(&send_rq[rank], MPI_STATUS_IGNORE);
+        MPI_Request_free(&send_rq[rank]);
+      }
+      // Recv
+      if(num_polys_snd[rank] != 0) {
+        MPI_Wait(&recv_rq[rank], MPI_STATUS_IGNORE);
+        MPI_Request_free(&recv_rq[rank]);
+      }
+    }
+  }
+}
+
+void KDTreeMPI::send_polys(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm,
+                           int *num_polys_snd, int *num_polys_req, int *poly_send_inds, int *poly_recv_inds,
+                           int *poly_list_to_send, double **requested_poly_coeff) {
+  int total_poly_snd = poly_send_inds[Reinit_comm_size - 1] + num_polys_snd[Reinit_comm_size - 1];
+  double *poly_coeff_snd = (double *)calloc(total_poly_snd * PolyApprox::num_coeff(), sizeof(double));
+  int total_poly_req = poly_recv_inds[Reinit_comm_size - 1] + num_polys_req[Reinit_comm_size - 1];
+  *requested_poly_coeff = (double *)calloc(total_poly_req * PolyApprox::num_coeff(), sizeof(double));
+  double *req_coeff_ptr = *requested_poly_coeff;
+  for(int i = 0; i < total_poly_snd; i++) {
+    int poly_ind = poly_list_to_send[i];
+    int coeff_ind = i * PolyApprox::num_coeff();
+    for(int c = 0; c < PolyApprox::num_coeff(); c++) {
+      poly_coeff_snd[coeff_ind + c] = polys[poly_ind].get_coeff(c);
+    }
+  }
+
+  MPI_Request send_rq[Reinit_comm_size];
+  MPI_Request recv_rq[Reinit_comm_size];
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    if(rank != Reinit_comm_rank) {
+      // Send
+      if(num_polys_snd[rank] != 0) {
+        double *send_buf = &poly_coeff_snd[poly_send_inds[rank] * PolyApprox::num_coeff()];
+        MPI_Isend(send_buf, PolyApprox::num_coeff() * num_polys_snd[rank], MPI_DOUBLE, rank, 0, *mpi_comm, &send_rq[rank]);
+      }
+      // Recv
+      if(num_polys_req[rank] != 0) {
+        double *recv_buf = &req_coeff_ptr[poly_recv_inds[rank] * PolyApprox::num_coeff()];
+        MPI_Irecv(recv_buf, PolyApprox::num_coeff() * num_polys_req[rank], MPI_DOUBLE, rank, 0, *mpi_comm, &recv_rq[rank]);
+      }
+    }
+  }
+
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    if(rank != Reinit_comm_rank) {
+      // Send
+      if(num_polys_snd[rank] != 0) {
+        MPI_Wait(&send_rq[rank], MPI_STATUS_IGNORE);
+        MPI_Request_free(&send_rq[rank]);
+      }
+      // Recv
+      if(num_polys_req[rank] != 0) {
+        MPI_Wait(&recv_rq[rank], MPI_STATUS_IGNORE);
+        MPI_Request_free(&recv_rq[rank]);
+      }
+    }
+  }
+
+  free(poly_coeff_snd);
+}
+
+void KDTreeMPI::update_local_polys(const int Reinit_comm_rank, const int Reinit_comm_size, int *num_polys_req, int *poly_recv_inds, 
+                                   double *requested_poly_coeff, int *poly_list_to_send, vector<QueryPt> &queryPoints) {
+  map<pair<int,int>,int> rank_poly_to_poly;
+  int total_poly_req = poly_recv_inds[Reinit_comm_size - 1] + num_polys_req[Reinit_comm_size - 1];
+  int currentRank = 0;
+  int num_polys_req_acc[Reinit_comm_size];
+  num_polys_req_acc[0] = num_polys_req[0];
+  for(int i = 1; i < Reinit_comm_size; i++) {
+    num_polys_req_acc[i] = num_polys_req_acc[i - 1] + num_polys_req[i];
+  }
+  for(int i = 0; i < total_poly_req; i++) {
+    while(num_polys_req_acc[currentRank] <= i) {
+      currentRank++;
+    }
+    int poly_ind = i * PolyApprox::num_coeff();
+    vector<double> coeff;
+    for(int c = 0; c < PolyApprox::num_coeff(); c++) {
+      coeff.push_back(requested_poly_coeff[poly_ind + c]);
+    }
+    // TODO enable non-zero offset
+    PolyApprox p(coeff, 0.0, 0.0);
+    polys.push_back(p);
+    rank_poly_to_poly.insert({{currentRank, poly_list_to_send[i]}, polys.size() - 1});
+  }
+
+  for(auto &qp : queryPoints) {
+    if(qp.closest_rank != Reinit_comm_rank) {
+      qp.poly = rank_poly_to_poly.at({qp.closest_rank, qp.poly});
+      qp.closest_rank = Reinit_comm_rank;
+    }
+  }
+}
+
+void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *y, double *closest_x, double *closest_y, int *poly_ind) {
   // 2) Get comm of ranks that contain nodes to be reinitialised (num_pts != 0)
   MPI_Comm Reinit_comm;
   int Reinit_comm_size, Reinit_comm_rank;
@@ -564,24 +714,44 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   round2_update_qp(Reinit_comm_size, num_pts_to_send, qp_ptrs, round2_recv_response);
   
   // All query points now have the closest point, just need to get the polys from other ranks
-  map<int,vector<int>> rank_to_polys;
-  for(int rank = 0; rank < Reinit_comm_size; rank++) {
-    vector<int> empty_vec;
-    rank_to_polys.insert({rank, empty_vec});
-  }
-  for(const auto &qp : queryPoints) {
-    if(qp.closest_rank != Reinit_comm_rank) {
-      rank_to_polys.at(qp.closest_rank).push_back(qp.poly);
-    }
-  }
-  int total_polys_requested = 0;
-  for(int rank = 0; rank < Reinit_comm_size; rank++) {
-    total_polys_requested += rank_to_polys.at(rank).size();
-  }
-  cout << "Number of polys needed from other ranks: " << total_polys_requested << endl;
+  // Get list of polys wanted
+  int num_polys_req[Reinit_comm_size];
+  int poly_recv_inds[Reinit_comm_size];
+  vector<int> polys_wanted;
+  get_list_of_polys_wanted(Reinit_comm_rank, Reinit_comm_size, queryPoints,
+                           poly_recv_inds, num_polys_req, polys_wanted);
+  
+  // Tell each process how many polys to send to each process
+  int num_polys_snd[Reinit_comm_size];
+  MPI_Alltoall(num_polys_req, 1, MPI_INT, num_polys_snd, 1, MPI_INT, Reinit_comm);
 
+  // Send list of required polys
+  int poly_send_inds[Reinit_comm_size];
+  int *poly_list_to_send;
+  send_list_of_poly_inds(Reinit_comm_rank, Reinit_comm_size, &Reinit_comm, 
+                         num_polys_snd, num_polys_req, poly_send_inds, poly_recv_inds,
+                         &poly_list_to_send, polys_wanted);
+
+  // Send requested polys
+  double *requested_poly_coeff;
+  send_polys(Reinit_comm_rank, Reinit_comm_size, &Reinit_comm,
+             num_polys_snd, num_polys_req, poly_send_inds, poly_recv_inds,
+             poly_list_to_send, &requested_poly_coeff);
+
+  // Add received polys to local list of polys and update poly indices
+  update_local_polys(Reinit_comm_rank, Reinit_comm_size, num_polys_req, poly_recv_inds, 
+                     requested_poly_coeff, poly_list_to_send, queryPoints);
+
+  // Return results
+  for(auto &qp : queryPoints) {
+    closest_x[qp.ind] = qp.closest_x;
+    closest_y[qp.ind] = qp.closest_y;
+    poly_ind[qp.ind] = qp.poly;
+  }
 
   // 12) Free MPI stuff
+  free(requested_poly_coeff);
+  free(poly_list_to_send);
   free(round2_recv_response);
   free(round2_send_response);
   free(round2_pts_to_recv);

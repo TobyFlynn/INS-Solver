@@ -64,7 +64,7 @@ class KDTreeMPI {
 public:
   KDTreeMPI(const double *x, const double *y, const int num, DGMesh *mesh, op_dat s);
 
-  void closest_point(const int num_pts, const double *x, const double *y);
+  void closest_point(const int num_pts, const double *x, const double *y, double *closest_x, double *closest_y, int *poly_ind);
   std::vector<PolyApprox> get_polys();
 
 private:
@@ -111,7 +111,17 @@ private:
                            int *num_pts_to_send, int *num_pts_to_recv, int *send_inds, int *recv_inds, std::vector<std::vector<KDCoord>::iterator> &remote_closest,
                            MPIKDResponse **round2_send_response, MPIKDResponse **round2_recv_response);
   void round2_update_qp(const int Reinit_comm_size, int *num_pts_to_send, std::vector<QueryPt*> &qp_ptrs, MPIKDResponse *round2_recv_response);
-
+  void get_list_of_polys_wanted(const int Reinit_comm_rank, const int Reinit_comm_size, std::vector<QueryPt> &queryPoints,
+                                int *poly_recv_inds, int *num_polys_req, std::vector<int> &polys_wanted);
+  void send_list_of_poly_inds(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, 
+                              int *num_polys_snd, int *num_polys_req, int *poly_send_inds, int *poly_recv_inds,
+                              int **poly_list_to_send, std::vector<int> &polys_wanted);
+  void send_polys(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm,
+                  int *num_polys_snd, int *num_polys_req, int *poly_send_inds, int *poly_recv_inds,
+                  int *poly_list_to_send, double **requested_poly_coeff);
+  void update_local_polys(const int Reinit_comm_rank, const int Reinit_comm_size, int *num_polys_req, int *poly_recv_inds, 
+                          double *requested_poly_coeff, int *poly_list_to_send, std::vector<QueryPt> &queryPoints);
+  
   std::vector<KDNode> nodes;
   std::vector<KDCoord> points;
   int n;
