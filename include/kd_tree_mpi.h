@@ -104,9 +104,13 @@ private:
                                    std::vector<int> &pt_send_rcv_map, std::vector<std::vector<KDCoord>::iterator> &local_closest);
   void round2_pack_query_pts(const int Reinit_comm_size, int *num_pts_to_send, int *send_inds, 
                              std::map<int,std::vector<int>> &rank_to_qp, std::vector<QueryPt*> &nonLockedIn, 
-                             double **round2_pts_to_send);
+                             double **round2_pts_to_send, std::vector<QueryPt*> &qp_ptrs);
   void round2_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, int *num_pts_to_send, int *num_pts_to_recv, 
                              int *send_inds, int *recv_inds, double *round2_pts_to_send, double **round2_pts_to_recv);
+  void round2_results_comm(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, MPI_Datatype *mpi_type,
+                           int *num_pts_to_send, int *num_pts_to_recv, int *send_inds, int *recv_inds, std::vector<std::vector<KDCoord>::iterator> &remote_closest,
+                           MPIKDResponse **round2_send_response, MPIKDResponse **round2_recv_response);
+  void round2_update_qp(const int Reinit_comm_size, int *num_pts_to_send, std::vector<QueryPt*> &qp_ptrs, MPIKDResponse *round2_recv_response);
 
   std::vector<KDNode> nodes;
   std::vector<KDCoord> points;

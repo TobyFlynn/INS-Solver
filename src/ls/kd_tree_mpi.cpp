@@ -283,7 +283,7 @@ vector<QueryPt> KDTreeMPI::populate_query_pts(const int num_pts, const double *x
 
 void KDTreeMPI::round2_pack_query_pts(const int Reinit_comm_size, int *num_pts_to_send, int *send_inds, 
                                       map<int,vector<int>> &rank_to_qp, vector<QueryPt*> &nonLockedIn, 
-                                      double **round2_pts_to_send) {
+                                      double **round2_pts_to_send, vector<QueryPt*> &qp_ptrs) {
   for(int rank = 0; rank < Reinit_comm_size; rank++) {
     vector<int> empty_vec;
     rank_to_qp.insert({rank, empty_vec});
@@ -306,6 +306,7 @@ void KDTreeMPI::round2_pack_query_pts(const int Reinit_comm_size, int *num_pts_t
       int qp_ind = rank_to_qp.at(rank)[i];
       send_ptr[2 * count] = nonLockedIn[qp_ind]->x;
       send_ptr[2 * count + 1] = nonLockedIn[qp_ind]->y;
+      qp_ptrs.push_back(nonLockedIn[qp_ind]);
       count++;
     }
   }
@@ -350,6 +351,81 @@ void KDTreeMPI::round2_comms(const int Reinit_comm_rank, const int Reinit_comm_s
         MPI_Wait(&recv_rq[rank], MPI_STATUS_IGNORE);
         MPI_Request_free(&recv_rq[rank]);
       }
+    }
+  }
+}
+
+void KDTreeMPI::round2_results_comm(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, MPI_Datatype *mpi_type,
+                                    int *num_pts_to_send, int *num_pts_to_recv, int *send_inds, int *recv_inds, vector<vector<KDCoord>::iterator> &remote_closest,
+                                    MPIKDResponse **round2_send_response, MPIKDResponse **round2_recv_response) {
+  *round2_recv_response = (MPIKDResponse *)calloc(send_inds[Reinit_comm_size - 1] + num_pts_to_send[Reinit_comm_size - 1], sizeof(MPIKDResponse));
+  *round2_send_response = (MPIKDResponse *)calloc(remote_closest.size(), sizeof(MPIKDResponse));
+  MPIKDResponse* send_ptr = *round2_send_response;
+  MPIKDResponse* recv_ptr = *round2_recv_response;
+
+  for(int i = 0; i < remote_closest.size(); i++) {
+    send_ptr[i].x = remote_closest[i]->x;
+    send_ptr[i].y = remote_closest[i]->y;
+    send_ptr[i].poly = remote_closest[i]->poly;
+  }
+  MPI_Request send_rq[Reinit_comm_size];
+  MPI_Request recv_rq[Reinit_comm_size];
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    if(rank != Reinit_comm_rank) {
+      // Send
+      if(num_pts_to_recv[rank] != 0) {
+        MPIKDResponse *send_buf = &send_ptr[recv_inds[rank]];
+        MPI_Isend(send_buf, num_pts_to_recv[rank], *mpi_type, rank, 0, *mpi_comm, &send_rq[rank]);
+      }
+      // Recv
+      if(num_pts_to_send[rank] != 0) {
+        MPIKDResponse *recv_buf = &recv_ptr[send_inds[rank]];
+        MPI_Irecv(recv_buf, num_pts_to_send[rank], *mpi_type, rank, 0, *mpi_comm, &recv_rq[rank]);
+      }
+    }
+  }
+
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    if(rank != Reinit_comm_rank) {
+      // Send
+      if(num_pts_to_recv[rank] != 0) {
+        MPI_Wait(&send_rq[rank], MPI_STATUS_IGNORE);
+        MPI_Request_free(&send_rq[rank]);
+      }
+      // Recv
+      if(num_pts_to_send[rank] != 0) {
+        MPI_Wait(&recv_rq[rank], MPI_STATUS_IGNORE);
+        MPI_Request_free(&recv_rq[rank]);
+      }
+    }
+  }
+}
+
+void KDTreeMPI::round2_update_qp(const int Reinit_comm_size, int *num_pts_to_send, vector<QueryPt*> &qp_ptrs, MPIKDResponse *round2_recv_response) {
+  int currentRank = 0;
+  int num_pts_to_send_acc[Reinit_comm_size];
+  num_pts_to_send_acc[0] = num_pts_to_send[0];
+  for(int i = 1; i < Reinit_comm_size; i++) {
+    num_pts_to_send_acc[i] = num_pts_to_send_acc[i - 1] + num_pts_to_send[i];
+  }
+  for(int i = 0; i < qp_ptrs.size(); i++) {
+    while(num_pts_to_send_acc[currentRank] <= i) {
+      currentRank++;
+    }
+    double x = qp_ptrs[i]->x;
+    double y = qp_ptrs[i]->y;
+    double c_x = qp_ptrs[i]->closest_x;
+    double c_y = qp_ptrs[i]->closest_y;
+    double current_dist = (x - c_x) * (x - c_x) + (y - c_y) * (y - c_y);
+    double nc_x = round2_recv_response[i].x;
+    double nc_y = round2_recv_response[i].y;
+    double new_dist = (x - nc_x) * (x - nc_x) + (y - nc_y) * (y - nc_y);
+
+    if(new_dist < current_dist) {
+      qp_ptrs[i]->closest_x = nc_x;
+      qp_ptrs[i]->closest_y = nc_y;
+      qp_ptrs[i]->closest_rank = currentRank;
+      qp_ptrs[i]->poly = round2_recv_response[i].poly;
     }
   }
 }
@@ -458,8 +534,9 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   map<int,vector<int>> rank_to_qp;
   vector<double> x_vec, y_vec;
   double *round2_pts_to_send;
+  vector<QueryPt*> qp_ptrs;
   round2_pack_query_pts(Reinit_comm_size, num_pts_to_send, send_inds, rank_to_qp, 
-                        nonLockedIn, &round2_pts_to_send);
+                        nonLockedIn, &round2_pts_to_send, qp_ptrs);
   
   // Tell each process how many points to expect to receive from each process
   MPI_Alltoall(num_pts_to_send, 1, MPI_INT, num_pts_to_recv, 1, MPI_INT, Reinit_comm);
@@ -476,11 +553,37 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   }
 
   // 10) Return results
+  MPIKDResponse *round2_send_response;
+  MPIKDResponse *round2_recv_response;
+  round2_results_comm(Reinit_comm_rank, Reinit_comm_size, &Reinit_comm, &MPI_MPIKDResponse_Type,
+                      num_pts_to_send, num_pts_to_recv, send_inds, recv_inds, remote_closest,
+                      &round2_send_response, &round2_recv_response);
 
   // 11) Combine remote and local searches to get actual closest point
   //     and associated polynomial approximation
+  round2_update_qp(Reinit_comm_size, num_pts_to_send, qp_ptrs, round2_recv_response);
+  
+  // All query points now have the closest point, just need to get the polys from other ranks
+  map<int,vector<int>> rank_to_polys;
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    vector<int> empty_vec;
+    rank_to_polys.insert({rank, empty_vec});
+  }
+  for(const auto &qp : queryPoints) {
+    if(qp.closest_rank != Reinit_comm_rank) {
+      rank_to_polys.at(qp.closest_rank).push_back(qp.poly);
+    }
+  }
+  int total_polys_requested = 0;
+  for(int rank = 0; rank < Reinit_comm_size; rank++) {
+    total_polys_requested += rank_to_polys.at(rank).size();
+  }
+  cout << "Number of polys needed from other ranks: " << total_polys_requested << endl;
+
 
   // 12) Free MPI stuff
+  free(round2_recv_response);
+  free(round2_send_response);
   free(round2_pts_to_recv);
   free(round2_pts_to_send);
   MPI_Type_free(&MPI_MPIKDResponse_Type);
