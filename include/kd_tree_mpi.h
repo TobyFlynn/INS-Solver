@@ -120,7 +120,7 @@ private:
                   int *num_polys_snd, int *num_polys_req, int *poly_send_inds, int *poly_recv_inds,
                   int *poly_list_to_send, double **requested_poly_coeff);
   void update_local_polys(const int Reinit_comm_rank, const int Reinit_comm_size, int *num_polys_req, int *poly_recv_inds, 
-                          double *requested_poly_coeff, int *poly_list_to_send, std::vector<QueryPt> &queryPoints);
+                          double *requested_poly_coeff, std::vector<int> &polys_wanted, std::vector<QueryPt> &queryPoints);
   
   std::vector<KDNode> nodes;
   std::vector<KDCoord> points;

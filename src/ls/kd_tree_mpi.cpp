@@ -461,6 +461,7 @@ void KDTreeMPI::send_list_of_poly_inds(const int Reinit_comm_rank, const int Rei
   }
   int total_poly_snd = poly_send_inds[Reinit_comm_size - 1] + num_polys_snd[Reinit_comm_size - 1];
   *poly_list_to_send = (int *)calloc(total_poly_snd, sizeof(int));
+  int *polys_send = *poly_list_to_send;
 
   MPI_Request send_rq[Reinit_comm_size];
   MPI_Request recv_rq[Reinit_comm_size];
@@ -474,7 +475,7 @@ void KDTreeMPI::send_list_of_poly_inds(const int Reinit_comm_rank, const int Rei
       }
       // Recv
       if(num_polys_snd[rank] != 0) {
-        int *recv_buf = &(*poly_list_to_send)[poly_send_inds[rank]];
+        int *recv_buf = &polys_send[poly_send_inds[rank]];
         MPI_Irecv(recv_buf, num_polys_snd[rank], MPI_INT, rank, 0, *mpi_comm, &recv_rq[rank]);
       }
     }
@@ -548,7 +549,7 @@ void KDTreeMPI::send_polys(const int Reinit_comm_rank, const int Reinit_comm_siz
 }
 
 void KDTreeMPI::update_local_polys(const int Reinit_comm_rank, const int Reinit_comm_size, int *num_polys_req, int *poly_recv_inds, 
-                                   double *requested_poly_coeff, int *poly_list_to_send, vector<QueryPt> &queryPoints) {
+                                   double *requested_poly_coeff, vector<int> &polys_wanted, vector<QueryPt> &queryPoints) {
   map<pair<int,int>,int> rank_poly_to_poly;
   int total_poly_req = poly_recv_inds[Reinit_comm_size - 1] + num_polys_req[Reinit_comm_size - 1];
   int currentRank = 0;
@@ -569,7 +570,7 @@ void KDTreeMPI::update_local_polys(const int Reinit_comm_rank, const int Reinit_
     // TODO enable non-zero offset
     PolyApprox p(coeff, 0.0, 0.0);
     polys.push_back(p);
-    rank_poly_to_poly.insert({{currentRank, poly_list_to_send[i]}, polys.size() - 1});
+    rank_poly_to_poly.insert({{currentRank, polys_wanted[i]}, polys.size() - 1});
   }
 
   for(auto &qp : queryPoints) {
@@ -699,7 +700,7 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   // 9) Do search for other ranks' points
   remote_closest.clear();
   if(nodes.size() > 0) {
-    remote_closest = local_search(num_remote_pts, pts_to_recv);
+    remote_closest = local_search(num_pts_to_recv[Reinit_comm_size - 1] + recv_inds[Reinit_comm_size - 1], round2_pts_to_recv);
   }
 
   // 10) Return results
@@ -740,7 +741,7 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
 
   // Add received polys to local list of polys and update poly indices
   update_local_polys(Reinit_comm_rank, Reinit_comm_size, num_polys_req, poly_recv_inds, 
-                     requested_poly_coeff, poly_list_to_send, queryPoints);
+                     requested_poly_coeff, polys_wanted, queryPoints);
 
   // Return results
   for(auto &qp : queryPoints) {
