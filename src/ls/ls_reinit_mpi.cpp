@@ -224,7 +224,7 @@ void LS::reinit_ls() {
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
     for(int j = 0; j < DG_NP; j++) {
-      if(fabs(s[start_ind + j]) < 0.05) {
+      if(fabs(s_ptr[start_ind + j]) < 0.05) {
         reinit = true;
       }
     }
@@ -250,7 +250,7 @@ void LS::reinit_ls() {
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
     for(int j = 0; j < DG_NP; j++) {
-      if(fabs(s[start_ind + j]) < 0.05) {
+      if(fabs(s_ptr[start_ind + j]) < 0.05) {
         reinit = true;
       }
     }
@@ -258,7 +258,7 @@ void LS::reinit_ls() {
       closest_x[i] = cx_vec[count];
       closest_y[i] = cy_vec[count];
       poly_ind[i] = p_vec[count];
-      count++;=
+      count++;
     }
   }
 
