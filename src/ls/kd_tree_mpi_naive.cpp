@@ -1,4 +1,4 @@
-#include "kd_tree.h"
+#include "kd_tree_mpi_naive.h"
 
 #include <cmath>
 #include <algorithm>
