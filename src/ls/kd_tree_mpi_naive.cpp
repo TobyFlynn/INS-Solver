@@ -52,8 +52,8 @@ KDTreeMPINaive::KDTreeMPINaive(const double *x, const double *y, const int num,
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
   // Create datatype for KDCoord
-  int blockLenghts[]  = {2, 2};
-  MPI_Aint displacements[] = {offsetof(KDCoord, x), offsetof(KDCoord, poly)};
+  int blockLenghts[]  = {4, 2};
+  MPI_Aint displacements[] = {offsetof(KDCoord, x_rot), offsetof(KDCoord, poly)};
   MPI_Datatype types[] = {MPI_DOUBLE, MPI_INT};
   MPI_Datatype MPI_KDCoord_Type;
 
@@ -382,9 +382,9 @@ void KDTreeMPINaive::construct_polys(vector<KDCoord> &points, DGMesh *mesh, op_d
 
   map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->edge2cells);
 
-  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
-  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
-  const double *s_ptr = getOP2PtrHost(s, OP_READ);
+  const double *x_ptr = getOP2PtrHostMap(mesh->x, mesh->edge2cells, OP_READ);
+  const double *y_ptr = getOP2PtrHostMap(mesh->y, mesh->edge2cells, OP_READ);
+  const double *s_ptr = getOP2PtrHostMap(s, mesh->edge2cells, OP_READ);
 
   // Populate map
   int i = 0;
@@ -396,9 +396,9 @@ void KDTreeMPINaive::construct_polys(vector<KDCoord> &points, DGMesh *mesh, op_d
     i++;
   }
 
-  releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
-  releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
-  releaseOP2PtrHost(s, OP_READ, s_ptr);
+  releaseOP2PtrHostMap(mesh->x, mesh->edge2cells, OP_READ, x_ptr);
+  releaseOP2PtrHostMap(mesh->y, mesh->edge2cells, OP_READ, y_ptr);
+  releaseOP2PtrHostMap(s, mesh->edge2cells, OP_READ, s_ptr);
 
   timer->endTimer("LS - Construct Poly Approx");
 }
