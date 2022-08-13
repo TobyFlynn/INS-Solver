@@ -51,6 +51,82 @@ KDTreeMPINaive::KDTreeMPINaive(const double *x, const double *y, const int num,
   int comm_size;
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
+  int num_pts_per_rank[comm_size];
+  MPI_Allgather(&n, 1, MPI_INT, num_pts_per_rank, 1, MPI_INT, MPI_COMM_WORLD);
+  int num_pts_g = 0;
+  int num_pts_per_rank_disp[comm_size];
+  for(int i = 0; i < comm_size; i++) {
+    num_pts_per_rank_disp[i] = num_pts_g;
+    num_pts_g += num_pts_per_rank[i];
+  }
+
+  int num_polys_per_rank[comm_size];
+  int num_polys = polys.size();
+  MPI_Allgather(&num_polys, 1, MPI_INT, num_polys_per_rank, 1, MPI_INT, MPI_COMM_WORLD);
+  int num_polys_g = 0;
+  int num_polys_coeff_per_rank[comm_size];
+  int num_polys_coeff_per_rank_disp[comm_size];
+  for(int i = 0; i < comm_size; i++) {
+    num_polys_coeff_per_rank_disp[i] = num_polys_g * PolyApprox::num_coeff();
+    num_polys_g += num_polys_per_rank[i];
+    num_polys_coeff_per_rank[i] = num_polys_per_rank[i] * PolyApprox::num_coeff();
+  }
+
+  vector<double> pts_x_snd(n);
+  vector<double> pts_y_snd(n);
+  vector<int> pts_poly_snd(n);
+  for(int i = 0; i < n; i++) {
+    pts_x_snd[i] = points[i].x;
+    pts_y_snd[i] = points[i].y;
+    pts_poly_snd[i] = points[i].poly;
+  }
+
+  vector<double> poly_coeff_snd(polys.size() * PolyApprox::num_coeff());
+  for(int i = 0; i < polys.size(); i++) {
+    int ind = i * PolyApprox::num_coeff();
+    for(int j = 0; j < PolyApprox::num_coeff(); j++) {
+      poly_coeff_snd[ind + j] = polys[i].get_coeff(j);
+    }
+  }
+
+  vector<double> pts_x_rcv(num_pts_g);
+  vector<double> pts_y_rcv(num_pts_g);
+  vector<int> pts_poly_rcv(num_pts_g);
+  vector<double> poly_coeff_rcv(num_polys_g * PolyApprox::num_coeff());
+
+  MPI_Allgatherv(pts_x_snd.data(), n, MPI_DOUBLE, pts_x_rcv.data(), num_pts_per_rank, num_pts_per_rank_disp, MPI_DOUBLE, MPI_COMM_WORLD);
+  MPI_Allgatherv(pts_y_snd.data(), n, MPI_DOUBLE, pts_y_rcv.data(), num_pts_per_rank, num_pts_per_rank_disp, MPI_DOUBLE, MPI_COMM_WORLD);
+  MPI_Allgatherv(pts_poly_snd.data(), n, MPI_INT, pts_poly_rcv.data(), num_pts_per_rank, num_pts_per_rank_disp, MPI_INT, MPI_COMM_WORLD);
+  MPI_Allgatherv(poly_coeff_snd.data(), num_polys * PolyApprox::num_coeff(), MPI_DOUBLE, poly_coeff_rcv.data(), num_polys_coeff_per_rank, num_polys_coeff_per_rank_disp, MPI_DOUBLE, MPI_COMM_WORLD);
+
+  vector<KDCoord> newPts;
+  int curr_rank = 0;
+  for(int i = 0; i < num_pts_g; i++) {
+    while(i >= num_pts_per_rank_disp[curr_rank + 1])
+      curr_rank++;
+    KDCoord kc;
+    kc.x = pts_x_rcv[i];
+    kc.y = pts_y_rcv[i];
+    kc.x_rot = pts_x_rcv[i];
+    kc.y_rot = pts_y_rcv[i];
+    kc.poly = (num_polys_coeff_per_rank_disp[curr_rank] / PolyApprox::num_coeff()) + pts_poly_rcv[i];
+    newPts.push_back(kc);
+  }
+
+  vector<PolyApprox> newPolys;
+  for(int i = 0; i < num_polys_g; i++) {
+    vector<double> c;
+    int ind = i * PolyApprox::num_coeff();
+    for(int j = 0; j < PolyApprox::num_coeff(); j++) {
+      c.push_back(poly_coeff_rcv[ind + j]);
+    }
+    PolyApprox p(c, 0.0, 0.0);
+    newPolys.push_back(p);
+  }
+
+  points = newPts;
+  polys = newPolys;
+/*
   // Create datatype for KDCoord
   int blockLenghts[]  = {4, 2};
   MPI_Aint displacements[] = {offsetof(KDCoord, x_rot), offsetof(KDCoord, poly)};
@@ -142,7 +218,7 @@ KDTreeMPINaive::KDTreeMPINaive(const double *x, const double *y, const int num,
   free(sizes);
   MPI_Type_free(&MPI_KDCoord_Type);
   free(recvbuf);
-
+*/
   // Construct local complete tree
   construct_tree(points.begin(), points.end(), false, 0);
 }
