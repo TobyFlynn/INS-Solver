@@ -263,7 +263,7 @@ vector<QueryPt> KDTreeMPI::populate_query_pts(const int num_pts, const double *x
       num_pts_to_send_acc[i] = num_pts_to_send_acc[i - 1] + num_pts_to_send[i];
     }
     for(int i = 0; i < num_pts; i++) {
-      while(currentRank < Reinit_comm_size - 1 && i >= num_pts_to_send_acc[currentRank + 1]) {
+      while(currentRank < Reinit_comm_size - 1 && i >= num_pts_to_send_acc[currentRank]) {
         currentRank++;
       }
       QueryPt qp;
@@ -410,7 +410,7 @@ void KDTreeMPI::round2_update_qp(const int Reinit_comm_size, int *num_pts_to_sen
     num_pts_to_send_acc[i] = num_pts_to_send_acc[i - 1] + num_pts_to_send[i];
   }
   for(int i = 0; i < qp_ptrs.size(); i++) {
-    while(currentRank < Reinit_comm_size - 1 && i >= num_pts_to_send_acc[currentRank + 1]) {
+    while(currentRank < Reinit_comm_size - 1 && i >= num_pts_to_send_acc[currentRank]) {
       currentRank++;
     }
     double x = qp_ptrs[i]->x;
@@ -560,7 +560,7 @@ void KDTreeMPI::update_local_polys(const int Reinit_comm_rank, const int Reinit_
     num_polys_req_acc[i] = num_polys_req_acc[i - 1] + num_polys_req[i];
   }
   for(int i = 0; i < total_poly_req; i++) {
-    while(currentRank < Reinit_comm_size - 1 && i >= num_polys_req_acc[currentRank + 1]) {
+    while(currentRank < Reinit_comm_size - 1 && i >= num_polys_req_acc[currentRank]) {
       currentRank++;
     }
     int poly_ind = i * PolyApprox::num_coeff();
@@ -673,7 +673,6 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   vector<QueryPt> queryPoints = populate_query_pts(num_pts, x, y, Reinit_comm_rank, Reinit_comm_size, 
                                                    mpi_bb, num_pts_to_send, response, pt_send_rcv_map,
                                                    local_closest);
-
   // Get non locked in points that will need to be sent
   vector<QueryPt*> nonLockedIn;
   for(auto &qp : queryPoints) {
@@ -741,7 +740,6 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   // Add received polys to local list of polys and update poly indices
   update_local_polys(Reinit_comm_rank, Reinit_comm_size, num_polys_req, poly_recv_inds, 
                      requested_poly_coeff, polys_wanted, queryPoints);
-
   // Return results
   for(auto &qp : queryPoints) {
     closest_x[qp.ind] = qp.closest_x;
