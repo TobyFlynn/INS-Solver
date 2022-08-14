@@ -149,8 +149,8 @@ PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
 PolyApprox::PolyApprox(std::vector<double> &c, double off_x, double off_y) {
   offset_x = off_x;
   offset_y = off_y;
-  for(auto const &co : c) {
-    coeff.push_back(co);
+  for(int i = 0; i < num_coeff(); i++) {
+    coeff.push_back(c[i]);
   }
 }
 

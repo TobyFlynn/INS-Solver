@@ -19,6 +19,7 @@ double *getOP2PtrHost(op_dat dat, op_access acc) {
     op_arg_dat(dat, -1, OP_ID, dat->dim, "double", acc)
   };
   op_mpi_halo_exchanges(dat->set, 1, args);
+  op_mpi_wait_all(1, args);
   return (double *)dat->data;
 }
 
@@ -45,7 +46,8 @@ double *getOP2PtrHostMap(op_dat dat, op_map map, op_access acc) {
     op_arg_dat(dat, 0, map, dat->dim, "double", acc),
     op_arg_dat(dat, 1, map, dat->dim, "double", acc)
   };
-  op_mpi_halo_exchanges(dat->set, 2, args);
+  op_mpi_halo_exchanges(map->from, 2, args);
+  op_mpi_wait_all(2, args);
   return (double *)dat->data;
 }
 
