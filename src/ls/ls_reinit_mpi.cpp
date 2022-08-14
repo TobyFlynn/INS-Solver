@@ -207,7 +207,7 @@ void LS::reinit_ls() {
   const double *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
   const double *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
 
-  KDTreeMPI kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->numCells, mesh, s);
+  KDTreeMPI kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
 
   releaseOP2PtrHost(s_sample_x, OP_READ, sample_pts_x);
   releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
@@ -220,7 +220,7 @@ void LS::reinit_ls() {
 
   int num_pts_to_reinit = 0;
   std::vector<double> x_vec, y_vec;
-  for(int i = 0; i < DG_NP * mesh->numCells; i++) {
+  for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
     for(int j = 0; j < DG_NP; j++) {
@@ -241,12 +241,12 @@ void LS::reinit_ls() {
 
   std::vector<PolyApprox> polys = kdtree.get_polys();
 
-  double *closest_x = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  double *closest_y = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  int *poly_ind     = (int *)calloc(DG_NP * mesh->numCells, sizeof(int));
+  double *closest_x = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  double *closest_y = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  int *poly_ind     = (int *)calloc(DG_NP * mesh->cells->size, sizeof(int));
 
   int count = 0;
-  for(int i = 0; i < DG_NP * mesh->numCells; i++) {
+  for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
     for(int j = 0; j < DG_NP; j++) {
@@ -268,7 +268,7 @@ void LS::reinit_ls() {
   timer->startTimer("LS - Newton Method");
   double *surface_ptr = getOP2PtrHost(s, OP_RW);
 
-  newton_method(DG_NP * mesh->numCells, closest_x, closest_y, x_ptr, y_ptr,
+  newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr, y_ptr,
                 poly_ind, polys, surface_ptr, h);
 
   releaseOP2PtrHost(s, OP_RW, surface_ptr);

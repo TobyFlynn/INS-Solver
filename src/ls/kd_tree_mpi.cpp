@@ -263,7 +263,7 @@ vector<QueryPt> KDTreeMPI::populate_query_pts(const int num_pts, const double *x
       num_pts_to_send_acc[i] = num_pts_to_send_acc[i - 1] + num_pts_to_send[i];
     }
     for(int i = 0; i < num_pts; i++) {
-      while(num_pts_to_send_acc[currentRank] <= i) {
+      while(currentRank < Reinit_comm_size - 1 && i >= num_pts_to_send_acc[currentRank + 1]) {
         currentRank++;
       }
       QueryPt qp;
@@ -410,7 +410,7 @@ void KDTreeMPI::round2_update_qp(const int Reinit_comm_size, int *num_pts_to_sen
     num_pts_to_send_acc[i] = num_pts_to_send_acc[i - 1] + num_pts_to_send[i];
   }
   for(int i = 0; i < qp_ptrs.size(); i++) {
-    while(num_pts_to_send_acc[currentRank] <= i) {
+    while(currentRank < Reinit_comm_size - 1 && i >= num_pts_to_send_acc[currentRank + 1]) {
       currentRank++;
     }
     double x = qp_ptrs[i]->x;
@@ -560,7 +560,7 @@ void KDTreeMPI::update_local_polys(const int Reinit_comm_rank, const int Reinit_
     num_polys_req_acc[i] = num_polys_req_acc[i - 1] + num_polys_req[i];
   }
   for(int i = 0; i < total_poly_req; i++) {
-    while(num_polys_req_acc[currentRank] <= i) {
+    while(currentRank < Reinit_comm_size - 1 && i >= num_polys_req_acc[currentRank + 1]) {
       currentRank++;
     }
     int poly_ind = i * PolyApprox::num_coeff();
@@ -1018,9 +1018,9 @@ void KDTreeMPI::construct_polys(vector<KDCoord> &points, DGMesh *mesh, op_dat s)
 
   map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->edge2cells);
 
-  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
-  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
-  const double *s_ptr = getOP2PtrHost(s, OP_READ);
+  const double *x_ptr = getOP2PtrHostMap(mesh->x, mesh->edge2cells, OP_READ);
+  const double *y_ptr = getOP2PtrHostMap(mesh->y, mesh->edge2cells, OP_READ);
+  const double *s_ptr = getOP2PtrHostMap(s, mesh->edge2cells, OP_READ);
 
   // Populate map
   int i = 0;
@@ -1032,9 +1032,9 @@ void KDTreeMPI::construct_polys(vector<KDCoord> &points, DGMesh *mesh, op_dat s)
     i++;
   }
 
-  releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
-  releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
-  releaseOP2PtrHost(s, OP_READ, s_ptr);
+  releaseOP2PtrHostMap(mesh->x, mesh->edge2cells, OP_READ, x_ptr);
+  releaseOP2PtrHostMap(mesh->y, mesh->edge2cells, OP_READ, y_ptr);
+  releaseOP2PtrHostMap(s, mesh->edge2cells, OP_READ, s_ptr);
 
   timer->endTimer("LS - Construct Poly Approx");
 }
