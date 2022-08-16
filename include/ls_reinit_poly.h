@@ -23,7 +23,7 @@ public:
   double get_coeff(int ind);
   void get_offsets(double &x, double &y);
 
-  static const int N = 2;
+  static const int N = 3;
   static int num_coeff();
   static int num_elem_stencil();
   static std::map<int,std::set<int>> get_stencils(const std::set<int> &central_inds, op_map edge_map);

@@ -1,5 +1,9 @@
 #include "op_seq.h"
 
+#ifdef INS_MPI
+#include "op_lib_mpi.h"
+#endif
+
 #include <memory>
 
 #include "dg_utils.h"
@@ -77,9 +81,13 @@ double *getOP2PtrHostMap(op_dat dat, op_map map, op_access acc) {
   op_mpi_halo_exchanges_cuda(map->from, 2, args);
   op_mpi_wait_all(2, args);
 
-  // TODO check that this shouldn't be more than dat->set->size
+  #ifdef INS_MPI
+  double *res = (double *)malloc(dat->dim * (dat->set->size + OP_import_exec_list[dat->set->index]->size + OP_import_nonexec_list[dat->set->index]->size) * sizeof(double));
+  cudaMemcpy(res, dat->data_d, (dat->set->size + OP_import_exec_list[dat->set->index]->size + OP_import_nonexec_list[dat->set->index]->size) * dat->dim * sizeof(double), cudaMemcpyDeviceToHost); 
+  #else
   double *res = (double *)malloc(dat->set->size * dat->dim * sizeof(double));
   cudaMemcpy(res, dat->data_d, dat->set->size * dat->dim * sizeof(double), cudaMemcpyDeviceToHost);
+  #endif
   return res;
 }
 
@@ -90,7 +98,11 @@ void releaseOP2PtrHostMap(op_dat dat, op_map map, op_access acc, const double *p
   };
 
   if(acc != OP_READ) {
+    #ifdef INS_MPI
+    cudaMemcpy(dat->data_d, ptr, (dat->set->size + OP_import_exec_list[dat->set->index]->size + OP_import_nonexec_list[dat->set->index]->size) * dat->dim * sizeof(double), cudaMemcpyHostToDevice);
+    #else
     cudaMemcpy(dat->data_d, ptr, dat->set->size * dat->dim * sizeof(double), cudaMemcpyHostToDevice);
+    #endif
   }
 
   op_mpi_set_dirtybit(2, args);

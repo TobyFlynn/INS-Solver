@@ -77,6 +77,7 @@ __global__ void newton_kernel(const int numPts, const int *poly_ind, double *s,
   // Assume only have threads in x dim
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   if(tid >= numPts) return;
+  if(poly_ind[tid] < 0) return;
 
   const double x_l         = x[tid];
   const double y_l         = y[tid];
@@ -265,6 +266,8 @@ void LS::reinit_ls() {
       closest_y[i] = cy_vec[count];
       poly_ind[i] = p_vec[count];
       count++;
+    } else {
+      poly_ind[i] = -1;
     }
   }
 

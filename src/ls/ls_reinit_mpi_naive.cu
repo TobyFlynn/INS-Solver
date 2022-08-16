@@ -21,6 +21,7 @@
 #include "kd_tree_mpi_naive.h"
 #include "timing.h"
 #include "ls_reinit_poly.h"
+#include "ls_reinit_poly_eval_cuda.h"
 #include "utils.h"
 
 #define THREADS_PER_BLOCK 256

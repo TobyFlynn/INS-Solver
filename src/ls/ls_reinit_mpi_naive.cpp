@@ -187,7 +187,7 @@ void newton_method(const int numPts, double *closest_x, double *closest_y, const
     }
   }
   
-  if(numNonConv != 0 || numReinit == 0)
+  if(numNonConv != 0)
     std::cout << numNonConv << " non-converged points out of " << numReinit << " points reinitialised" << std::endl;
 }
 
