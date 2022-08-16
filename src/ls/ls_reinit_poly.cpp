@@ -24,33 +24,6 @@ void PolyApprox::get_offset(const int ind, const double *x_ptr, const double *y_
   offset_y = 0.0;
 }
 
-// Get vector of indices that make up stencil around central_ind
-void PolyApprox::stencil_ind(const int central_ind, const int num_elements,
-                             op_map edge_map, vector<int> &stencil) {
-  stencil.push_back(central_ind);
-  const int numEdges = edge_map->from->size;
-  while(stencil.size() < num_elements) {
-    // Separate vec so stencil doesn't become unbalanced
-    vector<int> new_elements;
-    for(int i = 0; i < numEdges * 2; i++) {
-      if(vec_contains(edge_map->map[i], stencil)) {
-        if(i % 2 == 0) {
-          if(!vec_contains(edge_map->map[i] + 1, stencil))
-            new_elements.push_back(edge_map->map[i + 1]);
-        } else {
-          if(!vec_contains(edge_map->map[i] - 1, stencil))
-            new_elements.push_back(edge_map->map[i - 1]);
-        }
-      }
-    }
-    if(new_elements.size() == 0)
-      break;
-    for(int i = 0; i < new_elements.size(); i++) {
-      stencil.push_back(new_elements[i]);
-    }
-  }
-}
-
 struct Coord {
   double x;
   double y;
@@ -76,15 +49,15 @@ struct cmpCoords {
     }
 };
 
-void PolyApprox::stencil_data(const vector<int> &stencil, const double *x_ptr, 
+void PolyApprox::stencil_data(const set<int> &stencil, const double *x_ptr, 
                               const double *y_ptr, const double *s_ptr, 
                               vector<double> &x, vector<double> &y, 
                               vector<double> &s) {
   map<Coord, Point, cmpCoords> pointMap;
 
-  for(int i = 0; i < stencil.size(); i++) {
+  for(const auto &sten : stencil) {
     for(int n = 0; n < 6; n++) {
-      int ind = stencil[i] * 6 + n;
+      int ind = sten * 6 + n;
 
       Coord coord;
       coord.x = x_ptr[ind] - offset_x;
@@ -121,16 +94,11 @@ void num_pts_pos_neg(const vector<double> &s, int &pos, int &neg) {
   }
 }
 
-PolyApprox::PolyApprox(const int cell_ind, op_map edge_map, 
+PolyApprox::PolyApprox(const int cell_ind, set<int> stencil, 
                        const double *x_ptr, const double *y_ptr, 
                        const double *s_ptr) {
   get_offset(cell_ind, x_ptr, y_ptr);
   
-  vector<int> stencil;
-  if(N == 2)
-    stencil_ind(cell_ind, 4, edge_map, stencil);
-  else
-    stencil_ind(cell_ind, 10, edge_map, stencil);
   vector<double> x_vec, y_vec, s_vec;
   stencil_data(stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_vec);
 
@@ -181,8 +149,8 @@ PolyApprox::PolyApprox(const int cell_ind, op_map edge_map,
 PolyApprox::PolyApprox(std::vector<double> &c, double off_x, double off_y) {
   offset_x = off_x;
   offset_y = off_y;
-  for(auto const &co : c) {
-    coeff.push_back(co);
+  for(int i = 0; i < num_coeff(); i++) {
+    coeff.push_back(c[i]);
   }
 }
 
@@ -465,6 +433,18 @@ int PolyApprox::num_pts() {
   }
 }
 
+int PolyApprox::num_elem_stencil() {
+  if(N == 2) {
+    return 4;
+  } else if(N == 3) {
+    return 10;
+  } else if(N == 4) {
+    return 10;
+  } else {
+    return 0;
+  }
+}
+
 double PolyApprox::get_coeff(int ind) {
   return coeff[ind];
 }
@@ -472,4 +452,77 @@ double PolyApprox::get_coeff(int ind) {
 void PolyApprox::get_offsets(double &x, double &y) {
   x = offset_x;
   y = offset_y;
+}
+
+struct stencil_query {
+  int ind;
+  set<int> central_inds;
+};
+
+map<int,set<int>> PolyApprox::get_stencils(const set<int> &central_inds, op_map edge_map) {
+  map<int,set<int>> stencils;
+  map<int,stencil_query> queryInds;
+  const int num_elements = num_elem_stencil();
+
+  for(const auto &ind : central_inds) {
+    set<int> st;
+    st.insert(ind);
+    stencils.insert({ind, st});
+    stencil_query sq;
+    sq.ind = ind;
+    sq.central_inds.insert(ind);
+    queryInds.insert({ind, sq});
+  }
+
+  const int numEdges = edge_map->from->size;
+  while(queryInds.size() > 0) {
+    map<int,stencil_query> newQueryInds;
+
+    // Iterate over each edge pair
+    for(int i = 0; i < numEdges * 2; i++) {
+      // Find if this cell ind is in the query inds
+      auto it = queryInds.find(edge_map->map[i]);
+      if(it != queryInds.end()) {
+        if(i % 2 == 0) {
+          // For each central ind associated with this query ind
+          for(const auto &ind : it->second.central_inds) {
+            auto stencil_it = stencils.find(ind);
+            // Check if the other cell in this edge is already in the stencil for this central ind
+            if(stencil_it->second.find(edge_map->map[i + 1]) != stencil_it->second.end() 
+               && stencil_it->second.size() < num_elements) {
+              stencil_it->second.insert(edge_map->map[i + 1]);
+              // If stencil is not full then add to next rounds query inds
+              if(stencil_it->second.size() < num_elements) {
+                stencil_query sq;
+                sq.ind = edge_map->map[i + 1];
+                auto res = newQueryInds.insert({edge_map->map[i + 1], sq});
+                res.first->second.central_inds.insert(ind);
+              }
+            }
+          }
+        } else {
+          // For each central ind associated with this query ind
+          for(const auto &ind : it->second.central_inds) {
+            auto stencil_it = stencils.find(ind);
+            // Check if the other cell in this edge is already in the stencil for this central ind
+            if(stencil_it->second.find(edge_map->map[i - 1]) != stencil_it->second.end() 
+               && stencil_it->second.size() < num_elements) {
+              stencil_it->second.insert(edge_map->map[i - 1]);
+              // If stencil is not full then add to next rounds query inds
+              if(stencil_it->second.size() < num_elements) {
+                stencil_query sq;
+                sq.ind = edge_map->map[i - 1];
+                auto res = newQueryInds.insert({edge_map->map[i - 1], sq});
+                res.first->second.central_inds.insert(ind);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    queryInds = newQueryInds;
+  }
+  
+  return stencils;
 }

@@ -33,9 +33,9 @@ struct KDNode {
   int axis;
 };
 
-class KDTree {
+class KDTreeMPINaive {
 public:
-  KDTree(const double *x, const double *y, const int num, DGMesh *mesh, op_dat s);
+  KDTreeMPINaive(const double *x, const double *y, const int num, DGMesh *mesh, op_dat s);
 
   KDCoord closest_point(double x, double y);
   std::vector<PolyApprox> get_polys();

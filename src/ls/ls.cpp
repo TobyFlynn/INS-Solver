@@ -175,7 +175,7 @@ void LS::step(double dt) {
               op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(rk[2], -1, OP_ID, DG_NP, "double", OP_READ));
   timer->endTimer("LS - Advection");
-  
+
   counter++;
   if(counter > 49) {
     reinit_ls();
