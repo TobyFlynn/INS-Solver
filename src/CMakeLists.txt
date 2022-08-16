@@ -2,7 +2,7 @@ set(COMMON_SRC solver_op.cpp poisson_op/poisson_op.cpp poisson_op/poisson_sub_ma
 list(APPEND COMMON_SRC ins_data_op.cpp timing_op.cpp io/shared_save_functions.cpp)
 list(APPEND COMMON_SRC ls_op/ls_op.cpp ls/ls_reinit_poly.cpp)
 set(CPU_SRC poisson_op/poisson_cpu_op.cpp utils_op.cpp)
-set(GPU_SRC poisson_op/poisson_gpu_op.cu utils_op.cu ls_op/ls_reinit_op.cu ls/ls_reinit_poly_eval_cuda.cu)
+set(GPU_SRC poisson_op/poisson_gpu_op.cu utils_op.cu ls/ls_reinit_poly_eval_cuda.cu)
 set(SN_SRC ls/kd_tree.cpp io_op/save_solution_op.cpp io/load_mesh.cpp)
 set(MPI_SRC io_op/save_solution_mpi_op.cpp io/load_mesh_mpi.cpp mpi_helper_func.cpp)
 set(SN_CPU_SRC ls_op/ls_reinit_op.cpp)
