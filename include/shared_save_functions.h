@@ -56,4 +56,23 @@ void get_data_vectors_order_1(std::vector<double> &x_v, std::vector<double> &y_v
                               double *Uy, double *pr, double *vort, double *x,
                               double *y, double *s, int *o, int numCells);
 
+void get_save_data_order_4(std::vector<double> &x_v, std::vector<double> &y_v,
+                           std::vector<std::vector<double>> &vals_v,
+                           std::vector<cgsize_t> &cells, double *x, double *y,
+                           double **vals_data, int numVals, int numCells);
+
+void get_save_data_order_3(std::vector<double> &x_v, std::vector<double> &y_v,
+                           std::vector<std::vector<double>> &vals_v,
+                           std::vector<cgsize_t> &cells, double *x, double *y,
+                           double **vals_data, int numVals, int numCells);
+
+void get_save_data_order_2(std::vector<double> &x_v, std::vector<double> &y_v,
+                           std::vector<std::vector<double>> &vals_v,
+                           std::vector<cgsize_t> &cells, double *x, double *y,
+                           double **vals_data, int numVals, int numCells);
+
+void get_save_data_order_1(std::vector<double> &x_v, std::vector<double> &y_v,
+                           std::vector<std::vector<double>> &vals_v,
+                           std::vector<cgsize_t> &cells, double *x, double *y,
+                           double **vals_data, int numVals, int numCells);
 #endif

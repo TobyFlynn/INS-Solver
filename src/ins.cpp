@@ -210,6 +210,26 @@ int main(int argc, char **argv) {
   // Save solution to CGNS file
   save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, time, nu);
 
+  vector<op_dat> dats_to_save;
+  vector<string> dat_names;
+  dats_to_save.push_back(solver->data->Q[currentIter % 2][0]);
+  dat_names.push_back("VelocityX");
+  dats_to_save.push_back(solver->data->Q[currentIter % 2][1]);
+  dat_names.push_back("VelocityY");
+  dats_to_save.push_back(solver->data->QT[0]);
+  dat_names.push_back("VelocityTX");
+  dats_to_save.push_back(solver->data->QT[1]);
+  dat_names.push_back("VelocityTY");
+  dats_to_save.push_back(solver->data->QTT[0]);
+  dat_names.push_back("VelocityTTX");
+  dats_to_save.push_back(solver->data->QTT[1]);
+  dat_names.push_back("VelocityTTY");
+  dats_to_save.push_back(solver->data->p);
+  dat_names.push_back("Pressure");
+  dats_to_save.push_back(solver->ls->s);
+  dat_names.push_back("Surface");
+  save_solution(outputDir + "end-extended.cgns", solver->mesh, dats_to_save, dat_names);
+
   timer->endTimer("Wall Time");
   timer->exportTimings(outputDir + "timings.txt", iter, time);
 

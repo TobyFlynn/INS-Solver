@@ -706,3 +706,140 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   free(x_g);
   free(y_g);
 }
+
+void save_solution(std::string filename, DGMesh *mesh, std::vector<op_dat> &dats, 
+                   std::vector<string> &names) {
+  int numCells = mesh->numCells;
+  int numVals  = dats.size();
+  
+  double *x_l = (double *)malloc(DG_NP * numCells * sizeof(double));
+  double *y_l = (double *)malloc(DG_NP * numCells * sizeof(double));
+  double *dats_data_l[numVals];
+  for(int i = 0; i < numVals; i++) {
+    dats_data_l[i] = (double *)malloc(DG_NP * numCells * sizeof(double));
+  }
+
+  op_fetch_data(mesh->x, x_l);
+  op_fetch_data(mesh->y, y_l);
+  for(int i = 0; i < numVals; i++) {
+    op_fetch_data(dats[i], dats_data_l[i]);
+  }
+
+  // Gather onto root process
+  int rank;
+  int comm_size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+
+  double *x_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+  double *y_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+  double *dats_data_g[numVals];
+  for(int i = 0; i < numVals; i++) {
+    dats_data_g[i] = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+  }
+
+  gather_double_array(x_g, x_l, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
+  gather_double_array(y_g, y_l, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
+  for(int i = 0; i < numVals; i++) {
+    gather_double_array(dats_data_g[i], dats_data_l[i], comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
+  }
+
+  vector<double> x_v;
+  vector<double> y_v;
+  vector<cgsize_t> cells(3 * mesh->numCells_g * DG_SUB_CELLS);
+
+  vector<vector<double>> dats_vec;
+  if(rank == 0) {
+    if(DG_ORDER == 4) {
+      get_save_data_order_4(x_v, y_v, dats_vec, cells, x_g, y_g, dats_data_g, numVals, numCells);
+    } else if(DG_ORDER == 3) {
+      get_save_data_order_3(x_v, y_v, dats_vec, cells, x_g, y_g, dats_data_g, numVals, numCells);
+    } else if(DG_ORDER == 2) {
+      get_save_data_order_2(x_v, y_v, dats_vec, cells, x_g, y_g, dats_data_g, numVals, numCells);
+    } else {
+      get_save_data_order_1(x_v, y_v, dats_vec, cells, x_g, y_g, dats_data_g, numVals, numCells);
+    }
+  }
+
+  free(x_g);
+  free(y_g);
+  for(int i = 0; i < numVals; i++) {
+    free(dats_data_l[i]);
+    free(dats_data_g[i]);
+  }
+
+  int file;
+  if (cgp_open(filename.c_str(), CG_MODE_WRITE, &file)) {
+    cgp_error_exit();
+  }
+
+  int baseIndex;
+  int zoneIndex;
+  string baseName = "Base";
+  int cellDim = 2;
+  int physicalDim = 2;
+  cg_base_write(file, baseName.c_str(), cellDim, physicalDim, &baseIndex);
+  // Create zone
+  string zoneName = "Zone1";
+  int sizes_i[3];
+  if(rank == 0) {
+    sizes_i[0] = x_v.size();
+    sizes_i[1] = mesh->numCells_g * DG_SUB_CELLS;
+    sizes_i[2] = 0;
+  }
+  MPI_Bcast(sizes_i, 3, MPI_INT, 0, MPI_COMM_WORLD);
+  cgsize_t sizes[] = {sizes_i[0], sizes_i[1], sizes_i[2]};
+  cg_zone_write(file, baseIndex, zoneName.c_str(), sizes,
+                CGNS_ENUMV(Unstructured), &zoneIndex);
+  // Write grid coordinates
+  int coordIndexX;
+  int coordIndexY;
+  cgp_coord_write(file, baseIndex, zoneIndex, CGNS_ENUMV(RealDouble), "CoordinateX", &coordIndexX);
+  cgp_coord_write(file, baseIndex, zoneIndex, CGNS_ENUMV(RealDouble), "CoordinateY", &coordIndexY);
+
+  if(rank == 0) {
+    cgsize_t min = 1;
+    cgsize_t max = x_v.size();
+    cgp_coord_write_data(file, baseIndex, zoneIndex, coordIndexX, &min, &max, x_v.data());
+    cgp_coord_write_data(file, baseIndex, zoneIndex, coordIndexY, &min, &max, y_v.data());
+  } else {
+    cgsize_t min = 0;
+    cgsize_t max = 0;
+    cgp_coord_write_data(file, baseIndex, zoneIndex, coordIndexX, &min, &max, NULL);
+    cgp_coord_write_data(file, baseIndex, zoneIndex, coordIndexY, &min, &max, NULL);
+  }
+
+  // Write elements
+  int sectionIndex;
+  int start = 1;
+  int end = sizes[1];
+
+  cgp_section_write(file, baseIndex, zoneIndex, "GridElements", CGNS_ENUMV(TRI_3),
+                    start, end, 0, &sectionIndex);
+
+  if(rank == 0) {
+    cgp_elements_write_data(file, baseIndex, zoneIndex, sectionIndex, start, end, cells.data());
+  } else {
+    cgp_elements_write_data(file, baseIndex, zoneIndex, sectionIndex, 0, 0, NULL);
+  }
+
+  int flowIndex;
+  // Create flow solution node
+  cg_sol_write(file, baseIndex, zoneIndex, "FlowSolution", CGNS_ENUMV(Vertex), &flowIndex);
+
+  for(int v = 0; v < numVals; v++) {
+    int valIndex;
+    cgp_field_write(file, baseIndex, zoneIndex, flowIndex, CGNS_ENUMV(RealDouble), names[v].c_str(), &valIndex);
+    if(rank == 0) {
+      cgsize_t min = 1;
+      cgsize_t max = dats_vec[v].size();
+      cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, valIndex, &min, &max, dats_vec[v].data());
+    } else {
+      cgsize_t min = 0;
+      cgsize_t max = 0;
+      cgp_field_write_data(file, baseIndex, zoneIndex, flowIndex, valIndex, &min, &max, NULL);
+    }
+  }
+
+  cg_close(file);
+}

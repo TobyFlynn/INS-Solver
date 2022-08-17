@@ -16,4 +16,6 @@ void save_solution_finalise(std::string filename, int numIter, double dt);
 
 void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind, LS *ls, double finalTime = 0.0, double nu = 0.0);
 
+void save_solution(std::string filename, DGMesh *mesh, std::vector<op_dat> &dats, std::vector<std::string> &names);
+
 #endif
