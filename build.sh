@@ -16,14 +16,15 @@ cd gen
 
 python3 $OP2_TRANSLATOR ins.cpp \
         ins_data.cpp solver.cpp poisson/poisson.cpp \
-        poisson/poisson_sub_mat.cpp timing.cpp ls/ls.cpp \
+        timing.cpp ls/ls.cpp \
         poisson/poisson_cpu.cpp poisson/poisson_gpu.cpp \
         utils.cpp utils.cu ls/ls_reinit.cpp ls/ls_reinit.cu \
-        ls/ls_reinit_mpi.cpp \
+        ls/ls_reinit_mpi.cpp ls/ls_reinit_mpi_naive.cpp \
+        ls/ls_reinit_mpi_naive.cu poisson/poisson_mat.cpp \
         io/save_solution.cpp io/save_solution_mpi.cpp kernels/
 
 sed -i '10i extern double reynolds;' openmp/ins_kernels.cpp
-
+sed -i '56i file = 1;' io/load_mesh.cpp
 cd ..
 
 mkdir build
@@ -39,7 +40,8 @@ cmake .. \
   -DPARMETIS_DIR=/dcs/pg20/u1717021/PhD/apps \
   -DOP2DGTOOLKIT_DIR=/dcs/pg20/u1717021/PhD/OP2-DG-Toolkit/build \
   -DARMA_DIR=/dcs/pg20/u1717021/PhD/apps \
-  -DBUILD_MPI=ON \
-  -DBUILD_CPU=ON
+  -DBUILD_SN=ON \
+  -DBUILD_CPU=ON 
 
+make -j 8
 make

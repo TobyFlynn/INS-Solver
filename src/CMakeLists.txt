@@ -1,4 +1,4 @@
-set(COMMON_SRC solver_op.cpp poisson_op/poisson_op.cpp poisson_op/poisson_sub_mat_op.cpp)
+set(COMMON_SRC solver_op.cpp poisson_op/poisson_op.cpp poisson_op/poisson_mat_op.cpp)
 list(APPEND COMMON_SRC ins_data_op.cpp timing_op.cpp io/shared_save_functions.cpp)
 list(APPEND COMMON_SRC ls_op/ls_op.cpp ls/ls_reinit_poly.cpp)
 set(CPU_SRC poisson_op/poisson_cpu_op.cpp utils_op.cpp)

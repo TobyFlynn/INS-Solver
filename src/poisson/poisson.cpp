@@ -74,6 +74,8 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
   mmFactor = op_decl_dat(mesh->cells, DG_NP, "double", mmFactor_data, "poisson_mmFactor");
   h        = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
   gDelta   = op_decl_dat(mesh->cells, DG_G_NP, "double", gDelta_data, "poisson_gDelta");
+
+  mat = new PoissonMat(mesh);
 }
 
 PoissonSolve::~PoissonSolve() {
@@ -106,13 +108,12 @@ PoissonSolve::~PoissonSolve() {
 
   if(pMatInit)
     MatDestroy(&pMat);
+  
+  delete mat;
 }
 
 void PoissonSolve::init() {
-  op_par_loop(poisson_h, "poisson_h", mesh->cells,
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(h, -1, OP_ID, 1, "double", OP_WRITE));
+  mat->init();
 }
 
 void PoissonSolve::update_glb_ind() {
@@ -162,7 +163,7 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
               op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mat->op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
               op_arg_dat(bc_dat, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(b_dat,  0, mesh->bedge2cells, DG_NP, "double", OP_INC));
 
@@ -210,21 +211,7 @@ void PoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
   // Copy u to OP2 dat
   copy_vec_to_dat(u, u_d);
 
-  op_par_loop(poisson_cells, "poisson_cells", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(u,   -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(rhs, -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-  op_par_loop(poisson_edges, "poisson_edges", mesh->edges,
-              op_arg_dat(mesh->order, 0, mesh->edge2cells, 1, "int", OP_READ),
-              op_arg_dat(u,           0, mesh->edge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(op2[0],     -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(rhs,         0, mesh->edge2cells, DG_NP, "double", OP_INC),
-              op_arg_dat(mesh->order, 1, mesh->edge2cells, 1, "int", OP_READ),
-              op_arg_dat(u,           1, mesh->edge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(op2[1],     -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(rhs,         1, mesh->edge2cells, DG_NP, "double", OP_INC));
+  mat->mult(u, rhs);
 
   copy_dat_to_vec(rhs, rhs_d);
 }
@@ -241,32 +228,12 @@ void PoissonSolve::precond(const double *in_d, double *out_d) {
   copy_dat_to_vec(out, out_d);
 }
 
-void PoissonSolve::set_op() {
-  double tol = 1e-15;
-
-  calc_cub_sub_mat();
-
-  calc_gauss_sub_mat();
-
-  if(massMat) {
-    calc_mm_mat();
-  }
-
-  if(block_jacobi_pre) {
-    inv_blas(mesh, op1, pre);
-  }
-}
-
 void PoissonSolve::setDirichletBCs(int *d) {
-  dirichlet[0] = d[0];
-  dirichlet[1] = d[1];
-  dirichlet[2] = d[2];
+  mat->setDirichletBCs(d);
 }
 
 void PoissonSolve::setNeumannBCs(int *n) {
-  neumann[0] = n[0];
-  neumann[1] = n[1];
-  neumann[2] = n[2];
+  mat->setNeumannBCs(n);
 }
 
 void PoissonSolve::setBCValues(op_dat bc) {
@@ -294,14 +261,10 @@ void PressureSolve::setup() {
               op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(factor,    -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  set_op();
-
-  timer->startTimer("Build Mat");
+  timer->startTimer("Build Pr Mat");
+  mat->calc_mat(factor);
   setMatrix();
-  timer->endTimer("Build Mat");
-
-  // create_shell_mat(&pMat);
-  // pMatInit = true;
+  timer->endTimer("Build Pr Mat");
 }
 
 void ViscositySolve::setup(double mmConst) {
@@ -319,13 +282,21 @@ void ViscositySolve::setup(double mmConst) {
               op_arg_dat(factor,    -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(mmFactor,  -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  set_op();
+  timer->startTimer("Build Vis Mat");
+  mat->calc_mat_mm(factor, mmFactor);
 
+  if(block_jacobi_pre) {
+    inv_blas(mesh, mat->op1, pre);
+  }
+
+  create_shell_mat();
+  timer->endTimer("Build Vis Mat");
+  
   // timer->startBuildMat();
   // setMatrix();
   // timer->endBuildMat();
 
-  create_shell_mat();
+  // create_shell_mat();
 
   // PC pc;
   // KSPGetPC(ksp, &pc);

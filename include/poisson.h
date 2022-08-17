@@ -8,6 +8,7 @@
 #include "timing.h"
 #include "dg_mesh.h"
 #include "ls.h"
+#include "poisson_mat.h"
 
 class PoissonSolve {
 public:
@@ -35,7 +36,6 @@ public:
   int unknowns;
 
 protected:
-  void set_op();
   void setMatrix();
   void create_shell_mat();
   void set_shell_pc(PC pc);
@@ -57,6 +57,8 @@ protected:
   Mat pMat;
   KSP ksp;
 
+  PoissonMat *mat;
+
 private:
   void create_vec(Vec *v);
   void destroy_vec(Vec *v);
@@ -66,10 +68,6 @@ private:
   void copy_dat_to_vec(op_dat dat, double *dat_d);
 
   void setGlbInd();
-
-  void calc_cub_sub_mat();
-  void calc_gauss_sub_mat();
-  void calc_mm_mat();
 
   op_dat bc_dat;
   Vec b, x;
