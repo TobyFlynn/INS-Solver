@@ -10,23 +10,6 @@
 
 #include "dg_utils.h"
 
-int PoissonSolve::get_local_unknowns() {
-  op_arg op2_args[] = {
-    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
-  };
-  op_mpi_halo_exchanges(mesh->order->set, 1, op2_args);
-  const int setSize = mesh->order->set->size;
-  const int *p = (int *)mesh->order->data;
-  int local_unkowns = 0;
-  for(int i = 0; i < setSize; i++) {
-    int Np, Nfp;
-    DGUtils::basic_constants(p[i], &Np, &Nfp);
-    local_unkowns += Np;
-  }
-  op_mpi_set_dirtybit(1, op2_args);
-  return local_unkowns;
-}
-
 // Copy PETSc vec array to OP2 dat
 void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   op_arg copy_args[] = {
@@ -135,7 +118,7 @@ void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
 void PoissonSolve::create_vec(Vec *v) {
   VecCreate(PETSC_COMM_WORLD, v);
   VecSetType(*v, VECSTANDARD);
-  VecSetSizes(*v, unknowns, PETSC_DECIDE);
+  VecSetSizes(*v, mat->unknowns, PETSC_DECIDE);
 }
 
 // Destroy a PETSc vector
@@ -182,7 +165,7 @@ void PoissonSolve::create_shell_mat() {
   if(pMatInit)
     MatDestroy(&pMat);
 
-  MatCreateShell(PETSC_COMM_WORLD, unknowns, unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, &pMat);
+  MatCreateShell(PETSC_COMM_WORLD, mat->unknowns, mat->unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, &pMat);
   MatShellSetOperation(pMat, MATOP_MULT, (void(*)(void))matAMult);
   MatShellSetVecType(pMat, VECSTANDARD);
 
@@ -209,37 +192,13 @@ void PoissonSolve::set_shell_pc(PC pc) {
   PCShellSetContext(pc, this);
 }
 
-void PoissonSolve::setGlbInd() {
-  int global_ind = 0;
-  #ifdef INS_MPI
-  global_ind = get_global_mat_start_ind(unknowns);
-  #endif
-  op_arg args[] = {
-    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE)
-  };
-  op_mpi_halo_exchanges(mesh->cells, 2, args);
-
-  const int *p = (int *)mesh->order->data;
-  int *data_ptr = (int *)glb_ind->data;
-  int ind = global_ind;
-  for(int i = 0; i < mesh->cells->size; i++) {
-    int Np, Nfp;
-    DGUtils::basic_constants(p[i], &Np, &Nfp);
-    data_ptr[i] = ind;
-    ind += Np;
-  }
-
-  op_mpi_set_dirtybit(2, args);
-}
-
 void PoissonSolve::setMatrix() {
   if(pMatInit)
     MatDestroy(&pMat);
 
   MatCreate(PETSC_COMM_WORLD, &pMat);
   pMatInit = true;
-  MatSetSizes(pMat, unknowns, unknowns, PETSC_DECIDE, PETSC_DECIDE);
+  MatSetSizes(pMat, mat->unknowns, mat->unknowns, PETSC_DECIDE, PETSC_DECIDE);
 
   #ifdef INS_MPI
   MatSetType(pMat, MATMPIAIJ);
@@ -253,12 +212,12 @@ void PoissonSolve::setMatrix() {
   // Add cubature OP to Poisson matrix
   op_arg args[] = {
     op_arg_dat(mat->op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(mat->glb_ind, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges(mesh->cells, 3, args);
   const double *op1_data = (double *)mat->op1->data;
-  const int *glb = (int *)glb_ind->data;
+  const int *glb = (int *)mat->glb_ind->data;
   const int *p = (int *)mesh->order->data;
 
   MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_FALSE);
@@ -283,19 +242,19 @@ void PoissonSolve::setMatrix() {
   op_arg edge_args[] = {
     op_arg_dat(mat->op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
     op_arg_dat(mat->op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-    op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(orderL, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(orderR, -1, OP_ID, 1, "int", OP_READ)
+    op_arg_dat(mat->glb_indL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(mat->glb_indR, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(mat->orderL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(mat->orderR, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges(mesh->edges, 6, edge_args);
 
   const double *op2L_data = (double *)mat->op2[0]->data;
   const double *op2R_data = (double *)mat->op2[1]->data;
-  const int *glb_l = (int *)glb_indL->data;
-  const int *glb_r = (int *)glb_indR->data;
-  const int *p_l = (int *)orderL->data;
-  const int *p_r = (int *)orderR->data;
+  const int *glb_l = (int *)mat->glb_indL->data;
+  const int *glb_r = (int *)mat->glb_indR->data;
+  const int *p_l = (int *)mat->orderL->data;
+  const int *p_r = (int *)mat->orderR->data;
 
   // Add Gauss OP and OPf to Poisson matrix
   for(int i = 0; i < mesh->edges->size; i++) {

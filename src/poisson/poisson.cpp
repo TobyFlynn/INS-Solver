@@ -21,20 +21,6 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
   pMatInit = false;
   block_jacobi_pre = false;
 
-  glb_ind_data   = (int *)calloc(mesh->numCells, sizeof(int));
-  glb_indL_data  = (int *)calloc(mesh->numEdges, sizeof(int));
-  glb_indR_data  = (int *)calloc(mesh->numEdges, sizeof(int));
-  glb_indBC_data = (int *)calloc(mesh->numBoundaryEdges, sizeof(int));
-
-  orderL_data  = (int *)calloc(mesh->numEdges, sizeof(int));
-  orderR_data  = (int *)calloc(mesh->numEdges, sizeof(int));
-  orderBC_data = (int *)calloc(mesh->numEdges, sizeof(int));
-
-  op1_data    = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
-  op2_data[0] = (double *)calloc(DG_NP * DG_NP * mesh->numEdges, sizeof(double));
-  op2_data[1] = (double *)calloc(DG_NP * DG_NP * mesh->numEdges, sizeof(double));
-  op_bc_data  = (double *)calloc(DG_GF_NP * DG_NP * mesh->numBoundaryEdges, sizeof(double));
-
   u_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   rhs_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   in_data  = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
@@ -47,20 +33,6 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
   mmFactor_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   h_data        = (double *)calloc(mesh->numCells, sizeof(double));
   gDelta_data   = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
-
-  glb_ind   = op_decl_dat(mesh->cells, 1, "int", glb_ind_data, "poisson_glb_ind");
-  glb_indL  = op_decl_dat(mesh->edges, 1, "int", glb_indL_data, "poisson_glb_indL");
-  glb_indR  = op_decl_dat(mesh->edges, 1, "int", glb_indR_data, "poisson_glb_indR");
-  glb_indBC = op_decl_dat(mesh->bedges, 1, "int", glb_indBC_data, "poisson_glb_indBC");
-
-  orderL  = op_decl_dat(mesh->edges, 1, "int", orderL_data, "poisson_orderL");
-  orderR  = op_decl_dat(mesh->edges, 1, "int", orderR_data, "poisson_orderR");
-  orderBC = op_decl_dat(mesh->bedges, 1, "int", orderBC_data, "poisson_orderBC");
-
-  op1    = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", op1_data, "poisson_op1");
-  op2[0] = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", op2_data[0], "poisson_op20");
-  op2[1] = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", op2_data[1], "poisson_op21");
-  op_bc  = op_decl_dat(mesh->bedges, DG_GF_NP * DG_NP, "double", op_bc_data, "poisson_op_bc");
 
   u   = op_decl_dat(mesh->cells, DG_NP, "double", u_data, "poisson_u");
   rhs = op_decl_dat(mesh->cells, DG_NP, "double", rhs_data, "poisson_rhs");
@@ -79,20 +51,6 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
 }
 
 PoissonSolve::~PoissonSolve() {
-  free(glb_ind_data);
-  free(glb_indL_data);
-  free(glb_indR_data);
-  free(glb_indBC_data);
-
-  free(orderL_data);
-  free(orderR_data);
-  free(orderBC_data);
-
-  free(op1_data);
-  free(op2_data[0]);
-  free(op2_data[1]);
-  free(op_bc_data);
-
   free(u_data);
   free(rhs_data);
   free(in_data);
@@ -114,25 +72,6 @@ PoissonSolve::~PoissonSolve() {
 
 void PoissonSolve::init() {
   mat->init();
-}
-
-void PoissonSolve::update_glb_ind() {
-  setGlbInd();
-  op_par_loop(copy_to_edges, "copy_to_edges", mesh->edges,
-              op_arg_dat(glb_ind, -2, mesh->edge2cells, 1, "int", OP_READ),
-              op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_WRITE),
-              op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_WRITE));
-  op_par_loop(copy_to_bedges, "copy_to_bedges", mesh->bedges,
-              op_arg_dat(glb_ind, 0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_dat(glb_indBC, -1, OP_ID, 1, "int", OP_WRITE));
-
-  op_par_loop(copy_to_edges, "copy_to_edges", mesh->edges,
-              op_arg_dat(mesh->order, -2, mesh->edge2cells, 1, "int", OP_READ),
-              op_arg_dat(orderL, -1, OP_ID, 1, "int", OP_WRITE),
-              op_arg_dat(orderR, -1, OP_ID, 1, "int", OP_WRITE));
-  op_par_loop(copy_to_bedges, "copy_to_bedges", mesh->bedges,
-              op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_dat(orderBC, -1, OP_ID, 1, "int", OP_WRITE));
 }
 
 bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
@@ -252,8 +191,7 @@ PressureSolve::PressureSolve(DGMesh *m, INSData *d, LS *s) : PoissonSolve(m, d, 
 ViscositySolve::ViscositySolve(DGMesh *m, INSData *d, LS *s) : PoissonSolve(m, d, s) {}
 
 void PressureSolve::setup() {
-  unknowns = get_local_unknowns();
-  update_glb_ind();
+  mat->update_glb_ind();
 
   massMat = false;
 
@@ -268,8 +206,7 @@ void PressureSolve::setup() {
 }
 
 void ViscositySolve::setup(double mmConst) {
-  unknowns = get_local_unknowns();
-  update_glb_ind();
+  mat->update_glb_ind();
 
   massMat = true;
   massFactor = mmConst;

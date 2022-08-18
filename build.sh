@@ -7,7 +7,7 @@ rm -rf gen
 
 mkdir -p gen/kernels
 mkdir -p gen/ls
-mkdir -p gen/poisson
+mkdir -p gen/poisson/matrix
 mkdir -p gen/io
 
 python3 preprocessor.py 2
@@ -17,10 +17,9 @@ cd gen
 python3 $OP2_TRANSLATOR ins.cpp \
         ins_data.cpp solver.cpp poisson/poisson.cpp \
         timing.cpp ls/ls.cpp \
-        poisson/poisson_cpu.cpp poisson/poisson_gpu.cpp \
         utils.cpp utils.cu ls/ls_reinit.cpp ls/ls_reinit.cu \
         ls/ls_reinit_mpi.cpp ls/ls_reinit_mpi_naive.cpp \
-        ls/ls_reinit_mpi_naive.cu poisson/poisson_mat.cpp \
+        ls/ls_reinit_mpi_naive.cu poisson/matrix/poisson_mat.cpp \
         io/save_solution.cpp io/save_solution_mpi.cpp kernels/
 
 sed -i '10i extern double reynolds;' openmp/ins_kernels.cpp

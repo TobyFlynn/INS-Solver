@@ -17,6 +17,15 @@ PoissonMat::PoissonMat(DGMesh *m) {
   gFactor_data  = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
   cFactor_data  = (double *)calloc(DG_CUB_NP * mesh->numCells, sizeof(double));
 
+  glb_ind_data   = (int *)calloc(mesh->numCells, sizeof(int));
+  glb_indL_data  = (int *)calloc(mesh->numEdges, sizeof(int));
+  glb_indR_data  = (int *)calloc(mesh->numEdges, sizeof(int));
+  glb_indBC_data = (int *)calloc(mesh->numBoundaryEdges, sizeof(int));
+
+  orderL_data  = (int *)calloc(mesh->numEdges, sizeof(int));
+  orderR_data  = (int *)calloc(mesh->numEdges, sizeof(int));
+  orderBC_data = (int *)calloc(mesh->numEdges, sizeof(int));
+
   op1      = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", op1_data, "poisson_op1");
   op2[0]   = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", op2_data[0], "poisson_op20");
   op2[1]   = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", op2_data[1], "poisson_op21");
@@ -24,6 +33,15 @@ PoissonMat::PoissonMat(DGMesh *m) {
   h        = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
   gFactor  = op_decl_dat(mesh->cells, DG_G_NP, "double", gFactor_data, "poisson_gFactor");
   cFactor  = op_decl_dat(mesh->cells, DG_CUB_NP, "double", cFactor_data, "poisson_cFactor");
+
+  glb_ind   = op_decl_dat(mesh->cells, 1, "int", glb_ind_data, "poisson_glb_ind");
+  glb_indL  = op_decl_dat(mesh->edges, 1, "int", glb_indL_data, "poisson_glb_indL");
+  glb_indR  = op_decl_dat(mesh->edges, 1, "int", glb_indR_data, "poisson_glb_indR");
+  glb_indBC = op_decl_dat(mesh->bedges, 1, "int", glb_indBC_data, "poisson_glb_indBC");
+
+  orderL  = op_decl_dat(mesh->edges, 1, "int", orderL_data, "poisson_orderL");
+  orderR  = op_decl_dat(mesh->edges, 1, "int", orderR_data, "poisson_orderR");
+  orderBC = op_decl_dat(mesh->bedges, 1, "int", orderBC_data, "poisson_orderBC");
 }
 
 PoissonMat::~PoissonMat() {
@@ -34,6 +52,15 @@ PoissonMat::~PoissonMat() {
   free(h_data);
   free(gFactor_data);
   free(cFactor_data);
+
+  free(glb_ind_data);
+  free(glb_indL_data);
+  free(glb_indR_data);
+  free(glb_indBC_data);
+
+  free(orderL_data);
+  free(orderR_data);
+  free(orderBC_data);
 }
 
 void PoissonMat::init() {
@@ -55,6 +82,26 @@ void PoissonMat::calc_mat_mm(op_dat fact, op_dat mmFact) {
   calc_cub_sub_mat();
   calc_gauss_sub_mat();
   calc_mm_mat();
+}
+
+void PoissonMat::update_glb_ind() {
+  unknowns = get_local_unknowns();
+  set_glb_ind();
+  op_par_loop(copy_to_edges, "copy_to_edges", mesh->edges,
+              op_arg_dat(glb_ind, -2, mesh->edge2cells, 1, "int", OP_READ),
+              op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_WRITE),
+              op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_WRITE));
+  op_par_loop(copy_to_bedges, "copy_to_bedges", mesh->bedges,
+              op_arg_dat(glb_ind, 0, mesh->bedge2cells, 1, "int", OP_READ),
+              op_arg_dat(glb_indBC, -1, OP_ID, 1, "int", OP_WRITE));
+
+  op_par_loop(copy_to_edges, "copy_to_edges", mesh->edges,
+              op_arg_dat(mesh->order, -2, mesh->edge2cells, 1, "int", OP_READ),
+              op_arg_dat(orderL, -1, OP_ID, 1, "int", OP_WRITE),
+              op_arg_dat(orderR, -1, OP_ID, 1, "int", OP_WRITE));
+  op_par_loop(copy_to_bedges, "copy_to_bedges", mesh->bedges,
+              op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
+              op_arg_dat(orderBC, -1, OP_ID, 1, "int", OP_WRITE));
 }
 
 void PoissonMat::mult(op_dat in, op_dat out) {

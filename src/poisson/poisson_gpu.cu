@@ -6,25 +6,6 @@
 
 #include "dg_utils.h"
 
-int PoissonSolve::get_local_unknowns() {
-  op_arg op2_args[] = {
-    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
-  };
-  op_mpi_halo_exchanges_cuda(mesh->order->set, 1, op2_args);
-  const int setSize = mesh->order->set->size;
-  int *tempOrder = (int *)malloc(setSize * sizeof(int));
-  cudaMemcpy(tempOrder, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
-  int local_unkowns = 0;
-  for(int i = 0; i < setSize; i++) {
-    int Np, Nfp;
-    DGUtils::basic_constants(tempOrder[i], &Np, &Nfp);
-    local_unkowns += Np;
-  }
-  free(tempOrder);
-  op_mpi_set_dirtybit_cuda(1, op2_args);
-  return local_unkowns;
-}
-
 // Copy PETSc vec array to OP2 dat
 void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   op_arg copy_args[] = {
@@ -135,7 +116,7 @@ void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
 void PoissonSolve::create_vec(Vec *v) {
   VecCreate(PETSC_COMM_WORLD, v);
   VecSetType(*v, VECCUDA);
-  VecSetSizes(*v, unknowns, PETSC_DECIDE);
+  VecSetSizes(*v, mat->unknowns, PETSC_DECIDE);
 }
 
 // Destroy a PETSc vector
@@ -182,7 +163,7 @@ void PoissonSolve::create_shell_mat() {
   if(pMatInit)
     MatDestroy(&pMat);
 
-  MatCreateShell(PETSC_COMM_WORLD, unknowns, unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, &pMat);
+  MatCreateShell(PETSC_COMM_WORLD, mat->unknowns, mat->unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, &pMat);
   MatShellSetOperation(pMat, MATOP_MULT, (void(*)(void))matAMult);
   MatShellSetVecType(pMat, VECCUDA);
 
@@ -209,45 +190,13 @@ void PoissonSolve::set_shell_pc(PC pc) {
   PCShellSetContext(pc, this);
 }
 
-void PoissonSolve::setGlbInd() {
-  int global_ind = 0;
-  #ifdef INS_MPI
-  global_ind = get_global_mat_start_ind(unknowns);
-  #endif
-  op_arg args[] = {
-    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE)
-  };
-  op_mpi_halo_exchanges_cuda(mesh->cells, 2, args);
-
-  const int setSize = mesh->cells->size;
-  int *tempOrder = (int *)malloc(setSize * sizeof(int));
-  cudaMemcpy(tempOrder, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
-  int *data_ptr = (int *)malloc(setSize * sizeof(int));
-  cudaMemcpy(data_ptr, glb_ind->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
-
-  int ind = global_ind;
-  for(int i = 0; i < mesh->cells->size; i++) {
-    int Np, Nfp;
-    DGUtils::basic_constants(tempOrder[i], &Np, &Nfp);
-    data_ptr[i] = ind;
-    ind += Np;
-  }
-
-  cudaMemcpy(glb_ind->data_d, data_ptr, setSize * sizeof(int), cudaMemcpyHostToDevice);
-
-  op_mpi_set_dirtybit_cuda(2, args);
-  free(data_ptr);
-  free(tempOrder);
-}
-
 void PoissonSolve::setMatrix() {
   if(pMatInit)
     MatDestroy(&pMat);
 
   MatCreate(PETSC_COMM_WORLD, &pMat);
   pMatInit = true;
-  MatSetSizes(pMat, unknowns, unknowns, PETSC_DECIDE, PETSC_DECIDE);
+  MatSetSizes(pMat, mat->unknowns, mat->unknowns, PETSC_DECIDE, PETSC_DECIDE);
 
   #ifdef INS_MPI
   MatSetType(pMat, MATMPIAIJCUSPARSE);
@@ -261,7 +210,7 @@ void PoissonSolve::setMatrix() {
   // Add cubature OP to Poisson matrix
   op_arg args[] = {
     op_arg_dat(mat->op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(mat->glb_ind, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(mesh->cells, 3, args);
@@ -271,7 +220,7 @@ void PoissonSolve::setMatrix() {
   int *glb   = (int *)malloc(setSize * sizeof(int));
   int *order = (int *)malloc(setSize * sizeof(int));
   cudaMemcpy(op1_data, mat->op1->data_d, setSize * DG_NP * DG_NP * sizeof(double), cudaMemcpyDeviceToHost);
-  cudaMemcpy(glb, glb_ind->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb, mat->glb_ind->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(order, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
   op_mpi_set_dirtybit_cuda(3, args);
 
@@ -298,10 +247,10 @@ void PoissonSolve::setMatrix() {
   op_arg edge_args[] = {
     op_arg_dat(mat->op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
     op_arg_dat(mat->op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-    op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(orderL, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(orderR, -1, OP_ID, 1, "int", OP_READ)
+    op_arg_dat(mat->glb_indL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(mat->glb_indR, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(mat->orderL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(mat->orderR, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(mesh->edges, 6, edge_args);
   double *op2L_data = (double *)malloc(DG_NP * DG_NP * mesh->edges->size * sizeof(double));
@@ -313,10 +262,10 @@ void PoissonSolve::setMatrix() {
 
   cudaMemcpy(op2L_data, mat->op2[0]->data_d, DG_NP * DG_NP * mesh->edges->size * sizeof(double), cudaMemcpyDeviceToHost);
   cudaMemcpy(op2R_data, mat->op2[1]->data_d, DG_NP * DG_NP * mesh->edges->size * sizeof(double), cudaMemcpyDeviceToHost);
-  cudaMemcpy(glb_l, glb_indL->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(glb_r, glb_indR->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(order_l, orderL->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(order_r, orderR->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_l, mat->glb_indL->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_r, mat->glb_indR->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(order_l, mat->orderL->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(order_r, mat->orderR->data_d, mesh->edges->size * sizeof(int), cudaMemcpyDeviceToHost);
 
   // Add Gauss OP and OPf to Poisson matrix
   for(int i = 0; i < mesh->edges->size; i++) {

@@ -27,20 +27,13 @@ public:
   void setBCValues(op_dat bc);
 
   // OP2 Dats
-  op_dat op1, op2[2], op_bc;
-  op_dat glb_ind, glb_indL, glb_indR, glb_indBC;
   op_dat u, rhs, in, out, pre;
   op_dat factor, gFactor, cFactor, mmFactor, h, gDelta;
-  op_dat orderL, orderR, orderBC;
-
-  int unknowns;
 
 protected:
   void setMatrix();
   void create_shell_mat();
   void set_shell_pc(PC pc);
-  int get_local_unknowns();
-  void update_glb_ind();
 
   DGMesh *mesh;
   INSData *data;
@@ -67,19 +60,14 @@ private:
   void copy_vec_to_dat(op_dat dat, const double *dat_d);
   void copy_dat_to_vec(op_dat dat, double *dat_d);
 
-  void setGlbInd();
-
   op_dat bc_dat;
   Vec b, x;
 
   int numberIter, solveCount;
 
-  double *op1_data, *op2_data[2], *op_bc_data;
-  int *glb_ind_data, *glb_indL_data, *glb_indR_data, *glb_indBC_data;
   double *u_data, *rhs_data, *in_data, *out_data, *pre_data;
   double *factor_data, *gFactor_data, *cFactor_data, *mmFactor_data, *h_data;
   double *gDelta_data;
-  int *orderL_data, *orderR_data, *orderBC_data;
 };
 
 class PressureSolve : public PoissonSolve {
