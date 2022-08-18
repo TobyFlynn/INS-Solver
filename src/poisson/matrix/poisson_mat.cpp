@@ -122,6 +122,29 @@ void PoissonMat::mult(op_dat in, op_dat out) {
               op_arg_dat(out,     1, mesh->edge2cells, DG_NP, "double", OP_INC));
 }
 
+void PoissonMat::multJacobi(op_dat in, op_dat out) {
+  op_par_loop(poisson_cells, "poisson_cells", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(in,  -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(out, -1, OP_ID, DG_NP, "double", OP_WRITE));
+
+  op_par_loop(poisson_edges, "poisson_edges", mesh->edges,
+              op_arg_dat(mesh->order, 0, mesh->edge2cells, 1, "int", OP_READ),
+              op_arg_dat(in,      0, mesh->edge2cells, DG_NP, "double", OP_READ),
+              op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(out,     0, mesh->edge2cells, DG_NP, "double", OP_INC),
+              op_arg_dat(mesh->order, 1, mesh->edge2cells, 1, "int", OP_READ),
+              op_arg_dat(in,      1, mesh->edge2cells, DG_NP, "double", OP_READ),
+              op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(out,     1, mesh->edge2cells, DG_NP, "double", OP_INC));
+
+  op_par_loop(poisson_jacobi, "poisson_jacobi", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(out, -1, OP_ID, DG_NP, "double", OP_RW));
+}
+
 void PoissonMat::transpose() {
   op_par_loop(transpose_cells, "transpose_cells", mesh->cells,
               op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_RW));

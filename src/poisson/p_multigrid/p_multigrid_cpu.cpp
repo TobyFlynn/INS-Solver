@@ -1,4 +1,4 @@
-#include "poisson.h"
+#include "p_multigrid.h"
 
 #include "op_seq.h"
 
@@ -11,7 +11,7 @@
 #include "dg_utils.h"
 
 // Copy PETSc vec array to OP2 dat
-void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
+void PMultigrid::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
@@ -63,7 +63,7 @@ void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
 }
 
 // Copy OP2 dat to PETSc vec array
-void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
+void PMultigrid::copy_dat_to_vec(op_dat dat, double *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
@@ -115,19 +115,14 @@ void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
 }
 
 // Create a PETSc vector for CPUs
-void PoissonSolve::create_vec(Vec *v) {
+void PMultigrid::create_vec(Vec *v) {
   VecCreate(PETSC_COMM_WORLD, v);
   VecSetType(*v, VECSTANDARD);
-  VecSetSizes(*v, mat->unknowns, PETSC_DECIDE);
-}
-
-// Destroy a PETSc vector
-void PoissonSolve::destroy_vec(Vec *v) {
-  VecDestroy(v);
+  VecSetSizes(*v, pMatrix->unknowns, PETSC_DECIDE);
 }
 
 // Load a PETSc vector with values from an OP2 dat for CPUs
-void PoissonSolve::load_vec(Vec *v, op_dat v_dat) {
+void PMultigrid::load_vec(Vec *v, op_dat v_dat) {
   double *v_ptr;
   VecGetArray(*v, &v_ptr);
 
@@ -137,7 +132,7 @@ void PoissonSolve::load_vec(Vec *v, op_dat v_dat) {
 }
 
 // Load an OP2 dat with the values from a PETSc vector for CPUs
-void PoissonSolve::store_vec(Vec *v, op_dat v_dat) {
+void PMultigrid::store_vec(Vec *v, op_dat v_dat) {
   const double *v_ptr;
   VecGetArrayRead(*v, &v_ptr);
 
@@ -146,59 +141,35 @@ void PoissonSolve::store_vec(Vec *v, op_dat v_dat) {
   VecRestoreArrayRead(*v, &v_ptr);
 }
 
-PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
-  PoissonSolve *poisson;
-  MatShellGetContext(A, &poisson);
+
+PetscErrorCode matBMult(Mat A, Vec x, Vec y) {
+  PMultigrid *p_multigrid;
+  MatShellGetContext(A, &p_multigrid);
   const double *x_ptr;
   double *y_ptr;
   VecGetArrayRead(x, &x_ptr);
   VecGetArray(y, &y_ptr);
 
-  poisson->calc_rhs(x_ptr, y_ptr);
+  p_multigrid->calc_rhs(x_ptr, y_ptr);
 
   VecRestoreArrayRead(x, &x_ptr);
   VecRestoreArray(y, &y_ptr);
   return 0;
 }
 
-void PoissonSolve::create_shell_mat() {
-  if(pMatInit)
-    MatDestroy(&pMat);
-
-  MatCreateShell(PETSC_COMM_WORLD, mat->unknowns, mat->unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, &pMat);
-  MatShellSetOperation(pMat, MATOP_MULT, (void(*)(void))matAMult);
-  MatShellSetVecType(pMat, VECSTANDARD);
-
-  pMatInit = true;
+void PMultigrid::create_shell_mat(Mat *mat) {
+  MatCreateShell(PETSC_COMM_WORLD, pMatrix->unknowns, pMatrix->unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, mat);
+  MatShellSetOperation(*mat, MATOP_MULT, (void(*)(void))matBMult);
+  MatShellSetVecType(*mat, VECSTANDARD);
 }
 
-PetscErrorCode precon(PC pc, Vec x, Vec y) {
-  PoissonSolve *poisson;
-  PCShellGetContext(pc, (void **)&poisson);
-  const double *x_ptr;
-  double *y_ptr;
-  VecGetArrayRead(x, &x_ptr);
-  VecGetArray(y, &y_ptr);
-
-  poisson->precond(x_ptr, y_ptr);
-
-  VecRestoreArrayRead(x, &x_ptr);
-  VecRestoreArray(y, &y_ptr);
-  return 0;
-}
-
-void PoissonSolve::set_shell_pc(PC pc) {
-  PCShellSetApply(pc, precon);
-  PCShellSetContext(pc, this);
-}
-
-void PoissonSolve::setMatrix() {
+void PMultigrid::setMatrix() {
   if(pMatInit)
     MatDestroy(&pMat);
 
   MatCreate(PETSC_COMM_WORLD, &pMat);
   pMatInit = true;
-  MatSetSizes(pMat, mat->unknowns, mat->unknowns, PETSC_DECIDE, PETSC_DECIDE);
+  MatSetSizes(pMat, pMatrix->unknowns, pMatrix->unknowns, PETSC_DECIDE, PETSC_DECIDE);
 
   #ifdef INS_MPI
   MatSetType(pMat, MATMPIAIJ);
@@ -211,13 +182,13 @@ void PoissonSolve::setMatrix() {
 
   // Add cubature OP to Poisson matrix
   op_arg args[] = {
-    op_arg_dat(mat->op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-    op_arg_dat(mat->glb_ind, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(pMatrix->op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(pMatrix->glb_ind, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges(mesh->cells, 3, args);
-  const double *op1_data = (double *)mat->op1->data;
-  const int *glb = (int *)mat->glb_ind->data;
+  const double *op1_data = (double *)pMatrix->op1->data;
+  const int *glb = (int *)pMatrix->glb_ind->data;
   const int *p = (int *)mesh->order->data;
 
   MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_FALSE);
@@ -240,21 +211,21 @@ void PoissonSolve::setMatrix() {
   op_mpi_set_dirtybit(3, args);
 
   op_arg edge_args[] = {
-    op_arg_dat(mat->op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-    op_arg_dat(mat->op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-    op_arg_dat(mat->glb_indL, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(mat->glb_indR, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(mat->orderL, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(mat->orderR, -1, OP_ID, 1, "int", OP_READ)
+    op_arg_dat(pMatrix->op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(pMatrix->op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+    op_arg_dat(pMatrix->glb_indL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(pMatrix->glb_indR, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(pMatrix->orderL, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(pMatrix->orderR, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges(mesh->edges, 6, edge_args);
 
-  const double *op2L_data = (double *)mat->op2[0]->data;
-  const double *op2R_data = (double *)mat->op2[1]->data;
-  const int *glb_l = (int *)mat->glb_indL->data;
-  const int *glb_r = (int *)mat->glb_indR->data;
-  const int *p_l = (int *)mat->orderL->data;
-  const int *p_r = (int *)mat->orderR->data;
+  const double *op2L_data = (double *)pMatrix->op2[0]->data;
+  const double *op2R_data = (double *)pMatrix->op2[1]->data;
+  const int *glb_l = (int *)pMatrix->glb_indL->data;
+  const int *glb_r = (int *)pMatrix->glb_indR->data;
+  const int *p_l = (int *)pMatrix->orderL->data;
+  const int *p_r = (int *)pMatrix->orderR->data;
 
   // Add Gauss OP and OPf to Poisson matrix
   for(int i = 0; i < mesh->edges->size; i++) {

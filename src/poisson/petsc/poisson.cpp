@@ -1,4 +1,4 @@
-#include "poisson.h"
+#include "petsc_poisson.h"
 
 #include <iostream>
 #include <unistd.h>
@@ -11,7 +11,7 @@ using namespace std;
 
 extern Timing *timer;
 
-PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
+PetscPoissonSolve::PetscPoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
   mesh = m;
   data = nsData;
   ls = s;
@@ -50,7 +50,7 @@ PoissonSolve::PoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
   mat = new PoissonMat(mesh);
 }
 
-PoissonSolve::~PoissonSolve() {
+PetscPoissonSolve::~PetscPoissonSolve() {
   free(u_data);
   free(rhs_data);
   free(in_data);
@@ -70,11 +70,11 @@ PoissonSolve::~PoissonSolve() {
   delete mat;
 }
 
-void PoissonSolve::init() {
+void PetscPoissonSolve::init() {
   mat->init();
 }
 
-bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
+bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPGMRES);
   KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e2);
@@ -146,7 +146,7 @@ bool PoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
 }
 
 // Matrix-free Mat-Vec mult function
-void PoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
+void PetscPoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
   // Copy u to OP2 dat
   copy_vec_to_dat(u, u_d);
 
@@ -156,7 +156,7 @@ void PoissonSolve::calc_rhs(const double *u_d, double *rhs_d) {
 }
 
 // Matrix-free block-jacobi preconditioning function
-void PoissonSolve::precond(const double *in_d, double *out_d) {
+void PetscPoissonSolve::precond(const double *in_d, double *out_d) {
   copy_vec_to_dat(in, in_d);
 
   op_par_loop(poisson_pre, "poisson_pre", mesh->cells,
@@ -167,30 +167,30 @@ void PoissonSolve::precond(const double *in_d, double *out_d) {
   copy_dat_to_vec(out, out_d);
 }
 
-void PoissonSolve::setDirichletBCs(int *d) {
+void PetscPoissonSolve::setDirichletBCs(int *d) {
   mat->setDirichletBCs(d);
 }
 
-void PoissonSolve::setNeumannBCs(int *n) {
+void PetscPoissonSolve::setNeumannBCs(int *n) {
   mat->setNeumannBCs(n);
 }
 
-void PoissonSolve::setBCValues(op_dat bc) {
+void PetscPoissonSolve::setBCValues(op_dat bc) {
   bc_dat = bc;
 }
 
-double PoissonSolve::getAverageConvergeIter() {
+double PetscPoissonSolve::getAverageConvergeIter() {
   double res = (double)numberIter/(double)solveCount;
   numberIter = 0;
   solveCount = 0;
   return res;
 }
 
-PressureSolve::PressureSolve(DGMesh *m, INSData *d, LS *s) : PoissonSolve(m, d, s) {}
+PetscPressureSolve::PetscPressureSolve(DGMesh *m, INSData *d, LS *s) : PetscPoissonSolve(m, d, s) {}
 
-ViscositySolve::ViscositySolve(DGMesh *m, INSData *d, LS *s) : PoissonSolve(m, d, s) {}
+PetscViscositySolve::PetscViscositySolve(DGMesh *m, INSData *d, LS *s) : PetscPoissonSolve(m, d, s) {}
 
-void PressureSolve::setup() {
+void PetscPressureSolve::setup() {
   mat->update_glb_ind();
 
   massMat = false;
@@ -205,7 +205,7 @@ void PressureSolve::setup() {
   timer->endTimer("Build Pr Mat");
 }
 
-void ViscositySolve::setup(double mmConst) {
+void PetscViscositySolve::setup(double mmConst) {
   mat->update_glb_ind();
 
   massMat = true;

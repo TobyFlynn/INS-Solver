@@ -1,5 +1,5 @@
-#ifndef __POISSON_H
-#define __POISSON_H
+#ifndef __PETSC_POISSON_H
+#define __PETSC_POISSON_H
 
 #include "op_seq.h"
 #include "ins_data.h"
@@ -10,10 +10,10 @@
 #include "ls.h"
 #include "poisson_mat.h"
 
-class PoissonSolve {
+class PetscPoissonSolve {
 public:
-  PoissonSolve(DGMesh *m, INSData *nsData, LS *s);
-  ~PoissonSolve();
+  PetscPoissonSolve(DGMesh *m, INSData *nsData, LS *s);
+  ~PetscPoissonSolve();
 
   void init();
   bool solve(op_dat b_dat, op_dat x_dat);
@@ -70,16 +70,16 @@ private:
   double *gDelta_data;
 };
 
-class PressureSolve : public PoissonSolve {
+class PetscPressureSolve : public PetscPoissonSolve {
 public:
-  PressureSolve(DGMesh *m, INSData *d, LS *s);
+  PetscPressureSolve(DGMesh *m, INSData *d, LS *s);
 
   void setup();
 };
 
-class ViscositySolve : public PoissonSolve {
+class PetscViscositySolve : public PetscPoissonSolve {
 public:
-  ViscositySolve(DGMesh *m, INSData *d, LS *s);
+  PetscViscositySolve(DGMesh *m, INSData *d, LS *s);
 
   void setup(double mmConst);
 };

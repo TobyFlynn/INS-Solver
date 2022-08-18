@@ -12,7 +12,6 @@
 
 #include "ins_data.h"
 #include "save_solution.h"
-#include "poisson.h"
 #include "timing.h"
 #include "solver.h"
 

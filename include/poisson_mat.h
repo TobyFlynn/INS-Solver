@@ -13,6 +13,7 @@ public:
   void calc_mat(op_dat fact);
   void calc_mat_mm(op_dat fact, op_dat mmFact);
   void mult(op_dat in, op_dat out);
+  void multJacobi(op_dat in, op_dat out);
   void transpose();
 
   void setDirichletBCs(int *d);

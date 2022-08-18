@@ -1,4 +1,4 @@
-#include "poisson.h"
+#include "petsc_poisson.h"
 
 #ifdef INS_MPI
 #include "mpi_helper_func.h"
@@ -7,7 +7,7 @@
 #include "dg_utils.h"
 
 // Copy PETSc vec array to OP2 dat
-void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
+void PetscPoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
@@ -60,7 +60,7 @@ void PoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
 }
 
 // Copy OP2 dat to PETSc vec array
-void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
+void PetscPoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
@@ -113,19 +113,19 @@ void PoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
 }
 
 // Create a PETSc vector for GPUs
-void PoissonSolve::create_vec(Vec *v) {
+void PetscPoissonSolve::create_vec(Vec *v) {
   VecCreate(PETSC_COMM_WORLD, v);
   VecSetType(*v, VECCUDA);
   VecSetSizes(*v, mat->unknowns, PETSC_DECIDE);
 }
 
 // Destroy a PETSc vector
-void PoissonSolve::destroy_vec(Vec *v) {
+void PetscPoissonSolve::destroy_vec(Vec *v) {
   VecDestroy(v);
 }
 
 // Load a PETSc vector with values from an OP2 dat for GPUs
-void PoissonSolve::load_vec(Vec *v, op_dat v_dat) {
+void PetscPoissonSolve::load_vec(Vec *v, op_dat v_dat) {
   double *v_ptr;
   VecCUDAGetArray(*v, &v_ptr);
 
@@ -135,7 +135,7 @@ void PoissonSolve::load_vec(Vec *v, op_dat v_dat) {
 }
 
 // Load an OP2 dat with the values from a PETSc vector for GPUs
-void PoissonSolve::store_vec(Vec *v, op_dat v_dat) {
+void PetscPoissonSolve::store_vec(Vec *v, op_dat v_dat) {
   const double *v_ptr;
   VecCUDAGetArrayRead(*v, &v_ptr);
 
@@ -145,7 +145,7 @@ void PoissonSolve::store_vec(Vec *v, op_dat v_dat) {
 }
 
 PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
-  PoissonSolve *poisson;
+  PetscPoissonSolve *poisson;
   MatShellGetContext(A, &poisson);
   const double *x_ptr;
   double *y_ptr;
@@ -159,7 +159,7 @@ PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
   return 0;
 }
 
-void PoissonSolve::create_shell_mat() {
+void PetscPoissonSolve::create_shell_mat() {
   if(pMatInit)
     MatDestroy(&pMat);
 
@@ -171,7 +171,7 @@ void PoissonSolve::create_shell_mat() {
 }
 
 PetscErrorCode precon(PC pc, Vec x, Vec y) {
-  PoissonSolve *poisson;
+  PetscPoissonSolve *poisson;
   PCShellGetContext(pc, (void **)&poisson);
   const double *x_ptr;
   double *y_ptr;
@@ -185,12 +185,12 @@ PetscErrorCode precon(PC pc, Vec x, Vec y) {
   return 0;
 }
 
-void PoissonSolve::set_shell_pc(PC pc) {
+void PetscPoissonSolve::set_shell_pc(PC pc) {
   PCShellSetApply(pc, precon);
   PCShellSetContext(pc, this);
 }
 
-void PoissonSolve::setMatrix() {
+void PetscPoissonSolve::setMatrix() {
   if(pMatInit)
     MatDestroy(&pMat);
 

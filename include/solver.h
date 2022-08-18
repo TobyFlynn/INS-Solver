@@ -4,7 +4,8 @@
 #include <string>
 
 #include "ins_data.h"
-#include "poisson.h"
+#include "petsc_poisson.h"
+#include "p_multigrid.h"
 #include "ls.h"
 
 #include "dg_mesh.h"
@@ -35,8 +36,9 @@ public:
   LS *ls;
   double dt;
 private:
-  PressureSolve *pressurePoisson;
-  ViscositySolve *viscosityPoisson;
+  PetscPressureSolve *pressurePoisson;
+  PetscViscositySolve *viscosityPoisson;
+  PMultigrid *pMultigrid;
   int problem;
 };
 
