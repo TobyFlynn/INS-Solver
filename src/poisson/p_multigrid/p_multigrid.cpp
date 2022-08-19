@@ -4,6 +4,7 @@
 
 #include <limits>
 #include <random>
+#include <iostream>
 
 #include "dg_op2_blas.h"
 #include "dg_constants.h"
@@ -19,21 +20,21 @@ PMultigrid::PMultigrid(DGMesh *m) {
     tmp_dat_data[i] = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
     u_dat_data[i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
     b_dat_data[i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+    fact_data[i]    = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   }
 
   u_rhs_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   rhs_rhs_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  factor_data  = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
 
   for(int i = 0; i < DG_ORDER; i++) {
     tmp_dat[i] = op_decl_dat(mesh->cells, DG_NP, "double", tmp_dat_data[i], "tmp");
     u_dat[i]   = op_decl_dat(mesh->cells, DG_NP, "double", u_dat_data[i], "u");
     b_dat[i]   = op_decl_dat(mesh->cells, DG_NP, "double", b_dat_data[i], "b");
+    fact[i]    = op_decl_dat(mesh->cells, DG_NP, "double", fact_data[i], "fact");
   }
 
   u_rhs   = op_decl_dat(mesh->cells, DG_NP, "double", u_rhs_data, "u_rhs");
   rhs_rhs = op_decl_dat(mesh->cells, DG_NP, "double", rhs_rhs_data, "rhs_rhs");
-  factor  = op_decl_dat(mesh->cells, DG_NP, "double", factor_data, "factor");
 }
 
 PMultigrid::~PMultigrid() {
@@ -41,11 +42,11 @@ PMultigrid::~PMultigrid() {
     free(tmp_dat_data[i]);
     free(u_dat_data[i]);
     free(b_dat_data[i]);
+    free(fact_data[i]);
   }
 
   free(u_rhs_data);
   free(rhs_rhs_data);
-  free(factor_data);
 
   delete pMatrix;
   if(pMatInit)
@@ -84,12 +85,12 @@ bool PMultigrid::solve(op_dat b, op_dat x) {
 
 bool PMultigrid::cycle(int p) {
   timer->startTimer("PMultigrid - Calc Mat");
-  pMatrix->calc_mat(factor);
+  pMatrix->calc_mat(fact[p - 1]);
   timer->endTimer("PMultigrid - Calc Mat");
 
   if(p == 1) {
     // u = A^-1 (F)
-    return sub_solve(b_dat[p-1], u_dat[p-1]);;
+    return sub_solve(b_dat[p-1], u_dat[p-1]);
   }
 
   double w = (4.0 / 3.0) * (1.0 / maxEigenValue());
@@ -99,7 +100,7 @@ bool PMultigrid::cycle(int p) {
   // u = u + R^-1 (F - Au)
   // Probably best to switch this to some sort of convergence test
   timer->startTimer("PMultigrid - Relaxation");
-  for(int i = 0; i < 100; i++) {
+  for(int i = 0; i < 0; i++) {
     pMatrix->mult(u_dat[p-1], tmp_dat[p-1]);
     op_par_loop(p_multigrid_relaxation_jacobi, "p_multigrid_relaxation_jacobi", mesh->cells,
                 op_arg_gbl(&p, 1, "int", OP_READ),
@@ -122,10 +123,13 @@ bool PMultigrid::cycle(int p) {
               op_arg_dat(tmp_dat[p-1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(b_dat[p-1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(b_dat[p_new-1], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(u_dat[p_new-1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_dat(u_dat[p_new-1], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(fact[p-1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(fact[p_new-1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+
   std::vector<op_dat> dats_to_update;
   dats_to_update.push_back(b_dat[p_new-1]);
-  dats_to_update.push_back(factor);
+  dats_to_update.push_back(fact[p_new-1]);
   mesh->update_order(p_new, dats_to_update);
 
   bool converged = cycle(p_new);
@@ -134,9 +138,9 @@ bool PMultigrid::cycle(int p) {
   // u = u + Iu
   std::vector<op_dat> dats_to_update2;
   dats_to_update2.push_back(u_dat[p_new-1]);
-  dats_to_update2.push_back(factor);
   mesh->update_order(p, dats_to_update2);
-  pMatrix->calc_mat(factor);
+  pMatrix->calc_mat(fact[p-1]);
+
   op_par_loop(p_multigrid_prolongation, "p_multigrid_prolongation", mesh->cells,
               op_arg_gbl(&p, 1, "int", OP_READ),
               op_arg_dat(u_dat[p_new-1], -1, OP_ID, DG_NP, "double", OP_READ),
@@ -300,5 +304,5 @@ void PMultigrid::setRandomVector(op_dat vec) {
 void PMultigrid::set_rho(op_dat rho) {
   op_par_loop(poisson_pr_fact, "poisson_pr_fact", mesh->cells,
               op_arg_dat(rho,    -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(factor, -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_dat(fact[DG_ORDER - 1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 }
