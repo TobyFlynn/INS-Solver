@@ -181,7 +181,7 @@ void PMultigrid::setMatrix() {
   op_arg args[] = {
     op_arg_dat(pMatrix->op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
     op_arg_dat(pMatrix->glb_ind, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(pMatrix->order, -1, OP_ID, 1, "int", OP_READ)
+    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(mesh->cells, 3, args);
 
@@ -191,7 +191,7 @@ void PMultigrid::setMatrix() {
   int *order = (int *)malloc(setSize * sizeof(int));
   cudaMemcpy(op1_data, pMatrix->op1->data_d, setSize * DG_NP * DG_NP * sizeof(double), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb, pMatrix->glb_ind->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(order, pMatrix->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(order, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
   op_mpi_set_dirtybit_cuda(3, args);
 
   MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_FALSE);

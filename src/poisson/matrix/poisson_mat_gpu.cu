@@ -25,7 +25,7 @@ int PoissonMat::get_local_unknowns() {
   return local_unkowns;
 }
 
-void PoissonSolve::set_glb_ind() {
+void PoissonMat::set_glb_ind() {
   int global_ind = 0;
   #ifdef INS_MPI
   global_ind = get_global_mat_start_ind(unknowns);
