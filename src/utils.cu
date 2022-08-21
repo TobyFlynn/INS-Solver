@@ -73,13 +73,13 @@ void releaseOP2PtrDeviceMap(op_dat dat, op_map map, op_access acc, const double 
   ptr = nullptr;
 }
 
-double *getOP2PtrHostMap(op_dat dat, op_map map, op_access acc) {
+double *getOP2PtrHostMap(op_dat dat, op_map map, op_access acc) {    
   op_arg args[] = {
     op_arg_dat(dat, 0, map, dat->dim, "double", acc),
     op_arg_dat(dat, 1, map, dat->dim, "double", acc)
   };
-  op_mpi_halo_exchanges_cuda(map->from, 2, args);
-  op_mpi_wait_all(2, args);
+  op_mpi_halo_exchanges_grouped(map->from, 2, args, 2);
+  op_mpi_wait_all_grouped(2, args, 2);
 
   #ifdef INS_MPI
   double *res = (double *)malloc(dat->dim * (dat->set->size + OP_import_exec_list[dat->set->index]->size + OP_import_nonexec_list[dat->set->index]->size) * sizeof(double));
@@ -91,7 +91,7 @@ double *getOP2PtrHostMap(op_dat dat, op_map map, op_access acc) {
   return res;
 }
 
-void releaseOP2PtrHostMap(op_dat dat, op_map map, op_access acc, const double *ptr) {
+void releaseOP2PtrHostMap(op_dat dat, op_map map, op_access acc, const double *ptr) { 
   op_arg args[] = {
     op_arg_dat(dat, 0, map, dat->dim, "double", acc),
     op_arg_dat(dat, 1, map, dat->dim, "double", acc)
@@ -105,7 +105,8 @@ void releaseOP2PtrHostMap(op_dat dat, op_map map, op_access acc, const double *p
     #endif
   }
 
-  op_mpi_set_dirtybit(2, args);
+  op_mpi_set_dirtybit_cuda(2, args);
+
   free((void *)ptr);
   ptr = nullptr;
 }
