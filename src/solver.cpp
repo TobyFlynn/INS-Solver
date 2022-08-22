@@ -199,7 +199,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
                       double b1, double g0, double t) {
   timer->startTimer("Pressure Setup");
 
-  div(mesh, data->QT[0], data->QT[1], data->divVelT);
+  div_with_central_flux(mesh, data->QT[0], data->QT[1], data->divVelT);
   curl(mesh, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
   grad(mesh, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
 
@@ -251,36 +251,17 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
 
   // Call PETSc linear solver
   timer->startTimer("Pressure Linear Solve");
-  // pressurePoisson->setup();
-  // pressurePoisson->setBCValues(data->prBC);
-  // bool converged = pressurePoisson->solve(data->pRHS, data->p);
+  pressurePoisson->setup();
+  pressurePoisson->setBCValues(data->prBC);
+  bool converged = pressurePoisson->solve(data->pRHS, data->p);
 
-  pMultigrid->setBCValues(data->prBC);
-  pMultigrid->set_rho(data->rho);
-  bool converged = pMultigrid->solve(data->pRHS, data->p);
+  // pMultigrid->setBCValues(data->prBC);
+  // pMultigrid->set_rho(data->rho);
+  // bool converged = pMultigrid->solve(data->pRHS, data->p);
   timer->endTimer("Pressure Linear Solve");
 
   // Calculate gradient of pressure
-  grad(mesh, data->p, data->dpdx, data->dpdy);
-
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, data->p, 0.0, data->gP);
-
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
-              op_arg_dat(data->pFluxX, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
-              op_arg_dat(data->pFluxY, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
-
-  op_par_loop(pressure_grad_flux, "pressure_grad_flux", mesh->edges,
-              op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(mesh->gauss->nx, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(data->gP,        -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(data->pFluxX,    -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
-              op_arg_dat(data->pFluxY,    -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
-
-  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->pFluxX, 1.0, data->dpdx);
-  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->pFluxY, 1.0, data->dpdy);
+  grad_with_central_flux(mesh, data->p, data->dpdx, data->dpdy);
 
   // Calculate new velocity intermediate values
   op_par_loop(pressure_update_vel, "pressure_update_vel", mesh->cells,
