@@ -17,7 +17,7 @@
 #include "timing.h"
 
 extern Timing *timer;
-extern double dt, reynolds, refVel;
+extern double reynolds, refVel;
 
 using namespace std;
 
@@ -108,7 +108,6 @@ Solver::Solver(std::string filename, int prob) {
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_gbl(&dt, 1, "double", OP_MIN));
   dt = dt / (DG_ORDER * DG_ORDER * refVel);
-  macro_dt = dt * num_sub_cycles;
   op_printf("dt: %g\n", dt);
 }
 
@@ -119,6 +118,15 @@ Solver::~Solver() {
   delete ls;
   delete data;
   delete mesh;
+}
+
+void Solver::set_sub_cycling(int sub_cycles) {
+  sub_cycle = sub_cycles > 0;
+  num_sub_cycles = sub_cycles > 0 ? sub_cycles : 1;
+  macro_dt = dt * num_sub_cycles;
+  op_printf("macro dt: %g\n", macro_dt);
+  if(sub_cycle)
+    op_printf("Number of sub cycles: %d\n", num_sub_cycles);
 }
 
 void Solver::advection_non_linear(op_dat u, op_dat v, op_dat Nx, op_dat Ny, double t) {
@@ -275,8 +283,8 @@ void Solver::sub_cycle_velocity(op_dat u, op_dat v, op_dat u_l, op_dat v_l, doub
         op_par_loop(sub_cycle_set_rkQ, "sub_cycle_set_rkQ", mesh->cells,
                 op_arg_gbl(&x,  1, "int", OP_READ),
                 op_arg_gbl(&dt, 1, "double", OP_READ),
-                op_arg_dat(u,  -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(v,  -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(u_l,  -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(v_l,  -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_dat(data->rk[0][0], -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_dat(data->rk[0][1], -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_dat(data->rk[1][0], -1, OP_ID, DG_NP, "double", OP_READ),
@@ -487,7 +495,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 void Solver::update_surface(int currentInd) {
   timer->startTimer("Surface");
   ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
-  ls->step(macro_dt);
+  ls->step(dt, num_sub_cycles);
   timer->endTimer("Surface");
 }
 

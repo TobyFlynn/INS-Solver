@@ -15,7 +15,7 @@ public:
   void init();
 
   void setVelField(op_dat u1, op_dat v1);
-  void step(double dt);
+  void step(double dt, int num_steps);
 
   DGMesh *mesh;
   INSData *data;

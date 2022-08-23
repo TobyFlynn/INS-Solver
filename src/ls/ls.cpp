@@ -143,37 +143,39 @@ void LS::setVelField(op_dat u1, op_dat v1) {
   v = v1;
 }
 
-void LS::step(double dt) {
+void LS::step(double dt, int num_steps) {
   timer->startTimer("LS - Advection");
-  int x = -1;
-  op_par_loop(set_rkQ, "set_rkQ", mesh->cells,
-              op_arg_gbl(&x,     1, "int", OP_READ),
-              op_arg_gbl(&dt,    1, "double", OP_READ),
-              op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(rk[0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(rkQ,   -1, OP_ID, DG_NP, "double", OP_RW));
+  for(int i = 0; i < num_steps; i++) {
+    int x = -1;
+    op_par_loop(set_rkQ, "set_rkQ", mesh->cells,
+                op_arg_gbl(&x,     1, "int", OP_READ),
+                op_arg_gbl(&dt,    1, "double", OP_READ),
+                op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(rk[0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(rkQ,   -1, OP_ID, DG_NP, "double", OP_RW));
 
-  for(int j = 0; j < 3; j++) {
-    advec_step(rkQ, rk[j]);
+    for(int j = 0; j < 3; j++) {
+      advec_step(rkQ, rk[j]);
 
-    if(j != 2) {
-      op_par_loop(set_rkQ, "set_rkQ", mesh->cells,
-                  op_arg_gbl(&j,     1, "int", OP_READ),
-                  op_arg_gbl(&dt,    1, "double", OP_READ),
-                  op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_READ),
-                  op_arg_dat(rk[0], -1, OP_ID, DG_NP, "double", OP_READ),
-                  op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
-                  op_arg_dat(rkQ,   -1, OP_ID, DG_NP, "double", OP_RW));
+      if(j != 2) {
+        op_par_loop(set_rkQ, "set_rkQ", mesh->cells,
+                    op_arg_gbl(&j,     1, "int", OP_READ),
+                    op_arg_gbl(&dt,    1, "double", OP_READ),
+                    op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_READ),
+                    op_arg_dat(rk[0], -1, OP_ID, DG_NP, "double", OP_READ),
+                    op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
+                    op_arg_dat(rkQ,   -1, OP_ID, DG_NP, "double", OP_RW));
+      }
     }
-  }
 
-  op_par_loop(update_Q, "update_Q", mesh->cells,
-              op_arg_gbl(&dt,    1, "double", OP_READ),
-              op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_RW),
-              op_arg_dat(rk[0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(rk[2], -1, OP_ID, DG_NP, "double", OP_READ));
+    op_par_loop(update_Q, "update_Q", mesh->cells,
+                op_arg_gbl(&dt,    1, "double", OP_READ),
+                op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_RW),
+                op_arg_dat(rk[0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(rk[1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(rk[2], -1, OP_ID, DG_NP, "double", OP_READ));
+  }
   timer->endTimer("LS - Advection");
 
   counter++;

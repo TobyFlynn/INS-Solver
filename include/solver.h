@@ -31,13 +31,15 @@ public:
   double getAvgPressureConvergance();
   double getAvgViscosityConvergance();
 
+  void set_sub_cycling(int sub_cycles);
+
   DGMesh *mesh;
   INSData *data;
   LS *ls;
   double dt;
   double macro_dt;
-  int num_sub_cycles = 1;
-  bool sub_cycle = true;
+  int num_sub_cycles;
+  bool sub_cycle;
 private:
   void advection_non_linear(op_dat u, op_dat v, op_dat Nx, op_dat Ny, double t);
   void advection_non_linear(op_dat u0, op_dat v0, op_dat u1, op_dat v1, op_dat Nx, op_dat Ny, double t);

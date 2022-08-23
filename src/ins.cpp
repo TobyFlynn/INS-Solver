@@ -139,12 +139,7 @@ int main(int argc, char **argv) {
   bc_alpha = 0.0;
 
   Solver *solver = new Solver(filename, problem);
-  if(sub_cycle > 0) {
-    solver->sub_cycle = true;
-    solver->num_sub_cycles = sub_cycle;
-  } else {
-    solver->sub_cycle = false;
-  }
+  solver->set_sub_cycling(sub_cycle);
 
   double a0 = 1.0;
   double a1 = 0.0;
@@ -199,7 +194,7 @@ int main(int argc, char **argv) {
     solver->update_surface(currentIter % 2);
 
     currentIter++;
-    time += solver->dt;
+    time += solver->macro_dt;
 
     // Calculate drag and lift coefficients + save data
     if(save != -1 && (i + 1) % save == 0) {
