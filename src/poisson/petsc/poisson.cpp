@@ -21,6 +21,7 @@ PetscPoissonSolve::PetscPoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
   pMatInit = false;
   block_jacobi_pre = false;
   vec_created = false;
+  massMat = false;
 
   u_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   rhs_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
@@ -193,7 +194,9 @@ double PetscPoissonSolve::getAverageConvergeIter() {
 
 PetscPressureSolve::PetscPressureSolve(DGMesh *m, INSData *d, LS *s) : PetscPoissonSolve(m, d, s) {}
 
-PetscViscositySolve::PetscViscositySolve(DGMesh *m, INSData *d, LS *s) : PetscPoissonSolve(m, d, s) {}
+PetscViscositySolve::PetscViscositySolve(DGMesh *m, INSData *d, LS *s) : PetscPoissonSolve(m, d, s) {
+  massMat = true;
+}
 
 void PetscPressureSolve::setup() {
   mat->update_glb_ind();
