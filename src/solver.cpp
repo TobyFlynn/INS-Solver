@@ -120,6 +120,10 @@ Solver::~Solver() {
   delete mesh;
 }
 
+void Solver::set_linear_solver(int ls) {
+  linear_solver = ls;
+}
+
 // Calculate Nonlinear Terms
 void Solver::advection(int currentInd, double a0, double a1, double b0,
                        double b1, double g0, double t) {
@@ -251,13 +255,16 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
 
   // Call PETSc linear solver
   timer->startTimer("Pressure Linear Solve");
-  pressurePoisson->setup();
-  pressurePoisson->setBCValues(data->prBC);
-  bool converged = pressurePoisson->solve(data->pRHS, data->p);
-
-  // pMultigrid->setBCValues(data->prBC);
-  // pMultigrid->set_rho(data->rho);
-  // bool converged = pMultigrid->solve(data->pRHS, data->p);
+  bool converged;
+  if(linear_solver == 0) {
+    pressurePoisson->setup();
+    pressurePoisson->setBCValues(data->prBC);
+    converged = pressurePoisson->solve(data->pRHS, data->p);
+  } else {
+    pMultigrid->setBCValues(data->prBC);
+    pMultigrid->set_rho(data->rho);
+    converged = pMultigrid->solve(data->pRHS, data->p);
+  }
   timer->endTimer("Pressure Linear Solve");
 
   // Calculate gradient of pressure

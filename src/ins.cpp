@@ -112,6 +112,9 @@ int main(int argc, char **argv) {
   int problem = 0;
   PetscOptionsGetInt(NULL, NULL, "-problem", &problem, &found);
 
+  int linear_solver = 0;
+  PetscOptionsGetInt(NULL, NULL, "-linear_solver", &linear_solver, &found);
+
   char inputFile[255];
   PetscOptionsGetString(NULL, NULL, "-input", inputFile, 255, &found);
   if(!found) {
@@ -136,6 +139,7 @@ int main(int argc, char **argv) {
   bc_alpha = 0.0;
 
   Solver *solver = new Solver(filename, problem);
+  solver->set_linear_solver(linear_solver);
 
   double a0 = 1.0;
   double a1 = 0.0;

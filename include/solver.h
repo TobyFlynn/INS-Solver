@@ -27,6 +27,7 @@ public:
                  double g0, double t);
 
   void update_surface(int currentInd);
+  void set_linear_solver(int ls);
 
   double getAvgPressureConvergance();
   double getAvgViscosityConvergance();
@@ -40,6 +41,7 @@ private:
   PetscViscositySolve *viscosityPoisson;
   PMultigrid *pMultigrid;
   int problem;
+  int linear_solver;
 };
 
 #endif

@@ -39,7 +39,10 @@ private:
   void setMatrix();
 
   Mat pMat;
-  bool pMatInit;
+  bool pMatInit, vec_created;
+
+  KSP ksp;
+  Vec b, x;
 
   DGMesh *mesh;
   int dirichlet[3];

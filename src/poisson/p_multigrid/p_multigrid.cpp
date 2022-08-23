@@ -15,6 +15,7 @@ extern Timing *timer;
 PMultigrid::PMultigrid(DGMesh *m) {
   mesh = m;
   pMatrix = new PoissonMat(mesh);
+  vec_created = false;
 
   for(int i = 0; i < DG_ORDER; i++) {
     tmp_dat_data[i] = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
@@ -49,12 +50,34 @@ PMultigrid::~PMultigrid() {
   free(rhs_rhs_data);
 
   delete pMatrix;
-  if(pMatInit)
+  if(pMatInit) {
     MatDestroy(&pMat);
+    KSPDestroy(&ksp);
+  }
+  if(vec_created) {
+    VecDestroy(&x);
+    VecDestroy(&b);
+  }
 }
 
 void PMultigrid::init() {
   pMatrix->init();
+
+  KSPCreate(PETSC_COMM_WORLD, &ksp);
+  KSPSetType(ksp, KSPGMRES);
+  KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 1e3);
+  KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
+
+  PC pc;
+  KSPGetPC(ksp, &pc);
+  PCSetType(pc, PCGAMG);
+  PCGAMGSetNSmooths(pc, 4);
+  PCGAMGSetSquareGraph(pc, 1);
+  PCGAMGSetNlevels(pc, 20);
+  PCMGSetLevels(pc, 20, NULL);
+  PCMGSetCycleType(pc, PC_MG_CYCLE_W);
+  PCGAMGSetRepartition(pc, PETSC_TRUE);
+  PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
 }
 
 bool PMultigrid::solve(op_dat b, op_dat x) {
@@ -168,32 +191,17 @@ bool PMultigrid::cycle(int p) {
 
 bool PMultigrid::sub_solve(op_dat b_dat, op_dat u_dat) {
   pMatrix->update_glb_ind();
-
-  KSP ksp;
-  KSPCreate(PETSC_COMM_WORLD, &ksp);
-  KSPSetType(ksp, KSPGMRES);
-  KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 1e3);
-  KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
-
   // Mat pMat;
   // create_shell_mat(&pMat);
   setMatrix();
   KSPSetOperators(ksp, pMat, pMat);
 
-  PC pc;
-  KSPGetPC(ksp, &pc);
-  PCSetType(pc, PCGAMG);
-  PCGAMGSetNSmooths(pc, 4);
-  PCGAMGSetSquareGraph(pc, 1);
-  PCGAMGSetNlevels(pc, 20);
-  PCMGSetLevels(pc, 20, NULL);
-  PCMGSetCycleType(pc, PC_MG_CYCLE_W);
-  PCGAMGSetRepartition(pc, PETSC_TRUE);
-  PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
+  if(!vec_created) {
+    create_vec(&b);
+    create_vec(&x);
+    vec_created = true;
+  }
 
-  Vec b, x;
-  create_vec(&b);
-  create_vec(&x);
   load_vec(&b, b_dat);
   load_vec(&x, u_dat);
 
@@ -205,20 +213,17 @@ bool PMultigrid::sub_solve(op_dat b_dat, op_dat u_dat) {
   KSPGetIterationNumber(ksp, &numIt);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp, &reason);
-  double residual;
-  KSPGetResidualNorm(ksp, &residual);
-  std::cout << "Number of iterations for coarsest level: " << numIt << std::endl;
-  std::cout << "Converge reason: " << reason << std::endl;
-  std::cout << "Residual: " << residual << std::endl;
+  if(reason < 0) {
+    double residual;
+    KSPGetResidualNorm(ksp, &residual);
+    std::cout << "Number of iterations for coarsest level: " << numIt << std::endl;
+    std::cout << "Converge reason: " << reason << std::endl;
+    std::cout << "Residual: " << residual << std::endl;
+  }
 
   Vec solution;
   KSPGetSolution(ksp, &solution);
   store_vec(&solution, u_dat);
-
-  VecDestroy(&x);
-  VecDestroy(&b);
-  MatDestroy(&pMat);
-  KSPDestroy(&ksp);
 
   return reason > 0;
 }

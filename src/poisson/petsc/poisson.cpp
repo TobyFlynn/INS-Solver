@@ -20,6 +20,7 @@ PetscPoissonSolve::PetscPoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
   solveCount = 0;
   pMatInit = false;
   block_jacobi_pre = false;
+  vec_created = false;
 
   u_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   rhs_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
@@ -64,23 +65,25 @@ PetscPoissonSolve::~PetscPoissonSolve() {
   free(h_data);
   free(gDelta_data);
 
-  if(pMatInit)
+  if(pMatInit) {
+    KSPDestroy(&ksp);
     MatDestroy(&pMat);
+  }
+  if(vec_created) {
+    destroy_vec(&b);
+    destroy_vec(&x);
+  }
   
   delete mat;
 }
 
 void PetscPoissonSolve::init() {
   mat->init();
-}
 
-bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPGMRES);
   KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e2);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
-
-  KSPSetOperators(ksp, pMat, pMat);
 
   PC pc;
   KSPGetPC(ksp, &pc);
@@ -98,6 +101,16 @@ bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
     PCGAMGSetRepartition(pc, PETSC_TRUE);
     PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
   }
+}
+
+bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
+  if(!vec_created) {
+    create_vec(&b);
+    create_vec(&x);
+    vec_created = true;
+  }
+
+  KSPSetOperators(ksp, pMat, pMat);
 
   op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
               op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
@@ -105,9 +118,6 @@ bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
               op_arg_dat(mat->op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
               op_arg_dat(bc_dat, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
               op_arg_dat(b_dat,  0, mesh->bedge2cells, DG_NP, "double", OP_INC));
-
-  create_vec(&b);
-  create_vec(&x);
 
   load_vec(&b, b_dat);
   load_vec(&x, x_dat);
@@ -136,11 +146,6 @@ bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   Vec solution;
   KSPGetSolution(ksp, &solution);
   store_vec(&solution, x_dat);
-
-  destroy_vec(&b);
-  destroy_vec(&x);
-
-  KSPDestroy(&ksp);
 
   return converged;
 }

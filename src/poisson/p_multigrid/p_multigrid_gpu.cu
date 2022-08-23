@@ -161,21 +161,20 @@ void PMultigrid::create_shell_mat(Mat *mat) {
 }
 
 void PMultigrid::setMatrix() {
-  if(pMatInit)
-    MatDestroy(&pMat);
+  if(!pMatInit) {
+    MatCreate(PETSC_COMM_WORLD, &pMat);
+    pMatInit = true;
+    MatSetSizes(pMat, pMatrix->unknowns, pMatrix->unknowns, PETSC_DECIDE, PETSC_DECIDE);
 
-  MatCreate(PETSC_COMM_WORLD, &pMat);
-  pMatInit = true;
-  MatSetSizes(pMat, pMatrix->unknowns, pMatrix->unknowns, PETSC_DECIDE, PETSC_DECIDE);
-
-  #ifdef INS_MPI
-  MatSetType(pMat, MATMPIAIJCUSPARSE);
-  MatMPIAIJSetPreallocation(pMat, DG_NP * 4, NULL, 0, NULL);
-  #else
-  MatSetType(pMat, MATSEQAIJCUSPARSE);
-  MatSeqAIJSetPreallocation(pMat, DG_NP * 4, NULL);
-  #endif
-  MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+    #ifdef INS_MPI
+    MatSetType(pMat, MATMPIAIJCUSPARSE);
+    MatMPIAIJSetPreallocation(pMat, DG_NP * 4, NULL, 0, NULL);
+    #else
+    MatSetType(pMat, MATSEQAIJCUSPARSE);
+    MatSeqAIJSetPreallocation(pMat, DG_NP * 4, NULL);
+    #endif
+    MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+  }
 
   // Add cubature OP to Poisson matrix
   op_arg args[] = {
@@ -266,5 +265,4 @@ void PMultigrid::setMatrix() {
 
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
-
 }
