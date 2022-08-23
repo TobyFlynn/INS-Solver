@@ -6,6 +6,7 @@
 #include "ins_data.h"
 #include "petsc_poisson.h"
 #include "p_multigrid.h"
+#include "petsc_poisson_stale.h"
 #include "ls.h"
 
 #include "dg_mesh.h"
@@ -28,6 +29,7 @@ public:
 
   void update_surface(int currentInd);
   void set_linear_solver(int ls);
+  void set_refresh_num(int rn);
 
   double getAvgPressureConvergance();
   double getAvgViscosityConvergance();
@@ -40,8 +42,10 @@ private:
   PetscPressureSolve *pressurePoisson;
   PetscViscositySolve *viscosityPoisson;
   PMultigrid *pMultigrid;
+  PetscPressureStaleSolve *prPoissonStale;
   int problem;
   int linear_solver;
+  int refresh_num;
 };
 
 #endif

@@ -71,6 +71,7 @@ Solver::Solver(std::string filename, int prob) {
   pressurePoisson = new PetscPressureSolve(mesh, data, ls);
   viscosityPoisson = new PetscViscositySolve(mesh, data, ls);
   pMultigrid = new PMultigrid(mesh);
+  prPoissonStale = new PetscPressureStaleSolve(mesh, data, ls);
 
   pressurePoisson->setDirichletBCs(pressure_dirichlet);
   pressurePoisson->setNeumannBCs(pressure_neumann);
@@ -78,6 +79,8 @@ Solver::Solver(std::string filename, int prob) {
   viscosityPoisson->setNeumannBCs(viscosity_neumann);
   pMultigrid->setDirichletBCs(pressure_dirichlet);
   pMultigrid->setNeumannBCs(pressure_neumann);
+  prPoissonStale->setDirichletBCs(pressure_dirichlet);
+  prPoissonStale->setNeumannBCs(pressure_neumann);
 
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->edge2cells, NULL);
 
@@ -87,6 +90,7 @@ Solver::Solver(std::string filename, int prob) {
   pressurePoisson->init();
   viscosityPoisson->init();
   pMultigrid->init();
+  prPoissonStale->init();
 
   // Set initial conditions
   op_par_loop(set_ic, "set_ic", mesh->cells,
@@ -122,6 +126,11 @@ Solver::~Solver() {
 
 void Solver::set_linear_solver(int ls) {
   linear_solver = ls;
+}
+
+void Solver::set_refresh_num(int rn) {
+  refresh_num = rn;
+  prPoissonStale->set_refresh_num(refresh_num);
 }
 
 // Calculate Nonlinear Terms
@@ -260,10 +269,14 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
     pressurePoisson->setup();
     pressurePoisson->setBCValues(data->prBC);
     converged = pressurePoisson->solve(data->pRHS, data->p);
-  } else {
+  } else if(linear_solver == 1) {
     pMultigrid->setBCValues(data->prBC);
     pMultigrid->set_rho(data->rho);
     converged = pMultigrid->solve(data->pRHS, data->p);
+  } else {
+    prPoissonStale->setup();
+    prPoissonStale->setBCValues(data->prBC);
+    converged = prPoissonStale->solve(data->pRHS, data->p);
   }
   timer->endTimer("Pressure Linear Solve");
 
