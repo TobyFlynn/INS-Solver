@@ -120,24 +120,21 @@ Solver::~Solver() {
   delete mesh;
 }
 
-// Calculate Nonlinear Terms
-void Solver::advection(int currentInd, double a0, double a1, double b0,
-                       double b1, double g0, double t) {
-  // Calculate flux values
+void Solver::advection_non_linear(op_dat u, op_dat v, op_dat Nx, op_dat Ny, double t) {
+  // Tensor product of velocity with itself
   op_par_loop(advection_flux, "advection_flux", mesh->cells,
-              op_arg_dat(data->Q[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->Q[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(v, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->F[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->F[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->F[2], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->F[3], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  div(mesh, data->F[0], data->F[1], data->N[currentInd][0]);
-  div(mesh, data->F[2], data->F[3], data->N[currentInd][1]);
+  div(mesh, data->F[0], data->F[1], Nx);
+  div(mesh, data->F[2], data->F[3], Ny);
 
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, data->Q[currentInd][0], 0.0, data->gQ[0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, data->Q[currentInd][0], 0.0, data->gQ[0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, data->Q[currentInd][1], 0.0, data->gQ[1]);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, u, 0.0, data->gQ[0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, v, 0.0, data->gQ[1]);
 
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
               op_arg_dat(data->flux[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
@@ -173,8 +170,76 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->flux[0],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
               op_arg_dat(data->flux[1],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
 
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], 1.0, data->N[currentInd][0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], 1.0, data->N[currentInd][1]);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], 1.0, Nx);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], 1.0, Ny);
+}
+
+void Solver::advection_non_linear(op_dat u0, op_dat v0, op_dat u1, op_dat v1, op_dat Nx, op_dat Ny, double t) {
+  // Tensor product of the two velocities
+  op_par_loop(advection_flux2, "advection_flux2", mesh->cells,
+              op_arg_dat(u0, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(v0, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u1, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(v1, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->F[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->F[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->F[2], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->F[3], -1, OP_ID, DG_NP, "double", OP_WRITE));
+  
+  div(mesh, data->F[0], data->F[1], Nx);
+  div(mesh, data->F[2], data->F[3], Ny);
+
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, u0, 0.0, data->gQ[0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, v0, 0.0, data->gQ[1]);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, u1, 0.0, data->gQ[2]);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, v1, 0.0, data->gQ[3]);
+
+  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+              op_arg_dat(data->flux[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
+              op_arg_dat(data->flux[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+  
+  op_par_loop(advection_faces2, "advection_faces2", mesh->edges,
+              op_arg_dat(mesh->order,     -2, mesh->edge2cells, 1, "int", OP_READ),
+              op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(data->gQ[0],     -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->gQ[1],     -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->gQ[2],     -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->gQ[3],     -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->nx, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->ny, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->flux[0],   -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
+              op_arg_dat(data->flux[1],   -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
+  
+  // Not sure with how the boundary flux is being calculated - maybe need to pass to times to kernel?
+  op_par_loop(advection_bc2, "advection_bc2", mesh->bedges,
+              op_arg_dat(mesh->order,       0, mesh->bedge2cells, 1, "int", OP_READ),
+              op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(&t, 1, "double", OP_READ),
+              op_arg_gbl(&problem, 1, "int", OP_READ),
+              op_arg_dat(mesh->gauss->x,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->y,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->gQ[0],     0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->gQ[1],     0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->gQ[2],     0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->gQ[3],     0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(data->flux[0],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
+              op_arg_dat(data->flux[1],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], 1.0, Nx);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], 1.0, Ny);
+}
+
+// Calculate Nonlinear Terms
+void Solver::advection(int currentInd, double a0, double a1, double b0,
+                       double b1, double g0, double t) {
+  // Calculate flux values
+  advection_non_linear(data->Q[currentInd][0], data->Q[currentInd][1], data->N[currentInd][0], data->N[currentInd][1], t);
 
   // Calculate the intermediate velocity values
   op_par_loop(advection_intermediate_vel, "advection_intermediate_vel", mesh->cells,

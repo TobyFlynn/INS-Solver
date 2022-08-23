@@ -18,7 +18,7 @@ INSData::INSData(DGMesh *m) {
   for(int i = 0; i < 10; i++) {
     tmp_dg_np_data[i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   }
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 6; i++) {
     tmp_dg_g_np_data[i] = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
   }
   for(int i = 0; i < 2; i++) {
@@ -43,7 +43,7 @@ INSData::INSData(DGMesh *m) {
     string name    = "tmp_dg_np" + to_string(i);
     tmp_dg_np[i]   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_dg_np_data[i], name.c_str());
   }
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 6; i++) {
     string name    = "tmp_dg_g_np" + to_string(i);
     tmp_dg_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, "double", tmp_dg_g_np_data[i], name.c_str());
   }
@@ -89,7 +89,7 @@ INSData::~INSData() {
   for(int i = 0; i < 10; i++) {
     free(tmp_dg_np_data[i]);
   }
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 6; i++) {
     free(tmp_dg_g_np_data[i]);
   }
   for(int i = 0; i < 2; i++) {
@@ -133,8 +133,10 @@ void INSData::init() {
   // Advection
   gQ[0]   = tmp_dg_g_np[0];
   gQ[1]   = tmp_dg_g_np[1];
-  flux[0] = tmp_dg_g_np[2];
-  flux[1] = tmp_dg_g_np[3];
+  gQ[2]   = tmp_dg_g_np[2];
+  gQ[3]   = tmp_dg_g_np[3];
+  flux[0] = tmp_dg_g_np[4];
+  flux[1] = tmp_dg_g_np[5];
   // Pressure
   gP     = tmp_dg_g_np[0];
   pFluxX = tmp_dg_g_np[1];

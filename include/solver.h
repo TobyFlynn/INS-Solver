@@ -36,6 +36,9 @@ public:
   LS *ls;
   double dt;
 private:
+  void advection_non_linear(op_dat u, op_dat v, op_dat Nx, op_dat Ny, double t);
+  void advection_non_linear(op_dat u0, op_dat v0, op_dat u1, op_dat v1, op_dat Nx, op_dat Ny, double t);
+
   PetscPressureSolve *pressurePoisson;
   PetscViscositySolve *viscosityPoisson;
   PMultigrid *pMultigrid;
