@@ -108,6 +108,7 @@ Solver::Solver(std::string filename, int prob) {
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_gbl(&dt, 1, "double", OP_MIN));
   dt = dt / (DG_ORDER * DG_ORDER * refVel);
+  macro_dt = dt * num_sub_cycles;
   op_printf("dt: %g\n", dt);
 }
 
@@ -231,33 +232,115 @@ void Solver::advection_non_linear(op_dat u0, op_dat v0, op_dat u1, op_dat v1, op
               op_arg_dat(data->flux[0],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
               op_arg_dat(data->flux[1],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
 
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], 1.0, Nx);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], 1.0, Ny);
+  // op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], 1.0, Nx);
+  // op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], 1.0, Ny);
+  // Mult by -1 for sub cycling
+  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], -1.0, Nx);
+  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], -1.0, Ny);
+}
+
+void Solver::sub_cycle_velocity(op_dat u, op_dat v, op_dat u_l, op_dat v_l, double t, int num_cycles) {
+  double time = t;
+
+  op_par_loop(sub_cycle_init, "sub_cycle_init", mesh->cells,
+                op_arg_dat(u,   -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(v,   -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(u_l, -1, OP_ID, DG_NP, "double", OP_WRITE),
+                op_arg_dat(v_l, -1, OP_ID, DG_NP, "double", OP_WRITE));
+
+  for(int cycle = 0; cycle < num_cycles; cycle++) {
+    int x = -1;
+    op_par_loop(sub_cycle_set_rkQ, "sub_cycle_set_rkQ", mesh->cells,
+                op_arg_gbl(&x,  1, "int", OP_READ),
+                op_arg_gbl(&dt, 1, "double", OP_READ),
+                op_arg_dat(u_l,  -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(v_l,  -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[0][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[0][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[1][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[1][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rkQ[0],   -1, OP_ID, DG_NP, "double", OP_RW),
+                op_arg_dat(data->rkQ[1],   -1, OP_ID, DG_NP, "double", OP_RW));
+
+    for(int j = 0; j < 3; j++) {
+      if(j == 0)
+        time = t + cycle * dt;
+      else if(j == 1)
+        time = t + cycle * dt + dt;
+      else
+        time = t + cycle * dt + 0.5 * dt;
+      advection_non_linear(u, v, data->rkQ[0], data->rkQ[1], data->rk[j][0], data->rk[j][1], time);
+
+      if(j != 2) {
+        op_par_loop(sub_cycle_set_rkQ, "sub_cycle_set_rkQ", mesh->cells,
+                op_arg_gbl(&x,  1, "int", OP_READ),
+                op_arg_gbl(&dt, 1, "double", OP_READ),
+                op_arg_dat(u,  -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(v,  -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[0][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[0][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[1][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[1][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rkQ[0],   -1, OP_ID, DG_NP, "double", OP_RW),
+                op_arg_dat(data->rkQ[1],   -1, OP_ID, DG_NP, "double", OP_RW));
+      }
+    }
+
+    op_par_loop(sub_cycle_update_Q, "sub_cycle_update_Q", mesh->cells,
+                op_arg_gbl(&dt, 1, "double", OP_READ),
+                op_arg_dat(data->rk[0][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[0][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[1][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[1][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[2][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->rk[2][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(u_l, -1, OP_ID, DG_NP, "double", OP_RW),
+                op_arg_dat(v_l, -1, OP_ID, DG_NP, "double", OP_RW));
+  }
 }
 
 // Calculate Nonlinear Terms
 void Solver::advection(int currentInd, double a0, double a1, double b0,
                        double b1, double g0, double t) {
-  // Calculate flux values
-  advection_non_linear(data->Q[currentInd][0], data->Q[currentInd][1], data->N[currentInd][0], data->N[currentInd][1], t);
+  if(sub_cycle) {
+    sub_cycle_velocity(data->Q[currentInd][0], data->Q[currentInd][1], data->Q_l[currentInd][0], data->Q_l[currentInd][1], t, num_sub_cycles);
+    sub_cycle_velocity(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1], data->Q_l[(currentInd + 1) % 2][0], data->Q_l[(currentInd + 1) % 2][1], t - macro_dt, num_sub_cycles * 2);
 
-  // Calculate the intermediate velocity values
-  op_par_loop(advection_intermediate_vel, "advection_intermediate_vel", mesh->cells,
-              op_arg_gbl(&a0, 1, "double", OP_READ),
-              op_arg_gbl(&a1, 1, "double", OP_READ),
-              op_arg_gbl(&b0, 1, "double", OP_READ),
-              op_arg_gbl(&b1, 1, "double", OP_READ),
-              op_arg_gbl(&dt, 1, "double", OP_READ),
-              op_arg_dat(data->Q[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->Q[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->Q[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->Q[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->N[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->N[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->N[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->N[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->QT[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(data->QT[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+    // Calculate the intermediate velocity values
+    op_par_loop(sub_cycle_advection_intermediate_vel, "sub_cycle_advection_intermediate_vel", mesh->cells,
+                op_arg_gbl(&a0, 1, "double", OP_READ),
+                op_arg_gbl(&a1, 1, "double", OP_READ),
+                op_arg_dat(data->Q_l[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->Q_l[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->Q_l[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->Q_l[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->QT[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+                op_arg_dat(data->QT[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+    
+    // Needed for pressure BCs
+    advection_non_linear(data->Q[currentInd][0], data->Q[currentInd][1], data->N[currentInd][0], data->N[currentInd][1], t);
+  } else {
+    // Calculate flux values
+    advection_non_linear(data->Q[currentInd][0], data->Q[currentInd][1], data->N[currentInd][0], data->N[currentInd][1], t);
+
+    // Calculate the intermediate velocity values
+    op_par_loop(advection_intermediate_vel, "advection_intermediate_vel", mesh->cells,
+                op_arg_gbl(&a0, 1, "double", OP_READ),
+                op_arg_gbl(&a1, 1, "double", OP_READ),
+                op_arg_gbl(&b0, 1, "double", OP_READ),
+                op_arg_gbl(&b1, 1, "double", OP_READ),
+                op_arg_gbl(&dt, 1, "double", OP_READ),
+                op_arg_dat(data->Q[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->Q[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->Q[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->Q[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->N[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->N[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->N[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->N[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(data->QT[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+                op_arg_dat(data->QT[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+  }
 }
 
 bool Solver::pressure(int currentInd, double a0, double a1, double b0,
@@ -303,7 +386,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   op_par_loop(pressure_rhs, "pressure_rhs", mesh->cells,
               op_arg_gbl(&b0, 1, "double", OP_READ),
               op_arg_gbl(&b1, 1, "double", OP_READ),
-              op_arg_gbl(&dt, 1, "double", OP_READ),
+              op_arg_gbl(&macro_dt, 1, "double", OP_READ),
               op_arg_dat(mesh->J, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->sJ, -1, OP_ID, 3 * DG_NPF, "double", OP_READ),
               op_arg_dat(data->dPdN[currentInd], -1, OP_ID, 3 * DG_NPF, "double", OP_READ),
@@ -330,7 +413,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
 
   // Calculate new velocity intermediate values
   op_par_loop(pressure_update_vel, "pressure_update_vel", mesh->cells,
-              op_arg_gbl(&dt, 1, "double", OP_READ),
+              op_arg_gbl(&macro_dt, 1, "double", OP_READ),
               op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->dpdx, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->dpdy, -1, OP_ID, DG_NP, "double", OP_READ),
@@ -347,7 +430,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
 bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
                        double b1, double g0, double t) {
   timer->startTimer("Viscosity Setup");
-  double time = t + dt;
+  double time = t + macro_dt;
 
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
               op_arg_dat(data->visBC[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
@@ -378,7 +461,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->visRHS[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  double factor = reynolds / dt;
+  double factor = reynolds / macro_dt;
   op_par_loop(viscosity_rhs, "viscosity_rhs", mesh->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
               op_arg_dat(data->rho,       -1, OP_ID, DG_NP, "double", OP_READ),
@@ -389,7 +472,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 
   // Call PETSc linear solver
   timer->startTimer("Viscosity Linear Solve");
-  factor = g0 * reynolds / dt;
+  factor = g0 * reynolds / macro_dt;
   viscosityPoisson->setup(factor);
   viscosityPoisson->setBCValues(data->visBC[0]);
   bool convergedX = viscosityPoisson->solve(data->visRHS[0], data->Q[(currentInd + 1) % 2][0]);
@@ -404,7 +487,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
 void Solver::update_surface(int currentInd) {
   timer->startTimer("Surface");
   ls->setVelField(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1]);
-  ls->step(dt);
+  ls->step(macro_dt);
   timer->endTimer("Surface");
 }
 

@@ -120,6 +120,9 @@ int main(int argc, char **argv) {
   }
   string filename = string(inputFile);
 
+  int sub_cycle = -1;
+  PetscOptionsGetInt(NULL, NULL, "-sub_cycle", &sub_cycle, &found);
+
   char outDir[255];
   string outputDir = "";
   PetscOptionsGetString(NULL, NULL, "-output", outDir, 255, &found);
@@ -136,6 +139,12 @@ int main(int argc, char **argv) {
   bc_alpha = 0.0;
 
   Solver *solver = new Solver(filename, problem);
+  if(sub_cycle > 0) {
+    solver->sub_cycle = true;
+    solver->num_sub_cycles = sub_cycle;
+  } else {
+    solver->sub_cycle = false;
+  }
 
   double a0 = 1.0;
   double a1 = 0.0;

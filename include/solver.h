@@ -35,9 +35,13 @@ public:
   INSData *data;
   LS *ls;
   double dt;
+  double macro_dt;
+  int num_sub_cycles = 1;
+  bool sub_cycle = true;
 private:
   void advection_non_linear(op_dat u, op_dat v, op_dat Nx, op_dat Ny, double t);
   void advection_non_linear(op_dat u0, op_dat v0, op_dat u1, op_dat v1, op_dat Nx, op_dat Ny, double t);
+  void sub_cycle_velocity(op_dat u, op_dat v, op_dat u_l, op_dat v_l, double t, int num_cycles);
 
   PetscPressureSolve *pressurePoisson;
   PetscViscositySolve *viscosityPoisson;
