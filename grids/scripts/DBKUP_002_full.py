@@ -21,20 +21,22 @@ with open('DBKUP_002.csv') as csvfile:
     #   y_bottom.append(row[1])
     i = i + 1
 
-with open('DBKUP_002.geo', 'w') as geofile:
-  line = "airfoil_tol = 0.01;\n"
+with open('DBKUP_002_full.geo', 'w') as geofile:
+  line = "airfoil_tol = 10;\n"
+  geofile.write(line)
+  line = "factor = 0.47 / 4.9e-4;\n"
   geofile.write(line)
   for i in range(0, len(x)):
-    line = "Point(%i) = { %8.8f, %8.8f, 0, airfoil_tol};\n" % (i,float(x[i]),float(y[i]))
+    line = "Point(%i) = { %8.8f * factor, %8.8f * factor, 0, airfoil_tol};\n" % (i,float(x[i]),float(y[i]))
     geofile.write(line)
   line = "Spline(0) = { 0 : %i, 0 };\nCurve Loop(1) = {0};\n" % (len(x) - 1)
   geofile.write(line)
   boundaryPts = \
-"""boundary_tol = 0.1;
-xL = -3;
-yL = -3;
-xR = 3;
-yR = 3;
+"""boundary_tol = 50;
+xL = -2 * factor;
+yL = -2 * factor;
+xR = 5 * factor;
+yR = 2 * factor;
 // Outline points
 p1 = newp; Point(p1) = {xL, yL, 0, boundary_tol};
 p2 = newp; Point(p2) = {xL, yR, 0, boundary_tol};
