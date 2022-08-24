@@ -43,7 +43,8 @@ public:
 private:
   void advection_non_linear(op_dat u, op_dat v, op_dat Nx, op_dat Ny, double t);
   void advection_non_linear(op_dat u0, op_dat v0, op_dat u1, op_dat v1, op_dat Nx, op_dat Ny, double t);
-  void sub_cycle_velocity(op_dat u, op_dat v, op_dat u_l, op_dat v_l, double t, int num_cycles);
+  void sub_cycle_velocity(int currentInd, op_dat u, op_dat v, op_dat u_l, op_dat v_l, double t_n, double t, int num_cycles);
+  void calc_u_bar(int currentInd, double t_n, double t_new);
 
   PetscPressureSolve *pressurePoisson;
   PetscViscositySolve *viscosityPoisson;

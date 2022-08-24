@@ -247,7 +247,21 @@ void Solver::advection_non_linear(op_dat u0, op_dat v0, op_dat u1, op_dat v1, op
   op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], -1.0, Ny);
 }
 
-void Solver::sub_cycle_velocity(op_dat u, op_dat v, op_dat u_l, op_dat v_l, double t, int num_cycles) {
+void Solver::calc_u_bar(int currentInd, double t_n, double t_new) {
+  double t_n_1 = t_n - macro_dt;
+  op_par_loop(calc_u_bar, "calc_u_bar", mesh->cells,
+              op_arg_gbl(&t_n, 1, "double", OP_READ),
+              op_arg_gbl(&t_n_1, 1, "double", OP_READ),
+              op_arg_gbl(&t_new, 1, "double", OP_READ),
+              op_arg_dat(data->Q[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->Q[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->Q[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->Q[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->u_bar[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->u_bar[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+}
+
+void Solver::sub_cycle_velocity(int currentInd, op_dat u, op_dat v, op_dat u_l, op_dat v_l, double t_n, double t, int num_cycles) {
   double time = t;
 
   op_par_loop(sub_cycle_init, "sub_cycle_init", mesh->cells,
@@ -277,7 +291,10 @@ void Solver::sub_cycle_velocity(op_dat u, op_dat v, op_dat u_l, op_dat v_l, doub
         time = t + cycle * dt + dt;
       else
         time = t + cycle * dt + 0.5 * dt;
-      advection_non_linear(u, v, data->rkQ[0], data->rkQ[1], data->rk[j][0], data->rk[j][1], time);
+      
+      calc_u_bar(currentInd, t_n, time);
+
+      advection_non_linear(data->u_bar[0], data->u_bar[1], data->rkQ[0], data->rkQ[1], data->rk[j][0], data->rk[j][1], time);
 
       if(j != 2) {
         op_par_loop(sub_cycle_set_rkQ, "sub_cycle_set_rkQ", mesh->cells,
@@ -311,8 +328,8 @@ void Solver::sub_cycle_velocity(op_dat u, op_dat v, op_dat u_l, op_dat v_l, doub
 void Solver::advection(int currentInd, double a0, double a1, double b0,
                        double b1, double g0, double t) {
   if(sub_cycle) {
-    sub_cycle_velocity(data->Q[currentInd][0], data->Q[currentInd][1], data->Q_l[currentInd][0], data->Q_l[currentInd][1], t, num_sub_cycles);
-    sub_cycle_velocity(data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1], data->Q_l[(currentInd + 1) % 2][0], data->Q_l[(currentInd + 1) % 2][1], t - macro_dt, num_sub_cycles * 2);
+    sub_cycle_velocity(currentInd, data->Q[currentInd][0], data->Q[currentInd][1], data->Q_l[currentInd][0], data->Q_l[currentInd][1], t, t, num_sub_cycles);
+    sub_cycle_velocity(currentInd, data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1], data->Q_l[(currentInd + 1) % 2][0], data->Q_l[(currentInd + 1) % 2][1], t, t - macro_dt, num_sub_cycles * 2);
 
     // Calculate the intermediate velocity values
     op_par_loop(sub_cycle_advection_intermediate_vel, "sub_cycle_advection_intermediate_vel", mesh->cells,

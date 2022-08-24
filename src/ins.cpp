@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
   double b1 = 0.0;
   double g0 = 1.0;
   int currentIter = 0;
-  double time = 0.0;
+  double time = 1.0;
 
   if(save != -1) {
     save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);

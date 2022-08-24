@@ -31,6 +31,7 @@ INSData::INSData(DGMesh *m) {
     dPdN_data[i]   = (double *)calloc(3 * DG_NPF * mesh->numCells, sizeof(double));
     Q_l_data[0][i] = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
     Q_l_data[1][i] = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+    u_bar_data[i]  = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   }
   p_data         = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   prBC_data      = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
@@ -68,6 +69,8 @@ INSData::INSData(DGMesh *m) {
     Q_l[0][i]   = op_decl_dat(mesh->cells, DG_NP, "double", Q_l_data[0][i], name.c_str());
     name        = "Q_l1" + to_string(i);
     Q_l[1][i]   = op_decl_dat(mesh->cells, DG_NP, "double", Q_l_data[1][i], name.c_str());
+    name        = "u_bar" + to_string(i);
+    u_bar[i]    = op_decl_dat(mesh->cells, DG_NP, "double", u_bar_data[i], name.c_str());
   }
   p         = op_decl_dat(mesh->cells, DG_NP, "double", p_data, "p");
   prBC      = op_decl_dat(mesh->cells, DG_G_NP, "double", prBC_data, "prBC");
@@ -108,6 +111,7 @@ INSData::~INSData() {
     free(dPdN_data[i]);
     free(Q_l_data[0][i]);
     free(Q_l_data[1][i]);
+    free(u_bar_data[i]);
   }
   free(p_data);
   free(prBC_data);
