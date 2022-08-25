@@ -140,7 +140,6 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
   div(mesh, data->F[2], data->F[3], data->N[currentInd][1]);
 
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, data->Q[currentInd][0], 0.0, data->gQ[0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, data->Q[currentInd][0], 0.0, data->gQ[0]);
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, data->Q[currentInd][1], 0.0, data->gQ[1]);
 
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
@@ -203,7 +202,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
                       double b1, double g0, double t) {
   timer->startTimer("Pressure Setup");
 
-  div_with_central_flux(mesh, data->QT[0], data->QT[1], data->divVelT);
+  div(mesh, data->QT[0], data->QT[1], data->divVelT);
   curl(mesh, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
   grad(mesh, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
 

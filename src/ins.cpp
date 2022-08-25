@@ -75,14 +75,15 @@ int main(int argc, char **argv) {
   ic_v = 0.0;
 
   mu0  = 1.0;
-  mu1  = 100.0;
+  mu1  = 1.0;
   rho0 = 1.0;
-  rho1 = 1000.0;
+  rho1 = 1.0;
 
   refRho     = 1.0;
   refMu      = 1.0e-5;
-  refLen     = 0.001;
-  refVel     = 1.5;
+  refLen     = 4.9e-4;
+  refVel     = 90.0;
+  // refVel     = 1.0;
   refSurfTen = 0.0756;
 
   // Set Reynolds number
@@ -191,7 +192,7 @@ int main(int argc, char **argv) {
     }
     timer->endTimer("Viscosity");
 
-    solver->update_surface(currentIter % 2);
+    // solver->update_surface(currentIter % 2);
 
     currentIter++;
     time += solver->dt;

@@ -100,9 +100,9 @@ Spline(0) = { 0 : 95, 0 };
 Curve Loop(1) = {0};
 boundary_tol = 50;
 xL = -2 * factor;
-yL = -2 * factor;
-xR = 5 * factor;
-yR = 2 * factor;
+yL = -1.5 * factor;
+xR = 6 * factor;
+yR = 1.5 * factor;
 // Outline points
 p1 = newp; Point(p1) = {xL, yL, 0, boundary_tol};
 p2 = newp; Point(p2) = {xL, yR, 0, boundary_tol};
