@@ -211,6 +211,7 @@ int main(int argc, char **argv) {
     save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
 
   // Save solution to CGNS file
+  timer->startTimer("Final save");
   save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, time, nu);
 
   vector<op_dat> dats_to_save;
@@ -232,6 +233,7 @@ int main(int argc, char **argv) {
   dats_to_save.push_back(solver->ls->s);
   dat_names.push_back("Surface");
   save_solution(outputDir + "end-extended.cgns", solver->mesh, dats_to_save, dat_names);
+  timer->endTimer("Final save");
 
   timer->endTimer("Wall Time");
   timer->exportTimings(outputDir + "timings.txt", iter, time);

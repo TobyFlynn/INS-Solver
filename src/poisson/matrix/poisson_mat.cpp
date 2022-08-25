@@ -6,6 +6,10 @@
 #include "dg_blas_calls.h"
 #include "dg_op2_blas.h"
 
+#include "timing.h"
+
+extern Timing *timer;
+
 PoissonMat::PoissonMat(DGMesh *m) {
   mesh = m;
 
@@ -71,17 +75,21 @@ void PoissonMat::init() {
 }
 
 void PoissonMat::calc_mat(op_dat fact) {
+  timer->startTimer("PoissonMat - calc mat");
   factor = fact;
   calc_cub_sub_mat();
   calc_gauss_sub_mat();
+  timer->endTimer("PoissonMat - calc mat");
 }
 
 void PoissonMat::calc_mat_mm(op_dat fact, op_dat mmFact) {
+  timer->startTimer("PoissonMat - calc mat mm");
   factor = fact;
   mmFactor = mmFact;
   calc_cub_sub_mat();
   calc_gauss_sub_mat();
   calc_mm_mat();
+  timer->endTimer("PoissonMat - calc mat mm");
 }
 
 void PoissonMat::update_glb_ind() {

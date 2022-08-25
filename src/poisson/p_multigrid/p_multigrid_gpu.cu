@@ -5,9 +5,13 @@
 #endif
 
 #include "dg_utils.h"
+#include "timing.h"
+
+extern Timing *timer;
 
 // Copy PETSc vec array to OP2 dat
 void PMultigrid::copy_vec_to_dat(op_dat dat, const double *dat_d) {
+  timer->startTimer("PMultigrid - vec2dat");
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
@@ -58,10 +62,12 @@ void PMultigrid::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   cudaDeviceSynchronize();
   free(tempOrder);
   op_mpi_set_dirtybit_cuda(2, copy_args);
+  timer->endTimer("PMultigrid - vec2dat");
 }
 
 // Copy OP2 dat to PETSc vec array
 void PMultigrid::copy_dat_to_vec(op_dat dat, double *dat_d) {
+  timer->startTimer("PMultigrid - dat2vec");
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
@@ -112,6 +118,7 @@ void PMultigrid::copy_dat_to_vec(op_dat dat, double *dat_d) {
   cudaDeviceSynchronize();
   free(tempOrder);
   op_mpi_set_dirtybit_cuda(2, copy_args);
+  timer->endTimer("PMultigrid - dat2vec");
 }
 
 // Create a PETSc vector for GPUs
@@ -163,6 +170,7 @@ void PMultigrid::create_shell_mat(Mat *mat) {
 }
 
 void PMultigrid::setMatrix() {
+  timer->startTimer("PMultigrid - set mat");
   if(!pMatInit) {
     MatCreate(PETSC_COMM_WORLD, &pMat);
     pMatInit = true;
@@ -267,4 +275,5 @@ void PMultigrid::setMatrix() {
 
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
+  timer->startTimer("PMultigrid - end mat");
 }

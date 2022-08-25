@@ -201,12 +201,9 @@ bool PMultigrid::cycle(int p) {
 }
 
 bool PMultigrid::sub_solve(op_dat b_dat, op_dat u_dat) {
+  timer->startTimer("PMultigrid - Direct solve");
   pMatrix->update_glb_ind();
-  // Mat pMat;
-  // create_shell_mat(&pMat);
-  timer->startTimer("PMultigrid - Set Matrix");
   setMatrix();
-  timer->endTimer("PMultigrid - Set Matrix");
   KSPSetOperators(ksp, pMat, pMat);
 
   if(!vec_created) {
@@ -215,10 +212,8 @@ bool PMultigrid::sub_solve(op_dat b_dat, op_dat u_dat) {
     vec_created = true;
   }
 
-  timer->startTimer("PMultigrid - Load Vec");
   load_vec(&b, b_dat);
   load_vec(&x, u_dat);
-  timer->endTimer("PMultigrid - Load Vec");
 
   timer->startTimer("PMultigrid - KSPSolve");
   KSPSolve(ksp, b, x);
@@ -239,6 +234,7 @@ bool PMultigrid::sub_solve(op_dat b_dat, op_dat u_dat) {
   Vec solution;
   KSPGetSolution(ksp, &solution);
   store_vec(&solution, u_dat);
+  timer->endTimer("PMultigrid - Direct solve");
 
   return reason > 0;
 }

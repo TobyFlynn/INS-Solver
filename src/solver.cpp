@@ -53,12 +53,14 @@ Solver::Solver(std::string filename, int prob) {
   int viscosity_dirichlet[3];
   int viscosity_neumann[3];
 
+  timer->startTimer("Load mesh");
   load_mesh(filename, &coords_data, &cells_data, &edge2node_data,
             &edge2cell_data, &bedge2node_data, &bedge2cell_data,
             &bedge_type_data, &edgeNum_data, &bedgeNum_data, &numNodes_g,
             &numCells_g, &numEdges_g, &numBoundaryEdges_g, &numNodes, &numCells,
             &numEdges, &numBoundaryEdges, pressure_dirichlet, pressure_neumann,
             viscosity_dirichlet, viscosity_neumann);
+  timer->endTimer("Load mesh");
 
   mesh = new DGMesh(coords_data, cells_data, edge2node_data, edge2cell_data,
                     bedge2node_data, bedge2cell_data, bedge_type_data,
@@ -81,12 +83,14 @@ Solver::Solver(std::string filename, int prob) {
 
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->edge2cells, NULL);
 
+  timer->startTimer("Init functions");
   mesh->init();
   data->init();
   ls->init();
   pressurePoisson->init();
   viscosityPoisson->init();
   pMultigrid->init();
+  timer->endTimer("Init functions");
 
   // Set initial conditions
   op_par_loop(set_ic, "set_ic", mesh->cells,
