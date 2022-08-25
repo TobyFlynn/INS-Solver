@@ -82,7 +82,7 @@ void PetscPoissonSolve::init() {
   mat->init();
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
-  KSPSetType(ksp, KSPGMRES);
+  KSPSetType(ksp, KSPCG);
   KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e2);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
 

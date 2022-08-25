@@ -116,8 +116,10 @@ bool PMultigrid::cycle(int p) {
     return sub_solve(b_dat[p-1], u_dat[p-1]);
   }
 
+  timer->startTimer("PMultigrid - w");
   double w = (4.0 / 3.0) * (1.0 / maxEigenValue());
-  std::cout << "Factor for " << p << ": " << w << std::endl;
+  timer->endTimer("PMultigrid - w");
+  // std::cout << "Factor for " << p << ": " << w << std::endl;
 
   // Relaxation
   // u = u + R^-1 (F - Au)
@@ -137,6 +139,7 @@ bool PMultigrid::cycle(int p) {
 
 
   // Restriction
+  timer->startTimer("PMultigrid - Restriction");
   int p_new = p / 2;
   // F = I^T (F - Au)
   // u = 0
@@ -153,22 +156,30 @@ bool PMultigrid::cycle(int p) {
   std::vector<op_dat> dats_to_update;
   dats_to_update.push_back(b_dat[p_new-1]);
   dats_to_update.push_back(fact[p_new-1]);
+  timer->startTimer("PMultigrid - Interp");
   mesh->update_order(p_new, dats_to_update);
+  timer->endTimer("PMultigrid - Interp");
+  timer->endTimer("PMultigrid - Restriction");
 
   bool converged = cycle(p_new);
 
   // Prologation
   // u = u + Iu
+  timer->startTimer("PMultigrid - Prolongation");
   std::vector<op_dat> dats_to_update2;
   dats_to_update2.push_back(u_dat[p_new-1]);
+  timer->startTimer("PMultigrid - Interp");
   mesh->update_order(p, dats_to_update2);
+  timer->endTimer("PMultigrid - Interp");
+  timer->startTimer("PMultigrid - Calc Mat");
   pMatrix->calc_mat(fact[p-1]);
+  timer->endTimer("PMultigrid - Calc Mat");
 
   op_par_loop(p_multigrid_prolongation, "p_multigrid_prolongation", mesh->cells,
               op_arg_gbl(&p, 1, "int", OP_READ),
               op_arg_dat(u_dat[p_new-1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(u_dat[p-1],     -1, OP_ID, DG_NP, "double", OP_RW));
-
+  timer->endTimer("PMultigrid - Prolongation");
 
   // Relaxation
   // u = u + R^-1 (F - Au)
@@ -193,7 +204,9 @@ bool PMultigrid::sub_solve(op_dat b_dat, op_dat u_dat) {
   pMatrix->update_glb_ind();
   // Mat pMat;
   // create_shell_mat(&pMat);
+  timer->startTimer("PMultigrid - Set Matrix");
   setMatrix();
+  timer->endTimer("PMultigrid - Set Matrix");
   KSPSetOperators(ksp, pMat, pMat);
 
   if(!vec_created) {
@@ -202,8 +215,10 @@ bool PMultigrid::sub_solve(op_dat b_dat, op_dat u_dat) {
     vec_created = true;
   }
 
+  timer->startTimer("PMultigrid - Load Vec");
   load_vec(&b, b_dat);
   load_vec(&x, u_dat);
+  timer->endTimer("PMultigrid - Load Vec");
 
   timer->startTimer("PMultigrid - KSPSolve");
   KSPSolve(ksp, b, x);

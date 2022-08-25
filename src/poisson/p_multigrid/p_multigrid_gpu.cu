@@ -36,7 +36,7 @@ void PMultigrid::copy_vec_to_dat(op_dat dat, const double *dat_d) {
     } else {
       if(block_count != 0) {
         double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
-        cudaMemcpy(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+        cudaMemcpyAsync(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
         vec_ind += DG_NP * block_count;
       }
       block_count = 0;
@@ -46,15 +46,16 @@ void PMultigrid::copy_vec_to_dat(op_dat dat, const double *dat_d) {
     int Np, Nfp;
     DGUtils::basic_constants(N, &Np, &Nfp);
 
-    cudaMemcpy(v_c, dat_d + vec_ind, Np * sizeof(double), cudaMemcpyDeviceToDevice);
+    cudaMemcpyAsync(v_c, dat_d + vec_ind, Np * sizeof(double), cudaMemcpyDeviceToDevice);
     vec_ind += Np;
   }
 
   if(block_count != 0) {
     double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
-    cudaMemcpy(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+    cudaMemcpyAsync(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
     vec_ind += DG_NP * block_count;
   }
+  cudaDeviceSynchronize();
   free(tempOrder);
   op_mpi_set_dirtybit_cuda(2, copy_args);
 }
@@ -89,7 +90,7 @@ void PMultigrid::copy_dat_to_vec(op_dat dat, double *dat_d) {
     } else {
       if(block_count != 0) {
         const double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
-        cudaMemcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+        cudaMemcpyAsync(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
         vec_ind += DG_NP * block_count;
       }
       block_count = 0;
@@ -99,15 +100,16 @@ void PMultigrid::copy_dat_to_vec(op_dat dat, double *dat_d) {
     int Np, Nfp;
     DGUtils::basic_constants(N, &Np, &Nfp);
 
-    cudaMemcpy(dat_d + vec_ind, v_c, Np * sizeof(double), cudaMemcpyDeviceToDevice);
+    cudaMemcpyAsync(dat_d + vec_ind, v_c, Np * sizeof(double), cudaMemcpyDeviceToDevice);
     vec_ind += Np;
   }
 
   if(block_count != 0) {
     const double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
-    cudaMemcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+    cudaMemcpyAsync(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
     vec_ind += DG_NP * block_count;
   }
+  cudaDeviceSynchronize();
   free(tempOrder);
   op_mpi_set_dirtybit_cuda(2, copy_args);
 }
