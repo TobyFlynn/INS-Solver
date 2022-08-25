@@ -9,6 +9,20 @@
 
 extern Timing *timer;
 
+void PMultigrid::copy_vec_to_dat(op_dat dat, const double *dat_d) {
+  timer->startTimer("PMultigrid - vec2dat");
+  op_arg copy_args[] = {
+    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE)
+  };
+  op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
+
+  int setSize = dat->set->size;
+  cudaMemcpy2D(dat->data_d, DG_NP * sizeof(double), dat_d, 3 * sizeof(double), 3 * sizeof(double), setSize, cudaMemcpyDeviceToDevice);
+  
+  op_mpi_set_dirtybit_cuda(1, copy_args);
+  timer->endTimer("PMultigrid - vec2dat");
+}
+/*
 // Copy PETSc vec array to OP2 dat
 void PMultigrid::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   timer->startTimer("PMultigrid - vec2dat");
@@ -64,7 +78,23 @@ void PMultigrid::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   op_mpi_set_dirtybit_cuda(2, copy_args);
   timer->endTimer("PMultigrid - vec2dat");
 }
+*/
 
+void PMultigrid::copy_dat_to_vec(op_dat dat, double *dat_d) {
+  timer->startTimer("PMultigrid - dat2vec");
+  op_arg copy_args[] = {
+    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
+
+  int setSize = dat->set->size;
+
+  cudaMemcpy2D(dat_d, 3 * sizeof(double), dat->data_d, DG_NP * sizeof(double), 3 * sizeof(double), setSize, cudaMemcpyDeviceToDevice);
+  
+  op_mpi_set_dirtybit_cuda(1, copy_args);
+  timer->endTimer("PMultigrid - dat2vec");
+}
+/*
 // Copy OP2 dat to PETSc vec array
 void PMultigrid::copy_dat_to_vec(op_dat dat, double *dat_d) {
   timer->startTimer("PMultigrid - dat2vec");
@@ -120,7 +150,7 @@ void PMultigrid::copy_dat_to_vec(op_dat dat, double *dat_d) {
   op_mpi_set_dirtybit_cuda(2, copy_args);
   timer->endTimer("PMultigrid - dat2vec");
 }
-
+*/
 // Create a PETSc vector for GPUs
 void PMultigrid::create_vec(Vec *v) {
   VecCreate(PETSC_COMM_WORLD, v);
@@ -275,5 +305,5 @@ void PMultigrid::setMatrix() {
 
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
-  timer->startTimer("PMultigrid - end mat");
+  timer->endTimer("PMultigrid - set mat");
 }
