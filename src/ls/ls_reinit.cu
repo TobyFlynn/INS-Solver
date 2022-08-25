@@ -215,9 +215,10 @@ void LS::reinit_ls() {
   timer->endTimer("LS - Construct K-D Tree");
 
   // Map of cell ind to polynomial approximations
+  timer->startTimer("LS - Construct Poly Eval");
   std::vector<PolyApprox> polys = kdtree.get_polys();
-
   PolyEval pe(polys);
+  timer->endTimer("LS - Construct Poly Eval");
 
   const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
   const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);

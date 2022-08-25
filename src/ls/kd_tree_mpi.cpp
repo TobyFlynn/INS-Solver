@@ -41,8 +41,10 @@ KDTreeMPI::KDTreeMPI(const double *x, const double *y, const int num,
   update_poly_inds(points);
 
   // Construct local complete tree
+  timer->startTimer("K-D Tree - Construct Tree");
   if(n > 0)
     construct_tree(points.begin(), points.end(), false, 0);
+  timer->endTimer("K-D Tree - Construct Tree");
 }
 
 vector<vector<KDCoord>::iterator> KDTreeMPI::local_search(const int num_pts, const double *x, const double *y) {
@@ -584,6 +586,7 @@ void KDTreeMPI::update_local_polys(const int Reinit_comm_rank, const int Reinit_
 
 void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *y, double *closest_x, double *closest_y, int *poly_ind) {
   // 2) Get comm of ranks that contain nodes to be reinitialised (num_pts != 0)
+  timer->startTimer("K-D Tree - setup comms");
   MPI_Comm Reinit_comm;
   int Reinit_comm_size, Reinit_comm_rank;
   if(num_pts != 0) {
@@ -593,16 +596,20 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   } else {
     MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &Reinit_comm);
   }
+  timer->endTimer("K-D Tree - setup comms");
 
   if(num_pts == 0)
     return;
 
   // 3) Share bounding box of each MPI rank
+  timer->startTimer("K-D Tree - bounding boxes");
   MPIBB mpi_bb[Reinit_comm_size];
   get_global_bounding_boxes(&Reinit_comm, mpi_bb);
+  timer->endTimer("K-D Tree - bounding boxes");
 
   // 4) Non-blocking communication of ranks that have no local k-d tree
   //    saying which process they are sending their points too
+  timer->startTimer("K-D Tree - round1");
   int num_pts_to_send[Reinit_comm_size];
   for(int i = 0; i < Reinit_comm_size; i++) {
     num_pts_to_send[i] = 0;
@@ -639,20 +646,24 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
 
   // 5) Ranks with a local k-d tree perform local k-d tree searches,
   //    overlaping with step 4
+  timer->startTimer("K-D Tree - round1 local search");
   vector<vector<KDCoord>::iterator> local_closest;
   if(nodes.size() > 0) {
     local_closest = local_search(num_pts, x, y);
   }
+  timer->endTimer("K-D Tree - round1 local search");
 
   // 6) Wait on step 4 and then process these nodes on the relevant ranks
   round1_wait_comms(Reinit_comm_rank, Reinit_comm_size, requests, 
                     num_pts_to_send, num_pts_to_recv);
 
   // Now search local k-d tree using these nodes
+  timer->endTimer("K-D Tree - round1 remote search");
   vector<vector<KDCoord>::iterator> remote_closest;
   if(nodes.size() > 0) {
     remote_closest = local_search(num_remote_pts, pts_to_recv);
   }
+  timer->endTimer("K-D Tree - round1 remote search");
 
   // 7) Send back the results of step 6
   MPIKDResponse *response;
@@ -665,11 +676,12 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   round1_send_results(Reinit_comm_rank, Reinit_comm_size, num_pts, num_remote_pts,
                       num_pts_to_send, num_pts_to_recv, send_inds, recv_inds,
                       remote_closest, &response, &MPI_MPIKDResponse_Type, &Reinit_comm);
-
+  timer->endTimer("K-D Tree - round1");
   // 8) Blocking communication of points to ranks that could potentially 
   //    contain closer points
 
   // Work out which points could have closer points
+  timer->startTimer("K-D Tree - populate query pts");
   vector<QueryPt> queryPoints = populate_query_pts(num_pts, x, y, Reinit_comm_rank, Reinit_comm_size, 
                                                    mpi_bb, num_pts_to_send, response, pt_send_rcv_map,
                                                    local_closest);
@@ -680,8 +692,10 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
       nonLockedIn.push_back(&qp);
     }
   }
+  timer->endTimer("K-D Tree - populate query pts");
 
   // Pack data to send to remote ranks (some pts may be sent to multiple ranks)
+  timer->startTimer("K-D Tree - round2");
   double *round2_pts_to_send;
   vector<QueryPt*> qp_ptrs;
   round2_pack_query_pts(Reinit_comm_size, num_pts_to_send, send_inds, 
@@ -707,13 +721,17 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   round2_results_comm(Reinit_comm_rank, Reinit_comm_size, &Reinit_comm, &MPI_MPIKDResponse_Type,
                       num_pts_to_send, num_pts_to_recv, send_inds, recv_inds, remote_closest,
                       &round2_send_response, &round2_recv_response);
+  timer->endTimer("K-D Tree - round2");
 
   // 11) Combine remote and local searches to get actual closest point
   //     and associated polynomial approximation
+  timer->startTimer("K-D Tree - work out closest pt");
   round2_update_qp(Reinit_comm_size, num_pts_to_send, qp_ptrs, round2_recv_response);
-  
+  timer->endTimer("K-D Tree - work out closest pt");
+
   // All query points now have the closest point, just need to get the polys from other ranks
   // Get list of polys wanted
+  timer->startTimer("K-D Tree - snd/rcv polys");
   int num_polys_req[Reinit_comm_size];
   int poly_recv_inds[Reinit_comm_size];
   vector<int> polys_wanted;
@@ -736,10 +754,14 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   send_polys(Reinit_comm_rank, Reinit_comm_size, &Reinit_comm,
              num_polys_snd, num_polys_req, poly_send_inds, poly_recv_inds,
              poly_list_to_send, &requested_poly_coeff);
+  timer->endTimer("K-D Tree - snd/rcv polys");
 
   // Add received polys to local list of polys and update poly indices
+  timer->startTimer("K-D Tree - update local polys");
   update_local_polys(Reinit_comm_rank, Reinit_comm_size, num_polys_req, poly_recv_inds, 
                      requested_poly_coeff, polys_wanted, queryPoints);
+  timer->endTimer("K-D Tree - update local polys");
+
   // Return results
   for(auto &qp : queryPoints) {
     closest_x[qp.ind] = qp.closest_x;
