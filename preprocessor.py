@@ -33,7 +33,7 @@ elif sys.argv[1] == "3":
     dg_g_np      = "18"
     dg_gf_np     = "6"
     dg_sub_cells = "9"
-    ls_sample_np = "15"
+    ls_sample_np = "10"
 elif sys.argv[1] == "4":
     dg_np        = "15"
     dg_npf       = "5"
@@ -41,7 +41,7 @@ elif sys.argv[1] == "4":
     dg_g_np      = "21"
     dg_gf_np     = "7"
     dg_sub_cells = "16"
-    ls_sample_np = "15"
+    ls_sample_np = "10"
 else:
     print("This order of DG is not yet supported...exiting")
     sys.exit()

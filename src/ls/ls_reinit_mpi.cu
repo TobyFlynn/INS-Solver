@@ -196,6 +196,7 @@ void LS::reinit_ls() {
   
   timer->startTimer("LS - Sample Interface");
   op_par_loop(sample_interface, "sample_interface", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),

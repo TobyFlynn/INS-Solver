@@ -59,8 +59,8 @@ void PolyApprox::stencil_data(const set<int> &stencil, const double *x_ptr,
   map<Coord, Point, cmpCoords> pointMap;
 
   for(const auto &sten : stencil) {
-    for(int n = 0; n < 6; n++) {
-      int ind = sten * 6 + n;
+    for(int n = 0; n < DG_NP; n++) {
+      int ind = sten * DG_NP + n;
 
       Coord coord;
       coord.x = x_ptr[ind] - offset_x;

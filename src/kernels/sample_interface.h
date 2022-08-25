@@ -1,8 +1,11 @@
-inline void sample_interface(const double *x, const double *y, const double *surface,
-                             double *sample_x, double *sample_y) {
-  const double node0s = surface[0];
-  const double node1s = surface[2];
-  const double node2s = surface[5];
+inline void sample_interface(const int *p, const double *x, const double *y, 
+                             const double *surface, double *sample_x, double *sample_y) {
+  const int dg_npf = DG_CONSTANTS[(*p - 1) * 5 + 1];
+  const int *fmask = &FMASK[(*p - 1) * 3 * DG_NPF];
+
+  const double node0s = surface[fmask[0]];
+  const double node1s = surface[fmask[dg_npf - 1]];
+  const double node2s = surface[fmask[2 * dg_npf - 1]];
 
   double end0x = NAN;
   double end0y = NAN;
