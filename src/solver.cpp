@@ -343,6 +343,11 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
   bool convergedY = viscosityPoisson->solve(data->visRHS[1], data->Q[(currentInd + 1) % 2][1]);
   timer->endTimer("Viscosity Linear Solve");
 
+  timer->startTimer("Filtering");
+  filter(mesh, data->Q[(currentInd + 1) % 2][0]);
+  filter(mesh, data->Q[(currentInd + 1) % 2][1]);
+  timer->endTimer("Filtering");
+
   return convergedX && convergedY;
 }
 
