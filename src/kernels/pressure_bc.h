@@ -21,11 +21,11 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
       dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
     }
 
-    if(*bedge_type == 0) {
+    if(*t < 0.5 && *bedge_type == 0) {
       // Inflow
       for(int i = 0; i < dg_npf; i++) {
         double y1 = y[fmask[i]];
-        double bcdUndt = -(PI/8.0) * cos((PI * *t) / 8.0);
+        double bcdUndt = -(PI) * cos(PI * *t);
         dPdN[exInd + i] -= bcdUndt;
       }
     }
