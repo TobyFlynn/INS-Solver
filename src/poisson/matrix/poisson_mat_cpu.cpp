@@ -9,8 +9,12 @@
 #endif
 
 #include "dg_utils.h"
+#include "timing.h"
+
+extern Timing *timer;
 
 int PoissonMat::get_local_unknowns() {
+  timer->startTimer("PoissonMat - unknowns");
   op_arg op2_args[] = {
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
@@ -24,10 +28,12 @@ int PoissonMat::get_local_unknowns() {
     local_unkowns += Np;
   }
   op_mpi_set_dirtybit(1, op2_args);
+  timer->endTimer("PoissonMat - unknowns");
   return local_unkowns;
 }
 
 void PoissonMat::set_glb_ind() {
+  timer->startTimer("PoissonMat - glb_ind");
   int global_ind = 0;
   #ifdef INS_MPI
   global_ind = get_global_mat_start_ind(unknowns);
@@ -49,4 +55,5 @@ void PoissonMat::set_glb_ind() {
   }
 
   op_mpi_set_dirtybit(2, args);
+  timer->endTimer("PoissonMat - glb_ind");
 }

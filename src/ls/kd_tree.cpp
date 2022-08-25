@@ -39,7 +39,9 @@ KDTree::KDTree(const double *x, const double *y, const int num,
   construct_polys(points, mesh, s);
   update_poly_inds(points);
 
+  timer->startTimer("K-D Tree - Construct Tree");
   construct_tree(points.begin(), points.end(), false, 0);
+  timer->endTimer("K-D Tree - Construct Tree");
 }
 
 KDCoord KDTree::closest_point(double x, double y) {

@@ -6,6 +6,7 @@
 #include "op_seq.h"
 
 #include "dg_blas_calls.h"
+#include "timing.h"
 
 using namespace std;
 
@@ -82,8 +83,8 @@ void PetscPoissonSolve::init() {
   mat->init();
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
-  KSPSetType(ksp, KSPGMRES);
-  KSPSetTolerances(ksp, 1e-14, 1e-50, 1e5, 1e2);
+  KSPSetType(ksp, KSPCG);
+  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e2);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
 
   PC pc;
@@ -105,6 +106,7 @@ void PetscPoissonSolve::init() {
 }
 
 bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
+  timer->startTimer("PETSc - solve");
   if(!vec_created) {
     create_vec(&b);
     create_vec(&x);
@@ -123,9 +125,9 @@ bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   load_vec(&b, b_dat);
   load_vec(&x, x_dat);
 
-  timer->startTimer("KSPSolve");
+  timer->startTimer("PETSc - KSPSolve");
   KSPSolve(ksp, b, x);
-  timer->endTimer("KSPSolve");
+  timer->endTimer("PETSc - KSPSolve");
 
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
@@ -147,6 +149,7 @@ bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   Vec solution;
   KSPGetSolution(ksp, &solution);
   store_vec(&solution, x_dat);
+  timer->endTimer("PETSc - solve");
 
   return converged;
 }
@@ -230,9 +233,11 @@ void PetscViscositySolve::setup(double mmConst) {
   timer->startTimer("Build Vis Mat");
   mat->calc_mat_mm(factor, mmFactor);
 
+  timer->startTimer("Vis Mat Pre Inv");
   if(block_jacobi_pre) {
     inv_blas(mesh, mat->op1, pre);
   }
+  timer->endTimer("Vis Mat Pre Inv");
 
   create_shell_mat();
   timer->endTimer("Build Vis Mat");

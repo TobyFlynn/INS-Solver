@@ -200,7 +200,6 @@ void LS::reinit_ls() {
               op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s_sample_x,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE),
               op_arg_dat(s_sample_y,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE));
-
   timer->endTimer("LS - Sample Interface");
 
   timer->startTimer("LS - Construct K-D Tree");

@@ -243,8 +243,10 @@ void LS::reinit_ls() {
 
   kdtree.closest_point(num_pts_to_reinit, x_vec.data(), y_vec.data(), cx_vec.data(), cy_vec.data(), p_vec.data());
 
+  timer->startTimer("LS - Construct Poly Eval");
   std::vector<PolyApprox> polys = kdtree.get_polys();
   PolyEval pe(polys);
+  timer->endTimer("LS - Construct Poly Eval");
 
   double *closest_x, *closest_y;
   int *poly_ind;
