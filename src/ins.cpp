@@ -66,6 +66,10 @@ int main(int argc, char **argv) {
     return ierr;
   }
 
+  refVel = 10.0;
+  PetscBool found1;
+  PetscOptionsGetReal(NULL, NULL, "-vel", &refVel, &found1);
+  
   gam = 1.4;
   mu = 1e-2;
   nu = 1e-3;
@@ -82,7 +86,7 @@ int main(int argc, char **argv) {
   refRho     = 1.0;
   refMu      = 1.0e-5;
   refLen     = 4.9e-4;
-  refVel     = 90.0;
+  // refVel     = 10.0;
   // refVel     = 1.0;
   refSurfTen = 0.0756;
 
