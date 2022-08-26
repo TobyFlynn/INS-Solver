@@ -141,10 +141,14 @@ int main(int argc, char **argv) {
     outputDir += "/";
   }
 
+  double bc_time = 0.5;
+  PetscOptionsGetReal(NULL, NULL, "-bc_time", &bc_time, &found);
+
   bc_alpha = 0.0;
 
   Solver *solver = new Solver(filename, problem);
   solver->set_linear_solver(linear_solver);
+  solver->set_bc_time(bc_time);
 
   double a0 = 1.0;
   double a1 = 0.0;

@@ -1,5 +1,5 @@
 inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
-                        const int *p, const double *t, const int *problem,
+                        const int *p, const double *t, const double *bc_time,
                         const double *x, const double *y, const double *nx,
                         const double *ny, const double *N0, const double *N1,
                         const double *gradCurlVel0, const double *gradCurlVel1,
@@ -21,11 +21,11 @@ inline void pressure_bc(const int *bedge_type, const int *bedgeNum,
       dPdN[exInd + i] += nx[exInd + i] * res1 + ny[exInd + i] * res2;
     }
 
-    if(*t < 0.5 && *bedge_type == 0) {
+    if(*t < *bc_time && *bedge_type == 0) {
       // Inflow
       for(int i = 0; i < dg_npf; i++) {
         double y1 = y[fmask[i]];
-        double bcdUndt = -(PI) * cos(PI * *t);
+        double bcdUndt = -(PI / (*bc_time * 2.0)) * cos(PI * *t / (*bc_time * 2.0));
         dPdN[exInd + i] -= bcdUndt;
       }
     }

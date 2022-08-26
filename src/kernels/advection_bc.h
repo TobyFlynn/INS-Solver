@@ -1,5 +1,5 @@
 inline void advection_bc(const int *p, const int *bedge_type,
-                         const int *bedgeNum, const double *t, const int *problem,
+                         const int *bedgeNum, const double *t, const double *bc_time,
                          const double *x, const double *y, const double *q0,
                          const double *q1, const double *nx, const double *ny,
                          const double *sJ, double *flux0, double *flux1) {
@@ -13,9 +13,9 @@ inline void advection_bc(const int *p, const int *bedge_type,
   // Set boundary velocities
   if(*bedge_type == 0 || *bedge_type == 3) {
     // Inflow - BC function dependant on time
-    if(*t < 0.5) {
+    if(*t < *bc_time) {
       for(int i = 0; i < DG_GF_NP; i++) {
-        pQ0[i] = sin(PI * *t);
+        pQ0[i] = sin(PI * *t / (*bc_time * 2.0));
         pQ1[i] = 0.0;
       }
     } else {
