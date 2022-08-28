@@ -23,6 +23,7 @@ PetscPoissonSolve::PetscPoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
   block_jacobi_pre = false;
   vec_created = false;
   massMat = false;
+  prev_unknowns = 0;
 
   u_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   rhs_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
@@ -107,11 +108,11 @@ void PetscPoissonSolve::init() {
 
 bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   timer->startTimer("PETSc - solve");
-  if(!vec_created) {
+  // if(!vec_created) {
     create_vec(&b);
     create_vec(&x);
-    vec_created = true;
-  }
+  //   vec_created = true;
+  // }
 
   KSPSetOperators(ksp, pMat, pMat);
 
@@ -151,6 +152,9 @@ bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
   store_vec(&solution, x_dat);
   timer->endTimer("PETSc - solve");
 
+  destroy_vec(&b);
+  destroy_vec(&x);
+
   return converged;
 }
 
@@ -169,6 +173,7 @@ void PetscPoissonSolve::precond(const double *in_d, double *out_d) {
   copy_vec_to_dat(in, in_d);
 
   op_par_loop(poisson_pre, "poisson_pre", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(in,  -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(pre, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
               op_arg_dat(out, -1, OP_ID, DG_NP, "double", OP_WRITE));

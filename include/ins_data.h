@@ -16,7 +16,7 @@ public:
   op_dat Q[2][2], F[4], N[2][2], flux[2], QT[2], QTT[2], gQ[2], new_order;
   op_dat divVelT, curlVel, gradCurlVel[2], dPdN[2], pRHS, p, dpdx, dpdy, gP;
   op_dat pFluxX, pFluxY, visRHS[2], prBC, visBC[2], vorticity, save_temp;
-  op_dat rho, mu;
+  op_dat rho, mu, visTmp[2];
   op_dat tmp_dg_np[10], tmp_dg_g_np[4];
 
   DGMesh *mesh;

@@ -312,6 +312,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->visBC[1], 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
 
   // Set up RHS for viscosity solve
+  /*
   op_par_loop(viscosity_mm, "viscosity_mm", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->cubature->mm, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
@@ -322,6 +323,18 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(mesh->cubature->mm, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
               op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->visRHS[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+  */
+  
+  op_par_loop(viscosity_J, "viscosity_J", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->J, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->QTT[0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->visTmp[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->visTmp[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+
+   op2_gemv(mesh, false, 1.0, DGConstants::MASS, data->visTmp[0], 0.0, data->visRHS[0]);
+   op2_gemv(mesh, false, 1.0, DGConstants::MASS, data->visTmp[1], 0.0, data->visRHS[1]);
 
   double factor = reynolds / dt;
   op_par_loop(viscosity_rhs, "viscosity_rhs", mesh->cells,
@@ -368,4 +381,29 @@ double Solver::getAvgViscosityConvergance() {
 
 void Solver::set_bc_time(double t) {
   bc_time = t;
+}
+
+void Solver::switch_to_order(int o) {
+  std::vector<op_dat> dats_to_update;
+  dats_to_update.push_back(data->Q[0][0]);
+  dats_to_update.push_back(data->Q[0][1]);
+  dats_to_update.push_back(data->Q[1][0]);
+  dats_to_update.push_back(data->Q[1][1]);
+
+  dats_to_update.push_back(data->N[0][0]);
+  dats_to_update.push_back(data->N[0][1]);
+  dats_to_update.push_back(data->N[1][0]);
+  dats_to_update.push_back(data->N[1][1]);
+
+  dats_to_update.push_back(data->p);
+
+  dats_to_update.push_back(ls->s);
+
+  dats_to_update.push_back(data->QT[0]);
+  dats_to_update.push_back(data->QT[1]);
+  dats_to_update.push_back(data->QTT[0]);
+  dats_to_update.push_back(data->QTT[1]);
+  
+  mesh->update_order(o, dats_to_update);
+  // ls->update_values();
 }

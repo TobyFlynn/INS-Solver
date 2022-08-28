@@ -128,6 +128,8 @@ void INSData::init() {
   // Viscosity
   visRHS[0] = tmp_dg_np[0];
   visRHS[1] = tmp_dg_np[1];
+  visTmp[0] = tmp_dg_np[2];
+  visTmp[1] = tmp_dg_np[3];
 
   // DG_G_NP tmps
   // Advection

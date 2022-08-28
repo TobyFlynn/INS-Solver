@@ -64,6 +64,7 @@ private:
   Vec b, x;
 
   int numberIter, solveCount;
+  int prev_unknowns;
 
   double *u_data, *rhs_data, *in_data, *out_data, *pre_data;
   double *factor_data, *gFactor_data, *cFactor_data, *mmFactor_data, *h_data;

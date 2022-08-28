@@ -145,10 +145,12 @@ int main(int argc, char **argv) {
   PetscOptionsGetReal(NULL, NULL, "-bc_time", &bc_time, &found);
 
   bc_alpha = 0.0;
+  int current_order = 2;
 
   Solver *solver = new Solver(filename, problem);
   solver->set_linear_solver(linear_solver);
   solver->set_bc_time(bc_time);
+  solver->switch_to_order(current_order);
 
   double a0 = 1.0;
   double a1 = 0.0;
@@ -174,6 +176,11 @@ int main(int argc, char **argv) {
       a1 = -0.5;
       b0 = 2.0;
       b1 = -1.0;
+    }
+
+    if(time > 0.5 && current_order != DG_ORDER) {
+      current_order = DG_ORDER;
+      solver->switch_to_order(current_order);
     }
 
     timer->startTimer("Advection");
@@ -216,6 +223,8 @@ int main(int argc, char **argv) {
   }
   timer->endTimer("Main Loop");
 
+  solver->switch_to_order(DG_ORDER);
+
   if(save != -1)
     save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
 
@@ -241,6 +250,8 @@ int main(int argc, char **argv) {
   dat_names.push_back("Pressure");
   dats_to_save.push_back(solver->ls->s);
   dat_names.push_back("Surface");
+  dats_to_save.push_back(solver->mesh->shock);
+  dat_names.push_back("Shock");
   save_solution(outputDir + "end-extended.cgns", solver->mesh, dats_to_save, dat_names);
   timer->endTimer("Final save");
 

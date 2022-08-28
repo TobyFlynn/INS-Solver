@@ -29,6 +29,7 @@ public:
   void update_surface(int currentInd);
   void set_linear_solver(int ls);
   void set_bc_time(double t);
+  void switch_to_order(int o);
 
   double getAvgPressureConvergance();
   double getAvgViscosityConvergance();
