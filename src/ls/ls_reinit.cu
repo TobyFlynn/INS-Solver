@@ -196,6 +196,7 @@ void LS::reinit_ls() {
   timer->startTimer("LS - Reinit");
   timer->startTimer("LS - Sample Interface");
   op_par_loop(sample_interface, "sample_interface", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),
@@ -215,9 +216,10 @@ void LS::reinit_ls() {
   timer->endTimer("LS - Construct K-D Tree");
 
   // Map of cell ind to polynomial approximations
+  timer->startTimer("LS - Construct Poly Eval");
   std::vector<PolyApprox> polys = kdtree.get_polys();
-
   PolyEval pe(polys);
+  timer->endTimer("LS - Construct Poly Eval");
 
   const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
   const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);

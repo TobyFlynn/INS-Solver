@@ -286,6 +286,7 @@ bool LS::reinit_needed() {
 }
 
 void LS::update_values() {
+  timer->startTimer("LS - update vals");
   op_par_loop(ls_step, "ls_step", mesh->cells,
               op_arg_gbl(&alpha,     1, "double", OP_READ),
               op_arg_dat(s,         -1, OP_ID, DG_NP, "double", OP_READ),
@@ -298,4 +299,5 @@ void LS::update_values() {
   grad(mesh, s, nx, ny);
 
   div(mesh, nx, ny, curv);
+  timer->endTimer("LS - update vals");
 }

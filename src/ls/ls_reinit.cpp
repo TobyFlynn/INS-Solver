@@ -195,12 +195,12 @@ void LS::reinit_ls() {
   timer->startTimer("LS - Reinit");
   timer->startTimer("LS - Sample Interface");
   op_par_loop(sample_interface, "sample_interface", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s_sample_x,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE),
               op_arg_dat(s_sample_y,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE));
-
   timer->endTimer("LS - Sample Interface");
 
   timer->startTimer("LS - Construct K-D Tree");

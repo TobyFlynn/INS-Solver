@@ -9,9 +9,13 @@
 #endif
 
 #include "dg_utils.h"
+#include "timing.h"
+
+extern Timing *timer;
 
 // Copy PETSc vec array to OP2 dat
 void PetscPoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
+  timer->startTimer("PETSc - vec2dat");
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
@@ -60,10 +64,12 @@ void PetscPoissonSolve::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   }
 
   op_mpi_set_dirtybit(2, copy_args);
+  timer->endTimer("PETSc - vec2dat");
 }
 
 // Copy OP2 dat to PETSc vec array
 void PetscPoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
+  timer->startTimer("PETSc - dat2vec");
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
@@ -112,6 +118,7 @@ void PetscPoissonSolve::copy_dat_to_vec(op_dat dat, double *dat_d) {
   }
 
   op_mpi_set_dirtybit(2, copy_args);
+  timer->endTimer("PETSc - dat2vec");
 }
 
 // Create a PETSc vector for CPUs
@@ -193,21 +200,21 @@ void PetscPoissonSolve::set_shell_pc(PC pc) {
 }
 
 void PetscPoissonSolve::setMatrix() {
-  if(pMatInit)
-    MatDestroy(&pMat);
+  timer->startTimer("PETSc - set mat");
+  if(!pMatInit) {
+    MatCreate(PETSC_COMM_WORLD, &pMat);
+    pMatInit = true;
+    MatSetSizes(pMat, mat->unknowns, mat->unknowns, PETSC_DECIDE, PETSC_DECIDE);
 
-  MatCreate(PETSC_COMM_WORLD, &pMat);
-  pMatInit = true;
-  MatSetSizes(pMat, mat->unknowns, mat->unknowns, PETSC_DECIDE, PETSC_DECIDE);
-
-  #ifdef INS_MPI
-  MatSetType(pMat, MATMPIAIJ);
-  MatMPIAIJSetPreallocation(pMat, DG_NP * 4, NULL, 0, NULL);
-  #else
-  MatSetType(pMat, MATSEQAIJ);
-  MatSeqAIJSetPreallocation(pMat, DG_NP * 4, NULL);
-  #endif
-  MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+    #ifdef INS_MPI
+    MatSetType(pMat, MATMPIAIJ);
+    MatMPIAIJSetPreallocation(pMat, DG_NP * 4, NULL, 0, NULL);
+    #else
+    MatSetType(pMat, MATSEQAIJ);
+    MatSeqAIJSetPreallocation(pMat, DG_NP * 4, NULL);
+    #endif
+    MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+  }
 
   // Add cubature OP to Poisson matrix
   op_arg args[] = {
@@ -278,4 +285,5 @@ void PetscPoissonSolve::setMatrix() {
 
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
+  timer->endTimer("PETSc - set mat");
 }

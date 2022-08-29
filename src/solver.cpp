@@ -53,12 +53,14 @@ Solver::Solver(std::string filename, int prob) {
   int viscosity_dirichlet[3];
   int viscosity_neumann[3];
 
+  timer->startTimer("Load mesh");
   load_mesh(filename, &coords_data, &cells_data, &edge2node_data,
             &edge2cell_data, &bedge2node_data, &bedge2cell_data,
             &bedge_type_data, &edgeNum_data, &bedgeNum_data, &numNodes_g,
             &numCells_g, &numEdges_g, &numBoundaryEdges_g, &numNodes, &numCells,
             &numEdges, &numBoundaryEdges, pressure_dirichlet, pressure_neumann,
             viscosity_dirichlet, viscosity_neumann);
+  timer->endTimer("Load mesh");
 
   mesh = new DGMesh(coords_data, cells_data, edge2node_data, edge2cell_data,
                     bedge2node_data, bedge2cell_data, bedge_type_data,
@@ -81,12 +83,14 @@ Solver::Solver(std::string filename, int prob) {
 
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->edge2cells, NULL);
 
+  timer->startTimer("Init functions");
   mesh->init();
   data->init();
   ls->init();
   pressurePoisson->init();
   viscosityPoisson->init();
   pMultigrid->init();
+  timer->endTimer("Init functions");
 
   // Set initial conditions
   op_par_loop(set_ic, "set_ic", mesh->cells,
@@ -129,6 +133,11 @@ void Solver::set_sub_cycling(int sub_cycles) {
     op_printf("Number of sub cycles: %d\n", num_sub_cycles);
 }
 
+void Solver::set_linear_solver(int ls) {
+  linear_solver = ls;
+}
+
+// Calculate Nonlinear Terms
 void Solver::advection_non_linear(op_dat u, op_dat v, op_dat Nx, op_dat Ny, double t) {
   // Tensor product of velocity with itself
   op_par_loop(advection_flux, "advection_flux", mesh->cells,
@@ -424,13 +433,16 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
 
   // Call PETSc linear solver
   timer->startTimer("Pressure Linear Solve");
-  pressurePoisson->setup();
-  pressurePoisson->setBCValues(data->prBC);
-  bool converged = pressurePoisson->solve(data->pRHS, data->p);
-
-  // pMultigrid->setBCValues(data->prBC);
-  // pMultigrid->set_rho(data->rho);
-  // bool converged = pMultigrid->solve(data->pRHS, data->p);
+  bool converged;
+  if(linear_solver == 0) {
+    pressurePoisson->setup();
+    pressurePoisson->setBCValues(data->prBC);
+    converged = pressurePoisson->solve(data->pRHS, data->p);
+  } else {
+    pMultigrid->setBCValues(data->prBC);
+    pMultigrid->set_rho(data->rho);
+    converged = pMultigrid->solve(data->pRHS, data->p);
+  }
   timer->endTimer("Pressure Linear Solve");
 
   // Calculate gradient of pressure

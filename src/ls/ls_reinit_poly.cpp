@@ -6,8 +6,11 @@
 #include <iostream>
 
 #include "utils.h"
+#include "timing.h"
 
 using namespace std;
+
+extern Timing *timer;
 
 bool vec_contains(const int val, const vector<int> &vec) {
   for(int i = 0; i < vec.size(); i++) {
@@ -56,8 +59,8 @@ void PolyApprox::stencil_data(const set<int> &stencil, const double *x_ptr,
   map<Coord, Point, cmpCoords> pointMap;
 
   for(const auto &sten : stencil) {
-    for(int n = 0; n < 6; n++) {
-      int ind = sten * 6 + n;
+    for(int n = 0; n < DG_NP; n++) {
+      int ind = sten * DG_NP + n;
 
       Coord coord;
       coord.x = x_ptr[ind] - offset_x;
@@ -460,6 +463,7 @@ struct stencil_query {
 };
 
 map<int,set<int>> PolyApprox::get_stencils(const set<int> &central_inds, op_map edge_map) {
+  timer->startTimer("PolyApprox - get_stencils");
   map<int,set<int>> stencils;
   map<int,stencil_query> queryInds;
   const int num_elements = num_elem_stencil();
@@ -523,6 +527,7 @@ map<int,set<int>> PolyApprox::get_stencils(const set<int> &central_inds, op_map 
 
     queryInds = newQueryInds;
   }
-  
+  timer->endTimer("PolyApprox - get_stencils");
+
   return stencils;
 }

@@ -45,7 +45,7 @@ protected:
   bool massMat;
   double massFactor;
   bool block_jacobi_pre;
-  bool pMatInit;
+  bool pMatInit, vec_created;
 
   Mat pMat;
   KSP ksp;

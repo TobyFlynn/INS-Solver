@@ -15,6 +15,4 @@ void releaseOP2PtrHostMap(op_dat dat, op_map map, op_access acc, const double *p
 
 double *getOP2Array(op_dat dat);
 
-bool is_point_in_cell(const double x, const double y, const double *cellX, const double *cellY);
-
 #endif
