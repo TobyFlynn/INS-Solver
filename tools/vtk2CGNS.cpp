@@ -302,6 +302,7 @@ int main(int argc, char **argv) {
         } else {
           // Update one of the edges
           edge.second->cells[1] = internalEdgeMap.at(periodic_map.at({x_k0, x_k1}))->cells[0];
+          edge.second->num[1] = internalEdgeMap.at(periodic_map.at({x_k0, x_k1}))->num[0];
           // Remove the other edge
           internalEdgeMap.erase(periodic_map.at({x_k0, x_k1}));
           periodic_map.erase({x_k0, x_k1});
