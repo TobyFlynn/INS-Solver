@@ -272,6 +272,7 @@ void Solver::calc_u_bar(int currentInd, double t_n, double t_new) {
 
 void Solver::sub_cycle_velocity(int currentInd, op_dat u, op_dat v, op_dat u_l, op_dat v_l, double t_n, double t, int num_cycles) {
   double time = t;
+  double sub_dt = dt / 2.0;
 
   op_par_loop(sub_cycle_init, "sub_cycle_init", mesh->cells,
                 op_arg_dat(u,   -1, OP_ID, DG_NP, "double", OP_READ),
@@ -279,11 +280,11 @@ void Solver::sub_cycle_velocity(int currentInd, op_dat u, op_dat v, op_dat u_l, 
                 op_arg_dat(u_l, -1, OP_ID, DG_NP, "double", OP_WRITE),
                 op_arg_dat(v_l, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  for(int cycle = 0; cycle < num_cycles; cycle++) {
+  for(int cycle = 0; cycle < 2 * num_cycles; cycle++) {
     int x = -1;
     op_par_loop(sub_cycle_set_rkQ, "sub_cycle_set_rkQ", mesh->cells,
                 op_arg_gbl(&x,  1, "int", OP_READ),
-                op_arg_gbl(&dt, 1, "double", OP_READ),
+                op_arg_gbl(&sub_dt, 1, "double", OP_READ),
                 op_arg_dat(u_l,  -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_dat(v_l,  -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_dat(data->rk[0][0], -1, OP_ID, DG_NP, "double", OP_READ),
@@ -295,11 +296,11 @@ void Solver::sub_cycle_velocity(int currentInd, op_dat u, op_dat v, op_dat u_l, 
 
     for(int j = 0; j < 3; j++) {
       if(j == 0)
-        time = t + cycle * dt;
+        time = t + cycle * sub_dt;
       else if(j == 1)
-        time = t + cycle * dt + dt;
+        time = t + cycle * sub_dt + sub_dt;
       else
-        time = t + cycle * dt + 0.5 * dt;
+        time = t + cycle * sub_dt + 0.5 * sub_dt;
       
       calc_u_bar(currentInd, t_n, time);
 
@@ -308,7 +309,7 @@ void Solver::sub_cycle_velocity(int currentInd, op_dat u, op_dat v, op_dat u_l, 
       if(j != 2) {
         op_par_loop(sub_cycle_set_rkQ, "sub_cycle_set_rkQ", mesh->cells,
                 op_arg_gbl(&x,  1, "int", OP_READ),
-                op_arg_gbl(&dt, 1, "double", OP_READ),
+                op_arg_gbl(&sub_dt, 1, "double", OP_READ),
                 op_arg_dat(u_l,  -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_dat(v_l,  -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_dat(data->rk[0][0], -1, OP_ID, DG_NP, "double", OP_READ),
@@ -321,7 +322,7 @@ void Solver::sub_cycle_velocity(int currentInd, op_dat u, op_dat v, op_dat u_l, 
     }
 
     op_par_loop(sub_cycle_update_Q, "sub_cycle_update_Q", mesh->cells,
-                op_arg_gbl(&dt, 1, "double", OP_READ),
+                op_arg_gbl(&sub_dt, 1, "double", OP_READ),
                 op_arg_dat(data->rk[0][0], -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_dat(data->rk[0][1], -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_dat(data->rk[1][0], -1, OP_ID, DG_NP, "double", OP_READ),

@@ -23,7 +23,7 @@ endif()
 if(BUILD_SN AND BUILD_CPU)
   add_executable(ins_openmp ins_op.cpp ${COMMON_SRC} ${CPU_SRC} ${SN_SRC} ${SN_CPU_SRC} openmp/ins_kernels.cpp)
   target_link_libraries(ins_openmp -L${OP2_DIR}/lib -lop2_openmp -lop2_hdf5 ${CGNS_LIB} ${PETSC_LIB} ${ARMA_LIB} ${OPENBLAS_LIB} -L${OP2DGTOOLKIT_DIR}/lib -lop2dgtoolkit_openmp -ldgtoolkit ${EXTRA_LIBS})
-  target_compile_definitions(ins_openmp PRIVATE DG_ORDER=2 OP2_PARTITIONER=${PART_LIB_NAME})
+  target_compile_definitions(ins_openmp PRIVATE DG_ORDER=3 OP2_PARTITIONER=${PART_LIB_NAME})
 endif()
 
 if(BUILD_SN AND BUILD_GPU)
