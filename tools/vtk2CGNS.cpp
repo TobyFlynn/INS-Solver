@@ -42,6 +42,17 @@ struct Edge {
   int num[2];
 };
 
+struct cmpCoords {
+    bool operator()(const pair<double,double>& a, const pair<double,double>& b) const {
+        bool xCmp = abs(a.first - b.first) < 1e-8;
+        bool yCmp = abs(a.second - b.second) < 1e-8;
+        if(xCmp && yCmp) {
+          return false;
+        }
+        return a < b;
+    }
+};
+
 int getBoundaryEdgeNum(const string &type, double x0, double y0, double x1, double y1) {
   if(type == "cylinder") {
     if(x0 == 0.0 && x1 == 0.0) {
@@ -74,65 +85,21 @@ int getBoundaryEdgeNum(const string &type, double x0, double y0, double x1, doub
       // Top/Bottom Wall
       return 2;
     }
-  } else if(type == "poisson-test-0") {
-    if(y0 == y1 && y0 > 0.5) {
-      // Neumann BC y = 1
-      return 1;
-    } else if(y0 == y1 && y0 < 0.5) {
-      // Neumann BC y = 0
-      return 1;
-    } else if(x0 < 0.5){
-      // Dirichlet BC x = 0
-      return 1;
-    } else {
-      // Dirichlet BC x = 1
+  } else if(type == "cylinder_p") {
+    if(x0 == 0.0 && x1 == 0.0) {
+      // Inflow
       return 0;
-    }
-  } else if(type == "poisson-test-1") {
-    if(y0 == y1 && y0 > 0.5) {
-      // Neumann BC y = 1
+    } else if(x0 == x1 && x0 > 5.0) {
+      // Outflow
+      return 1;
+    } else if(x0 > 0.1 && x1 > 0.1 && x0 < 1.0 && x1 < 1.0
+              && y0 > 0.1 && y1 > 0.1 && y0 < 0.9 && y1 < 0.9) {
+      // Cylinder Wall
       return 2;
-    } else if(y0 == y1 && y0 < 0.5) {
-      // Neumann BC y = 0
-      return 3;
-    } else if(x0 < 0.5){
-      // Dirichlet BC x = 0
-      return 0;
     } else {
-      // Dirichlet BC x = 1
-      return 1;
-    }
-  } else if(type == "vortex") {
-    if(y0 == -0.5 && y1 == -0.5 && x0 <= 1e-11 && x1 <= 1e-11) {
-      // Outflow
-      return 1;
-    } else if(y0 == -0.5 && y1 == -0.5 && x0 >= -1e-11 && x1 >= -1e-11) {
-      // Inflow
-      return 0;
-    } else if(y0 == 0.5 && y1 == 0.5 && x0 <= 1e-11 && x1 <= 1e-11) {
-      // Inflow
-      return 0;
-    } else if(y0 == 0.5 && y1 == 0.5 && x0 >= -1e-11 && x1 >= -1e-11) {
-      // Outflow
-      return 1;
-    } else if(x0 == -0.5 && x1 == -0.5 && y0 <= 1e-11 && y1 <= 1e-11) {
-      // Inflow
-      return 0;
-    } else if(x0 == -0.5 && x1 == -0.5 && y0 >= -1e-11 && y1 >= -1e-11) {
-      // Outflow
-      return 1;
-    } else if(x0 == 0.5 && x1 == 0.5 && y0 <= 1e-11 && y1 <= 1e-11) {
-      // Outflow
-      return 1;
-    } else if(x0 == 0.5 && x1 == 0.5 && y0 >= -1e-11 && y1 >= -1e-11) {
-      // Inflow
-      return 0;
-    } else {
-      cerr << "***ERROR*** Boundary edge not categorised (vortex)" << endl;
-      cerr << "   " << x0 << "," << y0 << " " << x1 << "," << y1 <<  endl;
       return -1;
     }
-  } else {
+  }  else {
     cerr << "***ERROR*** Unrecognised boundary type specified" << endl;
   }
   return -1;
@@ -165,20 +132,16 @@ void getBCs(const string &type, int *bc_data) {
     bc_data[6] = 0; bc_data[7] = 2; bc_data[8] = 3;
     // Viscosity Neumann
     bc_data[9] = 1; bc_data[10] = -1; bc_data[11] = -1;
-  } else if(type == "poisson-test-0") {
-    // N/A
-  } else if(type == "poisson-test-1") {
-    // N/A
-  } else if(type == "vortex") {
+  } else if(type == "cylinder_p") {
     // Pressure Dirichlet
     bc_data[0] = 1; bc_data[1] = -1; bc_data[2] = -1;
     // Pressure Neumann
-    bc_data[3] = 0; bc_data[4] = -1; bc_data[5] = -1;
+    bc_data[3] = 0; bc_data[4] = 2; bc_data[5] = -1;
     // Viscosity Dirichlet
-    bc_data[6] = 0; bc_data[7] = -1; bc_data[8] = -1;
+    bc_data[6] = 0; bc_data[7] = 2; bc_data[8] = -1;
     // Viscosity Neumann
     bc_data[9] = 1; bc_data[10] = -1; bc_data[11] = -1;
-  } else {
+  }  else {
     cerr << "***ERROR*** Unrecognised boundary type specified" << endl;
   }
 }
@@ -318,6 +281,34 @@ int main(int argc, char **argv) {
           internalEdgeMap.at(key)->num[1] = j;
       }
     }
+  }
+
+  // Do periodic boundary
+  map<pair<double,double>,pair<int,int>,cmpCoords> periodic_map;
+  if(bcType == "cylinder_p") {
+    cout << "Doing periodic boundary conditions" << endl;
+    for(auto const &edge : internalEdgeMap) {
+      if(edge.second->cells[1] == -1) {
+        double x0 = x[edge.second->points[0] - 1];
+        double y0 = y[edge.second->points[0] - 1];
+        double x1 = x[edge.second->points[1] - 1];
+        double y1 = y[edge.second->points[1] - 1];
+        if(y0 != y1) continue;
+        double x_k0 = x0 < x1 ? x0 : x1;
+        double x_k1 = x0 > x1 ? x0 : x1;
+        
+        if(periodic_map.count({x_k0, x_k1}) == 0) {
+          periodic_map.insert({{x_k0, x_k1}, edge.first});
+        } else {
+          // Update one of the edges
+          edge.second->cells[1] = internalEdgeMap.at(periodic_map.at({x_k0, x_k1}))->cells[0];
+          // Remove the other edge
+          internalEdgeMap.erase(periodic_map.at({x_k0, x_k1}));
+          periodic_map.erase({x_k0, x_k1});
+        }
+      }
+    }
+    cout << "Number of periodic edges that do not match up: " << periodic_map.size() << endl;
   }
 
   vector<int> edges;
