@@ -291,7 +291,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QT[1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->QTT[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, 3 * DG_NPF, "double", OP_WRITE),
+              op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(data->prBC, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
 
   return converged;
