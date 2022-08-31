@@ -11,18 +11,11 @@ inline void advection_bc(const int *p, const int *bedge_type,
   const double *gaussW = &gaussW_g[(*p - 1) * DG_GF_NP];
 
   // Set boundary velocities
-  if(*bedge_type == 0 || *bedge_type == 3) {
+  if(*bedge_type == 0) {
     // Inflow - BC function dependant on time
-    if(*t < *bc_time) {
-      for(int i = 0; i < DG_GF_NP; i++) {
-        pQ0[i] = sin(PI * *t / (*bc_time * 2.0));
-        pQ1[i] = 0.0;
-      }
-    } else {
-      for(int i = 0; i < DG_GF_NP; i++) {
-        pQ0[i] = 1.0;
-        pQ1[i] = 0.0;
-      }
+    for(int i = 0; i < DG_GF_NP; i++) {
+      pQ0[i] = 1.0;
+      pQ1[i] = 0.0;
     }
   } else if(*bedge_type == 1) {
     // Outflow - Natural boundary condition

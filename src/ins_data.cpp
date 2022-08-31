@@ -18,7 +18,7 @@ INSData::INSData(DGMesh *m) {
   for(int i = 0; i < 10; i++) {
     tmp_dg_np_data[i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   }
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 5; i++) {
     tmp_dg_g_np_data[i] = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
   }
   for(int i = 0; i < 2; i++) {
@@ -28,7 +28,7 @@ INSData::INSData(DGMesh *m) {
     QTT_data[i]    = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
     N_data[0][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
     N_data[1][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    dPdN_data[i]   = (double *)calloc(3 * DG_NPF * mesh->numCells, sizeof(double));
+    dPdN_data[i]   = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
   }
   p_data         = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   prBC_data      = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
@@ -43,7 +43,7 @@ INSData::INSData(DGMesh *m) {
     string name    = "tmp_dg_np" + to_string(i);
     tmp_dg_np[i]   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_dg_np_data[i], name.c_str());
   }
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 5; i++) {
     string name    = "tmp_dg_g_np" + to_string(i);
     tmp_dg_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, "double", tmp_dg_g_np_data[i], name.c_str());
   }
@@ -61,7 +61,7 @@ INSData::INSData(DGMesh *m) {
     name        = "N1" + to_string(i);
     N[1][i]     = op_decl_dat(mesh->cells, DG_NP, "double", N_data[1][i], name.c_str());
     name        = "dPdN" + to_string(i);
-    dPdN[i]     = op_decl_dat(mesh->cells, 3 * DG_NPF, "double", dPdN_data[i], name.c_str());
+    dPdN[i]     = op_decl_dat(mesh->cells, DG_G_NP, "double", dPdN_data[i], name.c_str());
   }
   p         = op_decl_dat(mesh->cells, DG_NP, "double", p_data, "p");
   prBC      = op_decl_dat(mesh->cells, DG_G_NP, "double", prBC_data, "prBC");
@@ -89,7 +89,7 @@ INSData::~INSData() {
   for(int i = 0; i < 10; i++) {
     free(tmp_dg_np_data[i]);
   }
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 5; i++) {
     free(tmp_dg_g_np_data[i]);
   }
   for(int i = 0; i < 2; i++) {
@@ -141,6 +141,11 @@ void INSData::init() {
   gP     = tmp_dg_g_np[0];
   pFluxX = tmp_dg_g_np[1];
   pFluxY = tmp_dg_g_np[2];
+  gN[0]  = tmp_dg_g_np[0];
+  gN[1]  = tmp_dg_g_np[1];
+  gGradCurl[0] = tmp_dg_g_np[2];
+  gGradCurl[1] = tmp_dg_g_np[3];
+  gRho = tmp_dg_g_np[4];
   // Viscosity
   visBC[0] = tmp_dg_g_np[0];
   visBC[1] = tmp_dg_g_np[1];
