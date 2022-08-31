@@ -54,34 +54,7 @@ struct cmpCoords {
 };
 
 int getBoundaryEdgeNum(const string &type, double x0, double y0, double x1, double y1) {
-  if(type == "DBKUP_002") {
-    if(x0 == x1 && x0 < -1000.0) {
-      // Inflow
-      return 0;
-    } else if(x0 == x1 && x0 > 5000.0) {
-      // Outflow
-      return 1;
-    } else if(y0 == y1 && (y0 > 1000.0 || y0 < -1000.0)) {
-      // Top/bottom
-      return 3;
-    }
-  } else if(type == "airfoil") {
-    if(x0 == x1 && x0 < -4.9) {
-      // Inflow
-      return 0;
-    } else if(x0 == x1 && x0 > 4.9) {
-      // Outflow
-      return 1;
-    } else if(x0 > -1.0 && x1 > -1.0 && x0 < 2.0 && x1 < 2.0
-              && y0 > -1.0 && y1 > -1.0 && y0 < 1.0 && y1 < 1.0) {
-      // Airfoil Wall
-      return 2;
-    } else {
-      cout << "TOP/BOTTOM Wall" << endl;
-      // Top/Bottom Wall
-      return 2;
-    }
-  } else if(type == "cylinder_p") {
+  if(type == "cylinder_p") {
     if(x0 == 0.0 && x1 == 0.0) {
       // Inflow
       return 0;
@@ -102,16 +75,7 @@ int getBoundaryEdgeNum(const string &type, double x0, double y0, double x1, doub
 }
 
 void getBCs(const string &type, int *bc_data) {
-  if(type == "DBKUP_002" || type == "DBKUP_002_u") {
-    // Pressure Dirichlet
-    bc_data[0] = 1; bc_data[1] = -1; bc_data[2] = -1;
-    // Pressure Neumann
-    bc_data[3] = 0; bc_data[4] = 2; bc_data[5] = 3;
-    // Viscosity Dirichlet
-    bc_data[6] = 0; bc_data[7] = 2; bc_data[8] = 3;
-    // Viscosity Neumann
-    bc_data[9] = 1; bc_data[10] = -1; bc_data[11] = -1;
-  } else if(type == "cylinder_p") {
+  if(type == "cylinder_p") {
     // Pressure Dirichlet
     bc_data[0] = 1; bc_data[1] = -1; bc_data[2] = -1;
     // Pressure Neumann
