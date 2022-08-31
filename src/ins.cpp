@@ -66,6 +66,10 @@ int main(int argc, char **argv) {
     return ierr;
   }
 
+  refVel = 10.0;
+  PetscBool found1;
+  PetscOptionsGetReal(NULL, NULL, "-vel", &refVel, &found1);
+  
   gam = 1.4;
   mu = 1e-2;
   nu = 1e-3;
@@ -75,14 +79,15 @@ int main(int argc, char **argv) {
   ic_v = 0.0;
 
   mu0  = 1.0;
-  mu1  = 100.0;
+  mu1  = 1.0;
   rho0 = 1.0;
-  rho1 = 1000.0;
+  rho1 = 1.0;
 
   refRho     = 1.0;
   refMu      = 1.0e-5;
-  refLen     = 0.001;
-  refVel     = 1.5;
+  refLen     = 4.9e-4;
+  // refVel     = 10.0;
+  // refVel     = 1.0;
   refSurfTen = 0.0756;
 
   // Set Reynolds number
@@ -136,10 +141,16 @@ int main(int argc, char **argv) {
     outputDir += "/";
   }
 
+  double bc_time = 0.5;
+  PetscOptionsGetReal(NULL, NULL, "-bc_time", &bc_time, &found);
+
   bc_alpha = 0.0;
+  int current_order = 2;
 
   Solver *solver = new Solver(filename, problem);
   solver->set_linear_solver(linear_solver);
+  solver->set_bc_time(bc_time);
+  solver->switch_to_order(current_order);
 
   double a0 = 1.0;
   double a1 = 0.0;
@@ -167,6 +178,11 @@ int main(int argc, char **argv) {
       b1 = -1.0;
     }
 
+    if(time > 0.5 && current_order != DG_ORDER) {
+      current_order = DG_ORDER;
+      solver->switch_to_order(current_order);
+    }
+
     timer->startTimer("Advection");
     solver->advection(currentIter % 2, a0, a1, b0, b1, g0, time);
     timer->endTimer("Advection");
@@ -191,7 +207,7 @@ int main(int argc, char **argv) {
     }
     timer->endTimer("Viscosity");
 
-    solver->update_surface(currentIter % 2);
+    // solver->update_surface(currentIter % 2);
 
     currentIter++;
     time += solver->dt;
@@ -206,6 +222,8 @@ int main(int argc, char **argv) {
     }
   }
   timer->endTimer("Main Loop");
+
+  solver->switch_to_order(DG_ORDER);
 
   if(save != -1)
     save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
@@ -232,6 +250,8 @@ int main(int argc, char **argv) {
   dat_names.push_back("Pressure");
   dats_to_save.push_back(solver->ls->s);
   dat_names.push_back("Surface");
+  dats_to_save.push_back(solver->mesh->shock);
+  dat_names.push_back("Shock");
   save_solution(outputDir + "end-extended.cgns", solver->mesh, dats_to_save, dat_names);
   timer->endTimer("Final save");
 

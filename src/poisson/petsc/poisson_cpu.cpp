@@ -201,7 +201,9 @@ void PetscPoissonSolve::set_shell_pc(PC pc) {
 
 void PetscPoissonSolve::setMatrix() {
   timer->startTimer("PETSc - set mat");
-  if(!pMatInit) {
+  if(!pMatInit || mat->unknowns != prev_unknowns) {
+    if(pMatInit) 
+      MatDestroy(&pMat);
     MatCreate(PETSC_COMM_WORLD, &pMat);
     pMatInit = true;
     MatSetSizes(pMat, mat->unknowns, mat->unknowns, PETSC_DECIDE, PETSC_DECIDE);
@@ -214,6 +216,7 @@ void PetscPoissonSolve::setMatrix() {
     MatSeqAIJSetPreallocation(pMat, DG_NP * 4, NULL);
     #endif
     MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+    prev_unknowns = mat->unknowns;
   }
 
   // Add cubature OP to Poisson matrix

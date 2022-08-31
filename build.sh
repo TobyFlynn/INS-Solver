@@ -12,7 +12,7 @@ mkdir -p gen/poisson/petsc
 mkdir -p gen/poisson/p_multigrid
 mkdir -p gen/io
 
-python3 preprocessor.py 2
+python3 preprocessor.py 3
 
 cd gen
 

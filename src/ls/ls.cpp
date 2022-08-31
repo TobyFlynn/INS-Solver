@@ -134,7 +134,7 @@ void LS::init() {
               op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s,       -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  reinit_ls();
+  // reinit_ls();
   update_values();
 }
 

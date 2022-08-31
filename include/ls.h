@@ -16,6 +16,7 @@ public:
 
   void setVelField(op_dat u1, op_dat v1);
   void step(double dt);
+  void update_values();
 
   DGMesh *mesh;
   INSData *data;
@@ -34,7 +35,6 @@ private:
   void advec_step(op_dat input, op_dat output);
   void reinit_ls();
   bool reinit_needed();
-  void update_values();
 
   double h, epsilon, reinit_dt, reinit_width;
   int numSteps;

@@ -1,5 +1,5 @@
 inline void advection_bc(const int *p, const int *bedge_type,
-                         const int *bedgeNum, const double *t, const int *problem,
+                         const int *bedgeNum, const double *t, const double *bc_time,
                          const double *x, const double *y, const double *q0,
                          const double *q1, const double *nx, const double *ny,
                          const double *sJ, double *flux0, double *flux1) {
@@ -11,44 +11,23 @@ inline void advection_bc(const int *p, const int *bedge_type,
   const double *gaussW = &gaussW_g[(*p - 1) * DG_GF_NP];
 
   // Set boundary velocities
-  if(*problem == 0) {
-    if(*bedge_type == 0) {
-      // Inflow - BC function dependant on time
-      for(int i = 0; i < DG_GF_NP; i++) {
-        double y1 = y[exInd + i];
-        pQ0[i] = sin((PI * *t) / 8.0) * 4.0 * y1 * (1.0 - y1);
-        pQ1[i] = 0.0;
-      }
-    } else if(*bedge_type == 1) {
-      // Outflow - Natural boundary condition
-      for(int i = 0; i < DG_GF_NP; i++) {
-        pQ0[i] = q0[exInd + i];
-        pQ1[i] = q1[exInd + i];
-      }
-    } else {
-      // Wall - No slip
-      for(int i = 0; i < DG_GF_NP; i++) {
-        pQ0[i] = 0.0;
-        pQ1[i] = 0.0;
-      }
+  if(*bedge_type == 0) {
+    // Inflow - BC function dependant on time
+    for(int i = 0; i < DG_GF_NP; i++) {
+      pQ0[i] = 1.0;
+      pQ1[i] = 0.0;
+    }
+  } else if(*bedge_type == 1) {
+    // Outflow - Natural boundary condition
+    for(int i = 0; i < DG_GF_NP; i++) {
+      pQ0[i] = q0[exInd + i];
+      pQ1[i] = q1[exInd + i];
     }
   } else {
-    if(*bedge_type == 0) {
-      // Inflow - BC function dependant on time
-      for(int i = 0; i < DG_GF_NP; i++) {
-        double y1 = y[exInd + i];
-        double x1 = x[exInd + i];
-        pQ0[i] += -sin(2.0 * PI * y1) * exp(-nu * 4.0 * PI * PI * *t);
-        pQ1[i] += sin(2.0 * PI * x1) * exp(-nu * 4.0 * PI * PI * *t);
-      }
-    }
-
-    if(*bedge_type == 1) {
-      // Outflow - BC function dependant on time
-      for(int i = 0; i < DG_GF_NP; i++) {
-        pQ0[i] += q0[exInd + i];
-        pQ1[i] += q1[exInd + i];
-      }
+    // Wall - No slip
+    for(int i = 0; i < DG_GF_NP; i++) {
+      pQ0[i] = 0.0;
+      pQ1[i] = 0.0;
     }
   }
 
