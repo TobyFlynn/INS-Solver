@@ -34,6 +34,8 @@ public:
   double getAvgPressureConvergance();
   double getAvgViscosityConvergance();
 
+  void dump_data(const std::string &filename);
+
   DGMesh *mesh;
   INSData *data;
   LS *ls;

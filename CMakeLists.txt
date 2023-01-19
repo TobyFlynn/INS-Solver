@@ -14,13 +14,6 @@ if(NOT OP2_DIR)
 endif()
 include_directories(${OP2_DIR}/include)
 
-# CGNS library for me
-if(NOT CGNS_DIR)
-  message(FATAL_ERROR "CGNS_DIR is not specified")
-endif()
-include_directories(${CGNS_DIR}/include)
-set(CGNS_LIB "-L${CGNS_DIR}/lib -lcgns")
-
 # OpenBLAS library for me
 if(NOT OPENBLAS_DIR)
   message(FATAL_ERROR "OPENBLAS_DIR is not specified")
@@ -68,6 +61,12 @@ endif()
 include_directories(${ARMA_DIR}/include)
 set(ARMA_LIB "-L${ARMA_DIR}/lib -larmadillo")
 
+if(NOT HDF5_DIR)
+  message(FATAL_ERROR "HDF5_DIR is not specified")
+endif()
+include_directories(${HDF5_DIR}/include)
+set(HDF5_LIB "-L${HDF5_DIR}/lib -lhdf5")
+
 if(BUILD_GPU)
   enable_language(CUDA)
   find_package(CUDAToolkit)
@@ -78,5 +77,4 @@ endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_subdirectory(tools)
 add_subdirectory(gen)

@@ -11,7 +11,6 @@
 #include <limits>
 
 #include "ins_data.h"
-#include "save_solution.h"
 #include "timing.h"
 #include "solver.h"
 
@@ -161,8 +160,7 @@ int main(int argc, char **argv) {
   double time = 0.0;
 
   if(save != -1) {
-    save_solution_init(outputDir + "sol.cgns", solver->mesh, solver->data, solver->ls);
-    // export_data_init(outputDir + "data.csv");
+    solver->dump_data(outputDir + "sol_0.0_s.h5");
   }
 
   timer->endTimer("Setup");
@@ -217,7 +215,7 @@ int main(int argc, char **argv) {
       op_printf("Iteration: %d Time: %g\n", i, time);
 
       timer->startTimer("Save");
-      save_solution_iter(outputDir + "sol.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, (i + 1) / save);
+      solver->dump_data(outputDir + "sol_" + to_string(time) + "_s.h5");
       timer->endTimer("Save");
     }
   }
@@ -226,11 +224,11 @@ int main(int argc, char **argv) {
   solver->switch_to_order(DG_ORDER);
 
   if(save != -1)
-    save_solution_finalise(outputDir + "sol.cgns", (iter / save) + 1, solver->dt * save);
+    solver->dump_data(outputDir + "sol_" + to_string(time) + "_s.h5");
 
   // Save solution to CGNS file
   timer->startTimer("Final save");
-  save_solution(outputDir + "end.cgns", solver->mesh, solver->data, currentIter % 2, solver->ls, time, nu);
+  solver->dump_data(outputDir + "end_" + to_string(time) + "_s.h5");
 
   vector<op_dat> dats_to_save;
   vector<string> dat_names;
@@ -250,7 +248,7 @@ int main(int argc, char **argv) {
   dat_names.push_back("Pressure");
   dats_to_save.push_back(solver->ls->s);
   dat_names.push_back("Surface");
-  save_solution(outputDir + "end-extended.cgns", solver->mesh, dats_to_save, dat_names);
+  solver->dump_data(outputDir + "end_extended_" + to_string(time) + "_s.h5");
   timer->endTimer("Final save");
 
   timer->endTimer("Wall Time");

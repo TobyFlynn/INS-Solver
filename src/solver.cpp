@@ -394,3 +394,21 @@ void Solver::switch_to_order(int o) {
   mesh->update_order(o, dats_to_update);
   // ls->update_values();
 }
+
+void Solver::dump_data(const std::string &filename) {
+  op_fetch_data_hdf5_file(mesh->x, filename.c_str());
+  op_fetch_data_hdf5_file(mesh->y, filename.c_str());
+  op_fetch_data_hdf5_file(data->Q[0][0], filename.c_str());
+  op_fetch_data_hdf5_file(data->Q[0][1], filename.c_str());
+  op_fetch_data_hdf5_file(data->Q[1][0], filename.c_str());
+  op_fetch_data_hdf5_file(data->Q[1][1], filename.c_str());
+  op_fetch_data_hdf5_file(data->QT[0], filename.c_str());
+  op_fetch_data_hdf5_file(data->QT[1], filename.c_str());
+  op_fetch_data_hdf5_file(data->QTT[0], filename.c_str());
+  op_fetch_data_hdf5_file(data->QTT[1], filename.c_str());
+  op_fetch_data_hdf5_file(data->p, filename.c_str());
+  op_fetch_data_hdf5_file(data->rho, filename.c_str());
+  op_fetch_data_hdf5_file(data->mu, filename.c_str());
+  op_fetch_data_hdf5_file(ls->s, filename.c_str());
+  op_fetch_data_hdf5_file(mesh->order, filename.c_str());
+}
