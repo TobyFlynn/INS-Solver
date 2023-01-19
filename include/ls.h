@@ -10,7 +10,6 @@
 class LS {
 public:
   LS(DGMesh *m, INSData *d);
-  ~LS();
 
   void init();
 
@@ -38,10 +37,6 @@ private:
 
   double h, epsilon, reinit_dt, reinit_width;
   int numSteps;
-
-  double *s_data, *step_s_data, *nx_data, *ny_data, *curv_data, *diracDelta_data;
-  double *gInput_data;
-  double *s_sample_x_data, *s_sample_y_data;
 };
 
 #endif

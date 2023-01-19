@@ -13,58 +13,42 @@ extern Timing *timer;
 PoissonMat::PoissonMat(DGMesh *m) {
   mesh = m;
 
-  op1_data      = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
-  op2_data[0]   = (double *)calloc(DG_NP * DG_NP * mesh->numEdges, sizeof(double));
-  op2_data[1]   = (double *)calloc(DG_NP * DG_NP * mesh->numEdges, sizeof(double));
-  op_bc_data    = (double *)calloc(DG_GF_NP * DG_NP * mesh->numBoundaryEdges, sizeof(double));
-  h_data        = (double *)calloc(mesh->numCells, sizeof(double));
-  gFactor_data  = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
-  cFactor_data  = (double *)calloc(DG_CUB_NP * mesh->numCells, sizeof(double));
+  double *tmp_np_np_c = (double *)calloc(DG_NP * DG_NP * mesh->cells->size, sizeof(double));
+  double *tmp_np_np_e = (double *)calloc(DG_NP * DG_NP * mesh->edges->size, sizeof(double));
+  double *tmp_gf_np_be = (double *)calloc(DG_GF_NP * DG_NP * mesh->bedges->size, sizeof(double));
+  double *tmp_1 = (double *)calloc(mesh->cells->size, sizeof(double));
+  double *tmp_g_np = (double *)calloc(DG_G_NP * mesh->cells->size, sizeof(double));
+  double *tmp_cub_np = (double *)calloc(DG_CUB_NP * mesh->cells->size, sizeof(double));
+  int *tmp_1_int_c = (int *)calloc(mesh->cells->size, sizeof(int));
+  int *tmp_1_int_e = (int *)calloc(mesh->edges->size, sizeof(int));
+  int *tmp_1_int_be = (int *)calloc(mesh->bedges->size, sizeof(int));
 
-  glb_ind_data   = (int *)calloc(mesh->numCells, sizeof(int));
-  glb_indL_data  = (int *)calloc(mesh->numEdges, sizeof(int));
-  glb_indR_data  = (int *)calloc(mesh->numEdges, sizeof(int));
-  glb_indBC_data = (int *)calloc(mesh->numBoundaryEdges, sizeof(int));
+  op1      = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_np_np_c, "poisson_op1");
+  op2[0]   = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", tmp_np_np_e, "poisson_op20");
+  op2[1]   = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", tmp_np_np_e, "poisson_op21");
+  op_bc    = op_decl_dat(mesh->bedges, DG_GF_NP * DG_NP, "double", tmp_gf_np_be, "poisson_op_bc");
+  h        = op_decl_dat(mesh->cells, 1, "double", tmp_1, "poisson_h");
+  gFactor  = op_decl_dat(mesh->cells, DG_G_NP, "double", tmp_g_np, "poisson_gFactor");
+  cFactor  = op_decl_dat(mesh->cells, DG_CUB_NP, "double", tmp_cub_np, "poisson_cFactor");
 
-  orderL_data  = (int *)calloc(mesh->numEdges, sizeof(int));
-  orderR_data  = (int *)calloc(mesh->numEdges, sizeof(int));
-  orderBC_data = (int *)calloc(mesh->numEdges, sizeof(int));
+  glb_ind   = op_decl_dat(mesh->cells, 1, "int", tmp_1_int_c, "poisson_glb_ind");
+  glb_indL  = op_decl_dat(mesh->edges, 1, "int", tmp_1_int_e, "poisson_glb_indL");
+  glb_indR  = op_decl_dat(mesh->edges, 1, "int", tmp_1_int_e, "poisson_glb_indR");
+  glb_indBC = op_decl_dat(mesh->bedges, 1, "int", tmp_1_int_be, "poisson_glb_indBC");
 
-  op1      = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", op1_data, "poisson_op1");
-  op2[0]   = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", op2_data[0], "poisson_op20");
-  op2[1]   = op_decl_dat(mesh->edges, DG_NP * DG_NP, "double", op2_data[1], "poisson_op21");
-  op_bc    = op_decl_dat(mesh->bedges, DG_GF_NP * DG_NP, "double", op_bc_data, "poisson_op_bc");
-  h        = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
-  gFactor  = op_decl_dat(mesh->cells, DG_G_NP, "double", gFactor_data, "poisson_gFactor");
-  cFactor  = op_decl_dat(mesh->cells, DG_CUB_NP, "double", cFactor_data, "poisson_cFactor");
+  orderL  = op_decl_dat(mesh->edges, 1, "int", tmp_1_int_e, "poisson_orderL");
+  orderR  = op_decl_dat(mesh->edges, 1, "int", tmp_1_int_e, "poisson_orderR");
+  orderBC = op_decl_dat(mesh->bedges, 1, "int", tmp_1_int_be, "poisson_orderBC");
 
-  glb_ind   = op_decl_dat(mesh->cells, 1, "int", glb_ind_data, "poisson_glb_ind");
-  glb_indL  = op_decl_dat(mesh->edges, 1, "int", glb_indL_data, "poisson_glb_indL");
-  glb_indR  = op_decl_dat(mesh->edges, 1, "int", glb_indR_data, "poisson_glb_indR");
-  glb_indBC = op_decl_dat(mesh->bedges, 1, "int", glb_indBC_data, "poisson_glb_indBC");
-
-  orderL  = op_decl_dat(mesh->edges, 1, "int", orderL_data, "poisson_orderL");
-  orderR  = op_decl_dat(mesh->edges, 1, "int", orderR_data, "poisson_orderR");
-  orderBC = op_decl_dat(mesh->bedges, 1, "int", orderBC_data, "poisson_orderBC");
-}
-
-PoissonMat::~PoissonMat() {
-  free(op1_data);
-  free(op2_data[0]);
-  free(op2_data[1]);
-  free(op_bc_data);
-  free(h_data);
-  free(gFactor_data);
-  free(cFactor_data);
-
-  free(glb_ind_data);
-  free(glb_indL_data);
-  free(glb_indR_data);
-  free(glb_indBC_data);
-
-  free(orderL_data);
-  free(orderR_data);
-  free(orderBC_data);
+  free(tmp_1_int_be);
+  free(tmp_1_int_e);
+  free(tmp_1_int_c);
+  free(tmp_cub_np);
+  free(tmp_g_np);
+  free(tmp_1);
+  free(tmp_gf_np_be);
+  free(tmp_np_np_e);
+  free(tmp_np_np_c);
 }
 
 void PoissonMat::init() {

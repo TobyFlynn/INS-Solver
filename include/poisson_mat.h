@@ -7,7 +7,6 @@
 class PoissonMat {
 public:
   PoissonMat(DGMesh *m);
-  ~PoissonMat();
 
   void init();
   void calc_mat(op_dat fact);
@@ -41,10 +40,6 @@ private:
 
   int dirichlet[3];
   int neumann[3];
-
-  double *op1_data, *op2_data[2], *op_bc_data, *h_data, *cFactor_data, *gFactor_data;
-  int *glb_ind_data, *glb_indL_data, *glb_indR_data, *glb_indBC_data;
-  int *orderL_data, *orderR_data, *orderBC_data;
 };
 
 #endif

@@ -25,49 +25,35 @@ PetscPoissonSolve::PetscPoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
   massMat = false;
   prev_unknowns = 0;
 
-  u_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  rhs_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  in_data  = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  out_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  pre_data = (double *)calloc(DG_NP * DG_NP * mesh->numCells, sizeof(double));
+  double *tmp_np = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  double *tmp_np_np = (double *)calloc(DG_NP * DG_NP * mesh->cells->size, sizeof(double));
+  double *tmp_g_np = (double *)calloc(DG_G_NP * mesh->cells->size, sizeof(double));
+  double *tmp_cub_np = (double *)calloc(DG_CUB_NP * mesh->cells->size, sizeof(double));
+  double *tmp_1 = (double *)calloc(mesh->cells->size, sizeof(double));
 
-  factor_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  gFactor_data  = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
-  cFactor_data  = (double *)calloc(DG_CUB_NP * mesh->numCells, sizeof(double));
-  mmFactor_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  h_data        = (double *)calloc(mesh->numCells, sizeof(double));
-  gDelta_data   = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
+  u   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "poisson_u");
+  rhs = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "poisson_rhs");
+  in  = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "poisson_in");
+  out = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "poisson_out");
+  pre = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_np_np, "poisson_pre");
 
-  u   = op_decl_dat(mesh->cells, DG_NP, "double", u_data, "poisson_u");
-  rhs = op_decl_dat(mesh->cells, DG_NP, "double", rhs_data, "poisson_rhs");
-  in  = op_decl_dat(mesh->cells, DG_NP, "double", in_data, "poisson_in");
-  out = op_decl_dat(mesh->cells, DG_NP, "double", out_data, "poisson_out");
-  pre = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", pre_data, "poisson_pre");
+  factor   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "poisson_factor");
+  gFactor  = op_decl_dat(mesh->cells, DG_G_NP, "double", tmp_g_np, "poisson_gFactor");
+  cFactor  = op_decl_dat(mesh->cells, DG_CUB_NP, "double", tmp_cub_np, "poisson_cFactor");
+  mmFactor = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "poisson_mmFactor");
+  h        = op_decl_dat(mesh->cells, 1, "double", tmp_1, "poisson_h");
+  gDelta   = op_decl_dat(mesh->cells, DG_G_NP, "double", tmp_g_np, "poisson_gDelta");
 
-  factor   = op_decl_dat(mesh->cells, DG_NP, "double", factor_data, "poisson_factor");
-  gFactor  = op_decl_dat(mesh->cells, DG_G_NP, "double", gFactor_data, "poisson_gFactor");
-  cFactor  = op_decl_dat(mesh->cells, DG_CUB_NP, "double", cFactor_data, "poisson_cFactor");
-  mmFactor = op_decl_dat(mesh->cells, DG_NP, "double", mmFactor_data, "poisson_mmFactor");
-  h        = op_decl_dat(mesh->cells, 1, "double", h_data, "poisson_h");
-  gDelta   = op_decl_dat(mesh->cells, DG_G_NP, "double", gDelta_data, "poisson_gDelta");
+  free(tmp_1);
+  free(tmp_cub_np);
+  free(tmp_g_np);
+  free(tmp_np_np);
+  free(tmp_np);
 
   mat = new PoissonMat(mesh);
 }
 
 PetscPoissonSolve::~PetscPoissonSolve() {
-  free(u_data);
-  free(rhs_data);
-  free(in_data);
-  free(out_data);
-  free(pre_data);
-
-  free(factor_data);
-  free(gFactor_data);
-  free(cFactor_data);
-  free(mmFactor_data);
-  free(h_data);
-  free(gDelta_data);
-
   if(pMatInit) {
     KSPDestroy(&ksp);
     MatDestroy(&pMat);
@@ -76,7 +62,7 @@ PetscPoissonSolve::~PetscPoissonSolve() {
     destroy_vec(&b);
     destroy_vec(&x);
   }
-  
+
   delete mat;
 }
 
@@ -246,7 +232,7 @@ void PetscViscositySolve::setup(double mmConst) {
 
   create_shell_mat();
   timer->endTimer("Build Vis Mat");
-  
+
   // timer->startBuildMat();
   // setMatrix();
   // timer->endBuildMat();

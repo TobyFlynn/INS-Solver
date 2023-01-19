@@ -9,7 +9,6 @@
 class INSData {
 public:
   INSData(DGMesh *m);
-  ~INSData();
   void init();
 
   // OP2 stuff
@@ -20,13 +19,6 @@ public:
   op_dat tmp_dg_np[10], tmp_dg_g_np[5];
 
   DGMesh *mesh;
-private:
-  // Pointers to private memory
-  double *Q_data[2][2], *N_data[2][2], *QT_data[2], *QTT_data[2], *dPdN_data[2];
-  double *p_data, *prBC_data, *vorticity_data, *save_temp_data;
-  double *rho_data, *mu_data;
-  double *tmp_dg_np_data[10], *tmp_dg_g_np_data[5];
-  int *new_order_data;
 };
 
 #endif

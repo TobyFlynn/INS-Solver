@@ -40,6 +40,7 @@ cmake .. \
   -DPARMETIS_DIR=/home/u1717021/Code/PhD/ParMetis_Libs \
   -DOP2DGTOOLKIT_DIR=/home/u1717021/Code/PhD/OP2-DG-Toolkit/build \
   -DARMA_DIR=/home/u1717021/Code/PhD/armadillo-10.5.3/build \
+  -DORDER=3 \
   -DBUILD_SN=ON \
   -DBUILD_CPU=ON \
   -DBUILD_MPI=ON \

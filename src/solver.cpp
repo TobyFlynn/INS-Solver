@@ -13,7 +13,6 @@
 #include "dg_blas_calls.h"
 #include "dg_op2_blas.h"
 #include "dg_operators.h"
-#include "load_mesh.h"
 #include "timing.h"
 
 extern Timing *timer;
@@ -40,33 +39,13 @@ void Solver::reverse_vel() {
 Solver::Solver(std::string filename, int prob) {
   problem = prob;
 
-  // Ownership of the pointers is passed to DGMesh
-  // so don't have to worry about freeing them
-  double *coords_data;
-  int *cells_data, *edge2node_data, *edge2cell_data, *bedge2node_data;
-  int *bedge2cell_data, *bedge_type_data, *edgeNum_data, *bedgeNum_data;
-  int numNodes_g, numCells_g, numEdges_g, numBoundaryEdges_g, numNodes;
-  int numCells, numEdges, numBoundaryEdges;
+  // Hardcoded for the periodic cylinder case
+  int pressure_dirichlet[3] = {1, -1, -1};
+  int pressure_neumann[3] = {0, 2, -1};
+  int viscosity_dirichlet[3] = {0, 2, -1};
+  int viscosity_neumann[3] = {1, -1, -1};
 
-  int pressure_dirichlet[3];
-  int pressure_neumann[3];
-  int viscosity_dirichlet[3];
-  int viscosity_neumann[3];
-
-  timer->startTimer("Load mesh");
-  load_mesh(filename, &coords_data, &cells_data, &edge2node_data,
-            &edge2cell_data, &bedge2node_data, &bedge2cell_data,
-            &bedge_type_data, &edgeNum_data, &bedgeNum_data, &numNodes_g,
-            &numCells_g, &numEdges_g, &numBoundaryEdges_g, &numNodes, &numCells,
-            &numEdges, &numBoundaryEdges, pressure_dirichlet, pressure_neumann,
-            viscosity_dirichlet, viscosity_neumann);
-  timer->endTimer("Load mesh");
-
-  mesh = new DGMesh(coords_data, cells_data, edge2node_data, edge2cell_data,
-                    bedge2node_data, bedge2cell_data, bedge_type_data,
-                    edgeNum_data, bedgeNum_data, numNodes_g, numCells_g,
-                    numEdges_g, numBoundaryEdges_g, numNodes, numCells,
-                    numEdges, numBoundaryEdges);
+  mesh = new DGMesh(filename);
 
   data = new INSData(mesh);
   ls = new LS(mesh, data);
@@ -332,7 +311,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->visRHS[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
   */
-  
+
   op_par_loop(viscosity_J, "viscosity_J", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->J, -1, OP_ID, DG_NP, "double", OP_READ),
@@ -411,7 +390,7 @@ void Solver::switch_to_order(int o) {
   dats_to_update.push_back(data->QT[1]);
   dats_to_update.push_back(data->QTT[0]);
   dats_to_update.push_back(data->QTT[1]);
-  
+
   mesh->update_order(o, dats_to_update);
   // ls->update_values();
 }

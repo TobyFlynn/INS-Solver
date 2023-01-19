@@ -174,8 +174,8 @@ __global__ void newton_kernel(const int numPts, const int *poly_ind, double *s,
   if(negative) s[tid] *= -1.0;
 }
 
-void newton_method(const int numPts, double *closest_x, double *closest_y, 
-                   const double *x, const double *y, int *poly_ind, 
+void newton_method(const int numPts, double *closest_x, double *closest_y,
+                   const double *x, const double *y, int *poly_ind,
                    PolyEval *pe, double *s, const double h) {
   int threadsPerBlock, blocks;
   if(numPts < THREADS_PER_BLOCK) {
@@ -209,7 +209,7 @@ void LS::reinit_ls() {
   const double *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
   const double *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
 
-  KDTree kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->numCells, mesh, s);
+  KDTree kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
 
   releaseOP2PtrHost(s_sample_x, OP_READ, sample_pts_x);
   releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
@@ -226,13 +226,13 @@ void LS::reinit_ls() {
 
   double *closest_x, *closest_y;
   int *poly_ind;
-  cudaMallocManaged(&closest_x, DG_NP * mesh->numCells * sizeof(double));
-  cudaMallocManaged(&closest_y, DG_NP * mesh->numCells * sizeof(double));
-  cudaMallocManaged(&poly_ind, DG_NP * mesh->numCells * sizeof(int));
+  cudaMallocManaged(&closest_x, DG_NP * mesh->cells->size * sizeof(double));
+  cudaMallocManaged(&closest_y, DG_NP * mesh->cells->size * sizeof(double));
+  cudaMallocManaged(&poly_ind, DG_NP * mesh->cells->size * sizeof(int));
 
   timer->startTimer("LS - Query K-D Tree");
   #pragma omp parallel for
-  for(int i = 0; i < DG_NP * mesh->numCells; i++) {
+  for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
     // Get closest sample point
     KDCoord tmp = kdtree.closest_point(x_ptr[i], y_ptr[i]);
     closest_x[i] = tmp.x;
@@ -250,9 +250,9 @@ void LS::reinit_ls() {
   const double *y_ptr_d = getOP2PtrDevice(mesh->y, OP_READ);
   double *s_ptr_d = getOP2PtrDevice(s, OP_RW);
 
-  newton_method(DG_NP * mesh->numCells, closest_x, closest_y, x_ptr_d,
+  newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr_d,
                 y_ptr_d, poly_ind, &pe, s_ptr_d, h);
-  
+
   releaseOP2PtrDevice(s, OP_RW, s_ptr_d);
   releaseOP2PtrDevice(mesh->x, OP_READ, x_ptr_d);
   releaseOP2PtrDevice(mesh->y, OP_READ, y_ptr_d);

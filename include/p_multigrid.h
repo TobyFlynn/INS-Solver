@@ -52,8 +52,6 @@ private:
 
   op_dat tmp_dat[DG_ORDER], u_dat[DG_ORDER], b_dat[DG_ORDER], u_rhs, rhs_rhs;
   op_dat fact[DG_ORDER];
-  double *tmp_dat_data[DG_ORDER], *u_dat_data[DG_ORDER], *b_dat_data[DG_ORDER];
-  double *u_rhs_data, *rhs_rhs_data, *fact_data[DG_ORDER];
 
   PoissonMat *pMatrix;
 };

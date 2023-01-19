@@ -168,9 +168,12 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
   double *x_g;
   double *y_g;
 
+  int num_cells_g = 0;
+  MPI_Allreduce(&mesh->cells->size, &num_cells_g, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
   if(rank == 0) {
-    x_g   = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
-    y_g   = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+    x_g   = (double *)malloc(DG_NP * num_cells_g * sizeof(double));
+    y_g   = (double *)malloc(DG_NP * num_cells_g * sizeof(double));
   }
 
   op_arg args[] = {
@@ -186,17 +189,17 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
 
   vector<double> x_v;
   vector<double> y_v;
-  vector<cgsize_t> cells(3 * mesh->numCells_g * DG_SUB_CELLS);
+  vector<cgsize_t> cells(3 * num_cells_g * DG_SUB_CELLS);
 
   if(rank == 0) {
     if(DG_ORDER == 4) {
-      get_cells_order_4(x_v, y_v, cells, x_g, y_g, mesh->numCells_g);
+      get_cells_order_4(x_v, y_v, cells, x_g, y_g, num_cells_g);
     } else if(DG_ORDER == 3) {
-      get_cells_order_3(x_v, y_v, cells, x_g, y_g, mesh->numCells_g);
+      get_cells_order_3(x_v, y_v, cells, x_g, y_g, num_cells_g);
     } else if(DG_ORDER == 2) {
-      get_cells_order_2(x_v, y_v, cells, x_g, y_g, mesh->numCells_g);
+      get_cells_order_2(x_v, y_v, cells, x_g, y_g, num_cells_g);
     } else {
-      get_cells_order_1(x_v, y_v, cells, x_g, y_g, mesh->numCells_g);
+      get_cells_order_1(x_v, y_v, cells, x_g, y_g, num_cells_g);
     }
   }
 
@@ -214,8 +217,8 @@ void save_solution_init(std::string filename, DGMesh *mesh, INSData *data, LS *l
 
   int sizes_i[3];
   if(rank == 0) {
-    sizes_i[0] = DG_NP * mesh->numCells_g;
-    sizes_i[1] = mesh->numCells_g * DG_SUB_CELLS;
+    sizes_i[0] = DG_NP * num_cells_g;
+    sizes_i[1] = num_cells_g * DG_SUB_CELLS;
     sizes_i[2] = 0;
   }
   MPI_Bcast(sizes_i, 3, MPI_INT, 0, MPI_COMM_WORLD);
@@ -434,14 +437,14 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   mesh->interp_to_max_order(dats_to_save, dats_out);
 
   // Get local data (in same format that was originally passed to OP2)
-  double *Ux   = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
-  double *Uy   = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
-  double *pr   = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
-  double *vort = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
-  double *x    = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
-  double *y    = (double *)malloc(DG_NP * mesh->numCells * sizeof(double));
-  double *s    = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  int *o       = (int *)calloc(mesh->numCells, sizeof(double));
+  double *Ux   = (double *)malloc(DG_NP * mesh->cells->size * sizeof(double));
+  double *Uy   = (double *)malloc(DG_NP * mesh->cells->size * sizeof(double));
+  double *pr   = (double *)malloc(DG_NP * mesh->cells->size * sizeof(double));
+  double *vort = (double *)malloc(DG_NP * mesh->cells->size * sizeof(double));
+  double *x    = (double *)malloc(DG_NP * mesh->cells->size * sizeof(double));
+  double *y    = (double *)malloc(DG_NP * mesh->cells->size * sizeof(double));
+  double *s    = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  int *o       = (int *)calloc(mesh->cells->size, sizeof(double));
 
   op_fetch_data(data->tmp_dg_np[0], Ux);
   op_fetch_data(data->tmp_dg_np[1], Uy);
@@ -460,23 +463,30 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
-  double *Ux_g   = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
-  double *Uy_g   = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
-  double *pr_g   = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
-  double *vort_g = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
-  double *x_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
-  double *y_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
-  double *s_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
-  int *o_g       = (int *)malloc(mesh->numCells_g * sizeof(int));
+  int num_cells_g = 0;
+  MPI_Allreduce(&mesh->cells->size, &num_cells_g, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-  gather_double_array(Ux_g, Ux, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
-  gather_double_array(Uy_g, Uy, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
-  gather_double_array(pr_g, pr, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
-  gather_double_array(vort_g, vort, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
-  gather_double_array(x_g, x, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
-  gather_double_array(y_g, y, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
-  gather_double_array(s_g, s, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
-  gather_int_array(o_g, o, comm_size, mesh->numCells_g, mesh->numCells, 1);
+  double *Ux_g, *Uy_g, *pr_g, *vort_g, *x_g, *y_g, *s_g;
+  int *o_g;
+  if(rank == 0) {
+    Ux_g   = (double *)malloc(DG_NP * num_cells_g * sizeof(double));
+    Uy_g   = (double *)malloc(DG_NP * num_cells_g * sizeof(double));
+    pr_g   = (double *)malloc(DG_NP * num_cells_g * sizeof(double));
+    vort_g = (double *)malloc(DG_NP * num_cells_g * sizeof(double));
+    x_g    = (double *)malloc(DG_NP * num_cells_g * sizeof(double));
+    y_g    = (double *)malloc(DG_NP * num_cells_g * sizeof(double));
+    s_g    = (double *)malloc(DG_NP * num_cells_g * sizeof(double));
+    o_g       = (int *)malloc(num_cells_g * sizeof(int));
+  }
+
+  gather_double_array(Ux_g, Ux, comm_size, num_cells_g, mesh->cells->size, DG_NP);
+  gather_double_array(Uy_g, Uy, comm_size, num_cells_g, mesh->cells->size, DG_NP);
+  gather_double_array(pr_g, pr, comm_size, num_cells_g, mesh->cells->size, DG_NP);
+  gather_double_array(vort_g, vort, comm_size, num_cells_g, mesh->cells->size, DG_NP);
+  gather_double_array(x_g, x, comm_size, num_cells_g, mesh->cells->size, DG_NP);
+  gather_double_array(y_g, y, comm_size, num_cells_g, mesh->cells->size, DG_NP);
+  gather_double_array(s_g, s, comm_size, num_cells_g, mesh->cells->size, DG_NP);
+  gather_int_array(o_g, o, comm_size, num_cells_g, mesh->cells->size, 1);
 
   int file;
   if (cgp_open(filename.c_str(), CG_MODE_WRITE, &file)) {
@@ -491,25 +501,25 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   vector<double> vort_v;
   vector<double> s_v;
   vector<double> o_v;
-  vector<cgsize_t> cells(3 * mesh->numCells_g * DG_SUB_CELLS);
+  vector<cgsize_t> cells(3 * num_cells_g * DG_SUB_CELLS);
 
   if(rank == 0) {
     if(DG_ORDER == 4) {
       get_data_vectors_order_4(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, o_v, cells,
                                Ux_g, Uy_g, pr_g, vort_g, x_g, y_g, s_g, o_g,
-                               mesh->numCells_g);
+                               num_cells_g);
     } else if(DG_ORDER == 3) {
       get_data_vectors_order_3(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, o_v, cells,
                                Ux_g, Uy_g, pr_g, vort_g, x_g, y_g, s_g, o_g,
-                               mesh->numCells_g);
+                               num_cells_g);
     } else if(DG_ORDER == 2) {
       get_data_vectors_order_2(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, o_v, cells,
                                Ux_g, Uy_g, pr_g, vort_g, x_g, y_g, s_g, o_g,
-                               mesh->numCells_g);
+                               num_cells_g);
     } else {
       get_data_vectors_order_1(x_v, y_v, u_v, v_v, pr_v, vort_v, s_v, o_v, cells,
                                Ux_g, Uy_g, pr_g, vort_g, x_g, y_g, s_g, o_g,
-                               mesh->numCells_g);
+                               num_cells_g);
     }
   }
 
@@ -524,7 +534,7 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   int sizes_i[3];
   if(rank == 0) {
     sizes_i[0] = x_v.size();
-    sizes_i[1] = mesh->numCells_g * DG_SUB_CELLS;
+    sizes_i[1] = num_cells_g * DG_SUB_CELLS;
     sizes_i[2] = 0;
   }
   MPI_Bcast(sizes_i, 3, MPI_INT, 0, MPI_COMM_WORLD);
@@ -707,11 +717,11 @@ void save_solution(std::string filename, DGMesh *mesh, INSData *data, int ind,
   free(y_g);
 }
 
-void save_solution(std::string filename, DGMesh *mesh, std::vector<op_dat> &dats, 
+void save_solution(std::string filename, DGMesh *mesh, std::vector<op_dat> &dats,
                    std::vector<string> &names) {
-  int numCells = mesh->numCells;
+  int numCells = mesh->cells->size;
   int numVals  = dats.size();
-  
+
   double *x_l = (double *)malloc(DG_NP * numCells * sizeof(double));
   double *y_l = (double *)malloc(DG_NP * numCells * sizeof(double));
   double *dats_data_l[numVals];
@@ -731,22 +741,25 @@ void save_solution(std::string filename, DGMesh *mesh, std::vector<op_dat> &dats
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
-  double *x_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
-  double *y_g    = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+  int num_cells_g = 0;
+  MPI_Allreduce(&mesh->cells->size, &num_cells_g, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  double *x_g    = (double *)malloc(DG_NP * num_cells_g * sizeof(double));
+  double *y_g    = (double *)malloc(DG_NP * num_cells_g * sizeof(double));
   double *dats_data_g[numVals];
   for(int i = 0; i < numVals; i++) {
-    dats_data_g[i] = (double *)malloc(DG_NP * mesh->numCells_g * sizeof(double));
+    dats_data_g[i] = (double *)malloc(DG_NP * num_cells_g * sizeof(double));
   }
 
-  gather_double_array(x_g, x_l, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
-  gather_double_array(y_g, y_l, comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
+  gather_double_array(x_g, x_l, comm_size, num_cells_g, mesh->cells->size, DG_NP);
+  gather_double_array(y_g, y_l, comm_size, num_cells_g, mesh->cells->size, DG_NP);
   for(int i = 0; i < numVals; i++) {
-    gather_double_array(dats_data_g[i], dats_data_l[i], comm_size, mesh->numCells_g, mesh->numCells, DG_NP);
+    gather_double_array(dats_data_g[i], dats_data_l[i], comm_size, num_cells_g, mesh->cells->size, DG_NP);
   }
 
   vector<double> x_v;
   vector<double> y_v;
-  vector<cgsize_t> cells(3 * mesh->numCells_g * DG_SUB_CELLS);
+  vector<cgsize_t> cells(3 * num_cells_g * DG_SUB_CELLS);
 
   vector<vector<double>> dats_vec;
   if(rank == 0) {
@@ -784,7 +797,7 @@ void save_solution(std::string filename, DGMesh *mesh, std::vector<op_dat> &dats
   int sizes_i[3];
   if(rank == 0) {
     sizes_i[0] = x_v.size();
-    sizes_i[1] = mesh->numCells_g * DG_SUB_CELLS;
+    sizes_i[1] = num_cells_g * DG_SUB_CELLS;
     sizes_i[2] = 0;
   }
   MPI_Bcast(sizes_i, 3, MPI_INT, 0, MPI_COMM_WORLD);

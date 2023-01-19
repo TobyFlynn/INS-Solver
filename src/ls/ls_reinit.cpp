@@ -81,7 +81,7 @@ bool newton_kernel(double &closest_pt_x, double &closest_pt_y,
     // Evaluate Hessian
     double hessian[3];
     p.hessian_at(pt_x, pt_y, hessian[0], hessian[1], hessian[2]);
-    
+
     // Check if |nabla(surface)| = 0, if so then return
     double gradsqrnorm = surface_dx * surface_dx + surface_dy * surface_dy;
     if(gradsqrnorm < 1e-14)
@@ -186,7 +186,7 @@ void newton_method(const int numPts, double *closest_x, double *closest_y, const
       numReinit++;
     }
   }
-  
+
   if(numNonConv != 0 || numReinit == 0)
     std::cout << numNonConv << " non-converged points out of " << numReinit << " points reinitialised" << std::endl;
 }
@@ -207,7 +207,7 @@ void LS::reinit_ls() {
   const double *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
   const double *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
 
-  KDTree kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->numCells, mesh, s);
+  KDTree kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
 
   releaseOP2PtrHost(s_sample_x, OP_READ, sample_pts_x);
   releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
@@ -216,13 +216,13 @@ void LS::reinit_ls() {
   const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
   const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
 
-  double *closest_x = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  double *closest_y = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  int *poly_ind     = (int *)calloc(DG_NP * mesh->numCells, sizeof(int));
+  double *closest_x = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  double *closest_y = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  int *poly_ind     = (int *)calloc(DG_NP * mesh->cells->size, sizeof(int));
 
   timer->startTimer("LS - Query K-D Tree");
   #pragma omp parallel for
-  for(int i = 0; i < DG_NP * mesh->numCells; i++) {
+  for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
     // Get closest sample point
     KDCoord tmp = kdtree.closest_point(x_ptr[i], y_ptr[i]);
     closest_x[i] = tmp.x;
@@ -238,7 +238,7 @@ void LS::reinit_ls() {
   timer->startTimer("LS - Newton Method");
   double *surface_ptr = getOP2PtrHost(s, OP_RW);
 
-  newton_method(DG_NP * mesh->numCells, closest_x, closest_y, x_ptr, y_ptr,
+  newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr, y_ptr,
                 poly_ind, polys, surface_ptr, h);
 
   releaseOP2PtrHost(s, OP_RW, surface_ptr);

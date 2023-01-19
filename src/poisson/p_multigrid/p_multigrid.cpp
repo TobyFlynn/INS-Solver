@@ -17,38 +17,21 @@ PMultigrid::PMultigrid(DGMesh *m) {
   pMatrix = new PoissonMat(mesh);
   vec_created = false;
 
+  double *tmp_np = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
   for(int i = 0; i < DG_ORDER; i++) {
-    tmp_dat_data[i] = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    u_dat_data[i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    b_dat_data[i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    fact_data[i]    = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+    tmp_dat[i] = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "tmp");
+    u_dat[i]   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "u");
+    b_dat[i]   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "b");
+    fact[i]    = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "fact");
   }
 
-  u_rhs_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  rhs_rhs_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+  u_rhs   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "u_rhs");
+  rhs_rhs = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "rhs_rhs");
 
-  for(int i = 0; i < DG_ORDER; i++) {
-    tmp_dat[i] = op_decl_dat(mesh->cells, DG_NP, "double", tmp_dat_data[i], "tmp");
-    u_dat[i]   = op_decl_dat(mesh->cells, DG_NP, "double", u_dat_data[i], "u");
-    b_dat[i]   = op_decl_dat(mesh->cells, DG_NP, "double", b_dat_data[i], "b");
-    fact[i]    = op_decl_dat(mesh->cells, DG_NP, "double", fact_data[i], "fact");
-  }
-
-  u_rhs   = op_decl_dat(mesh->cells, DG_NP, "double", u_rhs_data, "u_rhs");
-  rhs_rhs = op_decl_dat(mesh->cells, DG_NP, "double", rhs_rhs_data, "rhs_rhs");
+  free(tmp_np);
 }
 
 PMultigrid::~PMultigrid() {
-  for(int i = 0; i < DG_ORDER; i++) {
-    free(tmp_dat_data[i]);
-    free(u_dat_data[i]);
-    free(b_dat_data[i]);
-    free(fact_data[i]);
-  }
-
-  free(u_rhs_data);
-  free(rhs_rhs_data);
-
   delete pMatrix;
   if(pMatInit) {
     MatDestroy(&pMat);

@@ -28,43 +28,23 @@ LS::LS(DGMesh *m, INSData *d) {
   mesh = m;
   data = d;
 
-  gInput_data = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
+  double *tmp_g_np = (double *)calloc(DG_G_NP * mesh->cells->size, sizeof(double));
+  double *tmp_np = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  double *tmp_ls_sample_np = (double *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(double));
 
-  s_data      = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  step_s_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  nx_data     = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  ny_data     = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  curv_data   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  diracDelta_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+  gInput = op_decl_dat(mesh->cells, DG_G_NP, "double", tmp_g_np, "gInput");
+  s      = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "s");
+  step_s = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "step");
+  nx     = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "ls-nx");
+  ny     = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "ls-ny");
+  curv   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "curv");
+  diracDelta = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "diracDelta");
+  s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", tmp_ls_sample_np, "s_sample_x");
+  s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", tmp_ls_sample_np, "s_sample_y");
 
-  s_sample_x_data = (double *)calloc(LS_SAMPLE_NP * mesh->numCells, sizeof(double));
-  s_sample_y_data = (double *)calloc(LS_SAMPLE_NP * mesh->numCells, sizeof(double));
-
-  gInput = op_decl_dat(mesh->cells, DG_G_NP, "double", gInput_data, "gInput");
-
-  s      = op_decl_dat(mesh->cells, DG_NP, "double", s_data, "s");
-  step_s = op_decl_dat(mesh->cells, DG_NP, "double", step_s_data, "step");
-  nx     = op_decl_dat(mesh->cells, DG_NP, "double", nx_data, "ls-nx");
-  ny     = op_decl_dat(mesh->cells, DG_NP, "double", ny_data, "ls-ny");
-  curv   = op_decl_dat(mesh->cells, DG_NP, "double", curv_data, "curv");
-  diracDelta = op_decl_dat(mesh->cells, DG_NP, "double", diracDelta_data, "diracDelta");
-
-  s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", s_sample_x_data, "s_sample_x");
-  s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", s_sample_y_data, "s_sample_y");
-}
-
-LS::~LS() {
-  free(gInput_data);
-
-  free(s_data);
-  free(step_s_data);
-  free(nx_data);
-  free(ny_data);
-  free(curv_data);
-  free(diracDelta_data);
-
-  free(s_sample_x_data);
-  free(s_sample_y_data);
+  free(tmp_ls_sample_np);
+  free(tmp_np);
+  free(tmp_g_np);
 }
 
 void LS::init() {

@@ -14,62 +14,49 @@ using namespace std;
 
 INSData::INSData(DGMesh *m) {
   mesh = m;
-  // Initialise memory
-  for(int i = 0; i < 10; i++) {
-    tmp_dg_np_data[i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  }
-  for(int i = 0; i < 5; i++) {
-    tmp_dg_g_np_data[i] = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
-  }
-  for(int i = 0; i < 2; i++) {
-    Q_data[0][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    Q_data[1][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    QT_data[i]     = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    QTT_data[i]    = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    N_data[0][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    N_data[1][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-    dPdN_data[i]   = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
-  }
-  p_data         = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  prBC_data      = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
-  vorticity_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  save_temp_data = (double *)calloc(DG_SUB_CELLS * mesh->numCells, sizeof(double));
-  new_order_data = (int *)calloc(mesh->numCells, sizeof(int));
-  rho_data       = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  mu_data        = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
+
+  double *tmp_np = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  double *tmp_g_np = (double *)calloc(DG_G_NP * mesh->cells->size, sizeof(double));
+  double *tmp_sub_cell = (double *)calloc(DG_SUB_CELLS * mesh->cells->size, sizeof(double));
+  int* tmp_int_1 = (int *)calloc(mesh->cells->size, sizeof(int));
 
   // Declare OP2 datasets
   for(int i = 0; i < 10; i++) {
     string name    = "tmp_dg_np" + to_string(i);
-    tmp_dg_np[i]   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_dg_np_data[i], name.c_str());
+    tmp_dg_np[i]   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, name.c_str());
   }
   for(int i = 0; i < 5; i++) {
     string name    = "tmp_dg_g_np" + to_string(i);
-    tmp_dg_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, "double", tmp_dg_g_np_data[i], name.c_str());
+    tmp_dg_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, "double", tmp_g_np, name.c_str());
   }
   for(int i = 0; i < 2; i++) {
     string name = "Q0" + to_string(i);
-    Q[0][i]     = op_decl_dat(mesh->cells, DG_NP, "double", Q_data[0][i], name.c_str());
+    Q[0][i]     = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, name.c_str());
     name        = "Q1" + to_string(i);
-    Q[1][i]     = op_decl_dat(mesh->cells, DG_NP, "double", Q_data[1][i], name.c_str());
+    Q[1][i]     = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, name.c_str());
     name        = "QT" + to_string(i);
-    QT[i]       = op_decl_dat(mesh->cells, DG_NP, "double", QT_data[i], name.c_str());
+    QT[i]       = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, name.c_str());
     name        = "QTT" + to_string(i);
-    QTT[i]      = op_decl_dat(mesh->cells, DG_NP, "double", QTT_data[i], name.c_str());
+    QTT[i]      = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, name.c_str());
     name        = "N0" + to_string(i);
-    N[0][i]     = op_decl_dat(mesh->cells, DG_NP, "double", N_data[0][i], name.c_str());
+    N[0][i]     = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, name.c_str());
     name        = "N1" + to_string(i);
-    N[1][i]     = op_decl_dat(mesh->cells, DG_NP, "double", N_data[1][i], name.c_str());
+    N[1][i]     = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, name.c_str());
     name        = "dPdN" + to_string(i);
-    dPdN[i]     = op_decl_dat(mesh->cells, DG_G_NP, "double", dPdN_data[i], name.c_str());
+    dPdN[i]     = op_decl_dat(mesh->cells, DG_G_NP, "double", tmp_g_np, name.c_str());
   }
-  p         = op_decl_dat(mesh->cells, DG_NP, "double", p_data, "p");
-  prBC      = op_decl_dat(mesh->cells, DG_G_NP, "double", prBC_data, "prBC");
-  vorticity = op_decl_dat(mesh->cells, DG_NP, "double", vorticity_data, "vorticity");
-  save_temp = op_decl_dat(mesh->cells, DG_SUB_CELLS, "double", save_temp_data, "save_temp");
-  new_order = op_decl_dat(mesh->cells, 1, "int", new_order_data, "new_order");
-  rho       = op_decl_dat(mesh->cells, DG_NP, "double", rho_data, "rho");
-  mu        = op_decl_dat(mesh->cells, DG_NP, "double", mu_data, "mu");
+  p         = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "p");
+  prBC      = op_decl_dat(mesh->cells, DG_G_NP, "double", tmp_g_np, "prBC");
+  vorticity = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "vorticity");
+  save_temp = op_decl_dat(mesh->cells, DG_SUB_CELLS, "double", tmp_sub_cell, "save_temp");
+  new_order = op_decl_dat(mesh->cells, 1, "int", tmp_int_1, "new_order");
+  rho       = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "rho");
+  mu        = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "mu");
+
+  free(tmp_int_1);
+  free(tmp_sub_cell);
+  free(tmp_g_np);
+  free(tmp_np);
 
   op_decl_const(1, "double", &reynolds);
   op_decl_const(1, "double", &mu0);
@@ -83,31 +70,6 @@ INSData::INSData(DGMesh *m) {
   op_decl_const(3 * 3 * DG_NPF, "int", FMASK);
   op_decl_const(3 * DG_CUB_NP, "double", cubW_g);
   op_decl_const(3 * DG_GF_NP, "double", gaussW_g);
-}
-
-INSData::~INSData() {
-  for(int i = 0; i < 10; i++) {
-    free(tmp_dg_np_data[i]);
-  }
-  for(int i = 0; i < 5; i++) {
-    free(tmp_dg_g_np_data[i]);
-  }
-  for(int i = 0; i < 2; i++) {
-    free(Q_data[0][i]);
-    free(Q_data[1][i]);
-    free(QT_data[i]);
-    free(QTT_data[i]);
-    free(N_data[0][i]);
-    free(N_data[1][i]);
-    free(dPdN_data[i]);
-  }
-  free(p_data);
-  free(prBC_data);
-  free(vorticity_data);
-  free(save_temp_data);
-  free(new_order_data);
-  free(rho_data);
-  free(mu_data);
 }
 
 void INSData::init() {
