@@ -18,7 +18,7 @@ void PMultigrid::copy_vec_to_dat(op_dat dat, const double *dat_d) {
 
   int setSize = dat->set->size;
   cudaMemcpy2D(dat->data_d, DG_NP * sizeof(double), dat_d, 3 * sizeof(double), 3 * sizeof(double), setSize, cudaMemcpyDeviceToDevice);
-  
+
   op_mpi_set_dirtybit_cuda(1, copy_args);
   timer->endTimer("PMultigrid - vec2dat");
 }
@@ -88,9 +88,8 @@ void PMultigrid::copy_dat_to_vec(op_dat dat, double *dat_d) {
   op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
 
   int setSize = dat->set->size;
-
   cudaMemcpy2D(dat_d, 3 * sizeof(double), dat->data_d, DG_NP * sizeof(double), 3 * sizeof(double), setSize, cudaMemcpyDeviceToDevice);
-  
+
   op_mpi_set_dirtybit_cuda(1, copy_args);
   timer->endTimer("PMultigrid - dat2vec");
 }

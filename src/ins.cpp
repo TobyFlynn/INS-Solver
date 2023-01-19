@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
   refVel = 10.0;
   PetscBool found1;
   PetscOptionsGetReal(NULL, NULL, "-vel", &refVel, &found1);
-  
+
   gam = 1.4;
   mu = 1e-2;
   nu = 1e-3;
@@ -250,8 +250,6 @@ int main(int argc, char **argv) {
   dat_names.push_back("Pressure");
   dats_to_save.push_back(solver->ls->s);
   dat_names.push_back("Surface");
-  dats_to_save.push_back(solver->mesh->shock);
-  dat_names.push_back("Shock");
   save_solution(outputDir + "end-extended.cgns", solver->mesh, dats_to_save, dat_names);
   timer->endTimer("Final save");
 
