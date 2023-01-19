@@ -102,13 +102,14 @@ bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
 
   KSPSetOperators(ksp, pMat, pMat);
 
-  op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
-              op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mat->op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(bc_dat, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(b_dat,  0, mesh->bedge2cells, DG_NP, "double", OP_INC));
-
+  if(mesh->bedge2cells) {
+    op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
+                op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mat->op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
+                op_arg_dat(bc_dat, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(b_dat,  0, mesh->bedge2cells, DG_NP, "double", OP_INC));
+  }
   load_vec(&b, b_dat);
   load_vec(&x, x_dat);
 
@@ -204,6 +205,11 @@ void PetscPressureSolve::setup() {
   timer->startTimer("Build Pr Mat");
   mat->calc_mat(factor);
   setMatrix();
+  MatNullSpace nullspace;
+  MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_TRUE, 0, 0, &nullspace);
+  MatSetNullSpace(pMat, nullspace);
+  MatSetTransposeNullSpace(pMat, nullspace);
+  MatNullSpaceDestroy(&nullspace);
   timer->endTimer("Build Pr Mat");
 }
 

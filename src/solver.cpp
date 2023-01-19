@@ -143,22 +143,23 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->flux[1],   -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
 
   // Enforce BCs
-  op_par_loop(advection_bc, "advection_bc", mesh->bedges,
-              op_arg_dat(mesh->order,       0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&t, 1, "double", OP_READ),
-              op_arg_gbl(&bc_time, 1, "double", OP_READ),
-              op_arg_dat(mesh->gauss->x,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->y,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(data->gQ[0],     0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(data->gQ[1],     0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(data->flux[0],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
-              op_arg_dat(data->flux[1],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
-
+  if(mesh->bedge2cells) {
+    op_par_loop(advection_bc, "advection_bc", mesh->bedges,
+                op_arg_dat(mesh->order,       0, mesh->bedge2cells, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+                op_arg_gbl(&t, 1, "double", OP_READ),
+                op_arg_gbl(&bc_time, 1, "double", OP_READ),
+                op_arg_dat(mesh->gauss->x,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(mesh->gauss->y,  0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(data->gQ[0],     0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(data->gQ[1],     0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(data->flux[0],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
+                op_arg_dat(data->flux[1],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
+  }
   op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], 1.0, data->N[currentInd][0]);
   op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], 1.0, data->N[currentInd][1]);
 
@@ -196,33 +197,23 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, data->rho, 0.0, data->gRho);
 
   // Apply pressure boundary conditions
-  op_par_loop(pressure_bc, "pressure_bc", mesh->bedges,
-              op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_gbl(&t, 1, "double", OP_READ),
-              op_arg_gbl(&bc_time, 1, "double", OP_READ),
-              op_arg_dat(mesh->gauss->x, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->y, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(data->gN[0], 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(data->gN[1], 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(data->gGradCurl[0], 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(data->gGradCurl[1], 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(data->gRho, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(data->dPdN[currentInd], 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
-
-  if(problem == 1) {
-    // TODO - update for p-adaptivity
-    op_par_loop(pressure_bc2, "pressure_bc2", mesh->bedges,
+  if(mesh->bedge2cells) {
+    op_par_loop(pressure_bc, "pressure_bc", mesh->bedges,
                 op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
                 op_arg_gbl(&t, 1, "double", OP_READ),
-                op_arg_gbl(&problem, 1, "int", OP_READ),
+                op_arg_gbl(&bc_time, 1, "double", OP_READ),
                 op_arg_dat(mesh->gauss->x, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
                 op_arg_dat(mesh->gauss->y, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(data->prBC, 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
+                op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(data->gN[0], 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(data->gN[1], 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(data->gGradCurl[0], 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(data->gGradCurl[1], 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(data->gRho, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(data->dPdN[currentInd], 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
   }
 
   // Calculate RHS of pressure solve
@@ -286,18 +277,19 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->visBC[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
 
   // Get BCs for viscosity solve
-  op_par_loop(viscosity_bc, "viscosity_bc", mesh->bedges,
-              op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&time, 1, "double", OP_READ),
-              op_arg_gbl(&bc_time, 1, "double", OP_READ),
-              op_arg_dat(mesh->gauss->x, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->y, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(data->visBC[0], 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
-              op_arg_dat(data->visBC[1], 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
-
+  if(mesh->bedge2cells) {
+    op_par_loop(viscosity_bc, "viscosity_bc", mesh->bedges,
+                op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+                op_arg_gbl(&time, 1, "double", OP_READ),
+                op_arg_gbl(&bc_time, 1, "double", OP_READ),
+                op_arg_dat(mesh->gauss->x, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(mesh->gauss->y, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(data->visBC[0], 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
+                op_arg_dat(data->visBC[1], 0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
+  }
   // Set up RHS for viscosity solve
   /*
   op_par_loop(viscosity_mm, "viscosity_mm", mesh->cells,

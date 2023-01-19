@@ -83,17 +83,21 @@ void PoissonMat::update_glb_ind() {
               op_arg_dat(glb_ind, -2, mesh->edge2cells, 1, "int", OP_READ),
               op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_WRITE),
               op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_WRITE));
-  op_par_loop(copy_to_bedges, "copy_to_bedges", mesh->bedges,
-              op_arg_dat(glb_ind, 0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_dat(glb_indBC, -1, OP_ID, 1, "int", OP_WRITE));
+  if(mesh->bedge2cells) {
+    op_par_loop(copy_to_bedges, "copy_to_bedges", mesh->bedges,
+                op_arg_dat(glb_ind, 0, mesh->bedge2cells, 1, "int", OP_READ),
+                op_arg_dat(glb_indBC, -1, OP_ID, 1, "int", OP_WRITE));
+  }
 
   op_par_loop(copy_to_edges, "copy_to_edges", mesh->edges,
               op_arg_dat(mesh->order, -2, mesh->edge2cells, 1, "int", OP_READ),
               op_arg_dat(orderL, -1, OP_ID, 1, "int", OP_WRITE),
               op_arg_dat(orderR, -1, OP_ID, 1, "int", OP_WRITE));
-  op_par_loop(copy_to_bedges, "copy_to_bedges", mesh->bedges,
-              op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_dat(orderBC, -1, OP_ID, 1, "int", OP_WRITE));
+  if(mesh->bedge2cells) {
+    op_par_loop(copy_to_bedges, "copy_to_bedges", mesh->bedges,
+                op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
+                op_arg_dat(orderBC, -1, OP_ID, 1, "int", OP_WRITE));
+  }
 }
 
 void PoissonMat::mult(op_dat in, op_dat out) {
@@ -210,31 +214,33 @@ void PoissonMat::calc_gauss_sub_mat() {
               op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE));
 
   // If not dirichlet BC, kernel will assume it is a neumann bc
-  op_par_loop(poisson_gauss_grad_b, "poisson_gauss_grad_b", mesh->bedges,
-              op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_gbl(gF0Dr_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_gbl(gF0Ds_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_gbl(gF1Dr_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_gbl(gF1Ds_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_gbl(gF2Dr_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_gbl(gF2Ds_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_gbl(gFInterp0_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_gbl(gFInterp1_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_gbl(gFInterp2_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),
-              op_arg_gbl(&dirichlet[1], 1, "int", OP_READ),
-              op_arg_gbl(&dirichlet[2], 1, "int", OP_READ),
-              op_arg_dat(mesh->x, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(h,       0, mesh->bedge2cells, 1, "double", OP_READ),
-              op_arg_dat(gFactor, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(op1, 0, mesh->bedge2cells, DG_NP * DG_NP, "double", OP_INC),
-              op_arg_dat(op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
+  if(mesh->bedge2cells) {
+    op_par_loop(poisson_gauss_grad_b, "poisson_gauss_grad_b", mesh->bedges,
+                op_arg_dat(mesh->order, 0, mesh->bedge2cells, 1, "int", OP_READ),
+                op_arg_gbl(gF0Dr_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+                op_arg_gbl(gF0Ds_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+                op_arg_gbl(gF1Dr_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+                op_arg_gbl(gF1Ds_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+                op_arg_gbl(gF2Dr_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+                op_arg_gbl(gF2Ds_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+                op_arg_gbl(gFInterp0_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+                op_arg_gbl(gFInterp1_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+                op_arg_gbl(gFInterp2_g, DG_ORDER * DG_GF_NP * DG_NP, "double", OP_READ),
+                op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_gbl(&dirichlet[0], 1, "int", OP_READ),
+                op_arg_gbl(&dirichlet[1], 1, "int", OP_READ),
+                op_arg_gbl(&dirichlet[2], 1, "int", OP_READ),
+                op_arg_dat(mesh->x, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
+                op_arg_dat(mesh->y, 0, mesh->bedge2cells, DG_NP, "double", OP_READ),
+                op_arg_dat(mesh->gauss->sJ, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(mesh->gauss->nx, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(mesh->gauss->ny, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(h,       0, mesh->bedge2cells, 1, "double", OP_READ),
+                op_arg_dat(gFactor, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(op1, 0, mesh->bedge2cells, DG_NP * DG_NP, "double", OP_INC),
+                op_arg_dat(op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_WRITE));
+  }
 }
 
 void PoissonMat::calc_mm_mat() {

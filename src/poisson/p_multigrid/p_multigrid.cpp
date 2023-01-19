@@ -64,12 +64,14 @@ void PMultigrid::init() {
 }
 
 bool PMultigrid::solve(op_dat b, op_dat x) {
-  op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
-              op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(pMatrix->op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(bc_dat, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(b, 0, mesh->bedge2cells, DG_NP, "double", OP_INC));
+  if(mesh->bedge2cells) {
+    op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
+                op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(pMatrix->op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
+                op_arg_dat(bc_dat, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(b, 0, mesh->bedge2cells, DG_NP, "double", OP_INC));
+  }
 
   int p = DG_ORDER;
 
