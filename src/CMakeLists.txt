@@ -1,5 +1,5 @@
 set(COMMON_SRC solver_op.cpp poisson_op/petsc/poisson_op.cpp poisson_op/matrix/poisson_mat_op.cpp)
-list(APPEND COMMON_SRC ins_data_op.cpp timing.cpp)
+list(APPEND COMMON_SRC ins_data_op.cpp timing.cpp euler_op.cpp)
 list(APPEND COMMON_SRC ls_op/ls_op.cpp ls/ls_reinit_poly.cpp poisson_op/p_multigrid/p_multigrid_op.cpp)
 set(CPU_SRC poisson/petsc/poisson_cpu.cpp poisson/matrix/poisson_mat_cpu.cpp utils_op.cpp poisson/p_multigrid/p_multigrid_cpu.cpp)
 set(GPU_SRC poisson/petsc/poisson_gpu.cu poisson/matrix/poisson_mat_gpu.cu utils_op.cu ls/ls_reinit_poly_eval_cuda.cu poisson/p_multigrid/p_multigrid_gpu.cu)

@@ -13,6 +13,7 @@
 #include "ins_data.h"
 #include "timing.h"
 #include "solver.h"
+#include "euler.h"
 
 using namespace std;
 
@@ -83,10 +84,10 @@ int main(int argc, char **argv) {
   rho1 = 1.0;
 
   refRho     = 1.0;
-  refMu      = 1.0e-5;
-  refLen     = 4.9e-4;
+  refMu      = 1.0e-2;
+  refLen     = 1.0;
   // refVel     = 10.0;
-  // refVel     = 1.0;
+  refVel     = 1.0;
   refSurfTen = 0.0756;
 
   // Set Reynolds number
@@ -144,12 +145,12 @@ int main(int argc, char **argv) {
   PetscOptionsGetReal(NULL, NULL, "-bc_time", &bc_time, &found);
 
   bc_alpha = 0.0;
-  int current_order = 2;
-
+  int current_order = DG_ORDER;
+  /*
   Solver *solver = new Solver(filename, problem);
   solver->set_linear_solver(linear_solver);
   solver->set_bc_time(bc_time);
-  solver->switch_to_order(current_order);
+  // solver->switch_to_order(current_order);
 
   double a0 = 1.0;
   double a1 = 0.0;
@@ -174,11 +175,6 @@ int main(int argc, char **argv) {
       a1 = -0.5;
       b0 = 2.0;
       b1 = -1.0;
-    }
-
-    if(time > 0.5 && current_order != DG_ORDER) {
-      current_order = DG_ORDER;
-      solver->switch_to_order(current_order);
     }
 
     timer->startTimer("Advection");
@@ -266,6 +262,28 @@ int main(int argc, char **argv) {
 
   delete solver;
   delete timer;
+*/
+
+  Euler *euler = new Euler(filename);
+  double time = 0.0;
+
+  timer->startTimer("Main Loop");
+  for(int i = 0; i < iter; i++) {
+    euler->step();
+    time += 1e-4;
+
+    // Calculate drag and lift coefficients + save data
+    if(save != -1 && (i + 1) % save == 0) {
+      op_printf("Iteration: %d Time: %g\n", i, time);
+
+      timer->startTimer("Save");
+      euler->dump_data(outputDir + "sol_" + to_string(time) + "_s.h5");
+      timer->endTimer("Save");
+    }
+  }
+  timer->endTimer("Main Loop");
+
+  euler->dump_data(outputDir + "end_" + to_string(time) + "_s.h5");
 
   ierr = PetscFinalize();
   // Clean up OP2

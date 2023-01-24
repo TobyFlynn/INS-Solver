@@ -119,8 +119,10 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->F[2], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->F[3], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  div(mesh, data->F[0], data->F[1], data->N[currentInd][0]);
-  div(mesh, data->F[2], data->F[3], data->N[currentInd][1]);
+  // div(mesh, data->F[0], data->F[1], data->N[currentInd][0]);
+  // div(mesh, data->F[2], data->F[3], data->N[currentInd][1]);
+  cub_div(mesh, data->F[0], data->F[1], data->N[currentInd][0]);
+  cub_div(mesh, data->F[2], data->F[3], data->N[currentInd][1]);
 
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, data->Q[currentInd][0], 0.0, data->gQ[0]);
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, data->Q[currentInd][1], 0.0, data->gQ[1]);
@@ -160,8 +162,12 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
                 op_arg_dat(data->flux[0],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC),
                 op_arg_dat(data->flux[1],   0, mesh->bedge2cells, DG_G_NP, "double", OP_INC));
   }
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], 1.0, data->N[currentInd][0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], 1.0, data->N[currentInd][1]);
+  // op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[0], 1.0, data->N[currentInd][0]);
+  // op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, data->flux[1], 1.0, data->N[currentInd][1]);
+  op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->flux[0], 1.0, data->N[currentInd][0]);
+  op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->flux[1], 1.0, data->N[currentInd][1]);
+  inv_mass(mesh, data->N[currentInd][0]);
+  inv_mass(mesh, data->N[currentInd][1]);
 
   // Calculate the intermediate velocity values
   op_par_loop(advection_intermediate_vel, "advection_intermediate_vel", mesh->cells,
@@ -186,7 +192,8 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
                       double b1, double g0, double t) {
   timer->startTimer("Pressure Setup");
 
-  div(mesh, data->QT[0], data->QT[1], data->divVelT);
+  // div(mesh, data->QT[0], data->QT[1], data->divVelT);
+  cub_div_with_central_flux_no_inv_mass(mesh, data->QT[0], data->QT[1], data->divVelT);
   curl(mesh, data->Q[currentInd][0], data->Q[currentInd][1], data->curlVel);
   grad(mesh, data->curlVel, data->gradCurlVel[0], data->gradCurlVel[1]);
 
@@ -230,7 +237,7 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->divVelT, -1, OP_ID, DG_NP, "double", OP_RW));
 
   // op2_gemv(mesh, false, 1.0, DGConstants::LIFT, data->dPdN[(currentInd + 1) % 2], 1.0, data->divVelT);
-  op2_gemv(mesh, false, 1.0, DGConstants::MASS, data->divVelT, 0.0, data->pRHS);
+  // op2_gemv(mesh, false, 1.0, DGConstants::MASS, data->divVelT, 0.0, data->pRHS);
   op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, data->dPdN[(currentInd + 1) % 2], 1.0, data->pRHS);
   timer->endTimer("Pressure Setup");
 
@@ -240,16 +247,19 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   if(linear_solver == 0) {
     pressurePoisson->setup();
     pressurePoisson->setBCValues(data->prBC);
-    converged = pressurePoisson->solve(data->pRHS, data->p);
+    // converged = pressurePoisson->solve(data->pRHS, data->p);
+    converged = pressurePoisson->solve(data->divVelT, data->p);
   } else {
     pMultigrid->setBCValues(data->prBC);
     pMultigrid->set_rho(data->rho);
-    converged = pMultigrid->solve(data->pRHS, data->p);
+    // converged = pMultigrid->solve(data->pRHS, data->p);
+    converged = pMultigrid->solve(data->divVelT, data->p);
   }
   timer->endTimer("Pressure Linear Solve");
 
   // Calculate gradient of pressure
-  grad_with_central_flux(mesh, data->p, data->dpdx, data->dpdy);
+  // grad_with_central_flux(mesh, data->p, data->dpdx, data->dpdy);
+  cub_grad_with_central_flux(mesh, data->p, data->dpdx, data->dpdy);
 
   // Calculate new velocity intermediate values
   op_par_loop(pressure_update_vel, "pressure_update_vel", mesh->cells,
@@ -269,9 +279,19 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
 
 bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
                        double b1, double g0, double t) {
-  timer->startTimer("Viscosity Setup");
+  // timer->startTimer("Viscosity Setup");
   double time = t + dt;
+/*
+  op_par_loop(inviscid_velocity, "inviscid_velocity", mesh->cells,
+              op_arg_gbl(&g0, 1, "double", OP_READ),
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(data->QTT[0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->Q[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->Q[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
+  return true;
+*/
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
               op_arg_dat(data->visBC[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(data->visBC[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
@@ -322,7 +342,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->visRHS[0], -1, OP_ID, DG_NP, "double", OP_RW),
               op_arg_dat(data->visRHS[1], -1, OP_ID, DG_NP, "double", OP_RW));
 
-  timer->endTimer("Viscosity Setup");
+  // timer->endTimer("Viscosity Setup");
 
   // Call PETSc linear solver
   timer->startTimer("Viscosity Linear Solve");
