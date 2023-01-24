@@ -44,6 +44,10 @@ Euler::Euler(std::string &filename) {
 
   gamma_e = 1.4;
   op_decl_const(1, "double", &gamma_e);
+  op_decl_const(3 * 5, "int", DG_CONSTANTS);
+  op_decl_const(3 * 3 * DG_NPF, "int", FMASK);
+  op_decl_const(3 * DG_CUB_NP, "double", cubW_g);
+  op_decl_const(3 * DG_GF_NP, "double", gaussW_g);
 
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->edge2cells, NULL);
 
@@ -63,13 +67,14 @@ void Euler::init() {
               op_arg_dat(Q[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(Q[2], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(Q[3], -1, OP_ID, DG_NP, "double", OP_WRITE));
-  
-  dt = 1e-4;
+
+  // dt = 1e-4;
+  dt = 0.00125;
 }
 
 void Euler::step() {
   rhs(Q, rk_RHSQ[0]);
-  
+
   op_par_loop(euler_wQ_0, "euler_wQ_0", mesh->cells,
               op_arg_gbl(&dt, 1, "double", OP_READ),
               op_arg_dat(Q[0], -1, OP_ID, DG_NP, "double", OP_READ),
@@ -84,7 +89,7 @@ void Euler::step() {
               op_arg_dat(rk_wQ[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(rk_wQ[2], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(rk_wQ[3], -1, OP_ID, DG_NP, "double", OP_WRITE));
-  
+
   rhs(rk_wQ, rk_RHSQ[1]);
 
   op_par_loop(euler_wQ_1, "euler_wQ_1", mesh->cells,
@@ -105,7 +110,7 @@ void Euler::step() {
               op_arg_dat(rk_wQ[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(rk_wQ[2], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(rk_wQ[3], -1, OP_ID, DG_NP, "double", OP_WRITE));
-  
+
   rhs(rk_wQ, rk_RHSQ[2]);
 
   op_par_loop(euler_wQ_2, "euler_wQ_2", mesh->cells,
@@ -142,7 +147,7 @@ void Euler::rhs(op_dat *wQ, op_dat *RHSQ) {
               op_arg_dat(G[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(G[2], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(G[3], -1, OP_ID, DG_NP, "double", OP_WRITE));
-  
+
   for(int i = 0; i < 4; i++) {
     div_weak(mesh, F[i], G[i], RHSQ[i]);
     op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, wQ[i], 0.0, gQ[i]);
@@ -151,7 +156,7 @@ void Euler::rhs(op_dat *wQ, op_dat *RHSQ) {
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
               op_arg_dat(gRHSQ[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(gRHSQ[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
-  
+
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
               op_arg_dat(gRHSQ[2], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(gRHSQ[3], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
@@ -171,9 +176,11 @@ void Euler::rhs(op_dat *wQ, op_dat *RHSQ) {
               op_arg_dat(gRHSQ[1], -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
               op_arg_dat(gRHSQ[2], -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
               op_arg_dat(gRHSQ[3], -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
-  
+
   for(int i = 0; i < 4; i++) {
     op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, gRHSQ[i], 1.0, RHSQ[i]);
+    // op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, gRHSQ[i], 1.0, RHSQ[i]);
+    // inv_mass(mesh, RHSQ[i]);
   }
 }
 

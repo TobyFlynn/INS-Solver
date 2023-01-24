@@ -266,24 +266,29 @@ int main(int argc, char **argv) {
 
   Euler *euler = new Euler(filename);
   double time = 0.0;
+  int save_iter = 0;
+  if(save != -1) {
+    euler->dump_data(outputDir + "sol_" + to_string(save_iter++) + ".h5");
+  }
 
   timer->startTimer("Main Loop");
   for(int i = 0; i < iter; i++) {
     euler->step();
-    time += 1e-4;
+    time += euler->dt;
 
     // Calculate drag and lift coefficients + save data
     if(save != -1 && (i + 1) % save == 0) {
       op_printf("Iteration: %d Time: %g\n", i, time);
 
       timer->startTimer("Save");
-      euler->dump_data(outputDir + "sol_" + to_string(time) + "_s.h5");
+      euler->dump_data(outputDir + "sol_" + to_string(save_iter++) + ".h5");
       timer->endTimer("Save");
     }
   }
   timer->endTimer("Main Loop");
 
   euler->dump_data(outputDir + "end_" + to_string(time) + "_s.h5");
+  timer->exportTimings(outputDir + "timings.txt", iter, time);
 
   ierr = PetscFinalize();
   // Clean up OP2
