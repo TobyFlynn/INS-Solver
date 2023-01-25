@@ -24,6 +24,7 @@ python3 $OP2_TRANSLATOR ins.cpp \
         euler.cpp kernels/
 
 sed -i '10i extern double reynolds;' openmp/ins_kernels.cpp
+sed -i '23,26d' cuda/ins_kernels.cu
 cd ..
 
 mkdir build
@@ -32,11 +33,11 @@ cd build
 
 cmake .. \
   -DOP2_DIR=/home/u1717021/Code/PhD/OP2-Common/op2 \
-  -DCGNS_DIR=/home/u1717021/Code/PhD/CGNS/build \
   -DOPENBLAS_DIR=/opt/OpenBLAS \
   -DPETSC_DIR=/home/u1717021/Code/PhD/petsc/arch-linux-c-debug \
   -DPART_LIB_NAME=PARMETIS \
   -DPARMETIS_DIR=/home/u1717021/Code/PhD/ParMetis_Libs \
+  -DHDF5_DIR=/usr/local/module-software/hdf5-1.12.0-parallel \
   -DOP2DGTOOLKIT_DIR=/home/u1717021/Code/PhD/OP2-DG-Toolkit/build \
   -DARMA_DIR=/home/u1717021/Code/PhD/armadillo-10.5.3/build \
   -DORDER=3 \

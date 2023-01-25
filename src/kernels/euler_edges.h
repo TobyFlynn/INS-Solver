@@ -1,7 +1,7 @@
 inline void euler_edges(const int **p, const int *edgeNum, const bool *rev,
                         const double **nx, const double **ny, const double **sJ,
                         const double **gQ0, const double **gQ1, const double **gQ2,
-                        const double **gQ3, double **gRHS0, double **gRHS1, 
+                        const double **gQ3, double **gRHS0, double **gRHS1,
                         double **gRHS2, double **gRHS3) {
   // Work out which edge for each element
   const int edgeL = edgeNum[0];

@@ -8,7 +8,7 @@ inline void euler_ic(const double *x, const double *y, double *q0,
     double f = (1.0 - x[i] * x[i] - y[i] * y[i]) / (2.0 * R * R);
     double u = (S * y[i] * exp(f)) / (2.0 * PI * R);
     double v = (1.0 - ((S * x[i] * exp(f)) / (2.0 * PI * R)));
-    double rho_tmp = 1.0 - ((S * S * M * M * (1.0 - gamma_e) * exp(2.0 * f)) / (8.0 * PI * PI));
+    double rho_tmp = 1.0 - ((S * S * M * M * (gamma_e - 1.0) * exp(2.0 * f)) / (8.0 * PI * PI));
     double rho = pow(rho_tmp, 1.0 / (gamma_e - 1.0));
     double p = pow(rho, gamma_e) / (gamma_e * M * M);
 
