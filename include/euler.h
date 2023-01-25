@@ -13,6 +13,7 @@ public:
 
   void step();
   void dump_data(const std::string &filename);
+  double l2_vortex_error(double time);
 
   double dt;
 private:

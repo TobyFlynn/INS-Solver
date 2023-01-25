@@ -192,3 +192,25 @@ void Euler::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(Q[2], filename.c_str());
   op_fetch_data_hdf5_file(Q[3], filename.c_str());
 }
+
+double Euler::l2_vortex_error(double time) {
+  op_par_loop(euler_l2_vortex_error_0, "euler_l2_vortex_error_0", mesh->cells,
+              op_arg_gbl(&time, 1, "double", OP_READ),
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(Q[0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(rk_wQ[0], -1, OP_ID, DG_NP, "double", OP_WRITE));
+
+  op_par_loop(viscosity_mm, "viscosity_mm", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->cubature->mm, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(rk_wQ[0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(rk_wQ[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+
+  double residual = 0.0;
+  op_par_loop(euler_l2_vortex_error_1, "euler_l2_vortex_error_1", mesh->cells,
+              op_arg_gbl(&residual, 1, "double", OP_INC),
+              op_arg_dat(rk_wQ[1], -1, OP_ID, DG_NP, "double", OP_READ));
+
+  return residual;
+}

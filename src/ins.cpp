@@ -21,6 +21,12 @@ extern double reynolds, froude, weber, mu0, mu1, rho0, rho1, dt, gam;
 extern double ic_u, ic_v, nu, mu, bc_mach, bc_alpha, bc_p, bc_u, bc_v;
 extern double refRho, refMu, refLen, refVel, refSurfTen;
 
+struct euler_res_info {
+  int iter;
+  double time;
+  double res;
+};
+
 void export_data_init(string filename) {
   ofstream file(filename);
 
@@ -271,10 +277,27 @@ int main(int argc, char **argv) {
     euler->dump_data(outputDir + "sol_" + to_string(save_iter++) + ".h5");
   }
 
+  vector<euler_res_info> res_vec;
+  euler_res_info tmp_res;
+  tmp_res.iter = 0;
+  tmp_res.time = 0.0;
+  tmp_res.res = euler->l2_vortex_error(time);
+  res_vec.push_back(tmp_res);
+  op_printf("Iteration: %d Residual: %g\n", 0, tmp_res.res);
+
   timer->startTimer("Main Loop");
   for(int i = 0; i < iter; i++) {
     euler->step();
     time += euler->dt;
+
+    if((i + 1) % 100 == 0) {
+      euler_res_info tmp_res;
+      tmp_res.iter = i + 1;
+      tmp_res.time = time;
+      tmp_res.res = euler->l2_vortex_error(time);
+      res_vec.push_back(tmp_res);
+      op_printf("Iteration: %d Residual: %g\n", i + 1, tmp_res.res);
+    }
 
     // Calculate drag and lift coefficients + save data
     if(save != -1 && (i + 1) % save == 0) {
@@ -289,6 +312,15 @@ int main(int argc, char **argv) {
 
   euler->dump_data(outputDir + "end_" + to_string(time) + "_s.h5");
   timer->exportTimings(outputDir + "timings.txt", iter, time);
+
+  ofstream res_file(outputDir + "residual.csv");
+  res_file << "Iteration" << ",";
+  res_file << "Time" << ",";
+  res_file << "Residual" << endl;
+  for(int i = 0; i < res_vec.size(); i++) {
+    res_file << res_vec[i].iter << ", " << res_vec[i].time << ", " << res_vec[i].res << endl;
+  }
+  res_file.close();
 
   ierr = PetscFinalize();
   // Clean up OP2
