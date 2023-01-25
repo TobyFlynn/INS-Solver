@@ -4,7 +4,8 @@ inline void pressure_rhs(const double *b0, const double *b1, const double *dt,
   double factor = 1.0 / (*dt);
   for(int i = 0; i < DG_NP; i++) {
     // divVelT[i] = -divVelT[i] * factor * J[i];
-    divVelT[i] = -divVelT[i] * factor;
+    // divVelT[i] = -divVelT[i] * factor;
+    divVelT[i] = -divVelT[i];
   }
 
   const double *gaussW = &gaussW_g[(*p - 1) * DG_GF_NP];

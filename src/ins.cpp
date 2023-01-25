@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
 
   bc_alpha = 0.0;
   int current_order = DG_ORDER;
-  /*
+
   Solver *solver = new Solver(filename, problem);
   solver->set_linear_solver(linear_solver);
   solver->set_bc_time(bc_time);
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
 
   for(int i = 0; i < iter; i++) {
     // Switch from forwards Euler time integration to second-order Adams-Bashford after first iteration
-    if(i == 1) {
+    if(i == 1 && false) {
       g0 = 1.5;
       a0 = 2.0;
       a1 = -0.5;
@@ -262,8 +262,8 @@ int main(int argc, char **argv) {
 
   delete solver;
   delete timer;
-*/
 
+/*
   Euler *euler = new Euler(filename);
   double time = 0.0;
 
@@ -284,7 +284,7 @@ int main(int argc, char **argv) {
   timer->endTimer("Main Loop");
 
   euler->dump_data(outputDir + "end_" + to_string(time) + "_s.h5");
-
+*/
   ierr = PetscFinalize();
   // Clean up OP2
   op_exit();

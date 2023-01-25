@@ -91,6 +91,7 @@ Solver::Solver(std::string filename, int prob) {
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_gbl(&dt, 1, "double", OP_MIN));
   dt = dt / (DG_ORDER * DG_ORDER * refVel);
+  dt *= 0.5;
   op_printf("dt: %g\n", dt);
 }
 
@@ -281,7 +282,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
                        double b1, double g0, double t) {
   // timer->startTimer("Viscosity Setup");
   double time = t + dt;
-/*
+
   op_par_loop(inviscid_velocity, "inviscid_velocity", mesh->cells,
               op_arg_gbl(&g0, 1, "double", OP_READ),
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
@@ -291,7 +292,7 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->Q[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   return true;
-*/
+
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
               op_arg_dat(data->visBC[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(data->visBC[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
