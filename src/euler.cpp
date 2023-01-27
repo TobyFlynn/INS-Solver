@@ -70,6 +70,14 @@ void Euler::init() {
 
   // dt = 1e-4;
   dt = 0.00125;
+
+  double h = 0.0;
+  op_par_loop(calc_h_euler, "calc_h_euler", mesh->cells,
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
+              op_arg_gbl(&h, 1, "double", OP_MAX));
+
+  op_printf("h: %g\n", h);
 }
 
 void Euler::step() {
@@ -194,23 +202,23 @@ void Euler::dump_data(const std::string &filename) {
 }
 
 double Euler::l2_vortex_error(double time) {
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB_V, mesh->x, 0.0, mesh->cubature->op_tmp[0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB_V, mesh->y, 0.0, mesh->cubature->op_tmp[1]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB_V, Q[0], 0.0, mesh->cubature->op_tmp[2]);
+
   op_par_loop(euler_l2_vortex_error_0, "euler_l2_vortex_error_0", mesh->cells,
               op_arg_gbl(&time, 1, "double", OP_READ),
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(Q[0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(rk_wQ[0], -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_dat(mesh->cubature->op_tmp[0], -1, OP_ID, DG_CUB_NP, "double", OP_READ),
+              op_arg_dat(mesh->cubature->op_tmp[1], -1, OP_ID, DG_CUB_NP, "double", OP_READ),
+              op_arg_dat(mesh->cubature->J, -1, OP_ID, DG_CUB_NP, "double", OP_READ),
+              op_arg_dat(mesh->cubature->op_tmp[2], -1, OP_ID, DG_CUB_NP, "double", OP_RW));
 
-  op_par_loop(viscosity_mm, "viscosity_mm", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->cubature->mm, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(rk_wQ[0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(rk_wQ[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+  op2_gemv(mesh, true, 1.0, DGConstants::CUB_V, mesh->cubature->op_tmp[2], 0.0, rk_wQ[0]);
 
   double residual = 0.0;
   op_par_loop(euler_l2_vortex_error_1, "euler_l2_vortex_error_1", mesh->cells,
               op_arg_gbl(&residual, 1, "double", OP_INC),
-              op_arg_dat(rk_wQ[1], -1, OP_ID, DG_NP, "double", OP_READ));
+              op_arg_dat(rk_wQ[0], -1, OP_ID, DG_NP, "double", OP_READ));
 
   return residual;
 }
