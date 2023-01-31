@@ -19,6 +19,8 @@ INSData::INSData(DGMesh *m) {
   double *tmp_g_np = (double *)calloc(DG_G_NP * mesh->cells->size, sizeof(double));
   double *tmp_sub_cell = (double *)calloc(DG_SUB_CELLS * mesh->cells->size, sizeof(double));
   int* tmp_int_1 = (int *)calloc(mesh->cells->size, sizeof(int));
+  double *tmp_np_np = (double *)calloc(DG_NP * DG_NP * mesh->cells->size, sizeof(double));
+  double *tmp_double_1 = (double *)calloc(mesh->cells->size, sizeof(double));
 
   // Declare OP2 datasets
   for(int i = 0; i < 10; i++) {
@@ -52,7 +54,15 @@ INSData::INSData(DGMesh *m) {
   new_order = op_decl_dat(mesh->cells, 1, "int", tmp_int_1, "new_order");
   rho       = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "rho");
   mu        = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "mu");
+  proj_pen  = op_decl_dat(mesh->cells, 1, "double", tmp_double_1, "proj_pen");
+  proj_h    = op_decl_dat(mesh->cells, 1, "double", tmp_double_1, "proj_h");
+  proj_op_xx = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_np_np, "proj_op_xx");
+  proj_op_yy = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_np_np, "proj_op_yy");
+  proj_op_xy = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_np_np, "proj_op_xy");
+  proj_op_yx = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_np_np, "proj_op_yx");
 
+  free(tmp_double_1);
+  free(tmp_np_np);
   free(tmp_int_1);
   free(tmp_sub_cell);
   free(tmp_g_np);
@@ -87,6 +97,8 @@ void INSData::init() {
   pRHS = tmp_dg_np[1];
   dpdx = tmp_dg_np[2];
   dpdy = tmp_dg_np[3];
+  proj_rhs_x = tmp_dg_np[4];
+  proj_rhs_y = tmp_dg_np[5];
   // Viscosity
   visRHS[0] = tmp_dg_np[0];
   visRHS[1] = tmp_dg_np[1];

@@ -13,6 +13,7 @@
 #include "dg_blas_calls.h"
 #include "dg_op2_blas.h"
 #include "dg_operators.h"
+#include "dg_global_constants.h"
 #include "timing.h"
 
 extern Timing *timer;
@@ -90,8 +91,29 @@ Solver::Solver(std::string filename, int prob) {
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_gbl(&dt, 1, "double", OP_MIN));
+  double h_tmp = dt;
   dt = dt / (DG_ORDER * DG_ORDER * refVel);
+  Cr = refVel * dt * DG_ORDER * DG_ORDER / h_tmp;
   op_printf("dt: %g\n", dt);
+
+  // Setup div-div pressure projection
+  op_par_loop(project_setup, "project_setup", mesh->cells,
+              op_arg_gbl(Dr_g, DG_ORDER * DG_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(Ds_g, DG_ORDER * DG_NP * DG_NP, "double", OP_READ),
+              op_arg_gbl(mass_g, DG_ORDER * DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->rx, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->sx, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->ry, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->sy, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->proj_op_xx, -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->proj_op_yy, -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->proj_op_yx, -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->proj_op_xy, -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE));
+
+  op_par_loop(poisson_h, "poisson_h", mesh->cells,
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
+              op_arg_dat(data->proj_h, -1, OP_ID, 1, "double", OP_WRITE));
 }
 
 Solver::~Solver() {
@@ -257,6 +279,8 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
   }
   timer->endTimer("Pressure Linear Solve");
 
+  project_velocity(currentInd);
+/*
   // Calculate gradient of pressure
   // grad_with_central_flux(mesh, data->p, data->dpdx, data->dpdy);
   cub_grad_with_central_flux(mesh, data->p, data->dpdx, data->dpdy);
@@ -273,15 +297,86 @@ bool Solver::pressure(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(data->prBC, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
-
+*/
   return converged;
+}
+
+void Solver::project_velocity(const int currentInd) {
+  // Calculate gradient of pressure
+  // grad_with_central_flux(mesh, data->p, data->dpdx, data->dpdy);
+  cub_grad_with_central_flux(mesh, data->p, data->dpdx, data->dpdy);
+
+  // Calculate new velocity intermediate values
+  op_par_loop(project_0, "project_0", mesh->cells,
+              op_arg_gbl(&dt, 1, "double", OP_READ),
+              op_arg_dat(mesh->J, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->dpdx, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->dpdy, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->QT[0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->QT[1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->QTT[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->proj_rhs_x, -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->proj_rhs_y, -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(data->dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
+              op_arg_dat(data->prBC, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+
+  mass(mesh, data->proj_rhs_x);
+  mass(mesh, data->proj_rhs_y);
+
+  // double factor = dt * 1.0;
+  double factor = dt / Cr;
+  // op_printf("Cr: %g\n", Cr);
+  op_par_loop(project_pen, "project_pen", mesh->cells,
+              op_arg_gbl(&factor, 1, "double", OP_READ),
+              op_arg_dat(data->Q[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->Q[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->proj_h, -1, OP_ID, 1, "double", OP_READ),
+              op_arg_dat(data->proj_pen, -1, OP_ID, 1, "double", OP_WRITE));
+
+  // Do the 2 vector linear solve with project_mat as the matrix
+  int num_cells = 0;
+  int num_converge = 0;
+  double num_iter = 0.0;
+  op_par_loop(project_cg, "project_cg", mesh->cells,
+              op_arg_gbl(mass_g, DG_ORDER * DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->J, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->proj_op_xx, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->proj_op_yy, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->proj_op_yx, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->proj_op_xy, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->proj_pen, -1, OP_ID, 1, "double", OP_READ),
+              op_arg_dat(data->proj_rhs_x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->proj_rhs_y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->QTT[0], -1, OP_ID, DG_NP, "double", OP_RW),
+              op_arg_dat(data->QTT[1], -1, OP_ID, DG_NP, "double", OP_RW),
+              op_arg_gbl(&num_cells, 1, "int", OP_INC),
+              op_arg_gbl(&num_converge, 1, "int", OP_INC),
+              op_arg_gbl(&num_iter, 1, "double", OP_INC));
+  // op_printf("%d out of %d cells converged on projection step\n", num_converge, num_cells);
+  // op_printf("Average iterations to converge on projection step %g\n", num_iter / (double)num_cells);
+}
+
+// Matrix equivalent for projection
+void Solver::project_mat(op_dat in0, op_dat in1, op_dat out0, op_dat out1) {
+  op_par_loop(project_1, "project_1", mesh->cells,
+              op_arg_gbl(mass_g, DG_ORDER * DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->J, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(data->proj_op_xx, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->proj_op_yy, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(data->proj_pen, -1, OP_ID, 1, "double", OP_READ),
+              op_arg_dat(in0, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(in1, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(out0, -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(out1, -1, OP_ID, DG_NP, "double", OP_WRITE));
 }
 
 bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
                        double b1, double g0, double t) {
   // timer->startTimer("Viscosity Setup");
   double time = t + dt;
-/*
+
   op_par_loop(inviscid_velocity, "inviscid_velocity", mesh->cells,
               op_arg_gbl(&g0, 1, "double", OP_READ),
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
@@ -290,8 +385,9 @@ bool Solver::viscosity(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->Q[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->Q[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
+  // div(mesh, data->Q[(currentInd + 1) % 2][0], data->Q[(currentInd + 1) % 2][1], data->p);
   return true;
-*/
+
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
               op_arg_dat(data->visBC[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
               op_arg_dat(data->visBC[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));

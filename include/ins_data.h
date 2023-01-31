@@ -17,6 +17,8 @@ public:
   op_dat pFluxX, pFluxY, visRHS[2], prBC, visBC[2], vorticity, save_temp;
   op_dat rho, mu, visTmp[2], gN[2], gGradCurl[2], gRho;
   op_dat tmp_dg_np[10], tmp_dg_g_np[5];
+  op_dat proj_rhs_x, proj_rhs_y, proj_pen, proj_h;
+  op_dat proj_op_xx, proj_op_yy, proj_op_yx, proj_op_xy;
 
   DGMesh *mesh;
 };

@@ -30,6 +30,8 @@ public:
   void set_linear_solver(int ls);
   void set_bc_time(double t);
   void switch_to_order(int o);
+  void project_velocity(const int currentInd);
+  void project_mat(op_dat in0, op_dat in1, op_dat out0, op_dat out1);
 
   double getAvgPressureConvergance();
   double getAvgViscosityConvergance();
@@ -47,6 +49,7 @@ private:
   int problem;
   int linear_solver;
   double bc_time;
+  double Cr;
 };
 
 #endif
