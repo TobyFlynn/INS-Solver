@@ -8,6 +8,7 @@ dg_g_np      = ""
 dg_gf_np     = ""
 dg_sub_cells = ""
 ls_sample_np = ""
+dg_order     = sys.argv[1]
 
 # Get DG order from command line args
 if sys.argv[1] == "1":
@@ -61,13 +62,16 @@ for f in inputfiles:
     with open("src/" + f, "r") as file:
         filedata = file.read()
 
-    newdata = filedata.replace("DG_NPF", dg_npf)
-    newdata = newdata.replace("DG_NP", dg_np)
-    newdata = newdata.replace("DG_CUB_NP", dg_cub_np)
-    newdata = newdata.replace("DG_G_NP", dg_g_np)
-    newdata = newdata.replace("DG_GF_NP", dg_gf_np)
-    newdata = newdata.replace("DG_SUB_CELLS", dg_sub_cells)
-    newdata = newdata.replace("LS_SAMPLE_NP", ls_sample_np)
+    newdata = filedata
+    if "CMakeLists" not in f:
+        newdata = newdata.replace("DG_NPF", dg_npf)
+        newdata = newdata.replace("DG_NP", dg_np)
+        newdata = newdata.replace("DG_CUB_NP", dg_cub_np)
+        newdata = newdata.replace("DG_G_NP", dg_g_np)
+        newdata = newdata.replace("DG_GF_NP", dg_gf_np)
+        newdata = newdata.replace("DG_SUB_CELLS", dg_sub_cells)
+        newdata = newdata.replace("LS_SAMPLE_NP", ls_sample_np)
+        newdata = newdata.replace("DG_ORDER", dg_order)
 
     with open("gen/" + f, "w") as file:
         file.write(newdata)

@@ -1,62 +1,21 @@
+#define STRINGIFY2(X) #X
+#define STRINGIFY(X) STRINGIFY2(X)
 // Include OP2 stuff
 #include "op_seq.h"
 // Include C++ stuff
 #include <string>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <vector>
-#include <algorithm>
-#include <cmath>
-#include <limits>
 
-#include "ins_data.h"
-#include "timing.h"
-#include "solver.h"
+#include "petscvec.h"
+#include "petscksp.h"
+
+#include "dg_global_constants/dg_global_constants_2d.h"
+
+#include "advection_solver.h"
 
 using namespace std;
 
-extern double reynolds, froude, weber, mu0, mu1, rho0, rho1, dt, gam;
-extern double ic_u, ic_v, nu, mu, bc_mach, bc_alpha, bc_p, bc_u, bc_v;
-extern double refRho, refMu, refLen, refVel, refSurfTen;
-
-void export_data_init(string filename) {
-  ofstream file(filename);
-
-  // Create first row of csv file (headers of columns)
-  file << "Iteration" << ",";
-  file << "Time" << ",";
-  file << "Drag Coefficient" << ",";
-  file << "Lift Coefficient" << ",";
-  file << "Avg. Pressure Convergance" << ",";
-  file << "Avg. Viscosity Convergance" << endl;
-
-  file.close();
-}
-
-void export_data(string filename, int iter, double time, double drag,
-                 double lift, double avgPr, double avgVis) {
-  ofstream file(filename, ios::app);
-
-  // Create first row of csv file (headers of columns)
-  file << to_string(iter) << ",";
-  file << to_string(time) << ",";
-  file << to_string(drag) << ",";
-  file << to_string(lift) << ",";
-  file << to_string(avgPr) << ",";
-  file << to_string(avgVis) << endl;
-
-  file.close();
-}
-
-Timing *timer;
-
 int main(int argc, char **argv) {
   op_init(argc, argv, 1);
-
-  timer = new Timing();
-  timer->startTimer("Wall Time");
-  timer->startTimer("Setup");
 
   char help[] = "Run for i iterations with \"-iter i\"\nSave solution every x iterations with \"-save x\"\n";
   int ierr = PetscInitialize(&argc, &argv, (char *)0, help);
@@ -65,46 +24,6 @@ int main(int argc, char **argv) {
     return ierr;
   }
 
-  refVel = 10.0;
-  PetscBool found1;
-  PetscOptionsGetReal(NULL, NULL, "-vel", &refVel, &found1);
-
-  gam = 1.4;
-  mu = 1e-2;
-  nu = 1e-3;
-  bc_u = 0.0;
-  bc_v = 0.0;
-  ic_u = 0.0;
-  ic_v = 0.0;
-
-  mu0  = 1.0;
-  mu1  = 1.0;
-  rho0 = 1.0;
-  rho1 = 1.0;
-
-  refRho     = 1.0;
-  refMu      = 1.0e-5;
-  refLen     = 4.9e-4;
-  // refVel     = 10.0;
-  // refVel     = 1.0;
-  refSurfTen = 0.0756;
-
-  // Set Reynolds number
-  reynolds = refRho * refVel * refLen / refMu;
-  // Set Froude number
-  froude = refVel / sqrt(9.8 * refLen);
-  // Set Weber number
-  weber = refRho * refVel * refLen / refSurfTen;
-
-  // op_printf("gam: %g\n", gam);
-  // op_printf("mu: %g\n", mu);
-  // op_printf("nu: %g\n", nu);
-  op_printf("refRho: %g\n", refRho);
-  op_printf("refMu: %g\n", refMu);
-  op_printf("refLen: %g\n", refLen);
-  op_printf("refVel: %g\n", refVel);
-  op_printf("reynolds: %g\n", reynolds);
-
   // Get input from args
   int iter = 1;
   PetscBool found;
@@ -112,12 +31,6 @@ int main(int argc, char **argv) {
 
   int save = -1;
   PetscOptionsGetInt(NULL, NULL, "-save", &save, &found);
-
-  int problem = 0;
-  PetscOptionsGetInt(NULL, NULL, "-problem", &problem, &found);
-
-  int linear_solver = 0;
-  PetscOptionsGetInt(NULL, NULL, "-linear_solver", &linear_solver, &found);
 
   char inputFile[255];
   PetscOptionsGetString(NULL, NULL, "-input", inputFile, 255, &found);
@@ -140,132 +53,48 @@ int main(int argc, char **argv) {
     outputDir += "/";
   }
 
-  double bc_time = 0.5;
-  PetscOptionsGetReal(NULL, NULL, "-bc_time", &bc_time, &found);
+  DGMesh2D *mesh = new DGMesh2D(filename);
+  AdvectionSolver2D *advec2d = new AdvectionSolver2D(mesh);
 
-  bc_alpha = 0.0;
-  int current_order = 2;
+  double *data_t0 = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  op_dat val = op_decl_dat(mesh->cells, DG_NP, "double", data_t0, "advec_test_val");
+  op_dat u   = op_decl_dat(mesh->cells, DG_NP, "double", data_t0, "advec_test_u");
+  op_dat v   = op_decl_dat(mesh->cells, DG_NP, "double", data_t0, "advec_test_v");
+  free(data_t0);
 
-  Solver *solver = new Solver(filename, problem);
-  solver->set_linear_solver(linear_solver);
-  solver->set_bc_time(bc_time);
-  solver->switch_to_order(current_order);
+  op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
+  op_decl_const(DG_ORDER * 3 * DG_NPF, "int", FMASK);
+  op_decl_const(DG_ORDER * DG_CUB_NP, "double", cubW_g);
+  op_decl_const(DG_ORDER * DG_GF_NP, "double", gaussW_g);
 
-  double a0 = 1.0;
-  double a1 = 0.0;
-  double b0 = 1.0;
-  double b1 = 0.0;
-  double g0 = 1.0;
-  int currentIter = 0;
-  double time = 0.0;
+  op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
 
-  if(save != -1) {
-    solver->dump_data(outputDir + "sol_0.0_s.h5");
-  }
+  mesh->init();
 
-  timer->endTimer("Setup");
-  timer->startTimer("Main Loop");
+  op_par_loop(advec_test_ic, "advec_test_ic", mesh->cells,
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(val, -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(u,   -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(v,   -1, OP_ID, DG_NP, "double", OP_WRITE));
+
+  string out_file_ic = outputDir + "advec_test_ic.h5";
+  op_fetch_data_hdf5_file(mesh->x, out_file_ic.c_str());
+  op_fetch_data_hdf5_file(mesh->y, out_file_ic.c_str());
+  op_fetch_data_hdf5_file(val, out_file_ic.c_str());
+  op_fetch_data_hdf5_file(u, out_file_ic.c_str());
+  op_fetch_data_hdf5_file(v, out_file_ic.c_str());
 
   for(int i = 0; i < iter; i++) {
-    // Switch from forwards Euler time integration to second-order Adams-Bashford after first iteration
-    if(i == 1) {
-      g0 = 1.5;
-      a0 = 2.0;
-      a1 = -0.5;
-      b0 = 2.0;
-      b1 = -1.0;
-    }
-
-    if(time > 0.5 && current_order != DG_ORDER) {
-      current_order = DG_ORDER;
-      solver->switch_to_order(current_order);
-    }
-
-    timer->startTimer("Advection");
-    solver->advection(currentIter % 2, a0, a1, b0, b1, g0, time);
-    timer->endTimer("Advection");
-
-    timer->startTimer("Pressure");
-    bool converged = solver->pressure(currentIter % 2, a0, a1, b0, b1, g0, time);
-    if(!converged) {
-      op_printf("******** ERROR ********\n");
-      op_printf("Pressure solve failed to converge, exiting...\n");
-      op_printf("Iteration: %d Time: %g\n", i, time);
-      break;
-    }
-    timer->endTimer("Pressure");
-
-    timer->startTimer("Viscosity");
-    converged = solver->viscosity(currentIter % 2, a0, a1, b0, b1, g0, time);
-    if(!converged) {
-      op_printf("******** ERROR ********\n");
-      op_printf("Viscosity solve failed to converge, exiting...\n");
-      op_printf("Iteration: %d Time: %g\n", i, time);
-      break;
-    }
-    timer->endTimer("Viscosity");
-
-    // solver->update_surface(currentIter % 2);
-
-    currentIter++;
-    time += solver->dt;
-
-    // Calculate drag and lift coefficients + save data
-    if(save != -1 && (i + 1) % save == 0) {
-      op_printf("Iteration: %d Time: %g\n", i, time);
-
-      timer->startTimer("Save");
-      solver->dump_data(outputDir + "sol_" + to_string(time) + "_s.h5");
-      timer->endTimer("Save");
-    }
+    advec2d->step(val, u, v);
   }
-  timer->endTimer("Main Loop");
 
-  solver->switch_to_order(DG_ORDER);
-
-  if(save != -1)
-    solver->dump_data(outputDir + "sol_" + to_string(time) + "_s.h5");
-
-  // Save solution to CGNS file
-  timer->startTimer("Final save");
-  solver->dump_data(outputDir + "end_" + to_string(time) + "_s.h5");
-
-  vector<op_dat> dats_to_save;
-  vector<string> dat_names;
-  dats_to_save.push_back(solver->data->Q[currentIter % 2][0]);
-  dat_names.push_back("VelocityX");
-  dats_to_save.push_back(solver->data->Q[currentIter % 2][1]);
-  dat_names.push_back("VelocityY");
-  dats_to_save.push_back(solver->data->QT[0]);
-  dat_names.push_back("VelocityTX");
-  dats_to_save.push_back(solver->data->QT[1]);
-  dat_names.push_back("VelocityTY");
-  dats_to_save.push_back(solver->data->QTT[0]);
-  dat_names.push_back("VelocityTTX");
-  dats_to_save.push_back(solver->data->QTT[1]);
-  dat_names.push_back("VelocityTTY");
-  dats_to_save.push_back(solver->data->p);
-  dat_names.push_back("Pressure");
-  dats_to_save.push_back(solver->ls->s);
-  dat_names.push_back("Surface");
-  solver->dump_data(outputDir + "end_extended_" + to_string(time) + "_s.h5");
-  timer->endTimer("Final save");
-
-  timer->endTimer("Wall Time");
-  timer->exportTimings(outputDir + "timings.txt", iter, time);
-
-  op_printf("Final time: %g\n", time);
-  op_printf("Wall time: %g\n", timer->getTime("Wall Time"));
-  op_printf("Solve time: %g\n", timer->getTime("Main Loop"));
-  op_printf("Time to simulate 1 second: %g\n", timer->getTime("Wall Time") / time);
-  op_printf("Average number of iterations to pressure convergance: %g\n", solver->getAvgPressureConvergance());
-  op_printf("Average number of iterations to viscosity convergance: %g\n", solver->getAvgViscosityConvergance());
-
-  string op_out_file = outputDir + "op2_timings.csv";
-  op_timings_to_csv(op_out_file.c_str());
-
-  delete solver;
-  delete timer;
+  string out_file_end = outputDir + "advec_test_end.h5";
+  op_fetch_data_hdf5_file(mesh->x, out_file_end.c_str());
+  op_fetch_data_hdf5_file(mesh->y, out_file_end.c_str());
+  op_fetch_data_hdf5_file(val, out_file_end.c_str());
+  op_fetch_data_hdf5_file(u, out_file_end.c_str());
+  op_fetch_data_hdf5_file(v, out_file_end.c_str());
 
   ierr = PetscFinalize();
   // Clean up OP2
