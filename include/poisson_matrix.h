@@ -1,12 +1,12 @@
-#ifndef __INS_POISSON_MAT_H
-#define __INS_POISSON_MAT_H
+#ifndef __INS_POISSON_MATRIX_H
+#define __INS_POISSON_MATRIX_H
 
 #include "op_seq.h"
-#include "dg_mesh.h"
+#include "dg_mesh/dg_mesh_2d.h"
 
-class PoissonMat {
+class PoissonMatrix2D {
 public:
-  PoissonMat(DGMesh *m);
+  PoissonMatrix2D(DGMesh2D *m);
 
   void init();
   void calc_mat(op_dat fact);
@@ -36,7 +36,7 @@ private:
   int get_local_unknowns();
   void set_glb_ind();
 
-  DGMesh *mesh;
+  DGMesh2D *mesh;
 
   int dirichlet[3];
   int neumann[3];

@@ -10,6 +10,7 @@ mkdir -p gen/poisson/matrix
 mkdir -p gen/poisson/petsc
 mkdir -p gen/poisson/p_multigrid
 mkdir -p gen/solvers/ls_utils
+mkdir -p gen/matrices/poisson
 
 python3 preprocessor.py 3
 
@@ -27,6 +28,7 @@ cd gen
 python3 $OP2_TRANSLATOR ins.cpp \
         solvers/advection_solver.cpp \
         solvers/ls_solver.cpp \
+        matrices/poisson/poisson_mat.cpp \
         kernels/
 
 cd ..
