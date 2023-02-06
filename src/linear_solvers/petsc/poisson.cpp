@@ -5,17 +5,18 @@
 
 #include "op_seq.h"
 
-#include "dg_blas_calls.h"
 #include "timing.h"
+#include "utils.h"
+
+#define ARMA_ALLOW_FAKE_GCC
+#include <armadillo>
 
 using namespace std;
 
 extern Timing *timer;
 
-PetscPoissonSolve::PetscPoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
+PetscPoissonSolve::PetscPoissonSolve(DGMesh2D *m) {
   mesh = m;
-  data = nsData;
-  ls = s;
 
   numberIter = 0;
   solveCount = 0;
@@ -50,7 +51,7 @@ PetscPoissonSolve::PetscPoissonSolve(DGMesh *m, INSData *nsData, LS *s) {
   free(tmp_np_np);
   free(tmp_np);
 
-  mat = new PoissonMat(mesh);
+  mat = new PoissonMatrix2D(mesh);
 }
 
 PetscPoissonSolve::~PetscPoissonSolve() {
@@ -102,12 +103,12 @@ bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
 
   KSPSetOperators(ksp, pMat, pMat);
 
-  op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bedges,
-              op_arg_dat(mesh->order,     0, mesh->bedge2cells, 1, "int", OP_READ),
+  op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bfaces,
+              op_arg_dat(mesh->order,     0, mesh->bface2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mat->op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(bc_dat, 0, mesh->bedge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(b_dat,  0, mesh->bedge2cells, DG_NP, "double", OP_INC));
+              op_arg_dat(bc_dat, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
+              op_arg_dat(b_dat,  0, mesh->bface2cells, DG_NP, "double", OP_INC));
 
   load_vec(&b, b_dat);
   load_vec(&x, x_dat);
@@ -186,20 +187,20 @@ double PetscPoissonSolve::getAverageConvergeIter() {
   return res;
 }
 
-PetscPressureSolve::PetscPressureSolve(DGMesh *m, INSData *d, LS *s) : PetscPoissonSolve(m, d, s) {}
+PetscPressureSolve::PetscPressureSolve(DGMesh2D *m) : PetscPoissonSolve(m) {}
 
-PetscViscositySolve::PetscViscositySolve(DGMesh *m, INSData *d, LS *s) : PetscPoissonSolve(m, d, s) {
+PetscViscositySolve::PetscViscositySolve(DGMesh2D *m) : PetscPoissonSolve(m) {
   massMat = true;
 }
 
-void PetscPressureSolve::setup() {
+void PetscPressureSolve::setup(op_dat rho) {
   mat->update_glb_ind();
 
   massMat = false;
 
   op_par_loop(poisson_pr_fact, "poisson_pr_fact", mesh->cells,
-              op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(factor,    -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_dat(rho,    -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(factor, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   timer->startTimer("Build Pr Mat");
   mat->calc_mat(factor);
@@ -207,7 +208,7 @@ void PetscPressureSolve::setup() {
   timer->endTimer("Build Pr Mat");
 }
 
-void PetscViscositySolve::setup(double mmConst) {
+void PetscViscositySolve::setup(double mmConst, op_dat rho, op_dat mu) {
   mat->update_glb_ind();
 
   massMat = true;
@@ -216,8 +217,8 @@ void PetscViscositySolve::setup(double mmConst) {
 
   op_par_loop(poisson_vis_fact, "poisson_vis_fact", mesh->cells,
               op_arg_gbl(&mmConst,   1, "double", OP_READ),
-              op_arg_dat(data->mu,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->rho, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mu,  -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(factor,    -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(mmFactor,  -1, OP_ID, DG_NP, "double", OP_WRITE));
 
@@ -226,7 +227,7 @@ void PetscViscositySolve::setup(double mmConst) {
 
   timer->startTimer("Vis Mat Pre Inv");
   if(block_jacobi_pre) {
-    inv_blas(mesh, mat->op1, pre);
+    calc_precond_mat();
   }
   timer->endTimer("Vis Mat Pre Inv");
 
@@ -243,4 +244,23 @@ void PetscViscositySolve::setup(double mmConst) {
   // KSPGetPC(ksp, &pc);
   // PCSetType(pc, PCSHELL);
   // set_shell_pc(pc);
+}
+
+void PetscViscositySolve::calc_precond_mat() {
+  const double *op1_ptr = getOP2PtrHost(mat->op1, OP_READ);
+  double *pre_ptr = getOP2PtrHost(pre, OP_WRITE);
+
+  for(int i = 0; i < mesh->cells->size; i++) {
+    const double *in_c = op1_ptr + i * mat->op1->dim;
+    double *inv_c      = pre_ptr + i * pre->dim;
+
+    arma::mat a(in_c, DG_NP, DG_NP);
+    arma::mat b(inv_c, DG_NP, DG_NP, false, true);
+
+    b = arma::inv(a);
+    // b = arma::inv_sympd(a);
+  }
+
+  releaseOP2PtrHost(mat->op1, OP_READ, op1_ptr);
+  releaseOP2PtrHost(pre, OP_WRITE, pre_ptr);
 }

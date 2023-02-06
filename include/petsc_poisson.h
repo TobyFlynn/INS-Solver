@@ -2,17 +2,15 @@
 #define __PETSC_POISSON_H
 
 #include "op_seq.h"
-#include "ins_data.h"
 #include "petscvec.h"
 #include "petscksp.h"
 #include "timing.h"
-#include "dg_mesh.h"
-#include "ls.h"
-#include "poisson_mat.h"
+#include "dg_mesh/dg_mesh_2d.h"
+#include "poisson_matrix.h"
 
 class PetscPoissonSolve {
 public:
-  PetscPoissonSolve(DGMesh *m, INSData *nsData, LS *s);
+  PetscPoissonSolve(DGMesh2D *m);
   ~PetscPoissonSolve();
 
   void init();
@@ -35,9 +33,7 @@ protected:
   void create_shell_mat();
   void set_shell_pc(PC pc);
 
-  DGMesh *mesh;
-  INSData *data;
-  LS *ls;
+  DGMesh2D *mesh;
 
   int dirichlet[3];
   int neumann[3];
@@ -50,7 +46,7 @@ protected:
   Mat pMat;
   KSP ksp;
 
-  PoissonMat *mat;
+  PoissonMatrix2D *mat;
 
 private:
   void create_vec(Vec *v);
@@ -69,16 +65,18 @@ private:
 
 class PetscPressureSolve : public PetscPoissonSolve {
 public:
-  PetscPressureSolve(DGMesh *m, INSData *d, LS *s);
+  PetscPressureSolve(DGMesh2D *m);
 
-  void setup();
+  void setup(op_dat rho);
 };
 
 class PetscViscositySolve : public PetscPoissonSolve {
 public:
-  PetscViscositySolve(DGMesh *m, INSData *d, LS *s);
+  PetscViscositySolve(DGMesh2D *m);
 
-  void setup(double mmConst);
+  void setup(double mmConst, op_dat rho, op_dat mu);
+private:
+  void calc_precond_mat();
 };
 
 #endif
