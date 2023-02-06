@@ -20,8 +20,8 @@ bool compareY(KDCoord a, KDCoord b) {
   return a.y_rot < b.y_rot;
 }
 
-KDTreeMPI::KDTreeMPI(const double *x, const double *y, const int num, 
-                     DGMesh *mesh, op_dat s) {
+KDTreeMPI::KDTreeMPI(const double *x, const double *y, const int num,
+                     DGMesh2D *mesh, op_dat s) {
   n = 0;
   for(int i = 0; i < num; i++) {
     if(!isnan(x[i]) && !isnan(y[i])) {
@@ -124,9 +124,9 @@ void KDTreeMPI::round1_get_pts_to_send_to_ranks(const int num_pts, const double 
   }
 }
 
-void KDTreeMPI::round1_prepare_send_recv(const int num_pts, const double *x, const double *y, 
+void KDTreeMPI::round1_prepare_send_recv(const int num_pts, const double *x, const double *y,
                                          const int Reinit_comm_size, map<int,vector<int>> &rank_to_pt_inds,
-                                         int *num_pts_to_recv, int *send_inds, int *recv_inds, 
+                                         int *num_pts_to_recv, int *send_inds, int *recv_inds,
                                          double **pts_to_send, double **pts_to_recv, vector<int> &pt_send_rcv_map,
                                          int &num_remote_pts) {
   if(nodes.size() == 0) {
@@ -154,8 +154,8 @@ void KDTreeMPI::round1_prepare_send_recv(const int num_pts, const double *x, con
   }
 }
 
-void KDTreeMPI::round1_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, 
-                             int *num_pts_to_send, int *num_pts_to_recv, double *pts_to_send, double *pts_to_recv, 
+void KDTreeMPI::round1_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm,
+                             int *num_pts_to_send, int *num_pts_to_recv, double *pts_to_send, double *pts_to_recv,
                              int *send_inds, int *recv_inds, MPI_Request *requests) {
   if(nodes.size() == 0) {
     // The sends
@@ -176,7 +176,7 @@ void KDTreeMPI::round1_comms(const int Reinit_comm_rank, const int Reinit_comm_s
   }
 }
 
-void KDTreeMPI::round1_wait_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Request *requests, 
+void KDTreeMPI::round1_wait_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Request *requests,
                                   int *num_pts_to_send, int *num_pts_to_recv) {
   if(nodes.size() == 0) {
     // The sends
@@ -240,8 +240,8 @@ void KDTreeMPI::round1_send_results(const int Reinit_comm_rank, const int Reinit
   }
 }
 
-vector<QueryPt> KDTreeMPI::populate_query_pts(const int num_pts, const double *x, const double *y, const int Reinit_comm_rank, 
-                                   const int Reinit_comm_size, MPIBB *mpi_bb, int *num_pts_to_send, MPIKDResponse *response, 
+vector<QueryPt> KDTreeMPI::populate_query_pts(const int num_pts, const double *x, const double *y, const int Reinit_comm_rank,
+                                   const int Reinit_comm_size, MPIBB *mpi_bb, int *num_pts_to_send, MPIKDResponse *response,
                                    vector<int> &pt_send_rcv_map, vector<vector<KDCoord>::iterator> &local_closest) {
   vector<QueryPt> queryPoints;
   if(nodes.size() > 0) {
@@ -283,8 +283,8 @@ vector<QueryPt> KDTreeMPI::populate_query_pts(const int num_pts, const double *x
   return queryPoints;
 }
 
-void KDTreeMPI::round2_pack_query_pts(const int Reinit_comm_size, int *num_pts_to_send, int *send_inds, 
-                                      vector<QueryPt*> &nonLockedIn, double **round2_pts_to_send, 
+void KDTreeMPI::round2_pack_query_pts(const int Reinit_comm_size, int *num_pts_to_send, int *send_inds,
+                                      vector<QueryPt*> &nonLockedIn, double **round2_pts_to_send,
                                       vector<QueryPt*> &qp_ptrs) {
   map<int,vector<int>> rank_to_qp;
   for(int rank = 0; rank < Reinit_comm_size; rank++) {
@@ -315,7 +315,7 @@ void KDTreeMPI::round2_pack_query_pts(const int Reinit_comm_size, int *num_pts_t
   }
 }
 
-void KDTreeMPI::round2_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, int *num_pts_to_send, int *num_pts_to_recv, 
+void KDTreeMPI::round2_comms(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, int *num_pts_to_send, int *num_pts_to_recv,
                              int *send_inds, int *recv_inds, double *round2_pts_to_send, double **round2_pts_to_recv) {
   recv_inds[0] = 0;
   for(int rank = 1; rank < Reinit_comm_size; rank++) {
@@ -455,7 +455,7 @@ void KDTreeMPI::get_list_of_polys_wanted(const int Reinit_comm_rank, const int R
   }
 }
 
-void KDTreeMPI::send_list_of_poly_inds(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm, 
+void KDTreeMPI::send_list_of_poly_inds(const int Reinit_comm_rank, const int Reinit_comm_size, MPI_Comm *mpi_comm,
                                        int *num_polys_snd, int *num_polys_req, int *poly_send_inds, int *poly_recv_inds,
                                        int **poly_list_to_send, vector<int> &polys_wanted) {
   poly_send_inds[0] = 0;
@@ -551,7 +551,7 @@ void KDTreeMPI::send_polys(const int Reinit_comm_rank, const int Reinit_comm_siz
   free(poly_coeff_snd);
 }
 
-void KDTreeMPI::update_local_polys(const int Reinit_comm_rank, const int Reinit_comm_size, int *num_polys_req, int *poly_recv_inds, 
+void KDTreeMPI::update_local_polys(const int Reinit_comm_rank, const int Reinit_comm_size, int *num_polys_req, int *poly_recv_inds,
                                    double *requested_poly_coeff, vector<int> &polys_wanted, vector<QueryPt> &queryPoints) {
   map<pair<int,int>,int> rank_poly_to_poly;
   int total_poly_req = poly_recv_inds[Reinit_comm_size - 1] + num_polys_req[Reinit_comm_size - 1];
@@ -589,17 +589,17 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   timer->startTimer("K-D Tree - setup comms");
   MPI_Comm Reinit_comm;
   int Reinit_comm_size, Reinit_comm_rank;
-  if(num_pts != 0) {
+  // if(num_pts != 0) {
     MPI_Comm_split(MPI_COMM_WORLD, 0, 0, &Reinit_comm);
     MPI_Comm_size(Reinit_comm, &Reinit_comm_size);
     MPI_Comm_rank(Reinit_comm, &Reinit_comm_rank);
-  } else {
-    MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &Reinit_comm);
-  }
+  // } else {
+  //   MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &Reinit_comm);
+  // }
   timer->endTimer("K-D Tree - setup comms");
 
-  if(num_pts == 0)
-    return;
+  // if(num_pts == 0)
+  //   return;
 
   // 3) Share bounding box of each MPI rank
   timer->startTimer("K-D Tree - bounding boxes");
@@ -636,7 +636,7 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   vector<int> pt_send_rcv_map;
   int num_remote_pts;
   round1_prepare_send_recv(num_pts, x, y, Reinit_comm_size, rank_to_pt_inds,
-                           num_pts_to_recv,send_inds, recv_inds, 
+                           num_pts_to_recv,send_inds, recv_inds,
                            &pts_to_send, &pts_to_recv, pt_send_rcv_map, num_remote_pts);
 
   // The actual non blocking comms
@@ -654,7 +654,7 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   timer->endTimer("K-D Tree - round1 local search");
 
   // 6) Wait on step 4 and then process these nodes on the relevant ranks
-  round1_wait_comms(Reinit_comm_rank, Reinit_comm_size, requests, 
+  round1_wait_comms(Reinit_comm_rank, Reinit_comm_size, requests,
                     num_pts_to_send, num_pts_to_recv);
 
   // Now search local k-d tree using these nodes
@@ -677,12 +677,12 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
                       num_pts_to_send, num_pts_to_recv, send_inds, recv_inds,
                       remote_closest, &response, &MPI_MPIKDResponse_Type, &Reinit_comm);
   timer->endTimer("K-D Tree - round1");
-  // 8) Blocking communication of points to ranks that could potentially 
+  // 8) Blocking communication of points to ranks that could potentially
   //    contain closer points
 
   // Work out which points could have closer points
   timer->startTimer("K-D Tree - populate query pts");
-  vector<QueryPt> queryPoints = populate_query_pts(num_pts, x, y, Reinit_comm_rank, Reinit_comm_size, 
+  vector<QueryPt> queryPoints = populate_query_pts(num_pts, x, y, Reinit_comm_rank, Reinit_comm_size,
                                                    mpi_bb, num_pts_to_send, response, pt_send_rcv_map,
                                                    local_closest);
   // Get non locked in points that will need to be sent
@@ -698,15 +698,15 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   timer->startTimer("K-D Tree - round2");
   double *round2_pts_to_send;
   vector<QueryPt*> qp_ptrs;
-  round2_pack_query_pts(Reinit_comm_size, num_pts_to_send, send_inds, 
+  round2_pack_query_pts(Reinit_comm_size, num_pts_to_send, send_inds,
                         nonLockedIn, &round2_pts_to_send, qp_ptrs);
-  
+
   // Tell each process how many points to expect to receive from each process
   MPI_Alltoall(num_pts_to_send, 1, MPI_INT, num_pts_to_recv, 1, MPI_INT, Reinit_comm);
 
   // Round 2 comms (blocking)
   double *round2_pts_to_recv;
-  round2_comms(Reinit_comm_rank, Reinit_comm_size, &Reinit_comm, num_pts_to_send, num_pts_to_recv, 
+  round2_comms(Reinit_comm_rank, Reinit_comm_size, &Reinit_comm, num_pts_to_send, num_pts_to_recv,
                send_inds, recv_inds, round2_pts_to_send, &round2_pts_to_recv);
 
   // 9) Do search for other ranks' points
@@ -737,7 +737,7 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   vector<int> polys_wanted;
   get_list_of_polys_wanted(Reinit_comm_rank, Reinit_comm_size, queryPoints,
                            poly_recv_inds, num_polys_req, polys_wanted);
-  
+
   // Tell each process how many polys to send to each process
   int num_polys_snd[Reinit_comm_size];
   MPI_Alltoall(num_polys_req, 1, MPI_INT, num_polys_snd, 1, MPI_INT, Reinit_comm);
@@ -745,7 +745,7 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
   // Send list of required polys
   int poly_send_inds[Reinit_comm_size];
   int *poly_list_to_send;
-  send_list_of_poly_inds(Reinit_comm_rank, Reinit_comm_size, &Reinit_comm, 
+  send_list_of_poly_inds(Reinit_comm_rank, Reinit_comm_size, &Reinit_comm,
                          num_polys_snd, num_polys_req, poly_send_inds, poly_recv_inds,
                          &poly_list_to_send, polys_wanted);
 
@@ -758,7 +758,7 @@ void KDTreeMPI::closest_point(const int num_pts, const double *x, const double *
 
   // Add received polys to local list of polys and update poly indices
   timer->startTimer("K-D Tree - update local polys");
-  update_local_polys(Reinit_comm_rank, Reinit_comm_size, num_polys_req, poly_recv_inds, 
+  update_local_polys(Reinit_comm_rank, Reinit_comm_size, num_polys_req, poly_recv_inds,
                      requested_poly_coeff, polys_wanted, queryPoints);
   timer->endTimer("K-D Tree - update local polys");
 
@@ -823,7 +823,7 @@ int KDTreeMPI::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoor
   int axis = 0;
   if(node.x_max - node.x_min < node.y_max - node.y_min)
     axis = 1;
-  
+
   // Do rotational transform if necessary
   bool transform = !has_transformed && level > 5 && pts_end - pts_start >= leaf_size * 4;
   if(transform) {
@@ -944,12 +944,12 @@ double KDTreeMPI::bb_sqr_dist(const int node_ind, const double x, const double y
     sqr_dist += (x - nodes[node_ind].x_min) * (x - nodes[node_ind].x_min);
   else if(x > nodes[node_ind].x_max)
     sqr_dist += (x - nodes[node_ind].x_max) * (x - nodes[node_ind].x_max);
-  
+
   if(y < nodes[node_ind].y_min)
     sqr_dist += (y - nodes[node_ind].y_min) * (y - nodes[node_ind].y_min);
   else if(y > nodes[node_ind].y_max)
     sqr_dist += (y - nodes[node_ind].y_max) * (y - nodes[node_ind].y_max);
-  
+
   return sqr_dist;
 }
 
@@ -959,12 +959,12 @@ double KDTreeMPI::bb_sqr_dist(const MPIBB bb, const double x, const double y) {
     sqr_dist += (x - bb.x_min) * (x - bb.x_min);
   else if(x > bb.x_max)
     sqr_dist += (x - bb.x_max) * (x - bb.x_max);
-  
+
   if(y < bb.y_min)
     sqr_dist += (y - bb.y_min) * (y - bb.y_min);
   else if(y > bb.y_max)
     sqr_dist += (y - bb.y_max) * (y - bb.y_max);
-  
+
   return sqr_dist;
 }
 
@@ -1031,16 +1031,16 @@ std::set<int> KDTreeMPI::cell_inds(vector<KDCoord> &points) {
   return result;
 }
 
-void KDTreeMPI::construct_polys(vector<KDCoord> &points, DGMesh *mesh, op_dat s) {
+void KDTreeMPI::construct_polys(vector<KDCoord> &points, DGMesh2D *mesh, op_dat s) {
   timer->startTimer("LS - Construct Poly Approx");
   // Get cell inds that require polynomial approximations
   std::set<int> cellInds = cell_inds(points);
 
-  map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->edge2cells);
+  map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->face2cells);
 
-  const double *x_ptr = getOP2PtrHostMap(mesh->x, mesh->edge2cells, OP_READ);
-  const double *y_ptr = getOP2PtrHostMap(mesh->y, mesh->edge2cells, OP_READ);
-  const double *s_ptr = getOP2PtrHostMap(s, mesh->edge2cells, OP_READ);
+  const double *x_ptr = getOP2PtrHostMap(mesh->x, mesh->face2cells, OP_READ);
+  const double *y_ptr = getOP2PtrHostMap(mesh->y, mesh->face2cells, OP_READ);
+  const double *s_ptr = getOP2PtrHostMap(s, mesh->face2cells, OP_READ);
 
   // Populate map
   int i = 0;
@@ -1052,9 +1052,9 @@ void KDTreeMPI::construct_polys(vector<KDCoord> &points, DGMesh *mesh, op_dat s)
     i++;
   }
 
-  releaseOP2PtrHostMap(mesh->x, mesh->edge2cells, OP_READ, x_ptr);
-  releaseOP2PtrHostMap(mesh->y, mesh->edge2cells, OP_READ, y_ptr);
-  releaseOP2PtrHostMap(s, mesh->edge2cells, OP_READ, s_ptr);
+  releaseOP2PtrHostMap(mesh->x, mesh->face2cells, OP_READ, x_ptr);
+  releaseOP2PtrHostMap(mesh->y, mesh->face2cells, OP_READ, y_ptr);
+  releaseOP2PtrHostMap(s, mesh->face2cells, OP_READ, s_ptr);
 
   timer->endTimer("LS - Construct Poly Approx");
 }

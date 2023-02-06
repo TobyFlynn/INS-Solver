@@ -6,11 +6,10 @@ rm -rf build
 rm -rf gen
 
 mkdir -p gen/kernels
-mkdir -p gen/ls
 mkdir -p gen/poisson/matrix
 mkdir -p gen/poisson/petsc
 mkdir -p gen/poisson/p_multigrid
-mkdir -p gen/solvers
+mkdir -p gen/solvers/ls_utils
 
 python3 preprocessor.py 3
 
@@ -26,7 +25,9 @@ cd gen
 # sed -i '10i extern double reynolds;' openmp/ins_kernels.cpp
 
 python3 $OP2_TRANSLATOR ins.cpp \
-        solvers/advection_solver.cpp kernels/
+        solvers/advection_solver.cpp \
+        solvers/ls_solver.cpp \
+        kernels/
 
 cd ..
 

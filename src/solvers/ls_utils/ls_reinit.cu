@@ -1,28 +1,16 @@
-#include "ls.h"
+#include "ls_solver.h"
 
-#include "op_seq.h"
-
-#include <limits>
-#include <cmath>
 #include <vector>
-#include <iostream>
-#include <fstream>
-#include <memory>
-#include <map>
-#include <set>
 
-#include "dg_constants.h"
-#include "dg_utils.h"
-#include "dg_blas_calls.h"
-#include "dg_op2_blas.h"
-#include "dg_operators.h"
-#include "dg_compiler_defs.h"
-
-#include "kd_tree_mpi_naive.h"
+#ifdef INS_MPI
+#include "kd_tree_mpi.h"
+#else
+#include "kd_tree.h"
+#endif
+#include "utils.h"
 #include "timing.h"
 #include "ls_reinit_poly.h"
 #include "ls_reinit_poly_eval_cuda.h"
-#include "utils.h"
 
 #define THREADS_PER_BLOCK 256
 
@@ -172,8 +160,8 @@ __global__ void newton_kernel(const int numPts, const int *poly_ind, double *s,
   if(negative) s[tid] *= -1.0;
 }
 
-void newton_method(const int numPts, double *closest_x, double *closest_y, 
-                   const double *x, const double *y, int *poly_ind, 
+void newton_method(const int numPts, double *closest_x, double *closest_y,
+                   const double *x, const double *y, int *poly_ind,
                    PolyEval *pe, double *s, const double h) {
   int threadsPerBlock, blocks;
   if(numPts < THREADS_PER_BLOCK) {
@@ -186,29 +174,29 @@ void newton_method(const int numPts, double *closest_x, double *closest_y,
       blocks++;
   }
 
+  PolyEval *pe_d;
+  cudaMallocManaged(&pe_d, sizeof(PolyEval));
+  memcpy(pe_d, pe, sizeof(PolyEval));
+
   newton_kernel<<<blocks, threadsPerBlock>>>(numPts, poly_ind, s, x, y,
-                                             closest_x, closest_y, pe, h);
+                                             closest_x, closest_y, pe_d, h);
+  cudaFree(pe_d);
 }
 
-void LS::reinit_ls() {
+void LevelSetSolver2D::reinitLS() {
   timer->startTimer("LS - Reinit");
-  
-  timer->startTimer("LS - Sample Interface");
-  op_par_loop(sample_interface, "sample_interface", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(s_sample_x,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE),
-              op_arg_dat(s_sample_y,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE));
 
-  timer->endTimer("LS - Sample Interface");
+  sampleInterface();
 
   timer->startTimer("LS - Construct K-D Tree");
   const double *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
   const double *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
 
-  KDTreeMPINaive kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
+  #ifdef INS_MPI
+  KDTreeMPI kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
+  #else
+  KDTree kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
+  #endif
 
   releaseOP2PtrHost(s_sample_x, OP_READ, sample_pts_x);
   releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
@@ -224,31 +212,83 @@ void LS::reinit_ls() {
   cudaMallocManaged(&poly_ind, DG_NP * mesh->cells->size * sizeof(int));
 
   timer->startTimer("LS - Query K-D Tree");
+
+  #ifdef INS_MPI
+
+  const double *s_ptr = getOP2PtrHost(s, OP_READ);
+  int num_pts_to_reinit = 0;
+  std::vector<double> x_vec, y_vec;
+  for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
+    int start_ind = (i / DG_NP) * DG_NP;
+    bool reinit = false;
+    for(int j = 0; j < DG_NP; j++) {
+      if(fabs(s_ptr[start_ind + j]) < 0.05) {
+        reinit = true;
+      }
+    }
+    if(reinit) {
+      num_pts_to_reinit++;
+      x_vec.push_back(x_ptr[i]);
+      y_vec.push_back(y_ptr[i]);
+    }
+  }
+
+  std::vector<double> cx_vec(num_pts_to_reinit), cy_vec(num_pts_to_reinit);
+  std::vector<int> p_vec(num_pts_to_reinit);
+
+  kdtree.closest_point(num_pts_to_reinit, x_vec.data(), y_vec.data(), cx_vec.data(), cy_vec.data(), p_vec.data());
+
+  int count = 0;
+  for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
+    int start_ind = (i / DG_NP) * DG_NP;
+    bool reinit = false;
+    for(int j = 0; j < DG_NP; j++) {
+      if(fabs(s_ptr[start_ind + j]) < 0.05) {
+        reinit = true;
+      }
+    }
+    if(reinit) {
+      closest_x[i] = cx_vec[count];
+      closest_y[i] = cy_vec[count];
+      poly_ind[i] = p_vec[count];
+      count++;
+    }
+  }
+
+  releaseOP2PtrHost(s, OP_READ, s_ptr);
+
+  #else
+
   #pragma omp parallel for
   for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
     // Get closest sample point
     KDCoord tmp = kdtree.closest_point(x_ptr[i], y_ptr[i]);
     closest_x[i] = tmp.x;
     closest_y[i] = tmp.y;
+    // Convert OP2 cell ind to PolyEval ind (minimise indirection for CUDA)
     poly_ind[i]  = tmp.poly;
   }
+
+  #endif
+
+  timer->endTimer("LS - Query K-D Tree");
 
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
   releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
 
   // Map of cell ind to polynomial approximations
+  timer->startTimer("LS - Construct Poly Eval");
   std::vector<PolyApprox> polys = kdtree.get_polys();
   PolyEval pe(polys);
-  timer->endTimer("LS - Query K-D Tree");
-
+  timer->endTimer("LS - Construct Poly Eval");
 
   timer->startTimer("LS - Newton Method");
   const double *x_ptr_d = getOP2PtrDevice(mesh->x, OP_READ);
   const double *y_ptr_d = getOP2PtrDevice(mesh->y, OP_READ);
   double *s_ptr_d = getOP2PtrDevice(s, OP_RW);
 
-  newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr_d,
-                y_ptr_d, poly_ind, &pe, s_ptr_d, h);
+  // newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr_d,
+  //               y_ptr_d, poly_ind, &pe, s_ptr_d, h);
 
   releaseOP2PtrDevice(s, OP_RW, s_ptr_d);
   releaseOP2PtrDevice(mesh->x, OP_READ, x_ptr_d);
@@ -258,6 +298,5 @@ void LS::reinit_ls() {
   cudaFree(closest_y);
   cudaFree(poly_ind);
   timer->endTimer("LS - Newton Method");
-
   timer->endTimer("LS - Reinit");
 }

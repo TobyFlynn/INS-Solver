@@ -2,6 +2,8 @@
 
 #include "op_seq.h"
 
+#include <limits>
+
 #include "dg_op2_blas.h"
 
 AdvectionSolver2D::AdvectionSolver2D(DGMesh2D *m) {
@@ -96,16 +98,14 @@ void AdvectionSolver2D::rhs(op_dat val, op_dat u, op_dat v, op_dat val_out) {
 }
 
 void AdvectionSolver2D::set_dt() {
-  double h = 0.0;
-  op_par_loop(calc_min_h_2d, "calc_min_h_2d", mesh->faces,
+  double h = std::numeric_limits<double>::max();
+  op_par_loop(calc_min_h_2d, "calc_min_h_2d", mesh->cells,
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
               op_arg_gbl(&h, 1, "double", OP_MIN));
   dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1));
-  op_printf("Advection dt is %g\n", dt);
 }
 
 void AdvectionSolver2D::set_dt(const double t) {
   dt = t;
-  op_printf("Advection dt is %g\n", dt);
 }

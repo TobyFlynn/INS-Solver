@@ -7,7 +7,7 @@
 #include <set>
 #include <map>
 
-#include "dg_mesh.h"
+#include "dg_mesh/dg_mesh_2d.h"
 #include "ls_reinit_poly.h"
 
 #define ARMA_ALLOW_FAKE_GCC
@@ -35,7 +35,7 @@ struct KDNode {
 
 class KDTree {
 public:
-  KDTree(const double *x, const double *y, const int num, DGMesh *mesh, op_dat s);
+  KDTree(const double *x, const double *y, const int num, DGMesh2D *mesh, op_dat s);
 
   KDCoord closest_point(double x, double y);
   std::vector<PolyApprox> get_polys();
@@ -46,7 +46,7 @@ private:
   void nearest_neighbour(double x, double y, int current_ind, std::vector<KDCoord>::iterator &closest_pt, double &closest_distance);
 
   std::set<int> cell_inds(std::vector<KDCoord> &points);
-  void construct_polys(std::vector<KDCoord> &points, DGMesh *mesh, op_dat s);
+  void construct_polys(std::vector<KDCoord> &points, DGMesh2D *mesh, op_dat s);
   void update_poly_inds(std::vector<KDCoord> &points);
 
   std::vector<KDNode> nodes;

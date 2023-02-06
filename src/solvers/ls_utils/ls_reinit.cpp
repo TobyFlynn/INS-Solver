@@ -1,24 +1,13 @@
-#include "ls.h"
+#include "ls_solver.h"
 
-#include "op_seq.h"
-
-#include <limits>
-#include <cmath>
 #include <vector>
-#include <iostream>
-#include <fstream>
 #include <memory>
-#include <map>
-#include <set>
 
-#include "dg_constants.h"
-#include "dg_utils.h"
-#include "dg_blas_calls.h"
-#include "dg_op2_blas.h"
-#include "dg_operators.h"
-#include "dg_compiler_defs.h"
-
+#ifdef INS_MPI
+#include "kd_tree_mpi.h"
+#else
 #include "kd_tree.h"
+#endif
 #include "timing.h"
 #include "ls_reinit_poly.h"
 #include "utils.h"
@@ -191,23 +180,20 @@ void newton_method(const int numPts, double *closest_x, double *closest_y, const
     std::cout << numNonConv << " non-converged points out of " << numReinit << " points reinitialised" << std::endl;
 }
 
-void LS::reinit_ls() {
+void LevelSetSolver2D::reinitLS() {
   timer->startTimer("LS - Reinit");
-  timer->startTimer("LS - Sample Interface");
-  op_par_loop(sample_interface, "sample_interface", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(s_sample_x,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE),
-              op_arg_dat(s_sample_y,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE));
-  timer->endTimer("LS - Sample Interface");
+
+  sampleInterface();
 
   timer->startTimer("LS - Construct K-D Tree");
   const double *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
   const double *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
 
+  #ifdef INS_MPI
+  KDTreeMPI kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
+  #else
   KDTree kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
+  #endif
 
   releaseOP2PtrHost(s_sample_x, OP_READ, sample_pts_x);
   releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
@@ -221,6 +207,51 @@ void LS::reinit_ls() {
   int *poly_ind     = (int *)calloc(DG_NP * mesh->cells->size, sizeof(int));
 
   timer->startTimer("LS - Query K-D Tree");
+  #ifdef INS_MPI
+
+  const double *s_ptr = getOP2PtrHost(s, OP_READ);
+  int num_pts_to_reinit = 0;
+  std::vector<double> x_vec, y_vec;
+  for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
+    int start_ind = (i / DG_NP) * DG_NP;
+    bool reinit = false;
+    for(int j = 0; j < DG_NP; j++) {
+      if(fabs(s_ptr[start_ind + j]) < 0.05) {
+        reinit = true;
+      }
+    }
+    if(reinit) {
+      num_pts_to_reinit++;
+      x_vec.push_back(x_ptr[i]);
+      y_vec.push_back(y_ptr[i]);
+    }
+  }
+  std::vector<double> cx_vec(num_pts_to_reinit), cy_vec(num_pts_to_reinit);
+  std::vector<int> p_vec(num_pts_to_reinit);
+
+  kdtree.closest_point(num_pts_to_reinit, x_vec.data(), y_vec.data(), cx_vec.data(), cy_vec.data(), p_vec.data());
+
+  int count = 0;
+  for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
+    int start_ind = (i / DG_NP) * DG_NP;
+    bool reinit = false;
+    for(int j = 0; j < DG_NP; j++) {
+      if(fabs(s_ptr[start_ind + j]) < 0.05) {
+        reinit = true;
+      }
+    }
+    if(reinit) {
+      closest_x[i] = cx_vec[count];
+      closest_y[i] = cy_vec[count];
+      poly_ind[i] = p_vec[count];
+      count++;
+    }
+  }
+
+  releaseOP2PtrHost(s, OP_READ, s_ptr);
+
+  #else
+
   #pragma omp parallel for
   for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
     // Get closest sample point
@@ -230,10 +261,11 @@ void LS::reinit_ls() {
     poly_ind[i]  = tmp.poly;
   }
 
-  // Map of cell ind to polynomial approximations
-  std::vector<PolyApprox> polys = kdtree.get_polys();
+  #endif
   timer->endTimer("LS - Query K-D Tree");
 
+  // Map of cell ind to polynomial approximations
+  std::vector<PolyApprox> polys = kdtree.get_polys();
 
   timer->startTimer("LS - Newton Method");
   double *surface_ptr = getOP2PtrHost(s, OP_RW);

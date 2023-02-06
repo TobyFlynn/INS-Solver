@@ -19,8 +19,8 @@ bool compareY(KDCoord a, KDCoord b) {
   return a.y_rot < b.y_rot;
 }
 
-KDTree::KDTree(const double *x, const double *y, const int num, 
-               DGMesh *mesh, op_dat s) {
+KDTree::KDTree(const double *x, const double *y, const int num,
+               DGMesh2D *mesh, op_dat s) {
   n = 0;
   for(int i = 0; i < num; i++) {
     if(!isnan(x[i]) && !isnan(y[i])) {
@@ -91,7 +91,7 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
   int axis = 0;
   if(node.x_max - node.x_min < node.y_max - node.y_min)
     axis = 1;
-  
+
   // Do rotational transform if necessary
   bool transform = !has_transformed && level > 5 && pts_end - pts_start >= leaf_size * 4;
   if(transform) {
@@ -212,12 +212,12 @@ double KDTree::bb_sqr_dist(const int node_ind, const double x, const double y) {
     sqr_dist += (x - nodes[node_ind].x_min) * (x - nodes[node_ind].x_min);
   else if(x > nodes[node_ind].x_max)
     sqr_dist += (x - nodes[node_ind].x_max) * (x - nodes[node_ind].x_max);
-  
+
   if(y < nodes[node_ind].y_min)
     sqr_dist += (y - nodes[node_ind].y_min) * (y - nodes[node_ind].y_min);
   else if(y > nodes[node_ind].y_max)
     sqr_dist += (y - nodes[node_ind].y_max) * (y - nodes[node_ind].y_max);
-  
+
   return sqr_dist;
 }
 
@@ -272,12 +272,12 @@ std::set<int> KDTree::cell_inds(vector<KDCoord> &points) {
   return result;
 }
 
-void KDTree::construct_polys(vector<KDCoord> &points, DGMesh *mesh, op_dat s) {
+void KDTree::construct_polys(vector<KDCoord> &points, DGMesh2D *mesh, op_dat s) {
   timer->startTimer("LS - Construct Poly Approx");
   // Get cell inds that require polynomial approximations
   std::set<int> cellInds = cell_inds(points);
 
-  map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->edge2cells);
+  map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->face2cells);
 
   const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
   const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);

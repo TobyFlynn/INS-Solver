@@ -22,8 +22,8 @@ bool compareY(KDCoord a, KDCoord b) {
   return a.y_rot < b.y_rot;
 }
 
-KDTreeMPINaive::KDTreeMPINaive(const double *x, const double *y, const int num, 
-               DGMesh *mesh, op_dat s) {
+KDTreeMPINaive::KDTreeMPINaive(const double *x, const double *y, const int num,
+               DGMesh2D *mesh, op_dat s) {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   n = 0;
@@ -46,7 +46,7 @@ KDTreeMPINaive::KDTreeMPINaive(const double *x, const double *y, const int num,
   update_poly_inds(points);
 
   // Initial MPI MVP is to just gather all and then construct full local kd-tree
-  // Will obviously improve after getting this working as this involves a 
+  // Will obviously improve after getting this working as this involves a
   // ridiculous amount of comms
   int comm_size;
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
@@ -178,7 +178,7 @@ int KDTreeMPINaive::construct_tree(vector<KDCoord>::iterator pts_start, vector<K
   int axis = 0;
   if(node.x_max - node.x_min < node.y_max - node.y_min)
     axis = 1;
-  
+
   // Do rotational transform if necessary
   bool transform = !has_transformed && level > 5 && pts_end - pts_start >= leaf_size * 4;
   if(transform) {
@@ -299,12 +299,12 @@ double KDTreeMPINaive::bb_sqr_dist(const int node_ind, const double x, const dou
     sqr_dist += (x - nodes[node_ind].x_min) * (x - nodes[node_ind].x_min);
   else if(x > nodes[node_ind].x_max)
     sqr_dist += (x - nodes[node_ind].x_max) * (x - nodes[node_ind].x_max);
-  
+
   if(y < nodes[node_ind].y_min)
     sqr_dist += (y - nodes[node_ind].y_min) * (y - nodes[node_ind].y_min);
   else if(y > nodes[node_ind].y_max)
     sqr_dist += (y - nodes[node_ind].y_max) * (y - nodes[node_ind].y_max);
-  
+
   return sqr_dist;
 }
 
@@ -359,16 +359,16 @@ std::set<int> KDTreeMPINaive::cell_inds(vector<KDCoord> &points) {
   return result;
 }
 
-void KDTreeMPINaive::construct_polys(vector<KDCoord> &points, DGMesh *mesh, op_dat s) {
+void KDTreeMPINaive::construct_polys(vector<KDCoord> &points, DGMesh2D *mesh, op_dat s) {
   timer->startTimer("LS - Construct Poly Approx");
   // Get cell inds that require polynomial approximations
   std::set<int> cellInds = cell_inds(points);
 
-  map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->edge2cells);
+  map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->face2cells);
 
-  const double *x_ptr = getOP2PtrHostMap(mesh->x, mesh->edge2cells, OP_READ);
-  const double *y_ptr = getOP2PtrHostMap(mesh->y, mesh->edge2cells, OP_READ);
-  const double *s_ptr = getOP2PtrHostMap(s, mesh->edge2cells, OP_READ);
+  const double *x_ptr = getOP2PtrHostMap(mesh->x, mesh->face2cells, OP_READ);
+  const double *y_ptr = getOP2PtrHostMap(mesh->y, mesh->face2cells, OP_READ);
+  const double *s_ptr = getOP2PtrHostMap(s, mesh->face2cells, OP_READ);
 
   // Populate map
   int i = 0;
@@ -380,9 +380,9 @@ void KDTreeMPINaive::construct_polys(vector<KDCoord> &points, DGMesh *mesh, op_d
     i++;
   }
 
-  releaseOP2PtrHostMap(mesh->x, mesh->edge2cells, OP_READ, x_ptr);
-  releaseOP2PtrHostMap(mesh->y, mesh->edge2cells, OP_READ, y_ptr);
-  releaseOP2PtrHostMap(s, mesh->edge2cells, OP_READ, s_ptr);
+  releaseOP2PtrHostMap(mesh->x, mesh->face2cells, OP_READ, x_ptr);
+  releaseOP2PtrHostMap(mesh->y, mesh->face2cells, OP_READ, y_ptr);
+  releaseOP2PtrHostMap(s, mesh->face2cells, OP_READ, s_ptr);
 
   timer->endTimer("LS - Construct Poly Approx");
 }
