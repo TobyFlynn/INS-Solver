@@ -3,7 +3,7 @@
 
 #include "op_seq.h"
 
-#include "advection_solver.h"
+#include "solvers/2d/advection_solver.h"
 
 #include "dg_mesh/dg_mesh_2d.h"
 

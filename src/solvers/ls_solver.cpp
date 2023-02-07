@@ -1,4 +1,4 @@
-#include "ls_solver.h"
+#include "solvers/2d/ls_solver.h"
 
 #include "op_seq.h"
 

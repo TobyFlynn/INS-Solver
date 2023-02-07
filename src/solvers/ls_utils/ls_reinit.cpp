@@ -1,15 +1,15 @@
-#include "ls_solver.h"
+#include "solvers/2d/ls_solver.h"
 
 #include <vector>
 #include <memory>
 
 #ifdef INS_MPI
-#include "kd_tree_mpi.h"
+#include "ls_utils/2d/kd_tree_mpi.h"
 #else
-#include "kd_tree.h"
+#include "ls_utils/2d/kd_tree.h"
 #endif
 #include "timing.h"
-#include "ls_reinit_poly.h"
+#include "ls_utils/2d/ls_reinit_poly.h"
 #include "utils.h"
 
 extern Timing *timer;

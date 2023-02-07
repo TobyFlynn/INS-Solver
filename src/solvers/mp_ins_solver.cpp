@@ -1,4 +1,4 @@
-#include "mp_ins_solver.h"
+#include "solvers/2d/mp_ins_solver.h"
 
 // Include OP2 stuff
 #include "op_seq.h"

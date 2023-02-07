@@ -1,4 +1,4 @@
-#include "poisson_matrix.h"
+#include "matrices/2d/poisson_matrix.h"
 
 #include "op_seq.h"
 

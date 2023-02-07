@@ -6,7 +6,7 @@
 #include "petscksp.h"
 #include "timing.h"
 #include "dg_mesh/dg_mesh_2d.h"
-#include "poisson_matrix.h"
+#include "matrices/2d/poisson_matrix.h"
 
 class PetscPoissonSolve {
 public:

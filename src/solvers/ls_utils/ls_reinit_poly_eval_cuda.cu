@@ -1,4 +1,4 @@
-#include "ls_reinit_poly_eval_cuda.h"
+#include "ls_utils/2d/ls_reinit_poly_eval_cuda.h"
 
 PolyEval::PolyEval(std::vector<PolyApprox> &polys) {
   const int numCoeffPerPoly = PolyApprox::num_coeff();

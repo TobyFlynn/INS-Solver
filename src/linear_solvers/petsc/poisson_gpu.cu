@@ -1,4 +1,4 @@
-#include "petsc_poisson.h"
+#include "linear_solvers/petsc_poisson.h"
 
 #ifdef INS_MPI
 #include "mpi_helper_func.h"

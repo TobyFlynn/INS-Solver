@@ -1,6 +1,6 @@
 #include "op_seq.h"
 
-#include "ls_reinit_poly.h"
+#include "ls_utils/2d/ls_reinit_poly.h"
 
 #include <map>
 #include <iostream>
@@ -52,9 +52,9 @@ struct cmpCoords {
     }
 };
 
-void PolyApprox::stencil_data(const set<int> &stencil, const double *x_ptr, 
-                              const double *y_ptr, const double *s_ptr, 
-                              vector<double> &x, vector<double> &y, 
+void PolyApprox::stencil_data(const set<int> &stencil, const double *x_ptr,
+                              const double *y_ptr, const double *s_ptr,
+                              vector<double> &x, vector<double> &y,
                               vector<double> &s) {
   map<Coord, Point, cmpCoords> pointMap;
 
@@ -67,7 +67,7 @@ void PolyApprox::stencil_data(const set<int> &stencil, const double *x_ptr,
       coord.y = y_ptr[ind] - offset_y;
       Point point;
       auto res = pointMap.insert(make_pair(coord, point));
-        
+
       if(res.second) {
         // Point was inserted
         res.first->second.coord = coord;
@@ -97,11 +97,11 @@ void num_pts_pos_neg(const vector<double> &s, int &pos, int &neg) {
   }
 }
 
-PolyApprox::PolyApprox(const int cell_ind, set<int> stencil, 
-                       const double *x_ptr, const double *y_ptr, 
+PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
+                       const double *x_ptr, const double *y_ptr,
                        const double *s_ptr) {
   get_offset(cell_ind, x_ptr, y_ptr);
-  
+
   vector<double> x_vec, y_vec, s_vec;
   stencil_data(stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_vec);
 
@@ -291,7 +291,7 @@ double PolyApprox::val_at(const double x, const double y) {
 void PolyApprox::grad_at_2nd(const double x, const double y, double &dx, double &dy) {
   dx = 0.0;
   dy = 0.0;
-  
+
   dx += coeff[1];
   dx += 2.0 * coeff[3] * x;
   dx += coeff[4] * y;
@@ -304,7 +304,7 @@ void PolyApprox::grad_at_2nd(const double x, const double y, double &dx, double 
 void PolyApprox::grad_at_3rd(const double x, const double y, double &dx, double &dy) {
   dx = 0.0;
   dy = 0.0;
-  
+
   dx += coeff[1];
   dx += 2.0 * coeff[3] * x;
   dx += coeff[4] * y;
@@ -323,7 +323,7 @@ void PolyApprox::grad_at_3rd(const double x, const double y, double &dx, double 
 void PolyApprox::grad_at_4th(const double x, const double y, double &dx, double &dy) {
   dx = 0.0;
   dy = 0.0;
-  
+
   dx += coeff[1];
   dx += 2.0 * coeff[3] * x;
   dx += coeff[4] * y;
@@ -347,7 +347,7 @@ void PolyApprox::grad_at_4th(const double x, const double y, double &dx, double 
   dy += 4.0 * coeff[14] * y * y * y;
 }
 
-void PolyApprox::grad_at(const double x, const double y, 
+void PolyApprox::grad_at(const double x, const double y,
                          double &dx, double &dy) {
   if(N == 2) {
     grad_at_2nd(x - offset_x, y - offset_y, dx, dy);
@@ -401,7 +401,7 @@ void PolyApprox::hessian_at_4th(const double x, const double y, double &dx2, dou
   dy2 += 12.0 * coeff[14] * y * y;
 }
 
-void PolyApprox::hessian_at(const double x, const double y, 
+void PolyApprox::hessian_at(const double x, const double y,
                             double &dx2, double &dxy, double &dy2) {
   if(N == 2) {
     hessian_at_2nd(x - offset_x, y - offset_y, dx2, dxy, dy2);
@@ -492,7 +492,7 @@ map<int,set<int>> PolyApprox::get_stencils(const set<int> &central_inds, op_map 
           for(const auto &ind : it->second.central_inds) {
             auto stencil_it = stencils.find(ind);
             // Check if the other cell in this edge is already in the stencil for this central ind
-            if(stencil_it->second.find(edge_map->map[i + 1]) != stencil_it->second.end() 
+            if(stencil_it->second.find(edge_map->map[i + 1]) != stencil_it->second.end()
                && stencil_it->second.size() < num_elements) {
               stencil_it->second.insert(edge_map->map[i + 1]);
               // If stencil is not full then add to next rounds query inds
@@ -509,7 +509,7 @@ map<int,set<int>> PolyApprox::get_stencils(const set<int> &central_inds, op_map 
           for(const auto &ind : it->second.central_inds) {
             auto stencil_it = stencils.find(ind);
             // Check if the other cell in this edge is already in the stencil for this central ind
-            if(stencil_it->second.find(edge_map->map[i - 1]) != stencil_it->second.end() 
+            if(stencil_it->second.find(edge_map->map[i - 1]) != stencil_it->second.end()
                && stencil_it->second.size() < num_elements) {
               stencil_it->second.insert(edge_map->map[i - 1]);
               // If stencil is not full then add to next rounds query inds

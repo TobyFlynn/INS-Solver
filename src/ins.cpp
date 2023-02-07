@@ -11,7 +11,7 @@
 #include "dg_global_constants/dg_global_constants_2d.h"
 
 #include "timing.h"
-#include "mp_ins_solver.h"
+#include "solvers/2d/mp_ins_solver.h"
 
 Timing *timer;
 

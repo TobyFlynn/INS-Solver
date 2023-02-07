@@ -1,4 +1,4 @@
-#include "advection_solver.h"
+#include "solvers/2d/advection_solver.h"
 
 #include "op_seq.h"
 

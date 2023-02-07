@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include "petsc_poisson.h"
-#include "ls_solver.h"
+#include "linear_solvers/petsc_poisson.h"
+#include "solvers/2d/ls_solver.h"
 
 #include "dg_mesh/dg_mesh_2d.h"
 
