@@ -29,6 +29,7 @@ python3 $OP2_TRANSLATOR ins.cpp \
         solvers/ls_solver.cpp \
         matrices/poisson/poisson_mat.cpp \
         linear_solvers/petsc/poisson.cpp \
+        solvers/mp_ins_solver.cpp \
         kernels/
 
 cd ..

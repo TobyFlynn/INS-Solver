@@ -1,7 +1,7 @@
-inline void viscosity_bc(const int *bedge_type, const int *bedgeNum,
-                         const double *t, const double *bc_time, const double *x,
-                         const double *y, const double *nx, const double *ny,
-                         double *exQ0, double *exQ1) {
+inline void ins_vis_bc_2d(const double *t, const int *bedge_type,
+                          const int *bedgeNum, const double *x, const double *y,
+                          const double *nx, const double *ny, double *exQ0,
+                          double *exQ1) {
   int exInd = *bedgeNum * DG_GF_NP;
   const double PI = 3.141592653589793238463;
 

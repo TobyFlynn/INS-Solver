@@ -1,7 +1,8 @@
-inline void advection_faces(const int **p, const int *edgeNum, const bool *rev,
-                            const double **q0, const double **q1,
-                            const double **nx, const double **ny,
-                            const double **sJ, double **flux0, double **flux1) {
+inline void ins_advec_faces_2d(const int **p, const int *edgeNum, const bool *rev,
+                               const double **nx, const double **ny,
+                               const double **sJ, const double **q0,
+                               const double **q1, double **flux0,
+                               double **flux1) {
   // Work out which edge for each element
   const int edgeL = edgeNum[0];
   const int edgeR = edgeNum[1];

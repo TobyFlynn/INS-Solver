@@ -1,8 +1,8 @@
-inline void advection_bc(const int *p, const int *bedge_type,
-                         const int *bedgeNum, const double *t, const double *bc_time,
-                         const double *x, const double *y, const double *q0,
-                         const double *q1, const double *nx, const double *ny,
-                         const double *sJ, double *flux0, double *flux1) {
+inline void ins_advec_bc_2d(const double *t, const int *p, const int *bedge_type,
+                            const int *bedgeNum, const double *x, const double *y,
+                            const double *nx, const double *ny, const double *sJ,
+                            const double *q0, const double *q1, double *flux0,
+                            double *flux1) {
   const int exInd = *bedgeNum * DG_GF_NP;
   double pQ0[DG_GF_NP], pQ1[DG_GF_NP];
   const double PI = 3.141592653589793238463;

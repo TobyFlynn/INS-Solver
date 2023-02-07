@@ -11,12 +11,14 @@
 #include "dg_global_constants/dg_global_constants_2d.h"
 
 #include "timing.h"
-#include "advection_solver.h"
-#include "ls_solver.h"
+#include "mp_ins_solver.h"
 
 Timing *timer;
 
 using namespace std;
+
+// Global constants
+double r_ynolds, mu0, mu1, rho0, rho1;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 1);
@@ -59,53 +61,53 @@ int main(int argc, char **argv) {
     outputDir += "/";
   }
 
+  mu0  = 1.0;
+  mu1  = 1.0;
+  rho0 = 1.0;
+  rho1 = 1.0;
+
+  const double refRho = 1.0;
+  const double refVel = 1.0;
+  const double refLen = 0.005;
+  const double refMu  = 1.0e-5;
+  r_ynolds = refRho * refVel * refLen / refMu;
+
   DGMesh2D *mesh = new DGMesh2D(filename);
-  // AdvectionSolver2D *advec2d = new AdvectionSolver2D(mesh);
-  LevelSetSolver2D *ls2d = new LevelSetSolver2D(mesh);
+  MPINSSolver2D *mpins2d = new MPINSSolver2D(mesh);
 
-  double *data_t0 = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
-  op_dat u = op_decl_dat(mesh->cells, DG_NP, "double", data_t0, "ls_test_u");
-  op_dat v = op_decl_dat(mesh->cells, DG_NP, "double", data_t0, "ls_test_v");
-  free(data_t0);
-
+  // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
   op_decl_const(DG_ORDER * 3 * DG_NPF, "int", FMASK);
   op_decl_const(DG_ORDER * DG_CUB_NP, "double", cubW_g);
   op_decl_const(DG_ORDER * DG_GF_NP, "double", gaussW_g);
 
+  // Application constants
+  op_decl_const(1, "double", &r_ynolds);
+  op_decl_const(1, "double", &mu0);
+  op_decl_const(1, "double", &mu1);
+  op_decl_const(1, "double", &rho0);
+  op_decl_const(1, "double", &rho1);
+
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
 
   mesh->init();
-  ls2d->init();
-
-  op_par_loop(ls_test_ic, "ls_test_ic", mesh->cells,
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(u,   -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(v,   -1, OP_ID, DG_NP, "double", OP_WRITE));
+  mpins2d->init(r_ynolds, refVel);
 
   string out_file_ic = outputDir + "ls_test_ic.h5";
-  op_fetch_data_hdf5_file(mesh->x, out_file_ic.c_str());
-  op_fetch_data_hdf5_file(mesh->y, out_file_ic.c_str());
-  op_fetch_data_hdf5_file(ls2d->s, out_file_ic.c_str());
-  op_fetch_data_hdf5_file(u, out_file_ic.c_str());
-  op_fetch_data_hdf5_file(v, out_file_ic.c_str());
+  mpins2d->dump_data(out_file_ic);
 
   for(int i = 0; i < iter; i++) {
-    ls2d->setVelField(u, v);
-    ls2d->step(1e-3);
+    mpins2d->step();
 
     op_printf("Iter %d\n", i);
   }
 
   string out_file_end = outputDir + "ls_test_end.h5";
-  op_fetch_data_hdf5_file(mesh->x, out_file_end.c_str());
-  op_fetch_data_hdf5_file(mesh->y, out_file_end.c_str());
-  op_fetch_data_hdf5_file(ls2d->s, out_file_end.c_str());
-  op_fetch_data_hdf5_file(u, out_file_end.c_str());
-  op_fetch_data_hdf5_file(v, out_file_end.c_str());
+  mpins2d->dump_data(out_file_end);
 
   timer->exportTimings(outputDir + "timings.txt", 0, 0.0);
+
+  delete mpins2d;
 
   ierr = PetscFinalize();
 
