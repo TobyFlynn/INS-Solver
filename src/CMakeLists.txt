@@ -4,6 +4,7 @@ list(APPEND COMMON_SRC solvers/ls_utils/ls_reinit_poly.cpp)
 list(APPEND COMMON_SRC matrices_op/poisson/poisson_mat_op.cpp)
 list(APPEND COMMON_SRC linear_solvers_op/petsc/poisson_op.cpp)
 list(APPEND COMMON_SRC solvers_op/mp_ins_solver_op.cpp)
+list(APPEND COMMON_SRC matrices_op/poisson/factor_poisson_mat_op.cpp)
 
 set(CPU_SRC utils.cpp solvers/ls_utils/ls_reinit.cpp matrices/poisson/poisson_mat_cpu.cpp)
 list(APPEND CPU_SRC linear_solvers/petsc/poisson_cpu.cpp)

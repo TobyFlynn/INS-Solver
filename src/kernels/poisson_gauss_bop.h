@@ -1,15 +1,13 @@
-inline void poisson_gauss_grad_b(const int *p, const double *gF0Dr,
-                                 const double *gF0Ds, const double *gF1Dr,
-                                 const double *gF1Ds, const double *gF2Dr,
-                                 const double *gF2Ds, const double *gFInterp0,
-                                 const double *gFInterp1, const double *gFInterp2,
-                                 const int *btype, const int *edgeNum,
-                                 const int *d0, const int *d1, const int *d2,
-                                 const double *x, const double *y,
-                                 const double *sJ, const double *nx,
-                                 const double *ny, const double *h,
-                                 const double *factor, double *op1,
-                                 double *op_bc) {
+inline void poisson_gauss_bop(const int *p, const double *gF0Dr,
+                              const double *gF0Ds, const double *gF1Dr,
+                              const double *gF1Ds, const double *gF2Dr,
+                              const double *gF2Ds, const double *gFInterp0,
+                              const double *gFInterp1, const double *gFInterp2,
+                              const int *btype, const int *edgeNum,
+                              const double *x, const double *y,
+                              const double *sJ, const double *nx,
+                              const double *ny, const double *h,
+                              double *op1, double *op_bc) {
   const double *gVM;
   if(*edgeNum == 0) {
     gVM = &gFInterp0[(*p - 1) * DG_GF_NP * DG_NP];
@@ -25,7 +23,8 @@ inline void poisson_gauss_grad_b(const int *p, const double *gF0Dr,
   const int dg_gf_np   = DG_CONSTANTS[(*p - 1) * 5 + 4];
   const double *gaussW = &gaussW_g[(*p - 1) * DG_GF_NP];
 
-  if(*d0 == *btype || *d1 == *btype || *d2 == *btype) {
+  // Dirichlet
+  if(*btype == 0) {
     const double *gDr, *gDs;
     if(*edgeNum == 0) {
       gDr = &gF0Dr[(*p - 1) * DG_GF_NP * DG_NP];
@@ -71,14 +70,14 @@ inline void poisson_gauss_grad_b(const int *p, const double *gF0Dr,
 
         double Dx = rx[m] * gDr[ind] + sx[m] * gDs[ind];
         double Dy = ry[m] * gDr[ind] + sy[m] * gDs[ind];
-        mD[ind]   = factor[exInd + m] * (nx[exInd + m] * Dx + ny[exInd + m] * Dy);
+        mD[ind]   = nx[exInd + m] * Dx + ny[exInd + m] * Dy;
       }
     }
 
     double tau[DG_GF_NP];
     for(int i = 0; i < DG_GF_NP; i++) {
       int ind = *edgeNum * DG_GF_NP + i;
-      tau[i] = 0.5 * (*p + 1) * (*p + 2) * (*h) * factor[ind];
+      tau[i] = 0.5 * (*p + 1) * (*p + 2) * (*h);
     }
 
     // Main matrix
@@ -111,6 +110,7 @@ inline void poisson_gauss_grad_b(const int *p, const double *gF0Dr,
       op_bc[row + col * dg_np] = val;
     }
   } else {
+    // Neumann
     // Nothing for main matrix
     // Apply BC matrix
     for(int j = 0; j < dg_gf_np * dg_np; j++) {

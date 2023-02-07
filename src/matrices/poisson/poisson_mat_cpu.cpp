@@ -1,4 +1,4 @@
-#include "matrices/2d/poisson_matrix.h"
+#include "matrices/2d/poisson_matrix_2d.h"
 
 #include "op_seq.h"
 
@@ -13,29 +13,23 @@
 
 extern Timing *timer;
 
-int PoissonMatrix2D::get_local_unknowns() {
-  timer->startTimer("PoissonMat - unknowns");
+void PoissonMatrix2D::set_glb_ind() {
+  int global_ind = 0;
+  #ifdef INS_MPI
+  timer->startTimer("PoissonMat - glb_ind");
   op_arg op2_args[] = {
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges(mesh->order->set, 1, op2_args);
   const int setSize = mesh->order->set->size;
-  const int *p = (int *)mesh->order->data;
-  int local_unkowns = 0;
+  const int *tempOrder = (int *)mesh->order->data;
+  unknowns = 0;
   for(int i = 0; i < setSize; i++) {
     int Np, Nfp;
-    DGUtils::numNodes2D(p[i], &Np, &Nfp);
-    local_unkowns += Np;
+    DGUtils::numNodes2D(tempOrder[i], &Np, &Nfp);
+    unknowns += Np;
   }
   op_mpi_set_dirtybit(1, op2_args);
-  timer->endTimer("PoissonMat - unknowns");
-  return local_unkowns;
-}
-
-void PoissonMatrix2D::set_glb_ind() {
-  timer->startTimer("PoissonMat - glb_ind");
-  int global_ind = 0;
-  #ifdef INS_MPI
   global_ind = get_global_mat_start_ind(unknowns);
   #endif
   op_arg args[] = {

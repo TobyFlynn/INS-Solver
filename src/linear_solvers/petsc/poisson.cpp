@@ -51,7 +51,7 @@ PetscPoissonSolve::PetscPoissonSolve(DGMesh2D *m) {
   free(tmp_np_np);
   free(tmp_np);
 
-  mat = new PoissonMatrix2D(mesh);
+  mat = new FactorPoissonMatrix2D(mesh);
 }
 
 PetscPoissonSolve::~PetscPoissonSolve() {
@@ -68,8 +68,6 @@ PetscPoissonSolve::~PetscPoissonSolve() {
 }
 
 void PetscPoissonSolve::init() {
-  mat->init();
-
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPCG);
   KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 1e2);
@@ -103,14 +101,7 @@ bool PetscPoissonSolve::solve(op_dat b_dat, op_dat x_dat) {
 
   KSPSetOperators(ksp, pMat, pMat);
 
-  if(mesh->bface2cells) {
-    op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bfaces,
-                op_arg_dat(mesh->order,     0, mesh->bface2cells, 1, "int", OP_READ),
-                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mat->op_bc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
-                op_arg_dat(bc_dat, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(b_dat,  0, mesh->bface2cells, DG_NP, "double", OP_INC));
-  }
+  mat->apply_bc(b_dat, bc_dat);
 
   load_vec(&b, b_dat);
   load_vec(&x, x_dat);
@@ -170,14 +161,6 @@ void PetscPoissonSolve::precond(const double *in_d, double *out_d) {
   copy_dat_to_vec(out, out_d);
 }
 
-void PetscPoissonSolve::setDirichletBCs(int *d) {
-  mat->setDirichletBCs(d);
-}
-
-void PetscPoissonSolve::setNeumannBCs(int *n) {
-  mat->setNeumannBCs(n);
-}
-
 void PetscPoissonSolve::setBCValues(op_dat bc) {
   bc_dat = bc;
 }
@@ -196,8 +179,6 @@ PetscViscositySolve::PetscViscositySolve(DGMesh2D *m) : PetscPoissonSolve(m) {
 }
 
 void PetscPressureSolve::setup(op_dat rho) {
-  mat->update_glb_ind();
-
   massMat = false;
 
   op_par_loop(poisson_pr_fact, "poisson_pr_fact", mesh->cells,
@@ -205,7 +186,9 @@ void PetscPressureSolve::setup(op_dat rho) {
               op_arg_dat(factor, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   timer->startTimer("Build Pr Mat");
-  mat->calc_mat(factor);
+  mat->set_factor(factor);
+  // TODO do BC types properly
+  mat->calc_mat(mesh->bedge_type);
   setMatrix();
   if(!mesh->bface2cells) {
     MatNullSpace nullspace;
@@ -218,8 +201,6 @@ void PetscPressureSolve::setup(op_dat rho) {
 }
 
 void PetscViscositySolve::setup(double mmConst, op_dat rho, op_dat mu) {
-  mat->update_glb_ind();
-
   massMat = true;
   massFactor = mmConst;
   block_jacobi_pre = true;
@@ -232,7 +213,7 @@ void PetscViscositySolve::setup(double mmConst, op_dat rho, op_dat mu) {
               op_arg_dat(mmFactor,  -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   timer->startTimer("Build Vis Mat");
-  mat->calc_mat_mm(factor, mmFactor);
+  // mat->calc_mat_mm(factor, mmFactor);
 
   timer->startTimer("Vis Mat Pre Inv");
   if(block_jacobi_pre) {

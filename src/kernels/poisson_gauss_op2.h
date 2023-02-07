@@ -1,14 +1,14 @@
-inline void poisson_gauss_grad(const int **p, const double *gF0Dr,
-                               const double *gF0Ds, const double *gF1Dr,
-                               const double *gF1Ds, const double *gF2Dr,
-                               const double *gF2Ds, const double *gFInterp0,
-                               const double *gFInterp1, const double *gFInterp2,
-                               const int *edgeNum, const bool *reverse,
-                               const double **x, const double **y,
-                               const double **sJ, const double **nx,
-                               const double **ny, const double **h,
-                               const double **factor, double *op1L,
-                               double *op1R, double *op2L, double *op2R) {
+inline void poisson_gauss_op2(const int **p, const double *gF0Dr,
+                              const double *gF0Ds, const double *gF1Dr,
+                              const double *gF1Ds, const double *gF2Dr,
+                              const double *gF2Ds, const double *gFInterp0,
+                              const double *gFInterp1, const double *gFInterp2,
+                              const int *edgeNum, const bool *reverse,
+                              const double **x, const double **y,
+                              const double **sJ, const double **nx,
+                              const double **ny, const double **h,
+                              double *op1L, double *op1R, double *op2L,
+                              double *op2R) {
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
 
@@ -123,8 +123,8 @@ inline void poisson_gauss_grad(const int **p, const double *gF0Dr,
 
       double DxL = rxL[m] * gDrL[ind] + sxL[m] * gDsL[ind];
       double DyL = ryL[m] * gDrL[ind] + syL[m] * gDsL[ind];
-      mDL[ind]   = factor[0][exIndL + m] * (nx[0][exIndL + m] * DxL + ny[0][exIndL + m] * DyL);
-      pDR[p_ind] = factor[0][exIndL + m] * (nx[1][p_norm_indR] * DxL + ny[1][p_norm_indR] * DyL);
+      mDL[ind]   = nx[0][exIndL + m] * DxL + ny[0][exIndL + m] * DyL;
+      pDR[p_ind] = nx[1][p_norm_indR] * DxL + ny[1][p_norm_indR] * DyL;
     }
   }
 
@@ -143,8 +143,8 @@ inline void poisson_gauss_grad(const int **p, const double *gF0Dr,
 
       double DxR = rxR[m] * gDrR[ind] + sxR[m] * gDsR[ind];
       double DyR = ryR[m] * gDrR[ind] + syR[m] * gDsR[ind];
-      mDR[ind]   = factor[1][exIndR + m] * (nx[1][exIndR + m] * DxR + ny[1][exIndR + m] * DyR);
-      pDL[p_ind] = factor[1][exIndR + m] * (nx[0][p_norm_indL] * DxR + ny[0][p_norm_indL] * DyR);
+      mDR[ind]   = nx[1][exIndR + m] * DxR + ny[1][exIndR + m] * DyR;
+      pDL[p_ind] = nx[0][p_norm_indL] * DxR + ny[0][p_norm_indL] * DyR;
     }
   }
 
@@ -160,7 +160,7 @@ inline void poisson_gauss_grad(const int **p, const double *gF0Dr,
     else
       indR = edgeR * DG_GF_NP + i;
 
-    tauL[i] = 0.5 * fmax((p[0][0] + 1) * (p[0][0] + 2) * h[0][0] * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * h[1][0] * factor[1][indR]);
+    tauL[i] = 0.5 * fmax((p[0][0] + 1) * (p[0][0] + 2) * h[0][0], (p[1][0] + 1) * (p[1][0] + 2) * h[1][0]);
     if(tauL[i] > maxtau) maxtau = tauL[i];
   }
 
@@ -179,7 +179,7 @@ inline void poisson_gauss_grad(const int **p, const double *gF0Dr,
     else
       indL = edgeL * DG_GF_NP + i;
 
-    tauR[i] = 0.5 * fmax((p[0][0] + 1) * (p[0][0] + 2) * h[0][0] * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * h[1][0] * factor[1][indR]);
+    tauR[i] = 0.5 * fmax((p[0][0] + 1) * (p[0][0] + 2) * h[0][0], (p[1][0] + 1) * (p[1][0] + 2) * h[1][0]);
     if(tauR[i] > maxtau) maxtau = tauR[i];
   }
 

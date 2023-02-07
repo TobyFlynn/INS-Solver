@@ -6,7 +6,7 @@
 #include "petscksp.h"
 #include "timing.h"
 #include "dg_mesh/dg_mesh_2d.h"
-#include "matrices/2d/poisson_matrix.h"
+#include "matrices/2d/factor_poisson_matrix_2d.h"
 
 class PetscPoissonSolve {
 public:
@@ -20,8 +20,6 @@ public:
 
   double getAverageConvergeIter();
 
-  void setDirichletBCs(int *d);
-  void setNeumannBCs(int *n);
   void setBCValues(op_dat bc);
 
   // OP2 Dats
@@ -46,7 +44,7 @@ protected:
   Mat pMat;
   KSP ksp;
 
-  PoissonMatrix2D *mat;
+  FactorPoissonMatrix2D *mat;
 
 private:
   void create_vec(Vec *v);

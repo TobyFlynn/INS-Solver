@@ -16,20 +16,20 @@ using namespace std;
 
 MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
   // Hardcoded for the periodic cylinder case
-  int pressure_dirichlet[3] = {1, -1, -1};
-  int pressure_neumann[3] = {0, 2, -1};
-  int viscosity_dirichlet[3] = {0, 2, -1};
-  int viscosity_neumann[3] = {1, -1, -1};
+  // int pressure_dirichlet[3] = {1, -1, -1};
+  // int pressure_neumann[3] = {0, 2, -1};
+  // int viscosity_dirichlet[3] = {0, 2, -1};
+  // int viscosity_neumann[3] = {1, -1, -1};
 
   mesh = m;
   ls = new LevelSetSolver2D(mesh);
   pressurePoisson = new PetscPressureSolve(mesh);
   viscosityPoisson = new PetscViscositySolve(mesh);
 
-  pressurePoisson->setDirichletBCs(pressure_dirichlet);
-  pressurePoisson->setNeumannBCs(pressure_neumann);
-  viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
-  viscosityPoisson->setNeumannBCs(viscosity_neumann);
+  // pressurePoisson->setDirichletBCs(pressure_dirichlet);
+  // pressurePoisson->setNeumannBCs(pressure_neumann);
+  // viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
+  // viscosityPoisson->setNeumannBCs(viscosity_neumann);
 
   std::string name;
   double *dg_np_data = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));

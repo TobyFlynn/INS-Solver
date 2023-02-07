@@ -1,8 +1,8 @@
-inline void poisson_cubature_op(const int *p, const double *cubVDr,
-                                const double *cubVDs, const double *rx,
-                                const double *sx, const double *ry,
-                                const double *sy, const double *J,
-                                const double *factor, double *op) {
+inline void fact_poisson_cub_op1(const int *p, const double *cubVDr,
+                                 const double *cubVDs, const double *rx,
+                                 const double *sx, const double *ry,
+                                 const double *sy, const double *J,
+                                 const double *factor, double *op) {
   // Get constants
   const int dg_np        = DG_CONSTANTS[(*p - 1) * 5];
   const int dg_cub_np    = DG_CONSTANTS[(*p - 1) * 5 + 2];
