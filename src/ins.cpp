@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
   r_ynolds = refRho * refVel * refLen / refMu;
 
   DGMesh2D *mesh = new DGMesh2D(filename);
-  MPINSSolver2D *mpins2d = new MPINSSolver2D(mesh);
+  INSSolver2D *mpins2d = new INSSolver2D(mesh);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);

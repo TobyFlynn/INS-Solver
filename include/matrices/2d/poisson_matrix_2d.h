@@ -10,7 +10,8 @@ public:
   PoissonMatrix2D(DGMesh2D *m);
   ~PoissonMatrix2D();
 
-  virtual void calc_mat(op_dat bc_types) override;
+  virtual void calc_mat() override;
+  void set_bc_types(op_dat bc_ty) override;
   virtual void apply_bc(op_dat rhs, op_dat bc) override;
   virtual void mult(op_dat in, op_dat out) override;
   virtual void multJacobi(op_dat in, op_dat out) override;

@@ -9,7 +9,8 @@
 class PoissonMatrix {
 public:
   // op_dat bc_types - 0 for Dirichlet, 1 for Neumann
-  virtual void calc_mat(op_dat bc_types) = 0;
+  virtual void calc_mat() = 0;
+  virtual void set_bc_types(op_dat bc_ty) = 0;
   virtual void apply_bc(op_dat rhs, op_dat bc) = 0;
   virtual void mult(op_dat in, op_dat out) = 0;
   virtual void multJacobi(op_dat in, op_dat out) = 0;
@@ -27,6 +28,8 @@ protected:
   Mat pMat;
   bool petscMatInit;
   bool petscMatResetRequired;
+
+  op_dat bc_types;
 };
 
 #endif

@@ -10,7 +10,7 @@ void FactorMMPoissonMatrix2D::set_mm_factor(op_dat f) {
   mm_factor = f;
 }
 
-void FactorMMPoissonMatrix2D::calc_mat(op_dat bc_types) {
+void FactorMMPoissonMatrix2D::calc_mat() {
   calc_glb_ind();
   calc_op1();
   calc_op2();

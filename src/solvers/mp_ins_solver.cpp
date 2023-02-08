@@ -329,7 +329,8 @@ bool MPINSSolver2D::pressure() {
 
   bool converged;
   pressureMatrix->set_factor(pr_mat_fact);
-  pressureMatrix->calc_mat(pr_bc_types);
+  pressureMatrix->set_bc_types(pr_bc_types);
+  pressureMatrix->calc_mat();
   pressureSolver->set_bcs(prBC);
   converged = pressureSolver->solve(pRHS, pr);
   timer->endTimer("Pressure Linear Solve");
@@ -402,7 +403,8 @@ bool MPINSSolver2D::viscosity() {
 
   viscosityMatrix->set_factor(mu);
   viscosityMatrix->set_mm_factor(vis_mat_mm_fact);
-  viscosityMatrix->calc_mat(vis_bc_types);
+  viscosityMatrix->set_bc_types(vis_bc_types);
+  viscosityMatrix->calc_mat();
   viscositySolver->set_bcs(visBC[0]);
   bool convergedX = viscositySolver->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);
 

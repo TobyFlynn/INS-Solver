@@ -6,7 +6,7 @@ MMPoissonMatrix2D::MMPoissonMatrix2D(DGMesh2D *m) : PoissonMatrix2D(m) {
   factor = 0.0;
 }
 
-void MMPoissonMatrix2D::calc_mat(op_dat bc_types) {
+void MMPoissonMatrix2D::calc_mat() {
   calc_glb_ind();
   calc_op1();
   calc_op2();

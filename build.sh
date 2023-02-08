@@ -12,6 +12,7 @@ mkdir -p gen/matrices/poisson
 mkdir -p gen/linear_solvers/petsc_amg
 mkdir -p gen/linear_solvers/petsc_utils
 mkdir -p gen/linear_solvers/petsc_block_jacobi
+mkdir -p gen/linear_solvers/pmultigrid
 
 python3 preprocessor.py 3
 
@@ -36,6 +37,7 @@ python3 $OP2_TRANSLATOR ins.cpp \
         matrices/poisson/mm_poisson_mat.cpp \
         matrices/poisson/factor_mm_poisson_mat.cpp \
         linear_solvers/petsc_block_jacobi/petsc_block_jacobi.cpp \
+        linear_solvers/pmultigrid/pmultigrid.cpp \
         kernels/
 
 cd ..

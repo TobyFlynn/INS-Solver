@@ -11,6 +11,7 @@
 #include "timing.h"
 #include "linear_solvers/petsc_amg.h"
 #include "linear_solvers/petsc_block_jacobi.h"
+#include "linear_solvers/pmultigrid.h"
 
 extern Timing *timer;
 
@@ -26,7 +27,8 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
   mesh = m;
   pressureMatrix = new PoissonMatrix2D(mesh);
   viscosityMatrix = new MMPoissonMatrix2D(mesh);
-  pressureSolver = new PETScAMGSolver(mesh);
+  // pressureSolver = new PETScAMGSolver(mesh);
+  pressureSolver = new PMultigridPoissonSolver(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(true);
@@ -152,7 +154,8 @@ void INSSolver2D::init(const double re, const double refVel) {
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
   }
 
-  pressureMatrix->calc_mat(pr_bc_types);
+  pressureMatrix->set_bc_types(pr_bc_types);
+  pressureMatrix->calc_mat();
 
   timer->endTimer("INS - Init");
 }
@@ -374,7 +377,8 @@ bool INSSolver2D::viscosity() {
   factor = g0 * reynolds / dt;
   if(factor != viscosityMatrix->get_factor()) {
     viscosityMatrix->set_factor(factor);
-    viscosityMatrix->calc_mat(vis_bc_types);
+    viscosityMatrix->set_bc_types(vis_bc_types);
+    viscosityMatrix->calc_mat();
   }
   viscositySolver->set_bcs(visBC[0]);
   bool convergedX = viscositySolver->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);

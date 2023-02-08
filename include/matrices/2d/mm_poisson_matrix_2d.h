@@ -7,7 +7,7 @@ class MMPoissonMatrix2D : public PoissonMatrix2D {
 public:
   MMPoissonMatrix2D(DGMesh2D *m);
 
-  virtual void calc_mat(op_dat bc_types) override;
+  virtual void calc_mat() override;
   void set_factor(double f);
   double get_factor();
 

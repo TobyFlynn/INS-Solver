@@ -41,7 +41,8 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
     KSPSetOperators(ksp, *pMat, *pMat);
   }
 
-  matrix->apply_bc(rhs, bc);
+  if(bc)
+    matrix->apply_bc(rhs, bc);
 
   Vec b, x;
   PETScUtils::create_vec_p_adapt(&b, matrix->unknowns);

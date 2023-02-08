@@ -10,6 +10,7 @@ list(APPEND COMMON_SRC matrices_op/poisson/factor_mm_poisson_mat_op.cpp)
 list(APPEND COMMON_SRC linear_solvers/petsc_amg/petsc_amg.cpp)
 list(APPEND COMMON_SRC linear_solvers/linear_solver.cpp)
 list(APPEND COMMON_SRC linear_solvers_op/petsc_block_jacobi/petsc_block_jacobi_op.cpp)
+list(APPEND COMMON_SRC linear_solvers_op/pmultigrid/pmultigrid_op.cpp)
 
 set(CPU_SRC utils.cpp solvers/ls_utils/ls_reinit.cpp matrices/poisson/poisson_mat_cpu.cpp)
 list(APPEND CPU_SRC linear_solvers/petsc_utils/utils.cpp)

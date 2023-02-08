@@ -51,6 +51,10 @@ PoissonMatrix2D::~PoissonMatrix2D() {
     MatDestroy(&pMat);
 }
 
+void PoissonMatrix2D::set_bc_types(op_dat bc_ty) {
+  bc_types = bc_ty;
+}
+
 bool PoissonMatrix2D::getPETScMat(Mat** mat) {
   bool reset = false;
   if(petscMatResetRequired) {
@@ -63,7 +67,7 @@ bool PoissonMatrix2D::getPETScMat(Mat** mat) {
   return reset;
 }
 
-void PoissonMatrix2D::calc_mat(op_dat bc_types) {
+void PoissonMatrix2D::calc_mat() {
   timer->startTimer("PoissonMat - calc mat");
   op_par_loop(poisson_h, "poisson_h", mesh->cells,
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
