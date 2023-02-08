@@ -1,4 +1,4 @@
-#include "solvers/2d/mp_ins_solver.h"
+#include "solvers/2d/ins_solver.h"
 
 // Include OP2 stuff
 #include "op_seq.h"
@@ -16,7 +16,7 @@ extern Timing *timer;
 
 using namespace std;
 
-MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
+INSSolver2D::INSSolver2D(DGMesh2D *m) {
   // Hardcoded for the periodic cylinder case
   // int pressure_dirichlet[3] = {1, -1, -1};
   // int pressure_neumann[3] = {0, 2, -1};
@@ -24,9 +24,8 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
   // int viscosity_neumann[3] = {1, -1, -1};
 
   mesh = m;
-  ls = new LevelSetSolver2D(mesh);
-  pressureMatrix = new FactorPoissonMatrix2D(mesh);
-  viscosityMatrix = new FactorMMPoissonMatrix2D(mesh);
+  pressureMatrix = new PoissonMatrix2D(mesh);
+  viscosityMatrix = new MMPoissonMatrix2D(mesh);
   pressureSolver = new PETScAMGSolver();
   viscositySolver = new PETScBlockJacobiSolver(mesh);
   pressureSolver->set_matrix(pressureMatrix);
@@ -60,12 +59,10 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
     tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
   }
   pr  = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, "mp_ins_solver_pr");
-  rho = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, "mp_ins_solver_rho");
-  mu  = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, "mp_ins_solver_mu");
   free(dg_np_data);
 
   double *g_np_data = (double *)calloc(DG_G_NP * mesh->cells->size, sizeof(double));
-  for(int i = 0; i < 5; i++) {
+  for(int i = 0; i < 4; i++) {
     string name    = "tmp_g_np" + to_string(i);
     tmp_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, "double", g_np_data, name.c_str());
   }
@@ -82,12 +79,10 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
   gradCurlVel[0] = tmp_np[2];
   gradCurlVel[1] = tmp_np[3];
   pRHS = tmp_np[1];
-  pr_mat_fact = tmp_np[2];
   dpdx = tmp_np[1];
   dpdy = tmp_np[2];
   visRHS[0] = tmp_np[0];
   visRHS[1] = tmp_np[1];
-  vis_mat_mm_fact = tmp_np[2];
 
   gVel[0] = tmp_g_np[0];
   gVel[1] = tmp_g_np[1];
@@ -97,7 +92,6 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
   gN[1] = tmp_g_np[1];
   gGradCurl[0] = tmp_g_np[2];
   gGradCurl[1] = tmp_g_np[3];
-  gRho = tmp_g_np[4];
   prBC = tmp_g_np[0];
   visBC[0] = tmp_g_np[0];
   visBC[1] = tmp_g_np[1];
@@ -112,19 +106,16 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
   g0 = 1.0;
 }
 
-MPINSSolver2D::~MPINSSolver2D() {
+INSSolver2D::~INSSolver2D() {
   delete pressureMatrix;
   delete viscosityMatrix;
   delete pressureSolver;
   delete viscositySolver;
-  delete ls;
 }
 
-void MPINSSolver2D::init(const double re, const double refVel) {
-  timer->startTimer("MPINS - Init");
+void INSSolver2D::init(const double re, const double refVel) {
+  timer->startTimer("INS - Init");
   reynolds = re;
-
-  ls->init();
 
   // Set initial conditions
   op_par_loop(ins_set_ic, "ins_set_ic", mesh->cells,
@@ -147,12 +138,13 @@ void MPINSSolver2D::init(const double re, const double refVel) {
   dt = dt / (DG_ORDER * DG_ORDER * refVel);
   op_printf("dt: %g\n", dt);
 
-  ls->getRhoMu(rho, mu);
+  // TODO BCs properly
+  pressureMatrix->calc_mat(mesh->bedge_type);
 
-  timer->endTimer("MPINS - Init");
+  timer->endTimer("INS - Init");
 }
 
-void MPINSSolver2D::step() {
+void INSSolver2D::step() {
   timer->startTimer("Advection");
   advection();
   timer->endTimer("Advection");
@@ -169,10 +161,6 @@ void MPINSSolver2D::step() {
   viscosity();
   timer->endTimer("Viscosity");
 
-  timer->startTimer("Surface");
-  surface();
-  timer->endTimer("Surface");
-
   currentInd = (currentInd + 1) % 2;
   time += dt;
   g0 = 1.5;
@@ -183,7 +171,7 @@ void MPINSSolver2D::step() {
 }
 
 // Calculate Nonlinear Terms
-void MPINSSolver2D::advection() {
+void INSSolver2D::advection() {
   // Calculate flux values
   op_par_loop(ins_advec_flux_2d, "ins_advec_flux_2d", mesh->cells,
               op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
@@ -255,7 +243,7 @@ void MPINSSolver2D::advection() {
               op_arg_dat(velT[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 }
 
-bool MPINSSolver2D::pressure() {
+bool INSSolver2D::pressure() {
   timer->startTimer("Pressure Setup");
 
   mesh->div(velT[0], velT[1], divVelT);
@@ -266,11 +254,10 @@ bool MPINSSolver2D::pressure() {
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, n[currentInd][1], 0.0, gN[1]);
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, gradCurlVel[0], 0.0, gGradCurl[0]);
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, gradCurlVel[1], 0.0, gGradCurl[1]);
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, rho, 0.0, gRho);
 
   // Apply Neumann pressure boundary conditions
   if(mesh->bface2cells) {
-    op_par_loop(mp_ins_pressure_bc_2d, "mp_ins_pressure_bc_2d", mesh->bfaces,
+    op_par_loop(ins_pressure_bc_2d, "ins_pressure_bc_2d", mesh->bfaces,
                 op_arg_gbl(&time, 1, "double", OP_READ),
                 op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
@@ -282,7 +269,6 @@ bool MPINSSolver2D::pressure() {
                 op_arg_dat(gN[1], 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
                 op_arg_dat(gGradCurl[0], 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
                 op_arg_dat(gGradCurl[1], 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(gRho, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
                 op_arg_dat(dPdN[currentInd], 0, mesh->bface2cells, DG_G_NP, "double", OP_INC));
   }
   // Apply Dirichlet BCs
@@ -309,14 +295,7 @@ bool MPINSSolver2D::pressure() {
   // Call PETSc linear solver
   timer->startTimer("Pressure Linear Solve");
 
-  op_par_loop(mp_ins_pressure_fact_2d, "mp_ins_pressure_fact_2d", mesh->cells,
-              op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(pr_mat_fact, -1, OP_ID, DG_NP, "double", OP_WRITE));
-
   bool converged;
-  pressureMatrix->set_factor(pr_mat_fact);
-  // TODO BCs properly
-  pressureMatrix->calc_mat(mesh->bedge_type);
   pressureSolver->set_bcs(prBC);
   converged = pressureSolver->solve(pRHS, pr);
   timer->endTimer("Pressure Linear Solve");
@@ -325,9 +304,8 @@ bool MPINSSolver2D::pressure() {
   mesh->grad_with_central_flux(pr, dpdx, dpdy);
 
   // Calculate new velocity intermediate values
-  op_par_loop(mp_ins_pressure_update_2d, "mp_ins_pressure_update_2d", mesh->cells,
+  op_par_loop(ins_pressure_update_2d, "ins_pressure_update_2d", mesh->cells,
               op_arg_gbl(&dt, 1, "double", OP_READ),
-              op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(dpdx, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(dpdy, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(velT[0], -1, OP_ID, DG_NP, "double", OP_READ),
@@ -339,7 +317,7 @@ bool MPINSSolver2D::pressure() {
   return converged;
 }
 
-bool MPINSSolver2D::viscosity() {
+bool INSSolver2D::viscosity() {
   timer->startTimer("Viscosity Setup");
   double time_n1 = time + dt;
 
@@ -371,9 +349,8 @@ bool MPINSSolver2D::viscosity() {
    mesh->mass(visRHS[1]);
 
   double factor = reynolds / dt;
-  op_par_loop(mp_ins_vis_rhs_2d, "mp_ins_vis_rhs_2d", mesh->cells,
+  op_par_loop(ins_vis_rhs_2d, "ins_vis_rhs_2d", mesh->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
-              op_arg_dat(rho,       -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, "double", OP_RW),
               op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, "double", OP_RW));
 
@@ -382,15 +359,11 @@ bool MPINSSolver2D::viscosity() {
   // Call PETSc linear solver
   timer->startTimer("Viscosity Linear Solve");
   factor = g0 * reynolds / dt;
-  op_par_loop(mp_ins_vis_mm_fact_2d, "mp_ins_vis_mm_fact_2d", mesh->cells,
-              op_arg_gbl(&factor, 1, "double", OP_READ),
-              op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(vis_mat_mm_fact, -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-  viscosityMatrix->set_factor(mu);
-  viscosityMatrix->set_mm_factor(vis_mat_mm_fact);
-  // TODO BCs properly
-  viscosityMatrix->calc_mat(mesh->bedge_type);
+  if(factor != viscosityMatrix->get_factor()) {
+    viscosityMatrix->set_factor(factor);
+    // TODO BCs properly
+    viscosityMatrix->calc_mat(mesh->bedge_type);
+  }
   viscositySolver->set_bcs(visBC[0]);
   bool convergedX = viscositySolver->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);
 
@@ -406,21 +379,7 @@ bool MPINSSolver2D::viscosity() {
   return convergedX && convergedY;
 }
 
-void MPINSSolver2D::surface() {
-  ls->setVelField(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1]);
-  ls->step(dt);
-  ls->getRhoMu(rho, mu);
-}
-
-// double MPINSSolver2D::getAvgPressureConvergance() {
-//   return pressurePoisson->getAverageConvergeIter();
-// }
-
-// double MPINSSolver2D::getAvgViscosityConvergance() {
-//   return viscosityPoisson->getAverageConvergeIter();
-// }
-
-void MPINSSolver2D::dump_data(const std::string &filename) {
+void INSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(mesh->x, filename.c_str());
   op_fetch_data_hdf5_file(mesh->y, filename.c_str());
   op_fetch_data_hdf5_file(vel[0][0], filename.c_str());
@@ -432,8 +391,5 @@ void MPINSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(velTT[0], filename.c_str());
   op_fetch_data_hdf5_file(velTT[1], filename.c_str());
   op_fetch_data_hdf5_file(pr, filename.c_str());
-  op_fetch_data_hdf5_file(rho, filename.c_str());
-  op_fetch_data_hdf5_file(mu, filename.c_str());
-  op_fetch_data_hdf5_file(ls->s, filename.c_str());
   op_fetch_data_hdf5_file(mesh->order, filename.c_str());
 }

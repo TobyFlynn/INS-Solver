@@ -1,5 +1,5 @@
-#ifndef __INS_SOLVER_H
-#define __INS_SOLVER_H
+#ifndef __MP_INS_SOLVER_H
+#define __MP_INS_SOLVER_H
 
 #include <string>
 
