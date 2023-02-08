@@ -146,7 +146,7 @@ void PMultigridPoissonSolver::setupDirectSolve() {
   // TODO potential issue with BCs
   coarseSolver->set_bcs(bc);
   coarseSolver->set_nullspace(nullspace);
-  // TODO set tolerance
+  coarseSolver->set_tol(1e-2);
 }
 
 double PMultigridPoissonSolver::maxEigenValue() {

@@ -6,13 +6,13 @@ rm -rf build
 rm -rf gen
 
 mkdir -p gen/kernels
-mkdir -p gen/poisson/p_multigrid
 mkdir -p gen/solvers/ls_utils
 mkdir -p gen/matrices/poisson
 mkdir -p gen/linear_solvers/petsc_amg
 mkdir -p gen/linear_solvers/petsc_utils
 mkdir -p gen/linear_solvers/petsc_block_jacobi
 mkdir -p gen/linear_solvers/pmultigrid
+mkdir -p gen/linear_solvers/petsc_pmultigrid
 
 python3 preprocessor.py 3
 

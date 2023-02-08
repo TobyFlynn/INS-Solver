@@ -11,7 +11,7 @@
 #include "timing.h"
 #include "linear_solvers/petsc_amg.h"
 #include "linear_solvers/petsc_block_jacobi.h"
-#include "linear_solvers/pmultigrid.h"
+#include "linear_solvers/petsc_pmultigrid.h"
 
 extern Timing *timer;
 
@@ -28,7 +28,7 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
   pressureMatrix = new PoissonMatrix2D(mesh);
   viscosityMatrix = new MMPoissonMatrix2D(mesh);
   // pressureSolver = new PETScAMGSolver(mesh);
-  pressureSolver = new PMultigridPoissonSolver(mesh);
+  pressureSolver = new PETScPMultigrid(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(true);

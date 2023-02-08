@@ -76,3 +76,7 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
 
   return converged;
 }
+
+void PETScAMGSolver::set_tol(const double tol) {
+  KSPSetTolerances(ksp, tol, 1e-50, 1e5, 2.5e2);
+}
