@@ -12,6 +12,7 @@ extern DGConstants *constants;
 
 PoissonMatrix2D::PoissonMatrix2D(DGMesh2D *m) {
   mesh = m;
+  petscMatInit = false;
 
   double *tmp_np_np_c = (double *)calloc(DG_NP * DG_NP * mesh->cells->size, sizeof(double));
   double *tmp_np_np_e = (double *)calloc(DG_NP * DG_NP * mesh->faces->size, sizeof(double));
@@ -45,6 +46,23 @@ PoissonMatrix2D::PoissonMatrix2D(DGMesh2D *m) {
   free(tmp_np_np_c);
 }
 
+PoissonMatrix2D::~PoissonMatrix2D() {
+  if(petscMatInit)
+    MatDestroy(&pMat);
+}
+
+bool PoissonMatrix2D::getPETScMat(Mat** mat) {
+  bool reset = false;
+  if(petscMatResetRequired) {
+    setPETScMatrix();
+    petscMatResetRequired = false;
+    *mat = &pMat;
+    reset = true;
+  }
+
+  return reset;
+}
+
 void PoissonMatrix2D::calc_mat(op_dat bc_types) {
   timer->startTimer("PoissonMat - calc mat");
   op_par_loop(poisson_h, "poisson_h", mesh->cells,
@@ -56,6 +74,7 @@ void PoissonMatrix2D::calc_mat(op_dat bc_types) {
   calc_op1();
   calc_op2();
   calc_opbc(bc_types);
+  petscMatResetRequired = true;
   timer->endTimer("PoissonMat - calc mat");
 }
 
@@ -83,12 +102,14 @@ void PoissonMatrix2D::calc_glb_ind() {
 }
 
 void PoissonMatrix2D::apply_bc(op_dat rhs, op_dat bc) {
-  op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bfaces,
-              op_arg_dat(mesh->order,     0, mesh->bface2cells, 1, "int", OP_READ),
-              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(opbc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(bc,    0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(rhs,   0, mesh->bface2cells, DG_NP, "double", OP_INC));
+  if(mesh->bface2cells) {
+    op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bfaces,
+                op_arg_dat(mesh->order,     0, mesh->bface2cells, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(opbc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
+                op_arg_dat(bc,    0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(rhs,   0, mesh->bface2cells, DG_NP, "double", OP_INC));
+  }
 }
 
 void PoissonMatrix2D::mult(op_dat in, op_dat out) {

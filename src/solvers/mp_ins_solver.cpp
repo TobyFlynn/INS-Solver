@@ -9,6 +9,8 @@
 #include "dg_op2_blas.h"
 
 #include "timing.h"
+#include "linear_solvers/petsc_amg.h"
+#include "linear_solvers/petsc_block_jacobi.h"
 
 extern Timing *timer;
 
@@ -23,8 +25,14 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
 
   mesh = m;
   ls = new LevelSetSolver2D(mesh);
-  pressurePoisson = new PetscPressureSolve(mesh);
-  viscosityPoisson = new PetscViscositySolve(mesh);
+  pressureMatrix = new FactorPoissonMatrix2D(mesh);
+  viscosityMatrix = new FactorMMPoissonMatrix2D(mesh);
+  pressureSolver = new PETScAMGSolver();
+  viscositySolver = new PETScBlockJacobiSolver(mesh);
+  pressureSolver->set_matrix(pressureMatrix);
+  pressureSolver->set_nullspace(true);
+  viscositySolver->set_matrix(viscosityMatrix);
+  viscositySolver->set_nullspace(false);
 
   // pressurePoisson->setDirichletBCs(pressure_dirichlet);
   // pressurePoisson->setNeumannBCs(pressure_neumann);
@@ -74,10 +82,12 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
   gradCurlVel[0] = tmp_np[2];
   gradCurlVel[1] = tmp_np[3];
   pRHS = tmp_np[1];
+  pr_mat_fact = tmp_np[2];
   dpdx = tmp_np[1];
   dpdy = tmp_np[2];
   visRHS[0] = tmp_np[0];
   visRHS[1] = tmp_np[1];
+  vis_mat_mm_fact = tmp_np[2];
 
   gVel[0] = tmp_g_np[0];
   gVel[1] = tmp_g_np[1];
@@ -103,8 +113,10 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
 }
 
 MPINSSolver2D::~MPINSSolver2D() {
-  delete viscosityPoisson;
-  delete pressurePoisson;
+  delete pressureMatrix;
+  delete viscosityMatrix;
+  delete pressureSolver;
+  delete viscositySolver;
   delete ls;
 }
 
@@ -113,8 +125,8 @@ void MPINSSolver2D::init(const double re, const double refVel) {
   reynolds = re;
 
   ls->init();
-  pressurePoisson->init();
-  viscosityPoisson->init();
+  // pressurePoisson->init();
+  // viscosityPoisson->init();
 
   // Set initial conditions
   op_par_loop(ins_set_ic, "ins_set_ic", mesh->cells,
@@ -298,10 +310,17 @@ bool MPINSSolver2D::pressure() {
 
   // Call PETSc linear solver
   timer->startTimer("Pressure Linear Solve");
+
+  op_par_loop(ins_pressure_fact_2d, "ins_pressure_fact_2d", mesh->cells,
+              op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(pr_mat_fact, -1, OP_ID, DG_NP, "double", OP_WRITE));
+
   bool converged;
-  pressurePoisson->setup(rho);
-  pressurePoisson->setBCValues(prBC);
-  converged = pressurePoisson->solve(pRHS, pr);
+  pressureMatrix->set_factor(pr_mat_fact);
+  // TODO BCs properly
+  pressureMatrix->calc_mat(mesh->bedge_type);
+  pressureSolver->set_bcs(prBC);
+  converged = pressureSolver->solve(pRHS, pr);
   timer->endTimer("Pressure Linear Solve");
 
   // Calculate gradient of pressure
@@ -365,12 +384,20 @@ bool MPINSSolver2D::viscosity() {
   // Call PETSc linear solver
   timer->startTimer("Viscosity Linear Solve");
   factor = g0 * reynolds / dt;
-  viscosityPoisson->setup(factor, rho, mu);
-  viscosityPoisson->setBCValues(visBC[0]);
-  bool convergedX = viscosityPoisson->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);
+  op_par_loop(ins_vis_mm_fact_2d, "ins_vis_mm_fact_2d", mesh->cells,
+              op_arg_gbl(&factor, 1, "double", OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(vis_mat_mm_fact, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  viscosityPoisson->setBCValues(visBC[1]);
-  bool convergedY = viscosityPoisson->solve(visRHS[1], vel[(currentInd + 1) % 2][1]);
+  viscosityMatrix->set_factor(mu);
+  viscosityMatrix->set_mm_factor(vis_mat_mm_fact);
+  // TODO BCs properly
+  viscosityMatrix->calc_mat(mesh->bedge_type);
+  viscositySolver->set_bcs(visBC[0]);
+  bool convergedX = viscositySolver->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);
+
+  viscositySolver->set_bcs(visBC[1]);
+  bool convergedY = viscositySolver->solve(visRHS[1], vel[(currentInd + 1) % 2][1]);
   timer->endTimer("Viscosity Linear Solve");
 
   // timer->startTimer("Filtering");
@@ -387,13 +414,13 @@ void MPINSSolver2D::surface() {
   ls->getRhoMu(rho, mu);
 }
 
-double MPINSSolver2D::getAvgPressureConvergance() {
-  return pressurePoisson->getAverageConvergeIter();
-}
+// double MPINSSolver2D::getAvgPressureConvergance() {
+//   return pressurePoisson->getAverageConvergeIter();
+// }
 
-double MPINSSolver2D::getAvgViscosityConvergance() {
-  return viscosityPoisson->getAverageConvergeIter();
-}
+// double MPINSSolver2D::getAvgViscosityConvergance() {
+//   return viscosityPoisson->getAverageConvergeIter();
+// }
 
 void MPINSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(mesh->x, filename.c_str());
