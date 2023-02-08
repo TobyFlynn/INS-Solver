@@ -173,3 +173,23 @@ void PETScUtils::create_vec_p_adapt(Vec *v, int local_unknowns) {
   VecSetType(*v, VECCUDA);
   VecSetSizes(*v, local_unknowns, PETSC_DECIDE);
 }
+
+// Load a PETSc vector with values from an OP2 dat for CPUs
+void PETScUtils::load_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh2D *mesh) {
+  double *v_ptr;
+  VecCUDAGetArray(*v, &v_ptr);
+
+  copy_dat_to_vec_p_adapt(v_dat, v_ptr, mesh);
+
+  VecCUDARestoreArray(*v, &v_ptr);
+}
+
+// Load an OP2 dat with the values from a PETSc vector for CPUs
+void PETScUtils::store_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh2D *mesh) {
+  const double *v_ptr;
+  VecCUDAGetArrayRead(*v, &v_ptr);
+
+  copy_vec_to_dat_p_adapt(v_dat, v_ptr, mesh);
+
+  VecCUDARestoreArrayRead(*v, &v_ptr);
+}

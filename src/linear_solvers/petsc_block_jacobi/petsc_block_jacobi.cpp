@@ -31,8 +31,6 @@ PETScBlockJacobiSolver::PETScBlockJacobiSolver(DGMesh2D *m) {
   KSPGetPC(ksp, &pc);
   PCSetType(pc, PCSHELL);
   set_shell_pc(pc);
-  create_shell_mat();
-  KSPSetOperators(ksp, pMat, pMat);
 }
 
 PETScBlockJacobiSolver::~PETScBlockJacobiSolver() {
@@ -43,6 +41,8 @@ PETScBlockJacobiSolver::~PETScBlockJacobiSolver() {
 bool PETScBlockJacobiSolver::solve(op_dat rhs, op_dat ans) {
   // TODO only call when necessary
   calc_precond_mat();
+  create_shell_mat();
+  KSPSetOperators(ksp, pMat, pMat);
   if(nullspace) {
     MatNullSpace ns;
     MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_TRUE, 0, 0, &ns);
@@ -54,11 +54,11 @@ bool PETScBlockJacobiSolver::solve(op_dat rhs, op_dat ans) {
   matrix->apply_bc(rhs, bc);
 
   Vec b, x;
-  PETScUtils::create_vec(&b, rhs->set);
-  PETScUtils::create_vec(&x, ans->set);
+  PETScUtils::create_vec_p_adapt(&b, matrix->unknowns);
+  PETScUtils::create_vec_p_adapt(&x, matrix->unknowns);
 
-  PETScUtils::load_vec(&b, rhs);
-  PETScUtils::load_vec(&x, ans);
+  PETScUtils::load_vec_p_adapt(&b, rhs, mesh);
+  PETScUtils::load_vec_p_adapt(&x, ans, mesh);
 
   KSPSolve(ksp, b, x);
 
@@ -78,7 +78,7 @@ bool PETScBlockJacobiSolver::solve(op_dat rhs, op_dat ans) {
 
   Vec solution;
   KSPGetSolution(ksp, &solution);
-  PETScUtils::store_vec(&solution, ans);
+  PETScUtils::store_vec_p_adapt(&solution, ans, mesh);
 
   PETScUtils::destroy_vec(&b);
   PETScUtils::destroy_vec(&x);
@@ -88,16 +88,16 @@ bool PETScBlockJacobiSolver::solve(op_dat rhs, op_dat ans) {
 
 void PETScBlockJacobiSolver::calc_rhs(const double *in_d, double *out_d) {
   // Copy u to OP2 dat
-  PETScUtils::copy_vec_to_dat(in, in_d);
+  PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
   matrix->mult(in, out);
 
-  PETScUtils::copy_dat_to_vec(out, out_d);
+  PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
 }
 
 // Matrix-free block-jacobi preconditioning function
 void PETScBlockJacobiSolver::precond(const double *in_d, double *out_d) {
-  PETScUtils::copy_vec_to_dat(in, in_d);
+  PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
   op_par_loop(poisson_pre, "poisson_pre", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
@@ -105,7 +105,7 @@ void PETScBlockJacobiSolver::precond(const double *in_d, double *out_d) {
               op_arg_dat(pre, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
               op_arg_dat(out, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  PETScUtils::copy_dat_to_vec(out, out_d);
+  PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
 }
 
 void PETScBlockJacobiSolver::calc_precond_mat() {

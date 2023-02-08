@@ -26,7 +26,7 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
   mesh = m;
   pressureMatrix = new PoissonMatrix2D(mesh);
   viscosityMatrix = new MMPoissonMatrix2D(mesh);
-  pressureSolver = new PETScAMGSolver();
+  pressureSolver = new PETScAMGSolver(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(true);

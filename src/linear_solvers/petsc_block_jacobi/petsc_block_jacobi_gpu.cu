@@ -23,7 +23,7 @@ void PETScBlockJacobiSolver::create_shell_mat() {
   if(pMatInit)
     MatDestroy(&pMat);
 
-  MatCreateShell(PETSC_COMM_WORLD, DG_NP * mesh->cells->size, DG_NP * mesh->cells->size, PETSC_DETERMINE, PETSC_DETERMINE, this, &pMat);
+  MatCreateShell(PETSC_COMM_WORLD, matrix->unknowns, matrix->unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, &pMat);
   MatShellSetOperation(pMat, MATOP_MULT, (void(*)(void))matAMult);
   MatShellSetVecType(pMat, VECCUDA);
 

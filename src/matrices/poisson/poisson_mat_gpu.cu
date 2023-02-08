@@ -12,9 +12,6 @@ extern Timing *timer;
 
 void PoissonMatrix2D::set_glb_ind() {
   timer->startTimer("PoissonMat - glb_ind");
-  int global_ind = 0;
-  #ifdef INS_MPI
-  timer->startTimer("PoissonMat - unknowns");
   op_arg op2_args[] = {
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
@@ -30,6 +27,8 @@ void PoissonMatrix2D::set_glb_ind() {
   }
   free(tempOrder_);
   op_mpi_set_dirtybit_cuda(1, op2_args);
+  int global_ind = 0;
+  #ifdef INS_MPI
   global_ind = get_global_mat_start_ind(unknowns);
   #endif
   op_arg args[] = {
@@ -61,19 +60,17 @@ void PoissonMatrix2D::set_glb_ind() {
 }
 
 void PoissonMatrix2D::setPETScMatrix() {
-  // TODO update for p-adpativity/p-multigrid
-  const int dg_np = DG_CONSTANTS[(DG_ORDER - 1) * 5];
   if(!petscMatInit) {
     MatCreate(PETSC_COMM_WORLD, &pMat);
     petscMatInit = true;
-    MatSetSizes(pMat, mesh->cells->size * dg_np, mesh->cells->size * dg_np, PETSC_DECIDE, PETSC_DECIDE);
+    MatSetSizes(pMat, unknowns, unknowns, PETSC_DECIDE, PETSC_DECIDE);
 
     #ifdef INS_MPI
     MatSetType(pMat, MATMPIAIJCUSPARSE);
-    MatMPIAIJSetPreallocation(pMat, dg_np * 4, NULL, 0, NULL);
+    MatMPIAIJSetPreallocation(pMat, DG_NP * 4, NULL, 0, NULL);
     #else
     MatSetType(pMat, MATSEQAIJCUSPARSE);
-    MatSeqAIJSetPreallocation(pMat, dg_np * 4, NULL);
+    MatSeqAIJSetPreallocation(pMat, DG_NP * 4, NULL);
     #endif
     MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
   }

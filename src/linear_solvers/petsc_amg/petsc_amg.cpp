@@ -4,7 +4,8 @@
 
 #include <iostream>
 
-PETScAMGSolver::PETScAMGSolver() {
+PETScAMGSolver::PETScAMGSolver(DGMesh2D *m) {
+  mesh = m;
   nullspace = false;
   pMatInit = false;
 
@@ -43,11 +44,11 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
   matrix->apply_bc(rhs, bc);
 
   Vec b, x;
-  PETScUtils::create_vec(&b, rhs->set);
-  PETScUtils::create_vec(&x, ans->set);
+  PETScUtils::create_vec_p_adapt(&b, matrix->unknowns);
+  PETScUtils::create_vec_p_adapt(&x, matrix->unknowns);
 
-  PETScUtils::load_vec(&b, rhs);
-  PETScUtils::load_vec(&x, ans);
+  PETScUtils::load_vec_p_adapt(&b, rhs, mesh);
+  PETScUtils::load_vec_p_adapt(&x, ans, mesh);
 
   KSPSolve(ksp, b, x);
 
@@ -67,7 +68,7 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
 
   Vec solution;
   KSPGetSolution(ksp, &solution);
-  PETScUtils::store_vec(&solution, ans);
+  PETScUtils::store_vec_p_adapt(&solution, ans, mesh);
 
   PETScUtils::destroy_vec(&b);
   PETScUtils::destroy_vec(&x);

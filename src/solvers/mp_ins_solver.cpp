@@ -27,7 +27,7 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
   ls = new LevelSetSolver2D(mesh);
   pressureMatrix = new FactorPoissonMatrix2D(mesh);
   viscosityMatrix = new FactorMMPoissonMatrix2D(mesh);
-  pressureSolver = new PETScAMGSolver();
+  pressureSolver = new PETScAMGSolver(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(true);

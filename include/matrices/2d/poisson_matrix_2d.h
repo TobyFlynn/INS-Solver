@@ -21,8 +21,6 @@ public:
   op_dat glb_indBC;
   op_dat orderL, orderR, orderBC;
 
-  int unknowns;
-
 protected:
   virtual void calc_op1() override;
   virtual void calc_op2() override;
