@@ -77,4 +77,7 @@ endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_subdirectory(gen)
+set(DIM 2)
+add_subdirectory(gen2d)
+set(DIM 3)
+add_subdirectory(gen3d)

@@ -1,51 +1,51 @@
 import os
 import sys
 
+dim = sys.argv[1]
+order = sys.argv[2]
+
 dg_np        = ""
 dg_npf       = ""
 dg_cub_np    = ""
 dg_g_np      = ""
 dg_gf_np     = ""
-dg_sub_cells = ""
 ls_sample_np = ""
+dg_num_faces = ""
 dg_order     = sys.argv[1]
 
 # Get DG order from command line args
-if sys.argv[1] == "1":
-    dg_np        = "3"
-    dg_npf       = "2"
-    dg_cub_np    = "12"
-    dg_g_np      = "9"
-    dg_gf_np     = "3"
-    dg_sub_cells = "1"
+if dim == "2":
+    dg_order  = order
+    order_int = int(order)
+    dg_np     = str(int((order_int + 1) * (order_int + 2) / 2))
+    dg_npf    = str(order_int + 1)
     ls_sample_np = "10"
-elif sys.argv[1] == "2":
-    dg_np        = "6"
-    dg_npf       = "3"
-    dg_cub_np    = "16"
-    dg_g_np      = "12"
-    dg_gf_np     = "4"
-    dg_sub_cells = "4"
-    ls_sample_np = "10"
-elif sys.argv[1] == "3":
-    dg_np        = "10"
-    dg_npf       = "4"
-    dg_cub_np    = "36"
-    dg_g_np      = "18"
-    dg_gf_np     = "6"
-    dg_sub_cells = "9"
-    ls_sample_np = "10"
-elif sys.argv[1] == "4":
-    dg_np        = "15"
-    dg_npf       = "5"
-    dg_cub_np    = "46"
-    dg_g_np      = "21"
-    dg_gf_np     = "7"
-    dg_sub_cells = "16"
-    ls_sample_np = "10"
-else:
-    print("This order of DG is not yet supported...exiting")
-    sys.exit()
+    dg_num_faces = "3"
+    if order == "1":
+        dg_cub_np    = "12"
+        dg_g_np      = "9"
+        dg_gf_np     = "3"
+    elif order == "2":
+        dg_cub_np    = "16"
+        dg_g_np      = "12"
+        dg_gf_np     = "4"
+    elif order == "3":
+        dg_cub_np    = "36"
+        dg_g_np      = "18"
+        dg_gf_np     = "6"
+    elif order == "4":
+        dg_cub_np    = "46"
+        dg_g_np      = "21"
+        dg_gf_np     = "7"
+    else:
+        print("This order of DG is not supported yet...exiting")
+        sys.exit()
+elif dim == "3":
+    dg_order  = order
+    order_int = int(order)
+    dg_np     = str(int((order_int + 1) * (order_int + 2) * (order_int + 3) / 6))
+    dg_npf    = str(int((order_int + 1) * (order_int + 2) / 2))
+    dg_num_faces = "4"
 
 inputfiles = []
 
@@ -69,9 +69,13 @@ for f in inputfiles:
         newdata = newdata.replace("DG_CUB_NP", dg_cub_np)
         newdata = newdata.replace("DG_G_NP", dg_g_np)
         newdata = newdata.replace("DG_GF_NP", dg_gf_np)
-        newdata = newdata.replace("DG_SUB_CELLS", dg_sub_cells)
         newdata = newdata.replace("LS_SAMPLE_NP", ls_sample_np)
+        newdata = newdata.replace("DG_NUM_FACES", dg_num_faces)
         newdata = newdata.replace("DG_ORDER", dg_order)
 
-    with open("gen/" + f, "w") as file:
-        file.write(newdata)
+    if dim == "2":
+        with open("gen2d/" + f, "w") as file:
+            file.write(newdata)
+    elif dim == "3":
+        with open("gen3d/" + f, "w") as file:
+            file.write(newdata)

@@ -1,5 +1,5 @@
-#ifndef __INS_ADVECTION_SOLVER_H
-#define __INS_ADVECTION_SOLVER_H
+#ifndef __INS_ADVECTION_SOLVER_2D_H
+#define __INS_ADVECTION_SOLVER_2D_H
 
 #include "dg_mesh/dg_mesh_2d.h"
 #include "op_seq.h"

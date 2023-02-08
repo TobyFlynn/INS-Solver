@@ -3,20 +3,46 @@
 set -e
 
 rm -rf build
-rm -rf gen
+rm -rf gen2d
+rm -rf gen3d
 
-mkdir -p gen/kernels
-mkdir -p gen/solvers/ls_utils
-mkdir -p gen/matrices/poisson
-mkdir -p gen/linear_solvers/petsc_amg
-mkdir -p gen/linear_solvers/petsc_utils
-mkdir -p gen/linear_solvers/petsc_block_jacobi
-mkdir -p gen/linear_solvers/pmultigrid
-mkdir -p gen/linear_solvers/petsc_pmultigrid
+mkdir gen2d
+cd gen2d
 
-python3 preprocessor.py 3
+mkdir -p kernels
+mkdir -p solvers/ls_utils
+mkdir -p solvers/2d
+mkdir -p solvers/3d
+mkdir -p matrices/poisson
+mkdir -p linear_solvers/petsc_amg
+mkdir -p linear_solvers/petsc_utils
+mkdir -p linear_solvers/petsc_block_jacobi
+mkdir -p linear_solvers/pmultigrid
+mkdir -p linear_solvers/petsc_pmultigrid
 
-cd gen
+cd ..
+
+mkdir gen3d
+cd gen3d
+
+mkdir -p kernels
+mkdir -p solvers/ls_utils
+mkdir -p solvers/2d
+mkdir -p solvers/3d
+mkdir -p matrices/poisson
+mkdir -p linear_solvers/petsc_amg
+mkdir -p linear_solvers/petsc_utils
+mkdir -p linear_solvers/petsc_block_jacobi
+mkdir -p linear_solvers/pmultigrid
+mkdir -p linear_solvers/petsc_pmultigrid
+
+cd ..
+
+python3 preprocessor.py 2 3
+
+python3 preprocessor.py 3 3
+
+cd gen2d
 
 # python3 $OP2_TRANSLATOR ins.cpp \
 #         ins_data.cpp solver.cpp poisson/petsc/poisson.cpp \
@@ -27,8 +53,8 @@ cd gen
 
 # sed -i '10i extern double reynolds;' openmp/ins_kernels.cpp
 
-python3 $OP2_TRANSLATOR ins.cpp \
-        solvers/advection_solver.cpp \
+python3 $OP2_TRANSLATOR ins2d.cpp \
+        solvers/2d/advection_solver.cpp \
         solvers/ls_solver.cpp \
         matrices/poisson/poisson_mat.cpp \
         solvers/mp_ins_solver.cpp \
@@ -38,6 +64,14 @@ python3 $OP2_TRANSLATOR ins.cpp \
         matrices/poisson/factor_mm_poisson_mat.cpp \
         linear_solvers/petsc_block_jacobi/petsc_block_jacobi.cpp \
         linear_solvers/pmultigrid/pmultigrid.cpp \
+        kernels/
+
+cd ..
+
+cd gen3d
+
+python3 $OP2_TRANSLATOR ins3d.cpp \
+        solvers/3d/advection_solver.cpp \
         kernels/
 
 cd ..
