@@ -40,6 +40,7 @@ private:
   op_dat dpdx, dpdy, visRHS[2];
   op_dat tmp_g_np[4], gVel[2], gAdvecFlux[2], gN[2], gGradCurl[2], prBC;
   op_dat visBC[2];
+  op_dat bc_types, pr_bc_types, vis_bc_types;
 };
 
 #endif

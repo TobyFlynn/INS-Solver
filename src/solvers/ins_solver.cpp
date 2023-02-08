@@ -41,24 +41,24 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
   std::string name;
   double *dg_np_data = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
   for(int i = 0; i < 2; i++) {
-    name = "mp_ins_solver_vel0" + std::to_string(i);
+    name = "ins_solver_vel0" + std::to_string(i);
     vel[0][i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
-    name = "mp_ins_solver_vel1" + std::to_string(i);
+    name = "ins_solver_vel1" + std::to_string(i);
     vel[1][i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
-    name = "mp_ins_solver_n0" + std::to_string(i);
+    name = "ins_solver_n0" + std::to_string(i);
     n[0][i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
-    name = "mp_ins_solver_n1" + std::to_string(i);
+    name = "ins_solver_n1" + std::to_string(i);
     n[1][i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
-    name = "mp_ins_solver_velT" + std::to_string(i);
+    name = "ins_solver_velT" + std::to_string(i);
     velT[i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
-    name = "mp_ins_solver_velTT" + std::to_string(i);
+    name = "ins_solver_velTT" + std::to_string(i);
     velTT[i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
   }
   for(int i = 0; i < 4; i++) {
-    name = "mp_ins_solver_tmp_np" + std::to_string(i);
+    name = "ins_solver_tmp_np" + std::to_string(i);
     tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
   }
-  pr  = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, "mp_ins_solver_pr");
+  pr  = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, "ins_solver_pr");
   free(dg_np_data);
 
   double *g_np_data = (double *)calloc(DG_G_NP * mesh->cells->size, sizeof(double));
@@ -66,9 +66,15 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
     string name    = "tmp_g_np" + to_string(i);
     tmp_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, "double", g_np_data, name.c_str());
   }
-  dPdN[0] = op_decl_dat(mesh->cells, DG_G_NP, "double", g_np_data, "mp_ins_solver_dPdN0");
-  dPdN[1] = op_decl_dat(mesh->cells, DG_G_NP, "double", g_np_data, "mp_ins_solver_dPdN1");
+  dPdN[0] = op_decl_dat(mesh->cells, DG_G_NP, "double", g_np_data, "ins_solver_dPdN0");
+  dPdN[1] = op_decl_dat(mesh->cells, DG_G_NP, "double", g_np_data, "ins_solver_dPdN1");
   free(g_np_data);
+
+  int *bc_1_data = (int *)calloc(mesh->bfaces->size, sizeof(int));
+  bc_types     = op_decl_dat(mesh->bfaces, 1, "int", bc_1_data, "ins_solver_bc_types");
+  pr_bc_types  = op_decl_dat(mesh->bfaces, 1, "int", bc_1_data, "ins_solver_pr_bc_types");
+  vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", bc_1_data, "ins_solver_vis_bc_types");
+  free(bc_1_data);
 
   f[0] = tmp_np[0];
   f[1] = tmp_np[1];
@@ -138,8 +144,15 @@ void INSSolver2D::init(const double re, const double refVel) {
   dt = dt / (DG_ORDER * DG_ORDER * refVel);
   op_printf("dt: %g\n", dt);
 
-  // TODO BCs properly
-  pressureMatrix->calc_mat(mesh->bedge_type);
+  if(mesh->bface2nodes) {
+    op_par_loop(ins_bc_types, "ins_bc_types", mesh->bfaces,
+                op_arg_dat(mesh->node_coords, -3, mesh->bface2nodes, 3, "double", OP_READ),
+                op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_WRITE),
+                op_arg_dat(pr_bc_types,  -1, OP_ID, 1, "int", OP_WRITE),
+                op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
+  }
+
+  pressureMatrix->calc_mat(pr_bc_types);
 
   timer->endTimer("INS - Init");
 }
@@ -208,9 +221,9 @@ void INSSolver2D::advection() {
   if(mesh->bface2cells) {
     op_par_loop(ins_advec_bc_2d, "ins_advec_bc_2d", mesh->bfaces,
                 op_arg_gbl(&time, 1, "double", OP_READ),
-                op_arg_dat(mesh->order,       0, mesh->bface2cells, 1, "int", OP_READ),
-                op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->order,     0, mesh->bface2cells, 1, "int", OP_READ),
+                op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
                 op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
                 op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
@@ -259,8 +272,8 @@ bool INSSolver2D::pressure() {
   if(mesh->bface2cells) {
     op_par_loop(ins_pressure_bc_2d, "ins_pressure_bc_2d", mesh->bfaces,
                 op_arg_gbl(&time, 1, "double", OP_READ),
-                op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
                 op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
                 op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
@@ -329,10 +342,10 @@ bool INSSolver2D::viscosity() {
   if(mesh->bface2cells) {
     op_par_loop(ins_vis_bc_2d, "ins_vis_bc_2d", mesh->bfaces,
                 op_arg_gbl(&time_n1, 1, "double", OP_READ),
-                op_arg_dat(mesh->bedge_type, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bedgeNum,   -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->gauss->x, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->y, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
+                op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
                 op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
                 op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
                 op_arg_dat(visBC[0], 0, mesh->bface2cells, DG_G_NP, "double", OP_INC),
@@ -361,8 +374,7 @@ bool INSSolver2D::viscosity() {
   factor = g0 * reynolds / dt;
   if(factor != viscosityMatrix->get_factor()) {
     viscosityMatrix->set_factor(factor);
-    // TODO BCs properly
-    viscosityMatrix->calc_mat(mesh->bedge_type);
+    viscosityMatrix->calc_mat(vis_bc_types);
   }
   viscositySolver->set_bcs(visBC[0]);
   bool convergedX = viscositySolver->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);
