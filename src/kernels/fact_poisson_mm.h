@@ -1,7 +1,7 @@
 inline void fact_poisson_mm(const int *p, const double *mm, const double *factor,
                       double *op1) {
   // Get constants for this element's order
-  const int dg_np = DG_CONSTANTS[(*p - 1) * 5];
+  const int dg_np = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
 
   for(int m = 0; m < dg_np; m++) {
     for(int n = 0; n < dg_np; n++) {

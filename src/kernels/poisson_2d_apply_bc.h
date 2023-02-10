@@ -1,6 +1,6 @@
 inline void poisson_2d_apply_bc(const int *p, const int *bedgeNum,
                                 const double *op, const double *bc, double *rhs) {
-  const int dg_np  = DG_CONSTANTS[(*p - 1) * 5];
+  const int dg_np  = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
 
   int exInd = *bedgeNum * DG_GF_NP;
 

@@ -18,9 +18,9 @@ inline void poisson_gauss_bop(const int *p, const double *gF0Dr,
   }
 
   // Get constants
-  const int dg_np      = DG_CONSTANTS[(*p - 1) * 5];
-  const int dg_npf     = DG_CONSTANTS[(*p - 1) * 5 + 1];
-  const int dg_gf_np   = DG_CONSTANTS[(*p - 1) * 5 + 4];
+  const int dg_np      = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
+  const int dg_npf     = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS + 1];
+  const int dg_gf_np   = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS + 4];
   const double *gaussW = &gaussW_g[(*p - 1) * DG_GF_NP];
 
   // Dirichlet

@@ -20,8 +20,8 @@ inline void poisson_matrix_3d_op2(const int **order, const double *dr,
   const double *mmF1_mat = &mmF1[(p - 1) * DG_NP * DG_NP];
   const double *mmF2_mat = &mmF2[(p - 1) * DG_NP * DG_NP];
   const double *mmF3_mat = &mmF3[(p - 1) * DG_NP * DG_NP];
-  const int dg_np  = DG_CONSTANTS[(p - 1) * 2];
-  const int dg_npf = DG_CONSTANTS[(p - 1) * 2 + 1];
+  const int dg_np  = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS];
+  const int dg_npf = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS + 1];
 
   const double *mmFL, *mmFR;
   if(faceNum[0] == 0)

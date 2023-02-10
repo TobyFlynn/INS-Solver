@@ -2,6 +2,14 @@
 
 #include "dg_utils.h"
 
+void get_num_nodes_petsc_utils(const int N, int *Np, int *Nfp) {
+  #if DG_DIM == 2
+  DGUtils::numNodes2D(N, Np, Nfp);
+  #elif DG_DIM == 3
+  DGUtils::numNodes3D(N, Np, Nfp);
+  #endif
+}
+
 // Copy PETSc vec array to OP2 dat
 void PETScUtils::copy_vec_to_dat(op_dat dat, const double *dat_d) {
   op_arg copy_args[] = {
@@ -96,7 +104,7 @@ void PETScUtils::copy_vec_to_dat_p_adapt(op_dat dat, const double *dat_d, DGMesh
 
     double *v_c = (double *)dat->data + i * dat->dim;
     int Np, Nfp;
-    DGUtils::numNodes2D(N, &Np, &Nfp);
+    get_num_nodes_petsc_utils(N, &Np, &Nfp);
 
     memcpy(v_c, dat_d + vec_ind, Np * sizeof(double));
     vec_ind += Np;
@@ -148,7 +156,7 @@ void PETScUtils::copy_dat_to_vec_p_adapt(op_dat dat, double *dat_d, DGMesh *mesh
 
     const double *v_c = (double *)dat->data + i * dat->dim;
     int Np, Nfp;
-    DGUtils::numNodes2D(N, &Np, &Nfp);
+    get_num_nodes_petsc_utils(N, &Np, &Nfp);
 
     memcpy(dat_d + vec_ind, v_c, Np * sizeof(double));
     vec_ind += Np;

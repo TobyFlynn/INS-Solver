@@ -11,7 +11,7 @@ inline void factor_poisson_matrix_3d_op1(const int *order, const double *dr,
   const double *ds_mat = &ds[(*order - 1) * DG_NP * DG_NP];
   const double *dt_mat = &dt[(*order - 1) * DG_NP * DG_NP];
   const double *mass_mat = &mass[(*order - 1) * DG_NP * DG_NP];
-  const int dg_np = DG_CONSTANTS[(*order - 1) * 2];
+  const int dg_np = DG_CONSTANTS[(*order - 1) * DG_NUM_CONSTANTS];
 
   double Dx[DG_NP * DG_NP], Dy[DG_NP * DG_NP], Dz[DG_NP * DG_NP];
   for(int i = 0; i < dg_np; i++) {

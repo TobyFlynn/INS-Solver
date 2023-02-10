@@ -4,8 +4,8 @@ inline void fact_poisson_cub_op1(const int *p, const double *cubVDr,
                                  const double *sy, const double *J,
                                  const double *factor, double *op) {
   // Get constants
-  const int dg_np        = DG_CONSTANTS[(*p - 1) * 5];
-  const int dg_cub_np    = DG_CONSTANTS[(*p - 1) * 5 + 2];
+  const int dg_np        = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
+  const int dg_cub_np    = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS + 2];
   const double *cubVDr_l = &cubVDr[(*p - 1) * DG_CUB_NP * DG_NP];
   const double *cubVDs_l = &cubVDs[(*p - 1) * DG_CUB_NP * DG_NP];
   const double *cubW     = &cubW_g[(*p - 1) * DG_CUB_NP];

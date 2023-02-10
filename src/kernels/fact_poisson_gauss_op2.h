@@ -15,13 +15,13 @@ inline void fact_poisson_gauss_op2(const int **p, const double *gF0Dr,
   // Get constants
   // Using same Gauss points so should be able to replace dg_gf_npL and
   // dg_gf_npR with DG_GF_NP
-  const int dg_npL      = DG_CONSTANTS[(p[0][0] - 1) * 5];
-  const int dg_npfL     = DG_CONSTANTS[(p[0][0] - 1) * 5 + 1];
-  const int dg_gf_npL   = DG_CONSTANTS[(p[0][0] - 1) * 5 + 4];
+  const int dg_npL      = DG_CONSTANTS[(p[0][0] - 1) * DG_NUM_CONSTANTS];
+  const int dg_npfL     = DG_CONSTANTS[(p[0][0] - 1) * DG_NUM_CONSTANTS + 1];
+  const int dg_gf_npL   = DG_CONSTANTS[(p[0][0] - 1) * DG_NUM_CONSTANTS + 4];
   const double *gaussWL = &gaussW_g[(p[0][0] - 1) * DG_GF_NP];
-  const int dg_npR      = DG_CONSTANTS[(p[1][0] - 1) * 5];
-  const int dg_npfR     = DG_CONSTANTS[(p[1][0] - 1) * 5 + 1];
-  const int dg_gf_npR   = DG_CONSTANTS[(p[1][0] - 1) * 5 + 4];
+  const int dg_npR      = DG_CONSTANTS[(p[1][0] - 1) * DG_NUM_CONSTANTS];
+  const int dg_npfR     = DG_CONSTANTS[(p[1][0] - 1) * DG_NUM_CONSTANTS + 1];
+  const int dg_gf_npR   = DG_CONSTANTS[(p[1][0] - 1) * DG_NUM_CONSTANTS + 4];
   const double *gaussWR = &gaussW_g[(p[1][0] - 1) * DG_GF_NP];
 
   const double *gDrL, *gDsL, *gDrR, *gDsR, *gVML, *gVMR;

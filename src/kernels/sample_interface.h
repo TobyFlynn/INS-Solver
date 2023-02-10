@@ -1,6 +1,6 @@
-inline void sample_interface(const int *p, const double *x, const double *y, 
+inline void sample_interface(const int *p, const double *x, const double *y,
                              const double *surface, double *sample_x, double *sample_y) {
-  const int dg_npf = DG_CONSTANTS[(*p - 1) * 5 + 1];
+  const int dg_npf = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS + 1];
   const int *fmask = &FMASK[(*p - 1) * 3 * DG_NPF];
 
   const double node0s = surface[fmask[0]];
@@ -45,7 +45,7 @@ inline void sample_interface(const int *p, const double *x, const double *y,
 
   double dist = sqrt((end1x - end0x) * (end1x - end0x) + (end1y - end0y) * (end1y - end0y));
   double dist_per_sample = dist / (LS_SAMPLE_NP + 1.0);
-  
+
   double incrementx = ((end1x - end0x) / dist) * dist_per_sample;
   double incrementy = ((end1y - end0y) / dist) * dist_per_sample;
 

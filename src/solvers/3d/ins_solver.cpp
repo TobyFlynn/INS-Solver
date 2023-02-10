@@ -12,6 +12,7 @@
 
 #include <string>
 #include <iostream>
+#include <stdexcept>
 
 extern Timing *timer;
 
@@ -101,8 +102,9 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
 
   pressureMatrix = new PoissonMatrix3D(mesh);
   viscosityMatrix = new MMPoissonMatrix3D(mesh);
-  pressureSolver = new PETScAMGSolver(mesh);
-  // pressureSolver = new PETScPMultigrid(mesh);
+  // pressureSolver = new PETScAMGSolver(mesh);
+  pressureSolver = new PETScPMultigrid(mesh);
+  // pressureSolver = new PMultigridPoissonSolver(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
   // viscositySolver = new PETScAMGSolver(mesh);
 
@@ -316,7 +318,9 @@ void INSSolver3D::pressure() {
   pressureMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->calc_mat();
   pressureSolver->set_bcs(pr_bc);
-  pressureSolver->solve(divVelT, pr);
+  bool converged = pressureSolver->solve(divVelT, pr);
+  if(!converged)
+    throw std::runtime_error("\nPressure solve failed to converge\n");
   timer->endTimer("Pr Linear Solve");
 
   mesh->grad_with_central_flux(pr, dpdx, dpdy, dpdz);
@@ -369,7 +373,9 @@ void INSSolver3D::viscosity() {
     viscosityMatrix->calc_mat();
   }
   viscositySolver->set_bcs(vis_bc);
-  viscositySolver->solve(velTT[0], vel[(currentInd + 1) % 2][0]);
+  bool convergedX = viscositySolver->solve(velTT[0], vel[(currentInd + 1) % 2][0]);
+  if(!convergedX)
+    throw std::runtime_error("\nViscosity solve failed to converge\n");
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_vis_2, "ins_3d_vis_2", mesh->bfaces,
@@ -379,10 +385,15 @@ void INSSolver3D::viscosity() {
   }
 
   viscositySolver->set_bcs(vis_bc);
-  viscositySolver->solve(velTT[1], vel[(currentInd + 1) % 2][1]);
+  bool convergedY = viscositySolver->solve(velTT[1], vel[(currentInd + 1) % 2][1]);
+  if(!convergedX)
+    throw std::runtime_error("\nViscosity solve failed to converge\n");
 
   viscositySolver->set_bcs(vis_bc);
-  viscositySolver->solve(velTT[2], vel[(currentInd + 1) % 2][2]);
+  bool convergedZ = viscositySolver->solve(velTT[2], vel[(currentInd + 1) % 2][2]);
+  if(!convergedX)
+    throw std::runtime_error("\nViscosity solve failed to converge\n");
+
   timer->endTimer("Vis Linear Solve");
 }
 /*
