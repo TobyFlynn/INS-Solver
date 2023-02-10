@@ -6,7 +6,7 @@
 
 #include "linear_solvers/petsc_utils.h"
 
-PETScPMultigrid::PETScPMultigrid(DGMesh2D *m) {
+PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
   mesh = m;
   nullspace = false;
   pMatInit = false;

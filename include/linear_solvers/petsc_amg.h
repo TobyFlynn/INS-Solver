@@ -5,18 +5,18 @@
 #include "linear_solver.h"
 #include "petscvec.h"
 #include "petscksp.h"
-#include "dg_mesh/dg_mesh_2d.h"
+#include "dg_mesh/dg_mesh.h"
 
 class PETScAMGSolver : public LinearSolver {
 public:
-  PETScAMGSolver(DGMesh2D *m);
+  PETScAMGSolver(DGMesh *m);
   ~PETScAMGSolver();
 
   bool solve(op_dat rhs, op_dat ans) override;
   void set_tol(const double tol);
 
 private:
-  DGMesh2D *mesh;
+  DGMesh *mesh;
   KSP ksp;
 
   bool pMatInit;

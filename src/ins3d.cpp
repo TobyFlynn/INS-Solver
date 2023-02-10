@@ -12,6 +12,7 @@
 
 #include "timing.h"
 #include "solvers/3d/advection_solver.h"
+#include "solvers/3d/ins_solver.h"
 
 Timing *timer;
 
@@ -72,15 +73,10 @@ int main(int argc, char **argv) {
   const double refMu  = 1.0e-5;
   r_ynolds = refRho * refVel * refLen / refMu;
 
-  DGMesh3D *mesh = new DGMesh3D(filename);
-  AdvectionSolver3D *advec3d = new AdvectionSolver3D(mesh);
+  op_printf("Reynolds number: %g\n", r_ynolds);
 
-  double *data_t0 = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
-  op_dat u   = op_decl_dat(mesh->cells, DG_NP, "double", data_t0, "advec_u");
-  op_dat v   = op_decl_dat(mesh->cells, DG_NP, "double", data_t0, "advec_v");
-  op_dat w   = op_decl_dat(mesh->cells, DG_NP, "double", data_t0, "advec_w");
-  op_dat val = op_decl_dat(mesh->cells, DG_NP, "double", data_t0, "advec_val");
-  free(data_t0);
+  DGMesh3D *mesh = new DGMesh3D(filename);
+  INSSolver3D *ins3d = new INSSolver3D(mesh);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 2, "int", DG_CONSTANTS);
@@ -96,44 +92,24 @@ int main(int argc, char **argv) {
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
 
   mesh->init();
-
-  op_par_loop(advec_test_3d, "advec_test_3d", mesh->cells,
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->z, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(u,   -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(v,   -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(w,   -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(val, -1, OP_ID, DG_NP, "double", OP_WRITE));
+  ins3d->init(r_ynolds, refVel);
 
   string out_file_ic = outputDir + "test_ic.h5";
-  op_fetch_data_hdf5_file(mesh->x, out_file_ic.c_str());
-  op_fetch_data_hdf5_file(mesh->y, out_file_ic.c_str());
-  op_fetch_data_hdf5_file(mesh->z, out_file_ic.c_str());
-  op_fetch_data_hdf5_file(u, out_file_ic.c_str());
-  op_fetch_data_hdf5_file(v, out_file_ic.c_str());
-  op_fetch_data_hdf5_file(w, out_file_ic.c_str());
-  op_fetch_data_hdf5_file(val, out_file_ic.c_str());
+  ins3d->dump_data(out_file_ic);
 
   for(int i = 0; i < iter; i++) {
-    advec3d->step(val, u, v, w);
+    ins3d->step();
 
     op_printf("Iter %d\n", i);
   }
 
   string out_file_end = outputDir + "test_end.h5";
-  op_fetch_data_hdf5_file(mesh->x, out_file_end.c_str());
-  op_fetch_data_hdf5_file(mesh->y, out_file_end.c_str());
-  op_fetch_data_hdf5_file(mesh->z, out_file_end.c_str());
-  op_fetch_data_hdf5_file(u, out_file_end.c_str());
-  op_fetch_data_hdf5_file(v, out_file_end.c_str());
-  op_fetch_data_hdf5_file(w, out_file_end.c_str());
-  op_fetch_data_hdf5_file(val, out_file_end.c_str());
+  ins3d->dump_data(out_file_end);
 
 
   timer->exportTimings(outputDir + "timings.txt", 0, 0.0);
 
-  delete advec3d;
+  delete ins3d;
 
   ierr = PetscFinalize();
 

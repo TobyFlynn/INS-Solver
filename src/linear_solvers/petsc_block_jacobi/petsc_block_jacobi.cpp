@@ -8,7 +8,7 @@
 #define ARMA_ALLOW_FAKE_GCC
 #include <armadillo>
 
-PETScBlockJacobiSolver::PETScBlockJacobiSolver(DGMesh2D *m) {
+PETScBlockJacobiSolver::PETScBlockJacobiSolver(DGMesh *m) {
   nullspace = false;
   pMatInit = false;
   mesh = m;
@@ -100,7 +100,7 @@ void PETScBlockJacobiSolver::calc_rhs(const double *in_d, double *out_d) {
 void PETScBlockJacobiSolver::precond(const double *in_d, double *out_d) {
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
-  op_par_loop(poisson_pre, "poisson_pre", mesh->cells,
+  op_par_loop(block_jacobi_pre, "block_jacobi_pre", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(in,  -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(pre, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),

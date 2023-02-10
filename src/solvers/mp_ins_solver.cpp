@@ -133,15 +133,11 @@ void MPINSSolver2D::init(const double re, const double refVel) {
   ls->init();
 
   // Set initial conditions
-  op_par_loop(ins_set_ic, "ins_set_ic", mesh->cells,
+  op_par_loop(ins_2d_set_ic, "ins_2d_set_ic", mesh->cells,
               op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(vel[0][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(vel[0][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-  op_par_loop(ins_set_ic, "ins_set_ic", mesh->cells,
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(vel[0][1], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(vel[1][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(vel[1][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 

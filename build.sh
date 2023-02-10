@@ -59,7 +59,7 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/advection_solver.cpp \
         solvers/ls_solver.cpp \
         solvers/mp_ins_solver.cpp \
-        solvers/ins_solver.cpp \
+        solvers/2d/ins_solver.cpp \
         matrices/poisson_matrix.cpp \
         matrices/2d/poisson_mat.cpp \
         matrices/2d/factor_poisson_mat.cpp \
@@ -75,11 +75,14 @@ cd gen3d
 
 python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/advection_solver.cpp \
+        solvers/3d/ins_solver.cpp \
         matrices/poisson_matrix.cpp \
         matrices/3d/poisson_matrix.cpp \
         matrices/3d/mm_poisson_matrix.cpp \
         matrices/3d/factor_poisson_matrix.cpp \
         matrices/3d/factor_mm_poisson_matrix.cpp \
+        linear_solvers/petsc_block_jacobi/petsc_block_jacobi.cpp \
+        linear_solvers/pmultigrid/pmultigrid.cpp \
         kernels/
 
 cd ..

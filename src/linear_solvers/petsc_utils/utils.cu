@@ -62,7 +62,7 @@ void PETScUtils::store_vec(Vec *v, op_dat v_dat) {
 
 // P-adaptive stuff
 // Copy PETSc vec array to OP2 dat
-void PETScUtils::copy_vec_to_dat_p_adapt(op_dat dat, const double *dat_d, DGMesh2D *mesh) {
+void PETScUtils::copy_vec_to_dat_p_adapt(op_dat dat, const double *dat_d, DGMesh *mesh) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
@@ -115,7 +115,7 @@ void PETScUtils::copy_vec_to_dat_p_adapt(op_dat dat, const double *dat_d, DGMesh
 }
 
 // Copy OP2 dat to PETSc vec array
-void PETScUtils::copy_dat_to_vec_p_adapt(op_dat dat, double *dat_d, DGMesh2D *mesh) {
+void PETScUtils::copy_dat_to_vec_p_adapt(op_dat dat, double *dat_d, DGMesh *mesh) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
@@ -175,7 +175,7 @@ void PETScUtils::create_vec_p_adapt(Vec *v, int local_unknowns) {
 }
 
 // Load a PETSc vector with values from an OP2 dat for CPUs
-void PETScUtils::load_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh2D *mesh) {
+void PETScUtils::load_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh *mesh) {
   double *v_ptr;
   VecCUDAGetArray(*v, &v_ptr);
 
@@ -185,7 +185,7 @@ void PETScUtils::load_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh2D *mesh) {
 }
 
 // Load an OP2 dat with the values from a PETSc vector for CPUs
-void PETScUtils::store_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh2D *mesh) {
+void PETScUtils::store_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh *mesh) {
   const double *v_ptr;
   VecCUDAGetArrayRead(*v, &v_ptr);
 

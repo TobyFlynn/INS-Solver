@@ -5,12 +5,12 @@
 #include "linear_solver.h"
 #include "petscvec.h"
 #include "petscksp.h"
-#include "dg_mesh/dg_mesh_2d.h"
+#include "dg_mesh/dg_mesh.h"
 #include "pmultigrid.h"
 
 class PETScPMultigrid : public LinearSolver {
 public:
-  PETScPMultigrid(DGMesh2D *m);
+  PETScPMultigrid(DGMesh *m);
   ~PETScPMultigrid();
 
   bool solve(op_dat rhs, op_dat ans) override;
@@ -22,7 +22,7 @@ private:
   void create_shell_mat();
   void set_shell_pc(PC pc);
 
-  DGMesh2D *mesh;
+  DGMesh *mesh;
   KSP ksp;
 
   op_dat in, out;

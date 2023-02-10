@@ -11,7 +11,7 @@ extern Timing *timer;
 
 #define RAND_VEC_SIZE 25
 
-PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh2D *m) {
+PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
   mesh = m;
   double *tmp_data = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
   for(int i = 0; i < DG_ORDER; i++) {
@@ -19,6 +19,8 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh2D *m) {
     u_dat[i]   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_data, "p_multigrid_u");
     b_dat[i]   = op_decl_dat(mesh->cells, DG_NP, "double", tmp_data, "p_multigrid_b");
   }
+  eg_tmp_0 = op_decl_dat(mesh->cells, DG_NP, "double", tmp_data, "p_multigrid_eg_tmp_0");
+  eg_tmp_1 = op_decl_dat(mesh->cells, DG_NP, "double", tmp_data, "p_multigrid_eg_tmp_1");
   free(tmp_data);
 
   coarseSolver = new PETScAMGSolver(mesh);
@@ -152,35 +154,35 @@ void PMultigridPoissonSolver::setupDirectSolve() {
 double PMultigridPoissonSolver::maxEigenValue() {
   // Get approx eigenvector using power iteration
   timer->startTimer("PMultigrid - Random Vec");
-  setRandomVector(mesh->op_tmp[0]);
+  setRandomVector(eg_tmp_0);
   timer->endTimer("PMultigrid - Random Vec");
 
   for(int i = 0; i < 10; i++) {
-    matrix->multJacobi(mesh->op_tmp[0], mesh->op_tmp[1]);
+    matrix->multJacobi(eg_tmp_0, eg_tmp_1);
 
     // Normalise vector
     double norm = 0.0;
     op_par_loop(p_multigrid_vec_norm, "p_multigrid_vec_norm", mesh->cells,
                 op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->op_tmp[1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(eg_tmp_1, -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_gbl(&norm, 1, "double", OP_INC));
 
     norm = sqrt(norm);
     op_par_loop(p_multigrid_vec_normalise, "p_multigrid_vec_normalise", mesh->cells,
                 op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->op_tmp[1], -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(eg_tmp_1, -1, OP_ID, DG_NP, "double", OP_READ),
                 op_arg_gbl(&norm, 1, "double", OP_READ),
-                op_arg_dat(mesh->op_tmp[0], -1, OP_ID, DG_NP, "double", OP_WRITE));
+                op_arg_dat(eg_tmp_0, -1, OP_ID, DG_NP, "double", OP_WRITE));
   }
 
   // Calculate eigenvalue from approx eigenvector using Rayleigh quotient
-  matrix->multJacobi(mesh->op_tmp[0], mesh->op_tmp[1]);
+  matrix->multJacobi(eg_tmp_0, eg_tmp_1);
   double tmp0 = 0.0;
   double tmp1 = 0.0;
   op_par_loop(p_multigrid_rayleigh_quotient, "p_multigrid_rayleigh_quotient", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->op_tmp[0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->op_tmp[1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(eg_tmp_0, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(eg_tmp_1, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_gbl(&tmp0, 1, "double", OP_INC),
               op_arg_gbl(&tmp1, 1, "double", OP_INC));
   return tmp0 / tmp1;

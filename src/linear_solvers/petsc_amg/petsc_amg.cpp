@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-PETScAMGSolver::PETScAMGSolver(DGMesh2D *m) {
+PETScAMGSolver::PETScAMGSolver(DGMesh *m) {
   mesh = m;
   nullspace = false;
   pMatInit = false;
