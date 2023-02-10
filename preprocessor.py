@@ -11,6 +11,7 @@ dg_g_np      = ""
 dg_gf_np     = ""
 ls_sample_np = ""
 dg_num_faces = ""
+dg_num_constants = ""
 dg_order     = sys.argv[1]
 
 # Get DG order from command line args
@@ -21,6 +22,7 @@ if dim == "2":
     dg_npf    = str(order_int + 1)
     ls_sample_np = "10"
     dg_num_faces = "3"
+    dg_num_constants = "5"
     if order == "1":
         dg_cub_np    = "12"
         dg_g_np      = "9"
@@ -46,6 +48,7 @@ elif dim == "3":
     dg_np     = str(int((order_int + 1) * (order_int + 2) * (order_int + 3) / 6))
     dg_npf    = str(int((order_int + 1) * (order_int + 2) / 2))
     dg_num_faces = "4"
+    dg_num_constants = "2"
 
 inputfiles = []
 
@@ -71,6 +74,7 @@ for f in inputfiles:
         newdata = newdata.replace("DG_GF_NP", dg_gf_np)
         newdata = newdata.replace("LS_SAMPLE_NP", ls_sample_np)
         newdata = newdata.replace("DG_NUM_FACES", dg_num_faces)
+        newdata = newdata.replace("DG_NUM_CONSTANTS", dg_num_constants)
         newdata = newdata.replace("DG_ORDER", dg_order)
 
     if dim == "2":

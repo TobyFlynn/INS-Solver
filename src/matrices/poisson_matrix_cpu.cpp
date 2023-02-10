@@ -1,4 +1,4 @@
-#include "matrices/2d/poisson_matrix_2d.h"
+#include "matrices/poisson_matrix.h"
 
 #include "op_seq.h"
 
@@ -14,18 +14,26 @@
 
 extern Timing *timer;
 
-void PoissonMatrix2D::set_glb_ind() {
+void get_num_nodes(const int N, int *Np, int *Nfp) {
+  #if DG_DIM == 2
+  DGUtils::numNodes2D(N, Np, Nfp);
+  #elif DG_DIM == 3
+  DGUtils::numNodes3D(N, Np, Nfp);
+  #endif
+}
+
+void PoissonMatrix::set_glb_ind() {
   timer->startTimer("PoissonMat - glb_ind");
   op_arg op2_args[] = {
-    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
+    op_arg_dat(_mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges(mesh->order->set, 1, op2_args);
-  const int setSize = mesh->order->set->size;
-  const int *tempOrder = (int *)mesh->order->data;
+  op_mpi_halo_exchanges(_mesh->order->set, 1, op2_args);
+  const int setSize = _mesh->order->set->size;
+  const int *tempOrder = (int *)_mesh->order->data;
   unknowns = 0;
   for(int i = 0; i < setSize; i++) {
     int Np, Nfp;
-    DGUtils::numNodes2D(tempOrder[i], &Np, &Nfp);
+    get_num_nodes(tempOrder[i], &Np, &Nfp);
     unknowns += Np;
   }
   op_mpi_set_dirtybit(1, op2_args);
@@ -34,17 +42,17 @@ void PoissonMatrix2D::set_glb_ind() {
   global_ind = get_global_mat_start_ind(unknowns);
   #endif
   op_arg args[] = {
-    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+    op_arg_dat(_mesh->order, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE)
   };
-  op_mpi_halo_exchanges(mesh->cells, 2, args);
+  op_mpi_halo_exchanges(_mesh->cells, 2, args);
 
-  const int *p = (int *)mesh->order->data;
+  const int *p = (int *)_mesh->order->data;
   int *data_ptr = (int *)glb_ind->data;
   int ind = global_ind;
-  for(int i = 0; i < mesh->cells->size; i++) {
+  for(int i = 0; i < _mesh->cells->size; i++) {
     int Np, Nfp;
-    DGUtils::numNodes2D(p[i], &Np, &Nfp);
+    get_num_nodes(p[i], &Np, &Nfp);
     data_ptr[i] = ind;
     ind += Np;
   }
@@ -53,7 +61,7 @@ void PoissonMatrix2D::set_glb_ind() {
   timer->endTimer("PoissonMat - glb_ind");
 }
 
-void PoissonMatrix2D::setPETScMatrix() {
+void PoissonMatrix::setPETScMatrix() {
   if(!petscMatInit) {
     MatCreate(PETSC_COMM_WORLD, &pMat);
     petscMatInit = true;
@@ -61,10 +69,10 @@ void PoissonMatrix2D::setPETScMatrix() {
 
     #ifdef INS_MPI
     MatSetType(pMat, MATMPIAIJ);
-    MatMPIAIJSetPreallocation(pMat, DG_NP * 4, NULL, 0, NULL);
+    MatMPIAIJSetPreallocation(pMat, DG_NP * (DG_NUM_FACES + 1), NULL, 0, NULL);
     #else
     MatSetType(pMat, MATSEQAIJ);
-    MatSeqAIJSetPreallocation(pMat, DG_NP * 4, NULL);
+    MatSeqAIJSetPreallocation(pMat, DG_NP * (DG_NUM_FACES + 1), NULL);
     #endif
     MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
   }
@@ -73,18 +81,18 @@ void PoissonMatrix2D::setPETScMatrix() {
   op_arg args[] = {
     op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
+    op_arg_dat(_mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges(mesh->cells, 3, args);
+  op_mpi_halo_exchanges(_mesh->cells, 3, args);
   const double *op1_data = (double *)op1->data;
   const int *glb = (int *)glb_ind->data;
-  const int *p = (int *)mesh->order->data;
+  const int *p = (int *)_mesh->order->data;
 
   MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_FALSE);
 
-  for(int i = 0; i < mesh->cells->size; i++) {
+  for(int i = 0; i < _mesh->cells->size; i++) {
     int Np, Nfp;
-    DGUtils::numNodes2D(p[i], &Np, &Nfp);
+    get_num_nodes(p[i], &Np, &Nfp);
     int currentRow = glb[i];
     int currentCol = glb[i];
 
@@ -107,7 +115,7 @@ void PoissonMatrix2D::setPETScMatrix() {
     op_arg_dat(orderL, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(orderR, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges(mesh->faces, 6, edge_args);
+  op_mpi_halo_exchanges(_mesh->faces, 6, edge_args);
 
   const double *op2L_data = (double *)op2[0]->data;
   const double *op2R_data = (double *)op2[1]->data;
@@ -117,12 +125,12 @@ void PoissonMatrix2D::setPETScMatrix() {
   const int *p_r = (int *)orderR->data;
 
   // Add Gauss OP and OPf to Poisson matrix
-  for(int i = 0; i < mesh->faces->size; i++) {
+  for(int i = 0; i < _mesh->faces->size; i++) {
     int leftRow = glb_l[i];
     int rightRow = glb_r[i];
     int NpL, NpR, Nfp;
-    DGUtils::numNodes2D(p_l[i], &NpL, &Nfp);
-    DGUtils::numNodes2D(p_r[i], &NpR, &Nfp);
+    get_num_nodes(p_l[i], &NpL, &Nfp);
+    get_num_nodes(p_r[i], &NpR, &Nfp);
 
     int idxl[DG_NP], idxr[DG_NP];
     for(int n = 0; n < DG_NP; n++) {

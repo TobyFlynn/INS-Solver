@@ -10,7 +10,7 @@ void MMPoissonMatrix2D::calc_mat() {
   calc_glb_ind();
   calc_op1();
   calc_op2();
-  calc_opbc(bc_types);
+  calc_opbc();
   calc_mm();
   petscMatResetRequired = true;
 }

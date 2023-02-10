@@ -12,6 +12,7 @@ extern DGConstants *constants;
 
 PoissonMatrix2D::PoissonMatrix2D(DGMesh2D *m) {
   mesh = m;
+  _mesh = m;
   petscMatInit = false;
 
   double *tmp_np_np_c = (double *)calloc(DG_NP * DG_NP * mesh->cells->size, sizeof(double));
@@ -51,22 +52,6 @@ PoissonMatrix2D::~PoissonMatrix2D() {
     MatDestroy(&pMat);
 }
 
-void PoissonMatrix2D::set_bc_types(op_dat bc_ty) {
-  bc_types = bc_ty;
-}
-
-bool PoissonMatrix2D::getPETScMat(Mat** mat) {
-  bool reset = false;
-  if(petscMatResetRequired) {
-    setPETScMatrix();
-    petscMatResetRequired = false;
-    *mat = &pMat;
-    reset = true;
-  }
-
-  return reset;
-}
-
 void PoissonMatrix2D::calc_mat() {
   timer->startTimer("PoissonMat - calc mat");
   op_par_loop(poisson_h, "poisson_h", mesh->cells,
@@ -77,7 +62,7 @@ void PoissonMatrix2D::calc_mat() {
   calc_glb_ind();
   calc_op1();
   calc_op2();
-  calc_opbc(bc_types);
+  calc_opbc();
   petscMatResetRequired = true;
   timer->endTimer("PoissonMat - calc mat");
 }
@@ -107,54 +92,13 @@ void PoissonMatrix2D::calc_glb_ind() {
 
 void PoissonMatrix2D::apply_bc(op_dat rhs, op_dat bc) {
   if(mesh->bface2cells) {
-    op_par_loop(poisson_apply_bc, "poisson_apply_bc", mesh->bfaces,
+    op_par_loop(poisson_2d_apply_bc, "poisson_2d_apply_bc", mesh->bfaces,
                 op_arg_dat(mesh->order,     0, mesh->bface2cells, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(opbc, -1, OP_ID, DG_GF_NP * DG_NP, "double", OP_READ),
                 op_arg_dat(bc,    0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
                 op_arg_dat(rhs,   0, mesh->bface2cells, DG_NP, "double", OP_INC));
   }
-}
-
-void PoissonMatrix2D::mult(op_dat in, op_dat out) {
-  op_par_loop(poisson_cells, "poisson_cells", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(in,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(out, -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-  op_par_loop(poisson_edges, "poisson_edges", mesh->faces,
-              op_arg_dat(mesh->order, 0, mesh->face2cells, 1, "int", OP_READ),
-              op_arg_dat(in,      0, mesh->face2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(out,     0, mesh->face2cells, DG_NP, "double", OP_INC),
-              op_arg_dat(mesh->order, 1, mesh->face2cells, 1, "int", OP_READ),
-              op_arg_dat(in,      1, mesh->face2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(out,     1, mesh->face2cells, DG_NP, "double", OP_INC));
-}
-
-void PoissonMatrix2D::multJacobi(op_dat in, op_dat out) {
-  op_par_loop(poisson_cells, "poisson_cells", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(in,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(out, -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-  op_par_loop(poisson_edges, "poisson_edges", mesh->faces,
-              op_arg_dat(mesh->order, 0, mesh->face2cells, 1, "int", OP_READ),
-              op_arg_dat(in,      0, mesh->face2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(out,     0, mesh->face2cells, DG_NP, "double", OP_INC),
-              op_arg_dat(mesh->order, 1, mesh->face2cells, 1, "int", OP_READ),
-              op_arg_dat(in,      1, mesh->face2cells, DG_NP, "double", OP_READ),
-              op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(out,     1, mesh->face2cells, DG_NP, "double", OP_INC));
-
-  op_par_loop(poisson_jacobi, "poisson_jacobi", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(out, -1, OP_ID, DG_NP, "double", OP_RW));
 }
 
 void PoissonMatrix2D::calc_op1() {
@@ -202,7 +146,7 @@ void PoissonMatrix2D::calc_op2() {
               op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE));
 }
 
-void PoissonMatrix2D::calc_opbc(op_dat bc_types) {
+void PoissonMatrix2D::calc_opbc() {
   if(mesh->bface2cells) {
     op_par_loop(poisson_gauss_bop, "poisson_gauss_bop", mesh->bfaces,
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),

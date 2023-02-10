@@ -13,7 +13,8 @@ mkdir -p kernels
 mkdir -p solvers/ls_utils
 mkdir -p solvers/2d
 mkdir -p solvers/3d
-mkdir -p matrices/poisson
+mkdir -p matrices/2d
+mkdir -p matrices/3d
 mkdir -p linear_solvers/petsc_amg
 mkdir -p linear_solvers/petsc_utils
 mkdir -p linear_solvers/petsc_block_jacobi
@@ -29,7 +30,8 @@ mkdir -p kernels
 mkdir -p solvers/ls_utils
 mkdir -p solvers/2d
 mkdir -p solvers/3d
-mkdir -p matrices/poisson
+mkdir -p matrices/2d
+mkdir -p matrices/3d
 mkdir -p linear_solvers/petsc_amg
 mkdir -p linear_solvers/petsc_utils
 mkdir -p linear_solvers/petsc_block_jacobi
@@ -56,12 +58,13 @@ cd gen2d
 python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/advection_solver.cpp \
         solvers/ls_solver.cpp \
-        matrices/poisson/poisson_mat.cpp \
         solvers/mp_ins_solver.cpp \
         solvers/ins_solver.cpp \
-        matrices/poisson/factor_poisson_mat.cpp \
-        matrices/poisson/mm_poisson_mat.cpp \
-        matrices/poisson/factor_mm_poisson_mat.cpp \
+        matrices/poisson_matrix.cpp \
+        matrices/2d/poisson_mat.cpp \
+        matrices/2d/factor_poisson_mat.cpp \
+        matrices/2d/mm_poisson_mat.cpp \
+        matrices/2d/factor_mm_poisson_mat.cpp \
         linear_solvers/petsc_block_jacobi/petsc_block_jacobi.cpp \
         linear_solvers/pmultigrid/pmultigrid.cpp \
         kernels/
@@ -72,6 +75,11 @@ cd gen3d
 
 python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/advection_solver.cpp \
+        matrices/poisson_matrix.cpp \
+        matrices/3d/poisson_matrix.cpp \
+        matrices/3d/mm_poisson_matrix.cpp \
+        matrices/3d/factor_poisson_matrix.cpp \
+        matrices/3d/factor_mm_poisson_matrix.cpp \
         kernels/
 
 cd ..

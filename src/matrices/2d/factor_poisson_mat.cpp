@@ -73,7 +73,7 @@ void FactorPoissonMatrix2D::calc_op2() {
               op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE));
 }
 
-void FactorPoissonMatrix2D::calc_opbc(op_dat bc_types) {
+void FactorPoissonMatrix2D::calc_opbc() {
   if(mesh->bface2cells) {
     op_par_loop(fact_poisson_gauss_bop, "fact_poisson_gauss_bop", mesh->bfaces,
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),
