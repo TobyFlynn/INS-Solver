@@ -88,7 +88,7 @@ void AdvectionSolver3D::rhs(op_dat val, op_dat u, op_dat v, op_dat w, op_dat val
               op_arg_dat(w,    -2, mesh->face2cells, DG_NP, "double", OP_READ),
               op_arg_dat(flux, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, "double", OP_INC));
 
-  if(mesh->bface2cells && false) {
+  if(mesh->bface2cells) {
     op_par_loop(advec_3d_bflux, "advec_3d_bflux", mesh->bfaces,
                 op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),

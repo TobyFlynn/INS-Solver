@@ -49,6 +49,7 @@ elif dim == "3":
     dg_npf    = str(int((order_int + 1) * (order_int + 2) / 2))
     dg_num_faces = "4"
     dg_num_constants = "2"
+    ls_sample_np = "13"
 
 inputfiles = []
 

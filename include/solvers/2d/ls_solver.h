@@ -1,5 +1,5 @@
-#ifndef __INS_LS_H
-#define __INS_LS_H
+#ifndef __INS_LS_2D_H
+#define __INS_LS_2D_H
 
 #include "op_seq.h"
 

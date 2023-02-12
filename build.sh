@@ -10,9 +10,8 @@ mkdir gen2d
 cd gen2d
 
 mkdir -p kernels
-mkdir -p solvers/ls_utils
-mkdir -p solvers/2d
-mkdir -p solvers/3d
+mkdir -p solvers/2d/ls_utils
+mkdir -p solvers/3d/ls_utils
 mkdir -p matrices/2d
 mkdir -p matrices/3d
 mkdir -p linear_solvers/petsc_amg
@@ -27,9 +26,8 @@ mkdir gen3d
 cd gen3d
 
 mkdir -p kernels
-mkdir -p solvers/ls_utils
-mkdir -p solvers/2d
-mkdir -p solvers/3d
+mkdir -p solvers/2d/ls_utils
+mkdir -p solvers/3d/ls_utils
 mkdir -p matrices/2d
 mkdir -p matrices/3d
 mkdir -p linear_solvers/petsc_amg
@@ -57,7 +55,7 @@ cd gen2d
 
 python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/advection_solver.cpp \
-        solvers/ls_solver.cpp \
+        solvers/2d/ls_solver.cpp \
         solvers/mp_ins_solver.cpp \
         solvers/2d/ins_solver.cpp \
         solvers/2d/ce_solver.cpp \
@@ -77,6 +75,7 @@ cd gen3d
 python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/advection_solver.cpp \
         solvers/3d/ins_solver.cpp \
+        solvers/3d/ls_solver.cpp \
         matrices/poisson_matrix.cpp \
         matrices/3d/poisson_matrix.cpp \
         matrices/3d/mm_poisson_matrix.cpp \
