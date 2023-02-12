@@ -19,7 +19,7 @@ Timing *timer;
 using namespace std;
 
 // Global constants
-double r_ynolds, mu0, mu1, rho0, rho1;
+double r_ynolds, mu0, mu1, rho0, rho1, gamma_e;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 1);
@@ -73,6 +73,9 @@ int main(int argc, char **argv) {
   const double refMu  = 1.0e-5;
   r_ynolds = refRho * refVel * refLen / refMu;
 
+  // For 2D compressible Euler
+  gamma_e = 1.4;
+
   DGMesh2D *mesh = new DGMesh2D(filename);
   INSSolver2D *mpins2d = new INSSolver2D(mesh);
 
@@ -88,6 +91,7 @@ int main(int argc, char **argv) {
   op_decl_const(1, "double", &mu1);
   op_decl_const(1, "double", &rho0);
   op_decl_const(1, "double", &rho1);
+  op_decl_const(1, "double", &gamma_e);
 
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
 

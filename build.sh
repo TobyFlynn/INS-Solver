@@ -60,6 +60,7 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/ls_solver.cpp \
         solvers/mp_ins_solver.cpp \
         solvers/2d/ins_solver.cpp \
+        solvers/2d/ce_solver.cpp \
         matrices/poisson_matrix.cpp \
         matrices/2d/poisson_mat.cpp \
         matrices/2d/factor_poisson_mat.cpp \
