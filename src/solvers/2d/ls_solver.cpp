@@ -34,7 +34,7 @@ LevelSetSolver2D::~LevelSetSolver2D() {
 }
 
 void LevelSetSolver2D::init() {
-  op_par_loop(init_surface, "init_surface", mesh->cells,
+  op_par_loop(init_surface_2d, "init_surface_2d", mesh->cells,
               op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(s,       -1, OP_ID, DG_NP, "double", OP_WRITE));
@@ -74,11 +74,6 @@ void LevelSetSolver2D::init() {
 
   mesh->update_order(data->new_order, dats_to_update);
 */
-  op_par_loop(init_surface, "init_surface", mesh->cells,
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(s,       -1, OP_ID, DG_NP, "double", OP_WRITE));
-
   // reinitLS();
 }
 

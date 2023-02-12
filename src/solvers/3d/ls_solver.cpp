@@ -40,6 +40,43 @@ void LevelSetSolver3D::setBCTypes(op_dat bc) {
   advectionSolver->set_bc_types(bc);
 }
 
+void LevelSetSolver3D::init() {
+  op_par_loop(init_surface_3d, "init_surface_3d", mesh->cells,
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->z, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(s, -1, OP_ID, DG_NP, "double", OP_WRITE));
+  
+  h = 0.0;
+  op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,
+              op_arg_dat(mesh->fscale, -1, OP_ID, 2, "double", OP_READ),
+              op_arg_gbl(&h, 1, "double", OP_MAX));
+  h = 1.0 / h;
+  // alpha = 2.0 * h / DG_ORDER;
+  // order_width = 2.0 * h;
+  // epsilon = h / DG_ORDER;
+  alpha = 12.0 * h;
+  // order_width = 12.0 * h;
+  // epsilon = h;
+  // reinit_width = 10.0 * h;
+  // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
+  // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
+}
+
+void LevelSetSolver3D::getRhoMu(op_dat rho, op_dat mu) {
+  op_par_loop(ls_step, "ls_step", mesh->cells,
+              op_arg_gbl(&alpha,  1, "double", OP_READ),
+              op_arg_dat(s,   -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(mu,  -1, OP_ID, DG_NP, "double", OP_WRITE));
+}
+
+void LevelSetSolver3D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_dat curv) {
+  // Assume | grad s | is approx 1 so this is sufficient for getting normals
+  mesh->grad(s, nx, ny, nz);
+  mesh->div(nx, ny, nz, curv);
+}
+
 void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const double dt) {
   advectionSolver->set_dt(dt);
   advectionSolver->step(s, u, v, w);

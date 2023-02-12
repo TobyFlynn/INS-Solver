@@ -1,4 +1,4 @@
-#include "solvers/3d/ins_solver.h"
+#include "solvers/3d/mp_ins_solver.h"
 
 #include "op_seq.h"
 
@@ -11,16 +11,14 @@
 #include "linear_solvers/petsc_pmultigrid.h"
 
 #include <string>
-#include <iostream>
-#include <stdexcept>
 
 extern Timing *timer;
 
-INSSolver3D::INSSolver3D(DGMesh3D *m) {
+MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
   mesh = m;
 
   std::string name;
-  double *dg_np_data = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  double * dg_np_data = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
   for(int i = 0; i < 3; i++) {
     name = "ins_solver_vel0" + std::to_string(i);
     vel[0][i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
@@ -39,7 +37,9 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
     name = "ins_solver_tmp_np" + std::to_string(i);
     tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
   }
-  pr = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, "ins_solver_pr");
+  pr  = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, "ins_solver_pr");
+  rho = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, "ins_solver_rho");
+  mu  = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, "ins_solver_mu");
   free(dg_np_data);
 
   double *dg_npf_data = (double *)calloc(4 * DG_NPF * mesh->cells->size, sizeof(double));
@@ -74,11 +74,11 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
   curl2Vel[0] = tmp_np[4];
   curl2Vel[1] = tmp_np[5];
   curl2Vel[2] = tmp_np[6];
+  pr_factor   = tmp_np[1];
   dpdx = tmp_np[0];
   dpdy = tmp_np[1];
   dpdz = tmp_np[2];
-  vis_coeff = tmp_np[0];
-  vis_mm = tmp_np[1];
+  vis_factor = tmp_np[0];
 
   advec_flux[0] = tmp_npf[0];
   advec_flux[1] = tmp_npf[1];
@@ -95,13 +95,14 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
   b1 = 0.0;
   g0 = 1.0;
 
+  // TODO dt
   dt = 0.0;
   time = 0.0;
 
   currentInd = 0;
 
-  pressureMatrix = new PoissonMatrix3D(mesh);
-  viscosityMatrix = new MMPoissonMatrix3D(mesh);
+  pressureMatrix = new FactorPoissonMatrix3D(mesh);
+  viscosityMatrix = new FactorMMPoissonMatrix3D(mesh);
   // pressureSolver = new PETScAMGSolver(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
   // pressureSolver = new PMultigridPoissonSolver(mesh);
@@ -112,18 +113,23 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
   pressureSolver->set_nullspace(true);
   viscositySolver->set_matrix(viscosityMatrix);
   viscositySolver->set_nullspace(false);
+
+  lsSolver = new LevelSetSolver3D(mesh);
 }
 
-INSSolver3D::~INSSolver3D() {
+MPINSSolver3D::~MPINSSolver3D() {
   delete pressureMatrix;
   delete viscosityMatrix;
   delete pressureSolver;
   delete viscositySolver;
+  delete lsSolver;
 }
 
-void INSSolver3D::init(const double re, const double refVel) {
+void MPINSSolver3D::init(const double re, const double refVel) {
   timer->startTimer("INS - Init");
   reynolds = re;
+
+  lsSolver->init();
 
   // Set initial conditions
   op_par_loop(ins_3d_set_ic, "ins_3d_set_ic", mesh->cells,
@@ -152,10 +158,12 @@ void INSSolver3D::init(const double re, const double refVel) {
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_WRITE));
   }
 
+  lsSolver->getRhoMu(rho, mu);
+
   timer->endTimer("INS - Init");
 }
 
-void INSSolver3D::step() {
+void MPINSSolver3D::step() {
   timer->startTimer("Advection");
   advection();
   timer->endTimer("Advection");
@@ -172,6 +180,10 @@ void INSSolver3D::step() {
   viscosity();
   timer->endTimer("Viscosity");
 
+  timer->startTimer("Surface");
+  surface();
+  timer->endTimer("Surface");
+
   currentInd = (currentInd + 1) % 2;
   time += dt;
   g0 = 1.5;
@@ -181,7 +193,7 @@ void INSSolver3D::step() {
   b1 = -1.0;
 }
 
-void INSSolver3D::advection() {
+void MPINSSolver3D::advection() {
   op_par_loop(ins_3d_advec_0, "ins_3d_advec_0", mesh->cells,
               op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
@@ -270,13 +282,16 @@ void INSSolver3D::advection() {
               op_arg_dat(velT[2], -1, OP_ID, DG_NP, "double", OP_WRITE));
 }
 
-void INSSolver3D::pressure() {
+void MPINSSolver3D::pressure() {
   mesh->div(velT[0], velT[1], velT[2], divVelT);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], vel[currentInd][2], curlVel[0], curlVel[1], curlVel[2]);
+  // TODO potentially need to multiply curl by Mu here
   mesh->curl(curlVel[0], curlVel[1], curlVel[2], curl2Vel[0], curl2Vel[1], curl2Vel[2]);
 
+  // TODO or maybe better to multiply by Mu after taking curl
+  // (as how we smooth interface will have an effect before)
   if(mesh->bface2cells) {
-    op_par_loop(ins_3d_pr_0, "ins_3d_pr_0", mesh->bfaces,
+    op_par_loop(mp_ins_3d_pr_0, "mp_ins_3d_pr_0", mesh->bfaces,
                 op_arg_gbl(&time, 1, "double", OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
@@ -293,16 +308,19 @@ void INSSolver3D::pressure() {
                 op_arg_dat(curl2Vel[0], 0, mesh->bface2cells, DG_NP, "double", OP_READ),
                 op_arg_dat(curl2Vel[1], 0, mesh->bface2cells, DG_NP, "double", OP_READ),
                 op_arg_dat(curl2Vel[2], 0, mesh->bface2cells, DG_NP, "double", OP_READ),
+                op_arg_dat(rho, 0, mesh->bface2cells, DG_NP, "double", OP_READ),
                 op_arg_dat(dPdN[currentInd], 0, mesh->bface2cells, 4 * DG_NPF, "double", OP_INC));
   }
 
-  op_par_loop(ins_3d_pr_1, "ins_3d_pr_1", mesh->cells,
+  op_par_loop(mp_ins_3d_pr_1, "mp_ins_3d_pr_1", mesh->cells,
               op_arg_gbl(&b0, 1, "double", OP_READ),
               op_arg_gbl(&b1, 1, "double", OP_READ),
               op_arg_gbl(&dt, 1, "double", OP_READ),
               op_arg_dat(dPdN[currentInd], -1, OP_ID, 4 * DG_NPF, "double", OP_READ),
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, 4 * DG_NPF, "double", OP_RW),
-              op_arg_dat(divVelT, -1, OP_ID, DG_NP, "double", OP_RW));
+              op_arg_dat(divVelT, -1, OP_ID, DG_NP, "double", OP_RW),
+              op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(pr_factor, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT);
   mesh->mass(divVelT);
@@ -315,6 +333,7 @@ void INSSolver3D::pressure() {
   }
 
   timer->startTimer("Pr Linear Solve");
+  pressureMatrix->set_factor(pr_factor);
   pressureMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->calc_mat();
   pressureSolver->set_bcs(pr_bc);
@@ -339,17 +358,21 @@ void INSSolver3D::pressure() {
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, 4 * DG_NPF, "double", OP_WRITE));
 }
 
-void INSSolver3D::viscosity() {
+void MPINSSolver3D::viscosity() {
   mesh->mass(velTT[0]);
   mesh->mass(velTT[1]);
   mesh->mass(velTT[2]);
 
-  double factor = reynolds / dt;
-  op_par_loop(ins_3d_vis_0, "ins_3d_vis_0", mesh->cells,
+  double factor  = reynolds / dt;
+  double factor2 = g0 * reynolds / dt;
+  op_par_loop(mp_ins_3d_vis_0, "mp_ins_3d_vis_0", mesh->cells,
               op_arg_gbl(&factor, 1, "double", OP_READ),
+              op_arg_gbl(&factor2, 1, "double", OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(velTT[0], -1, OP_ID, DG_NP, "double", OP_RW),
               op_arg_dat(velTT[1], -1, OP_ID, DG_NP, "double", OP_RW),
-              op_arg_dat(velTT[2], -1, OP_ID, DG_NP, "double", OP_RW));
+              op_arg_dat(velTT[2], -1, OP_ID, DG_NP, "double", OP_RW),
+              op_arg_dat(vis_factor, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   double vis_time = time + dt;
   if(mesh->bface2cells) {
@@ -365,13 +388,10 @@ void INSSolver3D::viscosity() {
   }
 
   timer->startTimer("Vis Linear Solve");
-  factor = g0 * reynolds / dt;
-
-  if(factor != viscosityMatrix->get_factor()) {
-    viscosityMatrix->set_factor(factor);
-    viscosityMatrix->set_bc_types(vis_bc_types);
-    viscosityMatrix->calc_mat();
-  }
+  viscosityMatrix->set_factor(mu);
+  viscosityMatrix->set_mm_factor(vis_factor);
+  viscosityMatrix->set_bc_types(vis_bc_types);
+  viscosityMatrix->calc_mat();
   viscositySolver->set_bcs(vis_bc);
   bool convergedX = viscositySolver->solve(velTT[0], vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
@@ -388,42 +408,27 @@ void INSSolver3D::viscosity() {
   bool convergedY = viscositySolver->solve(velTT[1], vel[(currentInd + 1) % 2][1]);
   if(!convergedY)
     throw std::runtime_error("\nViscosity Y solve failed to converge\n");
-
-  viscositySolver->set_bcs(vis_bc);
   bool convergedZ = viscositySolver->solve(velTT[2], vel[(currentInd + 1) % 2][2]);
   if(!convergedZ)
     throw std::runtime_error("\nViscosity Z solve failed to converge\n");
-
   timer->endTimer("Vis Linear Solve");
 }
-/*
-void INSSolver3D::shock_capturing() {
-  // TODO maybe should be doing detector on something that isn't pressure?
-  discontinuity_sensor(mesh, pr, art_vis, h);
 
-  double factor = g0 * reynolds / dt;
-  op_par_loop(ins_set_art_vis, "ins_set_art_vis", mesh->cells,
-              op_arg_gbl(&factor, 1, "double", OP_READ),
-              op_arg_dat(art_vis,   -1, OP_ID, 1, "double", OP_READ),
-              op_arg_dat(vis_coeff, -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(vis_mm,    -1, OP_ID, DG_NP, "double", OP_WRITE));
-  // const double *art_vis_ptr = (double *)art_vis->data;
-  // std::cout << "Artificial Vis:" << std::endl;
-  // for(int i = 0; i < mesh->cells->size; i++) {
-  //   if(art_vis_ptr[i] > 0.0)
-  //     std::cout << art_vis_ptr[i] << std::endl;
-  // }
+void MPINSSolver3D::surface() {
+  lsSolver->setBCTypes(bc_types);
+  lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2], dt);
+  lsSolver->getRhoMu(rho, mu);
 }
-*/
-double INSSolver3D::get_time() {
+
+double MPINSSolver3D::get_time() {
   return time;
 }
 
-double INSSolver3D::get_dt() {
+double MPINSSolver3D::get_dt() {
   return dt;
 }
 
-void INSSolver3D::dump_data(const std::string &filename) {
+void MPINSSolver3D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(mesh->x, filename.c_str());
   op_fetch_data_hdf5_file(mesh->y, filename.c_str());
   op_fetch_data_hdf5_file(mesh->z, filename.c_str());
@@ -440,4 +445,7 @@ void INSSolver3D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(velTT[1], filename.c_str());
   op_fetch_data_hdf5_file(velTT[2], filename.c_str());
   op_fetch_data_hdf5_file(pr, filename.c_str());
+  op_fetch_data_hdf5_file(rho, filename.c_str());
+  op_fetch_data_hdf5_file(mu, filename.c_str());
+  op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
 }
