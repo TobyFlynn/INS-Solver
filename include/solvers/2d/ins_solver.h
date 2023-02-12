@@ -24,6 +24,7 @@ public:
 private:
   void advection();
   bool pressure();
+  void project_velocity();
   bool viscosity();
 
   PoissonMatrix2D *pressureMatrix;
@@ -41,6 +42,7 @@ private:
   op_dat tmp_g_np[4], gVel[2], gAdvecFlux[2], gN[2], gGradCurl[2], prBC;
   op_dat visBC[2];
   op_dat bc_types, pr_bc_types, vis_bc_types;
+  op_dat proj_op_xx, proj_op_yy, proj_op_yx, proj_op_xy, proj_pen, proj_h, proj_rhs_x, proj_rhs_y;
 };
 
 #endif
