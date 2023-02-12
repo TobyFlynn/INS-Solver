@@ -27,8 +27,6 @@ private:
   void viscosity();
   void surface();
   void shock_capturing();
-  void set_dt();
-  void set_bcs();
 
   DGMesh3D *mesh;
   FactorPoissonMatrix3D *pressureMatrix;
@@ -43,7 +41,8 @@ private:
   op_dat tmp_np[9], tmp_npf[3], tmp_bc_1, tmp_npf_bc;
   op_dat f[3][3], n[2][3], advec_flux[3], curlVel[3], divVelT;
   op_dat curl2Vel[3], dPdN[2], pr_bc, pr_bc_types, dpdx, dpdy, dpdz;
-  op_dat vis_bc_types, vis_bc, bc_types, pr_factor, vis_factor, art_vis;
+  op_dat vis_bc_types, vis_bc, bc_types, pr_factor, vis_factor, vis_mm_factor;
+  op_dat art_vis, shock_u, shock_u_hat, shock_u_modal;
 };
 
 #endif

@@ -3,9 +3,11 @@
 #include "op_seq.h"
 
 #include "dg_op2_blas.h"
+#include "dg_utils.h"
+#include "dg_constants/dg_constants.h"
 
 #include "timing.h"
-// #include "shocks.h"
+#include "utils.h"
 #include "linear_solvers/petsc_amg.h"
 #include "linear_solvers/petsc_block_jacobi.h"
 #include "linear_solvers/petsc_pmultigrid.h"
@@ -13,6 +15,7 @@
 #include <string>
 
 extern Timing *timer;
+extern DGConstants *constants;
 
 MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
   mesh = m;
@@ -78,7 +81,11 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
   dpdx = tmp_np[0];
   dpdy = tmp_np[1];
   dpdz = tmp_np[2];
-  vis_factor = tmp_np[0];
+  shock_u = tmp_np[0];
+  shock_u_hat = tmp_np[1];
+  shock_u_modal = tmp_np[2];
+  vis_factor    = tmp_np[0];
+  vis_mm_factor = tmp_np[1];
 
   advec_flux[0] = tmp_npf[0];
   advec_flux[1] = tmp_npf[1];
@@ -369,10 +376,13 @@ void MPINSSolver3D::viscosity() {
               op_arg_gbl(&factor, 1, "double", OP_READ),
               op_arg_gbl(&factor2, 1, "double", OP_READ),
               op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(mu,  -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(art_vis,  -1, OP_ID, 1, "double", OP_READ),
               op_arg_dat(velTT[0], -1, OP_ID, DG_NP, "double", OP_RW),
               op_arg_dat(velTT[1], -1, OP_ID, DG_NP, "double", OP_RW),
               op_arg_dat(velTT[2], -1, OP_ID, DG_NP, "double", OP_RW),
-              op_arg_dat(vis_factor, -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_dat(vis_factor,    -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(vis_mm_factor, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   double vis_time = time + dt;
   if(mesh->bface2cells) {
@@ -388,8 +398,8 @@ void MPINSSolver3D::viscosity() {
   }
 
   timer->startTimer("Vis Linear Solve");
-  viscosityMatrix->set_factor(mu);
-  viscosityMatrix->set_mm_factor(vis_factor);
+  viscosityMatrix->set_factor(vis_factor);
+  viscosityMatrix->set_mm_factor(vis_mm_factor);
   viscosityMatrix->set_bc_types(vis_bc_types);
   viscosityMatrix->calc_mat();
   viscositySolver->set_bcs(vis_bc);
@@ -448,4 +458,48 @@ void MPINSSolver3D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(rho, filename.c_str());
   op_fetch_data_hdf5_file(mu, filename.c_str());
   op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
+}
+
+void MPINSSolver3D::shock_capturing() {
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, pr, 0.0, shock_u_modal);
+
+  const double *u_modal_ptr = getOP2PtrHost(shock_u_modal, OP_READ);
+  const double *in_ptr = getOP2PtrHost(pr, OP_READ);
+  double *u_ptr = getOP2PtrHost(shock_u, OP_WRITE);
+  double *u_hat_ptr = getOP2PtrHost(shock_u_hat, OP_WRITE);
+
+  // Get u_hat
+  const double *r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * constants->Np_max;
+  const double *s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * constants->Np_max;
+  const double *t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * constants->Np_max;
+  #pragma omp parallel for
+  for(int i = 0; i < mesh->cells->size; i++) {
+    const double *modal = u_modal_ptr + i * DG_NP;
+    for(int j = 0; j < DG_NP; j++) {
+      u_ptr[i * DG_NP + j] = in_ptr[i * DG_NP + j];
+      u_hat_ptr[i * DG_NP + j] = DGUtils::val_at_pt_N_1_3d(r_ptr[j], s_ptr[j], t_ptr[j], modal, DG_ORDER);
+      u_hat_ptr[i * DG_NP + j] = u_ptr[i * DG_NP + j] - u_hat_ptr[i * DG_NP + j];
+    }
+  }
+
+  releaseOP2PtrHost(shock_u_modal, OP_READ, u_modal_ptr);
+  releaseOP2PtrHost(pr, OP_READ, in_ptr);
+  releaseOP2PtrHost(shock_u, OP_WRITE, u_ptr);
+  releaseOP2PtrHost(shock_u_hat, OP_WRITE, u_hat_ptr);
+
+
+  // double e0 = h / (double)DG_ORDER;
+  double e0 = h;
+  double s0 = 1.0 / (double)(DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER);
+  double k  = 5.0;
+  // double k = 1.0;
+  op_par_loop(discont_sensor, "discont_sensor", mesh->cells,
+              op_arg_gbl(&e0, 1, "double", OP_READ),
+              op_arg_gbl(&s0, 1, "double", OP_READ),
+              op_arg_gbl(&k,  1, "double", OP_READ),
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(mesh->J, -1, OP_ID, 1, "double", OP_READ),
+              op_arg_dat(shock_u, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(shock_u_hat, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(art_vis, -1, OP_ID, 1, "double", OP_WRITE));
 }
