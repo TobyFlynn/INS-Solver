@@ -1,3 +1,4 @@
+/*
 inline void Ax(const double *op_0, const double *op_1, const double *op_2,
                const double *op_3, const double *Mass,
                const double *J, const double pen, const double *in0,
@@ -20,6 +21,7 @@ inline void Ax(const double *op_0, const double *op_1, const double *op_2,
     out1[i] *= J[i];
   }
 }
+*/
 
 inline void project_2d_cg(const double *mass_, const double *J, const double *op_0,
                           const double *op_1, const double *op_2, const double *op_3,
@@ -42,7 +44,18 @@ inline void project_2d_cg(const double *mass_, const double *J, const double *op
   }
 
   // r_{0} = b - Ax_{0}
-  Ax(op_0, op_1, op_2, op_3, Mass, J, *pen, out0, out1, tmp0, tmp1);
+  // Ax(op_0, op_1, op_2, op_3, Mass, J, *pen, out0, out1, tmp0, tmp1);
+  for(int i = 0; i < DG_NP; i++) {
+    tmp0[i] = 0.0;
+    tmp1[i] = 0.0;
+    for(int j = 0; j < DG_NP; j++) {
+      int ind = i + j * DG_NP;
+      tmp0[i] += Mass[ind] * out0[j] + *pen * (op_0[ind] * out0[j] + op_3[ind] * out1[j]);
+      tmp1[i] += Mass[ind] * out1[j] + *pen * (op_2[ind] * out0[j] + op_1[ind] * out1[j]);
+    }
+    tmp0[i] *= J[i];
+    tmp1[i] *= J[i];
+  }
   residual = 0.0;
   for(int i = 0; i < DG_NP; i++) {
     r0[i] = rhs0[i] - tmp0[i];
@@ -54,7 +67,18 @@ inline void project_2d_cg(const double *mass_, const double *J, const double *op
 
   while(residual > tol && iter < max_iter) {
     // alpha = r^T r / (p^T A p)
-    Ax(op_0, op_1, op_2, op_3, Mass, J, *pen, p0, p1, tmp0, tmp1);
+    // Ax(op_0, op_1, op_2, op_3, Mass, J, *pen, p0, p1, tmp0, tmp1);
+    for(int i = 0; i < DG_NP; i++) {
+      tmp0[i] = 0.0;
+      tmp1[i] = 0.0;
+      for(int j = 0; j < DG_NP; j++) {
+        int ind = i + j * DG_NP;
+        tmp0[i] += Mass[ind] * p0[j] + *pen * (op_0[ind] * p0[j] + op_3[ind] * p1[j]);
+        tmp1[i] += Mass[ind] * p1[j] + *pen * (op_2[ind] * p0[j] + op_1[ind] * p1[j]);
+      }
+      tmp0[i] *= J[i];
+      tmp1[i] *= J[i];
+    }
     double tmp_alpha_0 = 0.0;
     double tmp_alpha_1 = 0.0;
     for(int i = 0; i < DG_NP; i++) {

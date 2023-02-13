@@ -101,9 +101,10 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
   currentInd = 0;
 
   pressureMatrix = new PoissonMatrix3D(mesh);
-  viscosityMatrix = new MMPoissonMatrix3D(mesh);
-  // pressureSolver = new PETScAMGSolver(mesh);
-  pressureSolver = new PETScPMultigrid(mesh);
+  // viscosityMatrix = new MMPoissonMatrix3D(mesh);
+  viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
+  pressureSolver = new PETScAMGSolver(mesh);
+  // pressureSolver = new PETScPMultigrid(mesh);
   // pressureSolver = new PMultigridPoissonSolver(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
   // viscositySolver = new PETScAMGSolver(mesh);

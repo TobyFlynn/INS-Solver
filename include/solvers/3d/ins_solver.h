@@ -5,6 +5,7 @@
 
 #include "matrices/3d/poisson_matrix_3d.h"
 #include "matrices/3d/mm_poisson_matrix_3d.h"
+#include "matrices/3d/mm_poisson_matrix_free_3d.h"
 #include "linear_solvers/linear_solver.h"
 
 class INSSolver3D {
@@ -28,7 +29,8 @@ private:
 
   DGMesh3D *mesh;
   PoissonMatrix3D *pressureMatrix;
-  MMPoissonMatrix3D *viscosityMatrix;
+  // MMPoissonMatrix3D *viscosityMatrix;
+  MMPoissonMatrixFree3D *viscosityMatrix;
   LinearSolver *pressureSolver;
   LinearSolver *viscositySolver;
   double g0, a0, a1, b0, b1, dt, time, h;

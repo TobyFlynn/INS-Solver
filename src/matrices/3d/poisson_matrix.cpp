@@ -99,7 +99,7 @@ void PoissonMatrix3D::calc_op2() {
               op_arg_dat(mesh->ty, -2, mesh->face2cells, 1, "double", OP_READ),
               op_arg_dat(mesh->rz, -2, mesh->face2cells, 1, "double", OP_READ),
               op_arg_dat(mesh->sz, -2, mesh->face2cells, 1, "double", OP_READ),
-              op_arg_dat(mesh->tz, -2, mesh->face2cells, 1, "double", OP_READ)
+              op_arg_dat(mesh->tz, -2, mesh->face2cells, 1, "double", OP_READ),
               op_arg_dat(op1, 0, mesh->face2cells, DG_NP * DG_NP, "double", OP_INC),
               op_arg_dat(op1, 1, mesh->face2cells, DG_NP * DG_NP, "double", OP_INC),
               op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE),

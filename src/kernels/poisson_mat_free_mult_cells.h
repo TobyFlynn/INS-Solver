@@ -1,4 +1,4 @@
-inline void poisson_mat_free_mult_cells(const int *p, const double *dr, const double *ds, 
+inline void poisson_mat_free_mult_cells(const int *p, const double *dr, const double *ds,
                                         const double *dt, const double *mass, const double *rx,
                                         const double *sx, const double *tx,
                                         const double *ry, const double *sy,
@@ -11,12 +11,8 @@ inline void poisson_mat_free_mult_cells(const int *p, const double *dr, const do
   const double *dt_mat = &dt[(*p - 1) * DG_NP * DG_NP];
   const double *mass_mat = &mass[(*p - 1) * DG_NP * DG_NP];
   const int dg_np = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
-  
-  double tmpX[DG_NP], tmpY[DG_NP], tmpZ[DG_NP];
-  for(int i = 0; i < DG_NP; i++) {
-    out[i] = 0.0;
-  }
 
+  double tmpX[DG_NP], tmpY[DG_NP], tmpZ[DG_NP];
   for(int m = 0; m < dg_np; m++) {
     double tmpR = 0.0;
     double tmpS = 0.0;
