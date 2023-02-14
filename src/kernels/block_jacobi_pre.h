@@ -1,4 +1,4 @@
-inline void block_jacobi_pre(const int *p, const double *in, const double *pre, double *out) {
+inline void block_jacobi_pre(const int *p, const DG_FP *in, const DG_FP *pre, DG_FP *out) {
   const int dg_np = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
   for(int i = 0; i < dg_np; i++) {
     out[i] = 0.0;

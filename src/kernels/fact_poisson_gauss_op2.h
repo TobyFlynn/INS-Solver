@@ -1,14 +1,14 @@
-inline void fact_poisson_gauss_op2(const int **p, const double *gF0Dr,
-                                   const double *gF0Ds, const double *gF1Dr,
-                                   const double *gF1Ds, const double *gF2Dr,
-                                   const double *gF2Ds, const double *gFInterp0,
-                                   const double *gFInterp1, const double *gFInterp2,
+inline void fact_poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
+                                   const DG_FP *gF0Ds, const DG_FP *gF1Dr,
+                                   const DG_FP *gF1Ds, const DG_FP *gF2Dr,
+                                   const DG_FP *gF2Ds, const DG_FP *gFInterp0,
+                                   const DG_FP *gFInterp1, const DG_FP *gFInterp2,
                                    const int *edgeNum, const bool *reverse,
-                                   const double **x, const double **y,
-                                   const double **sJ, const double **nx,
-                                   const double **ny, const double **h,
-                                   const double **factor, double *op1L,
-                                   double *op1R, double *op2L, double *op2R) {
+                                   const DG_FP **x, const DG_FP **y,
+                                   const DG_FP **sJ, const DG_FP **nx,
+                                   const DG_FP **ny, const DG_FP **h,
+                                   const DG_FP **factor, DG_FP *op1L,
+                                   DG_FP *op1R, DG_FP *op2L, DG_FP *op2R) {
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
 
@@ -18,13 +18,13 @@ inline void fact_poisson_gauss_op2(const int **p, const double *gF0Dr,
   const int dg_npL      = DG_CONSTANTS[(p[0][0] - 1) * DG_NUM_CONSTANTS];
   const int dg_npfL     = DG_CONSTANTS[(p[0][0] - 1) * DG_NUM_CONSTANTS + 1];
   const int dg_gf_npL   = DG_CONSTANTS[(p[0][0] - 1) * DG_NUM_CONSTANTS + 4];
-  const double *gaussWL = &gaussW_g[(p[0][0] - 1) * DG_GF_NP];
+  const DG_FP *gaussWL = &gaussW_g[(p[0][0] - 1) * DG_GF_NP];
   const int dg_npR      = DG_CONSTANTS[(p[1][0] - 1) * DG_NUM_CONSTANTS];
   const int dg_npfR     = DG_CONSTANTS[(p[1][0] - 1) * DG_NUM_CONSTANTS + 1];
   const int dg_gf_npR   = DG_CONSTANTS[(p[1][0] - 1) * DG_NUM_CONSTANTS + 4];
-  const double *gaussWR = &gaussW_g[(p[1][0] - 1) * DG_GF_NP];
+  const DG_FP *gaussWR = &gaussW_g[(p[1][0] - 1) * DG_GF_NP];
 
-  const double *gDrL, *gDsL, *gDrR, *gDsR, *gVML, *gVMR;
+  const DG_FP *gDrL, *gDsL, *gDrR, *gDsR, *gVML, *gVMR;
 
   if(edgeL == 0) {
     gDrL = &gF0Dr[(p[0][0] - 1) * DG_GF_NP * DG_NP];
@@ -54,8 +54,8 @@ inline void fact_poisson_gauss_op2(const int **p, const double *gF0Dr,
     gVMR = &gFInterp2[(p[1][0] - 1) * DG_GF_NP * DG_NP];
   }
 
-  double rxL[DG_GF_NP], sxL[DG_GF_NP], ryL[DG_GF_NP], syL[DG_GF_NP];
-  double rxR[DG_GF_NP], sxR[DG_GF_NP], ryR[DG_GF_NP], syR[DG_GF_NP];
+  DG_FP rxL[DG_GF_NP], sxL[DG_GF_NP], ryL[DG_GF_NP], syL[DG_GF_NP];
+  DG_FP rxR[DG_GF_NP], sxR[DG_GF_NP], ryR[DG_GF_NP], syR[DG_GF_NP];
 
   // Left edge
   for(int m = 0; m < DG_GF_NP; m++) {
@@ -70,11 +70,11 @@ inline void fact_poisson_gauss_op2(const int **p, const double *gF0Dr,
       ryL[m] += gDrL[ind] * y[0][n];
       syL[m] += gDsL[ind] * y[0][n];
     }
-    double JL = -sxL[m] * ryL[m] + rxL[m] * syL[m];
-    double rx_nL = syL[m] / JL;
-    double sx_nL = -ryL[m] / JL;
-    double ry_nL = -sxL[m] / JL;
-    double sy_nL = rxL[m] / JL;
+    DG_FP JL = -sxL[m] * ryL[m] + rxL[m] * syL[m];
+    DG_FP rx_nL = syL[m] / JL;
+    DG_FP sx_nL = -ryL[m] / JL;
+    DG_FP ry_nL = -sxL[m] / JL;
+    DG_FP sy_nL = rxL[m] / JL;
     rxL[m] = rx_nL;
     sxL[m] = sx_nL;
     ryL[m] = ry_nL;
@@ -94,11 +94,11 @@ inline void fact_poisson_gauss_op2(const int **p, const double *gF0Dr,
       ryR[m] += gDrR[ind] * y[1][n];
       syR[m] += gDsR[ind] * y[1][n];
     }
-    double JR = -sxR[m] * ryR[m] + rxR[m] * syR[m];
-    double rx_nR = syR[m] / JR;
-    double sx_nR = -ryR[m] / JR;
-    double ry_nR = -sxR[m] / JR;
-    double sy_nR = rxR[m] / JR;
+    DG_FP JR = -sxR[m] * ryR[m] + rxR[m] * syR[m];
+    DG_FP rx_nR = syR[m] / JR;
+    DG_FP sx_nR = -ryR[m] / JR;
+    DG_FP ry_nR = -sxR[m] / JR;
+    DG_FP sy_nR = rxR[m] / JR;
     rxR[m] = rx_nR;
     sxR[m] = sx_nR;
     ryR[m] = ry_nR;
@@ -108,7 +108,7 @@ inline void fact_poisson_gauss_op2(const int **p, const double *gF0Dr,
   // Left edge
   const int exIndL = edgeL * DG_GF_NP;
   const int exIndR = edgeR * DG_GF_NP;
-  double mDL[DG_GF_NP * DG_NP], mDR[DG_GF_NP * DG_NP], pDL[DG_GF_NP * DG_NP], pDR[DG_GF_NP * DG_NP];
+  DG_FP mDL[DG_GF_NP * DG_NP], mDR[DG_GF_NP * DG_NP], pDL[DG_GF_NP * DG_NP], pDR[DG_GF_NP * DG_NP];
   for(int m = 0; m < DG_GF_NP; m++) {
     for(int n = 0; n < dg_npL; n++) {
       int ind = m + n * DG_GF_NP;
@@ -121,8 +121,8 @@ inline void fact_poisson_gauss_op2(const int **p, const double *gF0Dr,
         p_norm_indR = exIndR + m;
       }
 
-      double DxL = rxL[m] * gDrL[ind] + sxL[m] * gDsL[ind];
-      double DyL = ryL[m] * gDrL[ind] + syL[m] * gDsL[ind];
+      DG_FP DxL = rxL[m] * gDrL[ind] + sxL[m] * gDsL[ind];
+      DG_FP DyL = ryL[m] * gDrL[ind] + syL[m] * gDsL[ind];
       mDL[ind]   = factor[0][exIndL + m] * (nx[0][exIndL + m] * DxL + ny[0][exIndL + m] * DyL);
       pDR[p_ind] = factor[0][exIndL + m] * (nx[1][p_norm_indR] * DxL + ny[1][p_norm_indR] * DyL);
     }
@@ -141,8 +141,8 @@ inline void fact_poisson_gauss_op2(const int **p, const double *gF0Dr,
         p_norm_indL = exIndL + m;
       }
 
-      double DxR = rxR[m] * gDrR[ind] + sxR[m] * gDsR[ind];
-      double DyR = ryR[m] * gDrR[ind] + syR[m] * gDsR[ind];
+      DG_FP DxR = rxR[m] * gDrR[ind] + sxR[m] * gDsR[ind];
+      DG_FP DyR = ryR[m] * gDrR[ind] + syR[m] * gDsR[ind];
       mDR[ind]   = factor[1][exIndR + m] * (nx[1][exIndR + m] * DxR + ny[1][exIndR + m] * DyR);
       pDL[p_ind] = factor[1][exIndR + m] * (nx[0][p_norm_indL] * DxR + ny[0][p_norm_indL] * DyR);
     }
@@ -150,8 +150,8 @@ inline void fact_poisson_gauss_op2(const int **p, const double *gF0Dr,
 
 
   // Left edge
-  double tauL[DG_GF_NP];
-  double maxtau = 0.0;
+  DG_FP tauL[DG_GF_NP];
+  DG_FP maxtau = 0.0;
   for(int i = 0; i < DG_GF_NP; i++) {
     int indL = edgeL * DG_GF_NP + i;
     int indR;
@@ -169,7 +169,7 @@ inline void fact_poisson_gauss_op2(const int **p, const double *gF0Dr,
   }
 
   // Right edge
-  double tauR[DG_GF_NP];
+  DG_FP tauR[DG_GF_NP];
   maxtau = 0.0;
   for(int i = 0; i < DG_GF_NP; i++) {
     int indR = edgeR * DG_GF_NP + i;

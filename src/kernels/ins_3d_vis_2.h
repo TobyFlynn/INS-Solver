@@ -1,4 +1,4 @@
-inline void ins_3d_vis_2(const int *bc_type, int *type, double *bcs) {
+inline void ins_3d_vis_2(const int *bc_type, int *type, DG_FP *bcs) {
   if(*bc_type == 1)
     *type = 1;
   else

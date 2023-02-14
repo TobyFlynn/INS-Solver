@@ -14,8 +14,8 @@ public:
 
   bool solve(op_dat rhs, op_dat ans) override;
 
-  void calc_rhs(const double *in_d, double *out_d);
-  void precond(const double *in_d, double *out_d);
+  void calc_rhs(const DG_FP *in_d, DG_FP *out_d);
+  void precond(const DG_FP *in_d, DG_FP *out_d);
 
 private:
   void calc_precond_mat();

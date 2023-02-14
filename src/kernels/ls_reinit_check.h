@@ -1,6 +1,6 @@
-inline void ls_reinit_check(const int *p, const double *alpha, const double *s,
-                            const double *dsdx, const double *dsdy,
-                            double *res, int *count) {
+inline void ls_reinit_check(const int *p, const DG_FP *alpha, const DG_FP *s,
+                            const DG_FP *dsdx, const DG_FP *dsdy,
+                            DG_FP *res, int *count) {
   // Get constants for this element's order
   const int dg_np = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
   for(int i = 0; i < dg_np; i++) {

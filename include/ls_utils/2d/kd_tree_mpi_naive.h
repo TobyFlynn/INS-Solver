@@ -1,6 +1,8 @@
 #ifndef __INS_KD_TREE_H
 #define __INS_KD_TREE_H
 
+#include "dg_compiler_defs.h"
+
 #include "op_seq.h"
 
 #include <vector>
@@ -14,10 +16,10 @@
 #include <armadillo>
 
 struct KDCoord {
-  double x_rot;
-  double y_rot;
-  double x;
-  double y;
+  DG_FP x_rot;
+  DG_FP y_rot;
+  DG_FP x;
+  DG_FP y;
   int poly;
   int rank;
 };
@@ -28,22 +30,22 @@ struct KDNode {
   std::vector<KDCoord>::iterator start;
   std::vector<KDCoord>::iterator end;
   arma::mat rot;
-  double x_min, x_max;
-  double y_min, y_max;
+  DG_FP x_min, x_max;
+  DG_FP y_min, y_max;
   int axis;
 };
 
 class KDTreeMPINaive {
 public:
-  KDTreeMPINaive(const double *x, const double *y, const int num, DGMesh2D *mesh, op_dat s);
+  KDTreeMPINaive(const DG_FP *x, const DG_FP *y, const int num, DGMesh2D *mesh, op_dat s);
 
-  KDCoord closest_point(double x, double y);
+  KDCoord closest_point(DG_FP x, DG_FP y);
   std::vector<PolyApprox> get_polys();
 
 private:
   int construct_tree(std::vector<KDCoord>::iterator pts_start, std::vector<KDCoord>::iterator pts_end, bool has_transformed, int level);
-  double bb_sqr_dist(const int node_ind, const double x, const double y);
-  void nearest_neighbour(double x, double y, int current_ind, std::vector<KDCoord>::iterator &closest_pt, double &closest_distance);
+  DG_FP bb_sqr_dist(const int node_ind, const DG_FP x, const DG_FP y);
+  void nearest_neighbour(DG_FP x, DG_FP y, int current_ind, std::vector<KDCoord>::iterator &closest_pt, DG_FP &closest_distance);
 
   std::set<int> cell_inds(std::vector<KDCoord> &points);
   void construct_polys(std::vector<KDCoord> &points, DGMesh2D *mesh, op_dat s);

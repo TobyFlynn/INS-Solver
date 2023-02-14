@@ -1,32 +1,32 @@
-inline void factor_poisson_matrix_3d_bop(const int *order, const double *dr,
-                                         const double *ds, const double *dt,
-                                         const double *mmF0, const double *mmF1,
-                                         const double *mmF2, const double *mmF3,
+inline void factor_poisson_matrix_3d_bop(const int *order, const DG_FP *dr,
+                                         const DG_FP *ds, const DG_FP *dt,
+                                         const DG_FP *mmF0, const DG_FP *mmF1,
+                                         const DG_FP *mmF2, const DG_FP *mmF3,
                                          const int *faceNum, const int *bc_type,
-                                         const double *nx, const double *ny,
-                                         const double *nz, const double *fscale,
-                                         const double *sJ, const double *rx,
-                                         const double *sx, const double *tx,
-                                         const double *ry, const double *sy,
-                                         const double *ty, const double *rz,
-                                         const double *sz, const double *tz,
-                                         const double *factor, double *op1) {
+                                         const DG_FP *nx, const DG_FP *ny,
+                                         const DG_FP *nz, const DG_FP *fscale,
+                                         const DG_FP *sJ, const DG_FP *rx,
+                                         const DG_FP *sx, const DG_FP *tx,
+                                         const DG_FP *ry, const DG_FP *sy,
+                                         const DG_FP *ty, const DG_FP *rz,
+                                         const DG_FP *sz, const DG_FP *tz,
+                                         const DG_FP *factor, DG_FP *op1) {
   // Do nothing for Neumann boundary conditions
   if(*bc_type == 1)
     return;
 
   // Handle Dirichlet boundary conditions
-  const double *dr_mat = &dr[(*order - 1) * DG_NP * DG_NP];
-  const double *ds_mat = &ds[(*order - 1) * DG_NP * DG_NP];
-  const double *dt_mat = &dt[(*order - 1) * DG_NP * DG_NP];
-  const double *mmF0_mat = &mmF0[(*order - 1) * DG_NP * DG_NP];
-  const double *mmF1_mat = &mmF1[(*order - 1) * DG_NP * DG_NP];
-  const double *mmF2_mat = &mmF2[(*order - 1) * DG_NP * DG_NP];
-  const double *mmF3_mat = &mmF3[(*order - 1) * DG_NP * DG_NP];
+  const DG_FP *dr_mat = &dr[(*order - 1) * DG_NP * DG_NP];
+  const DG_FP *ds_mat = &ds[(*order - 1) * DG_NP * DG_NP];
+  const DG_FP *dt_mat = &dt[(*order - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF0_mat = &mmF0[(*order - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF1_mat = &mmF1[(*order - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF2_mat = &mmF2[(*order - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF3_mat = &mmF3[(*order - 1) * DG_NP * DG_NP];
   const int dg_np  = DG_CONSTANTS[(*order - 1) * DG_NUM_CONSTANTS];
   const int dg_npf = DG_CONSTANTS[(*order - 1) * DG_NUM_CONSTANTS + 1];
 
-  const double *mmF;
+  const DG_FP *mmF;
   if(*faceNum == 0)
     mmF = mmF0_mat;
   else if(*faceNum == 1)
@@ -40,7 +40,7 @@ inline void factor_poisson_matrix_3d_bop(const int *order, const double *dr,
   const int *fmask  = &FMASK[(*order - 1) * 4 * DG_NPF];
   const int *fmaskB = &fmask[*faceNum * dg_npf];
 
-  double D[DG_NP * DG_NP];
+  DG_FP D[DG_NP * DG_NP];
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
       int ind  = i + j * dg_np;
@@ -52,15 +52,15 @@ inline void factor_poisson_matrix_3d_bop(const int *order, const double *dr,
     }
   }
 
-  double gtau = 0.0;
+  DG_FP gtau = 0.0;
   for(int i = 0; i < dg_npf; i++) {
-    gtau = fmax(gtau, 2.0 * (DG_ORDER + 1) * (DG_ORDER + 1) * *fscale * factor[fmaskB[i]]);
+    gtau = fmax(gtau, (DG_FP)2.0 * (DG_ORDER + 1) * (DG_ORDER + 1) * *fscale * factor[fmaskB[i]]);
   }
 
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
       int op_ind = i + j * dg_np;
-      double tmp = 0.0;
+      DG_FP tmp = 0.0;
       for(int k = 0; k < dg_np; k++) {
         int a_ind0 = i + k * dg_np;
         int a_ind1 = i * dg_np + k;

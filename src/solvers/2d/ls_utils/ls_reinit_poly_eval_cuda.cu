@@ -2,7 +2,7 @@
 
 PolyEval::PolyEval(std::vector<PolyApprox> &polys) {
   const int numCoeffPerPoly = PolyApprox::num_coeff();
-  cudaMallocManaged(&coeff, polys.size() * numCoeffPerPoly * sizeof(double));
+  cudaMallocManaged(&coeff, polys.size() * numCoeffPerPoly * sizeof(DG_FP));
 
   int i = 0;
   for(auto &poly : polys) {

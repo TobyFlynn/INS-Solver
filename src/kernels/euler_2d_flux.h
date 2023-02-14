@@ -1,11 +1,11 @@
-inline void euler_2d_flux(const double *q0, const double *q1, 
-                          const double *q2, const double *q3,
-                          double *f0, double *f1, double *f2, double *f3,
-                          double *g0, double *g1, double *g2, double *g3) {
+inline void euler_2d_flux(const DG_FP *q0, const DG_FP *q1, 
+                          const DG_FP *q2, const DG_FP *q3,
+                          DG_FP *f0, DG_FP *f1, DG_FP *f2, DG_FP *f3,
+                          DG_FP *g0, DG_FP *g1, DG_FP *g2, DG_FP *g3) {
   for(int i = 0; i < DG_NP; i++) {
-    const double u = q1[i] / q0[i];
-    const double v = q2[i] / q0[i];
-    const double p = (gamma_e - 1.0) * (q3[i] - 0.5 * (q1[i] * u + q2[i] * v));
+    const DG_FP u = q1[i] / q0[i];
+    const DG_FP v = q2[i] / q0[i];
+    const DG_FP p = (gamma_e - 1.0) * (q3[i] - 0.5 * (q1[i] * u + q2[i] * v));
 
     f0[i] = q1[i];
     f1[i] = q1[i] * u + p;

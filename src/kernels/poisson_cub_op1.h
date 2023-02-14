@@ -1,25 +1,25 @@
-inline void poisson_cub_op1(const int *p, const double *cubVDr,
-                            const double *cubVDs, const double *rx,
-                            const double *sx, const double *ry,
-                            const double *sy, const double *J,
-                            double *op) {
+inline void poisson_cub_op1(const int *p, const DG_FP *cubVDr,
+                            const DG_FP *cubVDs, const DG_FP *rx,
+                            const DG_FP *sx, const DG_FP *ry,
+                            const DG_FP *sy, const DG_FP *J,
+                            DG_FP *op) {
   // Get constants
   const int dg_np        = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
   const int dg_cub_np    = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS + 2];
-  const double *cubVDr_l = &cubVDr[(*p - 1) * DG_CUB_NP * DG_NP];
-  const double *cubVDs_l = &cubVDs[(*p - 1) * DG_CUB_NP * DG_NP];
-  const double *cubW     = &cubW_g[(*p - 1) * DG_CUB_NP];
+  const DG_FP *cubVDr_l = &cubVDr[(*p - 1) * DG_CUB_NP * DG_NP];
+  const DG_FP *cubVDs_l = &cubVDs[(*p - 1) * DG_CUB_NP * DG_NP];
+  const DG_FP *cubW     = &cubW_g[(*p - 1) * DG_CUB_NP];
 
   // Everything in col-major
-  double Dx[DG_CUB_NP * DG_NP], Dy[DG_CUB_NP * DG_NP];
+  DG_FP Dx[DG_CUB_NP * DG_NP], Dy[DG_CUB_NP * DG_NP];
   for(int m = 0; m < dg_cub_np; m++) {
     // J = -xs.*yr + xr.*ys
-    double J_m  = -sx[m] * ry[m] + rx[m] * sy[m];
+    DG_FP J_m  = -sx[m] * ry[m] + rx[m] * sy[m];
     // rx = ys./J; sx =-yr./J; ry =-xs./J; sy = xr./J;
-    double rx_m = sy[m] / J_m;
-    double sx_m = -ry[m] / J_m;
-    double ry_m = -sx[m] / J_m;
-    double sy_m = rx[m] / J_m;
+    DG_FP rx_m = sy[m] / J_m;
+    DG_FP sx_m = -ry[m] / J_m;
+    DG_FP ry_m = -sx[m] / J_m;
+    DG_FP sy_m = rx[m] / J_m;
     for(int n = 0; n < dg_np; n++) {
       int ind = m + n * dg_cub_np;
       Dx[ind] = rx_m * cubVDr_l[ind] + sx_m * cubVDs_l[ind];

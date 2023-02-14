@@ -22,7 +22,7 @@ bool compareY(KDCoord a, KDCoord b) {
   return a.y_rot < b.y_rot;
 }
 
-KDTreeMPINaive::KDTreeMPINaive(const double *x, const double *y, const int num,
+KDTreeMPINaive::KDTreeMPINaive(const DG_FP *x, const DG_FP *y, const int num,
                DGMesh2D *mesh, op_dat s) {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -72,8 +72,8 @@ KDTreeMPINaive::KDTreeMPINaive(const double *x, const double *y, const int num,
     num_polys_coeff_per_rank[i] = num_polys_per_rank[i] * PolyApprox::num_coeff();
   }
 
-  vector<double> pts_x_snd(n);
-  vector<double> pts_y_snd(n);
+  vector<DG_FP> pts_x_snd(n);
+  vector<DG_FP> pts_y_snd(n);
   vector<int> pts_poly_snd(n);
   for(int i = 0; i < n; i++) {
     pts_x_snd[i] = points[i].x;
@@ -81,7 +81,7 @@ KDTreeMPINaive::KDTreeMPINaive(const double *x, const double *y, const int num,
     pts_poly_snd[i] = points[i].poly;
   }
 
-  vector<double> poly_coeff_snd(polys.size() * PolyApprox::num_coeff());
+  vector<DG_FP> poly_coeff_snd(polys.size() * PolyApprox::num_coeff());
   for(int i = 0; i < polys.size(); i++) {
     int ind = i * PolyApprox::num_coeff();
     for(int j = 0; j < PolyApprox::num_coeff(); j++) {
@@ -89,15 +89,15 @@ KDTreeMPINaive::KDTreeMPINaive(const double *x, const double *y, const int num,
     }
   }
 
-  vector<double> pts_x_rcv(num_pts_g);
-  vector<double> pts_y_rcv(num_pts_g);
+  vector<DG_FP> pts_x_rcv(num_pts_g);
+  vector<DG_FP> pts_y_rcv(num_pts_g);
   vector<int> pts_poly_rcv(num_pts_g);
-  vector<double> poly_coeff_rcv(num_polys_g * PolyApprox::num_coeff());
+  vector<DG_FP> poly_coeff_rcv(num_polys_g * PolyApprox::num_coeff());
 
-  MPI_Allgatherv(pts_x_snd.data(), n, MPI_DOUBLE, pts_x_rcv.data(), num_pts_per_rank, num_pts_per_rank_disp, MPI_DOUBLE, MPI_COMM_WORLD);
-  MPI_Allgatherv(pts_y_snd.data(), n, MPI_DOUBLE, pts_y_rcv.data(), num_pts_per_rank, num_pts_per_rank_disp, MPI_DOUBLE, MPI_COMM_WORLD);
+  MPI_Allgatherv(pts_x_snd.data(), n, DG_MPI_FP, pts_x_rcv.data(), num_pts_per_rank, num_pts_per_rank_disp, DG_MPI_FP, MPI_COMM_WORLD);
+  MPI_Allgatherv(pts_y_snd.data(), n, DG_MPI_FP, pts_y_rcv.data(), num_pts_per_rank, num_pts_per_rank_disp, DG_MPI_FP, MPI_COMM_WORLD);
   MPI_Allgatherv(pts_poly_snd.data(), n, MPI_INT, pts_poly_rcv.data(), num_pts_per_rank, num_pts_per_rank_disp, MPI_INT, MPI_COMM_WORLD);
-  MPI_Allgatherv(poly_coeff_snd.data(), num_polys * PolyApprox::num_coeff(), MPI_DOUBLE, poly_coeff_rcv.data(), num_polys_coeff_per_rank, num_polys_coeff_per_rank_disp, MPI_DOUBLE, MPI_COMM_WORLD);
+  MPI_Allgatherv(poly_coeff_snd.data(), num_polys * PolyApprox::num_coeff(), DG_MPI_FP, poly_coeff_rcv.data(), num_polys_coeff_per_rank, num_polys_coeff_per_rank_disp, DG_MPI_FP, MPI_COMM_WORLD);
 
   vector<KDCoord> newPts;
   int curr_rank = 0;
@@ -115,7 +115,7 @@ KDTreeMPINaive::KDTreeMPINaive(const double *x, const double *y, const int num,
 
   vector<PolyApprox> newPolys;
   for(int i = 0; i < num_polys_g; i++) {
-    vector<double> c;
+    vector<DG_FP> c;
     int ind = i * PolyApprox::num_coeff();
     for(int j = 0; j < PolyApprox::num_coeff(); j++) {
       c.push_back(poly_coeff_rcv[ind + j]);
@@ -131,8 +131,8 @@ KDTreeMPINaive::KDTreeMPINaive(const double *x, const double *y, const int num,
   construct_tree(points.begin(), points.end(), false, 0);
 }
 
-KDCoord KDTreeMPINaive::closest_point(const double x, const double y) {
-  double closest_distance = std::numeric_limits<double>::max();
+KDCoord KDTreeMPINaive::closest_point(const DG_FP x, const DG_FP y) {
+  DG_FP closest_distance = std::numeric_limits<DG_FP>::max();
   vector<KDCoord>::iterator res = points.end();
   int current_ind = 0;
 
@@ -151,8 +151,8 @@ int KDTreeMPINaive::construct_tree(vector<KDCoord>::iterator pts_start, vector<K
   node.x_max = pts_start->x_rot;
   node.y_min = pts_start->y_rot;
   node.y_max = pts_start->y_rot;
-  double x_avg = pts_start->x_rot;
-  double y_avg = pts_start->y_rot;
+  DG_FP x_avg = pts_start->x_rot;
+  DG_FP y_avg = pts_start->y_rot;
   for(auto it = pts_start + 1; it != pts_end; it++) {
     x_avg += it->x_rot;
     y_avg += it->y_rot;
@@ -161,8 +161,8 @@ int KDTreeMPINaive::construct_tree(vector<KDCoord>::iterator pts_start, vector<K
     if(node.x_max < it->x_rot) node.x_max = it->x_rot;
     if(node.y_max < it->y_rot) node.y_max = it->y_rot;
   }
-  x_avg /= (double)(pts_end - pts_start);
-  y_avg /= (double)(pts_end - pts_start);
+  x_avg /= (DG_FP)(pts_end - pts_start);
+  y_avg /= (DG_FP)(pts_end - pts_start);
 
   if(pts_end - pts_start <= leaf_size) {
     node.start = pts_start;
@@ -182,7 +182,7 @@ int KDTreeMPINaive::construct_tree(vector<KDCoord>::iterator pts_start, vector<K
   // Do rotational transform if necessary
   bool transform = !has_transformed && level > 5 && pts_end - pts_start >= leaf_size * 4;
   if(transform) {
-    double hole_radius_sqr = 0.0;
+    DG_FP hole_radius_sqr = 0.0;
     if(axis == 0) {
       hole_radius_sqr = 0.05 * (node.x_max - node.x_min) * 0.05 * (node.x_max - node.x_min);
     } else {
@@ -194,17 +194,17 @@ int KDTreeMPINaive::construct_tree(vector<KDCoord>::iterator pts_start, vector<K
     normal(1) = 0.0;
 
     for(auto it = pts_start; it != pts_end; it++) {
-      double x_tmp = it->x_rot - x_avg;
-      double y_tmp = it->y_rot - y_avg;
-      double msqr = x_tmp * x_tmp + y_tmp * y_tmp;
+      DG_FP x_tmp = it->x_rot - x_avg;
+      DG_FP y_tmp = it->y_rot - y_avg;
+      DG_FP msqr = x_tmp * x_tmp + y_tmp * y_tmp;
       if(msqr > hole_radius_sqr) {
-        double tmp_dot = x_tmp * normal(0) + y_tmp * normal(1);
+        DG_FP tmp_dot = x_tmp * normal(0) + y_tmp * normal(1);
         normal(0) -= x_tmp * tmp_dot / msqr;
         normal(1) -= y_tmp * tmp_dot / msqr;
       }
     }
 
-    double msqr = normal(0) * normal(0) + normal(1) * normal(1);
+    DG_FP msqr = normal(0) * normal(0) + normal(1) * normal(1);
     if(msqr == 0.0) {
       normal(0) = 1.0;
     } else {
@@ -212,15 +212,15 @@ int KDTreeMPINaive::construct_tree(vector<KDCoord>::iterator pts_start, vector<K
       normal(1) /= sqrt(msqr);
     }
 
-    double min_alpha = pts_start->x_rot * normal(0) + pts_start->y_rot * normal(1);
-    double max_alpha = min_alpha;
+    DG_FP min_alpha = pts_start->x_rot * normal(0) + pts_start->y_rot * normal(1);
+    DG_FP max_alpha = min_alpha;
     for(auto it = pts_start + 1; it != pts_end; it++) {
-      double alpha = it->x_rot * normal[0] + it->y_rot * normal[1];
+      DG_FP alpha = it->x_rot * normal[0] + it->y_rot * normal[1];
       if(alpha > max_alpha) max_alpha = alpha;
       if(alpha < min_alpha) min_alpha = alpha;
     }
 
-    double max_extent = node.x_max - node.x_min;
+    DG_FP max_extent = node.x_max - node.x_min;
     if(axis == 1)
       max_extent = node.y_max - node.y_min;
     if(max_alpha - min_alpha < 0.1 * max_extent) {
@@ -229,7 +229,7 @@ int KDTreeMPINaive::construct_tree(vector<KDCoord>::iterator pts_start, vector<K
       int j = fabs(normal(0)) < fabs(normal(1)) ? 0 : 1;
       arma::vec u = normal;
       u(j) -= 1.0;
-      double u_norm = sqrt(u(0) * u(0) + u(1) * u(1));
+      DG_FP u_norm = sqrt(u(0) * u(0) + u(1) * u(1));
       u = u / u_norm;
       for(int dim = 0; dim < 2; dim++) {
         for(int i = 0; i < 2; i++) {
@@ -238,14 +238,14 @@ int KDTreeMPINaive::construct_tree(vector<KDCoord>::iterator pts_start, vector<K
       }
 
       // Apply coord transformation
-      double alpha_x = axes(0,0) * pts_start->x_rot + axes(0,1) * pts_start->y_rot;
-      double alpha_y = axes(1,0) * pts_start->x_rot + axes(1,1) * pts_start->y_rot;
+      DG_FP alpha_x = axes(0,0) * pts_start->x_rot + axes(0,1) * pts_start->y_rot;
+      DG_FP alpha_y = axes(1,0) * pts_start->x_rot + axes(1,1) * pts_start->y_rot;
       pts_start->x_rot = alpha_x;
       pts_start->y_rot = alpha_y;
-      double b_min_x = alpha_x;
-      double b_max_x = alpha_x;
-      double b_min_y = alpha_y;
-      double b_max_y = alpha_y;
+      DG_FP b_min_x = alpha_x;
+      DG_FP b_max_x = alpha_x;
+      DG_FP b_min_y = alpha_y;
+      DG_FP b_max_y = alpha_y;
 
       for(auto it = pts_start + 1; it != pts_end; it++) {
         alpha_x = axes(0,0) * it->x_rot + axes(0,1) * it->y_rot;
@@ -293,8 +293,8 @@ int KDTreeMPINaive::construct_tree(vector<KDCoord>::iterator pts_start, vector<K
   return node_ind;
 }
 
-double KDTreeMPINaive::bb_sqr_dist(const int node_ind, const double x, const double y) {
-  double sqr_dist = 0.0;
+DG_FP KDTreeMPINaive::bb_sqr_dist(const int node_ind, const DG_FP x, const DG_FP y) {
+  DG_FP sqr_dist = 0.0;
   if(x < nodes[node_ind].x_min)
     sqr_dist += (x - nodes[node_ind].x_min) * (x - nodes[node_ind].x_min);
   else if(x > nodes[node_ind].x_max)
@@ -308,11 +308,11 @@ double KDTreeMPINaive::bb_sqr_dist(const int node_ind, const double x, const dou
   return sqr_dist;
 }
 
-void KDTreeMPINaive::nearest_neighbour(double x, double y, int current_ind, vector<KDCoord>::iterator &closest_pt, double &closest_distance) {
+void KDTreeMPINaive::nearest_neighbour(DG_FP x, DG_FP y, int current_ind, vector<KDCoord>::iterator &closest_pt, DG_FP &closest_distance) {
   if(nodes[current_ind].l == -1 && nodes[current_ind].r == -1) {
     // Leaf node
     for(auto it = nodes[current_ind].start; it != nodes[current_ind].end; it++) {
-      double sqr_dist = (it->x_rot - x) * (it->x_rot - x) + (it->y_rot - y) * (it->y_rot - y);
+      DG_FP sqr_dist = (it->x_rot - x) * (it->x_rot - x) + (it->y_rot - y) * (it->y_rot - y);
       if(closest_distance > sqr_dist) {
         closest_distance = sqr_dist;
         closest_pt = it;
@@ -325,14 +325,14 @@ void KDTreeMPINaive::nearest_neighbour(double x, double y, int current_ind, vect
 
   // Apply transform
   if(nodes[current_ind].rot.n_elem > 1) {
-    double new_x = nodes[current_ind].rot(0,0) * x + nodes[current_ind].rot(0,1) * y;
-    double new_y = nodes[current_ind].rot(1,0) * x + nodes[current_ind].rot(1,1) * y;
+    DG_FP new_x = nodes[current_ind].rot(0,0) * x + nodes[current_ind].rot(0,1) * y;
+    DG_FP new_y = nodes[current_ind].rot(1,0) * x + nodes[current_ind].rot(1,1) * y;
     x = new_x;
     y = new_y;
   }
 
-  double dist_l = bb_sqr_dist(nodes[current_ind].l, x, y);
-  double dist_r = bb_sqr_dist(nodes[current_ind].r, x, y);
+  DG_FP dist_l = bb_sqr_dist(nodes[current_ind].l, x, y);
+  DG_FP dist_r = bb_sqr_dist(nodes[current_ind].r, x, y);
 
   if(dist_l < dist_r) {
     if(dist_l < closest_distance) {
@@ -366,9 +366,9 @@ void KDTreeMPINaive::construct_polys(vector<KDCoord> &points, DGMesh2D *mesh, op
 
   map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->face2cells);
 
-  const double *x_ptr = getOP2PtrHostMap(mesh->x, mesh->face2cells, OP_READ);
-  const double *y_ptr = getOP2PtrHostMap(mesh->y, mesh->face2cells, OP_READ);
-  const double *s_ptr = getOP2PtrHostMap(s, mesh->face2cells, OP_READ);
+  const DG_FP *x_ptr = getOP2PtrHostMap(mesh->x, mesh->face2cells, OP_READ);
+  const DG_FP *y_ptr = getOP2PtrHostMap(mesh->y, mesh->face2cells, OP_READ);
+  const DG_FP *s_ptr = getOP2PtrHostMap(s, mesh->face2cells, OP_READ);
 
   // Populate map
   int i = 0;

@@ -19,7 +19,7 @@ bool compareY(KDCoord a, KDCoord b) {
   return a.y_rot < b.y_rot;
 }
 
-KDTree::KDTree(const double *x, const double *y, const int num,
+KDTree::KDTree(const DG_FP *x, const DG_FP *y, const int num,
                DGMesh2D *mesh, op_dat s) {
   n = 0;
   for(int i = 0; i < num; i++) {
@@ -44,8 +44,8 @@ KDTree::KDTree(const double *x, const double *y, const int num,
   timer->endTimer("K-D Tree - Construct Tree");
 }
 
-KDCoord KDTree::closest_point(double x, double y) {
-  double closest_distance = std::numeric_limits<double>::max();
+KDCoord KDTree::closest_point(DG_FP x, DG_FP y) {
+  DG_FP closest_distance = std::numeric_limits<DG_FP>::max();
   vector<KDCoord>::iterator res = points.end();
   int current_ind = 0;
 
@@ -64,8 +64,8 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
   node.x_max = pts_start->x_rot;
   node.y_min = pts_start->y_rot;
   node.y_max = pts_start->y_rot;
-  double x_avg = pts_start->x_rot;
-  double y_avg = pts_start->y_rot;
+  DG_FP x_avg = pts_start->x_rot;
+  DG_FP y_avg = pts_start->y_rot;
   for(auto it = pts_start + 1; it != pts_end; it++) {
     x_avg += it->x_rot;
     y_avg += it->y_rot;
@@ -74,8 +74,8 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
     if(node.x_max < it->x_rot) node.x_max = it->x_rot;
     if(node.y_max < it->y_rot) node.y_max = it->y_rot;
   }
-  x_avg /= (double)(pts_end - pts_start);
-  y_avg /= (double)(pts_end - pts_start);
+  x_avg /= (DG_FP)(pts_end - pts_start);
+  y_avg /= (DG_FP)(pts_end - pts_start);
 
   if(pts_end - pts_start <= leaf_size) {
     node.start = pts_start;
@@ -95,7 +95,7 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
   // Do rotational transform if necessary
   bool transform = !has_transformed && level > 5 && pts_end - pts_start >= leaf_size * 4;
   if(transform) {
-    double hole_radius_sqr = 0.0;
+    DG_FP hole_radius_sqr = 0.0;
     if(axis == 0) {
       hole_radius_sqr = 0.05 * (node.x_max - node.x_min) * 0.05 * (node.x_max - node.x_min);
     } else {
@@ -107,17 +107,17 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
     normal(1) = 0.0;
 
     for(auto it = pts_start; it != pts_end; it++) {
-      double x_tmp = it->x_rot - x_avg;
-      double y_tmp = it->y_rot - y_avg;
-      double msqr = x_tmp * x_tmp + y_tmp * y_tmp;
+      DG_FP x_tmp = it->x_rot - x_avg;
+      DG_FP y_tmp = it->y_rot - y_avg;
+      DG_FP msqr = x_tmp * x_tmp + y_tmp * y_tmp;
       if(msqr > hole_radius_sqr) {
-        double tmp_dot = x_tmp * normal(0) + y_tmp * normal(1);
+        DG_FP tmp_dot = x_tmp * normal(0) + y_tmp * normal(1);
         normal(0) -= x_tmp * tmp_dot / msqr;
         normal(1) -= y_tmp * tmp_dot / msqr;
       }
     }
 
-    double msqr = normal(0) * normal(0) + normal(1) * normal(1);
+    DG_FP msqr = normal(0) * normal(0) + normal(1) * normal(1);
     if(msqr == 0.0) {
       normal(0) = 1.0;
     } else {
@@ -125,15 +125,15 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
       normal(1) /= sqrt(msqr);
     }
 
-    double min_alpha = pts_start->x_rot * normal(0) + pts_start->y_rot * normal(1);
-    double max_alpha = min_alpha;
+    DG_FP min_alpha = pts_start->x_rot * normal(0) + pts_start->y_rot * normal(1);
+    DG_FP max_alpha = min_alpha;
     for(auto it = pts_start + 1; it != pts_end; it++) {
-      double alpha = it->x_rot * normal[0] + it->y_rot * normal[1];
+      DG_FP alpha = it->x_rot * normal[0] + it->y_rot * normal[1];
       if(alpha > max_alpha) max_alpha = alpha;
       if(alpha < min_alpha) min_alpha = alpha;
     }
 
-    double max_extent = node.x_max - node.x_min;
+    DG_FP max_extent = node.x_max - node.x_min;
     if(axis == 1)
       max_extent = node.y_max - node.y_min;
     if(max_alpha - min_alpha < 0.1 * max_extent) {
@@ -142,7 +142,7 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
       int j = fabs(normal(0)) < fabs(normal(1)) ? 0 : 1;
       arma::vec u = normal;
       u(j) -= 1.0;
-      double u_norm = sqrt(u(0) * u(0) + u(1) * u(1));
+      DG_FP u_norm = sqrt(u(0) * u(0) + u(1) * u(1));
       u = u / u_norm;
       for(int dim = 0; dim < 2; dim++) {
         for(int i = 0; i < 2; i++) {
@@ -151,14 +151,14 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
       }
 
       // Apply coord transformation
-      double alpha_x = axes(0,0) * pts_start->x_rot + axes(0,1) * pts_start->y_rot;
-      double alpha_y = axes(1,0) * pts_start->x_rot + axes(1,1) * pts_start->y_rot;
+      DG_FP alpha_x = axes(0,0) * pts_start->x_rot + axes(0,1) * pts_start->y_rot;
+      DG_FP alpha_y = axes(1,0) * pts_start->x_rot + axes(1,1) * pts_start->y_rot;
       pts_start->x_rot = alpha_x;
       pts_start->y_rot = alpha_y;
-      double b_min_x = alpha_x;
-      double b_max_x = alpha_x;
-      double b_min_y = alpha_y;
-      double b_max_y = alpha_y;
+      DG_FP b_min_x = alpha_x;
+      DG_FP b_max_x = alpha_x;
+      DG_FP b_min_y = alpha_y;
+      DG_FP b_max_y = alpha_y;
 
       for(auto it = pts_start + 1; it != pts_end; it++) {
         alpha_x = axes(0,0) * it->x_rot + axes(0,1) * it->y_rot;
@@ -206,8 +206,8 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
   return node_ind;
 }
 
-double KDTree::bb_sqr_dist(const int node_ind, const double x, const double y) {
-  double sqr_dist = 0.0;
+DG_FP KDTree::bb_sqr_dist(const int node_ind, const DG_FP x, const DG_FP y) {
+  DG_FP sqr_dist = 0.0;
   if(x < nodes[node_ind].x_min)
     sqr_dist += (x - nodes[node_ind].x_min) * (x - nodes[node_ind].x_min);
   else if(x > nodes[node_ind].x_max)
@@ -221,11 +221,11 @@ double KDTree::bb_sqr_dist(const int node_ind, const double x, const double y) {
   return sqr_dist;
 }
 
-void KDTree::nearest_neighbour(double x, double y, int current_ind, vector<KDCoord>::iterator &closest_pt, double &closest_distance) {
+void KDTree::nearest_neighbour(DG_FP x, DG_FP y, int current_ind, vector<KDCoord>::iterator &closest_pt, DG_FP &closest_distance) {
   if(nodes[current_ind].l == -1 && nodes[current_ind].r == -1) {
     // Leaf node
     for(auto it = nodes[current_ind].start; it != nodes[current_ind].end; it++) {
-      double sqr_dist = (it->x_rot - x) * (it->x_rot - x) + (it->y_rot - y) * (it->y_rot - y);
+      DG_FP sqr_dist = (it->x_rot - x) * (it->x_rot - x) + (it->y_rot - y) * (it->y_rot - y);
       if(closest_distance > sqr_dist) {
         closest_distance = sqr_dist;
         closest_pt = it;
@@ -238,14 +238,14 @@ void KDTree::nearest_neighbour(double x, double y, int current_ind, vector<KDCoo
 
   // Apply transform
   if(nodes[current_ind].rot.n_elem > 1) {
-    double new_x = nodes[current_ind].rot(0,0) * x + nodes[current_ind].rot(0,1) * y;
-    double new_y = nodes[current_ind].rot(1,0) * x + nodes[current_ind].rot(1,1) * y;
+    DG_FP new_x = nodes[current_ind].rot(0,0) * x + nodes[current_ind].rot(0,1) * y;
+    DG_FP new_y = nodes[current_ind].rot(1,0) * x + nodes[current_ind].rot(1,1) * y;
     x = new_x;
     y = new_y;
   }
 
-  double dist_l = bb_sqr_dist(nodes[current_ind].l, x, y);
-  double dist_r = bb_sqr_dist(nodes[current_ind].r, x, y);
+  DG_FP dist_l = bb_sqr_dist(nodes[current_ind].l, x, y);
+  DG_FP dist_r = bb_sqr_dist(nodes[current_ind].r, x, y);
 
   if(dist_l < dist_r) {
     if(dist_l < closest_distance) {
@@ -279,9 +279,9 @@ void KDTree::construct_polys(vector<KDCoord> &points, DGMesh2D *mesh, op_dat s) 
 
   map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->face2cells);
 
-  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
-  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
-  const double *s_ptr = getOP2PtrHost(s, OP_READ);
+  const DG_FP *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
+  const DG_FP *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
+  const DG_FP *s_ptr = getOP2PtrHost(s, OP_READ);
 
   // Populate map
   int i = 0;

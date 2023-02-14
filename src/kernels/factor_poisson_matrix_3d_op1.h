@@ -1,19 +1,19 @@
-inline void factor_poisson_matrix_3d_op1(const int *order, const double *dr,
-                                         const double *ds, const double *dt,
-                                         const double *mass, const double *rx,
-                                         const double *sx, const double *tx,
-                                         const double *ry, const double *sy,
-                                         const double *ty, const double *rz,
-                                         const double *sz, const double *tz,
-                                         const double *J, const double *factor,
-                                         double *op1) {
-  const double *dr_mat = &dr[(*order - 1) * DG_NP * DG_NP];
-  const double *ds_mat = &ds[(*order - 1) * DG_NP * DG_NP];
-  const double *dt_mat = &dt[(*order - 1) * DG_NP * DG_NP];
-  const double *mass_mat = &mass[(*order - 1) * DG_NP * DG_NP];
+inline void factor_poisson_matrix_3d_op1(const int *order, const DG_FP *dr,
+                                         const DG_FP *ds, const DG_FP *dt,
+                                         const DG_FP *mass, const DG_FP *rx,
+                                         const DG_FP *sx, const DG_FP *tx,
+                                         const DG_FP *ry, const DG_FP *sy,
+                                         const DG_FP *ty, const DG_FP *rz,
+                                         const DG_FP *sz, const DG_FP *tz,
+                                         const DG_FP *J, const DG_FP *factor,
+                                         DG_FP *op1) {
+  const DG_FP *dr_mat = &dr[(*order - 1) * DG_NP * DG_NP];
+  const DG_FP *ds_mat = &ds[(*order - 1) * DG_NP * DG_NP];
+  const DG_FP *dt_mat = &dt[(*order - 1) * DG_NP * DG_NP];
+  const DG_FP *mass_mat = &mass[(*order - 1) * DG_NP * DG_NP];
   const int dg_np = DG_CONSTANTS[(*order - 1) * DG_NUM_CONSTANTS];
 
-  double Dx[DG_NP * DG_NP], Dy[DG_NP * DG_NP], Dz[DG_NP * DG_NP];
+  DG_FP Dx[DG_NP * DG_NP], Dy[DG_NP * DG_NP], Dz[DG_NP * DG_NP];
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
       int ind = i + j * dg_np;
@@ -23,7 +23,7 @@ inline void factor_poisson_matrix_3d_op1(const int *order, const double *dr,
     }
   }
 
-  double Dx_t[DG_NP * DG_NP], Dy_t[DG_NP * DG_NP], Dz_t[DG_NP * DG_NP];
+  DG_FP Dx_t[DG_NP * DG_NP], Dy_t[DG_NP * DG_NP], Dz_t[DG_NP * DG_NP];
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
       int op_ind = i + j * dg_np;
@@ -47,7 +47,7 @@ inline void factor_poisson_matrix_3d_op1(const int *order, const double *dr,
       for(int k = 0; k < dg_np; k++) {
         int a_ind = i * dg_np + k;
         int b_ind = j * dg_np + k;
-        double tmp = Dx[a_ind] * Dx_t[b_ind] + Dy[a_ind] * Dy_t[b_ind] + Dz[a_ind] * Dz_t[b_ind];
+        DG_FP tmp = Dx[a_ind] * Dx_t[b_ind] + Dy[a_ind] * Dy_t[b_ind] + Dz[a_ind] * Dz_t[b_ind];
         op1[op_ind] += factor[k] * tmp;
       }
       op1[op_ind] *= J[0];

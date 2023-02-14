@@ -1,8 +1,16 @@
 #ifndef __LINEAR_SOLVER_H
 #define __LINEAR_SOLVER_H
 
+#include "dg_compiler_defs.h"
+
 #include "op_seq.h"
 #include "matrices/poisson_matrix.h"
+
+#if DG_FP == double
+#define LIN_SOL_TOL 1e-10
+#else
+#define LIN_SOL_TOL 1e-6
+#endif
 
 class LinearSolver {
 public:

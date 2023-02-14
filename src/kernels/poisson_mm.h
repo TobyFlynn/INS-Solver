@@ -1,5 +1,5 @@
-inline void poisson_mm(const double *factor, const int *p, const double *mm,
-                       double *op1) {
+inline void poisson_mm(const DG_FP *factor, const int *p, const DG_FP *mm,
+                       DG_FP *op1) {
   // Get constants for this element's order
   const int dg_np = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
 

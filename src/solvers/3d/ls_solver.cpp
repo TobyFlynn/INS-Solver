@@ -17,15 +17,15 @@ LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m) {
   mesh = m;
   advectionSolver = new AdvectionSolver3D(m);
 
-  double * dg_np_data = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
-  s = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, "ls_solver_s");
-  s_modal = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, "ls_solver_s_modal");
+  DG_FP * dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+  s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s");
+  s_modal = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s_modal");
   free(dg_np_data);
 
-  double *ls_sample_np_data = (double *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(double));
-  sampleX = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", ls_sample_np_data, "ls_solver_sampleX");
-  sampleY = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", ls_sample_np_data, "ls_solver_sampleY");
-  sampleZ = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", ls_sample_np_data, "ls_solver_sampleZ");
+  DG_FP *ls_sample_np_data = (DG_FP *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(DG_FP));
+  sampleX = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleX");
+  sampleY = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleY");
+  sampleZ = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleZ");
   free(ls_sample_np_data);
 
   h = 0;
@@ -42,15 +42,15 @@ void LevelSetSolver3D::setBCTypes(op_dat bc) {
 
 void LevelSetSolver3D::init() {
   op_par_loop(init_surface_3d, "init_surface_3d", mesh->cells,
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->z, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(s, -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->z, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   
   h = 0.0;
   op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,
-              op_arg_dat(mesh->fscale, -1, OP_ID, 2, "double", OP_READ),
-              op_arg_gbl(&h, 1, "double", OP_MAX));
+              op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
   h = 1.0 / h;
   // alpha = 2.0 * h / DG_ORDER;
   // order_width = 2.0 * h;
@@ -65,10 +65,10 @@ void LevelSetSolver3D::init() {
 
 void LevelSetSolver3D::getRhoMu(op_dat rho, op_dat mu) {
   op_par_loop(ls_step, "ls_step", mesh->cells,
-              op_arg_gbl(&alpha,  1, "double", OP_READ),
-              op_arg_dat(s,   -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(mu,  -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
+              op_arg_dat(s,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(mu,  -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 }
 
 void LevelSetSolver3D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_dat curv) {
@@ -77,7 +77,7 @@ void LevelSetSolver3D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_d
   mesh->div(nx, ny, nz, curv);
 }
 
-void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const double dt) {
+void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const DG_FP dt) {
   advectionSolver->set_dt(dt);
   advectionSolver->step(s, u, v, w);
 
@@ -100,10 +100,10 @@ bool newtoncp_gepp(arma::mat &A, arma::vec &b) {
       std::swap(b(i), b(j));
     }
 
-    if (std::abs(A(i,i)) < 1.0e4*std::numeric_limits<double>::epsilon())
+    if (std::abs(A(i,i)) < 1.0e4*std::numeric_limits<DG_FP>::epsilon())
       return false;
 
-    double fac = 1.0 / A(i,i);
+    DG_FP fac = 1.0 / A(i,i);
     for (int j = i + 1; j < 4; ++j)
       A(j,i) *= fac;
 
@@ -115,7 +115,7 @@ bool newtoncp_gepp(arma::mat &A, arma::vec &b) {
   }
 
   for (int i = 4 - 1; i >= 0; --i) {
-    double sum = 0.0;
+    DG_FP sum = 0.0;
     for (int j = i + 1; j < 4; ++j)
       sum += A(i,j)*b(j);
     b(i) = (b(i) - sum) / A(i,i);
@@ -124,33 +124,33 @@ bool newtoncp_gepp(arma::mat &A, arma::vec &b) {
   return true;
 }
 
-bool newton_kernel(double &closest_pt_x, double &closest_pt_y, double &closest_pt_z,
-                   const double node_x, const double node_y, const double node_z,
-                   PolyApprox3D &p, const double h) {
-  double lambda = 0.0;
+bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z,
+                   const DG_FP node_x, const DG_FP node_y, const DG_FP node_z,
+                   PolyApprox3D &p, const DG_FP h) {
+  DG_FP lambda = 0.0;
   bool converged = false;
-  double pt_x = closest_pt_x;
-  double pt_y = closest_pt_y;
-  double pt_z = closest_pt_z;
-  double init_x = closest_pt_x;
-  double init_y = closest_pt_y;
-  double init_z = closest_pt_z;
+  DG_FP pt_x = closest_pt_x;
+  DG_FP pt_y = closest_pt_y;
+  DG_FP pt_z = closest_pt_z;
+  DG_FP init_x = closest_pt_x;
+  DG_FP init_y = closest_pt_y;
+  DG_FP init_z = closest_pt_z;
 
   for(int step = 0; step < 100; step++) {
-    double pt_x_old = pt_x;
-    double pt_y_old = pt_y;
-    double pt_z_old = pt_z;
+    DG_FP pt_x_old = pt_x;
+    DG_FP pt_y_old = pt_y;
+    DG_FP pt_z_old = pt_z;
     // Evaluate surface and gradient at current guess
-    double surface = p.val_at(pt_x, pt_y, pt_z);
-    double surface_dx, surface_dy, surface_dz;
+    DG_FP surface = p.val_at(pt_x, pt_y, pt_z);
+    DG_FP surface_dx, surface_dy, surface_dz;
     p.grad_at(pt_x, pt_y, pt_z, surface_dx, surface_dy, surface_dz);
     // Evaluate Hessian
-    double hessian[6];
+    DG_FP hessian[6];
     p.hessian_at(pt_x, pt_y, pt_z, hessian[0], hessian[1], hessian[2],
                  hessian[3], hessian[4], hessian[5]);
 
     // Check if |nabla(surface)| = 0, if so then return
-    double gradsqrnorm = surface_dx * surface_dx + surface_dy * surface_dy + surface_dz * surface_dz;
+    DG_FP gradsqrnorm = surface_dx * surface_dx + surface_dy * surface_dy + surface_dz * surface_dz;
     if(gradsqrnorm < 1e-14)
       break;
 
@@ -182,14 +182,14 @@ bool newton_kernel(double &closest_pt_x, double &closest_pt_y, double &closest_p
     hessianf(3, 3) = 0.0;
 
     if(!newtoncp_gepp(hessianf, gradf)) {
-      double delta1_x = (surface / gradsqrnorm) * surface_dx;
-      double delta1_y = (surface / gradsqrnorm) * surface_dy;
-      double delta1_z = (surface / gradsqrnorm) * surface_dz;
+      DG_FP delta1_x = (surface / gradsqrnorm) * surface_dx;
+      DG_FP delta1_y = (surface / gradsqrnorm) * surface_dy;
+      DG_FP delta1_z = (surface / gradsqrnorm) * surface_dz;
       lambda = ((node_x - pt_x) * surface_dx + (node_y - pt_y) * surface_dy + (node_z - pt_z) * surface_dz) / gradsqrnorm;
-      double delta2_x = pt_x - node_x + lambda * surface_dx;
-      double delta2_y = pt_y - node_y + lambda * surface_dy;
-      double delta2_z = pt_z - node_z + lambda * surface_dz;
-      double msqr = delta2_x * delta2_x + delta2_y * delta2_y + delta2_z * delta2_z;
+      DG_FP delta2_x = pt_x - node_x + lambda * surface_dx;
+      DG_FP delta2_y = pt_y - node_y + lambda * surface_dy;
+      DG_FP delta2_z = pt_z - node_z + lambda * surface_dz;
+      DG_FP msqr = delta2_x * delta2_x + delta2_y * delta2_y + delta2_z * delta2_z;
       if(msqr > 0.1 * h * 0.1 * h) {
         delta2_x *= 0.1 * h / sqrt(msqr);
         delta2_y *= 0.1 * h / sqrt(msqr);
@@ -202,7 +202,7 @@ bool newton_kernel(double &closest_pt_x, double &closest_pt_y, double &closest_p
       arma::vec ans = gradf;
 
       // Clamp update
-      double msqr = ans(0) * ans(0) + ans(1) * ans(1) + ans(2) * ans(2);
+      DG_FP msqr = ans(0) * ans(0) + ans(1) * ans(1) + ans(2) * ans(2);
       if(msqr > h * 0.5 * h * 0.5)
         ans = ans * 0.5 * h / sqrt(msqr);
 
@@ -235,9 +235,9 @@ bool newton_kernel(double &closest_pt_x, double &closest_pt_y, double &closest_p
   return converged;
 }
 
-void newton_method(const int numPts, double *closest_x, double *closest_y, double *closest_z,
-                   const double *x, const double *y, const double *z, int *poly_ind,
-                   std::vector<PolyApprox3D> &polys, double *s, const double h) {
+void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *closest_z,
+                   const DG_FP *x, const DG_FP *y, const DG_FP *z, int *poly_ind,
+                   std::vector<PolyApprox3D> &polys, DG_FP *s, const DG_FP h) {
   int numNonConv = 0;
   int numReinit = 0;
 
@@ -275,9 +275,9 @@ void newton_method(const int numPts, double *closest_x, double *closest_y, doubl
 void LevelSetSolver3D::reinitLS() {
   sampleInterface();
 
-  const double *sample_pts_x = getOP2PtrHost(sampleX, OP_READ);
-  const double *sample_pts_y = getOP2PtrHost(sampleY, OP_READ);
-  const double *sample_pts_z = getOP2PtrHost(sampleZ, OP_READ);
+  const DG_FP *sample_pts_x = getOP2PtrHost(sampleX, OP_READ);
+  const DG_FP *sample_pts_y = getOP2PtrHost(sampleY, OP_READ);
+  const DG_FP *sample_pts_z = getOP2PtrHost(sampleZ, OP_READ);
 
   #ifndef INS_MPI
   /*
@@ -304,13 +304,13 @@ void LevelSetSolver3D::reinitLS() {
   releaseOP2PtrHost(sampleY, OP_READ, sample_pts_y);
   releaseOP2PtrHost(sampleZ, OP_READ, sample_pts_z);
 
-  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
-  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
-  const double *z_ptr = getOP2PtrHost(mesh->z, OP_READ);
+  const DG_FP *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
+  const DG_FP *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
+  const DG_FP *z_ptr = getOP2PtrHost(mesh->z, OP_READ);
 
-  double *closest_x = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
-  double *closest_y = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
-  double *closest_z = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  DG_FP *closest_x = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+  DG_FP *closest_y = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+  DG_FP *closest_z = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   int *poly_ind     = (int *)calloc(DG_NP * mesh->cells->size, sizeof(int));
   std::vector<PolyApprox3D> polys;
 
@@ -328,12 +328,12 @@ void LevelSetSolver3D::reinitLS() {
     polys = kdtree.get_polys();
   }
 
-  double *surface_ptr = getOP2PtrHost(s, OP_RW);
+  DG_FP *surface_ptr = getOP2PtrHost(s, OP_RW);
 
   if(h == 0.0) {
     op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,
-                op_arg_dat(mesh->fscale, -1, OP_ID, 2, "double", OP_READ),
-                op_arg_gbl(&h, 1, "double", OP_MAX));
+                op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+                op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
     h = 1.0 / h;
   }
 

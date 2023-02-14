@@ -1,6 +1,8 @@
 #ifndef __INS_MP_INS_SOLVER_3D_H
 #define __INS_MP_INS_SOLVER_3D_H
 
+#include "dg_compiler_defs.h"
+
 #include "dg_mesh/dg_mesh_3d.h"
 #include "solvers/3d/ls_solver.h"
 #include "matrices/3d/factor_poisson_matrix_3d.h"
@@ -15,9 +17,9 @@ public:
   ~MPINSSolver3D();
 
   void step();
-  void init(const double re, const double refVel);
-  double get_time();
-  double get_dt();
+  void init(const DG_FP re, const DG_FP refVel);
+  DG_FP get_time();
+  DG_FP get_dt();
   void dump_data(const std::string &filename);
 
   op_dat vel[2][3], velT[3], velTT[3], pr, rho, mu;
@@ -34,8 +36,8 @@ private:
   LinearSolver *pressureSolver;
   LinearSolver *viscositySolver;
   LevelSetSolver3D *lsSolver;
-  double g0, a0, a1, b0, b1, dt, time, h;
-  double reynolds;
+  DG_FP g0, a0, a1, b0, b1, dt, time, h;
+  DG_FP reynolds;
   int currentInd;
 
   op_dat tmp_np[9], tmp_npf[3], tmp_bc_1, tmp_npf_bc;

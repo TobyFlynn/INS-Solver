@@ -14,14 +14,14 @@ int counter;
 LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m) {
   mesh = m;
 
-  double *tmp_np = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
-  double *tmp_ls_sample_np = (double *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(double));
+  DG_FP *tmp_np = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+  DG_FP *tmp_ls_sample_np = (DG_FP *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(DG_FP));
 
-  s = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "ls_s");
-  dsdx = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "ls_dsdx");
-  dsdy = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "ls_dsdy");
-  s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", tmp_ls_sample_np, "s_sample_x");
-  s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", tmp_ls_sample_np, "s_sample_y");
+  s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "ls_s");
+  dsdx = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "ls_dsdx");
+  dsdy = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "ls_dsdy");
+  s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, tmp_ls_sample_np, "s_sample_x");
+  s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, tmp_ls_sample_np, "s_sample_y");
 
   free(tmp_ls_sample_np);
   free(tmp_np);
@@ -35,17 +35,17 @@ LevelSetSolver2D::~LevelSetSolver2D() {
 
 void LevelSetSolver2D::init() {
   op_par_loop(init_surface_2d, "init_surface_2d", mesh->cells,
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(s,       -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(s,       -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-  // h = std::numeric_limits<double>::max();
+  // h = std::numeric_limits<DG_FP>::max();
   h = 0.0;
   op_par_loop(calc_h_ls, "calc_h_ls", mesh->cells,
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(s, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_gbl(&h, 1, "double", OP_MAX));
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
 
   op_printf("LS h: %g\n", h);
   // alpha = 2.0 * h / DG_ORDER;
@@ -60,8 +60,8 @@ void LevelSetSolver2D::init() {
 /*
   op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
               op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&order_width,     1, "double", OP_READ),
-              op_arg_dat(s,               -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_gbl(&order_width,     1, DG_FP_STR, OP_READ),
+              op_arg_dat(s,               -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
 
   std::vector<op_dat> dats_to_update;
@@ -82,7 +82,7 @@ void LevelSetSolver2D::setVelField(op_dat u1, op_dat v1) {
   v = v1;
 }
 
-void LevelSetSolver2D::step(double dt) {
+void LevelSetSolver2D::step(DG_FP dt) {
   timer->startTimer("LS - Advection");
   advecSolver->set_dt(dt);
   advecSolver->step(s, u, v);
@@ -97,8 +97,8 @@ void LevelSetSolver2D::step(double dt) {
   /*
   op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
               op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&order_width,     1, "double", OP_READ),
-              op_arg_dat(s,               -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_gbl(&order_width,     1, DG_FP_STR, OP_READ),
+              op_arg_dat(s,               -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
 
   std::vector<op_dat> dats_to_update;
@@ -114,19 +114,19 @@ void LevelSetSolver2D::step(double dt) {
 }
 
 bool LevelSetSolver2D::reinitNeeded() {
-  double res = 0.0;
+  DG_FP res = 0.0;
   int count = 0;
   mesh->grad(s, dsdx, dsdy);
   op_par_loop(ls_reinit_check, "ls_reinit_check", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&alpha, 1, "double", OP_READ),
-              op_arg_dat(s,     -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(dsdx,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(dsdy,  -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_gbl(&res,   1, "double", OP_INC),
+              op_arg_gbl(&alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(s,     -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dsdx,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dsdy,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(&res,   1, DG_FP_STR, OP_INC),
               op_arg_gbl(&count, 1, "int", OP_INC));
 
-  res = res / (double)count;
+  res = res / (DG_FP)count;
   // std::cout << "LS residual: " << res << " " << abs(1.0 - res) << std::endl;
   return abs(1.0 - res) > 0.01;
 }
@@ -134,10 +134,10 @@ bool LevelSetSolver2D::reinitNeeded() {
 void LevelSetSolver2D::getRhoMu(op_dat rho, op_dat mu) {
   timer->startTimer("LS - Rho and Mu");
   op_par_loop(ls_step, "ls_step", mesh->cells,
-              op_arg_gbl(&alpha,  1, "double", OP_READ),
-              op_arg_dat(s,   -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(rho, -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(mu,  -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
+              op_arg_dat(s,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(mu,  -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   timer->endTimer("LS - Rho and Mu");
 }
 
@@ -153,10 +153,10 @@ void LevelSetSolver2D::sampleInterface() {
   timer->startTimer("LS - Sample Interface");
   op_par_loop(sample_interface, "sample_interface", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(s,           -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(s_sample_x,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE),
-              op_arg_dat(s_sample_y,  -1, OP_ID, LS_SAMPLE_NP, "double", OP_WRITE));
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(s,           -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(s_sample_x,  -1, OP_ID, LS_SAMPLE_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(s_sample_y,  -1, OP_ID, LS_SAMPLE_NP, DG_FP_STR, OP_WRITE));
   timer->endTimer("LS - Sample Interface");
 }

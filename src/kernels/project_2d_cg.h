@@ -1,8 +1,8 @@
 /*
-inline void Ax(const double *op_0, const double *op_1, const double *op_2,
-               const double *op_3, const double *Mass,
-               const double *J, const double pen, const double *in0,
-               const double *in1, double *out0, double *out1) {
+inline void Ax(const DG_FP *op_0, const DG_FP *op_1, const DG_FP *op_2,
+               const DG_FP *op_3, const DG_FP *Mass,
+               const DG_FP *J, const DG_FP pen, const DG_FP *in0,
+               const DG_FP *in1, DG_FP *out0, DG_FP *out1) {
   // Add mass term and div-div term to output
   for(int i = 0; i < DG_NP; i++) {
     out0[i] = 0.0;
@@ -23,20 +23,20 @@ inline void Ax(const double *op_0, const double *op_1, const double *op_2,
 }
 */
 
-inline void project_2d_cg(const double *mass_, const double *J, const double *op_0,
-                          const double *op_1, const double *op_2, const double *op_3,
-                          const double *pen, const double *rhs0,
-                          const double *rhs1, double *out0, double *out1,
-                          int *cell_g, int *conv_g, double *iter_g) {
+inline void project_2d_cg(const DG_FP *mass_, const DG_FP *J, const DG_FP *op_0,
+                          const DG_FP *op_1, const DG_FP *op_2, const DG_FP *op_3,
+                          const DG_FP *pen, const DG_FP *rhs0,
+                          const DG_FP *rhs1, DG_FP *out0, DG_FP *out1,
+                          int *cell_g, int *conv_g, DG_FP *iter_g) {
   // Get matrices
-  const double *Mass = &mass_[(DG_ORDER - 1) * DG_NP * DG_NP];
+  const DG_FP *Mass = &mass_[(DG_ORDER - 1) * DG_NP * DG_NP];
 
-  double r0[DG_NP], r1[DG_NP], r0_old[DG_NP], r1_old[DG_NP], x0[DG_NP], x1[DG_NP];
-  double p0[DG_NP], p1[DG_NP], tmp0[DG_NP], tmp1[DG_NP];
-  const double max_iter = 100;
-  const double tol = 1e-24;
-  double iter = 0;
-  double residual;
+  DG_FP r0[DG_NP], r1[DG_NP], r0_old[DG_NP], r1_old[DG_NP], x0[DG_NP], x1[DG_NP];
+  DG_FP p0[DG_NP], p1[DG_NP], tmp0[DG_NP], tmp1[DG_NP];
+  const DG_FP max_iter = 100;
+  const DG_FP tol = 1e-24;
+  DG_FP iter = 0;
+  DG_FP residual;
 
   for(int i = 0; i < DG_NP; i++) {
     out0[i] = 0.0;
@@ -79,13 +79,13 @@ inline void project_2d_cg(const double *mass_, const double *J, const double *op
       tmp0[i] *= J[i];
       tmp1[i] *= J[i];
     }
-    double tmp_alpha_0 = 0.0;
-    double tmp_alpha_1 = 0.0;
+    DG_FP tmp_alpha_0 = 0.0;
+    DG_FP tmp_alpha_1 = 0.0;
     for(int i = 0; i < DG_NP; i++) {
       tmp_alpha_0 += r0[i] * r0[i] + r1[i] * r1[i];
       tmp_alpha_1 += p0[i] * tmp0[i] + p1[i] * tmp1[i];
     }
-    double alpha = tmp_alpha_0 / tmp_alpha_1;
+    DG_FP alpha = tmp_alpha_0 / tmp_alpha_1;
 
     // x_{k+1} = x_{k} + alpha p_{k}
     // r_{k+1} = r_{k} - alpha Ap_{k}
@@ -104,13 +104,13 @@ inline void project_2d_cg(const double *mass_, const double *J, const double *op
       break;
 
     // beta = r_{k+1}^{T} r_{k+1} / r_{k}^{T} r_{k}
-    double tmp_beta_0 = 0.0;
-    double tmp_beta_1 = 0.0;
+    DG_FP tmp_beta_0 = 0.0;
+    DG_FP tmp_beta_1 = 0.0;
     for(int i = 0; i < DG_NP; i++) {
       tmp_beta_0 += r0[i] * r0[i] + r1[i] * r1[i];
       tmp_beta_1 += r0_old[i] * r0_old[i] + r1_old[i] * r1_old[i];
     }
-    double beta = tmp_beta_0 / tmp_beta_1;
+    DG_FP beta = tmp_beta_0 / tmp_beta_1;
 
     // p_{k+1} = r_{k+1} + beta p_{k}
     for(int i = 0; i < DG_NP; i++) {
@@ -122,7 +122,7 @@ inline void project_2d_cg(const double *mass_, const double *J, const double *op
   }
 
   *cell_g += 1;
-  *iter_g += (double) iter;
+  *iter_g += (DG_FP) iter;
   if(iter < max_iter && !isnan(residual)) {
     *conv_g += 1;
   } else {

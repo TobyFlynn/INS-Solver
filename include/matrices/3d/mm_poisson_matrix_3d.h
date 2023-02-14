@@ -8,13 +8,13 @@ public:
   MMPoissonMatrix3D(DGMesh3D *m);
 
   virtual void calc_mat() override;
-  void set_factor(double f);
-  double get_factor();
+  void set_factor(DG_FP f);
+  DG_FP get_factor();
 
 private:
   void calc_mm();
 
-  double factor;
+  DG_FP factor;
 };
 
 #endif

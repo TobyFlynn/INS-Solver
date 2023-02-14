@@ -1,9 +1,9 @@
-inline void ins_vis_bc_2d(const double *t, const int *bedge_type,
-                          const int *bedgeNum, const double *x, const double *y,
-                          const double *nx, const double *ny, double *exQ0,
-                          double *exQ1) {
+inline void ins_vis_bc_2d(const DG_FP *t, const int *bedge_type,
+                          const int *bedgeNum, const DG_FP *x, const DG_FP *y,
+                          const DG_FP *nx, const DG_FP *ny, DG_FP *exQ0,
+                          DG_FP *exQ1) {
   int exInd = *bedgeNum * DG_GF_NP;
-  const double PI = 3.141592653589793238463;
+  const DG_FP PI = 3.141592653589793238463;
 
   if(*bedge_type == 0) {
     // Inflow - BC function dependant on time

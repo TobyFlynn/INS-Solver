@@ -1,32 +1,32 @@
-inline void factor_poisson_matrix_3d_op2(const int **order, const double *dr,
-                                         const double *ds, const double *dt,
-                                         const double *mmF0, const double *mmF1,
-                                         const double *mmF2, const double *mmF3,
+inline void factor_poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
+                                         const DG_FP *ds, const DG_FP *dt,
+                                         const DG_FP *mmF0, const DG_FP *mmF1,
+                                         const DG_FP *mmF2, const DG_FP *mmF3,
                                          const int *faceNum,
                                          const int *fmaskL_corrected,
                                          const int *fmaskR_corrected,
-                                         const double *nx, const double *ny,
-                                         const double *nz, const double *fscale,
-                                         const double *sJ, const double **rx,
-                                         const double **sx, const double **tx,
-                                         const double **ry, const double **sy,
-                                         const double **ty, const double **rz,
-                                         const double **sz, const double **tz,
-                                         const double **factor, double *op1L,
-                                         double *op1R, double *op2L,
-                                         double *op2R) {
+                                         const DG_FP *nx, const DG_FP *ny,
+                                         const DG_FP *nz, const DG_FP *fscale,
+                                         const DG_FP *sJ, const DG_FP **rx,
+                                         const DG_FP **sx, const DG_FP **tx,
+                                         const DG_FP **ry, const DG_FP **sy,
+                                         const DG_FP **ty, const DG_FP **rz,
+                                         const DG_FP **sz, const DG_FP **tz,
+                                         const DG_FP **factor, DG_FP *op1L,
+                                         DG_FP *op1R, DG_FP *op2L,
+                                         DG_FP *op2R) {
   const int p = order[0][0];
-  const double *dr_mat = &dr[(p - 1) * DG_NP * DG_NP];
-  const double *ds_mat = &ds[(p - 1) * DG_NP * DG_NP];
-  const double *dt_mat = &dt[(p - 1) * DG_NP * DG_NP];
-  const double *mmF0_mat = &mmF0[(p - 1) * DG_NP * DG_NP];
-  const double *mmF1_mat = &mmF1[(p - 1) * DG_NP * DG_NP];
-  const double *mmF2_mat = &mmF2[(p - 1) * DG_NP * DG_NP];
-  const double *mmF3_mat = &mmF3[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *dr_mat = &dr[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *ds_mat = &ds[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *dt_mat = &dt[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF0_mat = &mmF0[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF1_mat = &mmF1[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF2_mat = &mmF2[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF3_mat = &mmF3[(p - 1) * DG_NP * DG_NP];
   const int dg_np  = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS];
   const int dg_npf = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS + 1];
 
-  const double *mmFL, *mmFR;
+  const DG_FP *mmFL, *mmFR;
   if(faceNum[0] == 0)
     mmFL = mmF0_mat;
   else if(faceNum[0] == 1)
@@ -51,7 +51,7 @@ inline void factor_poisson_matrix_3d_op2(const int **order, const double *dr,
   const int *fmaskL = &fmask[faceNum[0] * dg_npf];
   const int *fmaskR = &fmask[faceNum[1] * dg_npf];
 
-  double DL[DG_NP * DG_NP], DR[DG_NP * DG_NP];
+  DG_FP DL[DG_NP * DG_NP], DR[DG_NP * DG_NP];
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
       int ind  = i + j * dg_np;
@@ -68,16 +68,16 @@ inline void factor_poisson_matrix_3d_op2(const int **order, const double *dr,
     }
   }
 
-  double gtau = 0.0;
+  DG_FP gtau = 0.0;
   for(int i = 0; i < dg_npf; i++) {
-    double tmp = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 1) * fmax(fscale[0] * factor[0][fmaskL[i]], fscale[1] * factor[1][fmaskR_corrected[i]]);
+    DG_FP tmp = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 1) * fmax(fscale[0] * factor[0][fmaskL[i]], fscale[1] * factor[1][fmaskR_corrected[i]]);
     gtau = fmax(gtau, tmp);
   }
   // Do left face
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
       int op_ind = i + j * dg_np;
-      double tmp = 0.0;
+      DG_FP tmp = 0.0;
       for(int k = 0; k < dg_np; k++) {
         int a_ind0 = i + k * dg_np;
         int a_ind1 = i * dg_np + k;
@@ -126,7 +126,7 @@ inline void factor_poisson_matrix_3d_op2(const int **order, const double *dr,
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
       int op_ind = i + j * dg_np;
-      double tmp = 0.0;
+      DG_FP tmp = 0.0;
       for(int k = 0; k < dg_np; k++) {
         int a_ind0 = i + k * dg_np;
         int a_ind1 = i * dg_np + k;

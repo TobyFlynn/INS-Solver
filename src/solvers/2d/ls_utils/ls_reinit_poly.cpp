@@ -20,7 +20,7 @@ bool vec_contains(const int val, const vector<int> &vec) {
   return false;
 }
 
-void PolyApprox::get_offset(const int ind, const double *x_ptr, const double *y_ptr) {
+void PolyApprox::get_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_ptr) {
   // offset_x = x_ptr[ind * DG_NP];
   // offset_y = y_ptr[ind * DG_NP];
   offset_x = 0.0;
@@ -28,13 +28,13 @@ void PolyApprox::get_offset(const int ind, const double *x_ptr, const double *y_
 }
 
 struct Coord {
-  double x;
-  double y;
+  DG_FP x;
+  DG_FP y;
 };
 
 struct Point {
   Coord coord;
-  double val;
+  DG_FP val;
   int count;
 };
 
@@ -52,10 +52,10 @@ struct cmpCoords {
     }
 };
 
-void PolyApprox::stencil_data(const set<int> &stencil, const double *x_ptr,
-                              const double *y_ptr, const double *s_ptr,
-                              vector<double> &x, vector<double> &y,
-                              vector<double> &s) {
+void PolyApprox::stencil_data(const set<int> &stencil, const DG_FP *x_ptr,
+                              const DG_FP *y_ptr, const DG_FP *s_ptr,
+                              vector<DG_FP> &x, vector<DG_FP> &y,
+                              vector<DG_FP> &s) {
   map<Coord, Point, cmpCoords> pointMap;
 
   for(const auto &sten : stencil) {
@@ -84,11 +84,11 @@ void PolyApprox::stencil_data(const set<int> &stencil, const double *x_ptr,
   for(auto const &p : pointMap) {
     x.push_back(p.second.coord.x);
     y.push_back(p.second.coord.y);
-    s.push_back(p.second.val / (double)p.second.count);
+    s.push_back(p.second.val / (DG_FP)p.second.count);
   }
 }
 
-void num_pts_pos_neg(const vector<double> &s, int &pos, int &neg) {
+void num_pts_pos_neg(const vector<DG_FP> &s, int &pos, int &neg) {
   pos = 0;
   neg = 0;
   for(int i = 0; i < s.size(); i++) {
@@ -98,11 +98,11 @@ void num_pts_pos_neg(const vector<double> &s, int &pos, int &neg) {
 }
 
 PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
-                       const double *x_ptr, const double *y_ptr,
-                       const double *s_ptr) {
+                       const DG_FP *x_ptr, const DG_FP *y_ptr,
+                       const DG_FP *s_ptr) {
   get_offset(cell_ind, x_ptr, y_ptr);
 
-  vector<double> x_vec, y_vec, s_vec;
+  vector<DG_FP> x_vec, y_vec, s_vec;
   stencil_data(stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_vec);
 
   // Make sure equal number of points on each side of the line
@@ -114,7 +114,7 @@ PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
     // Find point furthest from the interface to discard
     int ind_discard;
     if(pos_pts > neg_pts) {
-      double max = s_vec[0];
+      DG_FP max = s_vec[0];
       ind_discard = 0;
       for(int i = 1; i < x_vec.size(); i++) {
         if(s_vec[i] > max) {
@@ -123,7 +123,7 @@ PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
         }
       }
     } else {
-      double min = s_vec[0];
+      DG_FP min = s_vec[0];
       ind_discard = 0;
       for(int i = 1; i < x_vec.size(); i++) {
         if(s_vec[i] < min) {
@@ -149,7 +149,7 @@ PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
   }
 }
 
-PolyApprox::PolyApprox(std::vector<double> &c, double off_x, double off_y) {
+PolyApprox::PolyApprox(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y) {
   offset_x = off_x;
   offset_y = off_y;
   for(int i = 0; i < num_coeff(); i++) {
@@ -157,7 +157,7 @@ PolyApprox::PolyApprox(std::vector<double> &c, double off_x, double off_y) {
   }
 }
 
-void PolyApprox::set_2nd_order_coeff(const vector<double> &x, const vector<double> &y, const vector<double> &s) {
+void PolyApprox::set_2nd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s) {
   arma::mat A(x.size(), 6);
   arma::vec b(x.size());
   for(int i = 0; i < x.size(); i++) {
@@ -177,7 +177,7 @@ void PolyApprox::set_2nd_order_coeff(const vector<double> &x, const vector<doubl
   }
 }
 
-void PolyApprox::set_3rd_order_coeff(const vector<double> &x, const vector<double> &y, const vector<double> &s) {
+void PolyApprox::set_3rd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s) {
   arma::mat A(x.size(), 10);
   arma::vec b(x.size());
   for(int i = 0; i < x.size(); i++) {
@@ -201,7 +201,7 @@ void PolyApprox::set_3rd_order_coeff(const vector<double> &x, const vector<doubl
   }
 }
 
-void PolyApprox::set_4th_order_coeff(const vector<double> &x, const vector<double> &y, const vector<double> &s) {
+void PolyApprox::set_4th_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s) {
   arma::mat A(x.size(), 15);
   arma::vec b(x.size());
   for(int i = 0; i < x.size(); i++) {
@@ -230,8 +230,8 @@ void PolyApprox::set_4th_order_coeff(const vector<double> &x, const vector<doubl
   }
 }
 
-double PolyApprox::val_at_2nd(const double x, const double y) {
-  double res = 0.0;
+DG_FP PolyApprox::val_at_2nd(const DG_FP x, const DG_FP y) {
+  DG_FP res = 0.0;
   res += coeff[0];
   res += coeff[1] * x;
   res += coeff[2] * y;
@@ -241,8 +241,8 @@ double PolyApprox::val_at_2nd(const double x, const double y) {
   return res;
 }
 
-double PolyApprox::val_at_3rd(const double x, const double y) {
-  double res = 0.0;
+DG_FP PolyApprox::val_at_3rd(const DG_FP x, const DG_FP y) {
+  DG_FP res = 0.0;
   res += coeff[0];
   res += coeff[1] * x;
   res += coeff[2] * y;
@@ -256,8 +256,8 @@ double PolyApprox::val_at_3rd(const double x, const double y) {
   return res;
 }
 
-double PolyApprox::val_at_4th(const double x, const double y) {
-  double res = 0.0;
+DG_FP PolyApprox::val_at_4th(const DG_FP x, const DG_FP y) {
+  DG_FP res = 0.0;
   res += coeff[0];
   res += coeff[1] * x;
   res += coeff[2] * y;
@@ -276,8 +276,8 @@ double PolyApprox::val_at_4th(const double x, const double y) {
   return res;
 }
 
-double PolyApprox::val_at(const double x, const double y) {
-  double res = 0.0;
+DG_FP PolyApprox::val_at(const DG_FP x, const DG_FP y) {
+  DG_FP res = 0.0;
   if(N == 2) {
     res = val_at_2nd(x - offset_x, y - offset_y);
   } else if(N == 3) {
@@ -288,7 +288,7 @@ double PolyApprox::val_at(const double x, const double y) {
   return res;
 }
 
-void PolyApprox::grad_at_2nd(const double x, const double y, double &dx, double &dy) {
+void PolyApprox::grad_at_2nd(const DG_FP x, const DG_FP y, DG_FP &dx, DG_FP &dy) {
   dx = 0.0;
   dy = 0.0;
 
@@ -301,7 +301,7 @@ void PolyApprox::grad_at_2nd(const double x, const double y, double &dx, double 
   dy += 2.0 * coeff[5] * y;
 }
 
-void PolyApprox::grad_at_3rd(const double x, const double y, double &dx, double &dy) {
+void PolyApprox::grad_at_3rd(const DG_FP x, const DG_FP y, DG_FP &dx, DG_FP &dy) {
   dx = 0.0;
   dy = 0.0;
 
@@ -320,7 +320,7 @@ void PolyApprox::grad_at_3rd(const double x, const double y, double &dx, double 
   dy += 3.0 * coeff[9] * y * y;
 }
 
-void PolyApprox::grad_at_4th(const double x, const double y, double &dx, double &dy) {
+void PolyApprox::grad_at_4th(const DG_FP x, const DG_FP y, DG_FP &dx, DG_FP &dy) {
   dx = 0.0;
   dy = 0.0;
 
@@ -347,8 +347,8 @@ void PolyApprox::grad_at_4th(const double x, const double y, double &dx, double 
   dy += 4.0 * coeff[14] * y * y * y;
 }
 
-void PolyApprox::grad_at(const double x, const double y,
-                         double &dx, double &dy) {
+void PolyApprox::grad_at(const DG_FP x, const DG_FP y,
+                         DG_FP &dx, DG_FP &dy) {
   if(N == 2) {
     grad_at_2nd(x - offset_x, y - offset_y, dx, dy);
   } else if(N == 3) {
@@ -358,13 +358,13 @@ void PolyApprox::grad_at(const double x, const double y,
   }
 }
 
-void PolyApprox::hessian_at_2nd(const double x, const double y, double &dx2, double &dxy, double &dy2) {
+void PolyApprox::hessian_at_2nd(const DG_FP x, const DG_FP y, DG_FP &dx2, DG_FP &dxy, DG_FP &dy2) {
   dx2 = 2.0 * coeff[3];
   dxy = coeff[4];
   dy2 = 2.0 * coeff[5];
 }
 
-void PolyApprox::hessian_at_3rd(const double x, const double y, double &dx2, double &dxy, double &dy2) {
+void PolyApprox::hessian_at_3rd(const DG_FP x, const DG_FP y, DG_FP &dx2, DG_FP &dxy, DG_FP &dy2) {
   dx2  = 2.0 * coeff[3];
   dx2 += 6.0 * coeff[6] * x;
   dx2 += 2.0 * coeff[7] * y;
@@ -378,7 +378,7 @@ void PolyApprox::hessian_at_3rd(const double x, const double y, double &dx2, dou
   dy2 += 6.0 * coeff[9] * y;
 }
 
-void PolyApprox::hessian_at_4th(const double x, const double y, double &dx2, double &dxy, double &dy2) {
+void PolyApprox::hessian_at_4th(const DG_FP x, const DG_FP y, DG_FP &dx2, DG_FP &dxy, DG_FP &dy2) {
   dx2  = 2.0 * coeff[3];
   dx2 += 6.0 * coeff[6] * x;
   dx2 += 2.0 * coeff[7] * y;
@@ -401,8 +401,8 @@ void PolyApprox::hessian_at_4th(const double x, const double y, double &dx2, dou
   dy2 += 12.0 * coeff[14] * y * y;
 }
 
-void PolyApprox::hessian_at(const double x, const double y,
-                            double &dx2, double &dxy, double &dy2) {
+void PolyApprox::hessian_at(const DG_FP x, const DG_FP y,
+                            DG_FP &dx2, DG_FP &dxy, DG_FP &dy2) {
   if(N == 2) {
     hessian_at_2nd(x - offset_x, y - offset_y, dx2, dxy, dy2);
   } else if(N == 3) {
@@ -448,11 +448,11 @@ int PolyApprox::num_elem_stencil() {
   }
 }
 
-double PolyApprox::get_coeff(int ind) {
+DG_FP PolyApprox::get_coeff(int ind) {
   return coeff[ind];
 }
 
-void PolyApprox::get_offsets(double &x, double &y) {
+void PolyApprox::get_offsets(DG_FP &x, DG_FP &y) {
   x = offset_x;
   y = offset_y;
 }

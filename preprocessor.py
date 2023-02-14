@@ -13,6 +13,7 @@ ls_sample_np = ""
 dg_num_faces = ""
 dg_num_constants = ""
 dg_order     = sys.argv[1]
+fp_type = "f"
 
 # Get DG order from command line args
 if dim == "2":
@@ -68,6 +69,14 @@ for f in inputfiles:
 
     newdata = filedata
     if "CMakeLists" not in f:
+        if fp_type == "d":
+            newdata = newdata.replace("DG_FP_STR", "\"double\"")
+            newdata = newdata.replace("DG_FP", "double")
+            newdata = newdata.replace("DG_MPI_FP", "MPI_DOUBLE")
+        else:
+            newdata = newdata.replace("DG_FP_STR", "\"float\"")
+            newdata = newdata.replace("DG_FP", "float")
+            newdata = newdata.replace("DG_MPI_FP", "MPI_FLOAT")
         newdata = newdata.replace("DG_NPF", dg_npf)
         newdata = newdata.replace("DG_NP", dg_np)
         newdata = newdata.replace("DG_CUB_NP", dg_cub_np)

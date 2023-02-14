@@ -1,6 +1,6 @@
-inline void ins_3d_pr_1(const double *b0, const double *b1, const double *dt,
-                        const double *dPdN, double *dPdN_old, double *divVelT) {
-  double factor = 1.0 / *dt;
+inline void ins_3d_pr_1(const DG_FP *b0, const DG_FP *b1, const DG_FP *dt,
+                        const DG_FP *dPdN, DG_FP *dPdN_old, DG_FP *divVelT) {
+  DG_FP factor = 1.0 / *dt;
   for(int i = 0; i < DG_NP; i++) {
     divVelT[i] = -divVelT[i] * factor;
   }

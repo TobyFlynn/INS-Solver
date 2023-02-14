@@ -1,7 +1,7 @@
-inline void init_surface_3d(const double *x, const double *y, const double *z, 
-                            double *s) {
-  const double PI = 3.141592653589793238463;
-  const double alpha = 0.9;
+inline void init_surface_3d(const DG_FP *x, const DG_FP *y, const DG_FP *z, 
+                            DG_FP *s) {
+  const DG_FP PI = 3.141592653589793238463;
+  const DG_FP alpha = 0.9;
 
   for(int i = 0; i < DG_NP; i++) {
     // s[i] = sqrt((x[i] - 3.0) * (x[i] - 3.0) + (y[i] - 3.0) * (y[i] - 3.0) + (z[i] - 3.0) * (z[i] - 3.0)) - 1.5;

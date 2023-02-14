@@ -19,7 +19,7 @@ Timing *timer;
 using namespace std;
 
 // Global constants
-double r_ynolds, mu0, mu1, rho0, rho1;
+DG_FP r_ynolds, mu0, mu1, rho0, rho1;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 1);
@@ -67,10 +67,10 @@ int main(int argc, char **argv) {
   rho0 = 1.0;
   rho1 = 1.0;
 
-  const double refRho = 1.0;
-  const double refVel = 1.0;
-  const double refLen = 0.005;
-  const double refMu  = 1.0e-5;
+  const DG_FP refRho = 1.0;
+  const DG_FP refVel = 1.0;
+  const DG_FP refLen = 0.005;
+  const DG_FP refMu  = 1.0e-5;
   r_ynolds = refRho * refVel * refLen / refMu;
 
   op_printf("Reynolds number: %g\n", r_ynolds);
@@ -83,11 +83,11 @@ int main(int argc, char **argv) {
   op_decl_const(DG_ORDER * 4 * DG_NPF, "int", FMASK);
 
   // Application constants
-  op_decl_const(1, "double", &r_ynolds);
-  op_decl_const(1, "double", &mu0);
-  op_decl_const(1, "double", &mu1);
-  op_decl_const(1, "double", &rho0);
-  op_decl_const(1, "double", &rho1);
+  op_decl_const(1, DG_FP_STR, &r_ynolds);
+  op_decl_const(1, DG_FP_STR, &mu0);
+  op_decl_const(1, DG_FP_STR, &mu1);
+  op_decl_const(1, DG_FP_STR, &rho0);
+  op_decl_const(1, DG_FP_STR, &rho1);
 
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
 

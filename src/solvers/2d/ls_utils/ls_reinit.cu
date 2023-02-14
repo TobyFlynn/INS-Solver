@@ -16,13 +16,13 @@
 
 extern Timing *timer;
 
-__device__ void swap(double &a, double &b) {
-  double c = a;
+__device__ void swap(DG_FP &a, DG_FP &b) {
+  DG_FP c = a;
   a = b;
   b = c;
 }
 
-__device__ bool newtoncp_gepp(double A[][3], double *b) {
+__device__ bool newtoncp_gepp(DG_FP A[][3], DG_FP *b) {
   for(int i = 0; i < 3; ++i) {
     int j = i;
     for(int k = i + 1; k < 3; ++k)
@@ -37,7 +37,7 @@ __device__ bool newtoncp_gepp(double A[][3], double *b) {
     if (fabs(A[i][i]) < 1.0e-8)
       return false;
 
-    double fac = 1.0 / A[i][i];
+    DG_FP fac = 1.0 / A[i][i];
     for (int j = i + 1; j < 3; ++j)
       A[j][i] *= fac;
 
@@ -49,7 +49,7 @@ __device__ bool newtoncp_gepp(double A[][3], double *b) {
   }
 
   for (int i = 3 - 1; i >= 0; --i) {
-    double sum = 0.0;
+    DG_FP sum = 0.0;
     for (int j = i + 1; j < 3; ++j)
       sum += A[i][j]*b[j];
     b[i] = (b[i] - sum) / A[i][i];
@@ -58,38 +58,38 @@ __device__ bool newtoncp_gepp(double A[][3], double *b) {
   return true;
 }
 
-__global__ void newton_kernel(const int numPts, const int *poly_ind, double *s,
-                              const double *x, const double *y,
-                              double *closest_x, double *closest_y,
-                              PolyEval *pe, const double h) {
+__global__ void newton_kernel(const int numPts, const int *poly_ind, DG_FP *s,
+                              const DG_FP *x, const DG_FP *y,
+                              DG_FP *closest_x, DG_FP *closest_y,
+                              PolyEval *pe, const DG_FP h) {
   // Assume only have threads in x dim
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   if(tid >= numPts) return;
 
-  const double x_l         = x[tid];
-  const double y_l         = y[tid];
-  const double closest_x_l = closest_x[tid];
-  const double closest_y_l = closest_y[tid];
+  const DG_FP x_l         = x[tid];
+  const DG_FP y_l         = y[tid];
+  const DG_FP closest_x_l = closest_x[tid];
+  const DG_FP closest_y_l = closest_y[tid];
 
-  double lambda = 0.0;
-  double pt_x = closest_x_l;
-  double pt_y = closest_y_l;
-  double init_x = closest_x_l;
-  double init_y = closest_y_l;
+  DG_FP lambda = 0.0;
+  DG_FP pt_x = closest_x_l;
+  DG_FP pt_y = closest_y_l;
+  DG_FP init_x = closest_x_l;
+  DG_FP init_y = closest_y_l;
 
   for(int step = 0; step < 10; step++) {
-    double pt_x_old = pt_x;
-    double pt_y_old = pt_y;
+    DG_FP pt_x_old = pt_x;
+    DG_FP pt_y_old = pt_y;
     // Evaluate surface and gradient at current guess
-    double surface = pe->val_at(poly_ind[tid], pt_x, pt_y);
-    double surface_dx, surface_dy;
+    DG_FP surface = pe->val_at(poly_ind[tid], pt_x, pt_y);
+    DG_FP surface_dx, surface_dy;
     pe->grad_at(poly_ind[tid], pt_x, pt_y, surface_dx, surface_dy);
     // Evaluate Hessian
-    double hessian[3];
+    DG_FP hessian[3];
     pe->hessian_at(poly_ind[tid], pt_x, pt_y, hessian[0], hessian[1], hessian[2]);
 
     // Check if |nabla(surface)| = 0, if so then return
-    double gradsqrnorm = surface_dx * surface_dx + surface_dy * surface_dy;
+    DG_FP gradsqrnorm = surface_dx * surface_dx + surface_dy * surface_dy;
     if(gradsqrnorm < 1e-14)
       break;
 
@@ -98,13 +98,13 @@ __global__ void newton_kernel(const int numPts, const int *poly_ind, double *s,
       lambda = ((x_l - pt_x) * surface_dx + (y_l - pt_y) * surface_dy) / gradsqrnorm;
 
     // Gradient of functional
-    double gradf[3];
+    DG_FP gradf[3];
     gradf[0] = pt_x - x_l + lambda * surface_dx;
     gradf[1] = pt_y - y_l + lambda * surface_dy;
     gradf[2] = surface;
 
     // Calculate Hessian of functional
-    double hessianf[3][3];
+    DG_FP hessianf[3][3];
     hessianf[0][0] = 1.0 + lambda * hessian[0];
     hessianf[0][1] = lambda * hessian[1]; hessianf[1][0] = hessianf[0][1];
     hessianf[0][2] = surface_dx; hessianf[2][0] = hessianf[0][2];
@@ -115,12 +115,12 @@ __global__ void newton_kernel(const int numPts, const int *poly_ind, double *s,
     hessianf[2][2] = 0.0;
 
     if(!newtoncp_gepp(hessianf, gradf)) {
-      double delta1_x = (surface / gradsqrnorm) * surface_dx;
-      double delta1_y = (surface / gradsqrnorm) * surface_dy;
+      DG_FP delta1_x = (surface / gradsqrnorm) * surface_dx;
+      DG_FP delta1_y = (surface / gradsqrnorm) * surface_dy;
       lambda = ((x_l - pt_x) * surface_dx + (y_l - pt_y) * surface_dy) / gradsqrnorm;
-      double delta2_x = pt_x - x_l + lambda * surface_dx;
-      double delta2_y = pt_y - y_l + lambda * surface_dy;
-      double msqr = delta2_x * delta2_x + delta2_y * delta2_y;
+      DG_FP delta2_x = pt_x - x_l + lambda * surface_dx;
+      DG_FP delta2_y = pt_y - y_l + lambda * surface_dy;
+      DG_FP msqr = delta2_x * delta2_x + delta2_y * delta2_y;
       if(msqr > 0.1 * h * 0.1 * h) {
         delta2_x *= 0.1 * h / sqrt(msqr);
         delta2_y *= 0.1 * h / sqrt(msqr);
@@ -129,7 +129,7 @@ __global__ void newton_kernel(const int numPts, const int *poly_ind, double *s,
       pt_y -= delta1_y + delta2_y;
     } else {
       // Clamp update
-      double msqr = gradf[0] * gradf[0] + gradf[1] * gradf[1];
+      DG_FP msqr = gradf[0] * gradf[0] + gradf[1] * gradf[1];
       if(msqr > h * 0.5 * h * 0.5) {
         gradf[0] = gradf[0] * 0.5 * h / sqrt(msqr);
         gradf[1] = gradf[1] * 0.5 * h / sqrt(msqr);
@@ -160,9 +160,9 @@ __global__ void newton_kernel(const int numPts, const int *poly_ind, double *s,
   if(negative) s[tid] *= -1.0;
 }
 
-void newton_method(const int numPts, double *closest_x, double *closest_y,
-                   const double *x, const double *y, int *poly_ind,
-                   PolyEval *pe, double *s, const double h) {
+void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
+                   const DG_FP *x, const DG_FP *y, int *poly_ind,
+                   PolyEval *pe, DG_FP *s, const DG_FP h) {
   int threadsPerBlock, blocks;
   if(numPts < THREADS_PER_BLOCK) {
     threadsPerBlock = numPts;
@@ -189,8 +189,8 @@ void LevelSetSolver2D::reinitLS() {
   sampleInterface();
 
   timer->startTimer("LS - Construct K-D Tree");
-  const double *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
-  const double *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
+  const DG_FP *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
+  const DG_FP *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
 
   #ifdef INS_MPI
   KDTreeMPI kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
@@ -202,22 +202,22 @@ void LevelSetSolver2D::reinitLS() {
   releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
   timer->endTimer("LS - Construct K-D Tree");
 
-  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
-  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
+  const DG_FP *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
+  const DG_FP *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
 
-  double *closest_x, *closest_y;
+  DG_FP *closest_x, *closest_y;
   int *poly_ind;
-  cudaMallocManaged(&closest_x, DG_NP * mesh->cells->size * sizeof(double));
-  cudaMallocManaged(&closest_y, DG_NP * mesh->cells->size * sizeof(double));
+  cudaMallocManaged(&closest_x, DG_NP * mesh->cells->size * sizeof(DG_FP));
+  cudaMallocManaged(&closest_y, DG_NP * mesh->cells->size * sizeof(DG_FP));
   cudaMallocManaged(&poly_ind, DG_NP * mesh->cells->size * sizeof(int));
 
   timer->startTimer("LS - Query K-D Tree");
 
   #ifdef INS_MPI
 
-  const double *s_ptr = getOP2PtrHost(s, OP_READ);
+  const DG_FP *s_ptr = getOP2PtrHost(s, OP_READ);
   int num_pts_to_reinit = 0;
-  std::vector<double> x_vec, y_vec;
+  std::vector<DG_FP> x_vec, y_vec;
   for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
@@ -233,7 +233,7 @@ void LevelSetSolver2D::reinitLS() {
     }
   }
 
-  std::vector<double> cx_vec(num_pts_to_reinit), cy_vec(num_pts_to_reinit);
+  std::vector<DG_FP> cx_vec(num_pts_to_reinit), cy_vec(num_pts_to_reinit);
   std::vector<int> p_vec(num_pts_to_reinit);
 
   kdtree.closest_point(num_pts_to_reinit, x_vec.data(), y_vec.data(), cx_vec.data(), cy_vec.data(), p_vec.data());
@@ -283,9 +283,9 @@ void LevelSetSolver2D::reinitLS() {
   timer->endTimer("LS - Construct Poly Eval");
 
   timer->startTimer("LS - Newton Method");
-  const double *x_ptr_d = getOP2PtrDevice(mesh->x, OP_READ);
-  const double *y_ptr_d = getOP2PtrDevice(mesh->y, OP_READ);
-  double *s_ptr_d = getOP2PtrDevice(s, OP_RW);
+  const DG_FP *x_ptr_d = getOP2PtrDevice(mesh->x, OP_READ);
+  const DG_FP *y_ptr_d = getOP2PtrDevice(mesh->y, OP_READ);
+  DG_FP *s_ptr_d = getOP2PtrDevice(s, OP_RW);
 
   // newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr_d,
   //               y_ptr_d, poly_ind, &pe, s_ptr_d, h);

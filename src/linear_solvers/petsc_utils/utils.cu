@@ -11,25 +11,25 @@ void get_num_nodes_petsc_utils(const int N, int *Np, int *Nfp) {
 }
 
 // Copy PETSc vec array to OP2 dat
-void PETScUtils::copy_vec_to_dat(op_dat dat, const double *dat_d) {
+void PETScUtils::copy_vec_to_dat(op_dat dat, const DG_FP *dat_d) {
   op_arg copy_args[] = {
-    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE)
+    op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE)
   };
   op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
 
-  cudaMemcpy(dat->data_d, dat_d, dat->set->size * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(dat->data_d, dat_d, dat->set->size * DG_NP * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
 
   op_mpi_set_dirtybit_cuda(1, copy_args);
 }
 
 // Copy OP2 dat to PETSc vec array
-void PETScUtils::copy_dat_to_vec(op_dat dat, double *dat_d) {
+void PETScUtils::copy_dat_to_vec(op_dat dat, DG_FP *dat_d) {
   op_arg copy_args[] = {
-    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ)
+    op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ)
   };
   op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
 
-  cudaMemcpy(dat_d, dat->data_d , dat->set->size * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(dat_d, dat->data_d , dat->set->size * DG_NP * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
 
   op_mpi_set_dirtybit_cuda(1, copy_args);
 }
@@ -48,7 +48,7 @@ void PETScUtils::destroy_vec(Vec *v) {
 
 // Load a PETSc vector with values from an OP2 dat for GPUs
 void PETScUtils::load_vec(Vec *v, op_dat v_dat) {
-  double *v_ptr;
+  DG_FP *v_ptr;
   VecCUDAGetArray(*v, &v_ptr);
 
   copy_dat_to_vec(v_dat, v_ptr);
@@ -58,7 +58,7 @@ void PETScUtils::load_vec(Vec *v, op_dat v_dat) {
 
 // Load an OP2 dat with the values from a PETSc vector for GPUs
 void PETScUtils::store_vec(Vec *v, op_dat v_dat) {
-  const double *v_ptr;
+  const DG_FP *v_ptr;
   VecCUDAGetArrayRead(*v, &v_ptr);
 
   copy_vec_to_dat(v_dat, v_ptr);
@@ -68,9 +68,9 @@ void PETScUtils::store_vec(Vec *v, op_dat v_dat) {
 
 // P-adaptive stuff
 // Copy PETSc vec array to OP2 dat
-void PETScUtils::copy_vec_to_dat_p_adapt(op_dat dat, const double *dat_d, DGMesh *mesh) {
+void PETScUtils::copy_vec_to_dat_p_adapt(op_dat dat, const DG_FP *dat_d, DGMesh *mesh) {
   op_arg copy_args[] = {
-    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_WRITE),
+    op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(dat->set, 2, copy_args);
@@ -96,24 +96,24 @@ void PETScUtils::copy_vec_to_dat_p_adapt(op_dat dat, const double *dat_d, DGMesh
       }
     } else {
       if(block_count != 0) {
-        double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
-        cudaMemcpy(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+        DG_FP *block_start_dat_c = (DG_FP *)dat->data_d + block_start * dat->dim;
+        cudaMemcpy(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
         vec_ind += DG_NP * block_count;
       }
       block_count = 0;
     }
 
-    double *v_c = (double *)dat->data_d + i * dat->dim;
+    DG_FP *v_c = (DG_FP *)dat->data_d + i * dat->dim;
     int Np, Nfp;
     get_num_nodes_petsc_utils(N, &Np, &Nfp);
 
-    cudaMemcpy(v_c, dat_d + vec_ind, Np * sizeof(double), cudaMemcpyDeviceToDevice);
+    cudaMemcpy(v_c, dat_d + vec_ind, Np * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
     vec_ind += Np;
   }
 
   if(block_count != 0) {
-    double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
-    cudaMemcpy(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+    DG_FP *block_start_dat_c = (DG_FP *)dat->data_d + block_start * dat->dim;
+    cudaMemcpy(block_start_dat_c, dat_d + vec_ind, block_count * DG_NP * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
     vec_ind += DG_NP * block_count;
   }
   free(tempOrder);
@@ -121,9 +121,9 @@ void PETScUtils::copy_vec_to_dat_p_adapt(op_dat dat, const double *dat_d, DGMesh
 }
 
 // Copy OP2 dat to PETSc vec array
-void PETScUtils::copy_dat_to_vec_p_adapt(op_dat dat, double *dat_d, DGMesh *mesh) {
+void PETScUtils::copy_dat_to_vec_p_adapt(op_dat dat, DG_FP *dat_d, DGMesh *mesh) {
   op_arg copy_args[] = {
-    op_arg_dat(dat, -1, OP_ID, DG_NP, "double", OP_READ),
+    op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(dat->set, 2, copy_args);
@@ -149,24 +149,24 @@ void PETScUtils::copy_dat_to_vec_p_adapt(op_dat dat, double *dat_d, DGMesh *mesh
       }
     } else {
       if(block_count != 0) {
-        const double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
-        cudaMemcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+        const DG_FP *block_start_dat_c = (DG_FP *)dat->data_d + block_start * dat->dim;
+        cudaMemcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
         vec_ind += DG_NP * block_count;
       }
       block_count = 0;
     }
 
-    const double *v_c = (double *)dat->data_d + i * dat->dim;
+    const DG_FP *v_c = (DG_FP *)dat->data_d + i * dat->dim;
     int Np, Nfp;
     get_num_nodes_petsc_utils(N, &Np, &Nfp);
 
-    cudaMemcpy(dat_d + vec_ind, v_c, Np * sizeof(double), cudaMemcpyDeviceToDevice);
+    cudaMemcpy(dat_d + vec_ind, v_c, Np * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
     vec_ind += Np;
   }
 
   if(block_count != 0) {
-    const double *block_start_dat_c = (double *)dat->data_d + block_start * dat->dim;
-    cudaMemcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(double), cudaMemcpyDeviceToDevice);
+    const DG_FP *block_start_dat_c = (DG_FP *)dat->data_d + block_start * dat->dim;
+    cudaMemcpy(dat_d + vec_ind, block_start_dat_c, block_count * DG_NP * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
     vec_ind += DG_NP * block_count;
   }
   free(tempOrder);
@@ -182,7 +182,7 @@ void PETScUtils::create_vec_p_adapt(Vec *v, int local_unknowns) {
 
 // Load a PETSc vector with values from an OP2 dat for CPUs
 void PETScUtils::load_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh *mesh) {
-  double *v_ptr;
+  DG_FP *v_ptr;
   VecCUDAGetArray(*v, &v_ptr);
 
   copy_dat_to_vec_p_adapt(v_dat, v_ptr, mesh);
@@ -192,7 +192,7 @@ void PETScUtils::load_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh *mesh) {
 
 // Load an OP2 dat with the values from a PETSc vector for CPUs
 void PETScUtils::store_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh *mesh) {
-  const double *v_ptr;
+  const DG_FP *v_ptr;
   VecCUDAGetArrayRead(*v, &v_ptr);
 
   copy_vec_to_dat_p_adapt(v_dat, v_ptr, mesh);

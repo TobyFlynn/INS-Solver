@@ -15,18 +15,18 @@ void MMPoissonMatrix2D::calc_mat() {
   petscMatResetRequired = true;
 }
 
-void MMPoissonMatrix2D::set_factor(double f) {
+void MMPoissonMatrix2D::set_factor(DG_FP f) {
   factor = f;
 }
 
-double MMPoissonMatrix2D::get_factor() {
+DG_FP MMPoissonMatrix2D::get_factor() {
   return factor;
 }
 
 void MMPoissonMatrix2D::calc_mm() {
   op_par_loop(poisson_mm, "poisson_mm", mesh->cells,
-              op_arg_gbl(&factor, 1, "double", OP_READ),
+              op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->cubature->mm, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_INC));
+              op_arg_dat(mesh->cubature->mm, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_INC));
 }

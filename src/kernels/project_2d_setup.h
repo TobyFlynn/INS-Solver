@@ -1,14 +1,14 @@
-inline void project_2d_setup(const double *dr_, const double *ds_,
-                             const double *mass_, const double *rx,
-                             const double *sx, const double *ry, const double *sy,
-                             double *op_0, double *op_1, double *op_2, double *op_3) {
+inline void project_2d_setup(const DG_FP *dr_, const DG_FP *ds_,
+                             const DG_FP *mass_, const DG_FP *rx,
+                             const DG_FP *sx, const DG_FP *ry, const DG_FP *sy,
+                             DG_FP *op_0, DG_FP *op_1, DG_FP *op_2, DG_FP *op_3) {
   // Get matrices
-  const double *Dr   = &dr_[(DG_ORDER - 1) * DG_NP * DG_NP];
-  const double *Ds   = &ds_[(DG_ORDER - 1) * DG_NP * DG_NP];
-  const double *Mass = &mass_[(DG_ORDER - 1) * DG_NP * DG_NP];
+  const DG_FP *Dr   = &dr_[(DG_ORDER - 1) * DG_NP * DG_NP];
+  const DG_FP *Ds   = &ds_[(DG_ORDER - 1) * DG_NP * DG_NP];
+  const DG_FP *Mass = &mass_[(DG_ORDER - 1) * DG_NP * DG_NP];
 
   // Div-div term
-  double Dx[DG_NP * DG_NP], Dy[DG_NP * DG_NP];
+  DG_FP Dx[DG_NP * DG_NP], Dy[DG_NP * DG_NP];
   for(int i = 0; i < DG_NP; i++) {
     for(int j = 0; j < DG_NP; j++) {
       int ind = i + j * DG_NP;
@@ -17,7 +17,7 @@ inline void project_2d_setup(const double *dr_, const double *ds_,
     }
   }
 
-  double Dx_t[DG_NP * DG_NP], Dy_t[DG_NP * DG_NP];
+  DG_FP Dx_t[DG_NP * DG_NP], Dy_t[DG_NP * DG_NP];
   for(int i = 0; i < DG_NP; i++) {
     for(int j = 0; j < DG_NP; j++) {
       int op_ind = i + j * DG_NP;

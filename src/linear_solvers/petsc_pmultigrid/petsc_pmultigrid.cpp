@@ -11,16 +11,16 @@ PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
   nullspace = false;
   pMatInit = false;
 
-  double *tmp_np = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
-  in  = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "block_jacobi_in");
-  out = op_decl_dat(mesh->cells, DG_NP, "double", tmp_np, "block_jacobi_out");
+  DG_FP *tmp_np = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+  in  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "block_jacobi_in");
+  out = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "block_jacobi_out");
   free(tmp_np);
 
   pmultigridSolver = new PMultigridPoissonSolver(mesh);
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPGMRES);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 2.5e2);
+  KSPSetTolerances(ksp, LIN_SOL_TOL, 1e-50, 1e5, 2.5e2);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
   PC pc;
   KSPGetPC(ksp, &pc);
@@ -68,7 +68,7 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
   // Check that the solver converged
   bool converged = true;
   if(reason < 0) {
-    double residual;
+    DG_FP residual;
     KSPGetResidualNorm(ksp, &residual);
     converged = false;
     std::cout << "Number of iterations for linear solver: " << numIt << std::endl;
@@ -85,7 +85,7 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
   return converged;
 }
 
-void PETScPMultigrid::calc_rhs(const double *in_d, double *out_d) {
+void PETScPMultigrid::calc_rhs(const DG_FP *in_d, DG_FP *out_d) {
   // Copy u to OP2 dat
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
@@ -94,7 +94,7 @@ void PETScPMultigrid::calc_rhs(const double *in_d, double *out_d) {
   PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
 }
 
-void PETScPMultigrid::precond(const double *in_d, double *out_d) {
+void PETScPMultigrid::precond(const DG_FP *in_d, DG_FP *out_d) {
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
   pmultigridSolver->solve(in, out);

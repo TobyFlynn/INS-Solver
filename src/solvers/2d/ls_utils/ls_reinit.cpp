@@ -26,10 +26,10 @@ bool newtoncp_gepp(arma::mat &A, arma::vec &b) {
       std::swap(b(i), b(j));
     }
 
-    if (std::abs(A(i,i)) < 1.0e4*std::numeric_limits<double>::epsilon())
+    if (std::abs(A(i,i)) < 1.0e4*std::numeric_limits<DG_FP>::epsilon())
       return false;
 
-    double fac = 1.0 / A(i,i);
+    DG_FP fac = 1.0 / A(i,i);
     for (int j = i + 1; j < 3; ++j)
       A(j,i) *= fac;
 
@@ -41,7 +41,7 @@ bool newtoncp_gepp(arma::mat &A, arma::vec &b) {
   }
 
   for (int i = 3 - 1; i >= 0; --i) {
-    double sum = 0.0;
+    DG_FP sum = 0.0;
     for (int j = i + 1; j < 3; ++j)
       sum += A(i,j)*b(j);
     b(i) = (b(i) - sum) / A(i,i);
@@ -50,29 +50,29 @@ bool newtoncp_gepp(arma::mat &A, arma::vec &b) {
   return true;
 }
 
-bool newton_kernel(double &closest_pt_x, double &closest_pt_y,
-                   const double node_x, const double node_y,
-                   PolyApprox &p, const double h) {
-  double lambda = 0.0;
+bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y,
+                   const DG_FP node_x, const DG_FP node_y,
+                   PolyApprox &p, const DG_FP h) {
+  DG_FP lambda = 0.0;
   bool converged = false;
-  double pt_x = closest_pt_x;
-  double pt_y = closest_pt_y;
-  double init_x = closest_pt_x;
-  double init_y = closest_pt_y;
+  DG_FP pt_x = closest_pt_x;
+  DG_FP pt_y = closest_pt_y;
+  DG_FP init_x = closest_pt_x;
+  DG_FP init_y = closest_pt_y;
 
   for(int step = 0; step < 10; step++) {
-    double pt_x_old = pt_x;
-    double pt_y_old = pt_y;
+    DG_FP pt_x_old = pt_x;
+    DG_FP pt_y_old = pt_y;
     // Evaluate surface and gradient at current guess
-    double surface = p.val_at(pt_x, pt_y);
-    double surface_dx, surface_dy;
+    DG_FP surface = p.val_at(pt_x, pt_y);
+    DG_FP surface_dx, surface_dy;
     p.grad_at(pt_x, pt_y, surface_dx, surface_dy);
     // Evaluate Hessian
-    double hessian[3];
+    DG_FP hessian[3];
     p.hessian_at(pt_x, pt_y, hessian[0], hessian[1], hessian[2]);
 
     // Check if |nabla(surface)| = 0, if so then return
-    double gradsqrnorm = surface_dx * surface_dx + surface_dy * surface_dy;
+    DG_FP gradsqrnorm = surface_dx * surface_dx + surface_dy * surface_dy;
     if(gradsqrnorm < 1e-14)
       break;
 
@@ -98,12 +98,12 @@ bool newton_kernel(double &closest_pt_x, double &closest_pt_y,
     hessianf(2, 2) = 0.0;
 
     if(!newtoncp_gepp(hessianf, gradf)) {
-      double delta1_x = (surface / gradsqrnorm) * surface_dx;
-      double delta1_y = (surface / gradsqrnorm) * surface_dy;
+      DG_FP delta1_x = (surface / gradsqrnorm) * surface_dx;
+      DG_FP delta1_y = (surface / gradsqrnorm) * surface_dy;
       lambda = ((node_x - pt_x) * surface_dx + (node_y - pt_y) * surface_dy) / gradsqrnorm;
-      double delta2_x = pt_x - node_x + lambda * surface_dx;
-      double delta2_y = pt_y - node_y + lambda * surface_dy;
-      double msqr = delta2_x * delta2_x + delta2_y * delta2_y;
+      DG_FP delta2_x = pt_x - node_x + lambda * surface_dx;
+      DG_FP delta2_y = pt_y - node_y + lambda * surface_dy;
+      DG_FP msqr = delta2_x * delta2_x + delta2_y * delta2_y;
       if(msqr > 0.1 * h * 0.1 * h) {
         delta2_x *= 0.1 * h / sqrt(msqr);
         delta2_y *= 0.1 * h / sqrt(msqr);
@@ -114,7 +114,7 @@ bool newton_kernel(double &closest_pt_x, double &closest_pt_y,
       arma::vec ans = gradf;
 
       // Clamp update
-      double msqr = ans(0) * ans(0) + ans(1) * ans(1);
+      DG_FP msqr = ans(0) * ans(0) + ans(1) * ans(1);
       if(msqr > h * 0.5 * h * 0.5)
         ans = ans * 0.5 * h / sqrt(msqr);
 
@@ -144,8 +144,8 @@ bool newton_kernel(double &closest_pt_x, double &closest_pt_y,
   return converged;
 }
 
-void newton_method(const int numPts, double *closest_x, double *closest_y, const double *x, const double *y,
-                   int *poly_ind, std::vector<PolyApprox> &polys, double *s, const double h) {
+void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, const DG_FP *x, const DG_FP *y,
+                   int *poly_ind, std::vector<PolyApprox> &polys, DG_FP *s, const DG_FP h) {
   int numNonConv = 0;
   int numReinit = 0;
 
@@ -186,8 +186,8 @@ void LevelSetSolver2D::reinitLS() {
   sampleInterface();
 
   timer->startTimer("LS - Construct K-D Tree");
-  const double *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
-  const double *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
+  const DG_FP *sample_pts_x = getOP2PtrHost(s_sample_x, OP_READ);
+  const DG_FP *sample_pts_y = getOP2PtrHost(s_sample_y, OP_READ);
 
   #ifdef INS_MPI
   KDTreeMPI kdtree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
@@ -199,19 +199,19 @@ void LevelSetSolver2D::reinitLS() {
   releaseOP2PtrHost(s_sample_y, OP_READ, sample_pts_y);
   timer->endTimer("LS - Construct K-D Tree");
 
-  const double *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
-  const double *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
+  const DG_FP *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
+  const DG_FP *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
 
-  double *closest_x = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
-  double *closest_y = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  DG_FP *closest_x = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+  DG_FP *closest_y = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   int *poly_ind     = (int *)calloc(DG_NP * mesh->cells->size, sizeof(int));
 
   timer->startTimer("LS - Query K-D Tree");
   #ifdef INS_MPI
 
-  const double *s_ptr = getOP2PtrHost(s, OP_READ);
+  const DG_FP *s_ptr = getOP2PtrHost(s, OP_READ);
   int num_pts_to_reinit = 0;
-  std::vector<double> x_vec, y_vec;
+  std::vector<DG_FP> x_vec, y_vec;
   for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
@@ -226,7 +226,7 @@ void LevelSetSolver2D::reinitLS() {
       y_vec.push_back(y_ptr[i]);
     }
   }
-  std::vector<double> cx_vec(num_pts_to_reinit), cy_vec(num_pts_to_reinit);
+  std::vector<DG_FP> cx_vec(num_pts_to_reinit), cy_vec(num_pts_to_reinit);
   std::vector<int> p_vec(num_pts_to_reinit);
 
   kdtree.closest_point(num_pts_to_reinit, x_vec.data(), y_vec.data(), cx_vec.data(), cy_vec.data(), p_vec.data());
@@ -268,7 +268,7 @@ void LevelSetSolver2D::reinitLS() {
   std::vector<PolyApprox> polys = kdtree.get_polys();
 
   timer->startTimer("LS - Newton Method");
-  double *surface_ptr = getOP2PtrHost(s, OP_RW);
+  DG_FP *surface_ptr = getOP2PtrHost(s, OP_RW);
 
   newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr, y_ptr,
                 poly_ind, polys, surface_ptr, h);

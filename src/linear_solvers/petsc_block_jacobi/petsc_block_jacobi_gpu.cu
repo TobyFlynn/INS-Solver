@@ -7,8 +7,8 @@
 PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
   PETScBlockJacobiSolver *poisson;
   MatShellGetContext(A, &poisson);
-  const double *x_ptr;
-  double *y_ptr;
+  const DG_FP *x_ptr;
+  DG_FP *y_ptr;
   VecCUDAGetArrayRead(x, &x_ptr);
   VecCUDAGetArray(y, &y_ptr);
 
@@ -33,8 +33,8 @@ void PETScBlockJacobiSolver::create_shell_mat() {
 PetscErrorCode precon(PC pc, Vec x, Vec y) {
   PETScBlockJacobiSolver *poisson;
   PCShellGetContext(pc, (void **)&poisson);
-  const double *x_ptr;
-  double *y_ptr;
+  const DG_FP *x_ptr;
+  DG_FP *y_ptr;
   VecCUDAGetArrayRead(x, &x_ptr);
   VecCUDAGetArray(y, &y_ptr);
 

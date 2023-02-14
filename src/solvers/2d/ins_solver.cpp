@@ -43,35 +43,35 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
   // viscosityPoisson->setNeumannBCs(viscosity_neumann);
 
   std::string name;
-  double *dg_np_data = (double *)calloc(DG_NP * mesh->cells->size, sizeof(double));
+  DG_FP *dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   for(int i = 0; i < 2; i++) {
     name = "ins_solver_vel0" + std::to_string(i);
-    vel[0][i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
+    vel[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
     name = "ins_solver_vel1" + std::to_string(i);
-    vel[1][i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
+    vel[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
     name = "ins_solver_n0" + std::to_string(i);
-    n[0][i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
+    n[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
     name = "ins_solver_n1" + std::to_string(i);
-    n[1][i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
+    n[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
     name = "ins_solver_velT" + std::to_string(i);
-    velT[i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
+    velT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
     name = "ins_solver_velTT" + std::to_string(i);
-    velTT[i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
+    velTT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
   }
   for(int i = 0; i < 4; i++) {
     name = "ins_solver_tmp_np" + std::to_string(i);
-    tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, name.c_str());
+    tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
   }
-  pr  = op_decl_dat(mesh->cells, DG_NP, "double", dg_np_data, "ins_solver_pr");
+  pr  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ins_solver_pr");
   free(dg_np_data);
 
-  double *g_np_data = (double *)calloc(DG_G_NP * mesh->cells->size, sizeof(double));
+  DG_FP *g_np_data = (DG_FP *)calloc(DG_G_NP * mesh->cells->size, sizeof(DG_FP));
   for(int i = 0; i < 4; i++) {
     string name    = "tmp_g_np" + to_string(i);
-    tmp_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, "double", g_np_data, name.c_str());
+    tmp_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, g_np_data, name.c_str());
   }
-  dPdN[0] = op_decl_dat(mesh->cells, DG_G_NP, "double", g_np_data, "ins_solver_dPdN0");
-  dPdN[1] = op_decl_dat(mesh->cells, DG_G_NP, "double", g_np_data, "ins_solver_dPdN1");
+  dPdN[0] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, g_np_data, "ins_solver_dPdN0");
+  dPdN[1] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, g_np_data, "ins_solver_dPdN1");
   free(g_np_data);
 
   int *bc_1_data = (int *)calloc(mesh->bfaces->size, sizeof(int));
@@ -80,17 +80,17 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
   vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", bc_1_data, "ins_solver_vis_bc_types");
   free(bc_1_data);
 
-  double *tmp_np_np = (double *)calloc(DG_NP * DG_NP * mesh->cells->size, sizeof(double));
-  proj_op_xx = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_np_np, "proj_op_xx");
-  proj_op_yy = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_np_np, "proj_op_yy");
-  proj_op_xy = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_np_np, "proj_op_xy");
-  proj_op_yx = op_decl_dat(mesh->cells, DG_NP * DG_NP, "double", tmp_np_np, "proj_op_yx");
+  DG_FP *tmp_np_np = (DG_FP *)calloc(DG_NP * DG_NP * mesh->cells->size, sizeof(DG_FP));
+  proj_op_xx = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, tmp_np_np, "proj_op_xx");
+  proj_op_yy = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, tmp_np_np, "proj_op_yy");
+  proj_op_xy = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, tmp_np_np, "proj_op_xy");
+  proj_op_yx = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, tmp_np_np, "proj_op_yx");
   free(tmp_np_np);
 
-  double *tmp_double_1 = (double *)calloc(mesh->cells->size, sizeof(double));
-  proj_pen = op_decl_dat(mesh->cells, 1, "double", tmp_double_1, "proj_pen");
-  proj_h   = op_decl_dat(mesh->cells, 1, "double", tmp_double_1, "proj_h");
-  free(tmp_double_1);
+  DG_FP *tmp_DG_FP_1 = (DG_FP *)calloc(mesh->cells->size, sizeof(DG_FP));
+  proj_pen = op_decl_dat(mesh->cells, 1, DG_FP_STR, tmp_DG_FP_1, "proj_pen");
+  proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, tmp_DG_FP_1, "proj_h");
+  free(tmp_DG_FP_1);
 
   f[0] = tmp_np[0];
   f[1] = tmp_np[1];
@@ -137,30 +137,30 @@ INSSolver2D::~INSSolver2D() {
   delete viscositySolver;
 }
 
-void INSSolver2D::init(const double re, const double refVel) {
+void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   timer->startTimer("INS - Init");
   reynolds = re;
 
   // Set initial conditions
   op_par_loop(ins_2d_set_ic, "ins_2d_set_ic", mesh->cells,
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(vel[0][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(vel[0][1], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(vel[1][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(vel[1][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vel[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vel[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vel[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-  dt = numeric_limits<double>::max();
+  dt = numeric_limits<DG_FP>::max();
   op_par_loop(calc_dt, "calc_dt", mesh->cells,
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_gbl(&dt, 1, "double", OP_MIN));
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_gbl(&dt, 1, DG_FP_STR, OP_MIN));
   dt = dt / (DG_ORDER * DG_ORDER * refVel);
   op_printf("dt: %g\n", dt);
 
   if(mesh->bface2nodes) {
     op_par_loop(ins_bc_types, "ins_bc_types", mesh->bfaces,
-                op_arg_dat(mesh->node_coords, -3, mesh->bface2nodes, 3, "double", OP_READ),
+                op_arg_dat(mesh->node_coords, -3, mesh->bface2nodes, 3, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(pr_bc_types,  -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
@@ -171,22 +171,22 @@ void INSSolver2D::init(const double re, const double refVel) {
 
   // Setup div-div pressure projection
   op_par_loop(project_2d_setup, "project_2d_setup", mesh->cells,
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, "double", OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, "double", OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->rx, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->sx, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->ry, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->sy, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(proj_op_xx, -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(proj_op_yy, -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(proj_op_yx, -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE),
-              op_arg_dat(proj_op_xy, -1, OP_ID, DG_NP * DG_NP, "double", OP_WRITE));
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->rx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ry, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(proj_op_xx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(proj_op_yy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(proj_op_yx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(proj_op_xy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
 
   op_par_loop(poisson_h, "poisson_h", mesh->cells,
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, "double", OP_READ),
-              op_arg_dat(proj_h, -1, OP_ID, 1, "double", OP_WRITE));
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
   timer->endTimer("INS - Init");
 }
@@ -221,12 +221,12 @@ void INSSolver2D::step() {
 void INSSolver2D::advection() {
   // Calculate flux values
   op_par_loop(ins_advec_flux_2d, "ins_advec_flux_2d", mesh->cells,
-              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(f[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(f[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(f[2], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(f[3], -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(f[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[3], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
   mesh->div(f[0], f[1], n[currentInd][0]);
   mesh->div(f[2], f[3], n[currentInd][1]);
@@ -235,59 +235,59 @@ void INSSolver2D::advection() {
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, vel[currentInd][1], 0.0, gVel[1]);
 
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
-              op_arg_dat(gAdvecFlux[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
-              op_arg_dat(gAdvecFlux[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+              op_arg_dat(gAdvecFlux[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(gAdvecFlux[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 
   // Exchange values on edges between elements
   op_par_loop(ins_advec_faces_2d, "ins_advec_faces_2d", mesh->faces,
               op_arg_dat(mesh->order,     -2, mesh->face2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(mesh->gauss->nx, -2, mesh->face2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, -2, mesh->face2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, -2, mesh->face2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gVel[0],         -2, mesh->face2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gVel[1],         -2, mesh->face2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gAdvecFlux[0],   -2, mesh->face2cells, DG_G_NP, "double", OP_INC),
-              op_arg_dat(gAdvecFlux[1],   -2, mesh->face2cells, DG_G_NP, "double", OP_INC));
+              op_arg_dat(mesh->gauss->nx, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->gauss->ny, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->gauss->sJ, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(gVel[0],         -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(gVel[1],         -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(gAdvecFlux[0],   -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_INC),
+              op_arg_dat(gAdvecFlux[1],   -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_INC));
 
   // Enforce BCs
   if(mesh->bface2cells) {
     op_par_loop(ins_advec_bc_2d, "ins_advec_bc_2d", mesh->bfaces,
-                op_arg_gbl(&time, 1, "double", OP_READ),
+                op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->order,     0, mesh->bface2cells, 1, "int", OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->sJ, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(gVel[0],         0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(gVel[1],         0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(gAdvecFlux[0],   0, mesh->bface2cells, DG_G_NP, "double", OP_INC),
-                op_arg_dat(gAdvecFlux[1],   0, mesh->bface2cells, DG_G_NP, "double", OP_INC));
+                op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->gauss->sJ, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gVel[0],         0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gVel[1],         0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gAdvecFlux[0],   0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC),
+                op_arg_dat(gAdvecFlux[1],   0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC));
   }
   op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, gAdvecFlux[0], 1.0, n[currentInd][0]);
   op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, gAdvecFlux[1], 1.0, n[currentInd][1]);
 
   // Calculate the intermediate velocity values
   op_par_loop(ins_advec_intermediate_vel_2d, "ins_advec_intermediate_vel_2d", mesh->cells,
-              op_arg_gbl(&a0, 1, "double", OP_READ),
-              op_arg_gbl(&a1, 1, "double", OP_READ),
-              op_arg_gbl(&b0, 1, "double", OP_READ),
-              op_arg_gbl(&b1, 1, "double", OP_READ),
-              op_arg_gbl(&dt, 1, "double", OP_READ),
-              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(n[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(velT[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(velT[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 }
 
 bool INSSolver2D::pressure() {
@@ -305,35 +305,35 @@ bool INSSolver2D::pressure() {
   // Apply Neumann pressure boundary conditions
   if(mesh->bface2cells) {
     op_par_loop(ins_pressure_bc_2d, "ins_pressure_bc_2d", mesh->bfaces,
-                op_arg_gbl(&time, 1, "double", OP_READ),
+                op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(gN[0], 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(gN[1], 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(gGradCurl[0], 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(gGradCurl[1], 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(dPdN[currentInd], 0, mesh->bface2cells, DG_G_NP, "double", OP_INC));
+                op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gN[0], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gN[1], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gGradCurl[0], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gGradCurl[1], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dPdN[currentInd], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC));
   }
   // Apply Dirichlet BCs
   op_par_loop(zero_g_np1, "zero_g_np1", mesh->cells,
-              op_arg_dat(prBC, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+              op_arg_dat(prBC, -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 
   // Calculate RHS of pressure solve
   // This assumes that the boundaries will always be order DG_ORDER
   op_par_loop(ins_pressure_rhs_2d, "ins_pressure_rhs_2d", mesh->cells,
-              op_arg_gbl(&b0, 1, "double", OP_READ),
-              op_arg_gbl(&b1, 1, "double", OP_READ),
-              op_arg_gbl(&dt, 1, "double", OP_READ),
+              op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->J, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, -1, OP_ID, DG_G_NP, "double", OP_READ),
-              op_arg_dat(dPdN[currentInd], -1, OP_ID, DG_G_NP, "double", OP_READ),
-              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, "double", OP_RW),
-              op_arg_dat(divVelT, -1, OP_ID, DG_NP, "double", OP_RW));
+              op_arg_dat(mesh->J, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->gauss->sJ, -1, OP_ID, DG_G_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dPdN[currentInd], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(divVelT, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   op2_gemv(mesh, false, 1.0, DGConstants::MASS, divVelT, 0.0, pRHS);
   op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, dPdN[(currentInd + 1) % 2], 1.0, pRHS);
@@ -357,102 +357,102 @@ void INSSolver2D::project_velocity() {
   if(false) {
     // Calculate new velocity intermediate values
     op_par_loop(ins_pressure_update_2d, "ins_pressure_update_2d", mesh->cells,
-                op_arg_gbl(&dt, 1, "double", OP_READ),
-                op_arg_dat(dpdx, -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(dpdy, -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(velT[0], -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(velT[1], -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
-                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
-                op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
   } else {
     // Calculate new velocity intermediate values
     op_par_loop(project_2d_0, "project_2d_0", mesh->cells,
-                op_arg_gbl(&dt, 1, "double", OP_READ),
-                op_arg_dat(mesh->J, -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(dpdx, -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(dpdy, -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(velT[0], -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(velT[1], -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
-                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, "double", OP_WRITE),
-                op_arg_dat(proj_rhs_x, -1, OP_ID, DG_NP, "double", OP_WRITE),
-                op_arg_dat(proj_rhs_y, -1, OP_ID, DG_NP, "double", OP_WRITE),
-                op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->J, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(proj_rhs_x, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(proj_rhs_y, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 
     mesh->mass(proj_rhs_x);
     mesh->mass(proj_rhs_y);
 
-    double factor = dt * 1.0;
-    // double factor = dt / Cr;
+    DG_FP factor = dt * 1.0;
+    // DG_FP factor = dt / Cr;
     // op_printf("Cr: %g\n", Cr);
     op_par_loop(project_2d_pen, "project_2d_pen", mesh->cells,
-                op_arg_gbl(&factor, 1, "double", OP_READ),
-                op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(proj_h, -1, OP_ID, 1, "double", OP_READ),
-                op_arg_dat(proj_pen, -1, OP_ID, 1, "double", OP_WRITE));
+                op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_pen, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
     // Do the 2 vector linear solve with project_mat as the matrix
     int num_cells = 0;
     int num_converge = 0;
-    double num_iter = 0.0;
+    DG_FP num_iter = 0.0;
     op_par_loop(project_2d_cg, "project_2d_cg", mesh->cells,
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, "double", OP_READ),
-                op_arg_dat(mesh->J, -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(proj_op_xx, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-                op_arg_dat(proj_op_yy, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-                op_arg_dat(proj_op_yx, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-                op_arg_dat(proj_op_xy, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-                op_arg_dat(proj_pen, -1, OP_ID, 1, "double", OP_READ),
-                op_arg_dat(proj_rhs_x, -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(proj_rhs_y, -1, OP_ID, DG_NP, "double", OP_READ),
-                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, "double", OP_RW),
-                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, "double", OP_RW),
+                op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->J, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_op_xx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_op_yy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_op_yx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_op_xy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_pen, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_rhs_x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_rhs_y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
                 op_arg_gbl(&num_cells, 1, "int", OP_INC),
                 op_arg_gbl(&num_converge, 1, "int", OP_INC),
-                op_arg_gbl(&num_iter, 1, "double", OP_INC));
+                op_arg_gbl(&num_iter, 1, DG_FP_STR, OP_INC));
     // op_printf("%d out of %d cells converged on projection step\n", num_converge, num_cells);
-    // op_printf("Average iterations to converge on projection step %g\n", num_iter / (double)num_cells);
+    // op_printf("Average iterations to converge on projection step %g\n", num_iter / (DG_FP)num_cells);
   }
 }
 
 bool INSSolver2D::viscosity() {
   timer->startTimer("Viscosity Setup");
-  double time_n1 = time + dt;
+  DG_FP time_n1 = time + dt;
 
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
-              op_arg_dat(visBC[0], -1, OP_ID, DG_G_NP, "double", OP_WRITE),
-              op_arg_dat(visBC[1], -1, OP_ID, DG_G_NP, "double", OP_WRITE));
+              op_arg_dat(visBC[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(visBC[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 
   // Get BCs for viscosity solve
   if(mesh->bface2cells) {
     op_par_loop(ins_vis_bc_2d, "ins_vis_bc_2d", mesh->bfaces,
-                op_arg_gbl(&time_n1, 1, "double", OP_READ),
+                op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, "double", OP_READ),
-                op_arg_dat(visBC[0], 0, mesh->bface2cells, DG_G_NP, "double", OP_INC),
-                op_arg_dat(visBC[1], 0, mesh->bface2cells, DG_G_NP, "double", OP_INC));
+                op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(visBC[0], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC),
+                op_arg_dat(visBC[1], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC));
   }
   // Set up RHS for viscosity solve
   op_par_loop(ins_vis_copy_2d, "ins_vis_copy_2d", mesh->cells,
-              op_arg_dat(velTT[0], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(velTT[1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+              op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
    mesh->mass(visRHS[0]);
    mesh->mass(visRHS[1]);
 
-  double factor = reynolds / dt;
+  DG_FP factor = reynolds / dt;
   op_par_loop(ins_vis_rhs_2d, "ins_vis_rhs_2d", mesh->cells,
-              op_arg_gbl(&factor, 1, "double", OP_READ),
-              op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, "double", OP_RW),
-              op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, "double", OP_RW));
+              op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   timer->endTimer("Viscosity Setup");
 

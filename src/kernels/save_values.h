@@ -1,4 +1,4 @@
-inline void save_values(const double *v_vals, double *c_vals) {
+inline void save_values(const DG_FP *v_vals, DG_FP *c_vals) {
   #if DG_ORDER == 4
   c_vals[0]  = (v_vals[0] + v_vals[1] + v_vals[5]) / 3.0;
   c_vals[1]  = (v_vals[1] + v_vals[5] + v_vals[6]) / 3.0;

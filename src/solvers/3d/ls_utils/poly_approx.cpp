@@ -6,14 +6,14 @@ extern Timing *timer;
 
 using namespace std;
 
-void num_pts_pos_neg(const vector<double> &s, int &pos, int &neg);
+void num_pts_pos_neg(const vector<DG_FP> &s, int &pos, int &neg);
 
 PolyApprox3D::PolyApprox3D(const int cell_ind, set<int> stencil,
-                       const double *x_ptr, const double *y_ptr,
-                       const double *z_ptr, const double *s_ptr) {
+                       const DG_FP *x_ptr, const DG_FP *y_ptr,
+                       const DG_FP *z_ptr, const DG_FP *s_ptr) {
   get_offset(cell_ind, x_ptr, y_ptr, z_ptr);
 
-  vector<double> x_vec, y_vec, z_vec, s_vec;
+  vector<DG_FP> x_vec, y_vec, z_vec, s_vec;
   stencil_data(cell_ind, stencil, x_ptr, y_ptr, z_ptr, s_ptr, x_vec, y_vec, z_vec, s_vec);
 
   // Make sure equal number of points on each side of the line
@@ -25,7 +25,7 @@ PolyApprox3D::PolyApprox3D(const int cell_ind, set<int> stencil,
   //   // Find point furthest from the interface to discard
   //   int ind_discard;
   //   if(pos_pts > neg_pts) {
-  //     double max = s_vec[0];
+  //     DG_FP max = s_vec[0];
   //     ind_discard = 0;
   //     for(int i = 1; i < x_vec.size(); i++) {
   //       if(s_vec[i] > max) {
@@ -34,7 +34,7 @@ PolyApprox3D::PolyApprox3D(const int cell_ind, set<int> stencil,
   //       }
   //     }
   //   } else {
-  //     double min = s_vec[0];
+  //     DG_FP min = s_vec[0];
   //     ind_discard = 0;
   //     for(int i = 1; i < x_vec.size(); i++) {
   //       if(s_vec[i] < min) {
@@ -61,8 +61,8 @@ PolyApprox3D::PolyApprox3D(const int cell_ind, set<int> stencil,
   }
 }
 
-PolyApprox3D::PolyApprox3D(std::vector<double> &c, double off_x, double off_y,
-                       double off_z) {
+PolyApprox3D::PolyApprox3D(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y,
+                       DG_FP off_z) {
   offset_x = off_x;
   offset_y = off_y;
   offset_z = off_z;
@@ -71,8 +71,8 @@ PolyApprox3D::PolyApprox3D(std::vector<double> &c, double off_x, double off_y,
   }
 }
 
-void PolyApprox3D::get_offset(const int ind, const double *x_ptr, const double *y_ptr,
-                            const double *z_ptr) {
+void PolyApprox3D::get_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_ptr,
+                            const DG_FP *z_ptr) {
   // offset_x = x_ptr[ind * DG_NP];
   // offset_y = y_ptr[ind * DG_NP];
   // offset_z = z_ptr[ind * DG_NP];
@@ -82,14 +82,14 @@ void PolyApprox3D::get_offset(const int ind, const double *x_ptr, const double *
 }
 
 struct Coord {
-  double x;
-  double y;
-  double z;
+  DG_FP x;
+  DG_FP y;
+  DG_FP z;
 };
 
 struct Point {
   Coord coord;
-  double val;
+  DG_FP val;
   int count;
 };
 
@@ -111,10 +111,10 @@ struct cmpCoords {
 };
 
 void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
-                              const double *x_ptr, const double *y_ptr,
-                              const double *z_ptr, const double *s_ptr,
-                              vector<double> &x, vector<double> &y,
-                              vector<double> &z, vector<double> &s) {
+                              const DG_FP *x_ptr, const DG_FP *y_ptr,
+                              const DG_FP *z_ptr, const DG_FP *s_ptr,
+                              vector<DG_FP> &x, vector<DG_FP> &y,
+                              vector<DG_FP> &z, vector<DG_FP> &s) {
   map<Coord, Point, cmpCoords> pointMap;
 
   for(const auto &sten : stencil) {
@@ -148,12 +148,12 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
     x.push_back(p.second.coord.x);
     y.push_back(p.second.coord.y);
     z.push_back(p.second.coord.z);
-    s.push_back(p.second.val / (double)p.second.count);
+    s.push_back(p.second.val / (DG_FP)p.second.count);
   }
 }
 
-void PolyApprox3D::set_2nd_order_coeff(const vector<double> &x, const vector<double> &y,
-                                     const vector<double> &z, const vector<double> &s) {
+void PolyApprox3D::set_2nd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y,
+                                     const vector<DG_FP> &z, const vector<DG_FP> &s) {
   arma::mat A(x.size(), num_coeff());
   arma::vec b(x.size());
   for(int i = 0; i < x.size(); i++) {
@@ -177,8 +177,8 @@ void PolyApprox3D::set_2nd_order_coeff(const vector<double> &x, const vector<dou
   }
 }
 
-void PolyApprox3D::set_3rd_order_coeff(const vector<double> &x, const vector<double> &y,
-                                     const vector<double> &z, const vector<double> &s) {
+void PolyApprox3D::set_3rd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y,
+                                     const vector<DG_FP> &z, const vector<DG_FP> &s) {
   arma::mat A(x.size(), num_coeff());
   arma::vec b(x.size());
   for(int i = 0; i < x.size(); i++) {
@@ -211,8 +211,8 @@ void PolyApprox3D::set_3rd_order_coeff(const vector<double> &x, const vector<dou
   }
 }
 
-void PolyApprox3D::set_4th_order_coeff(const vector<double> &x, const vector<double> &y,
-                                     const vector<double> &z, const vector<double> &s) {
+void PolyApprox3D::set_4th_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y,
+                                     const vector<DG_FP> &z, const vector<DG_FP> &s) {
   arma::mat A(x.size(), num_coeff());
   arma::vec b(x.size());
   for(int i = 0; i < x.size(); i++) {
@@ -257,8 +257,8 @@ void PolyApprox3D::set_4th_order_coeff(const vector<double> &x, const vector<dou
   }
 }
 
-double PolyApprox3D::val_at_2nd(const double x, const double y, const double z) {
-  double res = 0.0;
+DG_FP PolyApprox3D::val_at_2nd(const DG_FP x, const DG_FP y, const DG_FP z) {
+  DG_FP res = 0.0;
   res += coeff[0];
   res += coeff[1] * x;
   res += coeff[2] * y;
@@ -272,8 +272,8 @@ double PolyApprox3D::val_at_2nd(const double x, const double y, const double z) 
   return res;
 }
 
-double PolyApprox3D::val_at_3rd(const double x, const double y, const double z) {
-  double res = 0.0;
+DG_FP PolyApprox3D::val_at_3rd(const DG_FP x, const DG_FP y, const DG_FP z) {
+  DG_FP res = 0.0;
   res += coeff[0];
   res += coeff[1] * x;
   res += coeff[2] * y;
@@ -296,8 +296,8 @@ double PolyApprox3D::val_at_3rd(const double x, const double y, const double z) 
   return res;
 }
 
-double PolyApprox3D::val_at_4th(const double x, const double y, const double z) {
-  double res = 0.0;
+DG_FP PolyApprox3D::val_at_4th(const DG_FP x, const DG_FP y, const DG_FP z) {
+  DG_FP res = 0.0;
   res += coeff[0];
   res += coeff[1] * x;
   res += coeff[2] * y;
@@ -332,8 +332,8 @@ double PolyApprox3D::val_at_4th(const double x, const double y, const double z) 
   return res;
 }
 
-double PolyApprox3D::val_at(const double x, const double y, const double z) {
-  double res = 0.0;
+DG_FP PolyApprox3D::val_at(const DG_FP x, const DG_FP y, const DG_FP z) {
+  DG_FP res = 0.0;
   if(N == 2) {
     res = val_at_2nd(x - offset_x, y - offset_y, z - offset_z);
   } else if(N == 3) {
@@ -344,8 +344,8 @@ double PolyApprox3D::val_at(const double x, const double y, const double z) {
   return res;
 }
 
-void PolyApprox3D::grad_at_2nd(const double x, const double y, const double z,
-                             double &dx, double &dy, double &dz) {
+void PolyApprox3D::grad_at_2nd(const DG_FP x, const DG_FP y, const DG_FP z,
+                             DG_FP &dx, DG_FP &dy, DG_FP &dz) {
   dx = 0.0;
   dy = 0.0;
   dz = 0.0;
@@ -366,8 +366,8 @@ void PolyApprox3D::grad_at_2nd(const double x, const double y, const double z,
   dz += 2.0 * coeff[9] * z;
 }
 
-void PolyApprox3D::grad_at_3rd(const double x, const double y, const double z,
-                             double &dx, double &dy, double &dz) {
+void PolyApprox3D::grad_at_3rd(const DG_FP x, const DG_FP y, const DG_FP z,
+                             DG_FP &dx, DG_FP &dy, DG_FP &dz) {
   dx = 0.0;
   dy = 0.0;
   dz = 0.0;
@@ -403,8 +403,8 @@ void PolyApprox3D::grad_at_3rd(const double x, const double y, const double z,
   dz += 3.0 * coeff[18] * z * z;
 }
 
-void PolyApprox3D::grad_at_4th(const double x, const double y, const double z,
-                             double &dx, double &dy, double &dz) {
+void PolyApprox3D::grad_at_4th(const DG_FP x, const DG_FP y, const DG_FP z,
+                             DG_FP &dx, DG_FP &dy, DG_FP &dz) {
   dx = 0.0;
   dy = 0.0;
   dz = 0.0;
@@ -461,8 +461,8 @@ void PolyApprox3D::grad_at_4th(const double x, const double y, const double z,
   dz += 4.0 * coeff[30] * z * z * z;
 }
 
-void PolyApprox3D::grad_at(const double x, const double y, const double z,
-                         double &dx, double &dy, double &dz) {
+void PolyApprox3D::grad_at(const DG_FP x, const DG_FP y, const DG_FP z,
+                         DG_FP &dx, DG_FP &dy, DG_FP &dz) {
   if(N == 2) {
     grad_at_2nd(x - offset_x, y - offset_y, z - offset_z, dx, dy, dz);
   } else if(N == 3) {
@@ -472,9 +472,9 @@ void PolyApprox3D::grad_at(const double x, const double y, const double z,
   }
 }
 
-void PolyApprox3D::hessian_at_2nd(const double x, const double y, const double z,
-                                double &dx2, double &dy2, double &dz2,
-                                double &dxy, double &dxz, double &dyz) {
+void PolyApprox3D::hessian_at_2nd(const DG_FP x, const DG_FP y, const DG_FP z,
+                                DG_FP &dx2, DG_FP &dy2, DG_FP &dz2,
+                                DG_FP &dxy, DG_FP &dxz, DG_FP &dyz) {
   dx2 = 0.0;
   dy2 = 0.0;
   dz2 = 0.0;
@@ -490,9 +490,9 @@ void PolyApprox3D::hessian_at_2nd(const double x, const double y, const double z
   dyz += coeff[6];
 }
 
-void PolyApprox3D::hessian_at_3rd(const double x, const double y, const double z,
-                                double &dx2, double &dy2, double &dz2,
-                                double &dxy, double &dxz, double &dyz) {
+void PolyApprox3D::hessian_at_3rd(const DG_FP x, const DG_FP y, const DG_FP z,
+                                DG_FP &dx2, DG_FP &dy2, DG_FP &dz2,
+                                DG_FP &dxy, DG_FP &dxz, DG_FP &dyz) {
   dx2 = 0.0;
   dy2 = 0.0;
   dz2 = 0.0;
@@ -528,9 +528,9 @@ void PolyApprox3D::hessian_at_3rd(const double x, const double y, const double z
   dyz += 2.0 * coeff[15] * z;
 }
 
-void PolyApprox3D::hessian_at_4th(const double x, const double y, const double z,
-                                double &dx2, double &dy2, double &dz2,
-                                double &dxy, double &dxz, double &dyz) {
+void PolyApprox3D::hessian_at_4th(const DG_FP x, const DG_FP y, const DG_FP z,
+                                DG_FP &dx2, DG_FP &dy2, DG_FP &dz2,
+                                DG_FP &dxy, DG_FP &dxz, DG_FP &dyz) {
   dx2 = 0.0;
   dy2 = 0.0;
   dz2 = 0.0;
@@ -590,9 +590,9 @@ void PolyApprox3D::hessian_at_4th(const double x, const double y, const double z
   dyz += 3.0 * coeff[27] * z * z;
 }
 
-void PolyApprox3D::hessian_at(const double x, const double y, const double z,
-                            double &dx2, double &dy2, double &dz2,
-                            double &dxy, double &dxz, double &dyz) {
+void PolyApprox3D::hessian_at(const DG_FP x, const DG_FP y, const DG_FP z,
+                            DG_FP &dx2, DG_FP &dy2, DG_FP &dz2,
+                            DG_FP &dxy, DG_FP &dxz, DG_FP &dyz) {
   if(N == 2) {
     hessian_at_2nd(x - offset_x, y - offset_y, z - offset_z, dx2, dy2, dz2, dxy, dxz, dyz);
   } else if(N == 3) {
@@ -602,7 +602,7 @@ void PolyApprox3D::hessian_at(const double x, const double y, const double z,
   }
 }
 
-void num_pts_pos_neg(const vector<double> &s, int &pos, int &neg) {
+void num_pts_pos_neg(const vector<DG_FP> &s, int &pos, int &neg) {
   pos = 0;
   neg = 0;
   for(int i = 0; i < s.size(); i++) {
@@ -647,11 +647,11 @@ int PolyApprox3D::num_elem_stencil() {
   }
 }
 
-double PolyApprox3D::get_coeff(int ind) {
+DG_FP PolyApprox3D::get_coeff(int ind) {
   return coeff[ind];
 }
 
-void PolyApprox3D::get_offsets(double &x, double &y, double &z) {
+void PolyApprox3D::get_offsets(DG_FP &x, DG_FP &y, DG_FP &z) {
   x = offset_x;
   y = offset_y;
   z = offset_z;

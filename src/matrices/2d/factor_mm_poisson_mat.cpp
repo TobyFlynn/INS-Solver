@@ -22,7 +22,7 @@ void FactorMMPoissonMatrix2D::calc_mat() {
 void FactorMMPoissonMatrix2D::calc_mm() {
   op_par_loop(fact_poisson_mm, "fact_poisson_mm", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->cubature->mm, -1, OP_ID, DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(mm_factor, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, "double", OP_INC));
+              op_arg_dat(mesh->cubature->mm, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mm_factor, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_INC));
 }

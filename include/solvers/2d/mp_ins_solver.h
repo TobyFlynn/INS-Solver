@@ -1,6 +1,8 @@
 #ifndef __MP_INS_SOLVER_H
 #define __MP_INS_SOLVER_H
 
+#include "dg_compiler_defs.h"
+
 #include <string>
 
 #include "matrices/2d/factor_poisson_matrix_2d.h"
@@ -15,7 +17,7 @@ public:
   MPINSSolver2D(DGMesh2D *m);
   ~MPINSSolver2D();
 
-  void init(const double re, const double refVel);
+  void init(const DG_FP re, const DG_FP refVel);
   void step();
 
   void dump_data(const std::string &filename);
@@ -34,8 +36,8 @@ private:
   LinearSolver *viscositySolver;
 
   int currentInd;
-  double a0, a1, b0, b1, g0, dt, time;
-  double reynolds;
+  DG_FP a0, a1, b0, b1, g0, dt, time;
+  DG_FP reynolds;
 
   op_dat vel[2][2], n[2][2], velT[2], velTT[2], pr, rho, mu, dPdN[2];
   op_dat tmp_np[4], f[4], divVelT, curlVel, gradCurlVel[2], pRHS, pr_mat_fact;

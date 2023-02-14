@@ -10,7 +10,7 @@ extern Timing *timer;
 
 using namespace std;
 
-KDTree3DMPI::KDTree3DMPI(const double *x, const double *y, const double *z,
+KDTree3DMPI::KDTree3DMPI(const DG_FP *x, const DG_FP *y, const DG_FP *z,
                          const int num, DGMesh3D *m, op_dat s) : KDTree3D(x, y, z, num, m, s) {
 
 }
@@ -71,7 +71,7 @@ void KDTree3DMPI::build_tree() {
   }
 
   // Prepare data to send
-  vector<double> pts_snd(3 * n);
+  vector<DG_FP> pts_snd(3 * n);
   vector<int> polys_snd(n);
   for(int i = 0; i < n; i++) {
     pts_snd[i * 3]     = points[i].x;
@@ -79,7 +79,7 @@ void KDTree3DMPI::build_tree() {
     pts_snd[i * 3 + 2] = points[i].z;
     polys_snd[i] = points[i].poly;
   }
-  vector<double> poly_coeff_snd(polys.size() * PolyApprox3D::num_coeff());
+  vector<DG_FP> poly_coeff_snd(polys.size() * PolyApprox3D::num_coeff());
   for(int i = 0; i < polys.size(); i++) {
     int ind = i * PolyApprox3D::num_coeff();
     for(int j = 0; j < PolyApprox3D::num_coeff(); j++) {
@@ -88,9 +88,9 @@ void KDTree3DMPI::build_tree() {
   }
 
   // Send/Recieve
-  vector<double> pts_rcv(num_pts_g * 3);
+  vector<DG_FP> pts_rcv(num_pts_g * 3);
   vector<int> polys_rcv(num_pts_g);
-  vector<double> polys_coeff_rcv(num_polys_g * PolyApprox3D::num_coeff());
+  vector<DG_FP> polys_coeff_rcv(num_polys_g * PolyApprox3D::num_coeff());
   vector<MPI_Request> pts_mpi_req_snd(ranks.size());
   vector<MPI_Request> pts_mpi_req_rcv(ranks.size());
   vector<MPI_Request> polys_mpi_req_snd(ranks.size());
@@ -98,14 +98,14 @@ void KDTree3DMPI::build_tree() {
   vector<MPI_Request> polys_coeff_mpi_req_snd(ranks.size());
   vector<MPI_Request> polys_coeff_mpi_req_rcv(ranks.size());
   for(int i = 0; i < ranks.size(); i++) {
-    MPI_Isend(pts_snd.data(), n * 3, MPI_DOUBLE, ranks[i], 0, MPI_COMM_WORLD, &pts_mpi_req_snd[i]);
+    MPI_Isend(pts_snd.data(), n * 3, DG_MPI_FP, ranks[i], 0, MPI_COMM_WORLD, &pts_mpi_req_snd[i]);
     MPI_Isend(polys_snd.data(), n, MPI_INT, ranks[i], 0, MPI_COMM_WORLD, &polys_mpi_req_snd[i]);
-    MPI_Isend(poly_coeff_snd.data(), polys.size() * PolyApprox3D::num_coeff(), MPI_DOUBLE, ranks[i], 0, MPI_COMM_WORLD, &polys_coeff_mpi_req_snd[i]);
+    MPI_Isend(poly_coeff_snd.data(), polys.size() * PolyApprox3D::num_coeff(), DG_MPI_FP, ranks[i], 0, MPI_COMM_WORLD, &polys_coeff_mpi_req_snd[i]);
   }
   for(int i = 0; i < ranks.size(); i++) {
-    MPI_Irecv(&pts_rcv[num_pts_per_rank_disp[i] * 3], num_pts_per_rank[i] * 3, MPI_DOUBLE, ranks[i], 0, MPI_COMM_WORLD, &pts_mpi_req_rcv[i]);
+    MPI_Irecv(&pts_rcv[num_pts_per_rank_disp[i] * 3], num_pts_per_rank[i] * 3, DG_MPI_FP, ranks[i], 0, MPI_COMM_WORLD, &pts_mpi_req_rcv[i]);
     MPI_Irecv(&polys_rcv[num_pts_per_rank_disp[i]], num_pts_per_rank[i], MPI_INT, ranks[i], 0, MPI_COMM_WORLD, &polys_mpi_req_rcv[i]);
-    MPI_Irecv(&polys_coeff_rcv[num_polys_per_rank_disp[i] * PolyApprox3D::num_coeff()], num_polys_per_rank[i] * PolyApprox3D::num_coeff(), MPI_DOUBLE, ranks[i], 0, MPI_COMM_WORLD, &polys_coeff_mpi_req_rcv[i]);
+    MPI_Irecv(&polys_coeff_rcv[num_polys_per_rank_disp[i] * PolyApprox3D::num_coeff()], num_polys_per_rank[i] * PolyApprox3D::num_coeff(), DG_MPI_FP, ranks[i], 0, MPI_COMM_WORLD, &polys_coeff_mpi_req_rcv[i]);
   }
   for(int i = 0; i < ranks.size(); i++) {
     MPI_Wait(&pts_mpi_req_rcv[i], MPI_STATUS_IGNORE);
@@ -130,7 +130,7 @@ void KDTree3DMPI::build_tree() {
     points.push_back(kc);
   }
   for(int i = 0; i < num_polys_g; i++) {
-    vector<double> c;
+    vector<DG_FP> c;
     int ind = i * PolyApprox3D::num_coeff();
     for(int j = 0; j < PolyApprox3D::num_coeff(); j++) {
       c.push_back(polys_coeff_rcv[ind + j]);

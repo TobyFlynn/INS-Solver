@@ -1,6 +1,8 @@
 #ifndef __INS_POISSON_MATRIX_H
 #define __INS_POISSON_MATRIX_H
 
+#include "dg_compiler_defs.h"
+
 #include "op_seq.h"
 
 #include "petscvec.h"

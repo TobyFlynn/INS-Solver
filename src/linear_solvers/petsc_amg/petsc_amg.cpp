@@ -11,7 +11,7 @@ PETScAMGSolver::PETScAMGSolver(DGMesh *m) {
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPGMRES);
-  KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 2.5e2);
+  KSPSetTolerances(ksp, LIN_SOL_TOL, 1e-50, 1e5, 2.5e2);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
   PC pc;
   KSPGetPC(ksp, &pc);
@@ -60,7 +60,7 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
   // Check that the solver converged
   bool converged = true;
   if(reason < 0) {
-    double residual;
+    DG_FP residual;
     KSPGetResidualNorm(ksp, &residual);
     converged = false;
     std::cout << "Number of iterations for linear solver: " << numIt << std::endl;
@@ -77,6 +77,6 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
   return converged;
 }
 
-void PETScAMGSolver::set_tol(const double tol) {
+void PETScAMGSolver::set_tol(const DG_FP tol) {
   KSPSetTolerances(ksp, tol, 1e-50, 1e5, 2.5e2);
 }

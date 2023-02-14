@@ -1,4 +1,4 @@
-inline void ls_update_order(const int *p, const double *alpha, const double *s,
+inline void ls_update_order(const int *p, const DG_FP *alpha, const DG_FP *s,
                             int *order) {
   // Get constants for this element's order
   const int dg_np = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];

@@ -13,7 +13,7 @@ public:
   ~PETScAMGSolver();
 
   bool solve(op_dat rhs, op_dat ans) override;
-  void set_tol(const double tol);
+  void set_tol(const DG_FP tol);
 
 private:
   DGMesh *mesh;

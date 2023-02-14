@@ -15,11 +15,11 @@ public:
 
   bool solve(op_dat rhs, op_dat ans) override;
 
-  void calc_rhs(const double *u_d, double *rhs_d);
+  void calc_rhs(const DG_FP *u_d, DG_FP *rhs_d);
 private:
   void cycle(int order);
 
-  double maxEigenValue();
+  DG_FP maxEigenValue();
   void setRandomVector(op_dat vec);
   void setupDirectSolve();
 

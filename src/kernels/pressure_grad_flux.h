@@ -1,7 +1,7 @@
 inline void pressure_grad_flux(const int *edgeNum, const bool *rev,
-                               const double **nx, const double **ny,
-                               const double **sJ, const double **p, double **pX,
-                               double **pY) {
+                               const DG_FP **nx, const DG_FP **ny,
+                               const DG_FP **sJ, const DG_FP **p, DG_FP **pX,
+                               DG_FP **pY) {
   // Work out which edge for each element
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
@@ -19,7 +19,7 @@ inline void pressure_grad_flux(const int *edgeNum, const bool *rev,
     } else {
       rInd = exIndR + i;
     }
-    double flux = p[0][lInd] - 0.5 * (p[0][lInd] + p[1][rInd]);
+    DG_FP flux = p[0][lInd] - 0.5 * (p[0][lInd] + p[1][rInd]);
     pX[0][lInd] += gaussW_g[i] * sJ[0][lInd] * nx[0][lInd] * flux;
     pY[0][lInd] += gaussW_g[i] * sJ[0][lInd] * ny[0][lInd] * flux;
   }
@@ -32,7 +32,7 @@ inline void pressure_grad_flux(const int *edgeNum, const bool *rev,
     } else {
       lInd = exIndL + i;
     }
-    double flux = p[1][rInd] - 0.5 * (p[0][lInd] + p[1][rInd]);
+    DG_FP flux = p[1][rInd] - 0.5 * (p[0][lInd] + p[1][rInd]);
     pX[1][rInd] += gaussW_g[i] * sJ[1][rInd] * nx[1][rInd] * flux;
     pY[1][rInd] += gaussW_g[i] * sJ[1][rInd] * ny[1][rInd] * flux;
   }

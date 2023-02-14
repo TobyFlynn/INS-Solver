@@ -9,8 +9,8 @@
 PetscErrorCode matAMultPM(Mat A, Vec x, Vec y) {
   PETScPMultigrid *poisson;
   MatShellGetContext(A, &poisson);
-  const double *x_ptr;
-  double *y_ptr;
+  const DG_FP *x_ptr;
+  DG_FP *y_ptr;
   VecGetArrayRead(x, &x_ptr);
   VecGetArray(y, &y_ptr);
 
@@ -35,8 +35,8 @@ void PETScPMultigrid::create_shell_mat() {
 PetscErrorCode preconPM(PC pc, Vec x, Vec y) {
   PETScPMultigrid *poisson;
   PCShellGetContext(pc, (void **)&poisson);
-  const double *x_ptr;
-  double *y_ptr;
+  const DG_FP *x_ptr;
+  DG_FP *y_ptr;
   VecGetArrayRead(x, &x_ptr);
   VecGetArray(y, &y_ptr);
 

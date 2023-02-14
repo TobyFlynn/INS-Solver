@@ -1,6 +1,8 @@
 #ifndef __INS_LS_REINIT_POLY_EVAL_CUDA_H
 #define __INS_LS_REINIT_POLY_EVAL_CUDA_H
 
+#include "dg_compiler_defs.h"
+
 #include <vector>
 
 #include "ls_reinit_poly.h"
@@ -10,8 +12,8 @@ public:
   __host__ PolyEval(std::vector<PolyApprox> &polys);
   __host__ ~PolyEval();
 
-__device__ double val_at(const int cell_ind, const double x, const double y) {
-  double res = 0.0;
+__device__ DG_FP val_at(const int cell_ind, const DG_FP x, const DG_FP y) {
+  DG_FP res = 0.0;
   res += coeff[cell_ind * 10 + 0];
   res += coeff[cell_ind * 10 + 1] * x;
   res += coeff[cell_ind * 10 + 2] * y;
@@ -25,8 +27,8 @@ __device__ double val_at(const int cell_ind, const double x, const double y) {
   return res;
 }
 
-__device__ void grad_at(const int cell_ind, const double x, const double y,
-                                  double &dx, double &dy) {
+__device__ void grad_at(const int cell_ind, const DG_FP x, const DG_FP y,
+                                  DG_FP &dx, DG_FP &dy) {
   dx = 0.0;
   dy = 0.0;
 
@@ -44,8 +46,8 @@ __device__ void grad_at(const int cell_ind, const double x, const double y,
   dy += 2.0 * coeff[cell_ind * 10 + 8] * x * y;
   dy += 3.0 * coeff[cell_ind * 10 + 9] * y * y;
 }
-__device__ void hessian_at(const int cell_ind, const double x, const double y,
-                                     double &dx2, double &dxy, double &dy2) {
+__device__ void hessian_at(const int cell_ind, const DG_FP x, const DG_FP y,
+                                     DG_FP &dx2, DG_FP &dxy, DG_FP &dy2) {
   dx2  = 2.0 * coeff[cell_ind * 10 + 3];
   dx2 += 6.0 * coeff[cell_ind * 10 + 6] * x;
   dx2 += 2.0 * coeff[cell_ind * 10 + 7] * y;
@@ -60,7 +62,7 @@ __device__ void hessian_at(const int cell_ind, const double x, const double y,
 }
 
 private:
-  double *coeff;
+  DG_FP *coeff;
 };
 
 #endif

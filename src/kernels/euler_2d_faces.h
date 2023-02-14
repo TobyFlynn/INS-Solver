@@ -1,15 +1,15 @@
 inline void euler_2d_faces(const int **p, const int *edgeNum, const bool *rev,
-                           const double **nx, const double **ny, const double **sJ,
-                           const double **gQ0, const double **gQ1, const double **gQ2,
-                           const double **gQ3, double **gRHS0, double **gRHS1,
-                           double **gRHS2, double **gRHS3) {
+                           const DG_FP **nx, const DG_FP **ny, const DG_FP **sJ,
+                           const DG_FP **gQ0, const DG_FP **gQ1, const DG_FP **gQ2,
+                           const DG_FP **gQ3, DG_FP **gRHS0, DG_FP **gRHS1,
+                           DG_FP **gRHS2, DG_FP **gRHS3) {
   // Work out which edge for each element
   const int edgeL = edgeNum[0];
   const int edgeR = edgeNum[1];
   const bool reverse = *rev;
 
   // Get constants
-  const double *gaussW = &gaussW_g[(p[0][0] - 1) * DG_GF_NP];
+  const DG_FP *gaussW = &gaussW_g[(p[0][0] - 1) * DG_GF_NP];
 
   const int exIndL = edgeL * DG_GF_NP;
   const int exIndR = edgeR * DG_GF_NP;
@@ -23,16 +23,16 @@ inline void euler_2d_faces(const int **p, const int *edgeNum, const bool *rev,
     } else {
       rInd = exIndR + i;
     }
-    const double uL = gQ1[0][lInd] / gQ0[0][lInd];
-    const double vL = gQ2[0][lInd] / gQ0[0][lInd];
-    const double pL = (gamma_e - 1.0) * (gQ3[0][lInd] - 0.5 * (gQ1[0][lInd] * uL + gQ2[0][lInd] * vL));
-    const double uR = gQ1[1][rInd] / gQ0[1][rInd];
-    const double vR = gQ2[1][rInd] / gQ0[1][rInd];
-    const double pR = (gamma_e - 1.0) * (gQ3[1][rInd] - 0.5 * (gQ1[1][rInd] * uR + gQ2[1][rInd] * vR));
+    const DG_FP uL = gQ1[0][lInd] / gQ0[0][lInd];
+    const DG_FP vL = gQ2[0][lInd] / gQ0[0][lInd];
+    const DG_FP pL = (gamma_e - 1.0) * (gQ3[0][lInd] - 0.5 * (gQ1[0][lInd] * uL + gQ2[0][lInd] * vL));
+    const DG_FP uR = gQ1[1][rInd] / gQ0[1][rInd];
+    const DG_FP vR = gQ2[1][rInd] / gQ0[1][rInd];
+    const DG_FP pR = (gamma_e - 1.0) * (gQ3[1][rInd] - 0.5 * (gQ1[1][rInd] * uR + gQ2[1][rInd] * vR));
 
-    double lLambda = sqrt(uL * uL + vL * vL) + sqrt(fabs(gamma_e * pL / gQ0[0][lInd]));
-    double rLambda = sqrt(uR * uR + vR * vR) + sqrt(fabs(gamma_e * pR / gQ0[1][rInd]));
-    double lambda = fmax(lLambda, rLambda);
+    DG_FP lLambda = sqrt(uL * uL + vL * vL) + sqrt(fabs(gamma_e * pL / gQ0[0][lInd]));
+    DG_FP rLambda = sqrt(uR * uR + vR * vR) + sqrt(fabs(gamma_e * pR / gQ0[1][rInd]));
+    DG_FP lambda = fmax(lLambda, rLambda);
     if(lambda > maxLambda) maxLambda = lambda;
   }
 
@@ -45,29 +45,29 @@ inline void euler_2d_faces(const int **p, const int *edgeNum, const bool *rev,
     } else {
       rInd = exIndR + i;
     }
-    const double uL = gQ1[0][lInd] / gQ0[0][lInd];
-    const double vL = gQ2[0][lInd] / gQ0[0][lInd];
-    const double pL = (gamma_e - 1.0) * (gQ3[0][lInd] - 0.5 * (gQ1[0][lInd] * uL + gQ2[0][lInd] * vL));
-    const double uR = gQ1[1][rInd] / gQ0[1][rInd];
-    const double vR = gQ2[1][rInd] / gQ0[1][rInd];
-    const double pR = (gamma_e - 1.0) * (gQ3[1][rInd] - 0.5 * (gQ1[1][rInd] * uR + gQ2[1][rInd] * vR));
+    const DG_FP uL = gQ1[0][lInd] / gQ0[0][lInd];
+    const DG_FP vL = gQ2[0][lInd] / gQ0[0][lInd];
+    const DG_FP pL = (gamma_e - 1.0) * (gQ3[0][lInd] - 0.5 * (gQ1[0][lInd] * uL + gQ2[0][lInd] * vL));
+    const DG_FP uR = gQ1[1][rInd] / gQ0[1][rInd];
+    const DG_FP vR = gQ2[1][rInd] / gQ0[1][rInd];
+    const DG_FP pR = (gamma_e - 1.0) * (gQ3[1][rInd] - 0.5 * (gQ1[1][rInd] * uR + gQ2[1][rInd] * vR));
 
-    const double f0L = gQ1[0][lInd];
-    const double f1L = gQ1[0][lInd] * uL + pL;
-    const double f2L = gQ2[0][lInd] * uL;
-    const double f3L = uL * (gQ3[0][lInd] + pL);
-    const double g0L = gQ2[0][lInd];
-    const double g1L = gQ1[0][lInd] * vL;
-    const double g2L = gQ2[0][lInd] * vL + pL;
-    const double g3L = vL * (gQ3[0][lInd] + pL);
-    const double f0R = gQ1[1][rInd];
-    const double f1R = gQ1[1][rInd] * uR + pR;
-    const double f2R = gQ2[1][rInd] * uR;
-    const double f3R = uR * (gQ3[1][rInd] + pR);
-    const double g0R = gQ2[1][rInd];
-    const double g1R = gQ1[1][rInd] * vR;
-    const double g2R = gQ2[1][rInd] * vR + pR;
-    const double g3R = vR * (gQ3[1][rInd] + pR);
+    const DG_FP f0L = gQ1[0][lInd];
+    const DG_FP f1L = gQ1[0][lInd] * uL + pL;
+    const DG_FP f2L = gQ2[0][lInd] * uL;
+    const DG_FP f3L = uL * (gQ3[0][lInd] + pL);
+    const DG_FP g0L = gQ2[0][lInd];
+    const DG_FP g1L = gQ1[0][lInd] * vL;
+    const DG_FP g2L = gQ2[0][lInd] * vL + pL;
+    const DG_FP g3L = vL * (gQ3[0][lInd] + pL);
+    const DG_FP f0R = gQ1[1][rInd];
+    const DG_FP f1R = gQ1[1][rInd] * uR + pR;
+    const DG_FP f2R = gQ2[1][rInd] * uR;
+    const DG_FP f3R = uR * (gQ3[1][rInd] + pR);
+    const DG_FP g0R = gQ2[1][rInd];
+    const DG_FP g1R = gQ1[1][rInd] * vR;
+    const DG_FP g2R = gQ2[1][rInd] * vR + pR;
+    const DG_FP g3R = vR * (gQ3[1][rInd] + pR);
 
     gRHS0[0][lInd] += 0.5 * gaussW[i] * sJ[0][lInd] * (nx[0][lInd] * (f0L + f0R) + ny[0][lInd] * (g0L + g0R) + maxLambda * (gQ0[0][lInd] - gQ0[1][rInd]));
     gRHS1[0][lInd] += 0.5 * gaussW[i] * sJ[0][lInd] * (nx[0][lInd] * (f1L + f1R) + ny[0][lInd] * (g1L + g1R) + maxLambda * (gQ1[0][lInd] - gQ1[1][rInd]));

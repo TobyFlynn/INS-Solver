@@ -1,6 +1,8 @@
 #ifndef __INS_LS_3D_H
 #define __INS_LS_3D_H
 
+#include "dg_compiler_defs.h"
+
 #include "op_seq.h"
 
 #include "solvers/3d/advection_solver.h"
@@ -15,7 +17,7 @@ public:
   void init();
 
   void setBCTypes(op_dat bc);
-  void step(op_dat u, op_dat v, op_dat w, double dt);
+  void step(op_dat u, op_dat v, op_dat w, DG_FP dt);
   void getRhoMu(op_dat rho, op_dat mu);
   void getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_dat curv);
 
@@ -23,13 +25,13 @@ public:
 
   op_dat s, s_modal, sampleX, sampleY, sampleZ, bc_types;
 
-  double alpha, order_width;
+  DG_FP alpha, order_width;
 private:
   void sampleInterface();
   void reinitLS();
   // bool reinitNeeded();
 
-  double h, epsilon, reinit_dt, reinit_width;
+  DG_FP h, epsilon, reinit_dt, reinit_width;
   int reinit_count;
 
   AdvectionSolver3D *advectionSolver;

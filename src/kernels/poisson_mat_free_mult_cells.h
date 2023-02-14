@@ -1,22 +1,22 @@
-inline void poisson_mat_free_mult_cells(const int *p, const double *dr, const double *ds,
-                                        const double *dt, const double *mass, const double *rx,
-                                        const double *sx, const double *tx,
-                                        const double *ry, const double *sy,
-                                        const double *ty, const double *rz,
-                                        const double *sz, const double *tz,
-                                        const double *J, const double *mm_factor,
-                                        const double *in, double *out) {
-  const double *dr_mat = &dr[(*p - 1) * DG_NP * DG_NP];
-  const double *ds_mat = &ds[(*p - 1) * DG_NP * DG_NP];
-  const double *dt_mat = &dt[(*p - 1) * DG_NP * DG_NP];
-  const double *mass_mat = &mass[(*p - 1) * DG_NP * DG_NP];
+inline void poisson_mat_free_mult_cells(const int *p, const DG_FP *dr, const DG_FP *ds,
+                                        const DG_FP *dt, const DG_FP *mass, const DG_FP *rx,
+                                        const DG_FP *sx, const DG_FP *tx,
+                                        const DG_FP *ry, const DG_FP *sy,
+                                        const DG_FP *ty, const DG_FP *rz,
+                                        const DG_FP *sz, const DG_FP *tz,
+                                        const DG_FP *J, const DG_FP *mm_factor,
+                                        const DG_FP *in, DG_FP *out) {
+  const DG_FP *dr_mat = &dr[(*p - 1) * DG_NP * DG_NP];
+  const DG_FP *ds_mat = &ds[(*p - 1) * DG_NP * DG_NP];
+  const DG_FP *dt_mat = &dt[(*p - 1) * DG_NP * DG_NP];
+  const DG_FP *mass_mat = &mass[(*p - 1) * DG_NP * DG_NP];
   const int dg_np = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
 
-  double tmpX[DG_NP], tmpY[DG_NP], tmpZ[DG_NP];
+  DG_FP tmpX[DG_NP], tmpY[DG_NP], tmpZ[DG_NP];
   for(int m = 0; m < dg_np; m++) {
-    double tmpR = 0.0;
-    double tmpS = 0.0;
-    double tmpT = 0.0;
+    DG_FP tmpR = 0.0;
+    DG_FP tmpS = 0.0;
+    DG_FP tmpT = 0.0;
     for(int n = 0; n < dg_np; n++) {
       int ind = m + n * dg_np;
       tmpR += dr_mat[ind] * in[n];
@@ -29,9 +29,9 @@ inline void poisson_mat_free_mult_cells(const int *p, const double *dr, const do
   }
 
   for(int m = 0; m < dg_np; m++) {
-    double tmp0 = 0.0;
-    double tmp1 = 0.0;
-    double tmp2 = 0.0;
+    DG_FP tmp0 = 0.0;
+    DG_FP tmp1 = 0.0;
+    DG_FP tmp2 = 0.0;
     for(int n = 0; n < dg_np; n++) {
       int ind = m + n * dg_np;
       tmp0 += mass_mat[ind] * tmpX[n];

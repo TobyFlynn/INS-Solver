@@ -1,6 +1,8 @@
 #ifndef __INS_3D_INS_SOLVER_H
 #define __INS_3D_INS_SOLVER_H
 
+#include "dg_compiler_defs.h"
+
 #include "dg_mesh/dg_mesh_3d.h"
 
 #include "matrices/3d/poisson_matrix_3d.h"
@@ -13,11 +15,11 @@ public:
   INSSolver3D(DGMesh3D *m);
   ~INSSolver3D();
 
-  void init(const double re, const double refVel);
+  void init(const DG_FP re, const DG_FP refVel);
   void step();
 
-  double get_time();
-  double get_dt();
+  DG_FP get_time();
+  DG_FP get_dt();
   void dump_data(const std::string &filename);
 
   op_dat vel[2][3], velT[3], velTT[3], pr;
@@ -29,12 +31,12 @@ private:
 
   DGMesh3D *mesh;
   PoissonMatrix3D *pressureMatrix;
-  // MMPoissonMatrix3D *viscosityMatrix;
-  MMPoissonMatrixFree3D *viscosityMatrix;
+  MMPoissonMatrix3D *viscosityMatrix;
+  // MMPoissonMatrixFree3D *viscosityMatrix;
   LinearSolver *pressureSolver;
   LinearSolver *viscositySolver;
-  double g0, a0, a1, b0, b1, dt, time, h;
-  double reynolds;
+  DG_FP g0, a0, a1, b0, b1, dt, time, h;
+  DG_FP reynolds;
   int currentInd;
 
   op_dat tmp_np[9], tmp_npf[3], tmp_bc_1, tmp_npf_bc;
