@@ -3,6 +3,7 @@
 #include "linear_solvers/petsc_utils.h"
 
 #include <iostream>
+#include <type_traits>
 
 PETScAMGSolver::PETScAMGSolver(DGMesh *m) {
   mesh = m;
@@ -11,7 +12,10 @@ PETScAMGSolver::PETScAMGSolver(DGMesh *m) {
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPGMRES);
-  KSPSetTolerances(ksp, LIN_SOL_TOL, 1e-50, 1e5, 2.5e2);
+  if(std::is_same<DG_FP,double>::value)
+    KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 2.5e2);
+  else
+    KSPSetTolerances(ksp, 1e-6, 1e-50, 1e5, 2.5e2);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
   PC pc;
   KSPGetPC(ksp, &pc);
@@ -63,7 +67,7 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
     DG_FP residual;
     KSPGetResidualNorm(ksp, &residual);
     converged = false;
-    std::cout << "Number of iterations for linear solver: " << numIt << std::endl;
+    std::cout << "Number of iterations for AMG linear solver: " << numIt << std::endl;
     std::cout << "Converged reason: " << reason << " Residual: " << residual << std::endl;
   }
 
