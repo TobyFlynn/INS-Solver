@@ -5,7 +5,8 @@ inline void fact_poisson_mm(const int *p, const DG_FP *mm, const DG_FP *factor,
 
   for(int m = 0; m < dg_np; m++) {
     for(int n = 0; n < dg_np; n++) {
-      int ind = m + n * dg_np;
+      // int ind = m + n * dg_np;
+      int ind = DG_MAT_IND(m, n, dg_np, dg_np);
       op1[ind] += factor[m] * mm[ind];
     }
   }

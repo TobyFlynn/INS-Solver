@@ -40,7 +40,8 @@ inline void factor_poisson_matrix_3d_opbc(const int *order, const DG_FP *dr,
     DG_FP D[DG_NP * DG_NP];
     for(int i = 0; i < dg_np; i++) {
       for(int j = 0; j < dg_np; j++) {
-        int ind  = i + j * dg_np;
+        // int ind = i + j * dg_np;
+        int ind = DG_MAT_IND(i, j, dg_np, dg_np);
 
         D[ind] = *nx * (rx[0] * dr_mat[ind] + sx[0] * ds_mat[ind] + tx[0] * dt_mat[ind]);
         D[ind] += *ny * (ry[0] * dr_mat[ind] + sy[0] * ds_mat[ind] + ty[0] * dt_mat[ind]);
@@ -56,18 +57,23 @@ inline void factor_poisson_matrix_3d_opbc(const int *order, const DG_FP *dr,
 
     for(int i = 0; i < dg_np; i++) {
       for(int j = 0; j < dg_npf; j++) {
-        int op_ind = i + j * dg_np;
-        int mm_ind = i + fmaskB[j] * dg_np;
+        // int op_ind = i + j * dg_np;
+        int op_ind = DG_MAT_IND(i, j, dg_np, dg_np);
+        // int mm_ind = i + fmaskB[j] * dg_np;
+        int mm_ind = DG_MAT_IND(i, fmaskB[j], dg_np, dg_np);
         op[op_ind] = gtau * *sJ * mmF[mm_ind];
       }
     }
 
     for(int i = 0; i < dg_np; i++) {
       for(int j = 0; j < dg_npf; j++) {
-        int op_ind = i + j * dg_np;
+        // int op_ind = i + j * dg_np;
+        int op_ind = DG_MAT_IND(i, j, dg_np, dg_npf);
         for(int k = 0; k < dg_np; k++) {
-          int a_ind = i * dg_np + k;
-          int b_ind  = fmaskB[j] * dg_np + k;
+          // int a_ind = i * dg_np + k;
+          int a_ind = DG_MAT_IND(k, i, dg_np, dg_np);
+          // int b_ind = fmaskB[j] * dg_np + k;
+          int b_ind = DG_MAT_IND(k, fmaskB[j], dg_np, dg_np);
           op[op_ind] += -D[a_ind] * *sJ * mmF[b_ind];
         }
       }
@@ -76,8 +82,10 @@ inline void factor_poisson_matrix_3d_opbc(const int *order, const DG_FP *dr,
     // Neumann
     for(int i = 0; i < dg_np; i++) {
       for(int j = 0; j < dg_npf; j++) {
-        int op_ind = i + j * dg_np;
-        int mm_ind = i + fmaskB[j] * dg_np;
+        // int op_ind = i + j * dg_np;
+        int op_ind = DG_MAT_IND(i, j, dg_np, dg_npf);
+        // int mm_ind = i + fmaskB[j] * dg_np;
+        int mm_ind = DG_MAT_IND(i, fmaskB[j], dg_np, dg_np);
         op[op_ind] = *sJ * mmF[mm_ind];
       }
     }

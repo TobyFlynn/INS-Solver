@@ -57,7 +57,8 @@ inline void poisson_mat_free_mult_faces(const int **order, const DG_FP *dr,
     tmp1[i] = 0.0;
     tmp3[i] = 0.0;
     for(int j = 0; j < dg_np; j++) {
-      int ind = i + j * dg_np;
+      // int ind = i + j * dg_np;
+      int ind = DG_MAT_IND(i, j, dg_np, dg_np);
       DG_FP tmp_mat_mm_L = sJ[0] * mmFL[ind] * in[0][j];
       out[0][i] += 0.5 * tmp_mat_mm_L * gtau;
       tmp1[i] += tmp_mat_mm_L;
@@ -72,7 +73,8 @@ inline void poisson_mat_free_mult_faces(const int **order, const DG_FP *dr,
     tmp0[i] = 0.0;
     tmp2[i] = 0.0;
     for(int j = 0; j < dg_np; j++) {
-      int ind = i + j * dg_np;
+      // int ind = i + j * dg_np;
+      int ind = DG_MAT_IND(i, j, dg_np, dg_np);
       DG_FP tmp_mat_L = nx[0] * (rx[0][0] * dr_mat[ind] + sx[0][0] * ds_mat[ind] + tx[0][0] * dt_mat[ind]);
       tmp_mat_L += ny[0] * (ry[0][0] * dr_mat[ind] + sy[0][0] * ds_mat[ind] + ty[0][0] * dt_mat[ind]);
       tmp_mat_L += nz[0] * (rz[0][0] * dr_mat[ind] + sz[0][0] * ds_mat[ind] + tz[0][0] * dt_mat[ind]);
@@ -89,7 +91,8 @@ inline void poisson_mat_free_mult_faces(const int **order, const DG_FP *dr,
 
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
-      int ind = i + j * dg_np;
+      // int ind = i + j * dg_np;
+      int ind = DG_MAT_IND(i, j, dg_np, dg_np);
       DG_FP tmp_mat_mm_L = -0.5 * sJ[0] * mmFL[ind];
       out[0][i] += tmp_mat_mm_L * tmp0[j];
 
@@ -102,12 +105,14 @@ inline void poisson_mat_free_mult_faces(const int **order, const DG_FP *dr,
     tmp2[i] = 0.0;
     tmp3[i] = 0.0;
     for(int j = 0; j < dg_npf; j++) {
-      int findL = i + fmaskL[j] * dg_np;
+      // int findL = i + fmaskL[j] * dg_np;
+      int findL = DG_MAT_IND(i, fmaskL[j], dg_np, dg_np);
       DG_FP tmp_mat_mm_L = sJ[0] * mmFL[findL] * in[1][fmaskR_corrected[j]];
       out[0][i] -= 0.5 * gtau * tmp_mat_mm_L;
       tmp2[i] += tmp_mat_mm_L;
 
-      int findR = i + fmaskR[j] * dg_np;
+      // int findR = i + fmaskR[j] * dg_np;
+      int findR = DG_MAT_IND(i, fmaskR[j], dg_np, dg_np);
       DG_FP tmp_mat_mm_R = sJ[1] * mmFR[findR] * in[0][fmaskL_corrected[j]];
       out[1][i] -= 0.5 * gtau * tmp_mat_mm_R;
       tmp3[i] += tmp_mat_mm_R;
@@ -118,14 +123,16 @@ inline void poisson_mat_free_mult_faces(const int **order, const DG_FP *dr,
     tmp0[fmaskL[i]] = 0.0;
     tmp1[fmaskR[i]] = 0.0;
     for(int j = 0; j < dg_np; j++) {
-      int indL = fmaskL[i] + j * dg_np;
+      // int indL = fmaskL[i] + j * dg_np;
+      int indL = DG_MAT_IND(fmaskL[i], j, dg_np, dg_np);
       DG_FP tmp_mat_L = nx[0] * (rx[0][0] * dr_mat[indL] + sx[0][0] * ds_mat[indL] + tx[0][0] * dt_mat[indL]);
       tmp_mat_L += ny[0] * (ry[0][0] * dr_mat[indL] + sy[0][0] * ds_mat[indL] + ty[0][0] * dt_mat[indL]);
       tmp_mat_L += nz[0] * (rz[0][0] * dr_mat[indL] + sz[0][0] * ds_mat[indL] + tz[0][0] * dt_mat[indL]);
 
       tmp0[fmaskL[i]] += tmp_mat_L * in[0][j];
 
-      int indR = fmaskR[i] + j * dg_np;
+      // int indR = fmaskR[i] + j * dg_np;
+      int indR = DG_MAT_IND(fmaskR[i], j, dg_np, dg_np);
       DG_FP tmp_mat_R = nx[1] * (rx[1][0] * dr_mat[indR] + sx[1][0] * ds_mat[indR] + tx[1][0] * dt_mat[indR]);
       tmp_mat_R += ny[1] * (ry[1][0] * dr_mat[indR] + sy[1][0] * ds_mat[indR] + ty[1][0] * dt_mat[indR]);
       tmp_mat_R += nz[1] * (rz[1][0] * dr_mat[indR] + sz[1][0] * ds_mat[indR] + tz[1][0] * dt_mat[indR]);
@@ -136,17 +143,20 @@ inline void poisson_mat_free_mult_faces(const int **order, const DG_FP *dr,
 
   for(int i = 0; i < dg_npf; i++) {
     for(int j = 0; j < dg_npf; j++) {
-      int findL = fmaskL[i] + fmaskL[j] * dg_np;
+      // int findL = fmaskL[i] + fmaskL[j] * dg_np;
+      int findL = DG_MAT_IND(fmaskL[i], fmaskL[j], dg_np, dg_np);
       out[0][fmaskL[i]] -= 0.5 * sJ[0] * mmFL[findL] * tmp1[fmaskR_corrected[j]];
 
-      int findR = fmaskR[i] + fmaskR[j] * dg_np;
+      // int findR = fmaskR[i] + fmaskR[j] * dg_np;
+      int findR = DG_MAT_IND(fmaskR[i], fmaskR[j], dg_np, dg_np);
       out[1][fmaskR[i]] -= 0.5 * sJ[1] * mmFR[findR] * tmp0[fmaskL_corrected[j]];
     }
   }
 
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
-      int ind = i + j * dg_np;
+      // int ind = i + j * dg_np;
+      int ind = DG_MAT_IND(i, j, dg_np, dg_np);
       DG_FP tmp_mat_L = nx[0] * (rx[0][0] * dr_mat[ind] + sx[0][0] * ds_mat[ind] + tx[0][0] * dt_mat[ind]);
       tmp_mat_L += ny[0] * (ry[0][0] * dr_mat[ind] + sy[0][0] * ds_mat[ind] + ty[0][0] * dt_mat[ind]);
       tmp_mat_L += nz[0] * (rz[0][0] * dr_mat[ind] + sz[0][0] * ds_mat[ind] + tz[0][0] * dt_mat[ind]);

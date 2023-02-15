@@ -13,7 +13,7 @@ ls_sample_np = ""
 dg_num_faces = ""
 dg_num_constants = ""
 dg_order     = sys.argv[1]
-fp_type = "f"
+fp_type = "d"
 
 # Get DG order from command line args
 if dim == "2":

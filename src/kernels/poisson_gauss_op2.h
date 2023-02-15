@@ -64,7 +64,8 @@ inline void poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
     ryL[m] = 0.0;
     syL[m] = 0.0;
     for(int n = 0; n < dg_npL; n++) {
-      int ind = m + n * DG_GF_NP;
+      // int ind = m + n * DG_GF_NP;
+      int ind = DG_MAT_IND(m, n, DG_GF_NP, dg_npL);
       rxL[m] += gDrL[ind] * x[0][n];
       sxL[m] += gDsL[ind] * x[0][n];
       ryL[m] += gDrL[ind] * y[0][n];
@@ -88,7 +89,8 @@ inline void poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
     ryR[m] = 0.0;
     syR[m] = 0.0;
     for(int n = 0; n < dg_npR; n++) {
-      int ind = m + n * DG_GF_NP;
+      // int ind = m + n * DG_GF_NP;
+      int ind = DG_MAT_IND(m, n, DG_GF_NP, dg_npR);
       rxR[m] += gDrR[ind] * x[1][n];
       sxR[m] += gDsR[ind] * x[1][n];
       ryR[m] += gDrR[ind] * y[1][n];
@@ -111,10 +113,12 @@ inline void poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
   DG_FP mDL[DG_GF_NP * DG_NP], mDR[DG_GF_NP * DG_NP], pDL[DG_GF_NP * DG_NP], pDR[DG_GF_NP * DG_NP];
   for(int m = 0; m < DG_GF_NP; m++) {
     for(int n = 0; n < dg_npL; n++) {
-      int ind = m + n * DG_GF_NP;
+      // int ind = m + n * DG_GF_NP;
+      int ind = DG_MAT_IND(m, n, DG_GF_NP, dg_npL);
       int p_ind, p_norm_indR;
       if(*reverse) {
-        p_ind = DG_GF_NP - 1 - m + n * DG_GF_NP;
+        // p_ind = DG_GF_NP - 1 - m + n * DG_GF_NP;
+        p_ind = DG_MAT_IND(DG_GF_NP - 1 - m, n, DG_GF_NP, dg_npL);
         p_norm_indR = exIndR + DG_GF_NP - 1 - m;
       } else {
         p_ind = ind;
@@ -131,10 +135,12 @@ inline void poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
   // Right edge
   for(int m = 0; m < DG_GF_NP; m++) {
     for(int n = 0; n < dg_npR; n++) {
-      int ind = m + n * DG_GF_NP;
+      // int ind = m + n * DG_GF_NP;
+      int ind = DG_MAT_IND(m, n, DG_GF_NP, dg_npR);
       int p_ind, p_norm_indL;
       if(*reverse) {
-        p_ind = DG_GF_NP - 1 - m + n * DG_GF_NP;
+        // p_ind = DG_GF_NP - 1 - m + n * DG_GF_NP;
+        p_ind = DG_MAT_IND(DG_GF_NP - 1 - m, n, DG_GF_NP, dg_npR);
         p_norm_indL = exIndL + DG_GF_NP - 1 - m;
       } else {
         p_ind = ind;
@@ -191,12 +197,15 @@ inline void poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
   for(int m = 0; m < dg_npL; m++) {
     for(int n = 0; n < dg_npL; n++) {
       // op col-major
-      int c_ind = m + n * dg_npL;
+      // int c_ind = m + n * dg_npL;
+      int c_ind = DG_MAT_IND(m, n, dg_npL, dg_npL);
       for(int k = 0; k < DG_GF_NP; k++) {
         // Dx' and Dy'
-        int a_ind = m * DG_GF_NP + k;
+        // int a_ind = m * DG_GF_NP + k;
+        int a_ind = DG_MAT_IND(k, m, DG_GF_NP, dg_npL);
         // Dx and Dy
-        int b_ind = n * DG_GF_NP + k;
+        // int b_ind = n * DG_GF_NP + k;
+        int b_ind = DG_MAT_IND(k, n, DG_GF_NP, dg_npL);
 
         op1L[c_ind] += 0.5 * gaussWL[k] * sJ[0][exIndL + k] * tauL[k] * gVML[a_ind] * gVML[b_ind];
         op1L[c_ind] += -0.5 * gaussWL[k] * sJ[0][exIndL + k] * gVML[a_ind] * mDL[b_ind];
@@ -208,19 +217,24 @@ inline void poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
   for(int m = 0; m < dg_npL; m++) {
     for(int n = 0; n < dg_npR; n++) {
       // op col-major
-      int c_ind = m + n * dg_npL;
+      // int c_ind = m + n * dg_npL;
+      int c_ind = DG_MAT_IND(m, n, dg_npL, dg_npR);
       op2L[c_ind] = 0.0;
       for(int k = 0; k < DG_GF_NP; k++) {
         // Dx' and Dy'
-        int a_ind = m * DG_GF_NP + k;
+        // int a_ind = m * DG_GF_NP + k;
+        int a_ind = DG_MAT_IND(k, m, DG_GF_NP, dg_npL);
         // Dx and Dy
-        int b_ind = n * DG_GF_NP + k;
+        // int b_ind = n * DG_GF_NP + k;
+        int b_ind = DG_MAT_IND(k, n, DG_GF_NP, dg_npR);
 
         int b_indP;
         if(*reverse) {
-          b_indP = n * DG_GF_NP + DG_GF_NP - k - 1;
+          // b_indP = n * DG_GF_NP + DG_GF_NP - k - 1;
+          b_indP = DG_MAT_IND(DG_GF_NP - k - 1, n, DG_GF_NP, dg_npR);
         } else {
-          b_indP = n * DG_GF_NP + k;
+          // b_indP = n * DG_GF_NP + k;
+          b_indP = DG_MAT_IND(k, n, DG_GF_NP, dg_npR);
         }
 
         op2L[c_ind] += -0.5 * gaussWL[k] * sJ[0][exIndL + k] * tauL[k] * gVML[a_ind] * gVMR[b_indP];
@@ -234,12 +248,15 @@ inline void poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
   for(int m = 0; m < dg_npR; m++) {
     for(int n = 0; n < dg_npR; n++) {
       // op col-major
-      int c_ind = m + n * dg_npR;
+      // int c_ind = m + n * dg_npR;
+      int c_ind = DG_MAT_IND(m, n, dg_npR, dg_npR);
       for(int k = 0; k < DG_GF_NP; k++) {
         // Dx' and Dy'
-        int a_ind = m * DG_GF_NP + k;
+        // int a_ind = m * DG_GF_NP + k;
+        int a_ind = DG_MAT_IND(k, m, DG_GF_NP, dg_npR);
         // Dx and Dy
-        int b_ind = n * DG_GF_NP + k;
+        // int b_ind = n * DG_GF_NP + k;
+        int b_ind = DG_MAT_IND(k, n, DG_GF_NP, dg_npR);
 
         op1R[c_ind] += 0.5 * gaussWR[k] * sJ[1][exIndR + k] * tauR[k] * gVMR[a_ind] * gVMR[b_ind];
         op1R[c_ind] += -0.5 * gaussWR[k] * sJ[1][exIndR + k] * gVMR[a_ind] * mDR[b_ind];
@@ -251,19 +268,24 @@ inline void poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
   for(int m = 0; m < dg_npR; m++) {
     for(int n = 0; n < dg_npL; n++) {
       // op col-major
-      int c_ind = m + n * dg_npR;
+      // int c_ind = m + n * dg_npR;
+      int c_ind = DG_MAT_IND(m, n, dg_npR, dg_npL);
       op2R[c_ind] = 0.0;
       for(int k = 0; k < DG_GF_NP; k++) {
         // Dx' and Dy'
-        int a_ind = m * DG_GF_NP + k;
+        // int a_ind = m * DG_GF_NP + k;
+        int a_ind = DG_MAT_IND(k, m, DG_GF_NP, dg_npR);
         // Dx and Dy
-        int b_ind = n * DG_GF_NP + k;
+        // int b_ind = n * DG_GF_NP + k;
+        int b_ind = DG_MAT_IND(k, n, DG_GF_NP, dg_npL);
 
         int b_indP;
         if(*reverse) {
-          b_indP = n * DG_GF_NP + DG_GF_NP - k - 1;
+          // b_indP = n * DG_GF_NP + DG_GF_NP - k - 1;
+          b_indP = DG_MAT_IND(DG_GF_NP - k - 1, n, DG_GF_NP, dg_npL);
         } else {
-          b_indP = n * DG_GF_NP + k;
+          // b_indP = n * DG_GF_NP + k;
+          b_indP = DG_MAT_IND(k, n, DG_GF_NP, dg_npL);
         }
 
         op2R[c_ind] += -0.5 * gaussWR[k] * sJ[1][exIndR + k] * tauR[k] * gVMR[a_ind] * gVML[b_indP];

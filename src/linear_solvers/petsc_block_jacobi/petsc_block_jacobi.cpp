@@ -120,7 +120,11 @@ void PETScBlockJacobiSolver::calc_precond_mat() {
     arma::Mat<DG_FP> a(in_c, DG_NP, DG_NP);
     arma::Mat<DG_FP> b(inv_c, DG_NP, DG_NP, false, true);
 
+    #ifdef DG_COL_MAJ
     b = arma::inv(a);
+    #else
+    b = arma::inv(a.t()).t();
+    #endif
     // b = arma::inv_sympd(a);
   }
 

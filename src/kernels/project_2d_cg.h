@@ -49,7 +49,8 @@ inline void project_2d_cg(const DG_FP *mass_, const DG_FP *J, const DG_FP *op_0,
     tmp0[i] = 0.0;
     tmp1[i] = 0.0;
     for(int j = 0; j < DG_NP; j++) {
-      int ind = i + j * DG_NP;
+      // int ind = i + j * DG_NP;
+      int ind = DG_MAT_IND(i, j, DG_NP, DG_NP);
       tmp0[i] += Mass[ind] * out0[j] + *pen * (op_0[ind] * out0[j] + op_3[ind] * out1[j]);
       tmp1[i] += Mass[ind] * out1[j] + *pen * (op_2[ind] * out0[j] + op_1[ind] * out1[j]);
     }
@@ -72,7 +73,8 @@ inline void project_2d_cg(const DG_FP *mass_, const DG_FP *J, const DG_FP *op_0,
       tmp0[i] = 0.0;
       tmp1[i] = 0.0;
       for(int j = 0; j < DG_NP; j++) {
-        int ind = i + j * DG_NP;
+        // int ind = i + j * DG_NP;
+        int ind = DG_MAT_IND(i, j, DG_NP, DG_NP);
         tmp0[i] += Mass[ind] * p0[j] + *pen * (op_0[ind] * p0[j] + op_3[ind] * p1[j]);
         tmp1[i] += Mass[ind] * p1[j] + *pen * (op_2[ind] * p0[j] + op_1[ind] * p1[j]);
       }

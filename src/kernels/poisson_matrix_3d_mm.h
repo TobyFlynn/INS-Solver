@@ -6,7 +6,8 @@ inline void poisson_matrix_3d_mm(const DG_FP *factor, const DG_FP *mass,
 
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
-      int op_ind = i + j * dg_np;
+      // int op_ind = i + j * dg_np;
+      int op_ind = DG_MAT_IND(i, j, dg_np, dg_np);
       op1[op_ind] += *factor * J[0] * mass_mat[op_ind];
     }
   }

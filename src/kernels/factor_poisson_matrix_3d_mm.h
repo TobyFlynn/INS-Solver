@@ -6,7 +6,8 @@ inline void factor_poisson_matrix_3d_mm(const int *order, const DG_FP *factor,
 
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
-      int op_ind = i + j * dg_np;
+      // int op_ind = i + j * dg_np;
+      int op_ind = DG_MAT_IND(i, j, dg_np, dg_np);
       op1[op_ind] += factor[i] * J[0] * mass_mat[op_ind];
     }
   }

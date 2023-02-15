@@ -43,7 +43,8 @@ inline void poisson_matrix_3d_bop(const int *order, const DG_FP *dr,
   DG_FP D[DG_NP * DG_NP];
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
-      int ind  = i + j * dg_np;
+      // int ind = i + j * dg_np;
+      int ind = DG_MAT_IND(i, j, dg_np, dg_np);
 
       D[ind] = *nx * (rx[0] * dr_mat[ind] + sx[0] * ds_mat[ind] + tx[0] * dt_mat[ind]);
       D[ind] += *ny * (ry[0] * dr_mat[ind] + sy[0] * ds_mat[ind] + ty[0] * dt_mat[ind]);
@@ -55,12 +56,16 @@ inline void poisson_matrix_3d_bop(const int *order, const DG_FP *dr,
 
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
-      int op_ind = i + j * dg_np;
+      // int op_ind = i + j * dg_np;
+      int op_ind = DG_MAT_IND(i, j, dg_np, dg_np);
       DG_FP tmp = 0.0;
       for(int k = 0; k < dg_np; k++) {
-        int a_ind0 = i + k * dg_np;
-        int a_ind1 = i * dg_np + k;
-        int b_ind  = j * dg_np + k;
+        // int a_ind0 = i + k * dg_np;
+        int a_ind0 = DG_MAT_IND(i, k, dg_np, dg_np);
+        // int a_ind1 = i * dg_np + k;
+        int a_ind1 = DG_MAT_IND(k, i, dg_np, dg_np);
+        // int b_ind  = j * dg_np + k;
+        int b_ind = DG_MAT_IND(k, j, dg_np, dg_np);
         tmp += -*sJ * mmF[a_ind0] * D[b_ind] - D[a_ind1] * *sJ * mmF[b_ind];
       }
       op1[op_ind] += gtau * *sJ * mmF[op_ind] + tmp;

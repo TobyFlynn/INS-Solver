@@ -88,7 +88,11 @@ void PoissonMatrix::setPETScMatrix() {
   const int *glb = (int *)glb_ind->data;
   const int *p = (int *)_mesh->order->data;
 
+  #ifdef DG_COL_MAJ
   MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_FALSE);
+  #else
+  MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_TRUE);
+  #endif
 
   for(int i = 0; i < _mesh->cells->size; i++) {
     int Np, Nfp;

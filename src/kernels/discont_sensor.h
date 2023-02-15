@@ -9,7 +9,8 @@ inline void discont_sensor(const DG_FP *e0, const DG_FP *s0, const DG_FP *k,
     tmp_u[i] = 0.0;
     tmp_u_hat[i] = 0.0;
     for(int j = 0; j < DG_NP; j++) {
-      int ind = i + j * DG_NP;
+      // int ind = i + j * DG_NP;
+      int ind = DG_MAT_IND(i, j, DG_NP, DG_NP);
       tmp_u[i] += mat[ind] * u[j];
       tmp_u_hat[i] += mat[ind] * u_hat[j];
     }

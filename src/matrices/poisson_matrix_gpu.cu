@@ -99,7 +99,11 @@ void PoissonMatrix::setPETScMatrix() {
   cudaMemcpy(order, _mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
   op_mpi_set_dirtybit_cuda(3, args);
 
+  #ifdef DG_COL_MAJ
   MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_FALSE);
+  #else
+  MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_TRUE);
+  #endif
 
   for(int i = 0; i < setSize; i++) {
     int Np, Nfp;

@@ -51,7 +51,8 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
   DG_FP DL[DG_NP * DG_NP], DR[DG_NP * DG_NP];
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
-      int ind  = i + j * dg_np;
+      // int ind = i + j * dg_np;
+      int ind = DG_MAT_IND(i, j, dg_np, dg_np);
 
       DL[ind] = nx[0] * (rx[0][0] * dr_mat[ind] + sx[0][0] * ds_mat[ind] + tx[0][0] * dt_mat[ind]);
       DL[ind] += ny[0] * (ry[0][0] * dr_mat[ind] + sy[0][0] * ds_mat[ind] + ty[0][0] * dt_mat[ind]);
@@ -67,12 +68,16 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
   // Do left face
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
-      int op_ind = i + j * dg_np;
+      // int op_ind = i + j * dg_np;
+      int op_ind = DG_MAT_IND(i, j, dg_np, dg_np);
       DG_FP tmp = 0.0;
       for(int k = 0; k < dg_np; k++) {
-        int a_ind0 = i + k * dg_np;
-        int a_ind1 = i * dg_np + k;
-        int b_ind  = j * dg_np + k;
+        // int a_ind0 = i + k * dg_np;
+        int a_ind0 = DG_MAT_IND(i, k, dg_np, dg_np);
+        // int a_ind1 = i * dg_np + k;
+        int a_ind1 = DG_MAT_IND(k, i, dg_np, dg_np);
+        // int b_ind  = j * dg_np + k;
+        int b_ind = DG_MAT_IND(k, j, dg_np, dg_np);
         tmp += -sJ[0] * mmFL[a_ind0] * DL[b_ind] - DL[a_ind1] * sJ[0] * mmFL[b_ind];
       }
       op1L[op_ind] += 0.5 * (gtau * sJ[0] * mmFL[op_ind] + tmp);
@@ -85,18 +90,23 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
 
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_npf; j++) {
-      int op_ind = i + fmaskR_corrected[j] * dg_np;
-      int find = i + fmaskL[j] * dg_np;
+      // int op_ind = i + fmaskR_corrected[j] * dg_np;
+      int op_ind = DG_MAT_IND(i, fmaskR_corrected[j], dg_np, dg_np);
+      // int find = i + fmaskL[j] * dg_np;
+      int find = DG_MAT_IND(i, fmaskL[j], dg_np, dg_np);
       op2L[op_ind] -= 0.5 * gtau * sJ[0] * mmFL[find];
     }
   }
 
   for(int i = 0; i < dg_npf; i++) {
     for(int j = 0; j < dg_np; j++) {
-      int op_ind = fmaskL[i] + j * dg_np;
+      // int op_ind = fmaskL[i] + j * dg_np;
+      int op_ind = DG_MAT_IND(fmaskL[i], j, dg_np, dg_np);
       for(int k = 0; k < dg_npf; k++) {
-        int a_ind = fmaskL[i] + fmaskL[k] * dg_np;
-        int b_ind = j * dg_np + fmaskR_corrected[k];
+        // int a_ind = fmaskL[i] + fmaskL[k] * dg_np;
+        int a_ind = DG_MAT_IND(fmaskL[i], fmaskL[k], dg_np, dg_np);
+        // int b_ind = j * dg_np + fmaskR_corrected[k];
+        int b_ind = DG_MAT_IND(fmaskR_corrected[k], j, dg_np, dg_np);
         op2L[op_ind] -= 0.5 * sJ[0] * mmFL[a_ind] * -DR[b_ind];
       }
     }
@@ -104,10 +114,13 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
 
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_npf; j++) {
-      int op_ind = i + fmaskR_corrected[j] * dg_np;
+      // int op_ind = i + fmaskR_corrected[j] * dg_np;
+      int op_ind = DG_MAT_IND(i, fmaskR_corrected[j], dg_np, dg_np);
       for(int k = 0; k < dg_np; k++) {
-        int a_ind = i * dg_np + k;
-        int b_ind = fmaskL[j] * dg_np + k;
+        // int a_ind = i * dg_np + k;
+        int a_ind = DG_MAT_IND(k, i, dg_np, dg_np);
+        // int b_ind = fmaskL[j] * dg_np + k;
+        int b_ind = DG_MAT_IND(k, fmaskL[j], dg_np, dg_np);
         op2L[op_ind] -= -0.5 * DL[a_ind] * sJ[0] * mmFL[b_ind];
       }
     }
@@ -116,12 +129,16 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
   // Do right face
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
-      int op_ind = i + j * dg_np;
+      // int op_ind = i + j * dg_np;
+      int op_ind = DG_MAT_IND(i, j, dg_np, dg_np);
       DG_FP tmp = 0.0;
       for(int k = 0; k < dg_np; k++) {
-        int a_ind0 = i + k * dg_np;
-        int a_ind1 = i * dg_np + k;
-        int b_ind  = j * dg_np + k;
+        // int a_ind0 = i + k * dg_np;
+        int a_ind0 = DG_MAT_IND(i, k, dg_np, dg_np);
+        // int a_ind1 = i * dg_np + k;
+        int a_ind1 = DG_MAT_IND(k, i, dg_np, dg_np);
+        // int b_ind  = j * dg_np + k;
+        int b_ind = DG_MAT_IND(k, j, dg_np, dg_np);
         tmp += -sJ[1] * mmFR[a_ind0] * DR[b_ind] - DR[a_ind1] * sJ[1] * mmFR[b_ind];
       }
       op1R[op_ind] += 0.5 * (gtau * sJ[1] * mmFR[op_ind] + tmp);
@@ -134,18 +151,23 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
 
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_npf; j++) {
-      int op_ind = i + fmaskL_corrected[j] * dg_np;
-      int find = i + fmaskR[j] * dg_np;
+      // int op_ind = i + fmaskL_corrected[j] * dg_np;
+      int op_ind = DG_MAT_IND(i, fmaskL_corrected[j], dg_np, dg_np);
+      // int find = i + fmaskR[j] * dg_np;
+      int find = DG_MAT_IND(i, fmaskR[j], dg_np, dg_np);
       op2R[op_ind] -= 0.5 * gtau * sJ[1] * mmFR[find];
     }
   }
 
   for(int i = 0; i < dg_npf; i++) {
     for(int j = 0; j < dg_np; j++) {
-      int op_ind = fmaskR[i] + j * dg_np;
+      // int op_ind = fmaskR[i] + j * dg_np;
+      int op_ind = DG_MAT_IND(fmaskR[i], j, dg_np, dg_np);
       for(int k = 0; k < dg_npf; k++) {
-        int a_ind = fmaskR[i] + fmaskR[k] * dg_np;
-        int b_ind = j * dg_np + fmaskL_corrected[k];
+        // int a_ind = fmaskR[i] + fmaskR[k] * dg_np;
+        int a_ind = DG_MAT_IND(fmaskR[i], fmaskR[k], dg_np, dg_np);
+        // int b_ind = j * dg_np + fmaskL_corrected[k];
+        int b_ind = DG_MAT_IND(fmaskL_corrected[k], j, dg_np, dg_np);
         op2R[op_ind] -= 0.5 * sJ[1] * mmFR[a_ind] * -DL[b_ind];
       }
     }
@@ -153,10 +175,13 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
 
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_npf; j++) {
-      int op_ind = i + fmaskL_corrected[j] * dg_np;
+      // int op_ind = i + fmaskL_corrected[j] * dg_np;
+      int op_ind = DG_MAT_IND(i, fmaskL_corrected[j], dg_np, dg_np);
       for(int k = 0; k < dg_np; k++) {
-        int a_ind = i * dg_np + k;
-        int b_ind = fmaskR[j] * dg_np + k;
+        // int a_ind = i * dg_np + k;
+        int a_ind = DG_MAT_IND(k, i, dg_np, dg_np);
+        // int b_ind = fmaskR[j] * dg_np + k;
+        int b_ind = DG_MAT_IND(k, fmaskR[j], dg_np, dg_np);
         op2R[op_ind] -= -0.5 * DR[a_ind] * sJ[1] * mmFR[b_ind];
       }
     }

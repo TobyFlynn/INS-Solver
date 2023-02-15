@@ -18,7 +18,8 @@ inline void poisson_mat_free_mult_cells(const int *p, const DG_FP *dr, const DG_
     DG_FP tmpS = 0.0;
     DG_FP tmpT = 0.0;
     for(int n = 0; n < dg_np; n++) {
-      int ind = m + n * dg_np;
+      // int ind = m + n * dg_np;
+      int ind = DG_MAT_IND(m, n, dg_np, dg_np);
       tmpR += dr_mat[ind] * in[n];
       tmpS += ds_mat[ind] * in[n];
       tmpT += dt_mat[ind] * in[n];
@@ -33,7 +34,8 @@ inline void poisson_mat_free_mult_cells(const int *p, const DG_FP *dr, const DG_
     DG_FP tmp1 = 0.0;
     DG_FP tmp2 = 0.0;
     for(int n = 0; n < dg_np; n++) {
-      int ind = m + n * dg_np;
+      // int ind = m + n * dg_np;
+      int ind = DG_MAT_IND(m, n, dg_np, dg_np);
       tmp0 += mass_mat[ind] * tmpX[n];
       tmp1 += mass_mat[ind] * tmpY[n];
       tmp2 += mass_mat[ind] * tmpZ[n];
@@ -46,7 +48,8 @@ inline void poisson_mat_free_mult_cells(const int *p, const DG_FP *dr, const DG_
   for(int m = 0; m < dg_np; m++) {
     out[m] = 0.0;
     for(int n = 0; n < dg_np; n++) {
-      int ind = m * dg_np + n;
+      // int ind = m * dg_np + n;
+      int ind = DG_MAT_IND(n, m, dg_np, dg_np);
       out[m] += rx[0] * dr_mat[ind] * tmpX[n];
       out[m] += ry[0] * dr_mat[ind] * tmpY[n];
       out[m] += rz[0] * dr_mat[ind] * tmpZ[n];

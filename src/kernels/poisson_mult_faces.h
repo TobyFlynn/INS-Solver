@@ -5,14 +5,16 @@ inline void poisson_mult_faces(const int *pL, const DG_FP *uL, const DG_FP *opL,
 
   for(int m = 0; m < dg_npL; m++) {
     for(int n = 0; n < dg_npR; n++) {
-      int ind = m + n * dg_npL;
+      // int ind = m + n * dg_npL;
+      int ind = DG_MAT_IND(m, n, dg_npL, dg_npR);
       rhsL[m] += opL[ind] * uR[n];
     }
   }
 
   for(int m = 0; m < dg_npR; m++) {
     for(int n = 0; n < dg_npL; n++) {
-      int ind = m + n * dg_npR;
+      // int ind = m + n * dg_npR;
+      int ind = DG_MAT_IND(m, n, dg_npR, dg_npL);
       rhsR[m] += opR[ind] * uL[n];
     }
   }

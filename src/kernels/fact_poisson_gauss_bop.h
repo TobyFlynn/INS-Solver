@@ -46,7 +46,8 @@ inline void fact_poisson_gauss_bop(const int *p, const DG_FP *gF0Dr,
       ry[m] = 0.0;
       sy[m] = 0.0;
       for(int n = 0; n < dg_np; n++) {
-        int ind = m + n * dg_gf_np;
+        // int ind = m + n * dg_gf_np;
+        int ind = DG_MAT_IND(m, n, dg_gf_np, dg_np);
         rx[m] += gDr[ind] * x[n];
         sx[m] += gDs[ind] * x[n];
         ry[m] += gDr[ind] * y[n];
@@ -67,7 +68,8 @@ inline void fact_poisson_gauss_bop(const int *p, const DG_FP *gF0Dr,
     DG_FP mD[DG_GF_NP * DG_NP];
     for(int m = 0; m < dg_gf_np; m++) {
       for(int n = 0; n < dg_np; n++) {
-        int ind = m + n * dg_gf_np;
+        // int ind = m + n * dg_gf_np;
+        int ind = DG_MAT_IND(m, n, dg_gf_np, dg_np);
 
         DG_FP Dx = rx[m] * gDr[ind] + sx[m] * gDs[ind];
         DG_FP Dy = ry[m] * gDr[ind] + sy[m] * gDs[ind];
@@ -85,14 +87,18 @@ inline void fact_poisson_gauss_bop(const int *p, const DG_FP *gF0Dr,
     for(int m = 0; m < dg_np; m++) {
       for(int n = 0; n < dg_np; n++) {
         // op col-major
-        int c_ind = m + n * dg_np;
+        // int c_ind = m + n * dg_np;
+        int c_ind = DG_MAT_IND(m, n, dg_np, dg_np);
         // op row-major
         // int c_ind = m * dg_np + n;
         for(int k = 0; k < dg_gf_np; k++) {
           // Dx' and Dy'
-          int a_ind = m * dg_gf_np + k;
+          // int a_ind = m * dg_gf_np + k;
+          int a_ind = DG_MAT_IND(k, m, dg_gf_np, dg_np);
           // Dx and Dy
-          int b_ind = n * dg_gf_np + k;
+          // int b_ind = n * dg_gf_np + k;
+          int b_ind = DG_MAT_IND(k, n, dg_gf_np, dg_np);
+
           op1[c_ind] += gaussW[k] * sJ[exInd + k] * tau[k] * gVM[a_ind] * gVM[b_ind];
           op1[c_ind] += -gaussW[k] * sJ[exInd + k] * gVM[a_ind] * mD[b_ind];
           op1[c_ind] += -gaussW[k] * sJ[exInd + k] * mD[a_ind] * gVM[b_ind];
@@ -108,7 +114,9 @@ inline void fact_poisson_gauss_bop(const int *p, const DG_FP *gF0Dr,
       DG_FP val = gaussW[j % dg_gf_np] * sJ[*edgeNum * dg_gf_np + (j % dg_gf_np)] * tau[j % dg_gf_np];
       val *= gVM[indT_col];
       val -= mD[indT_col] * gaussW[j % dg_gf_np] * sJ[*edgeNum * dg_gf_np + (j % dg_gf_np)];
-      op_bc[row + col * dg_np] = val;
+      int op_ind = DG_MAT_IND(row, col, dg_np, dg_gf_np);
+      // op_bc[row + col * dg_np] = val;
+      op_bc[op_ind] = val;
     }
   } else {
     // Neumann
@@ -120,7 +128,9 @@ inline void fact_poisson_gauss_bop(const int *p, const DG_FP *gF0Dr,
       int row  = j / dg_gf_np;
       DG_FP val = gaussW[j % dg_gf_np] * sJ[*edgeNum * dg_gf_np + (j % dg_gf_np)];
       val *= gVM[indT_col];
-      op_bc[row + col * dg_np] = val;
+      int op_ind = DG_MAT_IND(row, col, dg_np, dg_gf_np);
+      // op_bc[row + col * dg_np] = val;
+      op_bc[op_ind] = val;
     }
   }
 }

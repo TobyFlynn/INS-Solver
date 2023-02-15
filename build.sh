@@ -68,6 +68,10 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         linear_solvers/pmultigrid/pmultigrid.cpp \
         kernels/
 
+sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins2d_kernels.cu
+sed -i "4i #include \"dg_compiler_defs.h\"" openmp/ins2d_kernels.cpp
+sed -i "4i #include \"dg_compiler_defs.h\"" seq/ins2d_seqkernels.cpp
+
 cd ..
 
 cd gen3d
@@ -86,6 +90,10 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         linear_solvers/petsc_block_jacobi/petsc_block_jacobi.cpp \
         linear_solvers/pmultigrid/pmultigrid.cpp \
         kernels/
+
+sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins3d_kernels.cu
+sed -i "4i #include \"dg_compiler_defs.h\"" openmp/ins3d_kernels.cpp
+sed -i "4i #include \"dg_compiler_defs.h\"" seq/ins3d_seqkernels.cpp
 
 cd ..
 
