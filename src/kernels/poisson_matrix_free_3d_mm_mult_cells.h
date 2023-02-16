@@ -1,9 +1,9 @@
-inline void poisson_matrix_free_3d_mm_mult_cells(const int *p, const DG_FP *dr, 
-                            const DG_FP *ds, const DG_FP *dt, const DG_FP *mass, 
+inline void poisson_matrix_free_3d_mm_mult_cells(const int *p, const DG_FP *dr,
+                            const DG_FP *ds, const DG_FP *dt, const DG_FP *mass,
                             const DG_FP *rx, const DG_FP *sx, const DG_FP *tx,
-                            const DG_FP *ry, const DG_FP *sy, const DG_FP *ty, 
+                            const DG_FP *ry, const DG_FP *sy, const DG_FP *ty,
                             const DG_FP *rz, const DG_FP *sz, const DG_FP *tz,
-                            const DG_FP *J, const DG_FP *mm_factor, 
+                            const DG_FP *J, const DG_FP *mm_factor,
                             const DG_FP *in, DG_FP *out) {
   const DG_FP *dr_mat = &dr[(*p - 1) * DG_NP * DG_NP];
   const DG_FP *ds_mat = &ds[(*p - 1) * DG_NP * DG_NP];
@@ -49,15 +49,9 @@ inline void poisson_matrix_free_3d_mm_mult_cells(const int *p, const DG_FP *dr,
     for(int n = 0; n < dg_np; n++) {
       // int ind = m * dg_np + n;
       int ind = DG_MAT_IND(n, m, dg_np, dg_np);
-      out[m] += rx[0] * dr_mat[ind] * tmpX[n];
-      out[m] += ry[0] * dr_mat[ind] * tmpY[n];
-      out[m] += rz[0] * dr_mat[ind] * tmpZ[n];
-      out[m] += sx[0] * ds_mat[ind] * tmpX[n];
-      out[m] += sy[0] * ds_mat[ind] * tmpY[n];
-      out[m] += sz[0] * ds_mat[ind] * tmpZ[n];
-      out[m] += tx[0] * dt_mat[ind] * tmpX[n];
-      out[m] += ty[0] * dt_mat[ind] * tmpY[n];
-      out[m] += tz[0] * dt_mat[ind] * tmpZ[n];
+      out[m] += dr_mat[ind] * (rx[0] * tmpX[n] + ry[0] * tmpY[n] + rz[0] * tmpZ[n]);
+      out[m] += ds_mat[ind] * (sx[0] * tmpX[n] + sy[0] * tmpY[n] + sz[0] * tmpZ[n]);
+      out[m] += dt_mat[ind] * (tx[0] * tmpX[n] + ty[0] * tmpY[n] + tz[0] * tmpZ[n]);
 
       out[m] += *mm_factor * J[0] * mass_mat[ind] * in[n];
     }

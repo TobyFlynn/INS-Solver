@@ -13,8 +13,8 @@ PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
   pMatInit = false;
 
   DG_FP *tmp_np = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  in  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "block_jacobi_in");
-  out = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "block_jacobi_out");
+  in  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "petsc_pmultigrid_in");
+  out = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "petsc_pmultigrid_out");
   free(tmp_np);
 
   pmultigridSolver = new PMultigridPoissonSolver(mesh);

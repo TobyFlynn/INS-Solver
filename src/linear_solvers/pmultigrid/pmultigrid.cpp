@@ -3,6 +3,7 @@
 #include "op_seq.h"
 
 #include <random>
+#include <string>
 
 #include "utils.h"
 #include "timing.h"
@@ -14,10 +15,14 @@ extern Timing *timer;
 PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
   mesh = m;
   DG_FP *tmp_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+  std::string name;
   for(int i = 0; i < DG_ORDER; i++) {
-    tmp_dat[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_tmp");
-    u_dat[i]   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_u");
-    b_dat[i]   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_b");
+    name = "p_multigrid_tmp" + std::to_string(i);
+    tmp_dat[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str());
+    name = "p_multigrid_u" + std::to_string(i);
+    u_dat[i]   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str());
+    name = "p_multigrid_b" + std::to_string(i);
+    b_dat[i]   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str());
   }
   eg_tmp_0 = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_eg_tmp_0");
   eg_tmp_1 = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_eg_tmp_1");
@@ -73,7 +78,7 @@ void PMultigridPoissonSolver::cycle(int order) {
   // Relaxation
   // u = u + R^-1 (F - Au)
   timer->startTimer("PMultigrid - Relaxation");
-  for(int i = 0; i < 20; i++) {
+  for(int i = 0; i < num_pre_relax_iter; i++) {
     matrix->mult(u_dat[order-1], tmp_dat[order-1]);
     op_par_loop(p_multigrid_relaxation_jacobi, "p_multigrid_relaxation_jacobi", mesh->cells,
                 op_arg_gbl(&w, 1, DG_FP_STR, OP_READ),
@@ -129,7 +134,7 @@ void PMultigridPoissonSolver::cycle(int order) {
   // Relaxation
   // u = u + R^-1 (F - Au)
   timer->startTimer("PMultigrid - Relaxation");
-  for(int i = 0; i < 20; i++) {
+  for(int i = 0; i < num_post_relax_iter; i++) {
     matrix->mult(u_dat[order-1], tmp_dat[order-1]);
     op_par_loop(p_multigrid_relaxation_jacobi, "p_multigrid_relaxation_jacobi", mesh->cells,
                 op_arg_gbl(&w, 1, DG_FP_STR, OP_READ),

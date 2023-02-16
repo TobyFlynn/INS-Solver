@@ -18,7 +18,8 @@ void MMPoissonMatrixFree3D::calc_mat() {
 }
 
 void MMPoissonMatrixFree3D::apply_bc(op_dat rhs, op_dat bc) {
-  throw std::runtime_error("TODO implement apply_bc of MMPoissonMatrixFree3D");
+  if(mesh->bface2cells)
+    throw std::runtime_error("TODO implement apply_bc of MMPoissonMatrixFree3D");
 }
 
 void MMPoissonMatrixFree3D::set_factor(DG_FP f) {
@@ -31,6 +32,20 @@ DG_FP MMPoissonMatrixFree3D::get_factor() {
 
 // Doesn't account for BCs
 void MMPoissonMatrixFree3D::mult(op_dat in, op_dat out) {
+  timer->startTimer("MMPoissonMF - Mult");
+  alt_mult(in, out);
+
+  op_par_loop(poisson_matrix_free_3d_mm_mult_cells_new, "poisson_matrix_free_3d_mm_mult_cells_new", _mesh->cells,
+              op_arg_dat(_mesh->order, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->J,  -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(in,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  timer->endTimer("MMPoissonMF - Mult");
+  return;
+
   timer->startTimer("MMPoissonMF - Mult");
   timer->startTimer("MMPoissonMF - Mult - Cells");
   op_par_loop(poisson_matrix_free_3d_mm_mult_cells, "poisson_matrix_free_3d_mm_mult_cells", _mesh->cells,
