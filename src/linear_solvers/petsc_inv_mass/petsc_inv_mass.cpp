@@ -1,23 +1,34 @@
-#include "linear_solvers/petsc_pmultigrid.h"
+#include "linear_solvers/petsc_inv_mass.h"
 
 #include "op_seq.h"
 
-#include <iostream>
+#include "dg_constants/dg_constants.h"
+
+#include "timing.h"
+
+#include "utils.h"
+#include "linear_solvers/petsc_utils.h"
+#include "timing.h"
+
+#define ARMA_ALLOW_FAKE_GCC
+#include <armadillo>
 #include <type_traits>
 
-#include "linear_solvers/petsc_utils.h"
+extern DGConstants *constants;
+extern Timing *timer;
 
-PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
-  mesh = m;
+PETScInvMassSolver::PETScInvMassSolver(DGMesh *m) {
   nullspace = false;
   pMatInit = false;
+  mesh = m;
+  factor = 1.0;
 
   DG_FP *tmp_np = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+
   in  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "block_jacobi_in");
   out = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "block_jacobi_out");
-  free(tmp_np);
 
-  pmultigridSolver = new PMultigridPoissonSolver(mesh);
+  free(tmp_np);
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPGMRES);
@@ -32,13 +43,12 @@ PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
   set_shell_pc(pc);
 }
 
-PETScPMultigrid::~PETScPMultigrid() {
+PETScInvMassSolver::~PETScInvMassSolver() {
   MatDestroy(&pMat);
   KSPDestroy(&ksp);
-  delete pmultigridSolver;
 }
 
-bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
+bool PETScInvMassSolver::solve(op_dat rhs, op_dat ans) {
   create_shell_mat();
   KSPSetOperators(ksp, pMat, pMat);
   if(nullspace) {
@@ -48,10 +58,6 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
     MatSetTransposeNullSpace(pMat, ns);
     MatNullSpaceDestroy(&ns);
   }
-
-  pmultigridSolver->set_matrix(matrix);
-  pmultigridSolver->set_bcs(bc);
-  pmultigridSolver->set_nullspace(nullspace);
 
   if(bc)
     matrix->apply_bc(rhs, bc);
@@ -89,7 +95,7 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
   return converged;
 }
 
-void PETScPMultigrid::calc_rhs(const DG_FP *in_d, DG_FP *out_d) {
+void PETScInvMassSolver::calc_rhs(const DG_FP *in_d, DG_FP *out_d) {
   // Copy u to OP2 dat
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
@@ -98,10 +104,22 @@ void PETScPMultigrid::calc_rhs(const DG_FP *in_d, DG_FP *out_d) {
   PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
 }
 
-void PETScPMultigrid::precond(const DG_FP *in_d, DG_FP *out_d) {
+// Matrix-free inv Mass preconditioning function
+void PETScInvMassSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
+  timer->startTimer("Inv Mass Preconditioning");
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
-  pmultigridSolver->solve(in, out);
+  op_par_loop(petsc_pre_inv_mass, "petsc_pre_inv_mass", mesh->cells,
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::INV_MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(&factor,  1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->J, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(in,      -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(out,     -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
   PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
+  timer->endTimer("Inv Mass Preconditioning");
+}
+
+void PETScInvMassSolver::setFactor(const double f) {
+  factor = f;
 }

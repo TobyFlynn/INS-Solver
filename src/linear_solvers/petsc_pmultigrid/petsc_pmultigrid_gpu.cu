@@ -23,7 +23,7 @@ void PETScPMultigrid::create_shell_mat() {
   if(pMatInit)
     MatDestroy(&pMat);
 
-  MatCreateShell(PETSC_COMM_WORLD, matrix->unknowns, matrix->unknowns, PETSC_DETERMINE, PETSC_DETERMINE, this, &pMat);
+  MatCreateShell(PETSC_COMM_WORLD, matrix->getUnknowns(), matrix->getUnknowns(), PETSC_DETERMINE, PETSC_DETERMINE, this, &pMat);
   MatShellSetOperation(pMat, MATOP_MULT, (void(*)(void))matAMultPM);
   MatShellSetVecType(pMat, VECCUDA);
 

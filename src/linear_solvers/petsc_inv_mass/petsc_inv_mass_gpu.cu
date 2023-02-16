@@ -1,11 +1,11 @@
-#include "linear_solvers/petsc_block_jacobi.h"
+#include "linear_solvers/petsc_inv_mass.h"
 
 #ifdef INS_MPI
 #include "mpi_helper_func.h"
 #endif
 
-PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
-  PETScBlockJacobiSolver *poisson;
+PetscErrorCode matAMultInvMass(Mat A, Vec x, Vec y) {
+  PETScInvMassSolver *poisson;
   MatShellGetContext(A, &poisson);
   const DG_FP *x_ptr;
   DG_FP *y_ptr;
@@ -19,19 +19,19 @@ PetscErrorCode matAMult(Mat A, Vec x, Vec y) {
   return 0;
 }
 // TODO update for p-adaptivity
-void PETScBlockJacobiSolver::create_shell_mat() {
+void PETScInvMassSolver::create_shell_mat() {
   if(pMatInit)
     MatDestroy(&pMat);
 
   MatCreateShell(PETSC_COMM_WORLD, matrix->getUnknowns(), matrix->getUnknowns(), PETSC_DETERMINE, PETSC_DETERMINE, this, &pMat);
-  MatShellSetOperation(pMat, MATOP_MULT, (void(*)(void))matAMult);
+  MatShellSetOperation(pMat, MATOP_MULT, (void(*)(void))matAMultInvMass);
   MatShellSetVecType(pMat, VECCUDA);
 
   pMatInit = true;
 }
 
-PetscErrorCode precon(PC pc, Vec x, Vec y) {
-  PETScBlockJacobiSolver *poisson;
+PetscErrorCode preconInvMass(PC pc, Vec x, Vec y) {
+  PETScInvMassSolver *poisson;
   PCShellGetContext(pc, (void **)&poisson);
   const DG_FP *x_ptr;
   DG_FP *y_ptr;
@@ -45,7 +45,7 @@ PetscErrorCode precon(PC pc, Vec x, Vec y) {
   return 0;
 }
 
-void PETScBlockJacobiSolver::set_shell_pc(PC pc) {
-  PCShellSetApply(pc, precon);
+void PETScInvMassSolver::set_shell_pc(PC pc) {
+  PCShellSetApply(pc, preconInvMass);
   PCShellSetContext(pc, this);
 }

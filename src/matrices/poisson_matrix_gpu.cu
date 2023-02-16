@@ -18,8 +18,7 @@ void get_num_nodes(const int N, int *Np, int *Nfp) {
   #endif
 }
 
-void PoissonMatrix::set_glb_ind() {
-  timer->startTimer("PoissonMat - glb_ind");
+int PoissonMatrix::getUnknowns() {
   op_arg op2_args[] = {
     op_arg_dat(_mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
@@ -27,7 +26,8 @@ void PoissonMatrix::set_glb_ind() {
   const int setSize_ = _mesh->order->set->size;
   int *tempOrder_ = (int *)malloc(setSize_ * sizeof(int));
   cudaMemcpy(tempOrder_, _mesh->order->data_d, setSize_ * sizeof(int), cudaMemcpyDeviceToHost);
-  unknowns = 0;
+  int unknowns = 0;
+  #pragma omp parallel for reduction(+:unknowns)
   for(int i = 0; i < setSize_; i++) {
     int Np, Nfp;
     get_num_nodes(tempOrder_[i], &Np, &Nfp);
@@ -35,6 +35,11 @@ void PoissonMatrix::set_glb_ind() {
   }
   free(tempOrder_);
   op_mpi_set_dirtybit_cuda(1, op2_args);
+  return unknowns;
+}
+
+void PoissonMatrix::set_glb_ind() {
+  int unknowns = getUnknowns();
   int global_ind = 0;
   #ifdef INS_MPI
   global_ind = get_global_mat_start_ind(unknowns);
@@ -71,6 +76,7 @@ void PoissonMatrix::setPETScMatrix() {
   if(!petscMatInit) {
     MatCreate(PETSC_COMM_WORLD, &pMat);
     petscMatInit = true;
+    int unknowns = getUnknowns();
     MatSetSizes(pMat, unknowns, unknowns, PETSC_DECIDE, PETSC_DECIDE);
 
     #ifdef INS_MPI

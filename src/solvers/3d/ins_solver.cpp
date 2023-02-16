@@ -101,13 +101,14 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
   currentInd = 0;
 
   pressureMatrix = new PoissonMatrix3D(mesh);
-  viscosityMatrix = new MMPoissonMatrix3D(mesh);
-  // viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
+  // viscosityMatrix = new MMPoissonMatrix3D(mesh);
+  viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
   pressureSolver = new PETScAMGSolver(mesh);
   // pressureSolver = new PETScPMultigrid(mesh);
   // pressureSolver = new PMultigridPoissonSolver(mesh);
-  viscositySolver = new PETScBlockJacobiSolver(mesh);
+  // viscositySolver = new PETScBlockJacobiSolver(mesh);
   // viscositySolver = new PETScAMGSolver(mesh);
+  viscositySolver = new PETScInvMassSolver(mesh);
 
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(true);
@@ -371,7 +372,8 @@ void INSSolver3D::viscosity() {
   if(factor != viscosityMatrix->get_factor()) {
     viscosityMatrix->set_factor(factor);
     viscosityMatrix->set_bc_types(vis_bc_types);
-    viscosityMatrix->calc_mat();
+    // viscosityMatrix->calc_mat();
+    viscositySolver->setFactor(1.0 / factor);
   }
   viscositySolver->set_bcs(vis_bc);
   bool convergedX = viscositySolver->solve(velTT[0], vel[(currentInd + 1) % 2][0]);

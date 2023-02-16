@@ -49,8 +49,8 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
     matrix->apply_bc(rhs, bc);
 
   Vec b, x;
-  PETScUtils::create_vec_p_adapt(&b, matrix->unknowns);
-  PETScUtils::create_vec_p_adapt(&x, matrix->unknowns);
+  PETScUtils::create_vec_p_adapt(&b, matrix->getUnknowns());
+  PETScUtils::create_vec_p_adapt(&x, matrix->getUnknowns());
 
   PETScUtils::load_vec_p_adapt(&b, rhs, mesh);
   PETScUtils::load_vec_p_adapt(&x, ans, mesh);

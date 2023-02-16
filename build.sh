@@ -19,6 +19,7 @@ mkdir -p linear_solvers/petsc_utils
 mkdir -p linear_solvers/petsc_block_jacobi
 mkdir -p linear_solvers/pmultigrid
 mkdir -p linear_solvers/petsc_pmultigrid
+mkdir -p linear_solvers/petsc_inv_mass
 
 cd ..
 
@@ -35,6 +36,7 @@ mkdir -p linear_solvers/petsc_utils
 mkdir -p linear_solvers/petsc_block_jacobi
 mkdir -p linear_solvers/pmultigrid
 mkdir -p linear_solvers/petsc_pmultigrid
+mkdir -p linear_solvers/petsc_inv_mass
 
 cd ..
 
@@ -66,6 +68,7 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         matrices/2d/factor_mm_poisson_mat.cpp \
         linear_solvers/petsc_block_jacobi/petsc_block_jacobi.cpp \
         linear_solvers/pmultigrid/pmultigrid.cpp \
+        linear_solvers/petsc_inv_mass/petsc_inv_mass.cpp \
         kernels/
 
 sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins2d_kernels.cu
@@ -83,12 +86,14 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/mp_ins_solver.cpp \
         matrices/poisson_matrix.cpp \
         matrices/3d/poisson_matrix.cpp \
+        matrices/3d/poisson_matrix_free.cpp \
         matrices/3d/mm_poisson_matrix.cpp \
         matrices/3d/mm_poisson_matrix_free.cpp \
         matrices/3d/factor_poisson_matrix.cpp \
         matrices/3d/factor_mm_poisson_matrix.cpp \
         linear_solvers/petsc_block_jacobi/petsc_block_jacobi.cpp \
         linear_solvers/pmultigrid/pmultigrid.cpp \
+        linear_solvers/petsc_inv_mass/petsc_inv_mass.cpp \
         kernels/
 
 sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins3d_kernels.cu

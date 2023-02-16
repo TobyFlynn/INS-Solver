@@ -22,21 +22,27 @@ void get_num_nodes(const int N, int *Np, int *Nfp) {
   #endif
 }
 
-void PoissonMatrix::set_glb_ind() {
-  timer->startTimer("PoissonMat - glb_ind");
+int PoissonMatrix::getUnknowns() {
   op_arg op2_args[] = {
     op_arg_dat(_mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges(_mesh->order->set, 1, op2_args);
   const int setSize = _mesh->order->set->size;
   const int *tempOrder = (int *)_mesh->order->data;
-  unknowns = 0;
+  int unknowns = 0;
+  #pragma omp parallel for reduction(+:unknowns)
   for(int i = 0; i < setSize; i++) {
     int Np, Nfp;
     get_num_nodes(tempOrder[i], &Np, &Nfp);
     unknowns += Np;
   }
   op_mpi_set_dirtybit(1, op2_args);
+  return unknowns;
+}
+
+void PoissonMatrix::set_glb_ind() {
+  timer->startTimer("PoissonMat - glb_ind");
+  int unknowns = getUnknowns();
   int global_ind = 0;
   #ifdef INS_MPI
   global_ind = get_global_mat_start_ind(unknowns);
@@ -65,6 +71,7 @@ void PoissonMatrix::setPETScMatrix() {
   if(!petscMatInit) {
     MatCreate(PETSC_COMM_WORLD, &pMat);
     petscMatInit = true;
+    int unknowns = getUnknowns();
     MatSetSizes(pMat, unknowns, unknowns, PETSC_DECIDE, PETSC_DECIDE);
 
     #ifdef INS_MPI

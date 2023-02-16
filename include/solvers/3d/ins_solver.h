@@ -9,6 +9,7 @@
 #include "matrices/3d/mm_poisson_matrix_3d.h"
 #include "matrices/3d/mm_poisson_matrix_free_3d.h"
 #include "linear_solvers/linear_solver.h"
+#include "linear_solvers/petsc_inv_mass.h"
 
 class INSSolver3D {
 public:
@@ -31,10 +32,11 @@ private:
 
   DGMesh3D *mesh;
   PoissonMatrix3D *pressureMatrix;
-  MMPoissonMatrix3D *viscosityMatrix;
-  // MMPoissonMatrixFree3D *viscosityMatrix;
+  // MMPoissonMatrix3D *viscosityMatrix;
+  MMPoissonMatrixFree3D *viscosityMatrix;
   LinearSolver *pressureSolver;
-  LinearSolver *viscositySolver;
+  // LinearSolver *viscositySolver;
+  PETScInvMassSolver *viscositySolver;
   DG_FP g0, a0, a1, b0, b1, dt, time, h;
   DG_FP reynolds;
   int currentInd;

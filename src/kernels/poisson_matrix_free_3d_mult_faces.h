@@ -1,17 +1,13 @@
-inline void poisson_mat_free_mult_faces(const int **order, const DG_FP *dr,
-                                        const DG_FP *ds, const DG_FP *dt,
-                                        const DG_FP *mmF0, const DG_FP *mmF1,
-                                        const DG_FP *mmF2, const DG_FP *mmF3,
-                                        const int *faceNum, const int *fmaskL_corrected,
-                                        const int *fmaskR_corrected, const DG_FP *nx,
-                                        const DG_FP *ny, const DG_FP *nz,
-                                        const DG_FP *fscale, const DG_FP *sJ,
-                                        const DG_FP **rx, const DG_FP **sx,
-                                        const DG_FP **tx, const DG_FP **ry,
-                                        const DG_FP **sy, const DG_FP **ty,
-                                        const DG_FP **rz, const DG_FP **sz,
-                                        const DG_FP **tz, const DG_FP **in,
-                                        DG_FP **out) {
+inline void poisson_matrix_free_3d_mult_faces(const int **order, const DG_FP *dr,
+                              const DG_FP *ds, const DG_FP *dt, const DG_FP *mmF0, 
+                              const DG_FP *mmF1, const DG_FP *mmF2, const DG_FP *mmF3,
+                              const int *faceNum, const int *fmaskL_corrected,
+                              const int *fmaskR_corrected, const DG_FP *nx,
+                              const DG_FP *ny, const DG_FP *nz, const DG_FP *fscale, 
+                              const DG_FP *sJ, const DG_FP **rx, const DG_FP **sx,
+                              const DG_FP **tx, const DG_FP **ry, const DG_FP **sy, 
+                              const DG_FP **ty, const DG_FP **rz, const DG_FP **sz,
+                              const DG_FP **tz, const DG_FP **in, DG_FP **out) {
   const int p = order[0][0];
   const DG_FP *dr_mat = &dr[(p - 1) * DG_NP * DG_NP];
   const DG_FP *ds_mat = &ds[(p - 1) * DG_NP * DG_NP];

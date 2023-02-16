@@ -19,9 +19,10 @@ public:
   virtual void mult(op_dat in, op_dat out);
   virtual void multJacobi(op_dat in, op_dat out);
   virtual bool getPETScMat(Mat** mat);
+  virtual int getUnknowns();
 
   op_dat op1, op2[2], opbc, glb_ind, glb_indL, glb_indR, orderL, orderR;
-  int unknowns;
+  // int unknowns;
 protected:
   virtual void calc_op1() = 0;
   virtual void calc_op2() = 0;

@@ -1,4 +1,4 @@
-#include "matrices/3d/mm_poisson_matrix_free_3d.h"
+#include "matrices/3d/poisson_matrix_free_3d.h"
 
 #include "op_seq.h"
 
@@ -9,32 +9,32 @@
 extern DGConstants *constants;
 extern Timing *timer;
 
-MMPoissonMatrixFree3D::MMPoissonMatrixFree3D(DGMesh3D *m) : PoissonMatrixFree3D(m) {
-  factor = 0.0;
+PoissonMatrixFree3D::PoissonMatrixFree3D(DGMesh3D *m) {
+  mesh = m;
+  _mesh = m;
+
+  // Completely matrix free so don't initialise op_dats
 }
 
-void MMPoissonMatrixFree3D::calc_mat() {
-  throw std::runtime_error("Cannot calculate explicit matrix of MMPoissonMatrixFree3D");
+void PoissonMatrixFree3D::calc_mat() {
+  throw std::runtime_error("Cannot calculate explicit matrix of PoissonMatrixFree3D");
 }
 
-void MMPoissonMatrixFree3D::apply_bc(op_dat rhs, op_dat bc) {
-  throw std::runtime_error("TODO implement apply_bc of MMPoissonMatrixFree3D");
+void PoissonMatrixFree3D::apply_bc(op_dat rhs, op_dat bc) {
+  throw std::runtime_error("TODO implement apply_bc of PoissonMatrixFree3D");
+  if(mesh->bface2cells) {
+    op_par_loop(poisson_matrix_3d_apply_bc, "poisson_matrix_3d_apply_bc", mesh->bfaces,
+                op_arg_dat(opbc, -1, OP_ID, DG_NPF * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(bc,   -1, OP_ID, DG_NPF, DG_FP_STR, OP_READ),
+                op_arg_dat(rhs,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_INC));
+  }
 }
 
-void MMPoissonMatrixFree3D::set_factor(DG_FP f) {
-  factor = f;
-}
-
-DG_FP MMPoissonMatrixFree3D::get_factor() {
-  return factor;
-}
-
-// Doesn't account for BCs
-void MMPoissonMatrixFree3D::mult(op_dat in, op_dat out) {
-  timer->startTimer("MMPoissonMF - Mult");
-  timer->startTimer("MMPoissonMF - Mult - Cells");
-  op_par_loop(poisson_matrix_free_3d_mm_mult_cells, "poisson_matrix_free_3d_mm_mult_cells", _mesh->cells,
-              op_arg_dat(_mesh->order, -1, OP_ID, 1, "int", OP_READ),
+void PoissonMatrixFree3D::mult(op_dat in, op_dat out) {
+  timer->startTimer("PoissonMF - Mult");
+  timer->startTimer("PoissonMF - Mult - Cells");
+  op_par_loop(poisson_matrix_free_3d_mult_cells, "poisson_matrix_free_3d_mult_cells", _mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DT), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
@@ -49,11 +49,10 @@ void MMPoissonMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(mesh->sz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->tz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->J,  -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
               op_arg_dat(in,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-  timer->endTimer("MMPoissonMF - Mult - Cells");
-  timer->startTimer("MMPoissonMF - Mult - Faces");
+  timer->endTimer("PoissonMF - Mult - Cells");
+  timer->startTimer("PoissonMF - Mult - Faces");
   op_par_loop(poisson_matrix_free_3d_mult_faces, "poisson_matrix_free_3d_mult_faces", mesh->faces,
               op_arg_dat(mesh->order, -2, mesh->face2cells, 1, "int", OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
@@ -82,15 +81,32 @@ void MMPoissonMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(mesh->tz, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
               op_arg_dat(in,  -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(out, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_INC));
-  timer->endTimer("MMPoissonMF - Mult - Faces");
-  timer->endTimer("MMPoissonMF - Mult");
+  timer->endTimer("PoissonMF - Mult - Faces");
+  timer->endTimer("PoissonMF - Mult");
 }
 
-void MMPoissonMatrixFree3D::multJacobi(op_dat in, op_dat out) {
-  throw std::runtime_error("multJacobi of MMPoissonMatrixFree3D not implemented");
+void PoissonMatrixFree3D::multJacobi(op_dat in, op_dat out) {
+  throw std::runtime_error("multJacobi of PoissonMatrixFree3D not implemented");
 }
 
-bool MMPoissonMatrixFree3D::getPETScMat(Mat** mat) {
-  throw std::runtime_error("Getting PETSc matrix of MMPoissonMatrixFree3D not implemented");
+bool PoissonMatrixFree3D::getPETScMat(Mat** mat) {
+  throw std::runtime_error("Getting PETSc matrix of PoissonMatrixFree3D not implemented");
   return false;
+}
+
+// Empty overrides
+void PoissonMatrixFree3D::calc_op1() {
+  
+}
+
+void PoissonMatrixFree3D::calc_op2() {
+  
+}
+
+void PoissonMatrixFree3D::calc_opbc() {
+  
+}
+
+void PoissonMatrixFree3D::calc_glb_ind() {
+  
 }
