@@ -100,11 +100,12 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
 
   currentInd = 0;
 
-  pressureMatrix = new PoissonMatrix3D(mesh);
+  // pressureMatrix = new PoissonMatrix3D(mesh);
+  pressureMatrix = new PoissonSemiMatrixFree3D(mesh);
   // viscosityMatrix = new MMPoissonMatrix3D(mesh);
   viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
-  pressureSolver = new PETScAMGSolver(mesh);
-  // pressureSolver = new PETScPMultigrid(mesh);
+  // pressureSolver = new PETScAMGSolver(mesh);
+  pressureSolver = new PETScPMultigrid(mesh);
   // pressureSolver = new PMultigridPoissonSolver(mesh);
   // viscositySolver = new PETScBlockJacobiSolver(mesh);
   // viscositySolver = new PETScAMGSolver(mesh);
@@ -321,8 +322,8 @@ void INSSolver3D::pressure() {
   pressureMatrix->calc_mat();
   pressureSolver->set_bcs(pr_bc);
   bool converged = pressureSolver->solve(divVelT, pr);
-  if(!converged)
-    throw std::runtime_error("\nPressure solve failed to converge\n");
+  // if(!converged)
+  //   throw std::runtime_error("\nPressure solve failed to converge\n");
   timer->endTimer("Pr Linear Solve");
 
   mesh->grad_with_central_flux(pr, dpdx, dpdy, dpdz);

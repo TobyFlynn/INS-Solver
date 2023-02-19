@@ -86,6 +86,7 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/mp_ins_solver.cpp \
         matrices/poisson_matrix.cpp \
         matrices/3d/poisson_matrix.cpp \
+        matrices/3d/poisson_semi_matrix_free.cpp \
         matrices/3d/poisson_matrix_free.cpp \
         matrices/3d/mm_poisson_matrix.cpp \
         matrices/3d/mm_poisson_matrix_free.cpp \

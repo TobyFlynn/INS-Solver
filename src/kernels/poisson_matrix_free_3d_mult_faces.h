@@ -1,11 +1,11 @@
 inline void poisson_matrix_free_3d_mult_faces(const int **order, const DG_FP *dr,
-                              const DG_FP *ds, const DG_FP *dt, const DG_FP *mmF0, 
+                              const DG_FP *ds, const DG_FP *dt, const DG_FP *mmF0,
                               const DG_FP *mmF1, const DG_FP *mmF2, const DG_FP *mmF3,
                               const int *faceNum, const int *fmaskL_corrected,
                               const int *fmaskR_corrected, const DG_FP *nx,
-                              const DG_FP *ny, const DG_FP *nz, const DG_FP *fscale, 
+                              const DG_FP *ny, const DG_FP *nz, const DG_FP *fscale,
                               const DG_FP *sJ, const DG_FP **rx, const DG_FP **sx,
-                              const DG_FP **tx, const DG_FP **ry, const DG_FP **sy, 
+                              const DG_FP **tx, const DG_FP **ry, const DG_FP **sy,
                               const DG_FP **ty, const DG_FP **rz, const DG_FP **sz,
                               const DG_FP **tz, const DG_FP **in, DG_FP **out) {
   const int p = order[0][0];
@@ -121,17 +121,26 @@ inline void poisson_matrix_free_3d_mult_faces(const int **order, const DG_FP *dr
     for(int j = 0; j < dg_np; j++) {
       // int indL = fmaskL[i] + j * dg_np;
       int indL = DG_MAT_IND(fmaskL[i], j, dg_np, dg_np);
-      DG_FP tmp_mat_L = nx[0] * (rx[0][0] * dr_mat[indL] + sx[0][0] * ds_mat[indL] + tx[0][0] * dt_mat[indL]);
-      tmp_mat_L += ny[0] * (ry[0][0] * dr_mat[indL] + sy[0][0] * ds_mat[indL] + ty[0][0] * dt_mat[indL]);
-      tmp_mat_L += nz[0] * (rz[0][0] * dr_mat[indL] + sz[0][0] * ds_mat[indL] + tz[0][0] * dt_mat[indL]);
+      // DG_FP tmp_mat_L = nx[0] * (rx[0][0] * dr_mat[indL] + sx[0][0] * ds_mat[indL] + tx[0][0] * dt_mat[indL]);
+      // tmp_mat_L += ny[0] * (ry[0][0] * dr_mat[indL] + sy[0][0] * ds_mat[indL] + ty[0][0] * dt_mat[indL]);
+      // tmp_mat_L += nz[0] * (rz[0][0] * dr_mat[indL] + sz[0][0] * ds_mat[indL] + tz[0][0] * dt_mat[indL]);
+
+      DG_FP tmp_mat_L = nx[1] * (rx[0][0] * dr_mat[indL] + sx[0][0] * ds_mat[indL] + tx[0][0] * dt_mat[indL]);
+      tmp_mat_L += ny[1] * (ry[0][0] * dr_mat[indL] + sy[0][0] * ds_mat[indL] + ty[0][0] * dt_mat[indL]);
+      tmp_mat_L += nz[1] * (rz[0][0] * dr_mat[indL] + sz[0][0] * ds_mat[indL] + tz[0][0] * dt_mat[indL]);
 
       tmp0[fmaskL[i]] += tmp_mat_L * in[0][j];
 
       // int indR = fmaskR[i] + j * dg_np;
+      // int indR = DG_MAT_IND(fmaskR[i], j, dg_np, dg_np);
+      // DG_FP tmp_mat_R = nx[1] * (rx[1][0] * dr_mat[indR] + sx[1][0] * ds_mat[indR] + tx[1][0] * dt_mat[indR]);
+      // tmp_mat_R += ny[1] * (ry[1][0] * dr_mat[indR] + sy[1][0] * ds_mat[indR] + ty[1][0] * dt_mat[indR]);
+      // tmp_mat_R += nz[1] * (rz[1][0] * dr_mat[indR] + sz[1][0] * ds_mat[indR] + tz[1][0] * dt_mat[indR]);
+
       int indR = DG_MAT_IND(fmaskR[i], j, dg_np, dg_np);
-      DG_FP tmp_mat_R = nx[1] * (rx[1][0] * dr_mat[indR] + sx[1][0] * ds_mat[indR] + tx[1][0] * dt_mat[indR]);
-      tmp_mat_R += ny[1] * (ry[1][0] * dr_mat[indR] + sy[1][0] * ds_mat[indR] + ty[1][0] * dt_mat[indR]);
-      tmp_mat_R += nz[1] * (rz[1][0] * dr_mat[indR] + sz[1][0] * ds_mat[indR] + tz[1][0] * dt_mat[indR]);
+      DG_FP tmp_mat_R = nx[0] * (rx[1][0] * dr_mat[indR] + sx[1][0] * ds_mat[indR] + tx[1][0] * dt_mat[indR]);
+      tmp_mat_R += ny[0] * (ry[1][0] * dr_mat[indR] + sy[1][0] * ds_mat[indR] + ty[1][0] * dt_mat[indR]);
+      tmp_mat_R += nz[0] * (rz[1][0] * dr_mat[indR] + sz[1][0] * ds_mat[indR] + tz[1][0] * dt_mat[indR]);
 
       tmp1[fmaskR[i]] += tmp_mat_R * in[1][j];
     }
