@@ -40,9 +40,11 @@ mkdir -p linear_solvers/petsc_inv_mass
 
 cd ..
 
-python3 preprocessor.py 2 3
+ORDER=4
 
-python3 preprocessor.py 3 3
+python3 preprocessor.py 2 $ORDER
+
+python3 preprocessor.py 3 $ORDER
 
 cd gen2d
 
@@ -116,7 +118,7 @@ cmake .. \
   -DOP2DGTOOLKIT_DIR=/home/u1717021/Code/PhD/OP2-DG-Toolkit/build \
   -DHDF5_DIR=/usr/local/module-software/hdf5-1.12.0-parallel \
   -DARMA_DIR=/home/u1717021/Code/PhD/armadillo-10.5.3/build \
-  -DORDER=3 \
+  -DORDER=$ORDER \
   -DBUILD_SN=ON \
   -DBUILD_CPU=ON \
   -DBUILD_MPI=ON \

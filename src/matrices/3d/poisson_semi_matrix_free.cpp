@@ -204,21 +204,13 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
   mesh->grad(in, in_grad[0], in_grad[1], in_grad[2]);
   timer->endTimer("PoissonSMF - Mult - Grad");
 
-  op_par_loop(zero_np_1, "zero_np_1", _mesh->cells,
-              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  op_par_loop(zero_npf_1, "zero_npf_1", _mesh->cells,
+              op_arg_dat(tmp_npf[0], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
-  op_par_loop(zero_np_3, "zero_np_3", _mesh->cells,
-              op_arg_dat(l[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(l[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(l[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-op_par_loop(zero_npf_1, "zero_npf_1", _mesh->cells,
-            op_arg_dat(tmp_npf[0], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-
-op_par_loop(zero_npf_3, "zero_npf_3", _mesh->cells,
-            op_arg_dat(tmp_npf[1], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-            op_arg_dat(tmp_npf[2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-            op_arg_dat(tmp_npf[3], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  op_par_loop(zero_npf_3, "zero_npf_3", _mesh->cells,
+              op_arg_dat(tmp_npf[1], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_npf[2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_npf[3], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
   timer->startTimer("PoissonSMF - Mult - Faces");
   op_par_loop(pmf_3d_mult_faces_0, "pmf_3d_mult_faces_0", mesh->faces,

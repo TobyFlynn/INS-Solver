@@ -29,8 +29,8 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
   mesh = m;
   pressureMatrix = new PoissonMatrix2D(mesh);
   viscosityMatrix = new MMPoissonMatrix2D(mesh);
-  // pressureSolver = new PETScAMGSolver(mesh);
-  pressureSolver = new PETScPMultigrid(mesh);
+  pressureSolver = new PETScAMGSolver(mesh);
+  // pressureSolver = new PETScPMultigrid(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(true);
@@ -293,7 +293,8 @@ void INSSolver2D::advection() {
 bool INSSolver2D::pressure() {
   timer->startTimer("Pressure Setup");
 
-  mesh->div(velT[0], velT[1], divVelT);
+  // mesh->div(velT[0], velT[1], divVelT);
+  mesh->cub_div_with_central_flux(velT[0], velT[1], divVelT);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel);
   mesh->grad(curlVel, gradCurlVel[0], gradCurlVel[1]);
 
@@ -352,7 +353,7 @@ bool INSSolver2D::pressure() {
 
 void INSSolver2D::project_velocity() {
   // Calculate gradient of pressure
-  mesh->grad_with_central_flux(pr, dpdx, dpdy);
+  mesh->cub_grad_with_central_flux(pr, dpdx, dpdy);
 
   if(false) {
     // Calculate new velocity intermediate values
