@@ -36,6 +36,7 @@ PMultigridPoissonSolver::~PMultigridPoissonSolver() {
 }
 
 bool PMultigridPoissonSolver::solve(op_dat rhs, op_dat ans) {
+  timer->startTimer("PMultigridPoissonSolver - solve");
   if(bc)
     matrix->apply_bc(rhs, bc);
 
@@ -55,29 +56,33 @@ bool PMultigridPoissonSolver::solve(op_dat rhs, op_dat ans) {
   op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
               op_arg_dat(u_dat[order - 1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(ans, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  timer->endTimer("PMultigridPoissonSolver - solve");
+
+  return true;
 }
 
 void PMultigridPoissonSolver::cycle(int order) {
-  timer->startTimer("PMultigrid - Calc Mat");
+  timer->startTimer("PMultigridPoissonSolver - Calc Mat");
   matrix->calc_mat();
-  timer->endTimer("PMultigrid - Calc Mat");
+  timer->endTimer("PMultigridPoissonSolver - Calc Mat");
 
   if(order == 1) {
     // u = A^-1 (F)
-    timer->startTimer("PMultigrid - Direct Solve");
+    timer->startTimer("PMultigridPoissonSolver - Direct Solve");
     coarseSolver->solve(b_dat[order-1], u_dat[order-1]);
-    timer->endTimer("PMultigrid - Direct Solve");
+    timer->endTimer("PMultigridPoissonSolver - Direct Solve");
     return;
   }
 
   // Calc factor for relaxation
-  timer->startTimer("PMultigrid - w");
+  timer->startTimer("PMultigridPoissonSolver - w");
   DG_FP w = (4.0 / 3.0) * (1.0 / maxEigenValue());
-  timer->endTimer("PMultigrid - w");
+  timer->endTimer("PMultigridPoissonSolver - w");
 
   // Relaxation
   // u = u + R^-1 (F - Au)
-  timer->startTimer("PMultigrid - Relaxation");
+  timer->startTimer("PMultigridPoissonSolver - Relaxation");
   for(int i = 0; i < num_pre_relax_iter; i++) {
     matrix->mult(u_dat[order-1], tmp_dat[order-1]);
     op_par_loop(p_multigrid_relaxation_jacobi, "p_multigrid_relaxation_jacobi", mesh->cells,
@@ -88,10 +93,10 @@ void PMultigridPoissonSolver::cycle(int order) {
                 op_arg_dat(matrix->op1,      -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(u_dat[order-1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
   }
-  timer->endTimer("PMultigrid - Relaxation");
+  timer->endTimer("PMultigridPoissonSolver - Relaxation");
 
   // Restriction
-  timer->startTimer("PMultigrid - Restriction");
+  timer->startTimer("PMultigridPoissonSolver - Restriction");
   int order_new = order / 2;
   // F = I^T (F - Au)
   matrix->mult(u_dat[order-1], tmp_dat[order-1]);
@@ -104,36 +109,36 @@ void PMultigridPoissonSolver::cycle(int order) {
 
   std::vector<op_dat> dats_to_update;
   dats_to_update.push_back(b_dat[order_new-1]);
-  timer->startTimer("PMultigrid - Interp");
+  timer->startTimer("PMultigridPoissonSolver - Interp");
   mesh->update_order(order_new, dats_to_update);
-  timer->endTimer("PMultigrid - Interp");
-  timer->endTimer("PMultigrid - Restriction");
+  timer->endTimer("PMultigridPoissonSolver - Interp");
+  timer->endTimer("PMultigridPoissonSolver - Restriction");
 
   cycle(order_new);
 
   // Prologation
   // u = u + Iu
-  timer->startTimer("PMultigrid - Prolongation");
+  timer->startTimer("PMultigridPoissonSolver - Prolongation");
   std::vector<op_dat> dats_to_update2;
   dats_to_update2.push_back(u_dat[order_new-1]);
-  timer->startTimer("PMultigrid - Interp");
+  timer->startTimer("PMultigridPoissonSolver - Interp");
   mesh->update_order(order, dats_to_update2);
-  timer->endTimer("PMultigrid - Interp");
+  timer->endTimer("PMultigridPoissonSolver - Interp");
 
   op_par_loop(p_multigrid_prolongation, "p_multigrid_prolongation", mesh->cells,
               op_arg_dat(mesh->order,        -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(u_dat[order_new-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(u_dat[order-1],     -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-  timer->endTimer("PMultigrid - Prolongation");
+  timer->endTimer("PMultigridPoissonSolver - Prolongation");
 
-  timer->startTimer("PMultigrid - Calc Mat");
+  timer->startTimer("PMultigridPoissonSolver - Calc Mat");
   matrix->calc_mat();
-  timer->endTimer("PMultigrid - Calc Mat");
+  timer->endTimer("PMultigridPoissonSolver - Calc Mat");
 
 
   // Relaxation
   // u = u + R^-1 (F - Au)
-  timer->startTimer("PMultigrid - Relaxation");
+  timer->startTimer("PMultigridPoissonSolver - Relaxation");
   for(int i = 0; i < num_post_relax_iter; i++) {
     matrix->mult(u_dat[order-1], tmp_dat[order-1]);
     op_par_loop(p_multigrid_relaxation_jacobi, "p_multigrid_relaxation_jacobi", mesh->cells,
@@ -144,7 +149,7 @@ void PMultigridPoissonSolver::cycle(int order) {
                 op_arg_dat(matrix->op1, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(u_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
   }
-  timer->endTimer("PMultigrid - Relaxation");
+  timer->endTimer("PMultigridPoissonSolver - Relaxation");
 
 }
 
@@ -158,9 +163,9 @@ void PMultigridPoissonSolver::setupDirectSolve() {
 
 DG_FP PMultigridPoissonSolver::maxEigenValue() {
   // Get approx eigenvector using power iteration
-  timer->startTimer("PMultigrid - Random Vec");
+  timer->startTimer("PMultigridPoissonSolver - Random Vec");
   setRandomVector(eg_tmp_0);
-  timer->endTimer("PMultigrid - Random Vec");
+  timer->endTimer("PMultigridPoissonSolver - Random Vec");
 
   for(int i = 0; i < 10; i++) {
     matrix->multJacobi(eg_tmp_0, eg_tmp_1);

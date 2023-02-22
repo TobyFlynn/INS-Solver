@@ -3,8 +3,10 @@
 #include "op_seq.h"
 
 #include "dg_constants/dg_constants.h"
+#include "timing.h"
 
 extern DGConstants *constants;
+extern Timing *timer;
 
 FactorPoissonMatrix3D::FactorPoissonMatrix3D(DGMesh3D *m) : PoissonMatrix3D(m) {
 
@@ -15,6 +17,7 @@ void FactorPoissonMatrix3D::set_factor(op_dat f) {
 }
 
 void FactorPoissonMatrix3D::calc_op1() {
+  timer->startTimer("FactorPoissonMatrix3D - calc_op1");
   op_par_loop(factor_poisson_matrix_3d_op1, "factor_poisson_matrix_3d_op1", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
@@ -33,9 +36,11 @@ void FactorPoissonMatrix3D::calc_op1() {
               op_arg_dat(mesh->J,  -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(factor,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
+  timer->endTimer("FactorPoissonMatrix3D - calc_op1");
 }
 
 void FactorPoissonMatrix3D::calc_op2() {
+  timer->startTimer("FactorPoissonMatrix3D - calc_op2");
   op_par_loop(factor_poisson_matrix_3d_op2, "factor_poisson_matrix_3d_op2", mesh->faces,
               op_arg_dat(mesh->order, -2, mesh->face2cells, 1, "int", OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
@@ -67,9 +72,11 @@ void FactorPoissonMatrix3D::calc_op2() {
               op_arg_dat(op1, 1, mesh->face2cells, DG_NP * DG_NP, DG_FP_STR, OP_INC),
               op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
+  timer->endTimer("FactorPoissonMatrix3D - calc_op2");
 }
 
 void FactorPoissonMatrix3D::calc_opbc() {
+  timer->startTimer("FactorPoissonMatrix3D - calc_opbc");
   if(mesh->bface2cells) {
     op_par_loop(factor_poisson_matrix_3d_bop, "factor_poisson_matrix_3d_bop", mesh->bfaces,
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),
@@ -127,4 +134,5 @@ void FactorPoissonMatrix3D::calc_opbc() {
                 op_arg_dat(factor,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(opbc, -1, OP_ID, DG_NPF * DG_NP, DG_FP_STR, OP_WRITE));
   }
+  timer->endTimer("FactorPoissonMatrix3D - calc_opbc");
 }

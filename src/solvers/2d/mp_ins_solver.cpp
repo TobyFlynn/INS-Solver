@@ -127,7 +127,7 @@ MPINSSolver2D::~MPINSSolver2D() {
 }
 
 void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
-  timer->startTimer("MPINS - Init");
+  timer->startTimer("MPINSSolver2D - Init");
   reynolds = re;
 
   ls->init();
@@ -159,29 +159,29 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
 
   ls->getRhoMu(rho, mu);
 
-  timer->endTimer("MPINS - Init");
+  timer->endTimer("MPINSSolver2D - Init");
 }
 
 void MPINSSolver2D::step() {
-  timer->startTimer("Advection");
+  timer->startTimer("MPINSSolver2D - Advection");
   advection();
-  timer->endTimer("Advection");
+  timer->endTimer("MPINSSolver2D - Advection");
 
-  timer->startTimer("Pressure");
+  timer->startTimer("MPINSSolver2D - Pressure");
   pressure();
-  timer->endTimer("Pressure");
+  timer->endTimer("MPINSSolver2D - Pressure");
 
   // timer->startTimer("Shock Capturing");
   // shock_capturing();
   // timer->endTimer("Shock Capturing");
 
-  timer->startTimer("Viscosity");
+  timer->startTimer("MPINSSolver2D - Viscosity");
   viscosity();
-  timer->endTimer("Viscosity");
+  timer->endTimer("MPINSSolver2D - Viscosity");
 
-  timer->startTimer("Surface");
+  timer->startTimer("MPINSSolver2D - Surface");
   surface();
-  timer->endTimer("Surface");
+  timer->endTimer("MPINSSolver2D - Surface");
 
   currentInd = (currentInd + 1) % 2;
   time += dt;
@@ -266,7 +266,7 @@ void MPINSSolver2D::advection() {
 }
 
 bool MPINSSolver2D::pressure() {
-  timer->startTimer("Pressure Setup");
+  timer->startTimer("MPINSSolver2D - Pressure RHS");
 
   mesh->div(velT[0], velT[1], divVelT);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel);
@@ -314,10 +314,10 @@ bool MPINSSolver2D::pressure() {
 
   op2_gemv(mesh, false, 1.0, DGConstants::MASS, divVelT, 0.0, pRHS);
   op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, dPdN[(currentInd + 1) % 2], 1.0, pRHS);
-  timer->endTimer("Pressure Setup");
+  timer->endTimer("MPINSSolver2D - Pressure RHS");
 
   // Call PETSc linear solver
-  timer->startTimer("Pressure Linear Solve");
+  timer->startTimer("MPINSSolver2D - Pressure Linear Solve");
 
   op_par_loop(mp_ins_pressure_fact_2d, "mp_ins_pressure_fact_2d", mesh->cells,
               op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -329,8 +329,9 @@ bool MPINSSolver2D::pressure() {
   pressureMatrix->calc_mat();
   pressureSolver->set_bcs(prBC);
   converged = pressureSolver->solve(pRHS, pr);
-  timer->endTimer("Pressure Linear Solve");
+  timer->endTimer("MPINSSolver2D - Pressure Linear Solve");
 
+  timer->startTimer("MPINSSolver2D - Pressure Projection");
   // Calculate gradient of pressure
   mesh->grad_with_central_flux(pr, dpdx, dpdy);
 
@@ -346,11 +347,12 @@ bool MPINSSolver2D::pressure() {
               op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 
+  timer->endTimer("MPINSSolver2D - Pressure Projection");
   return converged;
 }
 
 bool MPINSSolver2D::viscosity() {
-  timer->startTimer("Viscosity Setup");
+  timer->startTimer("MPINSSolver2D - Viscosity RHS");
   DG_FP time_n1 = time + dt;
 
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
@@ -387,10 +389,10 @@ bool MPINSSolver2D::viscosity() {
               op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
-  timer->endTimer("Viscosity Setup");
+  timer->endTimer("MPINSSolver2D - Viscosity RHS");
 
   // Call PETSc linear solver
-  timer->startTimer("Viscosity Linear Solve");
+  timer->startTimer("MPINSSolver2D - Viscosity Linear Solve");
   factor = g0 * reynolds / dt;
   op_par_loop(mp_ins_vis_mm_fact_2d, "mp_ins_vis_mm_fact_2d", mesh->cells,
               op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
@@ -406,7 +408,7 @@ bool MPINSSolver2D::viscosity() {
 
   viscositySolver->set_bcs(visBC[1]);
   bool convergedY = viscositySolver->solve(visRHS[1], vel[(currentInd + 1) % 2][1]);
-  timer->endTimer("Viscosity Linear Solve");
+  timer->endTimer("MPINSSolver2D - Viscosity Linear Solve");
 
   // timer->startTimer("Filtering");
   // filter(mesh, data->Q[(currentInd + 1) % 2][0]);
@@ -431,6 +433,7 @@ void MPINSSolver2D::surface() {
 // }
 
 void MPINSSolver2D::dump_data(const std::string &filename) {
+  timer->startTimer("MPINSSolver2D - Dump Data");
   op_fetch_data_hdf5_file(mesh->x, filename.c_str());
   op_fetch_data_hdf5_file(mesh->y, filename.c_str());
   op_fetch_data_hdf5_file(vel[0][0], filename.c_str());
@@ -446,4 +449,5 @@ void MPINSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(mu, filename.c_str());
   op_fetch_data_hdf5_file(ls->s, filename.c_str());
   op_fetch_data_hdf5_file(mesh->order, filename.c_str());
+  timer->endTimer("MPINSSolver2D - Dump Data");
 }

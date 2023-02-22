@@ -133,7 +133,7 @@ MPINSSolver3D::~MPINSSolver3D() {
 }
 
 void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
-  timer->startTimer("INS - Init");
+  timer->startTimer("MPINSSolver3D - Init");
   reynolds = re;
 
   lsSolver->init();
@@ -167,29 +167,29 @@ void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
 
   lsSolver->getRhoMu(rho, mu);
 
-  timer->endTimer("INS - Init");
+  timer->endTimer("MPINSSolver3D - Init");
 }
 
 void MPINSSolver3D::step() {
-  timer->startTimer("Advection");
+  timer->startTimer("MPINSSolver3D - Advection");
   advection();
-  timer->endTimer("Advection");
+  timer->endTimer("MPINSSolver3D - Advection");
 
-  timer->startTimer("Pressure");
+  timer->startTimer("MPINSSolver3D - Pressure");
   pressure();
-  timer->endTimer("Pressure");
+  timer->endTimer("MPINSSolver3D - Pressure");
 
-  // timer->startTimer("Shock Capturing");
+  // timer->startTimer("MPINSSolver3D - Shock Capturing");
   // shock_capturing();
-  // timer->endTimer("Shock Capturing");
+  // timer->endTimer("MPINSSolver3D - Shock Capturing");
 
-  timer->startTimer("Viscosity");
+  timer->startTimer("MPINSSolver3D - Viscosity");
   viscosity();
-  timer->endTimer("Viscosity");
+  timer->endTimer("MPINSSolver3D - Viscosity");
 
-  timer->startTimer("Surface");
+  timer->startTimer("MPINSSolver3D - Surface");
   surface();
-  timer->endTimer("Surface");
+  timer->endTimer("MPINSSolver3D - Surface");
 
   currentInd = (currentInd + 1) % 2;
   time += dt;
@@ -339,7 +339,7 @@ void MPINSSolver3D::pressure() {
                 op_arg_dat(pr_bc, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
 
-  timer->startTimer("Pr Linear Solve");
+  timer->startTimer("MPINSSolver3D - Pressure Linear Solve");
   pressureMatrix->set_factor(pr_factor);
   pressureMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->calc_mat();
@@ -347,7 +347,7 @@ void MPINSSolver3D::pressure() {
   bool converged = pressureSolver->solve(divVelT, pr);
   if(!converged)
     throw std::runtime_error("\nPressure solve failed to converge\n");
-  timer->endTimer("Pr Linear Solve");
+  timer->endTimer("MPINSSolver3D - Pressure Linear Solve");
 
   mesh->grad_with_central_flux(pr, dpdx, dpdy, dpdz);
 

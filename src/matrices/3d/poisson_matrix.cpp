@@ -3,8 +3,10 @@
 #include "op_seq.h"
 
 #include "dg_constants/dg_constants.h"
+#include "timing.h"
 
 extern DGConstants *constants;
+extern Timing *timer;
 
 PoissonMatrix3D::PoissonMatrix3D(DGMesh3D *m) {
   mesh = m;
@@ -36,23 +38,28 @@ PoissonMatrix3D::PoissonMatrix3D(DGMesh3D *m) {
 }
 
 void PoissonMatrix3D::calc_mat() {
+  timer->startTimer("PoissonMatrix3D - calc_mat");
   calc_glb_ind();
   calc_op1();
   calc_op2();
   calc_opbc();
   petscMatResetRequired = true;
+  timer->endTimer("PoissonMatrix3D - calc_mat");
 }
 
 void PoissonMatrix3D::apply_bc(op_dat rhs, op_dat bc) {
+  timer->startTimer("PoissonMatrix3D - apply_bc");
   if(mesh->bface2cells) {
     op_par_loop(poisson_matrix_3d_apply_bc, "poisson_matrix_3d_apply_bc", mesh->bfaces,
                 op_arg_dat(opbc, -1, OP_ID, DG_NPF * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(bc,   -1, OP_ID, DG_NPF, DG_FP_STR, OP_READ),
                 op_arg_dat(rhs,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_INC));
   }
+  timer->endTimer("PoissonMatrix3D - apply_bc");
 }
 
 void PoissonMatrix3D::calc_op1() {
+  timer->startTimer("PoissonMatrix3D - calc_op1");
   op_par_loop(poisson_matrix_3d_op1, "poisson_matrix_3d_op1", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
@@ -70,9 +77,11 @@ void PoissonMatrix3D::calc_op1() {
               op_arg_dat(mesh->tz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->J,  -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
+  timer->endTimer("PoissonMatrix3D - calc_op1");
 }
 
 void PoissonMatrix3D::calc_op2() {
+  timer->startTimer("PoissonMatrix3D - calc_op2");
   // TODO full p-adaptivity
   op_par_loop(poisson_matrix_3d_op2, "poisson_matrix_3d_op2", mesh->faces,
               op_arg_dat(mesh->order, -2, mesh->face2cells, 1, "int", OP_READ),
@@ -104,9 +113,11 @@ void PoissonMatrix3D::calc_op2() {
               op_arg_dat(op1, 1, mesh->face2cells, DG_NP * DG_NP, DG_FP_STR, OP_INC),
               op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
+  timer->endTimer("PoissonMatrix3D - calc_op2");
 }
 
 void PoissonMatrix3D::calc_opbc() {
+  timer->startTimer("PoissonMatrix3D - calc_opbc");
   if(mesh->bface2cells) {
     op_par_loop(poisson_matrix_3d_bop, "poisson_matrix_3d_bop", mesh->bfaces,
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),
@@ -162,9 +173,11 @@ void PoissonMatrix3D::calc_opbc() {
                 op_arg_dat(mesh->tz, 0, mesh->bface2cells, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(opbc, -1, OP_ID, DG_NPF * DG_NP, DG_FP_STR, OP_WRITE));
   }
+  timer->endTimer("PoissonMatrix3D - calc_opbc");
 }
 
 void PoissonMatrix3D::calc_glb_ind() {
+  timer->startTimer("PoissonMatrix3D - calc_glb_ind");
   set_glb_ind();
   op_par_loop(copy_to_edges, "copy_to_edges", mesh->faces,
               op_arg_dat(glb_ind, -2, mesh->face2cells, 1, "int", OP_READ),
@@ -175,4 +188,5 @@ void PoissonMatrix3D::calc_glb_ind() {
               op_arg_dat(mesh->order, -2, mesh->face2cells, 1, "int", OP_READ),
               op_arg_dat(orderL, -1, OP_ID, 1, "int", OP_WRITE),
               op_arg_dat(orderR, -1, OP_ID, 1, "int", OP_WRITE));
+  timer->endTimer("PoissonMatrix3D - calc_glb_ind");
 }

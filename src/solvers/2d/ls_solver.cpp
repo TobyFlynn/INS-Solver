@@ -83,14 +83,15 @@ void LevelSetSolver2D::setVelField(op_dat u1, op_dat v1) {
 }
 
 void LevelSetSolver2D::step(DG_FP dt) {
-  timer->startTimer("LS - Advection");
+  timer->startTimer("LevelSetSolver2D - step");
   advecSolver->set_dt(dt);
   advecSolver->step(s, u, v);
-  timer->endTimer("LS - Advection");
 
   counter++;
   if(counter > 49) {
+    timer->startTimer("LevelSetSolver2D - reinitLS");
     reinitLS();
+    timer->endTimer("LevelSetSolver2D - reinitLS");
     counter = 0;
   }
 
@@ -111,6 +112,7 @@ void LevelSetSolver2D::step(DG_FP dt) {
 
   mesh->update_order(data->new_order, dats_to_update);
   */
+  timer->endTimer("LevelSetSolver2D - step");
 }
 
 bool LevelSetSolver2D::reinitNeeded() {
@@ -132,25 +134,25 @@ bool LevelSetSolver2D::reinitNeeded() {
 }
 
 void LevelSetSolver2D::getRhoMu(op_dat rho, op_dat mu) {
-  timer->startTimer("LS - Rho and Mu");
+  timer->startTimer("LevelSetSolver2D - getRhoMu");
   op_par_loop(ls_step, "ls_step", mesh->cells,
               op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
               op_arg_dat(s,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(mu,  -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-  timer->endTimer("LS - Rho and Mu");
+  timer->endTimer("LevelSetSolver2D - getRhoMu");
 }
 
 void LevelSetSolver2D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv) {
-  timer->startTimer("LS - Normals and Curvature");
+  timer->startTimer("LevelSetSolver2D - getNormalsCurvature");
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
   mesh->grad(s, nx, ny);
   mesh->div(nx, ny, curv);
-  timer->endTimer("LS - Normals and Curvature");
+  timer->endTimer("LevelSetSolver2D - getNormalsCurvature");
 }
 
 void LevelSetSolver2D::sampleInterface() {
-  timer->startTimer("LS - Sample Interface");
+  timer->startTimer("LevelSetSolver2D - sampleInterface");
   op_par_loop(sample_interface, "sample_interface", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
@@ -158,5 +160,5 @@ void LevelSetSolver2D::sampleInterface() {
               op_arg_dat(s,           -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(s_sample_x,  -1, OP_ID, LS_SAMPLE_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(s_sample_y,  -1, OP_ID, LS_SAMPLE_NP, DG_FP_STR, OP_WRITE));
-  timer->endTimer("LS - Sample Interface");
+  timer->endTimer("LevelSetSolver2D - sampleInterface");
 }

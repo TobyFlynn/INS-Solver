@@ -33,9 +33,9 @@ PETScInvMassSolver::PETScInvMassSolver(DGMesh *m) {
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPGMRES);
   if(std::is_same<DG_FP,double>::value)
-    KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 2.5e2);
+    KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 5e2);
   else
-    KSPSetTolerances(ksp, 1e-6, 1e-50, 1e5, 2.5e2);
+    KSPSetTolerances(ksp, 1e-6, 1e-50, 1e5, 5e2);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
   PC pc;
   KSPGetPC(ksp, &pc);
@@ -49,6 +49,7 @@ PETScInvMassSolver::~PETScInvMassSolver() {
 }
 
 bool PETScInvMassSolver::solve(op_dat rhs, op_dat ans) {
+  timer->startTimer("PETScInvMassSolver - solve");
   create_shell_mat();
   KSPSetOperators(ksp, pMat, pMat);
   if(nullspace) {
@@ -69,7 +70,9 @@ bool PETScInvMassSolver::solve(op_dat rhs, op_dat ans) {
   PETScUtils::load_vec_p_adapt(&b, rhs, mesh);
   PETScUtils::load_vec_p_adapt(&x, ans, mesh);
 
+  timer->startTimer("PETScInvMassSolver - KSPSolve");
   KSPSolve(ksp, b, x);
+  timer->endTimer("PETScInvMassSolver - KSPSolve");
 
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
@@ -92,21 +95,25 @@ bool PETScInvMassSolver::solve(op_dat rhs, op_dat ans) {
   PETScUtils::destroy_vec(&b);
   PETScUtils::destroy_vec(&x);
 
+  timer->endTimer("PETScInvMassSolver - solve");
+
   return converged;
 }
 
 void PETScInvMassSolver::calc_rhs(const DG_FP *in_d, DG_FP *out_d) {
+  timer->startTimer("PETScInvMassSolver - calc_rhs");
   // Copy u to OP2 dat
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
   matrix->mult(in, out);
 
   PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
+  timer->endTimer("PETScInvMassSolver - calc_rhs");
 }
 
 // Matrix-free inv Mass preconditioning function
 void PETScInvMassSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
-  timer->startTimer("Inv Mass Preconditioning");
+  timer->startTimer("PETScInvMassSolver - precond");
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
   op_par_loop(petsc_pre_inv_mass, "petsc_pre_inv_mass", mesh->cells,
@@ -117,7 +124,7 @@ void PETScInvMassSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
               op_arg_dat(out,     -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
   PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
-  timer->endTimer("Inv Mass Preconditioning");
+  timer->endTimer("PETScInvMassSolver - precond");
 }
 
 void PETScInvMassSolver::setFactor(const double f) {

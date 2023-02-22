@@ -73,6 +73,13 @@ int main(int argc, char **argv) {
   const DG_FP refMu  = 1.0e-5;
   r_ynolds = refRho * refVel * refLen / refMu;
 
+  int re = -1;
+  PetscOptionsGetInt(NULL, NULL, "-re", &re, &found);
+  if(re > 0) {
+    r_ynolds = (DG_FP)re;
+  }
+  op_printf("Re: %g\n", r_ynolds);
+
   // For 2D compressible Euler
   gamma_e = 1.4;
 
@@ -93,24 +100,33 @@ int main(int argc, char **argv) {
   op_decl_const(1, DG_FP_STR, &rho1);
   op_decl_const(1, DG_FP_STR, &gamma_e);
 
+  timer->startTimer("OP2 Partitioning");
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
+  timer->endTimer("OP2 Partitioning");
 
   mesh->init();
   mpins2d->init(r_ynolds, refVel);
 
-  string out_file_ic = outputDir + "ls_test_ic.h5";
+  string out_file_ic = outputDir + "ic.h5";
   mpins2d->dump_data(out_file_ic);
 
+  timer->startTimer("Main loop");
   for(int i = 0; i < iter; i++) {
     mpins2d->step();
 
     op_printf("Iter %d\n", i);
-  }
 
-  string out_file_end = outputDir + "ls_test_end.h5";
+    if((i + 1) % 25 == 0) {
+      string out_file_tmp = outputDir + "iter-" + to_string(i + 1) + ".h5";
+      mpins2d->dump_data(out_file_tmp);
+    }
+  }
+  timer->endTimer("Main loop");
+
+  string out_file_end = outputDir + "end.h5";
   mpins2d->dump_data(out_file_end);
 
-  timer->exportTimings(outputDir + "timings.txt", 0, 0.0);
+  timer->exportTimings(outputDir + "timings.txt", iter, mpins2d->get_time());
 
   delete mpins2d;
 

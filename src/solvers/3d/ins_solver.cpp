@@ -125,7 +125,7 @@ INSSolver3D::~INSSolver3D() {
 }
 
 void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
-  timer->startTimer("INS - Init");
+  timer->startTimer("INSSolver3D - Init");
   reynolds = re;
 
   // Set initial conditions
@@ -155,25 +155,25 @@ void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_WRITE));
   }
 
-  timer->endTimer("INS - Init");
+  timer->endTimer("INSSolver3D - Init");
 }
 
 void INSSolver3D::step() {
-  timer->startTimer("Advection");
+  timer->startTimer("INSSolver3D - Advection");
   advection();
-  timer->endTimer("Advection");
+  timer->endTimer("INSSolver3D - Advection");
 
-  timer->startTimer("Pressure");
+  timer->startTimer("INSSolver3D - Pressure");
   pressure();
-  timer->endTimer("Pressure");
+  timer->endTimer("INSSolver3D - Pressure");
 
   // timer->startTimer("Shock Capturing");
   // shock_capturing();
   // timer->endTimer("Shock Capturing");
 
-  timer->startTimer("Viscosity");
+  timer->startTimer("INSSolver3D - Viscosity");
   viscosity();
-  timer->endTimer("Viscosity");
+  timer->endTimer("INSSolver3D - Viscosity");
 
   currentInd = (currentInd + 1) % 2;
   time += dt;
@@ -274,6 +274,7 @@ void INSSolver3D::advection() {
 }
 
 void INSSolver3D::pressure() {
+  timer->startTimer("INSSolver3D - Pressure RHS");
   mesh->div(velT[0], velT[1], velT[2], divVelT);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], vel[currentInd][2], curlVel[0], curlVel[1], curlVel[2]);
   mesh->curl(curlVel[0], curlVel[1], curlVel[2], curl2Vel[0], curl2Vel[1], curl2Vel[2]);
@@ -316,16 +317,18 @@ void INSSolver3D::pressure() {
                 op_arg_dat(pr_bc_types, -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(pr_bc, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
+  timer->endTimer("INSSolver3D - Pressure RHS");
 
-  timer->startTimer("Pr Linear Solve");
+  timer->startTimer("INSSolver3D - Pressure Linear Solve");
   pressureMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->calc_mat();
   pressureSolver->set_bcs(pr_bc);
   bool converged = pressureSolver->solve(divVelT, pr);
   // if(!converged)
   //   throw std::runtime_error("\nPressure solve failed to converge\n");
-  timer->endTimer("Pr Linear Solve");
+  timer->endTimer("INSSolver3D - Pressure Linear Solve");
 
+  timer->startTimer("INSSolver3D - Pressure Projection");
   mesh->grad_with_central_flux(pr, dpdx, dpdy, dpdz);
 
   op_par_loop(ins_3d_pr_3, "ins_3d_pr_3", mesh->cells,
@@ -340,9 +343,11 @@ void INSSolver3D::pressure() {
               op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+  timer->endTimer("INSSolver3D - Pressure Projection");
 }
 
 void INSSolver3D::viscosity() {
+  timer->startTimer("INSSolver3D - Viscosity RHS");
   mesh->mass(velTT[0]);
   mesh->mass(velTT[1]);
   mesh->mass(velTT[2]);
@@ -366,8 +371,9 @@ void INSSolver3D::viscosity() {
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(vis_bc, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
+  timer->endTimer("INSSolver3D - Viscosity RHS");
 
-  timer->startTimer("Vis Linear Solve");
+  timer->startTimer("INSSolver3D - Viscosity Linear Solve");
   factor = g0 * reynolds / dt;
 
   if(factor != viscosityMatrix->get_factor()) {
@@ -398,7 +404,7 @@ void INSSolver3D::viscosity() {
   if(!convergedZ)
     throw std::runtime_error("\nViscosity Z solve failed to converge\n");
 
-  timer->endTimer("Vis Linear Solve");
+  timer->endTimer("INSSolver3D - Viscosity Linear Solve");
 }
 /*
 void INSSolver3D::shock_capturing() {
@@ -428,6 +434,7 @@ DG_FP INSSolver3D::get_dt() {
 }
 
 void INSSolver3D::dump_data(const std::string &filename) {
+  timer->startTimer("INSSolver3D - Dump Data");
   op_fetch_data_hdf5_file(mesh->x, filename.c_str());
   op_fetch_data_hdf5_file(mesh->y, filename.c_str());
   op_fetch_data_hdf5_file(mesh->z, filename.c_str());
@@ -444,4 +451,5 @@ void INSSolver3D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(velTT[1], filename.c_str());
   op_fetch_data_hdf5_file(velTT[2], filename.c_str());
   op_fetch_data_hdf5_file(pr, filename.c_str());
+  timer->endTimer("INSSolver3D - Dump Data");
 }

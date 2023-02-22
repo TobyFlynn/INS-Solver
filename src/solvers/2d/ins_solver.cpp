@@ -138,7 +138,7 @@ INSSolver2D::~INSSolver2D() {
 }
 
 void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
-  timer->startTimer("INS - Init");
+  timer->startTimer("INSSolver2D - Init");
   reynolds = re;
 
   // Set initial conditions
@@ -188,25 +188,25 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
               op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
-  timer->endTimer("INS - Init");
+  timer->endTimer("INSSolver2D - Init");
 }
 
 void INSSolver2D::step() {
-  timer->startTimer("Advection");
+  timer->startTimer("INSSolver2D - Advection");
   advection();
-  timer->endTimer("Advection");
+  timer->endTimer("INSSolver2D - Advection");
 
-  timer->startTimer("Pressure");
+  timer->startTimer("INSSolver2D - Pressure");
   pressure();
-  timer->endTimer("Pressure");
+  timer->endTimer("INSSolver2D - Pressure");
 
   // timer->startTimer("Shock Capturing");
   // shock_capturing();
   // timer->endTimer("Shock Capturing");
 
-  timer->startTimer("Viscosity");
+  timer->startTimer("INSSolver2D - Viscosity");
   viscosity();
-  timer->endTimer("Viscosity");
+  timer->endTimer("INSSolver2D - Viscosity");
 
   currentInd = (currentInd + 1) % 2;
   time += dt;
@@ -291,7 +291,7 @@ void INSSolver2D::advection() {
 }
 
 bool INSSolver2D::pressure() {
-  timer->startTimer("Pressure Setup");
+  timer->startTimer("INSSolver2D - Pressure RHS");
 
   // mesh->div(velT[0], velT[1], divVelT);
   mesh->cub_div_with_central_flux(velT[0], velT[1], divVelT);
@@ -338,15 +338,17 @@ bool INSSolver2D::pressure() {
 
   op2_gemv(mesh, false, 1.0, DGConstants::MASS, divVelT, 0.0, pRHS);
   op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, dPdN[(currentInd + 1) % 2], 1.0, pRHS);
-  timer->endTimer("Pressure Setup");
+  timer->endTimer("INSSolver2D - Pressure RHS");
 
   // Call PETSc linear solver
-  timer->startTimer("Pressure Linear Solve");
+  timer->startTimer("INSSolver2D - Pressure Linear Solve");
   pressureSolver->set_bcs(prBC);
   bool converged = pressureSolver->solve(pRHS, pr);
-  timer->endTimer("Pressure Linear Solve");
+  timer->endTimer("INSSolver2D - Pressure Linear Solve");
 
+  timer->startTimer("INSSolver2D - Pressure Projection");
   project_velocity();
+  timer->endTimer("INSSolver2D - Pressure Projection");
 
   return converged;
 }
@@ -415,11 +417,15 @@ void INSSolver2D::project_velocity() {
                 op_arg_gbl(&num_iter, 1, DG_FP_STR, OP_INC));
     // op_printf("%d out of %d cells converged on projection step\n", num_converge, num_cells);
     // op_printf("Average iterations to converge on projection step %g\n", num_iter / (DG_FP)num_cells);
+    if(num_cells != num_converge) {
+      op_printf("%d out of %d cells converged on projection step\n", num_converge, num_cells);
+      exit(-1);
+    }
   }
 }
 
 bool INSSolver2D::viscosity() {
-  timer->startTimer("Viscosity Setup");
+  timer->startTimer("INSSolver2D - Viscosity RHS");
   DG_FP time_n1 = time + dt;
 
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
@@ -455,10 +461,10 @@ bool INSSolver2D::viscosity() {
               op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
-  timer->endTimer("Viscosity Setup");
+  timer->endTimer("INSSolver2D - Viscosity RHS");
 
   // Call PETSc linear solver
-  timer->startTimer("Viscosity Linear Solve");
+  timer->startTimer("INSSolver2D - Viscosity Linear Solve");
   factor = g0 * reynolds / dt;
   if(factor != viscosityMatrix->get_factor()) {
     viscosityMatrix->set_factor(factor);
@@ -470,7 +476,7 @@ bool INSSolver2D::viscosity() {
 
   viscositySolver->set_bcs(visBC[1]);
   bool convergedY = viscositySolver->solve(visRHS[1], vel[(currentInd + 1) % 2][1]);
-  timer->endTimer("Viscosity Linear Solve");
+  timer->endTimer("INSSolver2D - Viscosity Linear Solve");
 
   // timer->startTimer("Filtering");
   // filter(mesh, Q[(currentInd + 1) % 2][0]);
@@ -480,7 +486,16 @@ bool INSSolver2D::viscosity() {
   return convergedX && convergedY;
 }
 
+DG_FP INSSolver2D::get_time() {
+  return time;
+}
+
+DG_FP INSSolver2D::get_dt() {
+  return dt;
+}
+
 void INSSolver2D::dump_data(const std::string &filename) {
+  timer->startTimer("INSSolver2D - Dump Data");
   op_fetch_data_hdf5_file(mesh->x, filename.c_str());
   op_fetch_data_hdf5_file(mesh->y, filename.c_str());
   op_fetch_data_hdf5_file(vel[0][0], filename.c_str());
@@ -493,4 +508,5 @@ void INSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(velTT[1], filename.c_str());
   op_fetch_data_hdf5_file(pr, filename.c_str());
   op_fetch_data_hdf5_file(mesh->order, filename.c_str());
+  timer->endTimer("INSSolver2D - Dump Data");
 }

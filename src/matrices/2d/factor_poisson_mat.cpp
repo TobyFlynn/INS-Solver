@@ -24,6 +24,7 @@ void FactorPoissonMatrix2D::set_factor(op_dat f) {
 }
 
 void FactorPoissonMatrix2D::calc_op1() {
+  timer->startTimer("FactorPoissonMatrix2D - calc_op1");
   // Initialise geometric factors for calcuating grad matrix
   op2_gemv(mesh, false, 1.0, DGConstants::CUB_VDR, mesh->x, 0.0, mesh->cubature->op_tmp[0]);
   op2_gemv(mesh, false, 1.0, DGConstants::CUB_VDS, mesh->x, 0.0, mesh->cubature->op_tmp[1]);
@@ -42,9 +43,11 @@ void FactorPoissonMatrix2D::calc_op1() {
               op_arg_dat(mesh->cubature->J, -1, OP_ID, DG_CUB_NP, DG_FP_STR, OP_READ),
               op_arg_dat(cFactor, -1, OP_ID, DG_CUB_NP, DG_FP_STR, OP_READ),
               op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
+  timer->endTimer("FactorPoissonMatrix2D - calc_op1");
 }
 
 void FactorPoissonMatrix2D::calc_op2() {
+  timer->startTimer("FactorPoissonMatrix2D - calc_op2");
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, factor, 0.0, gFactor);
 
   op_par_loop(fact_poisson_gauss_op2, "fact_poisson_gauss_op2", mesh->faces,
@@ -71,9 +74,11 @@ void FactorPoissonMatrix2D::calc_op2() {
               op_arg_dat(op1, 1, mesh->face2cells, DG_NP * DG_NP, DG_FP_STR, OP_INC),
               op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
+  timer->endTimer("FactorPoissonMatrix2D - calc_op2");
 }
 
 void FactorPoissonMatrix2D::calc_opbc() {
+  timer->startTimer("FactorPoissonMatrix2D - calc_opbc");
   if(mesh->bface2cells) {
     op_par_loop(fact_poisson_gauss_bop, "fact_poisson_gauss_bop", mesh->bfaces,
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),
@@ -98,4 +103,5 @@ void FactorPoissonMatrix2D::calc_opbc() {
                 op_arg_dat(op1, 0, mesh->bface2cells, DG_NP * DG_NP, DG_FP_STR, OP_INC),
                 op_arg_dat(opbc, -1, OP_ID, DG_GF_NP * DG_NP, DG_FP_STR, OP_WRITE));
   }
+  timer->endTimer("FactorPoissonMatrix2D - calc_opbc");
 }

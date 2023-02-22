@@ -6,6 +6,9 @@
 #include <type_traits>
 
 #include "linear_solvers/petsc_utils.h"
+#include "timing.h"
+
+extern Timing *timer;
 
 PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
   mesh = m;
@@ -39,6 +42,7 @@ PETScPMultigrid::~PETScPMultigrid() {
 }
 
 bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
+  timer->startTimer("PETScPMultigrid - solve");
   create_shell_mat();
   KSPSetOperators(ksp, pMat, pMat);
   if(nullspace) {
@@ -63,7 +67,9 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
   PETScUtils::load_vec_p_adapt(&b, rhs, mesh);
   PETScUtils::load_vec_p_adapt(&x, ans, mesh);
 
+  timer->startTimer("PETScPMultigrid - KSPSolve");
   KSPSolve(ksp, b, x);
+  timer->endTimer("PETScPMultigrid - KSPSolve");
 
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
@@ -71,6 +77,7 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
   KSPGetConvergedReason(ksp, &reason);
   // Check that the solver converged
   bool converged = true;
+  // std::cout << "Number of iterations for PETSc PMultigrid: " << numIt << std::endl;
   if(reason < 0) {
     DG_FP residual;
     KSPGetResidualNorm(ksp, &residual);
@@ -86,22 +93,28 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
   PETScUtils::destroy_vec(&b);
   PETScUtils::destroy_vec(&x);
 
+  timer->endTimer("PETScPMultigrid - solve");
+
   return converged;
 }
 
 void PETScPMultigrid::calc_rhs(const DG_FP *in_d, DG_FP *out_d) {
+  timer->startTimer("PETScPMultigrid - calc_rhs");
   // Copy u to OP2 dat
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
   matrix->mult(in, out);
 
   PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
+  timer->endTimer("PETScPMultigrid - calc_rhs");
 }
 
 void PETScPMultigrid::precond(const DG_FP *in_d, DG_FP *out_d) {
+  timer->startTimer("PETScPMultigrid - precond");
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
   pmultigridSolver->solve(in, out);
 
   PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
+  timer->endTimer("PETScPMultigrid - precond");
 }

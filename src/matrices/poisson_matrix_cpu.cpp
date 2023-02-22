@@ -10,9 +10,6 @@
 
 #include "dg_utils.h"
 #include "dg_global_constants/dg_global_constants_2d.h"
-#include "timing.h"
-
-extern Timing *timer;
 
 void get_num_nodes(const int N, int *Np, int *Nfp) {
   #if DG_DIM == 2
@@ -41,7 +38,6 @@ int PoissonMatrix::getUnknowns() {
 }
 
 void PoissonMatrix::set_glb_ind() {
-  timer->startTimer("PoissonMat - glb_ind");
   int unknowns = getUnknowns();
   int global_ind = 0;
   #ifdef INS_MPI
@@ -64,7 +60,6 @@ void PoissonMatrix::set_glb_ind() {
   }
 
   op_mpi_set_dirtybit(2, args);
-  timer->endTimer("PoissonMat - glb_ind");
 }
 
 void PoissonMatrix::setPETScMatrix() {

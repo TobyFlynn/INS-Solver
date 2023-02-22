@@ -1,9 +1,12 @@
 #include "linear_solvers/petsc_amg.h"
 
 #include "linear_solvers/petsc_utils.h"
+#include "timing.h"
 
 #include <iostream>
 #include <type_traits>
+
+extern Timing *timer;
 
 PETScAMGSolver::PETScAMGSolver(DGMesh *m) {
   mesh = m;
@@ -34,6 +37,7 @@ PETScAMGSolver::~PETScAMGSolver() {
 }
 
 bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
+  timer->startTimer("PETScAMGSolver - solve");
   if(matrix->getPETScMat(&pMat)) {
     if(nullspace) {
       MatNullSpace ns;
@@ -55,7 +59,9 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
   PETScUtils::load_vec_p_adapt(&b, rhs, mesh);
   PETScUtils::load_vec_p_adapt(&x, ans, mesh);
 
+  timer->startTimer("PETScAMGSolver - KSPSolve");
   KSPSolve(ksp, b, x);
+  timer->endTimer("PETScAMGSolver - KSPSolve");
 
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
@@ -77,6 +83,8 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
 
   PETScUtils::destroy_vec(&b);
   PETScUtils::destroy_vec(&x);
+
+  timer->endTimer("PETScAMGSolver - solve");
 
   return converged;
 }

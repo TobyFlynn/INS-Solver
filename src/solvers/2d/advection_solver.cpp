@@ -6,6 +6,10 @@
 
 #include "dg_op2_blas.h"
 
+#include "timing.h"
+
+extern Timing *timer;
+
 AdvectionSolver2D::AdvectionSolver2D(DGMesh2D *m) {
   mesh = m;
 
@@ -29,6 +33,7 @@ AdvectionSolver2D::AdvectionSolver2D(DGMesh2D *m) {
 }
 
 void AdvectionSolver2D::step(op_dat val, op_dat u, op_dat v) {
+  timer->startTimer("AdvectionSolver2D - step");
   if(dt < 0.0)
     set_dt();
 
@@ -61,6 +66,7 @@ void AdvectionSolver2D::step(op_dat val, op_dat u, op_dat v) {
               op_arg_dat(rk[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rk[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rk[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+  timer->endTimer("AdvectionSolver2D - step");
 }
 
 void AdvectionSolver2D::rhs(op_dat val, op_dat u, op_dat v, op_dat val_out) {

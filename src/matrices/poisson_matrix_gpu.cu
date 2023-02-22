@@ -6,9 +6,6 @@
 
 #include "dg_utils.h"
 #include "dg_global_constants/dg_global_constants_2d.h"
-#include "timing.h"
-
-extern Timing *timer;
 
 void get_num_nodes(const int N, int *Np, int *Nfp) {
   #if DG_DIM == 2
@@ -69,7 +66,6 @@ void PoissonMatrix::set_glb_ind() {
   op_mpi_set_dirtybit_cuda(2, args);
   free(data_ptr);
   free(tempOrder);
-  timer->endTimer("PoissonMat - glb_ind");
 }
 
 void PoissonMatrix::setPETScMatrix() {

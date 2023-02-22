@@ -4,10 +4,13 @@
 
 #include "utils.h"
 #include "linear_solvers/petsc_utils.h"
+#include "timing.h"
 
 #define ARMA_ALLOW_FAKE_GCC
 #include <armadillo>
 #include <type_traits>
+
+extern Timing *timer;
 
 PETScBlockJacobiSolver::PETScBlockJacobiSolver(DGMesh *m) {
   nullspace = false;
@@ -43,6 +46,7 @@ PETScBlockJacobiSolver::~PETScBlockJacobiSolver() {
 }
 
 bool PETScBlockJacobiSolver::solve(op_dat rhs, op_dat ans) {
+  timer->startTimer("PETScBlockJacobiSolver - solve");
   // TODO only call when necessary
   calc_precond_mat();
   create_shell_mat();
@@ -65,7 +69,9 @@ bool PETScBlockJacobiSolver::solve(op_dat rhs, op_dat ans) {
   PETScUtils::load_vec_p_adapt(&b, rhs, mesh);
   PETScUtils::load_vec_p_adapt(&x, ans, mesh);
 
+  timer->startTimer("PETScBlockJacobiSolver - KSPSolve");
   KSPSolve(ksp, b, x);
+  timer->endTimer("PETScBlockJacobiSolver - KSPSolve");
 
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
@@ -88,20 +94,25 @@ bool PETScBlockJacobiSolver::solve(op_dat rhs, op_dat ans) {
   PETScUtils::destroy_vec(&b);
   PETScUtils::destroy_vec(&x);
 
+  timer->endTimer("PETScBlockJacobiSolver - solve");
+
   return converged;
 }
 
 void PETScBlockJacobiSolver::calc_rhs(const DG_FP *in_d, DG_FP *out_d) {
+  timer->startTimer("PETScBlockJacobiSolver - calc_rhs");
   // Copy u to OP2 dat
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
   matrix->mult(in, out);
 
   PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
+  timer->endTimer("PETScBlockJacobiSolver - calc_rhs");
 }
 
 // Matrix-free block-jacobi preconditioning function
 void PETScBlockJacobiSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
+  timer->startTimer("PETScBlockJacobiSolver - precond");
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
   op_par_loop(block_jacobi_pre, "block_jacobi_pre", mesh->cells,
@@ -111,9 +122,11 @@ void PETScBlockJacobiSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
   PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
+  timer->endTimer("PETScBlockJacobiSolver - precond");
 }
 
 void PETScBlockJacobiSolver::calc_precond_mat() {
+  timer->startTimer("PETScBlockJacobiSolver - calc_precond_mat");
   const DG_FP *op1_ptr = getOP2PtrHost(matrix->op1, OP_READ);
   DG_FP *pre_ptr = getOP2PtrHost(pre, OP_WRITE);
 
@@ -134,4 +147,5 @@ void PETScBlockJacobiSolver::calc_precond_mat() {
 
   releaseOP2PtrHost(matrix->op1, OP_READ, op1_ptr);
   releaseOP2PtrHost(pre, OP_WRITE, pre_ptr);
+  timer->endTimer("PETScBlockJacobiSolver - calc_precond_mat");
 }

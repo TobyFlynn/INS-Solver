@@ -13,6 +13,10 @@
 #include <iostream>
 #include <fstream>
 
+#include "timing.h"
+
+extern Timing *timer;
+
 LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m) {
   mesh = m;
   advectionSolver = new AdvectionSolver3D(m);
@@ -46,7 +50,7 @@ void LevelSetSolver3D::init() {
               op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->z, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-  
+
   h = 0.0;
   op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
@@ -64,20 +68,25 @@ void LevelSetSolver3D::init() {
 }
 
 void LevelSetSolver3D::getRhoMu(op_dat rho, op_dat mu) {
+  timer->startTimer("LevelSetSolver3D - getRhoMu");
   op_par_loop(ls_step, "ls_step", mesh->cells,
               op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
               op_arg_dat(s,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(mu,  -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  timer->endTimer("LevelSetSolver3D - getRhoMu");
 }
 
 void LevelSetSolver3D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_dat curv) {
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
+  timer->startTimer("LevelSetSolver3D - getNormalsCurvature");
   mesh->grad(s, nx, ny, nz);
   mesh->div(nx, ny, nz, curv);
+  timer->endTimer("LevelSetSolver3D - getNormalsCurvature");
 }
 
 void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const DG_FP dt) {
+  timer->startTimer("LevelSetSolver3D - step");
   advectionSolver->set_dt(dt);
   advectionSolver->step(s, u, v, w);
 
@@ -86,6 +95,7 @@ void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const DG_FP dt) {
     reinit_count = 0;
   }
   reinit_count++;
+  timer->endTimer("LevelSetSolver3D - step");
 }
 
 bool newtoncp_gepp(arma::mat &A, arma::vec &b) {
@@ -273,6 +283,7 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
 }
 
 void LevelSetSolver3D::reinitLS() {
+  timer->startTimer("LevelSetSolver3D - reinitLS");
   sampleInterface();
 
   const DG_FP *sample_pts_x = getOP2PtrHost(sampleX, OP_READ);
@@ -352,4 +363,5 @@ void LevelSetSolver3D::reinitLS() {
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
   releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
   releaseOP2PtrHost(mesh->z, OP_READ, z_ptr);
+  timer->endTimer("LevelSetSolver3D - reinitLS");
 }

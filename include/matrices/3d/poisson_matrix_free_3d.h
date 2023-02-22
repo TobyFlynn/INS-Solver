@@ -22,8 +22,6 @@ protected:
   virtual void calc_opbc() override;
   virtual void calc_glb_ind() override;
 
-  virtual void alt_mult(op_dat in, op_dat out);
-
   DGMesh3D *mesh;
 
   op_dat in_grad[3], tmp_npf[4], l[3];

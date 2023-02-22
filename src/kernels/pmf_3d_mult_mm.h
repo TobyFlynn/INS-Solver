@@ -1,6 +1,6 @@
-inline void poisson_matrix_free_3d_mm_mult_cells_new(const int *p, const DG_FP *mass,
-                            const DG_FP *J, const DG_FP *mm_factor,
-                            const DG_FP *in, DG_FP *out) {
+inline void pmf_3d_mult_mm(const int *p, const DG_FP *mass,
+                           const DG_FP *J, const DG_FP *mm_factor,
+                           const DG_FP *in, DG_FP *out) {
   const DG_FP *mass_mat = &mass[(*p - 1) * DG_NP * DG_NP];
   const int dg_np = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
 

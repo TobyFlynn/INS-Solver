@@ -4,6 +4,10 @@
 
 #include "dg_op2_blas.h"
 
+#include "timing.h"
+
+extern Timing *timer;
+
 AdvectionSolver3D::AdvectionSolver3D(DGMesh3D *m) {
   mesh = m;
 
@@ -25,6 +29,7 @@ AdvectionSolver3D::AdvectionSolver3D(DGMesh3D *m) {
 }
 
 void AdvectionSolver3D::step(op_dat val, op_dat u, op_dat v, op_dat w) {
+  timer->startTimer("AdvectionSolver3D - step");
   if(dt < 0.0)
     set_dt();
 
@@ -57,6 +62,7 @@ void AdvectionSolver3D::step(op_dat val, op_dat u, op_dat v, op_dat w) {
               op_arg_dat(rk[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rk[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rk[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+  timer->endTimer("AdvectionSolver3D - step");
 }
 
 void AdvectionSolver3D::rhs(op_dat val, op_dat u, op_dat v, op_dat w, op_dat val_out) {

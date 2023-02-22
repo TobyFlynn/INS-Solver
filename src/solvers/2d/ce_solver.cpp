@@ -5,6 +5,10 @@
 #include <string>
 #include "dg_op2_blas.h"
 
+#include "timing.h"
+
+extern Timing *timer;
+
 CompressibleEulerSolver2D::CompressibleEulerSolver2D(DGMesh2D *m) {
   mesh = m;
   std::string name;
@@ -48,6 +52,7 @@ void CompressibleEulerSolver2D::init() {
 }
 
 void CompressibleEulerSolver2D::step() {
+  timer->startTimer("CompressibleEulerSolver2D - step");
   rhs(Q, rk_RHSQ[0]);
 
   op_par_loop(euler_2d_wQ_0, "euler_2d_wQ_0", mesh->cells,
@@ -106,6 +111,7 @@ void CompressibleEulerSolver2D::step() {
               op_arg_dat(rk_RHSQ[2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rk_RHSQ[2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rk_RHSQ[2][3], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+  timer->endTimer("CompressibleEulerSolver2D - step");
 }
 
 void CompressibleEulerSolver2D::rhs(op_dat *wQ, op_dat *RHSQ) {
@@ -124,7 +130,9 @@ void CompressibleEulerSolver2D::rhs(op_dat *wQ, op_dat *RHSQ) {
               op_arg_dat(G[3], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
   for(int i = 0; i < 4; i++) {
+    timer->startTimer("CompressibleEulerSolver2D - div");
     mesh->div_weak(F[i], G[i], RHSQ[i]);
+    timer->endTimer("CompressibleEulerSolver2D - div");
     op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, wQ[i], 0.0, gQ[i]);
   }
 

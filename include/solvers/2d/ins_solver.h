@@ -9,6 +9,7 @@
 #include "matrices/2d/mm_poisson_matrix_2d.h"
 #include "linear_solvers/linear_solver.h"
 #include "solvers/2d/ls_solver.h"
+#include "linear_solvers/petsc_inv_mass.h"
 
 #include "dg_mesh/dg_mesh_2d.h"
 
@@ -20,6 +21,8 @@ public:
   void init(const DG_FP re, const DG_FP refVel);
   void step();
 
+  DG_FP get_time();
+  DG_FP get_dt();
   void dump_data(const std::string &filename);
 
   DGMesh2D *mesh;
@@ -33,6 +36,7 @@ private:
   MMPoissonMatrix2D *viscosityMatrix;
   LinearSolver *pressureSolver;
   LinearSolver *viscositySolver;
+  // PETScInvMassSolver *viscositySolver;
 
   int currentInd;
   DG_FP a0, a1, b0, b1, g0, dt, time;

@@ -40,7 +40,7 @@ mkdir -p linear_solvers/petsc_inv_mass
 
 cd ..
 
-ORDER=4
+ORDER=3
 
 python3 preprocessor.py 2 $ORDER
 

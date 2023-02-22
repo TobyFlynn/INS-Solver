@@ -89,7 +89,9 @@ int main(int argc, char **argv) {
   op_decl_const(1, DG_FP_STR, &rho0);
   op_decl_const(1, DG_FP_STR, &rho1);
 
+  timer->startTimer("OP2 Partitioning");
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
+  timer->endTimer("OP2 Partitioning");
 
   mesh->init();
   ins3d->init(r_ynolds, refVel);
@@ -97,17 +99,17 @@ int main(int argc, char **argv) {
   string out_file_ic = outputDir + "test_ic.h5";
   ins3d->dump_data(out_file_ic);
 
+  timer->startTimer("Main loop");
   for(int i = 0; i < iter; i++) {
     ins3d->step();
-
-    op_printf("Iter %d\n", i);
   }
+  timer->endTimer("Main loop");
 
   string out_file_end = outputDir + "test_end.h5";
   ins3d->dump_data(out_file_end);
 
 
-  timer->exportTimings(outputDir + "timings.txt", 0, 0.0);
+  timer->exportTimings(outputDir + "timings.txt", iter, ins3d->get_time());
 
   delete ins3d;
 
