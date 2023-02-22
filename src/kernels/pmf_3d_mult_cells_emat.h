@@ -11,7 +11,10 @@ inline void pmf_3d_mult_cells_emat(const int *order, const DG_FP *eMat,
     out1[i] = 0.0;
     out2[i] = 0.0;
     out3[i] = 0.0;
-    for(int j = 0; j < DG_NUM_FACES * dg_npf; j++) {
+  }
+
+  for(int j = 0; j < DG_NUM_FACES * dg_npf; j++) {
+    for(int i = 0; i < dg_np; i++) {
       int ind = DG_MAT_IND(i, j, dg_np, DG_NUM_FACES * dg_npf);
       out0[i] += emat_mat[ind] * in0[j];
       out1[i] += emat_mat[ind] * in1[j];

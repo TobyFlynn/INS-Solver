@@ -82,14 +82,8 @@ void PoissonMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(tmp_npf[2], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
               op_arg_dat(tmp_npf[3], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
   timer->endTimer("PoissonMatrixFree3D - mult faces");
-  // op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf[0], 0.0, out);
 
   timer->startTimer("PoissonMatrixFree3D - mult Emat");
-  // op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf[0], 0.0, l[0]);
-  // op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf[1], 0.0, l[1]);
-  // op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf[2], 0.0, l[2]);
-  // op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf[3], 0.0, out);
-
   op_par_loop(pmf_3d_mult_cells_emat, "pmf_3d_mult_cells_emat", _mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::EMAT), DG_ORDER * DG_NUM_FACES * DG_NPF * DG_NP, DG_FP_STR, OP_READ),
@@ -101,15 +95,20 @@ void PoissonMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(l[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(l[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(out,  -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
   timer->endTimer("PoissonMatrixFree3D - mult Emat");
+
+  timer->startTimer("PoissonSemiMatrixFree3D - mult MM");
+  mesh->mass(in_grad[0]);
+  mesh->mass(in_grad[1]);
+  mesh->mass(in_grad[2]);
+  timer->endTimer("PoissonSemiMatrixFree3D - mult MM");
+
   timer->startTimer("PoissonMatrixFree3D - mult cells");
   op_par_loop(pmf_3d_mult_cells, "pmf_3d_mult_cells", _mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DT), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->rx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->tx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
@@ -119,7 +118,6 @@ void PoissonMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(mesh->rz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->tz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->J,  -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(l[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(l[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(l[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
