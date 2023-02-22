@@ -11,13 +11,12 @@ dg_g_np      = ""
 dg_gf_np     = ""
 ls_sample_np = ""
 dg_num_faces = ""
+dg_order     = order
 dg_num_constants = ""
-dg_order     = sys.argv[1]
 fp_type = "d"
 
 # Get DG order from command line args
 if dim == "2":
-    dg_order  = order
     order_int = int(order)
     dg_np     = str(int((order_int + 1) * (order_int + 2) / 2))
     dg_npf    = str(order_int + 1)
@@ -42,9 +41,8 @@ if dim == "2":
         dg_gf_np     = "7"
     else:
         print("This order of DG is not supported yet...exiting")
-        sys.exit()
+        sys.exit(-1)
 elif dim == "3":
-    dg_order  = order
     order_int = int(order)
     dg_np     = str(int((order_int + 1) * (order_int + 2) * (order_int + 3) / 6))
     dg_npf    = str(int((order_int + 1) * (order_int + 2) / 2))
