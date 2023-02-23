@@ -1,4 +1,4 @@
-inline void pmf_3d_mult_faces_0(const int **order, const int *faceNum, const int *fmaskL_corrected,
+inline void pmf_3d_mult_faces(const int **order, const int *faceNum, const int *fmaskL_corrected,
                               const int *fmaskR_corrected, const DG_FP *nx,
                               const DG_FP *ny, const DG_FP *nz, const DG_FP *fscale,
                               const DG_FP *sJ, const DG_FP **in, const DG_FP **in_x,

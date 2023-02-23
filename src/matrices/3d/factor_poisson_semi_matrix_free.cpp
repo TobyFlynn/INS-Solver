@@ -1,4 +1,4 @@
-#include "matrices/3d/poisson_semi_matrix_free_3d.h"
+#include "matrices/3d/factor_poisson_semi_matrix_free_3d.h"
 
 #include "op_seq.h"
 
@@ -10,7 +10,7 @@
 extern DGConstants *constants;
 extern Timing *timer;
 
-PoissonSemiMatrixFree3D::PoissonSemiMatrixFree3D(DGMesh3D *m, bool init_mat_dats) : PoissonMatrix3D(m, init_mat_dats) {
+FactorPoissonSemiMatrixFree3D::FactorPoissonSemiMatrixFree3D(DGMesh3D *m, bool init_mat_dats) : FactorPoissonMatrix3D(m, init_mat_dats) {
   DG_FP *tmp_np  = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   DG_FP *tmp_npf_data = (DG_FP *)calloc(4 * DG_NPF * mesh->cells->size, sizeof(DG_FP));
 
@@ -29,22 +29,11 @@ PoissonSemiMatrixFree3D::PoissonSemiMatrixFree3D(DGMesh3D *m, bool init_mat_dats
   free(tmp_np);
 }
 
-void PoissonSemiMatrixFree3D::apply_bc(op_dat rhs, op_dat bc) {
-  timer->startTimer("PoissonSemiMatrixFree3D - apply_bc");
-  if(mesh->bface2cells) {
-    op_par_loop(poisson_matrix_3d_apply_bc, "poisson_matrix_3d_apply_bc", mesh->bfaces,
-                op_arg_dat(opbc, -1, OP_ID, DG_NPF * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(bc,   -1, OP_ID, DG_NPF, DG_FP_STR, OP_READ),
-                op_arg_dat(rhs,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_INC));
-  }
-  timer->endTimer("PoissonSemiMatrixFree3D - apply_bc");
-}
-
-void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
-  timer->startTimer("PoissonSemiMatrixFree3D - mult");
-  timer->startTimer("PoissonSemiMatrixFree3D - mult grad");
+void FactorPoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
+  timer->startTimer("FactorPoissonSemiMatrixFree3D - mult");
+  timer->startTimer("FactorPoissonSemiMatrixFree3D - mult grad");
   mesh->grad(in, in_grad[0], in_grad[1], in_grad[2]);
-  timer->endTimer("PoissonSemiMatrixFree3D - mult grad");
+  timer->endTimer("FactorPoissonSemiMatrixFree3D - mult grad");
 
   op_par_loop(zero_npf_1, "zero_npf_1", _mesh->cells,
               op_arg_dat(tmp_npf[0], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
@@ -54,8 +43,8 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(tmp_npf[2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(tmp_npf[3], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
-  timer->startTimer("PoissonSemiMatrixFree3D - mult faces");
-  op_par_loop(pmf_3d_mult_faces, "pmf_3d_mult_faces", mesh->faces,
+  timer->startTimer("FactorPoissonSemiMatrixFree3D - mult faces");
+  op_par_loop(fpmf_3d_mult_faces, "fpmf_3d_mult_faces", mesh->faces,
               op_arg_dat(mesh->order, -2, mesh->face2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
@@ -65,7 +54,8 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(mesh->nz, -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sJ, -1, OP_ID, 2, DG_FP_STR, OP_READ),
-              op_arg_dat(in, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(in,     -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(factor, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[0], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[1], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[2], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
@@ -73,9 +63,9 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(tmp_npf[1], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
               op_arg_dat(tmp_npf[2], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
               op_arg_dat(tmp_npf[3], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
-  timer->endTimer("PoissonSemiMatrixFree3D - mult faces");
+  timer->endTimer("FactorPoissonSemiMatrixFree3D - mult faces");
 
-  timer->startTimer("PoissonSemiMatrixFree3D - mult Emat");
+  timer->startTimer("FactorPoissonSemiMatrixFree3D - mult Emat");
   op_par_loop(pmf_3d_mult_cells_emat, "pmf_3d_mult_cells_emat", _mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::EMAT), DG_ORDER * DG_NUM_FACES * DG_NPF * DG_NP, DG_FP_STR, OP_READ),
@@ -87,16 +77,16 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(l[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(l[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(out,  -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-  timer->endTimer("PoissonSemiMatrixFree3D - mult Emat");
+  timer->endTimer("FactorPoissonSemiMatrixFree3D - mult Emat");
 
-  timer->startTimer("PoissonSemiMatrixFree3D - mult MM");
+  timer->startTimer("FactorPoissonSemiMatrixFree3D - mult MM");
   mesh->mass(in_grad[0]);
   mesh->mass(in_grad[1]);
   mesh->mass(in_grad[2]);
-  timer->endTimer("PoissonSemiMatrixFree3D - mult MM");
+  timer->endTimer("FactorPoissonSemiMatrixFree3D - mult MM");
 
-  timer->startTimer("PoissonSemiMatrixFree3D - mult cells");
-  op_par_loop(pmf_3d_mult_cells, "pmf_3d_mult_cells", _mesh->cells,
+  timer->startTimer("FactorPoissonSemiMatrixFree3D - mult cells");
+  op_par_loop(fpmf_3d_mult_cells, "fpmf_3d_mult_cells", _mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
@@ -110,13 +100,14 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(mesh->rz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->tz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(l[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(l[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(l[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(factor, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(l[0],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(l[1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(l[2],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-  timer->endTimer("PoissonSemiMatrixFree3D - mult cells");
-  timer->endTimer("PoissonSemiMatrixFree3D - mult");
+  timer->endTimer("FactorPoissonSemiMatrixFree3D - mult cells");
+  timer->endTimer("FactorPoissonSemiMatrixFree3D - mult");
 }

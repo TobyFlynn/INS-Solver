@@ -5,7 +5,7 @@
 
 class FactorPoissonMatrix3D : public PoissonMatrix3D {
 public:
-  FactorPoissonMatrix3D(DGMesh3D *m);
+  FactorPoissonMatrix3D(DGMesh3D *m, bool init_mat_dats = true);
 
   void set_factor(op_dat f);
 

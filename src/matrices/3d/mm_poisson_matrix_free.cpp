@@ -13,10 +13,6 @@ MMPoissonMatrixFree3D::MMPoissonMatrixFree3D(DGMesh3D *m) : PoissonMatrixFree3D(
   factor = 0.0;
 }
 
-void MMPoissonMatrixFree3D::calc_mat() {
-  throw std::runtime_error("Cannot calculate explicit matrix of MMPoissonMatrixFree3D");
-}
-
 void MMPoissonMatrixFree3D::apply_bc(op_dat rhs, op_dat bc) {
   if(mesh->bface2cells)
     throw std::runtime_error("TODO implement apply_bc of MMPoissonMatrixFree3D");
@@ -45,13 +41,4 @@ void MMPoissonMatrixFree3D::mult(op_dat in, op_dat out) {
 
   timer->endTimer("MMPoissonMatrixFree3D - Mult");
   return;
-}
-
-void MMPoissonMatrixFree3D::multJacobi(op_dat in, op_dat out) {
-  throw std::runtime_error("multJacobi of MMPoissonMatrixFree3D not implemented");
-}
-
-bool MMPoissonMatrixFree3D::getPETScMat(Mat** mat) {
-  throw std::runtime_error("Getting PETSc matrix of MMPoissonMatrixFree3D not implemented");
-  return false;
 }
