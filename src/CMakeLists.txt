@@ -73,6 +73,7 @@ elseif(DIM EQUAL 3)
   set(GPU_SRC utils.cu)
   list(APPEND GPU_SRC solvers/3d/ls_solver_gpu.cu)
   list(APPEND GPU_SRC matrices/poisson_matrix_gpu.cu)
+  list(APPEND GPU_SRC matrices/3d/custom_kernels/custom_pmf_3d_mult_cells_emat.cu)
   list(APPEND GPU_SRC ${LINEAR_SOLVER_GPU_SRC})
 
   set(MPI_SRC mpi_helper_func.cpp)

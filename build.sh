@@ -13,7 +13,7 @@ mkdir -p kernels
 mkdir -p solvers/2d/ls_utils
 mkdir -p solvers/3d/ls_utils
 mkdir -p matrices/2d
-mkdir -p matrices/3d
+mkdir -p matrices/3d/custom_kernels
 mkdir -p linear_solvers/petsc_amg
 mkdir -p linear_solvers/petsc_utils
 mkdir -p linear_solvers/petsc_block_jacobi
@@ -30,7 +30,7 @@ mkdir -p kernels
 mkdir -p solvers/2d/ls_utils
 mkdir -p solvers/3d/ls_utils
 mkdir -p matrices/2d
-mkdir -p matrices/3d
+mkdir -p matrices/3d/custom_kernels
 mkdir -p linear_solvers/petsc_amg
 mkdir -p linear_solvers/petsc_utils
 mkdir -p linear_solvers/petsc_block_jacobi
