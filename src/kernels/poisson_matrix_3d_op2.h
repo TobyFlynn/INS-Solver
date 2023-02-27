@@ -65,6 +65,24 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
   }
 
   const DG_FP gtau = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 1) * fmax(fscale[0], fscale[1]);
+
+  #ifndef OP2_DG_CUDA
+  #if DG_DOUBLE == 1
+  cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, dg_np, dg_np, dg_np, -0.5 * sJ[0], mmFL, dg_np, DL, dg_np, 1.0, op1L, dg_np);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, dg_np, dg_np, dg_np, -0.5 * sJ[0], DL, dg_np, mmFL, dg_np, 1.0, op1L, dg_np);
+  #else
+  cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, dg_np, dg_np, dg_np, -0.5 * sJ[0], mmFL, dg_np, DL, dg_np, 1.0, op1L, dg_np);
+  cblas_sgemm(CblasColMajor, CblasTrans, CblasNoTrans, dg_np, dg_np, dg_np, -0.5 * sJ[0], DL, dg_np, mmFL, dg_np, 1.0, op1L, dg_np);
+  #endif
+  const DG_FP tmp_constL = 0.5 * sJ[0] * gtau;
+  for(int i = 0; i < dg_np; i++) {
+    for(int j = 0; j < dg_np; j++) {
+      // int op_ind = i + j * dg_np;
+      int op_ind = DG_MAT_IND(i, j, dg_np, dg_np);
+      op1L[op_ind] += tmp_constL * mmFL[op_ind];
+    }
+  }
+  #else
   // Do left face
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
@@ -78,13 +96,14 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
         int a_ind1 = DG_MAT_IND(k, i, dg_np, dg_np);
         // int b_ind  = j * dg_np + k;
         int b_ind = DG_MAT_IND(k, j, dg_np, dg_np);
-        tmp += -sJ[0] * mmFL[a_ind0] * DL[b_ind] - DL[a_ind1] * sJ[0] * mmFL[b_ind];
+        tmp += -mmFL[a_ind0] * DL[b_ind] - DL[a_ind1] * mmFL[b_ind];
       }
-      op1L[op_ind] += 0.5 * (gtau * sJ[0] * mmFL[op_ind] + tmp);
+      op1L[op_ind] += 0.5 * sJ[0] * (gtau * mmFL[op_ind] + tmp);
     }
   }
+  #endif
 
-  for(int i = 0; i < DG_NP * DG_NP; i++) {
+  for(int i = 0; i < dg_np * dg_np; i++) {
     op2L[i] = 0.0;
   }
 
@@ -94,7 +113,7 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
       int op_ind = DG_MAT_IND(i, fmaskR_corrected[j], dg_np, dg_np);
       // int find = i + fmaskL[j] * dg_np;
       int find = DG_MAT_IND(i, fmaskL[j], dg_np, dg_np);
-      op2L[op_ind] -= 0.5 * gtau * sJ[0] * mmFL[find];
+      op2L[op_ind] -= gtau * mmFL[find];
     }
   }
 
@@ -107,7 +126,7 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
         int a_ind = DG_MAT_IND(fmaskL[i], fmaskL[k], dg_np, dg_np);
         // int b_ind = j * dg_np + fmaskR_corrected[k];
         int b_ind = DG_MAT_IND(fmaskR_corrected[k], j, dg_np, dg_np);
-        op2L[op_ind] -= 0.5 * sJ[0] * mmFL[a_ind] * -DR[b_ind];
+        op2L[op_ind] += mmFL[a_ind] * DR[b_ind];
       }
     }
   }
@@ -121,12 +140,33 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
         int a_ind = DG_MAT_IND(k, i, dg_np, dg_np);
         // int b_ind = fmaskL[j] * dg_np + k;
         int b_ind = DG_MAT_IND(k, fmaskL[j], dg_np, dg_np);
-        op2L[op_ind] -= -0.5 * DL[a_ind] * sJ[0] * mmFL[b_ind];
+        op2L[op_ind] += DL[a_ind] * mmFL[b_ind];
       }
     }
   }
 
+  for(int i = 0; i < dg_np * dg_np; i++) {
+    op2L[i] *= 0.5 * sJ[0];
+  }
+
   // Do right face
+  #ifndef OP2_DG_CUDA
+  #if DG_DOUBLE == 1
+  cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, dg_np, dg_np, dg_np, -0.5 * sJ[1], mmFR, dg_np, DR, dg_np, 1.0, op1R, dg_np);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, dg_np, dg_np, dg_np, -0.5 * sJ[1], DR, dg_np, mmFR, dg_np, 1.0, op1R, dg_np);
+  #else
+  cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, dg_np, dg_np, dg_np, -0.5 * sJ[1], mmFR, dg_np, DR, dg_np, 1.0, op1R, dg_np);
+  cblas_sgemm(CblasColMajor, CblasTrans, CblasNoTrans, dg_np, dg_np, dg_np, -0.5 * sJ[1], DR, dg_np, mmFR, dg_np, 1.0, op1R, dg_np);
+  #endif
+  const DG_FP tmp_constR = 0.5 * sJ[1] * gtau;
+  for(int i = 0; i < dg_np; i++) {
+    for(int j = 0; j < dg_np; j++) {
+      // int op_ind = i + j * dg_np;
+      int op_ind = DG_MAT_IND(i, j, dg_np, dg_np);
+      op1R[op_ind] += tmp_constR * mmFR[op_ind];
+    }
+  }
+  #else
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
       // int op_ind = i + j * dg_np;
@@ -139,13 +179,14 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
         int a_ind1 = DG_MAT_IND(k, i, dg_np, dg_np);
         // int b_ind  = j * dg_np + k;
         int b_ind = DG_MAT_IND(k, j, dg_np, dg_np);
-        tmp += -sJ[1] * mmFR[a_ind0] * DR[b_ind] - DR[a_ind1] * sJ[1] * mmFR[b_ind];
+        tmp += -mmFR[a_ind0] * DR[b_ind] - DR[a_ind1] * mmFR[b_ind];
       }
-      op1R[op_ind] += 0.5 * (gtau * sJ[1] * mmFR[op_ind] + tmp);
+      op1R[op_ind] += 0.5 * sJ[1] * (gtau * mmFR[op_ind] + tmp);
     }
   }
+  #endif
 
-  for(int i = 0; i < DG_NP * DG_NP; i++) {
+  for(int i = 0; i < dg_np * dg_np; i++) {
     op2R[i] = 0.0;
   }
 
@@ -155,7 +196,7 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
       int op_ind = DG_MAT_IND(i, fmaskL_corrected[j], dg_np, dg_np);
       // int find = i + fmaskR[j] * dg_np;
       int find = DG_MAT_IND(i, fmaskR[j], dg_np, dg_np);
-      op2R[op_ind] -= 0.5 * gtau * sJ[1] * mmFR[find];
+      op2R[op_ind] -= gtau * mmFR[find];
     }
   }
 
@@ -168,7 +209,7 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
         int a_ind = DG_MAT_IND(fmaskR[i], fmaskR[k], dg_np, dg_np);
         // int b_ind = j * dg_np + fmaskL_corrected[k];
         int b_ind = DG_MAT_IND(fmaskL_corrected[k], j, dg_np, dg_np);
-        op2R[op_ind] -= 0.5 * sJ[1] * mmFR[a_ind] * -DL[b_ind];
+        op2R[op_ind] += mmFR[a_ind] * DL[b_ind];
       }
     }
   }
@@ -182,8 +223,12 @@ inline void poisson_matrix_3d_op2(const int **order, const DG_FP *dr,
         int a_ind = DG_MAT_IND(k, i, dg_np, dg_np);
         // int b_ind = fmaskR[j] * dg_np + k;
         int b_ind = DG_MAT_IND(k, fmaskR[j], dg_np, dg_np);
-        op2R[op_ind] -= -0.5 * DR[a_ind] * sJ[1] * mmFR[b_ind];
+        op2R[op_ind] += DR[a_ind] * mmFR[b_ind];
       }
     }
+  }
+
+  for(int i = 0; i < dg_np * dg_np; i++) {
+    op2R[i] *= 0.5 * sJ[1];
   }
 }

@@ -1,5 +1,5 @@
 inline void pmf_3d_mult_faces(const int **order, const int *faceNum, const int *fmaskL_corrected,
-                              const int *fmaskR_corrected, const DG_FP *nx,
+                              const int *fmaskR_corrected, const int *faceOutR, const DG_FP *nx,
                               const DG_FP *ny, const DG_FP *nz, const DG_FP *fscale,
                               const DG_FP *sJ, const DG_FP **in, const DG_FP **in_x,
                               const DG_FP **in_y, const DG_FP **in_z, DG_FP **l_x,
@@ -30,13 +30,18 @@ inline void pmf_3d_mult_faces(const int **order, const int *faceNum, const int *
     l_y[0][indL] += ny[0] * l_tmpL;
     l_z[0][indL] += nz[0] * l_tmpL;
 
-    const DG_FP diffR_u = in[1][fmaskR[j]] - in[0][fmaskL_corrected[j]];
-    const DG_FP diffR_u_x = nx[1] * (in_x[1][fmaskR[j]] + in_x[0][fmaskL_corrected[j]]);
-    const DG_FP diffR_u_y = ny[1] * (in_y[1][fmaskR[j]] + in_y[0][fmaskL_corrected[j]]);
-    const DG_FP diffR_u_z = nz[1] * (in_z[1][fmaskR[j]] + in_z[0][fmaskL_corrected[j]]);
+    // const DG_FP diffR_u = in[1][fmaskR[j]] - in[0][fmaskL_corrected[j]];
+    // const DG_FP diffR_u_x = nx[1] * (in_x[1][fmaskR[j]] + in_x[0][fmaskL_corrected[j]]);
+    // const DG_FP diffR_u_y = ny[1] * (in_y[1][fmaskR[j]] + in_y[0][fmaskL_corrected[j]]);
+    // const DG_FP diffR_u_z = nz[1] * (in_z[1][fmaskR[j]] + in_z[0][fmaskL_corrected[j]]);
+    // const DG_FP diffR_u_grad = diffR_u_x + diffR_u_y + diffR_u_z;
+    const DG_FP diffR_u = -diffL_u;
+    const DG_FP diffR_u_x = -diffL_u_x;
+    const DG_FP diffR_u_y = -diffL_u_y;
+    const DG_FP diffR_u_z = -diffL_u_z;
     const DG_FP diffR_u_grad = diffR_u_x + diffR_u_y + diffR_u_z;
 
-    const int indR = findR + j;
+    const int indR = findR + faceOutR[j];
     out[1][indR] += 0.5 * sJ[1] * (gtau * diffR_u - diffR_u_grad);
     const DG_FP l_tmpR = 0.5 * sJ[1] * -diffR_u;
     l_x[1][indR] += nx[1] * l_tmpR;

@@ -6,20 +6,8 @@ inline void pmf_3d_mult_cells_emat(const int *order, const DG_FP *eMat,
   const int dg_np  = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS];
   const int dg_npf = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS + 1];
 
-  for(int i = 0; i < dg_np; i++) {
-    out0[i] = 0.0;
-    out1[i] = 0.0;
-    out2[i] = 0.0;
-    out3[i] = 0.0;
-  }
-
-  for(int j = 0; j < DG_NUM_FACES * dg_npf; j++) {
-    for(int i = 0; i < dg_np; i++) {
-      int ind = DG_MAT_IND(i, j, dg_np, DG_NUM_FACES * dg_npf);
-      out0[i] += emat_mat[ind] * in0[j];
-      out1[i] += emat_mat[ind] * in1[j];
-      out2[i] += emat_mat[ind] * in2[j];
-      out3[i] += emat_mat[ind] * in3[j];
-    }
-  }
+  op2_in_kernel_gemv(false, dg_np, DG_NUM_FACES * dg_npf, 1.0, emat_mat, dg_np, in0, 0.0, out0);
+  op2_in_kernel_gemv(false, dg_np, DG_NUM_FACES * dg_npf, 1.0, emat_mat, dg_np, in1, 0.0, out1);
+  op2_in_kernel_gemv(false, dg_np, DG_NUM_FACES * dg_npf, 1.0, emat_mat, dg_np, in2, 0.0, out2);
+  op2_in_kernel_gemv(false, dg_np, DG_NUM_FACES * dg_npf, 1.0, emat_mat, dg_np, in3, 0.0, out3);
 }
