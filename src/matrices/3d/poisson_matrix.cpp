@@ -28,6 +28,7 @@ PoissonMatrix3D::PoissonMatrix3D(DGMesh3D *m, bool init_mat_dats) {
 
     int *data_t3 = (int *)calloc(mesh->cells->size, sizeof(int));
     glb_ind = op_decl_dat(mesh->cells, 1, "int", data_t3, "poisson_matrix_glb_ind");
+    glb_cell_inds = op_decl_dat(mesh->cells, 1, "int", data_t3, "poisson_matrix_glb_cell_ind");
     free(data_t3);
 
     int *data_t4 = (int *)calloc(mesh->faces->size, sizeof(int));

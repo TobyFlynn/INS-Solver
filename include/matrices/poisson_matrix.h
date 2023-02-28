@@ -21,7 +21,7 @@ public:
   virtual bool getPETScMat(Mat** mat);
   virtual int getUnknowns();
 
-  op_dat op1, op2[2], opbc, glb_ind, glb_indL, glb_indR, orderL, orderR;
+  op_dat op1, op2[2], opbc, glb_ind, glb_indL, glb_indR, orderL, orderR, glb_cell_inds;
   // int unknowns;
 protected:
   virtual void calc_op1() = 0;

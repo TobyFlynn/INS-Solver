@@ -68,6 +68,7 @@ elseif(DIM EQUAL 3)
   set(CPU_SRC utils.cpp)
   list(APPEND CPU_SRC solvers/3d/ls_solver_cpu.cpp)
   list(APPEND CPU_SRC matrices/poisson_matrix_cpu.cpp)
+  list(APPEND CPU_SRC matrices/3d/custom_kernels/custom_pmf_3d_mult_faces.cpp)
   list(APPEND CPU_SRC ${LINEAR_SOLVER_CPU_SRC})
 
   set(GPU_SRC utils.cu)

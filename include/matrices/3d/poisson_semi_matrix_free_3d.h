@@ -16,6 +16,7 @@ public:
 
 protected:
   op_dat in_grad[3], tmp_npf[4], l[3];
+  op_dat mappings;
 };
 
 #endif

@@ -105,6 +105,7 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         kernels/
 
 sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins3d_kernels.cu
+sed -i "66i #include \"../matrices/3d/custom_kernels/custom_pmf_3d_mult_faces.cu\"" cuda/ins3d_kernels.cu
 sed -i "4i #include \"dg_compiler_defs.h\"" openmp/ins3d_kernels.cpp
 sed -i "4i #include \"dg_compiler_defs.h\"" seq/ins3d_seqkernels.cpp
 sed -i "5i #include \"cblas.h\"" openmp/ins3d_kernels.cpp

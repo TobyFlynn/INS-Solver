@@ -45,21 +45,25 @@ void PoissonMatrix::set_glb_ind() {
   #endif
   op_arg args[] = {
     op_arg_dat(_mesh->order, -1, OP_ID, 1, "int", OP_READ),
-    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE)
+    op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE),
+    op_arg_dat(glb_cell_inds, -1, OP_ID, 1, "int", OP_WRITE)
   };
-  op_mpi_halo_exchanges(_mesh->cells, 2, args);
+  op_mpi_halo_exchanges(_mesh->cells, 3, args);
 
   const int *p = (int *)_mesh->order->data;
   int *data_ptr = (int *)glb_ind->data;
+  int *cell_data_ptr = (int *)glb_cell_inds->data;
   int ind = global_ind;
   for(int i = 0; i < _mesh->cells->size; i++) {
     int Np, Nfp;
     get_num_nodes(p[i], &Np, &Nfp);
     data_ptr[i] = ind;
+    // TODO make MPI friendly
+    cell_data_ptr[i] = i;
     ind += Np;
   }
 
-  op_mpi_set_dirtybit(2, args);
+  op_mpi_set_dirtybit(3, args);
 }
 
 void PoissonMatrix::setPETScMatrix() {

@@ -44,6 +44,45 @@ void custom_kernel_pmf_3d_mult_cells(char const *name, op_set set,
   op_arg arg18,
   op_arg arg19);
 
+void custom_kernel_pmf_3d_mult_faces(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10,
+  op_arg arg12,
+  op_arg arg14,
+  op_arg arg16,
+  op_arg arg18,
+  op_arg arg20,
+  op_arg arg22,
+  op_arg arg24);
+
+void custom_cpu_kernel_pmf_3d_mult_faces(char const *name, op_set set,
+  op_arg mapping,
+  op_arg arg0,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg10,
+  op_arg arg12,
+  op_arg arg14,
+  op_arg arg16,
+  op_arg arg18,
+  op_arg arg20,
+  op_arg arg22,
+  op_arg arg24);
+
 PoissonSemiMatrixFree3D::PoissonSemiMatrixFree3D(DGMesh3D *m, bool init_mat_dats) : PoissonMatrix3D(m, init_mat_dats) {
   DG_FP *tmp_np  = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   DG_FP *tmp_npf_data = (DG_FP *)calloc(4 * DG_NPF * mesh->cells->size, sizeof(DG_FP));
@@ -61,6 +100,10 @@ PoissonSemiMatrixFree3D::PoissonSemiMatrixFree3D(DGMesh3D *m, bool init_mat_dats
 
   free(tmp_npf_data);
   free(tmp_np);
+
+  int *tmp_4_int = (int *)calloc(4 * DG_NPF * mesh->faces->size, sizeof(int));
+  mappings = op_decl_dat(mesh->faces, 4 * DG_NPF, "int", tmp_4_int, "poisson_matrix_free_mappings");
+  free(tmp_4_int);
 }
 
 void PoissonSemiMatrixFree3D::calc_mat_partial() {
@@ -102,6 +145,13 @@ void PoissonSemiMatrixFree3D::calc_mat_partial() {
 
   calc_opbc();
   petscMatResetRequired = true;
+  op_par_loop(smf_set_mappings, "smf_set_mappings", mesh->faces,
+              op_arg_dat(mesh->order, -2, mesh->face2cells, 1, "int", OP_READ),
+              op_arg_dat(glb_cell_inds, -2, mesh->face2cells, 1, "int", OP_READ),
+              op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->fmaskR,  -1, OP_ID, DG_NPF, "int", OP_READ),
+              op_arg_dat(mappings, -1, OP_ID, 4 * DG_NPF, "int", OP_WRITE));
   timer->endTimer("PoissonSemiMatrixFree3D - calc_mat_partial");
 }
 
@@ -151,6 +201,26 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(tmp_npf[2], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
               op_arg_dat(tmp_npf[3], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
   #else
+  custom_cpu_kernel_pmf_3d_mult_faces("pmf_3d_mult_faces", mesh->faces,
+              op_arg_dat(mappings, -1, OP_ID, 4 * DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->order, -2, mesh->face2cells, 1, "int", OP_READ),
+              op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->fmaskR,  -1, OP_ID, DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->nx, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ny, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nz, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sJ, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(in, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(in_grad[0], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(in_grad[1], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(in_grad[2], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_npf[0], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+              op_arg_dat(tmp_npf[1], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+              op_arg_dat(tmp_npf[2], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+              op_arg_dat(tmp_npf[3], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
+/*
   op_par_loop(pmf_3d_mult_faces, "pmf_3d_mult_faces", mesh->faces,
               op_arg_dat(mesh->order, -2, mesh->face2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
@@ -169,6 +239,7 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(tmp_npf[1], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
               op_arg_dat(tmp_npf[2], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
               op_arg_dat(tmp_npf[3], -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
+*/
   #endif
   timer->endTimer("PoissonSemiMatrixFree3D - mult faces");
 
