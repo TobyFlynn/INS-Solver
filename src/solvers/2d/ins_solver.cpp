@@ -196,10 +196,6 @@ void INSSolver2D::step() {
   advection();
   timer->endTimer("INSSolver2D - Advection");
 
-  timer->startTimer("INSSolver2D - Pressure");
-  pressure();
-  timer->endTimer("INSSolver2D - Pressure");
-
   // timer->startTimer("Shock Capturing");
   // shock_capturing();
   // timer->endTimer("Shock Capturing");
@@ -207,6 +203,10 @@ void INSSolver2D::step() {
   timer->startTimer("INSSolver2D - Viscosity");
   viscosity();
   timer->endTimer("INSSolver2D - Viscosity");
+
+  timer->startTimer("INSSolver2D - Pressure");
+  pressure();
+  timer->endTimer("INSSolver2D - Pressure");
 
   currentInd = (currentInd + 1) % 2;
   time += dt;
@@ -294,7 +294,7 @@ bool INSSolver2D::pressure() {
   timer->startTimer("INSSolver2D - Pressure RHS");
 
   // mesh->div(velT[0], velT[1], divVelT);
-  mesh->cub_div_with_central_flux(velT[0], velT[1], divVelT);
+  mesh->cub_div_with_central_flux(velTT[0], velTT[1], divVelT);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel);
   mesh->grad(curlVel, gradCurlVel[0], gradCurlVel[1]);
 
@@ -357,16 +357,17 @@ void INSSolver2D::project_velocity() {
   // Calculate gradient of pressure
   mesh->cub_grad_with_central_flux(pr, dpdx, dpdy);
 
-  if(false) {
+  if(true) {
     // Calculate new velocity intermediate values
     op_par_loop(ins_pressure_update_2d, "ins_pressure_update_2d", mesh->cells,
                 op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
   } else {
     // Calculate new velocity intermediate values
@@ -447,13 +448,17 @@ bool INSSolver2D::viscosity() {
   }
   // Set up RHS for viscosity solve
   op_par_loop(ins_vis_copy_2d, "ins_vis_copy_2d", mesh->cells,
-              op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-   mesh->mass(visRHS[0]);
-   mesh->mass(visRHS[1]);
+   // mesh->mass(visRHS[0]);
+   // mesh->mass(visRHS[1]);
+   op_par_loop(ins_vis_mm_2d, "ins_vis_mm_2d", mesh->cells,
+               op_arg_dat(mesh->cubature->mm, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+               op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+               op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   DG_FP factor = reynolds / dt;
   op_par_loop(ins_vis_rhs_2d, "ins_vis_rhs_2d", mesh->cells,
@@ -465,17 +470,18 @@ bool INSSolver2D::viscosity() {
 
   // Call PETSc linear solver
   timer->startTimer("INSSolver2D - Viscosity Linear Solve");
-  factor = g0 * reynolds / dt;
+  // factor = g0 * reynolds / dt;
+  factor = reynolds / dt;
   if(factor != viscosityMatrix->get_factor()) {
     viscosityMatrix->set_factor(factor);
     viscosityMatrix->set_bc_types(vis_bc_types);
     viscosityMatrix->calc_mat();
   }
   viscositySolver->set_bcs(visBC[0]);
-  bool convergedX = viscositySolver->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);
+  bool convergedX = viscositySolver->solve(visRHS[0], velTT[0]);
 
   viscositySolver->set_bcs(visBC[1]);
-  bool convergedY = viscositySolver->solve(visRHS[1], vel[(currentInd + 1) % 2][1]);
+  bool convergedY = viscositySolver->solve(visRHS[1], velTT[1]);
   timer->endTimer("INSSolver2D - Viscosity Linear Solve");
 
   // timer->startTimer("Filtering");
