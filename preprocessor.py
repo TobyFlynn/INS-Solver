@@ -11,14 +11,45 @@ cblas_sgemv({row_col},{trans},{m},{n},{alpha},{A},{lda},{x}, 1,{beta},{y}, 1);
 #endif
 #else
 for(int i = 0; i < {m}; i++) {{
-  ({y})[i] *= {beta};
+  {y_init}
   for(int j = 0; j < {n}; j++) {{
     int ind = DG_MAT_IND({ind_0},{ind_1},{m},{n});
-    ({y})[i] += ({alpha}) * ({A})[ind] * ({x})[j];
+    ({y})[i] += {alpha_mult} ({A})[ind] * ({x})[j];
   }}
 }}
 #endif
 """
+
+def replace_gemv_kernels(input_str):
+    out_str = input_str
+    index = out_str.find("op2_in_kernel_gemv")
+    col_maj = True
+    while index != -1:
+        end_ind = out_str.find(")", index)
+        args_str = out_str[out_str.find("(", index) + 1 : end_ind]
+        args_str = args_str.split(",")
+        col_row_maj_str = "CblasColMajor"
+        if not col_maj:
+            col_row_maj_str = "CblasRowMajor"
+        transpose_str = " CblasNoTrans"
+        ind0 = "i"
+        ind1 = "j"
+        if "true" in args_str[0]:
+            transpose_str = " CblasTrans"
+            ind0 = "j"
+            ind1 = "i"
+        y_init_str = "({y})[i] *= {beta};".format(y = args_str[8], beta = args_str[7])
+        if args_str[7].strip() == "0.0":
+            y_init_str = "({y})[i] = 0.0;".format(y = args_str[8])
+        alpha_mult_str = "({alpha}) * ".format(alpha = args_str[3])
+        if args_str[3].strip() == "1.0":
+            alpha_mult_str = ""
+        blas_call = gemv_template.format(row_col = col_row_maj_str, trans = transpose_str, m = args_str[1], \
+            n = args_str[2], alpha = args_str[3], A = args_str[4], lda = args_str[5], x = args_str[6], \
+            beta = args_str[7], y = args_str[8], ind_0 = ind0, ind_1 = ind1, y_init = y_init_str, alpha_mult = alpha_mult_str)
+        out_str = out_str[0 : index] + blas_call + out_str[end_ind + 2 :]
+        index = out_str.find("op2_in_kernel_gemv")
+    return out_str
 
 gemm_template = \
 """
@@ -33,11 +64,11 @@ cblas_sgemm({row_col}, {transA}, {transB}, {m}, {n}, {k}, {alpha}, {A}, {lda}, {
 for(int i = 0; i < {m}; i++) {{
   for(int j = 0; j < {n}; j++) {{
     int c_ind = DG_MAT_IND(i, j, {m}, {n});
-    ({C})[c_ind] *= {beta};
+    {beta_init}
     for(int k = 0; k < {k}; k++) {{
       int a_ind = DG_MAT_IND({indA_0}, {indA_1}, {m}, {k});
       int b_ind = DG_MAT_IND({indB_0}, {indB_1}, {k}, {n});
-      ({C})[c_ind] += ({alpha}) * ({A})[a_ind] * ({B})[b_ind];
+      ({C})[c_ind] += {alpha_mult}({A})[a_ind] * ({B})[b_ind];
     }}
   }}
 }}
@@ -69,37 +100,19 @@ def replace_gemm_kernels(input_str):
             transpose_strB = " CblasTrans"
             indB0 = "j"
             indB1 = "k"
+        beta_init_str = "({C})[c_ind] *= {beta};".format(C = args_str[11], beta = args_str[10])
+        if args_str[10].strip() == "0.0":
+            beta_init_str = "({C})[c_ind] = 0.0;".format(C = args_str[11])
+        alpha_mult_str = "({alpha}) * ".format(alpha = args_str[5])
+        if args_str[5].strip() == "1.0":
+            alpha_mult_str = ""
         blas_call = gemm_template.format(row_col = col_row_maj_str, transA = transpose_strA, transB = transpose_strB, \
                         m = args_str[2], n = args_str[3], k = args_str[4], alpha = args_str[5], A = args_str[6], \
                         lda = args_str[7], B = args_str[8], ldb = args_str[9], beta = args_str[10], C = args_str[11], \
-                        ldc = args_str[12], indA_0 = indA0, indA_1 = indA1, indB_0 = indB0, indB_1 = indB1)
+                        ldc = args_str[12], indA_0 = indA0, indA_1 = indA1, indB_0 = indB0, indB_1 = indB1, \
+                        beta_init = beta_init_str, alpha_mult = alpha_mult_str)
         out_str = out_str[0 : index] + blas_call + out_str[end_ind + 2 :]
         index = out_str.find("op2_in_kernel_gemm")
-    return out_str
-
-def replace_gemv_kernels(input_str):
-    out_str = input_str
-    index = out_str.find("op2_in_kernel_gemv")
-    col_maj = True
-    while index != -1:
-        end_ind = out_str.find(")", index)
-        args_str = out_str[out_str.find("(", index) + 1 : end_ind]
-        args_str = args_str.split(",")
-        col_row_maj_str = "CblasColMajor"
-        if not col_maj:
-            col_row_maj_str = "CblasRowMajor"
-        transpose_str = " CblasNoTrans"
-        ind0 = "i"
-        ind1 = "j"
-        if "true" in args_str[0]:
-            transpose_str = " CblasTrans"
-            ind0 = "j"
-            ind1 = "i"
-        blas_call = gemv_template.format(row_col = col_row_maj_str, trans = transpose_str, m = args_str[1], \
-            n = args_str[2], alpha = args_str[3], A = args_str[4], lda = args_str[5], x = args_str[6], \
-            beta = args_str[7], y = args_str[8], ind_0 = ind0, ind_1 = ind1)
-        out_str = out_str[0 : index] + blas_call + out_str[end_ind + 2 :]
-        index = out_str.find("op2_in_kernel_gemv")
     return out_str
 
 dim = sys.argv[1]

@@ -12,6 +12,7 @@ public:
   // op_dat bc_types - 0 for Dirichlet, 1 for Neumann
   virtual void apply_bc(op_dat rhs, op_dat bc) override;
   virtual void mult(op_dat in, op_dat out) override;
+  virtual void calc_mat_partial();
 
 protected:
   op_dat in_grad[3], tmp_npf[4], l[3];

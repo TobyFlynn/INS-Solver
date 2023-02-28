@@ -5,6 +5,7 @@
 #include <random>
 #include <string>
 
+#include "matrices/3d/poisson_semi_matrix_free_3d.h"
 #include "utils.h"
 #include "timing.h"
 
@@ -26,6 +27,11 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
   }
   eg_tmp_0 = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_eg_tmp_0");
   eg_tmp_1 = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_eg_tmp_1");
+
+  rk[0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_rk0");
+  rk[1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_rk1");
+  rk[2] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_rk2");
+  rkQ   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_rkQ");
   free(tmp_data);
 
   coarseSolver = new PETScAMGSolver(mesh);
@@ -63,35 +69,31 @@ bool PMultigridPoissonSolver::solve(op_dat rhs, op_dat ans) {
 }
 
 void PMultigridPoissonSolver::cycle(int order) {
-  timer->startTimer("PMultigridPoissonSolver - Calc Mat");
-  matrix->calc_mat();
-  timer->endTimer("PMultigridPoissonSolver - Calc Mat");
-
   if(order == 1) {
     // u = A^-1 (F)
+    timer->startTimer("PMultigridPoissonSolver - Calc Mat");
+    matrix->calc_mat();
+    timer->endTimer("PMultigridPoissonSolver - Calc Mat");
     timer->startTimer("PMultigridPoissonSolver - Direct Solve");
     coarseSolver->solve(b_dat[order-1], u_dat[order-1]);
     timer->endTimer("PMultigridPoissonSolver - Direct Solve");
     return;
   }
+  PoissonSemiMatrixFree3D *smf_mat = (PoissonSemiMatrixFree3D *)matrix;
+  timer->startTimer("PMultigridPoissonSolver - Calc Mat Partial");
+  smf_mat->calc_mat_partial();
+  timer->endTimer("PMultigridPoissonSolver - Calc Mat Partial");
 
   // Calc factor for relaxation
   timer->startTimer("PMultigridPoissonSolver - w");
-  DG_FP w = (4.0 / 3.0) * (1.0 / maxEigenValue());
+  w = (4.0 / 3.0) * (1.0 / maxEigenValue());
   timer->endTimer("PMultigridPoissonSolver - w");
 
   // Relaxation
   // u = u + R^-1 (F - Au)
   timer->startTimer("PMultigridPoissonSolver - Relaxation");
   for(int i = 0; i < num_pre_relax_iter; i++) {
-    matrix->mult(u_dat[order-1], tmp_dat[order-1]);
-    op_par_loop(p_multigrid_relaxation_jacobi, "p_multigrid_relaxation_jacobi", mesh->cells,
-                op_arg_gbl(&w, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(tmp_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(b_dat[order-1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(matrix->op1,      -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(u_dat[order-1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    smoother(order);
   }
   timer->endTimer("PMultigridPoissonSolver - Relaxation");
 
@@ -131,26 +133,17 @@ void PMultigridPoissonSolver::cycle(int order) {
               op_arg_dat(u_dat[order-1],     -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
   timer->endTimer("PMultigridPoissonSolver - Prolongation");
 
-  timer->startTimer("PMultigridPoissonSolver - Calc Mat");
-  matrix->calc_mat();
-  timer->endTimer("PMultigridPoissonSolver - Calc Mat");
-
+  timer->startTimer("PMultigridPoissonSolver - Calc Mat Partial");
+  smf_mat->calc_mat_partial();
+  timer->endTimer("PMultigridPoissonSolver - Calc Mat Partial");
 
   // Relaxation
   // u = u + R^-1 (F - Au)
   timer->startTimer("PMultigridPoissonSolver - Relaxation");
   for(int i = 0; i < num_post_relax_iter; i++) {
-    matrix->mult(u_dat[order-1], tmp_dat[order-1]);
-    op_par_loop(p_multigrid_relaxation_jacobi, "p_multigrid_relaxation_jacobi", mesh->cells,
-                op_arg_gbl(&w, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(tmp_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(b_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(matrix->op1, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(u_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    smoother(order);
   }
   timer->endTimer("PMultigridPoissonSolver - Relaxation");
-
 }
 
 void PMultigridPoissonSolver::setupDirectSolve() {
@@ -217,3 +210,51 @@ void PMultigridPoissonSolver::setRandomVector(op_dat vec) {
 
   releaseOP2PtrHost(vec, OP_WRITE, vec_ptr);
 }
+
+void PMultigridPoissonSolver::smoother(const int order) {
+  matrix->mult(u_dat[order-1], tmp_dat[order-1]);
+  op_par_loop(p_multigrid_relaxation_jacobi, "p_multigrid_relaxation_jacobi", mesh->cells,
+              op_arg_gbl(&w, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(tmp_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(b_dat[order-1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(matrix->op1,      -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u_dat[order-1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+}
+/*
+void PMultigridPoissonSolver::smoother(const int order) {
+  int x = -1;
+  const double dt = 1e-4;
+  op_par_loop(p_multigrid_runge_kutta_0, "p_multigrid_runge_kutta_0", mesh->cells,
+              op_arg_gbl(&x,     1, "int", OP_READ),
+              op_arg_gbl(&dt,    1, DG_FP_STR, OP_READ),
+              op_arg_dat(u_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(b_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rk[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rk[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rkQ,   -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  for(int j = 0; j < 3; j++) {
+    matrix->mult(rkQ, rk[j]);
+
+    if(j != 2) {
+      op_par_loop(p_multigrid_runge_kutta_0, "p_multigrid_runge_kutta_0", mesh->cells,
+                  op_arg_gbl(&j,     1, "int", OP_READ),
+                  op_arg_gbl(&dt,    1, DG_FP_STR, OP_READ),
+                  op_arg_dat(u_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(b_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(rk[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(rk[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(rkQ,   -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    }
+  }
+
+  op_par_loop(p_multigrid_runge_kutta_1, "p_multigrid_runge_kutta_1", mesh->cells,
+              op_arg_gbl(&dt,    1, DG_FP_STR, OP_READ),
+              op_arg_dat(u_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(rk[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rk[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rk[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(b_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+}
+*/
