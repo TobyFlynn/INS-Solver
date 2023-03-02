@@ -1,5 +1,6 @@
 set(LINEAR_SOLVER_SRC linear_solvers/linear_solver.cpp)
 list(APPEND LINEAR_SOLVER_SRC linear_solvers/petsc_amg/petsc_amg.cpp)
+list(APPEND LINEAR_SOLVER_SRC linear_solvers/petsc_amg/petsc_amg_coarse.cpp)
 list(APPEND LINEAR_SOLVER_SRC linear_solvers_op/petsc_block_jacobi/petsc_block_jacobi_op.cpp)
 list(APPEND LINEAR_SOLVER_SRC linear_solvers_op/pmultigrid/pmultigrid_op.cpp)
 list(APPEND LINEAR_SOLVER_SRC linear_solvers/petsc_pmultigrid/petsc_pmultigrid.cpp)
@@ -17,6 +18,7 @@ list(APPEND LINEAR_SOLVER_GPU_SRC linear_solvers/petsc_inv_mass/petsc_inv_mass_g
 
 set(ALL_DIM_SRC timing.cpp matrices_op/poisson_matrix_op.cpp)
 list(APPEND ALL_DIM_SRC matrices_op/poisson_coarse_matrix_op.cpp)
+list(APPEND ALL_DIM_SRC matrices_op/poisson_semi_matrix_free_op.cpp)
 
 set(ALL_DIM_CPU_SRC utils.cpp matrices/poisson_matrix_cpu.cpp)
 list(APPEND ALL_DIM_CPU_SRC matrices/poisson_coarse_matrix_cpu.cpp)

@@ -12,10 +12,10 @@ public:
   PETScAMGSolver(DGMesh *m);
   ~PETScAMGSolver();
 
-  bool solve(op_dat rhs, op_dat ans) override;
+  virtual bool solve(op_dat rhs, op_dat ans) override;
   void set_tol(const DG_FP tol);
 
-private:
+protected:
   DGMesh *mesh;
   KSP ksp;
 

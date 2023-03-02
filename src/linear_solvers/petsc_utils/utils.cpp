@@ -222,3 +222,71 @@ void PETScUtils::create_vec_p_adapt(Vec *v, int local_unknowns) {
   VecSetSizes(*v, local_unknowns, PETSC_DECIDE);
   timer->endTimer("PETScUtils - create_vec_p_adapt");
 }
+
+// Copy PETSc vec array to OP2 dat
+void PETScUtils::copy_vec_to_dat_coarse(op_dat dat, const DG_FP *dat_d) {
+  timer->startTimer("PETScUtils - copy_vec_to_dat_coarse");
+  op_arg copy_args[] = {
+    op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE)
+  };
+  op_mpi_halo_exchanges(dat->set, 1, copy_args);
+
+  DG_FP *op2_dat_ptr = (DG_FP *)dat->data;
+
+  #pragma omp parallel for
+  for(int i = 0; i < dat->set->size; i++) {
+    #pragma omp unroll full
+    for(int j = 0; j < DG_NP_N1; j++) {
+      op2_dat_ptr[i * DG_NP + j] = dat_d[i * DG_NP_N1 + j];
+    }
+  }
+
+  op_mpi_set_dirtybit(1, copy_args);
+  timer->endTimer("PETScUtils - copy_vec_to_dat_coarse");
+}
+
+// Copy OP2 dat to PETSc vec array
+void PETScUtils::copy_dat_to_vec_coarse(op_dat dat, DG_FP *dat_d) {
+  timer->startTimer("PETScUtils - copy_dat_to_vec_coarse");
+  op_arg copy_args[] = {
+    op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ)
+  };
+  op_mpi_halo_exchanges(dat->set, 1, copy_args);
+
+  DG_FP *op2_dat_ptr = (DG_FP *)dat->data;
+
+  #pragma omp parallel for
+  for(int i = 0; i < dat->set->size; i++) {
+    #pragma omp unroll full
+    for(int j = 0; j < DG_NP_N1; j++) {
+      dat_d[i * DG_NP_N1 + j] = op2_dat_ptr[i * DG_NP + j];
+    }
+  }
+
+  op_mpi_set_dirtybit(1, copy_args);
+  timer->endTimer("PETScUtils - copy_dat_to_vec_coarse");
+}
+
+// Load a PETSc vector with values from an OP2 dat for CPUs
+void PETScUtils::load_vec_coarse(Vec *v, op_dat v_dat) {
+  timer->startTimer("PETScUtils - load_vec_coarse");
+  DG_FP *v_ptr;
+  VecGetArray(*v, &v_ptr);
+
+  copy_dat_to_vec_coarse(v_dat, v_ptr);
+
+  VecRestoreArray(*v, &v_ptr);
+  timer->endTimer("PETScUtils - load_vec_coarse");
+}
+
+// Load an OP2 dat with the values from a PETSc vector for CPUs
+void PETScUtils::store_vec_coarse(Vec *v, op_dat v_dat) {
+  timer->startTimer("PETScUtils - store_vec_coarse");
+  const DG_FP *v_ptr;
+  VecGetArrayRead(*v, &v_ptr);
+
+  copy_vec_to_dat_coarse(v_dat, v_ptr);
+
+  VecRestoreArrayRead(*v, &v_ptr);
+  timer->endTimer("PETScUtils - store_vec_coarse");
+}

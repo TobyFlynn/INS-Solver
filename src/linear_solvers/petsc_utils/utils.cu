@@ -225,3 +225,55 @@ void PETScUtils::store_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh *mesh) {
   VecCUDARestoreArrayRead(*v, &v_ptr);
   timer->endTimer("PETScUtils - store_vec_p_adapt");
 }
+
+// Copy PETSc vec array to OP2 dat
+void PETScUtils::copy_vec_to_dat_coarse(op_dat dat, const DG_FP *dat_d) {
+  timer->startTimer("PETScUtils - copy_vec_to_dat_coarse");
+  op_arg copy_args[] = {
+    op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE)
+  };
+  op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
+
+  cudaMemcpy2D(dat->data_d, DG_NP * sizeof(DG_FP), dat_d, DG_NP_N1 * sizeof(DG_FP), DG_NP_N1 * sizeof(DG_FP), dat->set->size, cudaMemcpyDeviceToDevice);
+
+  op_mpi_set_dirtybit_cuda(1, copy_args);
+  timer->endTimer("PETScUtils - copy_vec_to_dat_coarse");
+}
+
+// Copy OP2 dat to PETSc vec array
+void PETScUtils::copy_dat_to_vec_coarse(op_dat dat, DG_FP *dat_d) {
+  timer->startTimer("PETScUtils - copy_dat_to_vec");
+  op_arg copy_args[] = {
+    op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ)
+  };
+  op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
+
+  cudaMemcpy2D(dat_d, DG_NP_N1 * sizeof(DG_FP), dat->data_d, DG_NP * sizeof(DG_FP), DG_NP_N1 * sizeof(DG_FP), dat->set->size, cudaMemcpyDeviceToDevice);
+
+  op_mpi_set_dirtybit_cuda(1, copy_args);
+  timer->endTimer("PETScUtils - copy_dat_to_vec");
+}
+
+// Load a PETSc vector with values from an OP2 dat for CPUs
+void PETScUtils::load_vec_coarse(Vec *v, op_dat v_dat) {
+  timer->startTimer("PETScUtils - load_vec_coarse");
+  DG_FP *v_ptr;
+  VecCUDAGetArray(*v, &v_ptr);
+
+  copy_dat_to_vec_coarse(v_dat, v_ptr);
+
+  VecCUDARestoreArray(*v, &v_ptr);
+  timer->endTimer("PETScUtils - load_vec_coarse");
+}
+
+// Load an OP2 dat with the values from a PETSc vector for CPUs
+void PETScUtils::store_vec_coarse(Vec *v, op_dat v_dat) {
+  timer->startTimer("PETScUtils - store_vec_coarse");
+  const DG_FP *v_ptr;
+  VecCUDAGetArrayRead(*v, &v_ptr);
+
+  copy_vec_to_dat_coarse(v_dat, v_ptr);
+
+  VecCUDARestoreArrayRead(*v, &v_ptr);
+  timer->endTimer("PETScUtils - store_vec_coarse");
+}

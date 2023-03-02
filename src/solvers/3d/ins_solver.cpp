@@ -326,7 +326,6 @@ void INSSolver3D::pressure() {
 
   timer->startTimer("INSSolver3D - Pressure Linear Solve");
   pressureMatrix->set_bc_types(pr_bc_types);
-  pressureMatrix->calc_mat();
   pressureSolver->set_bcs(pr_bc);
   bool converged = pressureSolver->solve(divVelT, pr);
   // if(!converged)
