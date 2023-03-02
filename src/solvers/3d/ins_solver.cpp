@@ -101,16 +101,19 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
   currentInd = 0;
 
   // pressureMatrix = new PoissonMatrix3D(mesh);
+  pressureCoarseMatrix = new PoissonCoarseMatrix3D(mesh);
   pressureMatrix = new PoissonSemiMatrixFree3D(mesh);
   // viscosityMatrix = new MMPoissonMatrix3D(mesh);
   viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
   // pressureSolver = new PETScAMGSolver(mesh);
-  pressureSolver = new PETScPMultigrid(mesh);
+  PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
   // pressureSolver = new PMultigridPoissonSolver(mesh);
   // viscositySolver = new PETScBlockJacobiSolver(mesh);
   // viscositySolver = new PETScAMGSolver(mesh);
   viscositySolver = new PETScInvMassSolver(mesh);
 
+  tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
+  pressureSolver = tmp_pressureSolver;
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(true);
   viscositySolver->set_matrix(viscosityMatrix);
@@ -118,6 +121,7 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
 }
 
 INSSolver3D::~INSSolver3D() {
+  delete pressureCoarseMatrix;
   delete pressureMatrix;
   delete viscosityMatrix;
   delete pressureSolver;

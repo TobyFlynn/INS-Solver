@@ -7,12 +7,14 @@
 #include "petscksp.h"
 #include "linear_solver.h"
 #include "petsc_amg.h"
+#include "matrices/poisson_coarse_matrix.h"
 
 class PMultigridPoissonSolver : public LinearSolver {
 public:
   PMultigridPoissonSolver(DGMesh *m);
   ~PMultigridPoissonSolver();
 
+  void set_coarse_matrix(PoissonCoarseMatrix *c_mat);
   bool solve(op_dat rhs, op_dat ans) override;
 
   void calc_rhs(const DG_FP *u_d, DG_FP *rhs_d);
@@ -26,6 +28,9 @@ private:
 
   DGMesh *mesh;
   PETScAMGSolver *coarseSolver;
+
+  PoissonCoarseMatrix *coarseMatrix;
+  bool coarseMatCalcRequired;
 
   op_dat tmp_dat[DG_ORDER], u_dat[DG_ORDER], b_dat[DG_ORDER];
   op_dat eg_tmp_0, eg_tmp_1, rk[3], rkQ;

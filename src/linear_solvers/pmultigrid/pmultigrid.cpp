@@ -71,9 +71,13 @@ bool PMultigridPoissonSolver::solve(op_dat rhs, op_dat ans) {
 void PMultigridPoissonSolver::cycle(int order) {
   if(order == 1) {
     // u = A^-1 (F)
-    timer->startTimer("PMultigridPoissonSolver - Calc Mat");
-    matrix->calc_mat();
-    timer->endTimer("PMultigridPoissonSolver - Calc Mat");
+    if(coarseMatCalcRequired) {
+      timer->startTimer("PMultigridPoissonSolver - Calc Mat");
+      coarseMatrix->calc_mat();
+      coarseMatCalcRequired = false;
+      timer->endTimer("PMultigridPoissonSolver - Calc Mat");
+    }
+
     timer->startTimer("PMultigridPoissonSolver - Direct Solve");
     coarseSolver->solve(b_dat[order-1], u_dat[order-1]);
     timer->endTimer("PMultigridPoissonSolver - Direct Solve");
@@ -146,9 +150,13 @@ void PMultigridPoissonSolver::cycle(int order) {
   timer->endTimer("PMultigridPoissonSolver - Relaxation");
 }
 
+void PMultigridPoissonSolver::set_coarse_matrix(PoissonCoarseMatrix *c_mat) {
+  coarseMatrix = c_mat;
+  coarseSolver->set_matrix(coarseMatrix);
+  coarseMatCalcRequired = true;
+}
+
 void PMultigridPoissonSolver::setupDirectSolve() {
-  coarseSolver->set_matrix(matrix);
-  // TODO potential issue with BCs
   coarseSolver->set_bcs(bc);
   coarseSolver->set_nullspace(nullspace);
   coarseSolver->set_tol(1e-2);

@@ -1,5 +1,5 @@
-#ifndef __INS_POISSON_MATRIX_3D_H
-#define __INS_POISSON_MATRIX_3D_H
+#ifndef __INS_POISSON_COARSE_MATRIX_3D_H
+#define __INS_POISSON_COARSE_MATRIX_3D_H
 
 #include "op_seq.h"
 #include "dg_mesh/dg_mesh_3d.h"
