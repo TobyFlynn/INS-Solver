@@ -119,7 +119,9 @@ dim = sys.argv[1]
 order = sys.argv[2]
 
 dg_np        = ""
+dg_np_n1     = ""
 dg_npf       = ""
+dg_npf_n1    = ""
 dg_cub_np    = ""
 dg_g_np      = ""
 dg_gf_np     = ""
@@ -133,7 +135,9 @@ fp_type = "d"
 if dim == "2":
     order_int = int(order)
     dg_np     = str(int((order_int + 1) * (order_int + 2) / 2))
+    dg_np_n1  = str(int((1 + 1) * (1 + 2) / 2))
     dg_npf    = str(order_int + 1)
+    dg_npf_n1 = str(1 + 1)
     ls_sample_np = "10"
     dg_num_faces = "3"
     dg_num_constants = "5"
@@ -159,7 +163,9 @@ if dim == "2":
 elif dim == "3":
     order_int = int(order)
     dg_np     = str(int((order_int + 1) * (order_int + 2) * (order_int + 3) / 6))
+    dg_np_n1  = str(int((1 + 1) * (1 + 2) * (1 + 3) / 6))
     dg_npf    = str(int((order_int + 1) * (order_int + 2) / 2))
+    dg_npf_n1 = str(int((1 + 1) * (1 + 2) / 2))
     dg_num_faces = "4"
     dg_num_constants = "2"
     ls_sample_np = "13"
@@ -191,7 +197,9 @@ for f in inputfiles:
             newdata = newdata.replace("DG_FP_STR", "\"float\"")
             newdata = newdata.replace("DG_FP", "float")
             newdata = newdata.replace("DG_MPI_FP", "MPI_FLOAT")
+        newdata = newdata.replace("DG_NPF_N1", dg_npf_n1)
         newdata = newdata.replace("DG_NPF", dg_npf)
+        newdata = newdata.replace("DG_NP_N1", dg_np_n1)
         newdata = newdata.replace("DG_NP", dg_np)
         newdata = newdata.replace("DG_CUB_NP", dg_cub_np)
         newdata = newdata.replace("DG_G_NP", dg_g_np)
