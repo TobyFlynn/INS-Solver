@@ -6,8 +6,12 @@
 #include "dg_mesh/dg_mesh_3d.h"
 #include "solvers/3d/ls_solver.h"
 #include "matrices/3d/factor_poisson_matrix_3d.h"
+#include "matrices/3d/factor_poisson_coarse_matrix_3d.h"
+#include "matrices/3d/factor_poisson_semi_matrix_free_3d.h"
 #include "matrices/3d/factor_mm_poisson_matrix_3d.h"
+#include "matrices/3d/factor_mm_poisson_matrix_free_3d.h"
 #include "linear_solvers/linear_solver.h"
+#include "linear_solvers/petsc_pmultigrid.h"
 
 #include <string>
 
@@ -31,9 +35,11 @@ private:
   void shock_capturing();
 
   DGMesh3D *mesh;
-  FactorPoissonMatrix3D *pressureMatrix;
+  FactorPoissonCoarseMatrix3D *coarsePressureMatrix;
+  FactorPoissonSemiMatrixFree3D *pressureMatrix;
   FactorMMPoissonMatrix3D *viscosityMatrix;
-  LinearSolver *pressureSolver;
+  // LinearSolver *pressureSolver;
+  PETScPMultigrid *pressureSolver;
   LinearSolver *viscositySolver;
   LevelSetSolver3D *lsSolver;
   DG_FP g0, a0, a1, b0, b1, dt, time, h;

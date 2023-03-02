@@ -100,6 +100,7 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         matrices/3d/mm_poisson_matrix.cpp \
         matrices/3d/mm_poisson_matrix_free.cpp \
         matrices/3d/factor_poisson_matrix.cpp \
+        matrices/3d/factor_poisson_coarse_matrix.cpp \
         matrices/3d/factor_poisson_semi_matrix_free.cpp \
         matrices/3d/factor_poisson_matrix_free.cpp \
         matrices/3d/factor_mm_poisson_matrix.cpp \

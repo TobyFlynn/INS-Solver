@@ -10,7 +10,6 @@
 #include "utils.h"
 #include "linear_solvers/petsc_amg.h"
 #include "linear_solvers/petsc_block_jacobi.h"
-#include "linear_solvers/petsc_pmultigrid.h"
 
 #include <string>
 
@@ -108,7 +107,8 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
 
   currentInd = 0;
 
-  pressureMatrix = new FactorPoissonMatrix3D(mesh);
+  coarsePressureMatrix = new FactorPoissonCoarseMatrix3D(mesh);
+  pressureMatrix = new FactorPoissonSemiMatrixFree3D(mesh);
   viscosityMatrix = new FactorMMPoissonMatrix3D(mesh);
   // pressureSolver = new PETScAMGSolver(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
@@ -116,6 +116,7 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
   viscositySolver = new PETScBlockJacobiSolver(mesh);
   // viscositySolver = new PETScAMGSolver(mesh);
 
+  pressureSolver->set_coarse_matrix(coarsePressureMatrix);
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(true);
   viscositySolver->set_matrix(viscosityMatrix);
@@ -125,6 +126,7 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
 }
 
 MPINSSolver3D::~MPINSSolver3D() {
+  delete coarsePressureMatrix;
   delete pressureMatrix;
   delete viscosityMatrix;
   delete pressureSolver;
@@ -290,7 +292,8 @@ void MPINSSolver3D::advection() {
 }
 
 void MPINSSolver3D::pressure() {
-  mesh->div(velT[0], velT[1], velT[2], divVelT);
+  // mesh->div(velT[0], velT[1], velT[2], divVelT);
+  mesh->div_with_central_flux(velT[0], velT[1], velT[2], divVelT);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], vel[currentInd][2], curlVel[0], curlVel[1], curlVel[2]);
   // TODO potentially need to multiply curl by Mu here
   mesh->curl(curlVel[0], curlVel[1], curlVel[2], curl2Vel[0], curl2Vel[1], curl2Vel[2]);
@@ -341,8 +344,9 @@ void MPINSSolver3D::pressure() {
 
   timer->startTimer("MPINSSolver3D - Pressure Linear Solve");
   pressureMatrix->set_factor(pr_factor);
+  coarsePressureMatrix->set_factor(pr_factor);
   pressureMatrix->set_bc_types(pr_bc_types);
-  pressureMatrix->calc_mat();
+  pressureSolver->set_coarse_matrix(coarsePressureMatrix);
   pressureSolver->set_bcs(pr_bc);
   bool converged = pressureSolver->solve(divVelT, pr);
   if(!converged)
@@ -426,7 +430,7 @@ void MPINSSolver3D::viscosity() {
 
 void MPINSSolver3D::surface() {
   lsSolver->setBCTypes(bc_types);
-  lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2], dt);
+  // lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2], dt);
   lsSolver->getRhoMu(rho, mu);
 }
 
