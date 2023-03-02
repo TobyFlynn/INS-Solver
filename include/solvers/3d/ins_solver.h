@@ -6,6 +6,7 @@
 #include "dg_mesh/dg_mesh_3d.h"
 
 #include "matrices/3d/poisson_matrix_3d.h"
+#include "matrices/3d/poisson_coarse_matrix_3d.h"
 #include "matrices/3d/poisson_semi_matrix_free_3d.h"
 #include "matrices/3d/mm_poisson_matrix_3d.h"
 #include "matrices/3d/mm_poisson_matrix_free_3d.h"
@@ -33,6 +34,7 @@ private:
 
   DGMesh3D *mesh;
   // PoissonMatrix3D *pressureMatrix;
+  PoissonCoarseMatrix3D *pressureCoarseMatrix;
   PoissonSemiMatrixFree3D *pressureMatrix;
   // MMPoissonMatrix3D *viscosityMatrix;
   MMPoissonMatrixFree3D *viscosityMatrix;

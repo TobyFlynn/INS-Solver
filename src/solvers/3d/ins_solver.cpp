@@ -101,16 +101,19 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
   currentInd = 0;
 
   // pressureMatrix = new PoissonMatrix3D(mesh);
+  pressureCoarseMatrix = new PoissonCoarseMatrix3D(mesh);
   pressureMatrix = new PoissonSemiMatrixFree3D(mesh);
   // viscosityMatrix = new MMPoissonMatrix3D(mesh);
   viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
   // pressureSolver = new PETScAMGSolver(mesh);
-  pressureSolver = new PETScPMultigrid(mesh);
+  PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
   // pressureSolver = new PMultigridPoissonSolver(mesh);
   // viscositySolver = new PETScBlockJacobiSolver(mesh);
   // viscositySolver = new PETScAMGSolver(mesh);
   viscositySolver = new PETScInvMassSolver(mesh);
 
+  tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
+  pressureSolver = tmp_pressureSolver;
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(true);
   viscositySolver->set_matrix(viscosityMatrix);
@@ -118,6 +121,7 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
 }
 
 INSSolver3D::~INSSolver3D() {
+  delete pressureCoarseMatrix;
   delete pressureMatrix;
   delete viscosityMatrix;
   delete pressureSolver;
@@ -275,7 +279,8 @@ void INSSolver3D::advection() {
 
 void INSSolver3D::pressure() {
   timer->startTimer("INSSolver3D - Pressure RHS");
-  mesh->div(velT[0], velT[1], velT[2], divVelT);
+  // mesh->div(velT[0], velT[1], velT[2], divVelT);
+  mesh->div_with_central_flux(velT[0], velT[1], velT[2], divVelT);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], vel[currentInd][2], curlVel[0], curlVel[1], curlVel[2]);
   mesh->curl(curlVel[0], curlVel[1], curlVel[2], curl2Vel[0], curl2Vel[1], curl2Vel[2]);
 
@@ -321,7 +326,6 @@ void INSSolver3D::pressure() {
 
   timer->startTimer("INSSolver3D - Pressure Linear Solve");
   pressureMatrix->set_bc_types(pr_bc_types);
-  pressureMatrix->calc_mat();
   pressureSolver->set_bcs(pr_bc);
   bool converged = pressureSolver->solve(divVelT, pr);
   // if(!converged)

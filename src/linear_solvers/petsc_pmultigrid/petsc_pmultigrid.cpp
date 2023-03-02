@@ -41,6 +41,10 @@ PETScPMultigrid::~PETScPMultigrid() {
   delete pmultigridSolver;
 }
 
+void PETScPMultigrid::set_coarse_matrix(PoissonCoarseMatrix *c_mat) {
+  pmultigridSolver->set_coarse_matrix(c_mat);
+}
+
 bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
   timer->startTimer("PETScPMultigrid - solve");
   create_shell_mat();

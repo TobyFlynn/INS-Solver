@@ -25,24 +25,9 @@ inline void factor_poisson_matrix_3d_op1(const int *order, const DG_FP *dr,
   }
 
   DG_FP Dx_t[DG_NP * DG_NP], Dy_t[DG_NP * DG_NP], Dz_t[DG_NP * DG_NP];
-  for(int i = 0; i < dg_np; i++) {
-    for(int j = 0; j < dg_np; j++) {
-      // int op_ind = i + j * dg_np;
-      int op_ind = DG_MAT_IND(i, j, dg_np, dg_np);
-      Dx_t[op_ind] = 0.0;
-      Dy_t[op_ind] = 0.0;
-      Dz_t[op_ind] = 0.0;
-      for(int k = 0; k < dg_np; k++) {
-        // int a_ind = i + k * dg_np;
-        int a_ind = DG_MAT_IND(i, k, dg_np, dg_np);
-        // int b_ind = j * dg_np + k;
-        int b_ind = DG_MAT_IND(k, j, dg_np, dg_np);
-        Dx_t[op_ind] += mass_mat[a_ind] * Dx[b_ind];
-        Dy_t[op_ind] += mass_mat[a_ind] * Dy[b_ind];
-        Dz_t[op_ind] += mass_mat[a_ind] * Dz[b_ind];
-      }
-    }
-  }
+  op2_in_kernel_gemm(false, false, dg_np, dg_np, dg_np, 1.0, mass_mat, dg_np, Dx, dg_np, 0.0, Dx_t, dg_np);
+  op2_in_kernel_gemm(false, false, dg_np, dg_np, dg_np, 1.0, mass_mat, dg_np, Dy, dg_np, 0.0, Dy_t, dg_np);
+  op2_in_kernel_gemm(false, false, dg_np, dg_np, dg_np, 1.0, mass_mat, dg_np, Dz, dg_np, 0.0, Dz_t, dg_np);
 
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {

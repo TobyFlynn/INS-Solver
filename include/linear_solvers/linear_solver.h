@@ -8,7 +8,7 @@
 
 class LinearSolver {
 public:
-  void set_matrix(PoissonMatrix *mat);
+  virtual void set_matrix(PoissonMatrix *mat);
   void set_bcs(op_dat bcs);
   void set_nullspace(bool ns);
   virtual bool solve(op_dat rhs, op_dat ans) = 0;

@@ -13,6 +13,7 @@
 #include "timing.h"
 #include "solvers/3d/advection_solver.h"
 #include "solvers/3d/ins_solver.h"
+#include "solvers/3d/mp_ins_solver.h"
 
 Timing *timer;
 
@@ -73,10 +74,16 @@ int main(int argc, char **argv) {
   const DG_FP refMu  = 1.0e-5;
   r_ynolds = refRho * refVel * refLen / refMu;
 
+  int re = -1;
+  PetscOptionsGetInt(NULL, NULL, "-re", &re, &found);
+  if(re > 0) {
+    r_ynolds = (DG_FP)re;
+  }
+
   op_printf("Reynolds number: %g\n", r_ynolds);
 
   DGMesh3D *mesh = new DGMesh3D(filename);
-  INSSolver3D *ins3d = new INSSolver3D(mesh);
+  MPINSSolver3D *ins3d = new MPINSSolver3D(mesh);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 2, "int", DG_CONSTANTS);

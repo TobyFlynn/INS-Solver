@@ -55,7 +55,7 @@ inline void factor_poisson_matrix_3d_bop(const int *order, const DG_FP *dr,
 
   DG_FP gtau = 0.0;
   for(int i = 0; i < dg_npf; i++) {
-    gtau = fmax(gtau, (DG_FP)2.0 * (DG_ORDER + 1) * (DG_ORDER + 1) * *fscale * factor[fmaskB[i]]);
+    gtau = fmax(gtau, (DG_FP)2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * *fscale * factor[fmaskB[i]]);
   }
 
   for(int i = 0; i < dg_np; i++) {

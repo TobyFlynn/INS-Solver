@@ -42,6 +42,18 @@ namespace PETScUtils {
 
   void create_vec_p_adapt(Vec *v, int local_unknowns);
 
+  // Coarse stuff
+  // Copy PETSc vec array to OP2 dat
+  void copy_vec_to_dat_coarse(op_dat dat, const DG_FP *dat_d);
+
+  // Copy OP2 dat to PETSc vec array
+  void copy_dat_to_vec_coarse(op_dat dat, DG_FP *dat_d);
+
+  // Load a PETSc vector with values from an OP2 dat for CPUs
+  void load_vec_coarse(Vec *v, op_dat v_dat);
+
+  // Load an OP2 dat with the values from a PETSc vector for CPUs
+  void store_vec_coarse(Vec *v, op_dat v_dat);
 }
 
 #endif
