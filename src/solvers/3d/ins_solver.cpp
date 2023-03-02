@@ -275,7 +275,8 @@ void INSSolver3D::advection() {
 
 void INSSolver3D::pressure() {
   timer->startTimer("INSSolver3D - Pressure RHS");
-  mesh->div(velT[0], velT[1], velT[2], divVelT);
+  // mesh->div(velT[0], velT[1], velT[2], divVelT);
+  mesh->div_with_central_flux(velT[0], velT[1], velT[2], divVelT);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], vel[currentInd][2], curlVel[0], curlVel[1], curlVel[2]);
   mesh->curl(curlVel[0], curlVel[1], curlVel[2], curl2Vel[0], curl2Vel[1], curl2Vel[2]);
 
