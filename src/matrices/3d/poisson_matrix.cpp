@@ -8,35 +8,33 @@
 extern DGConstants *constants;
 extern Timing *timer;
 
-PoissonMatrix3D::PoissonMatrix3D(DGMesh3D *m, bool init_mat_dats) {
+PoissonMatrix3D::PoissonMatrix3D(DGMesh3D *m) {
   mesh = m;
   _mesh = m;
 
-  if(init_mat_dats) {
-    DG_FP *data_t0 = (DG_FP *)calloc(DG_NP * DG_NP * mesh->cells->size, sizeof(DG_FP));
-    op1 = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, data_t0, "poisson_matrix_op1");
-    free(data_t0);
+  DG_FP *data_t0 = (DG_FP *)calloc(DG_NP * DG_NP * mesh->cells->size, sizeof(DG_FP));
+  op1 = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, data_t0, "poisson_matrix_op1");
+  free(data_t0);
 
-    DG_FP *data_t1 = (DG_FP *)calloc(DG_NP * DG_NP * mesh->faces->size, sizeof(DG_FP));
-    op2[0] = op_decl_dat(mesh->faces, DG_NP * DG_NP, DG_FP_STR, data_t1, "poisson_matrix_op20");
-    op2[1] = op_decl_dat(mesh->faces, DG_NP * DG_NP, DG_FP_STR, data_t1, "poisson_matrix_op21");
-    free(data_t1);
+  DG_FP *data_t1 = (DG_FP *)calloc(DG_NP * DG_NP * mesh->faces->size, sizeof(DG_FP));
+  op2[0] = op_decl_dat(mesh->faces, DG_NP * DG_NP, DG_FP_STR, data_t1, "poisson_matrix_op20");
+  op2[1] = op_decl_dat(mesh->faces, DG_NP * DG_NP, DG_FP_STR, data_t1, "poisson_matrix_op21");
+  free(data_t1);
 
-    DG_FP *data_t2 = (DG_FP *)calloc(DG_NP * DG_NPF * mesh->bfaces->size, sizeof(DG_FP));
-    opbc = op_decl_dat(mesh->bfaces, DG_NP * DG_NPF, DG_FP_STR, data_t2, "poisson_matrix_opbc");
-    free(data_t2);
+  DG_FP *data_t2 = (DG_FP *)calloc(DG_NP * DG_NPF * mesh->bfaces->size, sizeof(DG_FP));
+  opbc = op_decl_dat(mesh->bfaces, DG_NP * DG_NPF, DG_FP_STR, data_t2, "poisson_matrix_opbc");
+  free(data_t2);
 
-    int *data_t3 = (int *)calloc(mesh->cells->size, sizeof(int));
-    glb_ind = op_decl_dat(mesh->cells, 1, "int", data_t3, "poisson_matrix_glb_ind");
-    free(data_t3);
+  int *data_t3 = (int *)calloc(mesh->cells->size, sizeof(int));
+  glb_ind = op_decl_dat(mesh->cells, 1, "int", data_t3, "poisson_matrix_glb_ind");
+  free(data_t3);
 
-    int *data_t4 = (int *)calloc(mesh->faces->size, sizeof(int));
-    glb_indL = op_decl_dat(mesh->faces, 1, "int", data_t4, "poisson_matrix_glb_indL");
-    glb_indR = op_decl_dat(mesh->faces, 1, "int", data_t4, "poisson_matrix_glb_indR");
-    orderL  = op_decl_dat(mesh->faces, 1, "int", data_t4, "poisson_orderL");
-    orderR  = op_decl_dat(mesh->faces, 1, "int", data_t4, "poisson_orderR");
-    free(data_t4);
-  }
+  int *data_t4 = (int *)calloc(mesh->faces->size, sizeof(int));
+  glb_indL = op_decl_dat(mesh->faces, 1, "int", data_t4, "poisson_matrix_glb_indL");
+  glb_indR = op_decl_dat(mesh->faces, 1, "int", data_t4, "poisson_matrix_glb_indR");
+  orderL  = op_decl_dat(mesh->faces, 1, "int", data_t4, "poisson_orderL");
+  orderR  = op_decl_dat(mesh->faces, 1, "int", data_t4, "poisson_orderR");
+  free(data_t4);
 }
 
 void PoissonMatrix3D::calc_mat() {

@@ -8,7 +8,7 @@
 extern DGConstants *constants;
 extern Timing *timer;
 
-FactorPoissonMatrix3D::FactorPoissonMatrix3D(DGMesh3D *m, bool init_mat_dats) : PoissonMatrix3D(m, init_mat_dats) {
+FactorPoissonMatrix3D::FactorPoissonMatrix3D(DGMesh3D *m) : PoissonMatrix3D(m) {
 
 }
 

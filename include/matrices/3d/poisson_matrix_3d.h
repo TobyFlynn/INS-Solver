@@ -7,7 +7,7 @@
 
 class PoissonMatrix3D : public PoissonMatrix {
 public:
-  PoissonMatrix3D(DGMesh3D *m, bool init_mat_dats = true);
+  PoissonMatrix3D(DGMesh3D *m);
 
   // op_dat bc_types - 0 for Dirichlet, 1 for Neumann
   virtual void calc_mat() override;

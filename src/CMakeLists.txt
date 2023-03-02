@@ -19,6 +19,7 @@ list(APPEND LINEAR_SOLVER_GPU_SRC linear_solvers/petsc_inv_mass/petsc_inv_mass_g
 set(ALL_DIM_SRC timing.cpp matrices_op/poisson_matrix_op.cpp)
 list(APPEND ALL_DIM_SRC matrices_op/poisson_coarse_matrix_op.cpp)
 list(APPEND ALL_DIM_SRC matrices_op/poisson_semi_matrix_free_op.cpp)
+list(APPEND ALL_DIM_SRC matrices/poisson_matrix_free.cpp)
 
 set(ALL_DIM_CPU_SRC utils.cpp matrices/poisson_matrix_cpu.cpp)
 list(APPEND ALL_DIM_CPU_SRC matrices/poisson_coarse_matrix_cpu.cpp)

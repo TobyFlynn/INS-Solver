@@ -16,7 +16,7 @@ inline void fpmf_3d_mult_faces(const int **order, const int *faceNum, const int 
 
   DG_FP gtau = 0.0;
   for(int j = 0; j < dg_npf; j++) {
-    DG_FP tmp = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 1) * fmax(fscale[0] * factor[0][fmaskL[j]], fscale[1] * factor[1][fmaskR_corrected[j]]);
+    DG_FP tmp = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(fscale[0] * factor[0][fmaskL[j]], fscale[1] * factor[1][fmaskR_corrected[j]]);
     gtau = fmax(gtau, tmp);
   }
 

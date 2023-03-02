@@ -3,17 +3,23 @@
 
 #include "op_seq.h"
 #include "dg_mesh/dg_mesh_3d.h"
-#include "factor_poisson_matrix_3d.h"
+#include "poisson_semi_matrix_free_3d.h"
 
-class FactorPoissonSemiMatrixFree3D : public FactorPoissonMatrix3D {
+class FactorPoissonSemiMatrixFree3D : public PoissonSemiMatrixFree3D {
 public:
-  FactorPoissonSemiMatrixFree3D(DGMesh3D *m, bool init_mat_dats = true);
+  FactorPoissonSemiMatrixFree3D(DGMesh3D *m);
 
   // op_dat bc_types - 0 for Dirichlet, 1 for Neumann
+  virtual void apply_bc(op_dat rhs, op_dat bc) override;
   virtual void mult(op_dat in, op_dat out) override;
+  void set_factor(op_dat f);
 
 protected:
-  op_dat in_grad[3], tmp_npf[4], l[3];
+  virtual void calc_op1() override;
+  virtual void calc_op2() override;
+  virtual void calc_opbc() override;
+
+  op_dat factor;
 };
 
 #endif
