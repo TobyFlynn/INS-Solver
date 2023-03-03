@@ -18,7 +18,6 @@ public:
   op_dat pFluxX, pFluxY, visRHS[2], prBC, visBC[2], vorticity, save_temp;
   op_dat rho, mu;
   op_dat tmp_dg_np[10], tmp_dg_g_np[4];
-  op_dat body_f[2];
 
   DGMesh *mesh;
 private:
@@ -28,7 +27,6 @@ private:
   double *rho_data, *mu_data;
   double *tmp_dg_np_data[10], *tmp_dg_g_np_data[4];
   int *new_order_data;
-  double *body_f_data[2];
 };
 
 #endif

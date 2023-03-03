@@ -186,10 +186,6 @@ void Solver::advection(int currentInd, double a0, double a1, double b0,
               op_arg_dat(data->N[currentInd][1], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->N[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(data->N[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(ls->surf_ten_x, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(ls->surf_ten_y, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(data->body_f[0], -1, OP_ID, DG_NP, "double", OP_RW),
-              op_arg_dat(data->body_f[1], -1, OP_ID, DG_NP, "double", OP_RW),
               op_arg_dat(data->QT[0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(data->QT[1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 }

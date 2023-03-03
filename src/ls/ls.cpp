@@ -40,9 +40,6 @@ LS::LS(DGMesh *m, INSData *d) {
   s_sample_x_data = (double *)calloc(LS_SAMPLE_NP * mesh->numCells, sizeof(double));
   s_sample_y_data = (double *)calloc(LS_SAMPLE_NP * mesh->numCells, sizeof(double));
 
-  surf_ten_x_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-  surf_ten_y_data = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
-
   gInput = op_decl_dat(mesh->cells, DG_G_NP, "double", gInput_data, "gInput");
 
   s      = op_decl_dat(mesh->cells, DG_NP, "double", s_data, "s");
@@ -54,9 +51,6 @@ LS::LS(DGMesh *m, INSData *d) {
 
   s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", s_sample_x_data, "s_sample_x");
   s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, "double", s_sample_y_data, "s_sample_y");
-
-  surf_ten_x = op_decl_dat(mesh->cells, DG_NP, "double", surf_ten_x_data, "surf_ten_x");
-  surf_ten_y = op_decl_dat(mesh->cells, DG_NP, "double", surf_ten_y_data, "surf_ten_y");
 }
 
 LS::~LS() {
@@ -71,9 +65,6 @@ LS::~LS() {
 
   free(s_sample_x_data);
   free(s_sample_y_data);
-
-  free(surf_ten_x_data);
-  free(surf_ten_y_data);
 }
 
 void LS::init() {
@@ -97,10 +88,6 @@ void LS::init() {
   nFlux   = data->tmp_dg_g_np[1];
   gU      = data->tmp_dg_g_np[2];
   gV      = data->tmp_dg_g_np[3];
-
-  gS     = data->tmp_dg_g_np[0];
-  sFluxX = data->tmp_dg_g_np[1];
-  sFluxY = data->tmp_dg_g_np[2];
 
   op_par_loop(init_surface, "init_surface", mesh->cells,
               op_arg_dat(mesh->x, -1, OP_ID, DG_NP, "double", OP_READ),
@@ -308,38 +295,5 @@ void LS::update_values() {
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
   grad(mesh, s, nx, ny);
 
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, s, 0.0, gS);
-
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
-              op_arg_dat(sFluxX, -1, OP_ID, DG_G_NP, "double", OP_WRITE),
-              op_arg_dat(sFluxY, -1, OP_ID, DG_G_NP, "double", OP_WRITE));
-
-  op_par_loop(s_grad_flux, "s_grad_flux", mesh->edges,
-              op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(mesh->gauss->nx, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->ny, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(mesh->gauss->sJ, -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(gS,     -2, mesh->edge2cells, DG_G_NP, "double", OP_READ),
-              op_arg_dat(sFluxX, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC),
-              op_arg_dat(sFluxY, -2, mesh->edge2cells, DG_G_NP, "double", OP_INC));
-
-  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, sFluxX, 1.0, nx);
-  op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, sFluxY, 1.0, ny);
-
-  op_par_loop(normalise_normals, "normalise_normals", mesh->cells,
-              op_arg_dat(nx, -1, OP_ID, DG_NP, "double", OP_RW),
-              op_arg_dat(ny, -1, OP_ID, DG_NP, "double", OP_RW));
-
   div(mesh, nx, ny, curv);
-  
-  // TODO flux for div
-
-  op_par_loop(calc_surf_ten, "calc_surf_ten", mesh->cells,
-              op_arg_dat(nx, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(ny, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(curv, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(diracDelta, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(surf_ten_x, -1, OP_ID, DG_NP, "double", OP_WRITE),
-              op_arg_dat(surf_ten_y, -1, OP_ID, DG_NP, "double", OP_WRITE));
 }

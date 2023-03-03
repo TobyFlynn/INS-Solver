@@ -1,6 +1,6 @@
-#include "op_seq.h"
-
 #include "ins_data.h"
+
+#include "op_seq.h"
 
 #include <string>
 #include <memory>
@@ -29,7 +29,6 @@ INSData::INSData(DGMesh *m) {
     N_data[0][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
     N_data[1][i]   = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
     dPdN_data[i]   = (double *)calloc(3 * DG_NPF * mesh->numCells, sizeof(double));
-    body_f_data[i] = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   }
   p_data         = (double *)calloc(DG_NP * mesh->numCells, sizeof(double));
   prBC_data      = (double *)calloc(DG_G_NP * mesh->numCells, sizeof(double));
@@ -63,8 +62,6 @@ INSData::INSData(DGMesh *m) {
     N[1][i]     = op_decl_dat(mesh->cells, DG_NP, "double", N_data[1][i], name.c_str());
     name        = "dPdN" + to_string(i);
     dPdN[i]     = op_decl_dat(mesh->cells, 3 * DG_NPF, "double", dPdN_data[i], name.c_str());
-    name        = "body_f" + to_string(i);
-    body_f[i]   = op_decl_dat(mesh->cells, DG_NP, "double", body_f_data[i], name.c_str());
   }
   p         = op_decl_dat(mesh->cells, DG_NP, "double", p_data, "p");
   prBC      = op_decl_dat(mesh->cells, DG_G_NP, "double", prBC_data, "prBC");
@@ -75,7 +72,6 @@ INSData::INSData(DGMesh *m) {
   mu        = op_decl_dat(mesh->cells, DG_NP, "double", mu_data, "mu");
 
   op_decl_const(1, "double", &reynolds);
-  op_decl_const(1, "double", &weber);
   op_decl_const(1, "double", &mu0);
   op_decl_const(1, "double", &mu1);
   op_decl_const(1, "double", &rho0);
@@ -104,7 +100,6 @@ INSData::~INSData() {
     free(N_data[0][i]);
     free(N_data[1][i]);
     free(dPdN_data[i]);
-    free(body_f_data[i]);
   }
   free(p_data);
   free(prBC_data);
