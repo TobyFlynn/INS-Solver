@@ -1,0 +1,12 @@
+inline void mp_ins_advec_intermediate_vel_2d(const DG_FP *a0, const DG_FP *a1,
+                    const DG_FP *b0, const DG_FP *b1, const DG_FP *dt,
+                    const DG_FP *q0, const DG_FP *q1, const DG_FP *q0Old,
+                    const DG_FP *q1Old, const DG_FP *N0, const DG_FP *N1,
+                    const DG_FP *N0Old, const DG_FP *N1Old, const DG_FP *Fx,
+                    const DG_FP *Fy, const DG_FP *FxOld, const DG_FP *FyOld,
+                    DG_FP *q0T, DG_FP *q1T) {
+  for(int i = 0; i < DG_NP; i++) {
+    q0T[i] = (*a0 * q0[i] + *a1 * q0Old[i]) - *dt * (*b0 * (N0[i] + Fx[i]) + *b1 * (N0Old[i] + FxOld[i]));
+    q1T[i] = (*a0 * q1[i] + *a1 * q1Old[i]) - *dt * (*b0 * (N1[i] + Fy[i]) + *b1 * (N1Old[i] + FyOld[i]));
+  }
+}

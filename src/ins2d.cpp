@@ -19,7 +19,7 @@ Timing *timer;
 using namespace std;
 
 // Global constants
-DG_FP r_ynolds, mu0, mu1, rho0, rho1, gamma_e;
+DG_FP r_ynolds, mu0, mu1, rho0, rho1, gamma_e, weber;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 1);
@@ -71,20 +71,25 @@ int main(int argc, char **argv) {
   const DG_FP refVel = 1.0;
   const DG_FP refLen = 0.005;
   const DG_FP refMu  = 1.0e-5;
+  const DG_FP refSurfTen = 0.0756;
+
   r_ynolds = refRho * refVel * refLen / refMu;
+  weber = refRho * refVel * refLen / refSurfTen;
 
   int re = -1;
   PetscOptionsGetInt(NULL, NULL, "-re", &re, &found);
   if(re > 0) {
     r_ynolds = (DG_FP)re;
   }
-  op_printf("Re: %g\n", r_ynolds);
+  op_printf("\n\nRe: %g\n", r_ynolds);
+  op_printf("Weber: %g\n\n", weber);
 
   // For 2D compressible Euler
   gamma_e = 1.4;
 
   DGMesh2D *mesh = new DGMesh2D(filename);
-  INSSolver2D *mpins2d = new INSSolver2D(mesh);
+  // INSSolver2D *mpins2d = new INSSolver2D(mesh);
+  MPINSSolver2D *mpins2d = new MPINSSolver2D(mesh);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
@@ -99,6 +104,7 @@ int main(int argc, char **argv) {
   op_decl_const(1, DG_FP_STR, &rho0);
   op_decl_const(1, DG_FP_STR, &rho1);
   op_decl_const(1, DG_FP_STR, &gamma_e);
+  op_decl_const(1, DG_FP_STR, &weber);
 
   timer->startTimer("OP2 Partitioning");
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);

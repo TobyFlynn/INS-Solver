@@ -20,6 +20,7 @@ public:
   void step(DG_FP dt);
   void getRhoMu(op_dat rho, op_dat mu);
   void getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv);
+  void getDiracDelta(op_dat delta);
 
   DGMesh2D *mesh;
 

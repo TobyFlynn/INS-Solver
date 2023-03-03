@@ -151,6 +151,15 @@ void LevelSetSolver2D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv) {
   timer->endTimer("LevelSetSolver2D - getNormalsCurvature");
 }
 
+void LevelSetSolver2D::getDiracDelta(op_dat delta) {
+  timer->startTimer("LevelSetSolver2D - getDiracDelta");
+  op_par_loop(ls_delta, "ls_delta", mesh->cells,
+              op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
+              op_arg_dat(s,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(delta, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  timer->endTimer("LevelSetSolver2D - getDiracDelta");
+}
+
 void LevelSetSolver2D::sampleInterface() {
   timer->startTimer("LevelSetSolver2D - sampleInterface");
   op_par_loop(sample_interface, "sample_interface", mesh->cells,

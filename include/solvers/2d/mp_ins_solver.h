@@ -20,6 +20,8 @@ public:
   void init(const DG_FP re, const DG_FP refVel);
   void step();
 
+  DG_FP get_time();
+  DG_FP get_dt();
   void dump_data(const std::string &filename);
 
   DGMesh2D *mesh;
@@ -45,6 +47,7 @@ private:
   op_dat tmp_g_np[5], gVel[2], gAdvecFlux[2], gN[2], gGradCurl[2], gRho, prBC;
   op_dat visBC[2];
   op_dat bc_types, pr_bc_types, vis_bc_types;
+  op_dat force[2][2], ls_nx, ls_ny, ls_curv, ls_delta;
 };
 
 #endif

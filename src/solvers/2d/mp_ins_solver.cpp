@@ -50,6 +50,10 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
     n[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
     name = "mp_ins_solver_n1" + std::to_string(i);
     n[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    name = "mp_ins_solver_force0" + std::to_string(i);
+    force[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    name = "mp_ins_solver_force1" + std::to_string(i);
+    force[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
     name = "mp_ins_solver_velT" + std::to_string(i);
     velT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
     name = "mp_ins_solver_velTT" + std::to_string(i);
@@ -94,6 +98,10 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
   visRHS[0] = tmp_np[0];
   visRHS[1] = tmp_np[1];
   vis_mat_mm_fact = tmp_np[2];
+  ls_nx    = tmp_np[0];
+  ls_ny    = tmp_np[1];
+  ls_curv  = tmp_np[2];
+  ls_delta = tmp_np[3];
 
   gVel[0] = tmp_g_np[0];
   gVel[1] = tmp_g_np[1];
@@ -247,7 +255,7 @@ void MPINSSolver2D::advection() {
   op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, gAdvecFlux[1], 1.0, n[currentInd][1]);
 
   // Calculate the intermediate velocity values
-  op_par_loop(ins_advec_intermediate_vel_2d, "ins_advec_intermediate_vel_2d", mesh->cells,
+  op_par_loop(mp_ins_advec_intermediate_vel_2d, "mp_ins_advec_intermediate_vel_2d", mesh->cells,
               op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
@@ -261,6 +269,10 @@ void MPINSSolver2D::advection() {
               op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(force[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(force[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(force[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(force[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 }
@@ -268,7 +280,8 @@ void MPINSSolver2D::advection() {
 bool MPINSSolver2D::pressure() {
   timer->startTimer("MPINSSolver2D - Pressure RHS");
 
-  mesh->div(velT[0], velT[1], divVelT);
+  // mesh->div(velT[0], velT[1], divVelT);
+  mesh->cub_div_with_central_flux(velT[0], velT[1], divVelT);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel);
   mesh->grad(curlVel, gradCurlVel[0], gradCurlVel[1]);
 
@@ -333,7 +346,8 @@ bool MPINSSolver2D::pressure() {
 
   timer->startTimer("MPINSSolver2D - Pressure Projection");
   // Calculate gradient of pressure
-  mesh->grad_with_central_flux(pr, dpdx, dpdy);
+  // mesh->grad_with_central_flux(pr, dpdx, dpdy);
+  mesh->cub_grad_with_central_flux(pr, dpdx, dpdy);
 
   // Calculate new velocity intermediate values
   op_par_loop(mp_ins_pressure_update_2d, "mp_ins_pressure_update_2d", mesh->cells,
@@ -422,6 +436,17 @@ void MPINSSolver2D::surface() {
   ls->setVelField(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1]);
   ls->step(dt);
   ls->getRhoMu(rho, mu);
+  ls->getNormalsCurvature(ls_nx, ls_ny, ls_curv);
+  ls->getDiracDelta(ls_delta);
+/*
+  op_par_loop(mp_ins_surf_ten_2d, "mp_ins_surf_ten_2d", mesh->cells,
+              op_arg_dat(ls_nx, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_ny, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_curv, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_delta, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(force[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(force[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
+*/
 }
 
 // DG_FP MPINSSolver2D::getAvgPressureConvergance() {
@@ -431,6 +456,14 @@ void MPINSSolver2D::surface() {
 // DG_FP MPINSSolver2D::getAvgViscosityConvergance() {
 //   return viscosityPoisson->getAverageConvergeIter();
 // }
+
+DG_FP MPINSSolver2D::get_time() {
+  return time;
+}
+
+DG_FP MPINSSolver2D::get_dt() {
+  return dt;
+}
 
 void MPINSSolver2D::dump_data(const std::string &filename) {
   timer->startTimer("MPINSSolver2D - Dump Data");
