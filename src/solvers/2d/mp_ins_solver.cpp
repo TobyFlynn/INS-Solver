@@ -7,12 +7,14 @@
 #include <limits>
 
 #include "dg_op2_blas.h"
+#include "dg_constants/dg_constants.h"
 
 #include "timing.h"
 #include "linear_solvers/petsc_amg.h"
 #include "linear_solvers/petsc_block_jacobi.h"
 
 extern Timing *timer;
+extern DGConstants *constants;
 
 using namespace std;
 
@@ -83,6 +85,18 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
   vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", bc_1_data, "ins_solver_vis_bc_types");
   free(bc_1_data);
 
+  DG_FP *tmp_np_np = (DG_FP *)calloc(DG_NP * DG_NP * mesh->cells->size, sizeof(DG_FP));
+  proj_op_xx = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, tmp_np_np, "proj_op_xx");
+  proj_op_yy = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, tmp_np_np, "proj_op_yy");
+  proj_op_xy = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, tmp_np_np, "proj_op_xy");
+  proj_op_yx = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, tmp_np_np, "proj_op_yx");
+  free(tmp_np_np);
+
+  DG_FP *tmp_DG_FP_1 = (DG_FP *)calloc(mesh->cells->size, sizeof(DG_FP));
+  proj_pen = op_decl_dat(mesh->cells, 1, DG_FP_STR, tmp_DG_FP_1, "proj_pen");
+  proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, tmp_DG_FP_1, "proj_h");
+  free(tmp_DG_FP_1);
+
   f[0] = tmp_np[0];
   f[1] = tmp_np[1];
   f[2] = tmp_np[2];
@@ -95,6 +109,8 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
   pr_mat_fact = tmp_np[2];
   dpdx = tmp_np[1];
   dpdy = tmp_np[2];
+  proj_rhs_x = tmp_np[0];
+  proj_rhs_y = tmp_np[3];
   visRHS[0] = tmp_np[0];
   visRHS[1] = tmp_np[1];
   vis_mat_mm_fact = tmp_np[2];
@@ -166,6 +182,25 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   }
 
   ls->getRhoMu(rho, mu);
+
+  // Setup div-div pressure projection
+  op_par_loop(project_2d_setup, "project_2d_setup", mesh->cells,
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->rx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ry, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(proj_op_xx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(proj_op_yy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(proj_op_yx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(proj_op_xy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
+
+  op_par_loop(poisson_h, "poisson_h", mesh->cells,
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
   timer->endTimer("MPINSSolver2D - Init");
 }
@@ -345,24 +380,84 @@ bool MPINSSolver2D::pressure() {
   timer->endTimer("MPINSSolver2D - Pressure Linear Solve");
 
   timer->startTimer("MPINSSolver2D - Pressure Projection");
-  // Calculate gradient of pressure
-  // mesh->grad_with_central_flux(pr, dpdx, dpdy);
-  mesh->cub_grad_with_central_flux(pr, dpdx, dpdy);
 
-  // Calculate new velocity intermediate values
-  op_par_loop(mp_ins_pressure_update_2d, "mp_ins_pressure_update_2d", mesh->cells,
-              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
+  project_velocity();
 
   timer->endTimer("MPINSSolver2D - Pressure Projection");
   return converged;
+}
+
+void MPINSSolver2D::project_velocity() {
+  // Calculate gradient of pressure
+  mesh->cub_grad_with_central_flux(pr, dpdx, dpdy);
+
+  if(true) {
+    // Calculate new velocity intermediate values
+    op_par_loop(mp_ins_pressure_update_2d, "mp_ins_pressure_update_2d", mesh->cells,
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
+  } else {
+    // Calculate new velocity intermediate values
+    op_par_loop(mp_project_2d_0, "mp_project_2d_0", mesh->cells,
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->J, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(proj_rhs_x, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(proj_rhs_y, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
+
+    mesh->mass(proj_rhs_x);
+    mesh->mass(proj_rhs_y);
+
+    DG_FP factor = dt * 1.0;
+    // DG_FP factor = dt / Cr;
+    // op_printf("Cr: %g\n", Cr);
+    op_par_loop(project_2d_pen, "project_2d_pen", mesh->cells,
+                op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_pen, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+
+    // Do the 2 vector linear solve with project_mat as the matrix
+    int num_cells = 0;
+    int num_converge = 0;
+    DG_FP num_iter = 0.0;
+    op_par_loop(project_2d_cg, "project_2d_cg", mesh->cells,
+                op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->J, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_op_xx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_op_yy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_op_yx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_op_xy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_pen, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_rhs_x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_rhs_y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_gbl(&num_cells, 1, "int", OP_INC),
+                op_arg_gbl(&num_converge, 1, "int", OP_INC),
+                op_arg_gbl(&num_iter, 1, DG_FP_STR, OP_INC));
+    // op_printf("%d out of %d cells converged on projection step\n", num_converge, num_cells);
+    // op_printf("Average iterations to converge on projection step %g\n", num_iter / (DG_FP)num_cells);
+    if(num_cells != num_converge) {
+      op_printf("%d out of %d cells converged on projection step\n", num_converge, num_cells);
+      exit(-1);
+    }
+  }
 }
 
 bool MPINSSolver2D::viscosity() {
