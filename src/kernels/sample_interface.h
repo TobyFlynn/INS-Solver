@@ -1,13 +1,16 @@
-inline void sample_interface(const double *x, const double *y, const double *surface,
-                             double *sample_x, double *sample_y) {
-  const double node0s = surface[0];
-  const double node1s = surface[2];
-  const double node2s = surface[5];
+inline void sample_interface(const int *p, const DG_FP *x, const DG_FP *y,
+                             const DG_FP *surface, DG_FP *sample_x, DG_FP *sample_y) {
+  const int dg_npf = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS + 1];
+  const int *fmask = &FMASK[(*p - 1) * 3 * DG_NPF];
 
-  double end0x = NAN;
-  double end0y = NAN;
-  double end1x = NAN;
-  double end1y = NAN;
+  const DG_FP node0s = surface[fmask[0]];
+  const DG_FP node1s = surface[fmask[dg_npf - 1]];
+  const DG_FP node2s = surface[fmask[2 * dg_npf - 1]];
+
+  DG_FP end0x = NAN;
+  DG_FP end0y = NAN;
+  DG_FP end1x = NAN;
+  DG_FP end1y = NAN;
 
   if((node0s > 0.0) != (node1s > 0.0)) {
     end0x = x[0] - (node0s / (node0s - node1s)) * (x[0] - x[1]);
@@ -40,11 +43,11 @@ inline void sample_interface(const double *x, const double *y, const double *sur
     return;
   }
 
-  double dist = sqrt((end1x - end0x) * (end1x - end0x) + (end1y - end0y) * (end1y - end0y));
-  double dist_per_sample = dist / (LS_SAMPLE_NP + 1.0);
-  
-  double incrementx = ((end1x - end0x) / dist) * dist_per_sample;
-  double incrementy = ((end1y - end0y) / dist) * dist_per_sample;
+  DG_FP dist = sqrt((end1x - end0x) * (end1x - end0x) + (end1y - end0y) * (end1y - end0y));
+  DG_FP dist_per_sample = dist / (LS_SAMPLE_NP + 1.0);
+
+  DG_FP incrementx = ((end1x - end0x) / dist) * dist_per_sample;
+  DG_FP incrementy = ((end1y - end0y) / dist) * dist_per_sample;
 
   for(int i = 0; i < LS_SAMPLE_NP; i++) {
     sample_x[i] = end0x + incrementx * (i + 1);

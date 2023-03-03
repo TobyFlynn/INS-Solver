@@ -12,10 +12,10 @@ using namespace std;
 void Timing::exportTimings(std::string filename, int iter, double time) {
   ofstream file(filename);
 
-  file << std::left << std::setw(30) << "Iterations:" << iter << std::endl;
-  file << std::left << std::setw(30) << "Final time:" << time << std::endl;
+  file << std::left << std::setw(col_width) << "Iterations:" << iter << std::endl;
+  file << std::left << std::setw(col_width) << "Final time:" << time << std::endl;
   for (auto it = totalTime.begin(); it != totalTime.end(); it++) {
-    file << std::left << std::setw(30) << it->first + ":" << it->second << std::endl;
+    file << std::left << std::setw(col_width) << it->first + ":" << it->second << std::endl;
   }
 
   file.close();
@@ -30,10 +30,10 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
 
   ofstream file(filename);
 
-  file << std::left << std::setw(30) << "Iterations:" << iter << std::endl;
-  file << std::left << std::setw(30) << "Final time:" << time << std::endl;
+  file << std::left << std::setw(col_width) << "Iterations:" << iter << std::endl;
+  file << std::left << std::setw(col_width) << "Final time:" << time << std::endl;
   for (auto it = totalTime.begin(); it != totalTime.end(); it++) {
-    file << std::left << std::setw(30) << it->first + ":" << it->second << std::endl;
+    file << std::left << std::setw(col_width) << it->first + ":" << it->second << std::endl;
   }
 
   file.close();

@@ -6,20 +6,13 @@ enable_language(C)
 
 # Import compiler flags for all build types
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fopenmp")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
 
 # Default OP2 location for me
 if(NOT OP2_DIR)
   message(FATAL_ERROR "OP2_DIR is not specified")
 endif()
 include_directories(${OP2_DIR}/include)
-
-# CGNS library for me
-if(NOT CGNS_DIR)
-  message(FATAL_ERROR "CGNS_DIR is not specified")
-endif()
-include_directories(${CGNS_DIR}/include)
-set(CGNS_LIB "-L${CGNS_DIR}/lib -lcgns")
 
 # OpenBLAS library for me
 if(NOT OPENBLAS_DIR)
@@ -31,7 +24,7 @@ set(OPENBLAS_LIB "-L${OPENBLAS_DIR}/lib -lopenblas")
 if(NOT PETSC_DIR)
   message(FATAL_ERROR "PETSC_DIR is not specified")
 endif()
-include_directories(${PETSC_DIR}/include)
+include_directories(${PETSC_DIR}/../include ${PETSC_DIR}/include)
 set(PETSC_LIB "-L${PETSC_DIR}/lib -lpetsc")
 
 if(BUILD_MPI)
@@ -68,16 +61,23 @@ endif()
 include_directories(${ARMA_DIR}/include)
 set(ARMA_LIB "-L${ARMA_DIR}/lib -larmadillo")
 
+if(NOT HDF5_DIR)
+  message(FATAL_ERROR "HDF5_DIR is not specified")
+endif()
+include_directories(${HDF5_DIR}/include)
+set(HDF5_LIB "-L${HDF5_DIR}/lib -lhdf5")
+
 if(BUILD_GPU)
   enable_language(CUDA)
   find_package(CUDAToolkit)
   include_directories(${CUDAToolkit_INCLUDE_DIRS})
   set(CMAKE_CUDA_COMPILER ${CUDAToolkit_NVCC_EXECUTABLE})
   set(CMAKE_CUDA_ARCHITECTURES 70 75)
-  set(CMAKE_CUDA_FLAGS "-Xcompiler -mno-float128")
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_subdirectory(tools)
-add_subdirectory(gen)
+set(DIM 2)
+add_subdirectory(gen2d)
+set(DIM 3)
+add_subdirectory(gen3d)
