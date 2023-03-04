@@ -51,7 +51,7 @@ void LevelSetSolver2D::init() {
   // alpha = 2.0 * h / DG_ORDER;
   // order_width = 2.0 * h;
   // epsilon = h / DG_ORDER;
-  alpha = 12.0 * h;
+  alpha = 20.0 * h;
   order_width = 12.0 * h;
   epsilon = h;
   reinit_width = 10.0 * h;
@@ -146,8 +146,23 @@ void LevelSetSolver2D::getRhoMu(op_dat rho, op_dat mu) {
 void LevelSetSolver2D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv) {
   timer->startTimer("LevelSetSolver2D - getNormalsCurvature");
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
-  mesh->grad(s, nx, ny);
-  mesh->div(nx, ny, curv);
+  mesh->cub_grad_with_central_flux(s, nx, ny);
+
+  op_par_loop(ls_normals, "ls_normals", mesh->cells,
+              op_arg_dat(s,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(nx, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(ny, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  mesh->cub_div_with_central_flux(nx, ny, curv);
+
+  op_par_loop(ls_normals_curv, "ls_normals_curv", mesh->cells,
+              op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
+              op_arg_dat(s,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(nx, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(ny, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(curv, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
   timer->endTimer("LevelSetSolver2D - getNormalsCurvature");
 }
 

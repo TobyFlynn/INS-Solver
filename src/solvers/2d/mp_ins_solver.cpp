@@ -182,6 +182,16 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   }
 
   ls->getRhoMu(rho, mu);
+  ls->getNormalsCurvature(ls_nx, ls_ny, ls_curv);
+  ls->getDiracDelta(ls_delta);
+
+  op_par_loop(mp_ins_surf_ten_2d, "mp_ins_surf_ten_2d", mesh->cells,
+              op_arg_dat(ls_nx, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_ny, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_curv, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_delta, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(force[0][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(force[0][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   // Setup div-div pressure projection
   op_par_loop(project_2d_setup, "project_2d_setup", mesh->cells,
@@ -533,7 +543,7 @@ void MPINSSolver2D::surface() {
   ls->getRhoMu(rho, mu);
   ls->getNormalsCurvature(ls_nx, ls_ny, ls_curv);
   ls->getDiracDelta(ls_delta);
-/*
+
   op_par_loop(mp_ins_surf_ten_2d, "mp_ins_surf_ten_2d", mesh->cells,
               op_arg_dat(ls_nx, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(ls_ny, -1, OP_ID, DG_NP, "double", OP_READ),
@@ -541,7 +551,6 @@ void MPINSSolver2D::surface() {
               op_arg_dat(ls_delta, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(force[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(force[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
-*/
 }
 
 // DG_FP MPINSSolver2D::getAvgPressureConvergance() {
@@ -562,6 +571,8 @@ DG_FP MPINSSolver2D::get_dt() {
 
 void MPINSSolver2D::dump_data(const std::string &filename) {
   timer->startTimer("MPINSSolver2D - Dump Data");
+  // ls->getDiracDelta(mu);
+  // mesh->cub_div_with_central_flux(velT[0], velT[1], divVelT);
   op_fetch_data_hdf5_file(mesh->x, filename.c_str());
   op_fetch_data_hdf5_file(mesh->y, filename.c_str());
   op_fetch_data_hdf5_file(vel[0][0], filename.c_str());
