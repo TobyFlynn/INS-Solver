@@ -212,6 +212,9 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
               op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
+  pressureMatrix->set_surface(ls->s, ls->alpha); 
+  viscosityMatrix->set_surface(ls->s, ls->alpha); 
+
   timer->endTimer("MPINSSolver2D - Init");
 }
 

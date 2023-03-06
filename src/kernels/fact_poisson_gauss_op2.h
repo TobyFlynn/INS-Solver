@@ -3,15 +3,15 @@ inline void fact_poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
                                    const DG_FP *gF1Ds, const DG_FP *gF2Dr,
                                    const DG_FP *gF2Ds, const DG_FP *gFInterp0,
                                    const DG_FP *gFInterp1, const DG_FP *gFInterp2,
-                                   const int *edgeNum, const bool *reverse,
+                                   const DG_FP *alpha, const int *edgeNum, const bool *reverse,
                                    const DG_FP **x, const DG_FP **y,
                                    const DG_FP **sJ, const DG_FP **nx,
                                    const DG_FP **ny, const DG_FP **h,
-                                   const DG_FP **factor, DG_FP *op1L,
+                                   const DG_FP **factor, const DG_FP **s, DG_FP *op1L,
                                    DG_FP *op1R, DG_FP *op2L, DG_FP *op2R) {
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
-
+  const DG_FP PI = 3.141592653589793238463;
   // Get constants
   // Using same Gauss points so should be able to replace dg_gf_npL and
   // dg_gf_npR with DG_GF_NP
@@ -167,7 +167,17 @@ inline void fact_poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
     else
       indR = edgeR * DG_GF_NP + i;
 
-    tauL[i] = 0.5 * max_hinv * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
+    DG_FP deltaL = 0.0;
+    if(fabs(s[0][indL]) < *alpha) {
+      deltaL = 0.5 * ((1.0 / *alpha) + (1.0 / *alpha) * cos(PI * s[0][indL] / *alpha));
+    }
+    DG_FP deltaR = 0.0;
+    if(fabs(s[1][indR]) < *alpha) {
+      deltaR = 0.5 * ((1.0 / *alpha) + (1.0 / *alpha) * cos(PI * s[1][indR] / *alpha));
+    }
+    DG_FP delta = 1.0 + fmax(deltaL, deltaR);
+
+    tauL[i] = 2.0 * delta * max_hinv * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
     if(tauL[i] > maxtau) maxtau = tauL[i];
   }
 
@@ -186,7 +196,18 @@ inline void fact_poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
     else
       indL = edgeL * DG_GF_NP + i;
 
-    tauR[i] = 0.5 * max_hinv * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
+    
+    DG_FP deltaL = 0.0;
+    if(fabs(s[0][indL]) < *alpha) {
+      deltaL = 0.5 * ((1.0 / *alpha) + (1.0 / *alpha) * cos(PI * s[0][indL] / *alpha));
+    }
+    DG_FP deltaR = 0.0;
+    if(fabs(s[1][indR]) < *alpha) {
+      deltaR = 0.5 * ((1.0 / *alpha) + (1.0 / *alpha) * cos(PI * s[1][indR] / *alpha));
+    }
+    DG_FP delta = 1.0 + fmax(deltaL, deltaR);
+
+    tauR[i] = 2.0 * delta * max_hinv * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
     if(tauR[i] > maxtau) maxtau = tauR[i];
   }
 

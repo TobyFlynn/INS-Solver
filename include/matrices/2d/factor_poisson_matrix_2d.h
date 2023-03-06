@@ -8,13 +8,15 @@ public:
   FactorPoissonMatrix2D(DGMesh2D *m);
 
   void set_factor(op_dat f);
+  void set_surface(op_dat surf, const DG_FP al);
 
 protected:
   virtual void calc_op1() override;
   virtual void calc_op2() override;
   virtual void calc_opbc() override;
 
-  op_dat factor, gFactor, cFactor;
+  op_dat factor, gFactor, cFactor, s, gS;
+  DG_FP alpha;
 };
 
 #endif
