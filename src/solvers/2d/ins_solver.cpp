@@ -20,27 +20,10 @@ extern DGConstants *constants;
 using namespace std;
 
 INSSolver2D::INSSolver2D(DGMesh2D *m) {
-  // Hardcoded for the periodic cylinder case
-  // int pressure_dirichlet[3] = {1, -1, -1};
-  // int pressure_neumann[3] = {0, 2, -1};
-  // int viscosity_dirichlet[3] = {0, 2, -1};
-  // int viscosity_neumann[3] = {1, -1, -1};
-
   mesh = m;
-  pressureMatrix = new PoissonMatrix2D(mesh);
-  viscosityMatrix = new MMPoissonMatrix2D(mesh);
-  pressureSolver = new PETScAMGSolver(mesh);
-  // pressureSolver = new PETScPMultigrid(mesh);
-  viscositySolver = new PETScBlockJacobiSolver(mesh);
-  pressureSolver->set_matrix(pressureMatrix);
-  pressureSolver->set_nullspace(true);
-  viscositySolver->set_matrix(viscosityMatrix);
-  viscositySolver->set_nullspace(false);
+  resuming = false;
 
-  // pressurePoisson->setDirichletBCs(pressure_dirichlet);
-  // pressurePoisson->setNeumannBCs(pressure_neumann);
-  // viscosityPoisson->setDirichletBCs(viscosity_dirichlet);
-  // viscosityPoisson->setNeumannBCs(viscosity_neumann);
+  setup_common();
 
   std::string name;
   DG_FP *dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
@@ -53,6 +36,73 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
     n[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
     name = "ins_solver_n1" + std::to_string(i);
     n[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+  }
+  pr = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ins_solver_pr");
+  free(dg_np_data);
+
+  DG_FP *g_np_data = (DG_FP *)calloc(DG_G_NP * mesh->cells->size, sizeof(DG_FP));
+  dPdN[0] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, g_np_data, "ins_solver_dPdN0");
+  dPdN[1] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, g_np_data, "ins_solver_dPdN1");
+  free(g_np_data);
+
+  currentInd = 0;
+
+  a0 = 1.0;
+  a1 = 0.0;
+  b0 = 1.0;
+  b1 = 0.0;
+  g0 = 1.0;
+}
+
+INSSolver2D::INSSolver2D(DGMesh2D *m, const std::string &filename, const int iter) {
+  mesh = m;
+  resuming = true;
+
+  setup_common();
+
+  vel[0][0] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_vel00");
+  vel[1][0] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_vel10");
+  vel[0][1] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_vel01");
+  vel[1][1] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_vel11");
+  n[0][0] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_n00");
+  n[1][0] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_n10");
+  n[0][1] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_n01");
+  n[1][1] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_n11");
+  pr = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_pr");
+  dPdN[0] = op_decl_dat_hdf5(mesh->cells, DG_G_NP, DG_FP_STR, filename.c_str(), "ins_solver_dPdN0");
+  dPdN[1] = op_decl_dat_hdf5(mesh->cells, DG_G_NP, DG_FP_STR, filename.c_str(), "ins_solver_dPdN1");
+
+  currentInd = iter;
+
+  if(iter > 0) {
+    g0 = 1.5;
+    a0 = 2.0;
+    a1 = -0.5;
+    b0 = 2.0;
+    b1 = -1.0;
+  } else {
+    a0 = 1.0;
+    a1 = 0.0;
+    b0 = 1.0;
+    b1 = 0.0;
+    g0 = 1.0;
+  }
+}
+
+void INSSolver2D::setup_common() {
+  pressureMatrix = new PoissonMatrix2D(mesh);
+  viscosityMatrix = new MMPoissonMatrix2D(mesh);
+  pressureSolver = new PETScAMGSolver(mesh);
+  // pressureSolver = new PETScPMultigrid(mesh);
+  viscositySolver = new PETScBlockJacobiSolver(mesh);
+  pressureSolver->set_matrix(pressureMatrix);
+  pressureSolver->set_nullspace(true);
+  viscositySolver->set_matrix(viscosityMatrix);
+  viscositySolver->set_nullspace(false);
+
+  std::string name;
+  DG_FP *dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+  for(int i = 0; i < 2; i++) {
     name = "ins_solver_velT" + std::to_string(i);
     velT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
     name = "ins_solver_velTT" + std::to_string(i);
@@ -62,7 +112,6 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
     name = "ins_solver_tmp_np" + std::to_string(i);
     tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
   }
-  pr  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ins_solver_pr");
   free(dg_np_data);
 
   DG_FP *g_np_data = (DG_FP *)calloc(DG_G_NP * mesh->cells->size, sizeof(DG_FP));
@@ -70,8 +119,6 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
     string name    = "tmp_g_np" + to_string(i);
     tmp_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, g_np_data, name.c_str());
   }
-  dPdN[0] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, g_np_data, "ins_solver_dPdN0");
-  dPdN[1] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, g_np_data, "ins_solver_dPdN1");
   free(g_np_data);
 
   int *bc_1_data = (int *)calloc(mesh->bfaces->size, sizeof(int));
@@ -119,15 +166,6 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
   prBC = tmp_g_np[0];
   visBC[0] = tmp_g_np[0];
   visBC[1] = tmp_g_np[1];
-
-  currentInd = 0;
-  time = 0.0;
-
-  a0 = 1.0;
-  a1 = 0.0;
-  b0 = 1.0;
-  b1 = 0.0;
-  g0 = 1.0;
 }
 
 INSSolver2D::~INSSolver2D() {
@@ -142,13 +180,15 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   reynolds = re;
 
   // Set initial conditions
-  op_par_loop(ins_2d_set_ic, "ins_2d_set_ic", mesh->cells,
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(vel[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(vel[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(vel[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  if(!resuming) {
+    op_par_loop(ins_2d_set_ic, "ins_2d_set_ic", mesh->cells,
+                op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(vel[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(vel[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(vel[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  }
 
   dt = numeric_limits<DG_FP>::max();
   op_par_loop(calc_dt, "calc_dt", mesh->cells,
@@ -157,6 +197,9 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
               op_arg_gbl(&dt, 1, DG_FP_STR, OP_MIN));
   dt = dt / (DG_ORDER * DG_ORDER * refVel);
   op_printf("dt: %g\n", dt);
+
+  time = dt * currentInd;
+  currentInd = currentInd % 2;
 
   if(mesh->bface2nodes) {
     op_par_loop(ins_bc_types, "ins_bc_types", mesh->bfaces,
@@ -502,6 +545,12 @@ void INSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(vel[0][1], filename.c_str());
   op_fetch_data_hdf5_file(vel[1][0], filename.c_str());
   op_fetch_data_hdf5_file(vel[1][1], filename.c_str());
+  op_fetch_data_hdf5_file(n[0][0], filename.c_str());
+  op_fetch_data_hdf5_file(n[0][1], filename.c_str());
+  op_fetch_data_hdf5_file(n[1][0], filename.c_str());
+  op_fetch_data_hdf5_file(n[1][1], filename.c_str());
+  op_fetch_data_hdf5_file(dPdN[0], filename.c_str());
+  op_fetch_data_hdf5_file(dPdN[1], filename.c_str());
   op_fetch_data_hdf5_file(velT[0], filename.c_str());
   op_fetch_data_hdf5_file(velT[1], filename.c_str());
   op_fetch_data_hdf5_file(velTT[0], filename.c_str());

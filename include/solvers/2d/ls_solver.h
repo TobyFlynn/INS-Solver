@@ -12,6 +12,7 @@
 class LevelSetSolver2D {
 public:
   LevelSetSolver2D(DGMesh2D *m);
+  LevelSetSolver2D(DGMesh2D *m, const std::string &filename);
   ~LevelSetSolver2D();
 
   void init();
@@ -33,6 +34,7 @@ private:
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
   int numSteps;
+  bool resuming;
 
   AdvectionSolver2D *advecSolver;
 };

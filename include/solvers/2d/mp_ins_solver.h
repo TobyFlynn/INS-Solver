@@ -15,6 +15,7 @@
 class MPINSSolver2D {
 public:
   MPINSSolver2D(DGMesh2D *m);
+  MPINSSolver2D(DGMesh2D *m, const std::string &filename, const int iter);
   ~MPINSSolver2D();
 
   void init(const DG_FP re, const DG_FP refVel);
@@ -25,6 +26,7 @@ public:
   DGMesh2D *mesh;
   LevelSetSolver2D *ls;
 private:
+  void setup_common();
   void advection();
   bool pressure();
   bool viscosity();
@@ -35,6 +37,7 @@ private:
   LinearSolver *pressureSolver;
   LinearSolver *viscositySolver;
 
+  bool resuming;
   int currentInd;
   DG_FP a0, a1, b0, b1, g0, dt, time;
   DG_FP reynolds;
