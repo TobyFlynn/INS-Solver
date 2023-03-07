@@ -12,6 +12,7 @@
 class LevelSetSolver3D {
 public:
   LevelSetSolver3D(DGMesh3D *m);
+  LevelSetSolver3D(DGMesh3D *m, const std::string &filename);
   ~LevelSetSolver3D();
 
   void init();
@@ -33,6 +34,7 @@ private:
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
   int reinit_count;
+  bool resuming;
 
   AdvectionSolver3D *advectionSolver;
 };

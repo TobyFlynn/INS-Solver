@@ -63,6 +63,20 @@ int main(int argc, char **argv) {
     outputDir += "/";
   }
 
+  int resumeIter = 0;
+  PetscOptionsGetInt(NULL, NULL, "-r_iter", &resumeIter, &found);
+  string checkpointFile;
+  if(found) {
+    // Resuming from checkpoint
+    char checkFile[255];
+    PetscOptionsGetString(NULL, NULL, "-checkpoint", checkFile, 255, &found);
+    if(!found) {
+      op_printf("Did not specify a checkpoint file after specifying iteration to resume from, use the -checkpoint flag\n");
+      return -1;
+    }
+    checkpointFile = string(checkFile);
+  }
+
   mu0  = 1.0;
   mu1  = 1.0;
   rho0 = 1.0;
@@ -83,7 +97,11 @@ int main(int argc, char **argv) {
   op_printf("Reynolds number: %g\n", r_ynolds);
 
   DGMesh3D *mesh = new DGMesh3D(filename);
-  MPINSSolver3D *ins3d = new MPINSSolver3D(mesh);
+  MPINSSolver3D *ins3d;
+  if(resumeIter == 0)
+    ins3d = new MPINSSolver3D(mesh);
+  else
+    ins3d = new MPINSSolver3D(mesh, checkpointFile, resumeIter);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 2, "int", DG_CONSTANTS);
