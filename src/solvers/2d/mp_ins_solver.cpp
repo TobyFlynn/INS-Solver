@@ -61,7 +61,7 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
     name = "mp_ins_solver_velTT" + std::to_string(i);
     velTT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
   }
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < 5; i++) {
     name = "mp_ins_solver_tmp_np" + std::to_string(i);
     tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
   }
@@ -212,8 +212,8 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
               op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
-  pressureMatrix->set_surface(ls->s, ls->alpha); 
-  viscosityMatrix->set_surface(ls->s, ls->alpha); 
+  pressureMatrix->set_surface(ls->s, ls->alpha);
+  viscosityMatrix->set_surface(ls->s, ls->alpha);
 
   timer->endTimer("MPINSSolver2D - Init");
 }
@@ -235,9 +235,9 @@ void MPINSSolver2D::step() {
   viscosity();
   timer->endTimer("MPINSSolver2D - Viscosity");
 
-  timer->startTimer("MPINSSolver2D - Surface");
-  surface();
-  timer->endTimer("MPINSSolver2D - Surface");
+  // timer->startTimer("MPINSSolver2D - Surface");
+  // surface();
+  // timer->endTimer("MPINSSolver2D - Surface");
 
   currentInd = (currentInd + 1) % 2;
   time += dt;
@@ -574,10 +574,25 @@ DG_FP MPINSSolver2D::get_dt() {
 
 void MPINSSolver2D::dump_data(const std::string &filename) {
   timer->startTimer("MPINSSolver2D - Dump Data");
-  // ls->getDiracDelta(mu);
-  // mesh->cub_div_with_central_flux(velT[0], velT[1], divVelT);
+  mesh->cub_div_with_central_flux(velT[0], velT[1], tmp_np[0]);
+  mesh->cub_grad_with_central_flux(pr, tmp_np[1], tmp_np[2]);
+  ls->getDiracDelta(tmp_np[3]);
+
+  op_par_loop(fp_pen_term, "fp_pen_term", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_gbl(&ls->alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale, -1, OP_ID, 3 * DG_NPF, DG_FP_STR, OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(ls->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_np[4], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
   op_fetch_data_hdf5_file(mesh->x, filename.c_str());
   op_fetch_data_hdf5_file(mesh->y, filename.c_str());
+  op_fetch_data_hdf5_file(tmp_np[0], filename.c_str());
+  op_fetch_data_hdf5_file(tmp_np[1], filename.c_str());
+  op_fetch_data_hdf5_file(tmp_np[2], filename.c_str());
+  op_fetch_data_hdf5_file(tmp_np[3], filename.c_str());
+  op_fetch_data_hdf5_file(tmp_np[4], filename.c_str());
   op_fetch_data_hdf5_file(vel[0][0], filename.c_str());
   op_fetch_data_hdf5_file(vel[0][1], filename.c_str());
   op_fetch_data_hdf5_file(vel[1][0], filename.c_str());

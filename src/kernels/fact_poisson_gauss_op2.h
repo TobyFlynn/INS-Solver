@@ -155,8 +155,7 @@ inline void fact_poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
   }
 
 
-  // Left edge
-  DG_FP tauL[DG_GF_NP];
+  DG_FP tauL[DG_GF_NP], tauR[DG_GF_NP];
   DG_FP maxtau = 0.0;
   DG_FP max_hinv = fmax(h[0][edgeL * dg_npfL], h[1][edgeR * dg_npfR]);
   for(int i = 0; i < DG_GF_NP; i++) {
@@ -168,47 +167,25 @@ inline void fact_poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
       indR = edgeR * DG_GF_NP + i;
 
     DG_FP deltaL = 0.0;
-    if(fabs(s[0][indL]) < *alpha) {
-      deltaL = 0.5 * ((1.0 / *alpha) + (1.0 / *alpha) * cos(PI * s[0][indL] / *alpha));
+    DG_FP minDelta = 0.5 * (PI / *alpha) * (1.0 / (cosh(PI * 1.5) * cosh(PI * 1.5)));
+    if(fabs(s[0][indL]) < 1.5 * *alpha) {
+      // deltaL = 0.5 * ((1.0 / *alpha) + (1.0 / *alpha) * cos(PI * s[0][indL] / *alpha));
+      deltaL = 0.5 * (PI / *alpha) * (1.0 / (cosh(PI * s[0][indL] / *alpha) * cosh(PI * s[0][indL] / *alpha))) - minDelta;
     }
     DG_FP deltaR = 0.0;
-    if(fabs(s[1][indR]) < *alpha) {
-      deltaR = 0.5 * ((1.0 / *alpha) + (1.0 / *alpha) * cos(PI * s[1][indR] / *alpha));
+    if(fabs(s[1][indR]) < 1.5 * *alpha) {
+      // deltaR = 0.5 * ((1.0 / *alpha) + (1.0 / *alpha) * cos(PI * s[1][indR] / *alpha));
+      deltaR = 0.5 * (PI / *alpha) * (1.0 / (cosh(PI * s[1][indR] / *alpha) * cosh(PI * s[1][indR] / *alpha))) - minDelta;
     }
-    DG_FP delta = 1.0 + fmax(deltaL, deltaR);
+    DG_FP delta = 1.0 + 1e2 * fmax(deltaL, deltaR);
+    // DG_FP delta = 1.0;
 
-    tauL[i] = 2.0 * delta * max_hinv * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
+    tauL[i] = 2.0 * max_hinv * delta * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
     if(tauL[i] > maxtau) maxtau = tauL[i];
   }
 
   for(int i = 0; i < DG_GF_NP; i++) {
     tauL[i] = maxtau;
-  }
-
-  // Right edge
-  DG_FP tauR[DG_GF_NP];
-  maxtau = 0.0;
-  for(int i = 0; i < DG_GF_NP; i++) {
-    int indR = edgeR * DG_GF_NP + i;
-    int indL;
-    if(reverse)
-      indL = edgeL * DG_GF_NP + DG_GF_NP - 1 - i;
-    else
-      indL = edgeL * DG_GF_NP + i;
-
-    
-    DG_FP deltaL = 0.0;
-    if(fabs(s[0][indL]) < *alpha) {
-      deltaL = 0.5 * ((1.0 / *alpha) + (1.0 / *alpha) * cos(PI * s[0][indL] / *alpha));
-    }
-    DG_FP deltaR = 0.0;
-    if(fabs(s[1][indR]) < *alpha) {
-      deltaR = 0.5 * ((1.0 / *alpha) + (1.0 / *alpha) * cos(PI * s[1][indR] / *alpha));
-    }
-    DG_FP delta = 1.0 + fmax(deltaL, deltaR);
-
-    tauR[i] = 2.0 * delta * max_hinv * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
-    if(tauR[i] > maxtau) maxtau = tauR[i];
   }
 
   for(int i = 0; i < DG_GF_NP; i++) {
