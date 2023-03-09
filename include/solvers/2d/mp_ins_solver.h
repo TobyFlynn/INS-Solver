@@ -48,7 +48,7 @@ private:
   op_dat tmp_g_np[5], gVel[2], gAdvecFlux[2], gN[2], gGradCurl[2], gRho, prBC;
   op_dat visBC[2];
   op_dat bc_types, pr_bc_types, vis_bc_types;
-  op_dat force[2][2], ls_nx, ls_ny, ls_curv, ls_delta;
+  op_dat force[2][2], ls_nx, ls_ny, ls_curv, ls_delta_x, ls_delta_y;
   op_dat proj_op_xx, proj_op_yy, proj_op_yx, proj_op_xy, proj_pen, proj_h, proj_rhs_x, proj_rhs_y;
 };
 

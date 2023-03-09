@@ -177,8 +177,8 @@ inline void fact_poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
       // deltaR = 0.5 * ((1.0 / *alpha) + (1.0 / *alpha) * cos(PI * s[1][indR] / *alpha));
       deltaR = 0.5 * (PI / *alpha) * (1.0 / (cosh(PI * s[1][indR] / *alpha) * cosh(PI * s[1][indR] / *alpha))) - minDelta;
     }
-    DG_FP delta = 1.0 + 1e2 * fmax(deltaL, deltaR);
-    // DG_FP delta = 1.0;
+    // DG_FP delta = 1.0 + 1e2 * fmax(deltaL, deltaR);
+    DG_FP delta = 1.0;
 
     tauL[i] = 2.0 * max_hinv * delta * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
     if(tauL[i] > maxtau) maxtau = tauL[i];

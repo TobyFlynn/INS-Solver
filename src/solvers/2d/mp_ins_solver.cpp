@@ -117,7 +117,8 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
   ls_nx    = tmp_np[0];
   ls_ny    = tmp_np[1];
   ls_curv  = tmp_np[2];
-  ls_delta = tmp_np[3];
+  ls_delta_x = tmp_np[3];
+  ls_delta_y = tmp_np[4];
 
   gVel[0] = tmp_g_np[0];
   gVel[1] = tmp_g_np[1];
@@ -183,13 +184,14 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
 
   ls->getRhoMu(rho, mu);
   ls->getNormalsCurvature(ls_nx, ls_ny, ls_curv);
-  ls->getDiracDelta(ls_delta);
+  ls->getDiracDelta(ls_delta_x, ls_delta_y);
 
   op_par_loop(mp_ins_surf_ten_2d, "mp_ins_surf_ten_2d", mesh->cells,
               op_arg_dat(ls_nx, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(ls_ny, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(ls_curv, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(ls_delta, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_delta_x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_delta_y, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(force[0][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(force[0][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
@@ -235,9 +237,9 @@ void MPINSSolver2D::step() {
   viscosity();
   timer->endTimer("MPINSSolver2D - Viscosity");
 
-  // timer->startTimer("MPINSSolver2D - Surface");
-  // surface();
-  // timer->endTimer("MPINSSolver2D - Surface");
+  timer->startTimer("MPINSSolver2D - Surface");
+  surface();
+  timer->endTimer("MPINSSolver2D - Surface");
 
   currentInd = (currentInd + 1) % 2;
   time += dt;
@@ -545,13 +547,14 @@ void MPINSSolver2D::surface() {
   ls->step(dt);
   ls->getRhoMu(rho, mu);
   ls->getNormalsCurvature(ls_nx, ls_ny, ls_curv);
-  ls->getDiracDelta(ls_delta);
+  ls->getDiracDelta(ls_delta_x, ls_delta_y);
 
   op_par_loop(mp_ins_surf_ten_2d, "mp_ins_surf_ten_2d", mesh->cells,
               op_arg_dat(ls_nx, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(ls_ny, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(ls_curv, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(ls_delta, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_delta_x, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_delta_y, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(force[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(force[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_WRITE));
 }
@@ -576,7 +579,7 @@ void MPINSSolver2D::dump_data(const std::string &filename) {
   timer->startTimer("MPINSSolver2D - Dump Data");
   mesh->cub_div_with_central_flux(velT[0], velT[1], tmp_np[0]);
   mesh->cub_grad_with_central_flux(pr, tmp_np[1], tmp_np[2]);
-  ls->getDiracDelta(tmp_np[3]);
+  ls->getDiracDelta(tmp_np[3], tmp_np[4]);
 
   op_par_loop(fp_pen_term, "fp_pen_term", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),

@@ -18,6 +18,7 @@ LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m) {
   DG_FP *tmp_ls_sample_np = (DG_FP *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(DG_FP));
 
   s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "ls_s");
+  smoothing = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "ls_smoothing"); 
   dsdx = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "ls_dsdx");
   dsdy = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "ls_dsdy");
   s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, tmp_ls_sample_np, "s_sample_x");
@@ -144,10 +145,18 @@ void LevelSetSolver2D::getRhoMu(op_dat rho, op_dat mu) {
 }
 
 void LevelSetSolver2D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv) {
+  op_par_loop(ls_smoothing, "ls_smoothing", mesh->cells,
+              op_arg_gbl(&alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(smoothing, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  mesh->cub_grad_with_central_flux(smoothing, nx, ny);
+
+/*
   timer->startTimer("LevelSetSolver2D - getNormalsCurvature");
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
   mesh->cub_grad_with_central_flux(s, nx, ny);
-
+*/
   op_par_loop(ls_normals, "ls_normals", mesh->cells,
               op_arg_dat(s,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(nx, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
@@ -163,16 +172,26 @@ void LevelSetSolver2D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv) {
               op_arg_dat(nx, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(ny, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(curv, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+/*
   timer->endTimer("LevelSetSolver2D - getNormalsCurvature");
+*/
 }
 
-void LevelSetSolver2D::getDiracDelta(op_dat delta) {
+void LevelSetSolver2D::getDiracDelta(op_dat delta_x, op_dat delta_y) {
+  op_par_loop(ls_smoothing, "ls_smoothing", mesh->cells,
+              op_arg_gbl(&alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(smoothing, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  mesh->cub_grad_with_central_flux(smoothing, delta_x, delta_y);
+/* 
   timer->startTimer("LevelSetSolver2D - getDiracDelta");
   op_par_loop(ls_delta, "ls_delta", mesh->cells,
               op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
               op_arg_dat(s,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(delta, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   timer->endTimer("LevelSetSolver2D - getDiracDelta");
+*/
 }
 
 void LevelSetSolver2D::sampleInterface() {
