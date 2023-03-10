@@ -54,6 +54,7 @@ private:
   op_dat curl2Vel[3], dPdN[2], pr_bc, pr_bc_types, dpdx, dpdy, dpdz;
   op_dat vis_bc_types, vis_bc, bc_types, pr_factor, vis_factor, vis_mm_factor;
   op_dat art_vis, shock_u, shock_u_hat, shock_u_modal;
+  op_dat visRHS[3];
 };
 
 #endif
