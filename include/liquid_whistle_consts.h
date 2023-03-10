@@ -7,5 +7,6 @@
 #define LW_NO_SLIP_WALL_BC 3
 
 #define LW_LENGTH 5.0
+#define LW_INLET_RADIUS 0.1
 
 #endif
