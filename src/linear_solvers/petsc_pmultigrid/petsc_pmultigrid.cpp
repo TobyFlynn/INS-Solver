@@ -11,6 +11,7 @@
 extern Timing *timer;
 
 PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
+  bc = nullptr;
   mesh = m;
   nullspace = false;
   pMatInit = false;
@@ -58,7 +59,6 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
   }
 
   pmultigridSolver->set_matrix(matrix);
-  pmultigridSolver->set_bcs(bc);
   pmultigridSolver->set_nullspace(nullspace);
 
   if(bc)

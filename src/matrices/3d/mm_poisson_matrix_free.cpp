@@ -13,11 +13,6 @@ MMPoissonMatrixFree3D::MMPoissonMatrixFree3D(DGMesh3D *m) : PoissonMatrixFree3D(
   factor = 0.0;
 }
 
-void MMPoissonMatrixFree3D::apply_bc(op_dat rhs, op_dat bc) {
-  if(mesh->bface2cells)
-    throw std::runtime_error("TODO implement apply_bc of MMPoissonMatrixFree3D");
-}
-
 void MMPoissonMatrixFree3D::set_factor(DG_FP f) {
   factor = f;
 }

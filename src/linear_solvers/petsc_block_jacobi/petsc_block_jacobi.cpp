@@ -13,6 +13,7 @@
 extern Timing *timer;
 
 PETScBlockJacobiSolver::PETScBlockJacobiSolver(DGMesh *m) {
+  bc = nullptr;
   nullspace = false;
   pMatInit = false;
   mesh = m;
