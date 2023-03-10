@@ -90,8 +90,8 @@ INSSolver2D::INSSolver2D(DGMesh2D *m, const std::string &filename, const int ite
 }
 
 void INSSolver2D::setup_common() {
-  pressureMatrix = new PoissonMatrix2D(mesh);
-  viscosityMatrix = new MMPoissonMatrix2D(mesh);
+  pressureMatrix = new CubPoissonMatrix2D(mesh);
+  viscosityMatrix = new CubMMPoissonMatrix2D(mesh);
   pressureSolver = new PETScAMGSolver(mesh);
   // pressureSolver = new PETScPMultigrid(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);

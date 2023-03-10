@@ -90,8 +90,8 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m, const std::string &filename, const int
 }
 
 void MPINSSolver2D::setup_common() {
-  pressureMatrix = new FactorPoissonMatrix2D(mesh);
-  viscosityMatrix = new FactorMMPoissonMatrix2D(mesh);
+  pressureMatrix = new CubFactorPoissonMatrix2D(mesh);
+  viscosityMatrix = new CubFactorMMPoissonMatrix2D(mesh);
   pressureSolver = new PETScAMGSolver(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
   pressureSolver->set_matrix(pressureMatrix);

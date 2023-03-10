@@ -1,4 +1,4 @@
-#include "matrices/2d/poisson_matrix_2d.h"
+#include "matrices/2d/cub_poisson_matrix_2d.h"
 
 #include "op_seq.h"
 
@@ -10,7 +10,7 @@
 extern Timing *timer;
 extern DGConstants *constants;
 
-PoissonMatrix2D::PoissonMatrix2D(DGMesh2D *m) {
+CubPoissonMatrix2D::CubPoissonMatrix2D(DGMesh2D *m) {
   mesh = m;
   _mesh = m;
   petscMatInit = false;
@@ -47,13 +47,13 @@ PoissonMatrix2D::PoissonMatrix2D(DGMesh2D *m) {
   free(tmp_np_np_c);
 }
 
-PoissonMatrix2D::~PoissonMatrix2D() {
+CubPoissonMatrix2D::~CubPoissonMatrix2D() {
   if(petscMatInit)
     MatDestroy(&pMat);
 }
 
-void PoissonMatrix2D::calc_mat() {
-  timer->startTimer("PoissonMatrix2D - calc_mat");
+void CubPoissonMatrix2D::calc_mat() {
+  timer->startTimer("CubPoissonMatrix2D - calc_mat");
   op_par_loop(poisson_h, "poisson_h", mesh->cells,
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
@@ -64,11 +64,11 @@ void PoissonMatrix2D::calc_mat() {
   calc_op2();
   calc_opbc();
   petscMatResetRequired = true;
-  timer->endTimer("PoissonMatrix2D - calc_mat");
+  timer->endTimer("CubPoissonMatrix2D - calc_mat");
 }
 
-void PoissonMatrix2D::calc_glb_ind() {
-  timer->startTimer("PoissonMatrix2D - calc_glb_ind");
+void CubPoissonMatrix2D::calc_glb_ind() {
+  timer->startTimer("CubPoissonMatrix2D - calc_glb_ind");
   set_glb_ind();
   op_par_loop(copy_to_edges, "copy_to_edges", mesh->faces,
               op_arg_dat(glb_ind, -2, mesh->face2cells, 1, "int", OP_READ),
@@ -89,11 +89,11 @@ void PoissonMatrix2D::calc_glb_ind() {
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),
                 op_arg_dat(orderBC, -1, OP_ID, 1, "int", OP_WRITE));
   }
-  timer->endTimer("PoissonMatrix2D - calc_glb_ind");
+  timer->endTimer("CubPoissonMatrix2D - calc_glb_ind");
 }
 
-void PoissonMatrix2D::apply_bc(op_dat rhs, op_dat bc) {
-  timer->startTimer("PoissonMatrix2D - apply_bc");
+void CubPoissonMatrix2D::apply_bc(op_dat rhs, op_dat bc) {
+  timer->startTimer("CubPoissonMatrix2D - apply_bc");
   if(mesh->bface2cells) {
     op_par_loop(poisson_2d_apply_bc, "poisson_2d_apply_bc", mesh->bfaces,
                 op_arg_dat(mesh->order,     0, mesh->bface2cells, 1, "int", OP_READ),
@@ -102,11 +102,11 @@ void PoissonMatrix2D::apply_bc(op_dat rhs, op_dat bc) {
                 op_arg_dat(bc,    0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(rhs,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_INC));
   }
-  timer->endTimer("PoissonMatrix2D - apply_bc");
+  timer->endTimer("CubPoissonMatrix2D - apply_bc");
 }
 
-void PoissonMatrix2D::calc_op1() {
-  timer->startTimer("PoissonMatrix2D - calc_op1");
+void CubPoissonMatrix2D::calc_op1() {
+  timer->startTimer("CubPoissonMatrix2D - calc_op1");
   // Initialise geometric factors for calcuating grad matrix
   op2_gemv(mesh, false, 1.0, DGConstants::CUB_VDR, mesh->x, 0.0, mesh->cubature->op_tmp[0]);
   op2_gemv(mesh, false, 1.0, DGConstants::CUB_VDS, mesh->x, 0.0, mesh->cubature->op_tmp[1]);
@@ -123,11 +123,11 @@ void PoissonMatrix2D::calc_op1() {
               op_arg_dat(mesh->cubature->op_tmp[3], -1, OP_ID, DG_CUB_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->cubature->J, -1, OP_ID, DG_CUB_NP, DG_FP_STR, OP_READ),
               op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
-  timer->endTimer("PoissonMatrix2D - calc_op1");
+  timer->endTimer("CubPoissonMatrix2D - calc_op1");
 }
 
-void PoissonMatrix2D::calc_op2() {
-  timer->startTimer("PoissonMatrix2D - calc_op2");
+void CubPoissonMatrix2D::calc_op2() {
+  timer->startTimer("CubPoissonMatrix2D - calc_op2");
   op_par_loop(poisson_gauss_op2, "poisson_gauss_op2", mesh->faces,
               op_arg_dat(mesh->order, -2, mesh->face2cells, 1, "int", OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F0DR), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
@@ -151,11 +151,11 @@ void PoissonMatrix2D::calc_op2() {
               op_arg_dat(op1, 1, mesh->face2cells, DG_NP * DG_NP, DG_FP_STR, OP_INC),
               op_arg_dat(op2[0], -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(op2[1], -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
-  timer->endTimer("PoissonMatrix2D - calc_op2");
+  timer->endTimer("CubPoissonMatrix2D - calc_op2");
 }
 
-void PoissonMatrix2D::calc_opbc() {
-  timer->startTimer("PoissonMatrix2D - calc_opbc");
+void CubPoissonMatrix2D::calc_opbc() {
+  timer->startTimer("CubPoissonMatrix2D - calc_opbc");
   if(mesh->bface2cells) {
     op_par_loop(poisson_gauss_bop, "poisson_gauss_bop", mesh->bfaces,
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),
@@ -179,5 +179,5 @@ void PoissonMatrix2D::calc_opbc() {
                 op_arg_dat(op1, 0, mesh->bface2cells, DG_NP * DG_NP, DG_FP_STR, OP_INC),
                 op_arg_dat(opbc, -1, OP_ID, DG_GF_NP * DG_NP, DG_FP_STR, OP_WRITE));
   }
-  timer->endTimer("PoissonMatrix2D - calc_opbc");
+  timer->endTimer("CubPoissonMatrix2D - calc_opbc");
 }
