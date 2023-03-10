@@ -10,9 +10,9 @@ cblas_dgemv({row_col},{trans},{m},{n},{alpha},{A},{lda},{x}, 1,{beta},{y}, 1);
 cblas_sgemv({row_col},{trans},{m},{n},{alpha},{A},{lda},{x}, 1,{beta},{y}, 1);
 #endif
 #else
-for(int i = 0; i < {m}; i++) {{
+for(int i = 0; i < {outer}; i++) {{
   {y_init}
-  for(int j = 0; j < {n}; j++) {{
+  for(int j = 0; j < {inner}; j++) {{
     int ind = DG_MAT_IND({ind_0},{ind_1},{m},{n});
     ({y})[i] += {alpha_mult} ({A})[ind] * ({x})[j];
   }}
@@ -34,10 +34,14 @@ def replace_gemv_kernels(input_str):
         transpose_str = " CblasNoTrans"
         ind0 = "i"
         ind1 = "j"
+        outer_l = args_str[1]
+        inner_l = args_str[2]
         if "true" in args_str[0]:
             transpose_str = " CblasTrans"
             ind0 = "j"
             ind1 = "i"
+            outer_l = args_str[2]
+            inner_l = args_str[1]
         y_init_str = "({y})[i] *= {beta};".format(y = args_str[8], beta = args_str[7])
         if args_str[7].strip() == "0.0":
             y_init_str = "({y})[i] = 0.0;".format(y = args_str[8])
@@ -46,7 +50,8 @@ def replace_gemv_kernels(input_str):
             alpha_mult_str = ""
         blas_call = gemv_template.format(row_col = col_row_maj_str, trans = transpose_str, m = args_str[1], \
             n = args_str[2], alpha = args_str[3], A = args_str[4], lda = args_str[5], x = args_str[6], \
-            beta = args_str[7], y = args_str[8], ind_0 = ind0, ind_1 = ind1, y_init = y_init_str, alpha_mult = alpha_mult_str)
+            beta = args_str[7], y = args_str[8], inner = inner_l, outer = outer_l, ind_0 = ind0, \
+            ind_1 = ind1, y_init = y_init_str, alpha_mult = alpha_mult_str)
         out_str = out_str[0 : index] + blas_call + out_str[end_ind + 2 :]
         index = out_str.find("op2_in_kernel_gemv")
     return out_str
