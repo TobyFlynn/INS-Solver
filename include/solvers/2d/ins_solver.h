@@ -5,6 +5,8 @@
 
 #include <string>
 
+#include "matrices/2d/poisson_matrix_2d.h"
+#include "matrices/2d/mm_poisson_matrix_2d.h"
 #include "matrices/2d/cub_poisson_matrix_2d.h"
 #include "matrices/2d/cub_mm_poisson_matrix_2d.h"
 #include "linear_solvers/linear_solver.h"
@@ -34,8 +36,8 @@ private:
   void project_velocity();
   bool viscosity();
 
-  CubPoissonMatrix2D *pressureMatrix;
-  CubMMPoissonMatrix2D *viscosityMatrix;
+  PoissonMatrix2D *pressureMatrix;
+  MMPoissonMatrix2D *viscosityMatrix;
   LinearSolver *pressureSolver;
   LinearSolver *viscositySolver;
   // PETScInvMassSolver *viscositySolver;
