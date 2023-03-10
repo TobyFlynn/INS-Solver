@@ -18,6 +18,7 @@ extern DGConstants *constants;
 extern Timing *timer;
 
 PETScInvMassSolver::PETScInvMassSolver(DGMesh *m) {
+  bc = nullptr;
   nullspace = false;
   pMatInit = false;
   mesh = m;

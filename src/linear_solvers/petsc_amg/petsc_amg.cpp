@@ -9,6 +9,7 @@
 extern Timing *timer;
 
 PETScAMGSolver::PETScAMGSolver(DGMesh *m) {
+  bc = nullptr;
   mesh = m;
   nullspace = false;
   pMatInit = false;

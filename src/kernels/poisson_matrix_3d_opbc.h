@@ -49,7 +49,7 @@ inline void poisson_matrix_3d_opbc(const int *order, const DG_FP *dr,
       }
     }
 
-    const DG_FP gtau = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 1) * *fscale;
+    const DG_FP gtau = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * *fscale;
 
     for(int i = 0; i < dg_np; i++) {
       for(int j = 0; j < dg_npf; j++) {

@@ -14,6 +14,7 @@ extern Timing *timer;
 #define RAND_VEC_SIZE 25
 
 PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
+  bc = nullptr;
   mesh = m;
   DG_FP *tmp_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   std::string name;
@@ -165,7 +166,7 @@ void PMultigridPoissonSolver::set_coarse_matrix(PoissonCoarseMatrix *c_mat) {
 }
 
 void PMultigridPoissonSolver::setupDirectSolve() {
-  coarseSolver->set_bcs(bc);
+  // coarseSolver->set_bcs(bc);
   coarseSolver->set_nullspace(nullspace);
   coarseSolver->set_tol(1e-2);
 }

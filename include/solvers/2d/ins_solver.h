@@ -7,6 +7,8 @@
 
 #include "matrices/2d/poisson_matrix_2d.h"
 #include "matrices/2d/mm_poisson_matrix_2d.h"
+#include "matrices/2d/cub_poisson_matrix_2d.h"
+#include "matrices/2d/cub_mm_poisson_matrix_2d.h"
 #include "linear_solvers/linear_solver.h"
 #include "solvers/2d/ls_solver.h"
 #include "linear_solvers/petsc_inv_mass.h"
@@ -16,6 +18,7 @@
 class INSSolver2D {
 public:
   INSSolver2D(DGMesh2D *m);
+  INSSolver2D(DGMesh2D *m, const std::string &filename, const int iter);
   ~INSSolver2D();
 
   void init(const DG_FP re, const DG_FP refVel);
@@ -27,6 +30,7 @@ public:
 
   DGMesh2D *mesh;
 private:
+  void setup_common();
   void advection();
   bool pressure();
   void project_velocity();
@@ -38,6 +42,7 @@ private:
   LinearSolver *viscositySolver;
   // PETScInvMassSolver *viscositySolver;
 
+  bool resuming;
   int currentInd;
   DG_FP a0, a1, b0, b1, g0, dt, time;
   DG_FP reynolds;

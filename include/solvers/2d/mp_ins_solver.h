@@ -5,8 +5,8 @@
 
 #include <string>
 
-#include "matrices/2d/factor_poisson_matrix_2d.h"
-#include "matrices/2d/factor_mm_poisson_matrix_2d.h"
+#include "matrices/2d/cub_factor_poisson_matrix_2d.h"
+#include "matrices/2d/cub_factor_mm_poisson_matrix_2d.h"
 #include "linear_solvers/linear_solver.h"
 #include "solvers/2d/ls_solver.h"
 
@@ -15,6 +15,7 @@
 class MPINSSolver2D {
 public:
   MPINSSolver2D(DGMesh2D *m);
+  MPINSSolver2D(DGMesh2D *m, const std::string &filename, const int iter);
   ~MPINSSolver2D();
 
   void init(const DG_FP re, const DG_FP refVel);
@@ -27,17 +28,19 @@ public:
   DGMesh2D *mesh;
   LevelSetSolver2D *ls;
 private:
+  void setup_common();
   void advection();
   bool pressure();
   void project_velocity();
   bool viscosity();
   void surface();
 
-  FactorPoissonMatrix2D *pressureMatrix;
-  FactorMMPoissonMatrix2D *viscosityMatrix;
+  CubFactorPoissonMatrix2D *pressureMatrix;
+  CubFactorMMPoissonMatrix2D *viscosityMatrix;
   LinearSolver *pressureSolver;
   LinearSolver *viscositySolver;
 
+  bool resuming;
   int currentInd;
   DG_FP a0, a1, b0, b1, g0, dt, time;
   DG_FP reynolds;

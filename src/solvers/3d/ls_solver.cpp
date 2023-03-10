@@ -19,10 +19,32 @@ extern Timing *timer;
 
 LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m) {
   mesh = m;
+  resuming = false;
   advectionSolver = new AdvectionSolver3D(m);
 
   DG_FP * dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s");
+  s_modal = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s_modal");
+  free(dg_np_data);
+
+  DG_FP *ls_sample_np_data = (DG_FP *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(DG_FP));
+  sampleX = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleX");
+  sampleY = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleY");
+  sampleZ = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleZ");
+  free(ls_sample_np_data);
+
+  h = 0;
+  reinit_count = 0;
+}
+
+LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m, const std::string &filename) {
+  mesh = m;
+  resuming = true;
+  advectionSolver = new AdvectionSolver3D(m);
+
+  s = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ls_solver_s");
+
+  DG_FP * dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   s_modal = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s_modal");
   free(dg_np_data);
 
@@ -45,11 +67,13 @@ void LevelSetSolver3D::setBCTypes(op_dat bc) {
 }
 
 void LevelSetSolver3D::init() {
-  op_par_loop(init_surface_3d, "init_surface_3d", mesh->cells,
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->z, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  if(!resuming) {
+    op_par_loop(init_surface_3d, "init_surface_3d", mesh->cells,
+                op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->z, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  }
 
   h = 0.0;
   op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,

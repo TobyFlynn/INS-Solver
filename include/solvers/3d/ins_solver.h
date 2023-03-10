@@ -16,6 +16,7 @@
 class INSSolver3D {
 public:
   INSSolver3D(DGMesh3D *m);
+  INSSolver3D(DGMesh3D *m, const std::string &filename, const int iter);
   ~INSSolver3D();
 
   void init(const DG_FP re, const DG_FP refVel);
@@ -27,6 +28,7 @@ public:
 
   op_dat vel[2][3], velT[3], velTT[3], pr;
 private:
+  void setup_common();
   void advection();
   void pressure();
   void viscosity();
@@ -44,6 +46,7 @@ private:
   DG_FP g0, a0, a1, b0, b1, dt, time, h;
   DG_FP reynolds;
   int currentInd;
+  bool resuming;
 
   op_dat tmp_np[9], tmp_npf[3], tmp_bc_1, tmp_npf_bc;
   op_dat f[3][3], n[2][3], advec_flux[3], curlVel[3];
