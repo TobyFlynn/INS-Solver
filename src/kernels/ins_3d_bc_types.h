@@ -2,6 +2,7 @@ inline void ins_3d_bc_types(const DG_FP **nodes, int *type) {
   // 0 is inflow
   // 1 is outflow
   // 2 is wall
+/*
   const DG_FP inlet_radius_2 = 0.05 * 0.05 + 1e-8;
   const DG_FP inlet_radius_2_ = 0.2 * 0.2 + 1e-8;
 
@@ -20,5 +21,14 @@ inline void ins_3d_bc_types(const DG_FP **nodes, int *type) {
     *type = 1;
   } else {
     *type = 2;
+  }
+*/
+
+  if(fabs(nodes[0][0] - nodes[1][0]) < 1e-8 && fabs(nodes[0][0] - nodes[2][0]) < 1e-8 && nodes[0][0] < 0.1) {
+    *type = LW_INFLOW_BC;
+  } else if(fabs(nodes[0][0] - nodes[1][0]) < 1e-8 && fabs(nodes[0][0] - nodes[2][0]) < 1e-8 && nodes[0][0] > LW_LENGTH - 0.1) {
+    *type = LW_OUTFLOW_BC;
+  } else {
+    *type = LW_SLIP_WALL_BC;
   }
 }

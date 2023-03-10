@@ -8,20 +8,27 @@ inline void ins_3d_advec_2(const DG_FP *t, const int *bc_type, const int *faceNu
   const int fInd = *faceNum * DG_NPF;
   const DG_FP PI = 3.141592653589793238463;
   DG_FP uR[DG_NPF], vR[DG_NPF], wR[DG_NPF];
-  if(*bc_type == 0) {
+  if(*bc_type == LW_INFLOW_BC) {
     for(int i = 0; i < DG_NPF; i++) {
-      // uR[i] = sin(PI * (*t)) * (y[fmask[i]] * (1.0 - y[fmask[i]]))  * (z[fmask[i]] * (1.0 - z[fmask[i]]));
-      uR[i] = sin(PI * (*t));
+      // uR[i] = sin(PI * (*t));
+      uR[i] = 1.0;
       vR[i] = 0.0;
       wR[i] = 0.0;
     }
-  } else if(*bc_type == 1) {
+  } else if(*bc_type == LW_OUTFLOW_BC) {
     for(int i = 0; i < DG_NPF; i++) {
       uR[i] = u[fmaskB[i]];
       vR[i] = v[fmaskB[i]];
       wR[i] = w[fmaskB[i]];
     }
-  } else {
+  } else if(*bc_type == LW_SLIP_WALL_BC) {
+    for(int i = 0; i < DG_NPF; i++) {
+      const DG_FP dot = nx[0] * u[fmaskB[i]] + ny[0] * v[fmaskB[i]] + nz[0] * w[fmaskB[i]];
+      uR[i] = u[fmaskB[i]] - dot * nx[0];
+      vR[i] = v[fmaskB[i]] - dot * ny[0];
+      wR[i] = w[fmaskB[i]] - dot * nz[0];
+    }
+  } else if(*bc_type == LW_NO_SLIP_WALL_BC) {
     for(int i = 0; i < DG_NPF; i++) {
       uR[i] = 0.0;
       vR[i] = 0.0;

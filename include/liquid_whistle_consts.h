@@ -1,0 +1,11 @@
+#ifndef __INS_LIQUID_WHISTLE_CONSTS_H
+#define __INS_LIQUID_WHISTLE_CONSTS_H
+
+#define LW_INFLOW_BC 0
+#define LW_OUTFLOW_BC 1
+#define LW_SLIP_WALL_BC 2
+#define LW_NO_SLIP_WALL_BC 3
+
+#define LW_LENGTH 5.0
+
+#endif
