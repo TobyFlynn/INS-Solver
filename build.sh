@@ -68,6 +68,8 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         matrices/poisson_semi_matrix_free.cpp \
         matrices/2d/poisson_matrix.cpp \
         matrices/2d/mm_poisson_matrix.cpp \
+        matrices/2d/factor_poisson_matrix.cpp \
+        matrices/2d/factor_mm_poisson_matrix.cpp \
         matrices/2d/cub_poisson_matrix.cpp \
         matrices/2d/cub_factor_poisson_matrix.cpp \
         matrices/2d/cub_mm_poisson_matrix.cpp \
