@@ -7,6 +7,6 @@ inline void ls_normals_curv(const DG_FP *alpha, const DG_FP *s, const DG_FP *x, 
     //   nx[i] /= size;
     //   ny[i] /= size;
     // }
-    // curv[i] = 1.0 / 10.0;
+    curv[i] = 1.0 / 7.5;
   }
 }

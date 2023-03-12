@@ -180,6 +180,7 @@ void LevelSetSolver2D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv) {
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
   mesh->cub_grad_with_central_flux(s, nx, ny);
 */
+
   op_par_loop(ls_normals, "ls_normals", mesh->cells,
               op_arg_dat(s,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(nx, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),

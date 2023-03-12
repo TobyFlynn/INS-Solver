@@ -5,6 +5,8 @@
 
 #include <string>
 
+#include "matrices/2d/factor_poisson_matrix_2d.h"
+#include "matrices/2d/factor_mm_poisson_matrix_2d.h"
 #include "matrices/2d/cub_factor_poisson_matrix_2d.h"
 #include "matrices/2d/cub_factor_mm_poisson_matrix_2d.h"
 #include "linear_solvers/linear_solver.h"
@@ -35,8 +37,8 @@ private:
   bool viscosity();
   void surface();
 
-  CubFactorPoissonMatrix2D *pressureMatrix;
-  CubFactorMMPoissonMatrix2D *viscosityMatrix;
+  FactorPoissonMatrix2D *pressureMatrix;
+  FactorMMPoissonMatrix2D *viscosityMatrix;
   LinearSolver *pressureSolver;
   LinearSolver *viscositySolver;
 
