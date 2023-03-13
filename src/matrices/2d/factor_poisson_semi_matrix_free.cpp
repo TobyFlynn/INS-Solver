@@ -86,7 +86,7 @@ void FactorPoissonSemiMatrixFree2D::mult(op_dat in, op_dat out) {
     op_par_loop(fpmf_2d_mult_bfaces, "fpmf_2d_mult_bfaces", mesh->bfaces,
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 2, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->gauss->sJ, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
