@@ -98,7 +98,18 @@ void AdvectionSolver2D::rhs(op_dat val, op_dat u, op_dat v, op_dat val_out) {
               op_arg_dat(gV,   -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
               op_arg_dat(flux, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_INC));
 
-  // TODO BCs
+  if(mesh->bface2cells) {
+    op_par_loop(advec_2d_bflux, "advec_2d_bflux", mesh->bfaces,
+                op_arg_dat(mesh->order,      0, mesh->bface2cells, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum,  -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->gauss->sJ, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gVal, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gU,   0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gV,   0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(flux, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC));
+  }
 
   op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, flux, 1.0, val_out);
 }
