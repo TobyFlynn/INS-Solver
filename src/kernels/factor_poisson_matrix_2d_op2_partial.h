@@ -165,7 +165,7 @@ inline void factor_poisson_matrix_2d_op2_partial(const int **p, const DG_FP *gF0
     else
       indR = edgeR * DG_GF_NP + i;
 
-    tauL[i] = 0.5 * max_hinv * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(factor[0][indL], factor[1][indR]);
+    tauL[i] = 2.0 * max_hinv * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(factor[0][indL], factor[1][indR]);
     if(tauL[i] > maxtau) maxtau = tauL[i];
   }
 
@@ -184,7 +184,7 @@ inline void factor_poisson_matrix_2d_op2_partial(const int **p, const DG_FP *gF0
     else
       indL = edgeL * DG_GF_NP + i;
 
-    tauR[i] = 0.5 * max_hinv * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(factor[0][indL], factor[1][indR]);
+    tauR[i] = 2.0 * max_hinv * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(factor[0][indL], factor[1][indR]);
     if(tauR[i] > maxtau) maxtau = tauR[i];
   }
 

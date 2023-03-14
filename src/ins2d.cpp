@@ -19,7 +19,7 @@ Timing *timer;
 using namespace std;
 
 // Global constants
-DG_FP r_ynolds, mu0, mu1, rho0, rho1, gamma_e;
+DG_FP r_ynolds, mu0, mu1, rho0, rho1, gamma_e, froude;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 1);
@@ -77,15 +77,16 @@ int main(int argc, char **argv) {
   }
 
   mu0  = 1.0;
-  mu1  = 1.0;
+  mu1  = 100.0;
   rho0 = 1.0;
-  rho1 = 1.0;
+  rho1 = 100.0;
 
   const DG_FP refRho = 1.0;
-  const DG_FP refVel = 1.0;
-  const DG_FP refLen = 0.005;
-  const DG_FP refMu  = 1.0e-5;
+  const DG_FP refVel = 0.1;
+  const DG_FP refLen = 0.001;
+  const DG_FP refMu  = 1.0e-4;
   r_ynolds = refRho * refVel * refLen / refMu;
+  froude = refVel / sqrt(9.81 * refLen);
 
   int re = -1;
   PetscOptionsGetInt(NULL, NULL, "-re", &re, &found);
@@ -93,16 +94,17 @@ int main(int argc, char **argv) {
     r_ynolds = (DG_FP)re;
   }
   op_printf("Re: %g\n", r_ynolds);
+  op_printf("Fr: %g\n", froude);
 
   // For 2D compressible Euler
   gamma_e = 1.4;
 
   DGMesh2D *mesh = new DGMesh2D(filename);
-  INSSolver2D *mpins2d;
+  MPINSSolver2D *mpins2d;
   if(resumeIter == 0)
-    mpins2d = new INSSolver2D(mesh);
+    mpins2d = new MPINSSolver2D(mesh);
   else
-    mpins2d = new INSSolver2D(mesh, checkpointFile, resumeIter);
+    mpins2d = new MPINSSolver2D(mesh, checkpointFile, resumeIter);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
@@ -117,6 +119,7 @@ int main(int argc, char **argv) {
   op_decl_const(1, DG_FP_STR, &rho0);
   op_decl_const(1, DG_FP_STR, &rho1);
   op_decl_const(1, DG_FP_STR, &gamma_e);
+  op_decl_const(1, DG_FP_STR, &froude);
 
   timer->startTimer("OP2 Partitioning");
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
@@ -134,7 +137,7 @@ int main(int argc, char **argv) {
 
     op_printf("Iter %d\n", i);
 
-    if((i + 1) % 25 == 0) {
+    if(save > 0 && (i + 1) % save == 0) {
       string out_file_tmp = outputDir + "iter-" + to_string(i + 1) + ".h5";
       mpins2d->dump_data(out_file_tmp);
     }

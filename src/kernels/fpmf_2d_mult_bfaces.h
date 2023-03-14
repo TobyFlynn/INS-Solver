@@ -21,7 +21,7 @@ inline void fpmf_2d_mult_bfaces(const int *p, const int *bc_type,
   DG_FP max_hinv = h[*edgeNum * dg_npf];
   for(int i = 0; i < DG_GF_NP; i++) {
     int ind = exInd + i;
-    tau[i] = 0.5 * max_hinv * (DG_ORDER + 1) * (DG_ORDER + 2) * factor[ind];
+    tau[i] = 2.0 * max_hinv * (DG_ORDER + 1) * (DG_ORDER + 2) * factor[ind];
     if(tau[i] > maxtau) maxtau = tau[i];
   }
   for(int i = 0; i < DG_GF_NP; i++) {

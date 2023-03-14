@@ -167,7 +167,7 @@ inline void fact_poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
     else
       indR = edgeR * DG_GF_NP + i;
 
-    tauL[i] = 0.5 * max_hinv * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
+    tauL[i] = 2.0 * max_hinv * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
     if(tauL[i] > maxtau) maxtau = tauL[i];
   }
 
@@ -186,7 +186,7 @@ inline void fact_poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
     else
       indL = edgeL * DG_GF_NP + i;
 
-    tauR[i] = 0.5 * max_hinv * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
+    tauR[i] = 2.0 * max_hinv * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
     if(tauR[i] > maxtau) maxtau = tauR[i];
   }
 

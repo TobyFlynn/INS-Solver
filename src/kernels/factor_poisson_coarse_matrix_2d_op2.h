@@ -1,10 +1,10 @@
-inline void factor_poisson_coarse_matrix_2d_op2(const DG_FP *gF0Dr, const DG_FP *gF0Ds, 
+inline void factor_poisson_coarse_matrix_2d_op2(const DG_FP *gF0Dr, const DG_FP *gF0Ds,
                             const DG_FP *gF1Dr, const DG_FP *gF1Ds, const DG_FP *gF2Dr,
                             const DG_FP *gF2Ds, const DG_FP *gFInterp0,
                             const DG_FP *gFInterp1, const DG_FP *gFInterp2,
-                            const int *edgeNum, const bool *reverse, const DG_FP **x, 
+                            const int *edgeNum, const bool *reverse, const DG_FP **x,
                             const DG_FP **y, const DG_FP **sJ, const DG_FP **nx,
-                            const DG_FP **ny, const DG_FP **h, const DG_FP **factor, 
+                            const DG_FP **ny, const DG_FP **h, const DG_FP **factor,
                             DG_FP *op1L, DG_FP *op1R, DG_FP *op2L, DG_FP *op2R) {
   int edgeL = edgeNum[0];
   int edgeR = edgeNum[1];
@@ -157,7 +157,7 @@ inline void factor_poisson_coarse_matrix_2d_op2(const DG_FP *gF0Dr, const DG_FP 
     else
       indR = edgeR * DG_GF_NP + i;
 
-    tauL[i] = 0.5 * max_hinv * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(factor[0][indL], factor[1][indR]);
+    tauL[i] = 2.0 * max_hinv * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(factor[0][indL], factor[1][indR]);
     if(tauL[i] > maxtau) maxtau = tauL[i];
   }
 
@@ -176,7 +176,7 @@ inline void factor_poisson_coarse_matrix_2d_op2(const DG_FP *gF0Dr, const DG_FP 
     else
       indL = edgeL * DG_GF_NP + i;
 
-    tauR[i] = 0.5 * max_hinv * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(factor[0][indL], factor[1][indR]);
+    tauR[i] = 2.0 * max_hinv * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(factor[0][indL], factor[1][indR]);
     if(tauR[i] > maxtau) maxtau = tauR[i];
   }
 

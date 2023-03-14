@@ -98,10 +98,11 @@ void MPINSSolver2D::setup_common() {
   // pressureSolver = new PETScAMGSolver(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
+  // viscositySolver = new PETScAMGSolver(mesh);
 
   pressureSolver->set_coarse_matrix(coarsePressureMatrix);
   pressureSolver->set_matrix(pressureMatrix);
-  pressureSolver->set_nullspace(true);
+  pressureSolver->set_nullspace(false);
   viscositySolver->set_matrix(viscosityMatrix);
   viscositySolver->set_nullspace(false);
 
@@ -122,7 +123,7 @@ void MPINSSolver2D::setup_common() {
   free(dg_np_data);
 
   DG_FP *g_np_data = (DG_FP *)calloc(DG_G_NP * mesh->cells->size, sizeof(DG_FP));
-  for(int i = 0; i < 5; i++) {
+  for(int i = 0; i < 6; i++) {
     string name    = "tmp_g_np" + to_string(i);
     tmp_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, g_np_data, name.c_str());
   }
@@ -159,9 +160,12 @@ void MPINSSolver2D::setup_common() {
   gGradCurl[0] = tmp_g_np[2];
   gGradCurl[1] = tmp_g_np[3];
   gRho = tmp_g_np[4];
+  gMu = tmp_g_np[5];
   prBC = tmp_g_np[0];
   visBC[0] = tmp_g_np[0];
   visBC[1] = tmp_g_np[1];
+  gVelTT[0] = tmp_g_np[2];
+  gVelTT[1] = tmp_g_np[3];
 }
 
 MPINSSolver2D::~MPINSSolver2D() {
@@ -201,8 +205,8 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   currentInd = currentInd % 2;
 
   if(mesh->bface2nodes) {
-    op_par_loop(ins_bc_types, "ins_bc_types", mesh->bfaces,
-                op_arg_dat(mesh->node_coords, -3, mesh->bface2nodes, 3, DG_FP_STR, OP_READ),
+    op_par_loop(ins_bc_types_2d, "ins_bc_types_2d", mesh->bfaces,
+                op_arg_dat(mesh->node_coords, -2, mesh->bface2nodes, 2, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(pr_bc_types,  -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
@@ -319,7 +323,7 @@ void MPINSSolver2D::advection() {
 bool MPINSSolver2D::pressure() {
   timer->startTimer("MPINSSolver2D - Pressure RHS");
 
-  mesh->div(velT[0], velT[1], divVelT);
+  mesh->cub_div_with_central_flux(velT[0], velT[1], divVelT);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel);
   mesh->grad(curlVel, gradCurlVel[0], gradCurlVel[1]);
 
@@ -328,6 +332,7 @@ bool MPINSSolver2D::pressure() {
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, gradCurlVel[0], 0.0, gGradCurl[0]);
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, gradCurlVel[1], 0.0, gGradCurl[1]);
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, rho, 0.0, gRho);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, mu, 0.0, gMu);
 
   // Apply Neumann pressure boundary conditions
   if(mesh->bface2cells) {
@@ -344,6 +349,7 @@ bool MPINSSolver2D::pressure() {
                 op_arg_dat(gGradCurl[0], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(gGradCurl[1], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(gRho, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gMu, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(dPdN[currentInd], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC));
   }
   // Apply Dirichlet BCs
@@ -378,6 +384,7 @@ bool MPINSSolver2D::pressure() {
   pressureMatrix->set_factor(pr_mat_fact);
   coarsePressureMatrix->set_factor(pr_mat_fact);
   pressureMatrix->set_bc_types(pr_bc_types);
+  coarsePressureMatrix->set_bc_types(pr_bc_types);
   pressureSolver->set_coarse_matrix(coarsePressureMatrix);
   pressureSolver->set_bcs(prBC);
   converged = pressureSolver->solve(pRHS, pr);
@@ -411,16 +418,22 @@ bool MPINSSolver2D::viscosity() {
               op_arg_dat(visBC[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(visBC[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, velTT[0], 0.0, gVelTT[0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, velTT[1], 0.0, gVelTT[1]);
+
   // Get BCs for viscosity solve
   if(mesh->bface2cells) {
-    op_par_loop(ins_vis_bc_2d, "ins_vis_bc_2d", mesh->bfaces,
+    op_par_loop(ins_vis_bc_2d_dam, "ins_vis_bc_2d_dam", mesh->bfaces,
                 op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gVelTT[0], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gVelTT[1], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(visBC[0], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC),
                 op_arg_dat(visBC[1], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC));
   }

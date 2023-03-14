@@ -55,8 +55,8 @@ private:
   op_dat vel[2][2], n[2][2], velT[2], velTT[2], pr, rho, mu, dPdN[2];
   op_dat tmp_np[4], f[4], divVelT, curlVel, gradCurlVel[2], pRHS, pr_mat_fact;
   op_dat dpdx, dpdy, visRHS[2], vis_mat_mm_fact;
-  op_dat tmp_g_np[5], gVel[2], gAdvecFlux[2], gN[2], gGradCurl[2], gRho, prBC;
-  op_dat visBC[2];
+  op_dat tmp_g_np[6], gVel[2], gAdvecFlux[2], gN[2], gGradCurl[2], gRho, prBC;
+  op_dat visBC[2], gVelTT[2], gMu;
   op_dat bc_types, pr_bc_types, vis_bc_types;
 };
 

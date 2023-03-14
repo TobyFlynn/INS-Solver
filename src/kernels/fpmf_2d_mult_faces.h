@@ -34,7 +34,7 @@ inline void fpmf_2d_mult_faces(const int **p, const int *edgeNum,
     else
       indR = exIndR + i;
 
-    tau[i] = 0.5 * max_hinv * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(factor[0][indL], factor[1][indR]);
+    tau[i] = 2.0 * max_hinv * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(factor[0][indL], factor[1][indR]);
     if(tau[i] > maxtau) maxtau = tau[i];
   }
 

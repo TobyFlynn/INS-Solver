@@ -11,23 +11,18 @@ inline void ins_advec_bc_2d(const DG_FP *t, const int *p, const int *bedge_type,
   const DG_FP *gaussW = &gaussW_g[(*p - 1) * DG_GF_NP];
 
   // Set boundary velocities
-  if(*bedge_type == 0) {
-    // Inflow - BC function dependant on time
-    for(int i = 0; i < DG_GF_NP; i++) {
-      pQ0[i] = 1.0;
-      pQ1[i] = 0.0;
-    }
-  } else if(*bedge_type == 1) {
+  if(*bedge_type == 1) {
     // Outflow - Natural boundary condition
     for(int i = 0; i < DG_GF_NP; i++) {
       pQ0[i] = q0[exInd + i];
       pQ1[i] = q1[exInd + i];
     }
   } else {
-    // Wall - No slip
+    // Wall - slip
     for(int i = 0; i < DG_GF_NP; i++) {
-      pQ0[i] = 0.0;
-      pQ1[i] = 0.0;
+      const DG_FP dot = nx[exInd + i] * q0[exInd + i] + ny[exInd + i] * q1[exInd + i];
+      pQ0[i] = q0[exInd + i] - dot * nx[exInd + i];
+      pQ1[i] = q1[exInd + i] - dot * ny[exInd + i];
     }
   }
 

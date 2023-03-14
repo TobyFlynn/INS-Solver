@@ -80,7 +80,7 @@ inline void factor_poisson_matrix_2d_bop(const int *p, const DG_FP *gF0Dr,
   DG_FP hinv = h[*edgeNum * dg_npf];
   for(int i = 0; i < DG_GF_NP; i++) {
     int ind = *edgeNum * DG_GF_NP + i;
-    tau[i] = 0.5 * (DG_ORDER + 1) * (DG_ORDER + 2) * hinv * factor[ind];
+    tau[i] = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * hinv * factor[ind];
   }
 
   // Main matrix

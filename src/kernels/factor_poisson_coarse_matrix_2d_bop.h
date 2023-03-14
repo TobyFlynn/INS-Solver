@@ -1,10 +1,10 @@
-inline void factor_poisson_coarse_matrix_2d_bop(const DG_FP *gF0Dr, const DG_FP *gF0Ds, 
+inline void factor_poisson_coarse_matrix_2d_bop(const DG_FP *gF0Dr, const DG_FP *gF0Ds,
                             const DG_FP *gF1Dr, const DG_FP *gF1Ds, const DG_FP *gF2Dr,
-                            const DG_FP *gF2Ds, const DG_FP *gFInterp0, 
+                            const DG_FP *gF2Ds, const DG_FP *gFInterp0,
                             const DG_FP *gFInterp1, const DG_FP *gFInterp2,
-                            const int *btype, const int *edgeNum, const DG_FP *x, 
+                            const int *btype, const int *edgeNum, const DG_FP *x,
                             const DG_FP *y, const DG_FP *sJ, const DG_FP *nx,
-                            const DG_FP *ny, const DG_FP *h, const DG_FP *factor, 
+                            const DG_FP *ny, const DG_FP *h, const DG_FP *factor,
                             DG_FP *op1, DG_FP *op_bc) {
   const DG_FP *gVM;
   if(*edgeNum == 0) {
@@ -75,7 +75,7 @@ inline void factor_poisson_coarse_matrix_2d_bop(const DG_FP *gF0Dr, const DG_FP 
     DG_FP hinv = h[*edgeNum * DG_NPF_N1];
     for(int i = 0; i < DG_GF_NP; i++) {
       int ind = *edgeNum * DG_GF_NP + i;
-      tau[i] = 0.5 * (DG_ORDER + 1) * (DG_ORDER + 2) * hinv * factor[ind];
+      tau[i] = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * hinv * factor[ind];
     }
 
     // Main matrix
