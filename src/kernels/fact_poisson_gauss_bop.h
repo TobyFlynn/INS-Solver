@@ -79,9 +79,14 @@ inline void fact_poisson_gauss_bop(const int *p, const DG_FP *gF0Dr,
 
     DG_FP tau[DG_GF_NP];
     DG_FP hinv = h[*edgeNum * dg_npf];
+    DG_FP max_tau = 0.0;
     for(int i = 0; i < DG_GF_NP; i++) {
       int ind = *edgeNum * DG_GF_NP + i;
       tau[i] = 2.0 * (*p + 1) * (*p + 2) * hinv * factor[ind];
+      max_tau = fmax(max_tau, tau[i]);
+    }
+    for(int i = 0; i < DG_GF_NP; i++) {
+      tau[i] = max_tau;
     }
 
     // Main matrix

@@ -14,8 +14,8 @@ inline void mp_ins_pressure_bc_2d(const DG_FP *t, const int *bedge_type,
     const DG_FP grav = 1.0 / (froude * froude);
     for(int i = 0; i < DG_GF_NP; i++) {
       int ind = exInd + i;
-      DG_FP res1 = -N0[ind] - mu[ind] * gradCurlVel1[ind] / (r_ynolds * rho[ind]);
-      DG_FP res2 = -N1[ind] + mu[ind] * gradCurlVel0[ind] / (r_ynolds * rho[ind]) - grav;
+      DG_FP res1 = -N0[ind] - gradCurlVel1[ind] / (r_ynolds * rho[ind]);
+      DG_FP res2 = -N1[ind] + gradCurlVel0[ind] / (r_ynolds * rho[ind]) - grav;
       dPdN[ind] += nx[ind] * res1 + ny[ind] * res2;
     }
   }

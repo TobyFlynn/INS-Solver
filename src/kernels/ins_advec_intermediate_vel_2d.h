@@ -8,7 +8,7 @@ inline void ins_advec_intermediate_vel_2d(const DG_FP *a0, const DG_FP *a1,
                                           DG_FP *q1T) {
   const DG_FP grav = 1.0 / (froude * froude);
   for(int i = 0; i < DG_NP; i++) {
-    q0T[i] = (*a0 * q0[i] + *a1 * q0Old[i]) + *dt * (*b0 * N0[i] + *b1 * N0Old[i]);
-    q1T[i] = (*a0 * q1[i] + *a1 * q1Old[i]) + *dt * (*b0 * (N1[i] - grav) + *b1 * (N1Old[i] - grav));
+    q0T[i] = (*a0 * q0[i] + *a1 * q0Old[i]) + *dt * (*b0 * -N0[i] + *b1 * -N0Old[i]);
+    q1T[i] = (*a0 * q1[i] + *a1 * q1Old[i]) + *dt * (*b0 * (-N1[i] - grav) + *b1 * (-N1Old[i] - grav));
   }
 }

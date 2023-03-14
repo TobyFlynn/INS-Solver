@@ -90,17 +90,17 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m, const std::string &filename, const int
 }
 
 void MPINSSolver2D::setup_common() {
-  // pressureMatrix = new CubFactorPoissonMatrix2D(mesh);
-  // viscosityMatrix = new CubFactorMMPoissonMatrix2D(mesh);
-  coarsePressureMatrix = new FactorPoissonCoarseMatrix2D(mesh);
-  pressureMatrix = new FactorPoissonSemiMatrixFree2D(mesh);
-  viscosityMatrix = new FactorMMPoissonMatrix2D(mesh);
-  // pressureSolver = new PETScAMGSolver(mesh);
-  pressureSolver = new PETScPMultigrid(mesh);
+  pressureMatrix = new CubFactorPoissonMatrix2D(mesh);
+  viscosityMatrix = new CubFactorMMPoissonMatrix2D(mesh);
+  // coarsePressureMatrix = new FactorPoissonCoarseMatrix2D(mesh);
+  // pressureMatrix = new FactorPoissonSemiMatrixFree2D(mesh);
+  // viscosityMatrix = new FactorMMPoissonMatrix2D(mesh);
+  pressureSolver = new PETScAMGSolver(mesh);
+  // pressureSolver = new PETScPMultigrid(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
   // viscositySolver = new PETScAMGSolver(mesh);
 
-  pressureSolver->set_coarse_matrix(coarsePressureMatrix);
+  // pressureSolver->set_coarse_matrix(coarsePressureMatrix);
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(false);
   viscositySolver->set_matrix(viscosityMatrix);
@@ -325,6 +325,11 @@ bool MPINSSolver2D::pressure() {
 
   mesh->cub_div_with_central_flux(velT[0], velT[1], divVelT);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel);
+
+  op_par_loop(mu_mult, "mu_mult", mesh->cells,
+              op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(curlVel, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
   mesh->grad(curlVel, gradCurlVel[0], gradCurlVel[1]);
 
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, n[currentInd][0], 0.0, gN[0]);
@@ -382,10 +387,11 @@ bool MPINSSolver2D::pressure() {
 
   bool converged;
   pressureMatrix->set_factor(pr_mat_fact);
-  coarsePressureMatrix->set_factor(pr_mat_fact);
+  // coarsePressureMatrix->set_factor(pr_mat_fact);
   pressureMatrix->set_bc_types(pr_bc_types);
-  coarsePressureMatrix->set_bc_types(pr_bc_types);
-  pressureSolver->set_coarse_matrix(coarsePressureMatrix);
+  // coarsePressureMatrix->set_bc_types(pr_bc_types);
+  // pressureSolver->set_coarse_matrix(coarsePressureMatrix);
+  pressureMatrix->calc_mat();
   pressureSolver->set_bcs(prBC);
   converged = pressureSolver->solve(pRHS, pr);
   timer->endTimer("MPINSSolver2D - Pressure Linear Solve");

@@ -38,13 +38,13 @@ private:
   bool viscosity();
   void surface();
 
-  // CubFactorPoissonMatrix2D *pressureMatrix;
-  // CubFactorMMPoissonMatrix2D *viscosityMatrix;
-  FactorPoissonCoarseMatrix2D *coarsePressureMatrix;
-  FactorPoissonSemiMatrixFree2D *pressureMatrix;
-  FactorMMPoissonMatrix2D *viscosityMatrix;
-  // LinearSolver *pressureSolver;
-  PETScPMultigrid *pressureSolver;
+  CubFactorPoissonMatrix2D *pressureMatrix;
+  CubFactorMMPoissonMatrix2D *viscosityMatrix;
+  // FactorPoissonCoarseMatrix2D *coarsePressureMatrix;
+  // FactorPoissonSemiMatrixFree2D *pressureMatrix;
+  // FactorMMPoissonMatrix2D *viscosityMatrix;
+  LinearSolver *pressureSolver;
+  // PETScPMultigrid *pressureSolver;
   LinearSolver *viscositySolver;
 
   bool resuming;
