@@ -5,9 +5,13 @@
 
 #include <string>
 
-#include "matrices/2d/factor_poisson_matrix_2d.h"
+#include "matrices/2d/factor_poisson_coarse_matrix_2d.h"
+#include "matrices/2d/factor_poisson_semi_matrix_free_2d.h"
 #include "matrices/2d/factor_mm_poisson_matrix_2d.h"
+#include "matrices/2d/cub_factor_poisson_matrix_2d.h"
+#include "matrices/2d/cub_factor_mm_poisson_matrix_2d.h"
 #include "linear_solvers/linear_solver.h"
+#include "linear_solvers/petsc_pmultigrid.h"
 #include "solvers/2d/ls_solver.h"
 
 #include "dg_mesh/dg_mesh_2d.h"
@@ -21,6 +25,8 @@ public:
   void init(const DG_FP re, const DG_FP refVel);
   void step();
 
+  DG_FP get_time();
+  DG_FP get_dt();
   void dump_data(const std::string &filename);
 
   DGMesh2D *mesh;
@@ -32,9 +38,13 @@ private:
   bool viscosity();
   void surface();
 
-  FactorPoissonMatrix2D *pressureMatrix;
+  // CubFactorPoissonMatrix2D *pressureMatrix;
+  // CubFactorMMPoissonMatrix2D *viscosityMatrix;
+  FactorPoissonCoarseMatrix2D *coarsePressureMatrix;
+  FactorPoissonSemiMatrixFree2D *pressureMatrix;
   FactorMMPoissonMatrix2D *viscosityMatrix;
-  LinearSolver *pressureSolver;
+  // LinearSolver *pressureSolver;
+  PETScPMultigrid *pressureSolver;
   LinearSolver *viscositySolver;
 
   bool resuming;

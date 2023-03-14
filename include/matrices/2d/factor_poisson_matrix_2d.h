@@ -14,7 +14,7 @@ protected:
   virtual void calc_op2() override;
   virtual void calc_opbc() override;
 
-  op_dat factor, gFactor, cFactor;
+  op_dat factor, gFactor;
 };
 
 #endif

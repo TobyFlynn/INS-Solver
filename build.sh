@@ -66,10 +66,23 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         matrices/poisson_matrix.cpp \
         matrices/poisson_coarse_matrix.cpp \
         matrices/poisson_semi_matrix_free.cpp \
-        matrices/2d/poisson_mat.cpp \
-        matrices/2d/factor_poisson_mat.cpp \
-        matrices/2d/mm_poisson_mat.cpp \
-        matrices/2d/factor_mm_poisson_mat.cpp \
+        matrices/poisson_matrix_free.cpp \
+        matrices/2d/poisson_matrix.cpp \
+        matrices/2d/poisson_coarse_matrix.cpp \
+        matrices/2d/poisson_semi_matrix_free.cpp \
+        matrices/2d/poisson_matrix_free.cpp \
+        matrices/2d/mm_poisson_matrix.cpp \
+        matrices/2d/mm_poisson_matrix_free.cpp \
+        matrices/2d/factor_poisson_matrix.cpp \
+        matrices/2d/factor_poisson_coarse_matrix.cpp \
+        matrices/2d/factor_poisson_semi_matrix_free.cpp \
+        matrices/2d/factor_poisson_matrix_free.cpp \
+        matrices/2d/factor_mm_poisson_matrix.cpp \
+        matrices/2d/factor_mm_poisson_matrix_free.cpp \
+        matrices/2d/cub_poisson_matrix.cpp \
+        matrices/2d/cub_factor_poisson_matrix.cpp \
+        matrices/2d/cub_mm_poisson_matrix.cpp \
+        matrices/2d/cub_factor_mm_poisson_matrix.cpp \
         linear_solvers/petsc_block_jacobi/petsc_block_jacobi.cpp \
         linear_solvers/pmultigrid/pmultigrid.cpp \
         linear_solvers/petsc_inv_mass/petsc_inv_mass.cpp \
@@ -104,6 +117,7 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         matrices/3d/factor_poisson_semi_matrix_free.cpp \
         matrices/3d/factor_poisson_matrix_free.cpp \
         matrices/3d/factor_mm_poisson_matrix.cpp \
+        matrices/3d/factor_mm_poisson_semi_matrix_free.cpp \
         matrices/3d/factor_mm_poisson_matrix_free.cpp \
         linear_solvers/petsc_block_jacobi/petsc_block_jacobi.cpp \
         linear_solvers/pmultigrid/pmultigrid.cpp \

@@ -90,10 +90,16 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m, const std::string &filename, const int
 }
 
 void MPINSSolver2D::setup_common() {
-  pressureMatrix = new FactorPoissonMatrix2D(mesh);
+  // pressureMatrix = new CubFactorPoissonMatrix2D(mesh);
+  // viscosityMatrix = new CubFactorMMPoissonMatrix2D(mesh);
+  coarsePressureMatrix = new FactorPoissonCoarseMatrix2D(mesh);
+  pressureMatrix = new FactorPoissonSemiMatrixFree2D(mesh);
   viscosityMatrix = new FactorMMPoissonMatrix2D(mesh);
-  pressureSolver = new PETScAMGSolver(mesh);
+  // pressureSolver = new PETScAMGSolver(mesh);
+  pressureSolver = new PETScPMultigrid(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
+
+  pressureSolver->set_coarse_matrix(coarsePressureMatrix);
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(true);
   viscositySolver->set_matrix(viscosityMatrix);
@@ -370,8 +376,9 @@ bool MPINSSolver2D::pressure() {
 
   bool converged;
   pressureMatrix->set_factor(pr_mat_fact);
+  coarsePressureMatrix->set_factor(pr_mat_fact);
   pressureMatrix->set_bc_types(pr_bc_types);
-  pressureMatrix->calc_mat();
+  pressureSolver->set_coarse_matrix(coarsePressureMatrix);
   pressureSolver->set_bcs(prBC);
   converged = pressureSolver->solve(pRHS, pr);
   timer->endTimer("MPINSSolver2D - Pressure Linear Solve");
@@ -476,6 +483,14 @@ void MPINSSolver2D::surface() {
 // DG_FP MPINSSolver2D::getAvgViscosityConvergance() {
 //   return viscosityPoisson->getAverageConvergeIter();
 // }
+
+DG_FP MPINSSolver2D::get_time() {
+  return time;
+}
+
+DG_FP MPINSSolver2D::get_dt() {
+  return dt;
+}
 
 void MPINSSolver2D::dump_data(const std::string &filename) {
   timer->startTimer("MPINSSolver2D - Dump Data");

@@ -2,8 +2,10 @@
 
 #include "op_seq.h"
 
+#include "dg_constants/dg_constants.h"
 #include "timing.h"
 
+extern DGConstants *constants;
 extern Timing *timer;
 
 MMPoissonMatrix2D::MMPoissonMatrix2D(DGMesh2D *m) : PoissonMatrix2D(m) {
@@ -31,10 +33,11 @@ DG_FP MMPoissonMatrix2D::get_factor() {
 
 void MMPoissonMatrix2D::calc_mm() {
   timer->startTimer("MMPoissonMatrix2D - calc_mm");
-  op_par_loop(poisson_mm, "poisson_mm", mesh->cells,
+  op_par_loop(poisson_matrix_2d_mm, "poisson_matrix_2d_mm", mesh->cells,
               op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->cubature->mm, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->J, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_INC));
   timer->endTimer("MMPoissonMatrix2D - calc_mm");
 }

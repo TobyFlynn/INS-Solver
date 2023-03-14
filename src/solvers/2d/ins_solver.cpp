@@ -90,11 +90,18 @@ INSSolver2D::INSSolver2D(DGMesh2D *m, const std::string &filename, const int ite
 }
 
 void INSSolver2D::setup_common() {
-  pressureMatrix = new PoissonMatrix2D(mesh);
-  viscosityMatrix = new MMPoissonMatrix2D(mesh);
-  pressureSolver = new PETScAMGSolver(mesh);
+  // pressureMatrix = new PoissonMatrix2D(mesh);
+  pressureCoarseMatrix = new PoissonCoarseMatrix2D(mesh);
+  pressureMatrix = new PoissonSemiMatrixFree2D(mesh);
+  // viscosityMatrix = new MMPoissonMatrix2D(mesh);
+  viscosityMatrix = new MMPoissonMatrixFree2D(mesh);
+  // pressureSolver = new PETScAMGSolver(mesh);
+  PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
   // pressureSolver = new PETScPMultigrid(mesh);
-  viscositySolver = new PETScBlockJacobiSolver(mesh);
+  // viscositySolver = new PETScBlockJacobiSolver(mesh);
+  viscositySolver = new PETScInvMassSolver(mesh);
+  tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
+  pressureSolver = tmp_pressureSolver;
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(true);
   viscositySolver->set_matrix(viscosityMatrix);
@@ -169,6 +176,7 @@ void INSSolver2D::setup_common() {
 }
 
 INSSolver2D::~INSSolver2D() {
+  delete pressureCoarseMatrix;
   delete pressureMatrix;
   delete viscosityMatrix;
   delete pressureSolver;
@@ -209,8 +217,8 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
   }
 
+  pressureCoarseMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->set_bc_types(pr_bc_types);
-  pressureMatrix->calc_mat();
 
   // Setup div-div pressure projection
   op_par_loop(project_2d_setup, "project_2d_setup", mesh->cells,
@@ -512,7 +520,8 @@ bool INSSolver2D::viscosity() {
   if(factor != viscosityMatrix->get_factor()) {
     viscosityMatrix->set_factor(factor);
     viscosityMatrix->set_bc_types(vis_bc_types);
-    viscosityMatrix->calc_mat();
+    // viscosityMatrix->calc_mat();
+    viscositySolver->setFactor(1.0 / factor);
   }
   viscositySolver->set_bcs(visBC[0]);
   bool convergedX = viscositySolver->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);

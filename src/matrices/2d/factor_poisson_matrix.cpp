@@ -12,10 +12,7 @@ extern DGConstants *constants;
 
 FactorPoissonMatrix2D::FactorPoissonMatrix2D(DGMesh2D *m) : PoissonMatrix2D(m) {
   DG_FP *tmp_g_np = (DG_FP *)calloc(DG_G_NP * mesh->cells->size, sizeof(DG_FP));
-  DG_FP *tmp_cub_np = (DG_FP *)calloc(DG_CUB_NP * mesh->cells->size, sizeof(DG_FP));
-  gFactor  = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, tmp_g_np, "poisson_gFactor");
-  cFactor  = op_decl_dat(mesh->cells, DG_CUB_NP, DG_FP_STR, tmp_cub_np, "poisson_cFactor");
-  free(tmp_cub_np);
+  gFactor = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, tmp_g_np, "poisson_gFactor");
   free(tmp_g_np);
 }
 
@@ -25,23 +22,17 @@ void FactorPoissonMatrix2D::set_factor(op_dat f) {
 
 void FactorPoissonMatrix2D::calc_op1() {
   timer->startTimer("FactorPoissonMatrix2D - calc_op1");
-  // Initialise geometric factors for calcuating grad matrix
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB_VDR, mesh->x, 0.0, mesh->cubature->op_tmp[0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB_VDS, mesh->x, 0.0, mesh->cubature->op_tmp[1]);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB_VDR, mesh->y, 0.0, mesh->cubature->op_tmp[2]);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB_VDS, mesh->y, 0.0, mesh->cubature->op_tmp[3]);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB_V, factor, 0.0, cFactor);
-
-  op_par_loop(fact_poisson_cub_op1, "fact_poisson_cub_op1", mesh->cells,
+  op_par_loop(factor_poisson_matrix_2d_op1, "factor_poisson_matrix_2d_op1", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::CUB_VDR), DG_ORDER * DG_CUB_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::CUB_VDS), DG_ORDER * DG_CUB_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->cubature->op_tmp[0], -1, OP_ID, DG_CUB_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->cubature->op_tmp[1], -1, OP_ID, DG_CUB_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->cubature->op_tmp[2], -1, OP_ID, DG_CUB_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->cubature->op_tmp[3], -1, OP_ID, DG_CUB_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->cubature->J, -1, OP_ID, DG_CUB_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(cFactor, -1, OP_ID, DG_CUB_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->rx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ry, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->J,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(factor,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(op1, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
   timer->endTimer("FactorPoissonMatrix2D - calc_op1");
 }
