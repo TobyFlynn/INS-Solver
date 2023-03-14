@@ -10,6 +10,7 @@
 #include "matrices/3d/factor_poisson_semi_matrix_free_3d.h"
 #include "matrices/3d/factor_mm_poisson_matrix_3d.h"
 #include "matrices/3d/factor_mm_poisson_matrix_free_3d.h"
+#include "matrices/3d/factor_mm_poisson_semi_matrix_free_3d.h"
 #include "linear_solvers/linear_solver.h"
 #include "linear_solvers/petsc_pmultigrid.h"
 
@@ -39,7 +40,8 @@ private:
   DGMesh3D *mesh;
   FactorPoissonCoarseMatrix3D *coarsePressureMatrix;
   FactorPoissonSemiMatrixFree3D *pressureMatrix;
-  FactorMMPoissonMatrix3D *viscosityMatrix;
+  // FactorMMPoissonMatrix3D *viscosityMatrix;
+  FactorMMPoissonSemiMatrixFree3D *viscosityMatrix;
   // LinearSolver *pressureSolver;
   PETScPMultigrid *pressureSolver;
   LinearSolver *viscositySolver;

@@ -168,7 +168,7 @@ void MPINSSolver3D::setup_common() {
 
   coarsePressureMatrix = new FactorPoissonCoarseMatrix3D(mesh);
   pressureMatrix = new FactorPoissonSemiMatrixFree3D(mesh);
-  viscosityMatrix = new FactorMMPoissonMatrix3D(mesh);
+  viscosityMatrix = new FactorMMPoissonSemiMatrixFree3D(mesh);
   // pressureSolver = new PETScAMGSolver(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
   // pressureSolver = new PMultigridPoissonSolver(mesh);
@@ -477,7 +477,7 @@ void MPINSSolver3D::viscosity() {
   viscosityMatrix->set_factor(vis_factor);
   viscosityMatrix->set_mm_factor(vis_mm_factor);
   viscosityMatrix->set_bc_types(vis_bc_types);
-  viscosityMatrix->calc_mat();
+  viscosityMatrix->calc_mat_partial();
   viscositySolver->set_bcs(vis_bc);
   bool convergedX = viscositySolver->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
