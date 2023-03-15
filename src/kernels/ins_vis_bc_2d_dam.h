@@ -9,10 +9,21 @@ inline void ins_vis_bc_2d_dam(const DG_FP *t, const DG_FP *g0, const int *bedge_
     // Outflow - Natural boundary condition
   } else {
     // Wall - slip
-    for(int i = 0; i < DG_GF_NP; i++) {
-      const DG_FP dot = nx[exInd + i] * velTT0[exInd + i] + ny[exInd + i] * velTT1[exInd + i];
-      exQ0[exInd + i] = (velTT0[exInd + i] - dot * nx[exInd + i]) / *g0;
-      exQ1[exInd + i] = (velTT1[exInd + i] - dot * ny[exInd + i]) / *g0;
+    if(fabs(y[exInd] - y[exInd + DG_GF_NP - 1]) < 1e-8) {
+      for(int i = 0; i < DG_GF_NP; i++) {
+        exQ0[exInd + i] = velTT0[exInd + i];
+        exQ1[exInd + i] = 0.0;
+      }
+    } else {
+      for(int i = 0; i < DG_GF_NP; i++) {
+        exQ0[exInd + i] = 0.0;
+        exQ1[exInd + i] = velTT1[exInd + i];
+      }
     }
+    // for(int i = 0; i < DG_GF_NP; i++) {
+    //   const DG_FP dot = nx[exInd + i] * velTT0[exInd + i] + ny[exInd + i] * velTT1[exInd + i];
+    //   exQ0[exInd + i] = (velTT0[exInd + i] - dot * nx[exInd + i]) / *g0;
+    //   exQ1[exInd + i] = (velTT1[exInd + i] - dot * ny[exInd + i]) / *g0;
+    // }
   }
 }

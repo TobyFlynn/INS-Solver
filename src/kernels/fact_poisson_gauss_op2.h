@@ -156,42 +156,21 @@ inline void fact_poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
 
 
   // Left edge
-  DG_FP tauL[DG_GF_NP];
-  DG_FP maxtau = 0.0;
+  DG_FP tauL[DG_GF_NP], tauR[DG_GF_NP];
   DG_FP max_hinv = fmax(h[0][edgeL * dg_npfL], h[1][edgeR * dg_npfR]);
   for(int i = 0; i < DG_GF_NP; i++) {
     int indL = edgeL * DG_GF_NP + i;
-    int indR;
-    if(reverse)
+    int indR, tauRInd;
+    if(reverse) {
       indR = edgeR * DG_GF_NP + DG_GF_NP - 1 - i;
-    else
+      tauRInd = DG_GF_NP - 1 - i;
+    } else {
       indR = edgeR * DG_GF_NP + i;
+      tauRInd = i;
+    }
 
     tauL[i] = 2.0 * max_hinv * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
-    if(tauL[i] > maxtau) maxtau = tauL[i];
-  }
-
-  for(int i = 0; i < DG_GF_NP; i++) {
-    tauL[i] = maxtau;
-  }
-
-  // Right edge
-  DG_FP tauR[DG_GF_NP];
-  maxtau = 0.0;
-  for(int i = 0; i < DG_GF_NP; i++) {
-    int indR = edgeR * DG_GF_NP + i;
-    int indL;
-    if(reverse)
-      indL = edgeL * DG_GF_NP + DG_GF_NP - 1 - i;
-    else
-      indL = edgeL * DG_GF_NP + i;
-
-    tauR[i] = 2.0 * max_hinv * fmax((p[0][0] + 1) * (p[0][0] + 2) * factor[0][indL], (p[1][0] + 1) * (p[1][0] + 2) * factor[1][indR]);
-    if(tauR[i] > maxtau) maxtau = tauR[i];
-  }
-
-  for(int i = 0; i < DG_GF_NP; i++) {
-    tauR[i] = maxtau;
+    tauR[tauRInd] = tauL[i];
   }
 
   // Left edge

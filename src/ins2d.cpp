@@ -77,12 +77,12 @@ int main(int argc, char **argv) {
   }
 
   mu0  = 1.0;
-  mu1  = 100.0;
+  mu1  = 1.0;
   rho0 = 1.0;
-  rho1 = 100.0;
+  rho1 = 10.0;
 
   const DG_FP refRho = 1.0;
-  const DG_FP refVel = 0.1;
+  const DG_FP refVel = 1.0;
   const DG_FP refLen = 0.001;
   const DG_FP refMu  = 1.0e-4;
   r_ynolds = refRho * refVel * refLen / refMu;

@@ -199,6 +199,7 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
               op_arg_gbl(&dt, 1, DG_FP_STR, OP_MIN));
   dt = dt / (DG_ORDER * DG_ORDER * refVel);
+  dt *= 0.25;
   op_printf("dt: %g\n", dt);
 
   time = dt * currentInd;

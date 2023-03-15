@@ -19,11 +19,22 @@ inline void ins_advec_bc_2d(const DG_FP *t, const int *p, const int *bedge_type,
     }
   } else {
     // Wall - slip
-    for(int i = 0; i < DG_GF_NP; i++) {
-      const DG_FP dot = nx[exInd + i] * q0[exInd + i] + ny[exInd + i] * q1[exInd + i];
-      pQ0[i] = q0[exInd + i] - dot * nx[exInd + i];
-      pQ1[i] = q1[exInd + i] - dot * ny[exInd + i];
+    if(fabs(y[exInd] - y[exInd + DG_GF_NP - 1]) < 1e-8) {
+      for(int i = 0; i < DG_GF_NP; i++) {
+        pQ0[i] = q0[exInd + i];
+        pQ1[i] = 0.0;
+      }
+    } else {
+      for(int i = 0; i < DG_GF_NP; i++) {
+        pQ0[i] = 0.0;
+        pQ1[i] = q1[exInd + i];
+      }
     }
+    // for(int i = 0; i < DG_GF_NP; i++) {
+    //   const DG_FP dot = nx[exInd + i] * q0[exInd + i] + ny[exInd + i] * q1[exInd + i];
+    //   pQ0[i] = q0[exInd + i] - dot * nx[exInd + i];
+    //   pQ1[i] = q1[exInd + i] - dot * ny[exInd + i];
+    // }
   }
 
   // Calculate numerical flux
