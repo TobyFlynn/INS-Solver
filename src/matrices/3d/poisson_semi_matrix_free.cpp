@@ -39,10 +39,7 @@ void custom_kernel_pmf_3d_mult_cells(char const *name, op_set set,
   op_arg arg13,
   op_arg arg14,
   op_arg arg15,
-  op_arg arg16,
-  op_arg arg17,
-  op_arg arg18,
-  op_arg arg19);
+  op_arg arg16);
 
 PoissonSemiMatrixFree3D::PoissonSemiMatrixFree3D(DGMesh3D *m) {
   mesh = m;
@@ -69,9 +66,9 @@ PoissonSemiMatrixFree3D::PoissonSemiMatrixFree3D(DGMesh3D *m) {
   in_grad[0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_in_0");
   in_grad[1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_in_1");
   in_grad[2] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_in_2");
-  l[0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_l0");
-  l[1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_l1");
-  l[2] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_l2");
+  // l[0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_l0");
+  // l[1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_l1");
+  // l[2] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_l2");
   tmp_npf[0] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, tmp_npf_data, "poisson_matrix_free_tmp_npf0");
   tmp_npf[1] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, tmp_npf_data, "poisson_matrix_free_tmp_npf1");
   tmp_npf[2] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, tmp_npf_data, "poisson_matrix_free_tmp_npf2");
@@ -270,6 +267,12 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
   }
   timer->endTimer("PoissonSemiMatrixFree3D - mult bfaces");
 
+  timer->startTimer("PoissonSemiMatrixFree3D - mult MM");
+  mesh->mass(in_grad[0]);
+  mesh->mass(in_grad[1]);
+  mesh->mass(in_grad[2]);
+  timer->endTimer("PoissonSemiMatrixFree3D - mult MM");
+
   timer->startTimer("PoissonSemiMatrixFree3D - mult Emat");
   #ifdef OP2_DG_CUDA
   custom_kernel_pmf_3d_mult_cells_emat("pmf_3d_mult_cells_emat", _mesh->cells,
@@ -279,14 +282,14 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(tmp_npf[1], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
               op_arg_dat(tmp_npf[2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
               op_arg_dat(tmp_npf[3], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
-              op_arg_dat(l[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(l[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(l[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(in_grad[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(in_grad[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(in_grad[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(out,  -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   #else
-  op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf[0], 0.0, l[0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf[1], 0.0, l[1]);
-  op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf[2], 0.0, l[2]);
+  op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf[0], 1.0, in_grad[0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf[1], 1.0, in_grad[1]);
+  op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf[2], 1.0, in_grad[2]);
   op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf[3], 0.0, out);
 /*
   op_par_loop(pmf_3d_mult_cells_emat, "pmf_3d_mult_cells_emat", _mesh->cells,
@@ -296,19 +299,13 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(tmp_npf[1], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
               op_arg_dat(tmp_npf[2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
               op_arg_dat(tmp_npf[3], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
-              op_arg_dat(l[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(l[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(l[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(in_grad[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(in_grad[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(in_grad[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(out,  -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 */
   #endif
   timer->endTimer("PoissonSemiMatrixFree3D - mult Emat");
-
-  timer->startTimer("PoissonSemiMatrixFree3D - mult MM");
-  mesh->mass(in_grad[0]);
-  mesh->mass(in_grad[1]);
-  mesh->mass(in_grad[2]);
-  timer->endTimer("PoissonSemiMatrixFree3D - mult MM");
 
   timer->startTimer("PoissonSemiMatrixFree3D - mult cells");
   #ifdef OP2_DG_CUDA
@@ -326,9 +323,6 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(mesh->rz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->tz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(l[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(l[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(l[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -348,9 +342,6 @@ void PoissonSemiMatrixFree3D::mult(op_dat in, op_dat out) {
               op_arg_dat(mesh->rz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->tz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(l[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(l[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(l[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
