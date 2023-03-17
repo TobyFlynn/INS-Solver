@@ -1,5 +1,5 @@
-#ifndef __INS_MM_POISSON_MATRIX_FREE_3D_H
-#define __INS_MM_POISSON_MATRIX_FREE_3D_H
+#ifndef __INS_MM_POISSON_SEMI_MATRIX_FREE_3D_H
+#define __INS_MM_POISSON_SEMI_MATRIX_FREE_3D_H
 
 #include "factor_poisson_semi_matrix_free_3d.h"
 

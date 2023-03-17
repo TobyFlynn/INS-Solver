@@ -10,7 +10,7 @@ inline void ins_3d_pr_0(const DG_FP *t, const int *bc_type, const int *faceNum,
   const int fInd = *faceNum * DG_NPF;
   const DG_FP PI = 3.141592653589793238463;
 
-  if(*bc_type == 0 || *bc_type == 2) {
+  if(*bc_type == LW_INFLOW_BC || *bc_type == LW_NO_SLIP_WALL_BC || *bc_type == LW_SLIP_WALL_BC) {
     for(int i = 0; i < DG_NPF; i++) {
       DG_FP res0 = -n0[fmaskB[i]] - curl20[fmaskB[i]] / r_ynolds;
       DG_FP res1 = -n1[fmaskB[i]] - curl21[fmaskB[i]] / r_ynolds;
@@ -19,10 +19,9 @@ inline void ins_3d_pr_0(const DG_FP *t, const int *bc_type, const int *faceNum,
       dPdN[fInd + i] += *fscale * (*nx * res0 + *ny * res1 + *nz * res2);
     }
 
-    if(*bc_type == 0) {
+    if(*bc_type == LW_INFLOW_BC) {
       for(int i = 0; i < DG_NPF; i++) {
-        // dPdN[fInd + i] += *fscale * (PI * cos(PI * (*t)) * (y[fmask[i]] * (1.0 - y[fmask[i]]))  * (z[fmask[i]] * (1.0 - z[fmask[i]])));
-        dPdN[fInd + i] += *fscale * PI * cos(PI * (*t));
+        // dPdN[fInd + i] += *fscale * PI * cos(PI * (*t));
       }
     }
   }
