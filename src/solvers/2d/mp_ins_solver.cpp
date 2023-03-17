@@ -104,6 +104,8 @@ void MPINSSolver2D::setup_common() {
   viscosityMatrix = new FactorMMPoissonMatrix2D(mesh);
   pressureSolver = new PETScAMGSolver(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
+
+  pressureSolver->set_coarse_matrix(coarsePressureMatrix);
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(true);
   viscositySolver->set_matrix(viscosityMatrix);
@@ -437,8 +439,9 @@ bool MPINSSolver2D::pressure() {
 
   bool converged;
   pressureMatrix->set_factor(pr_mat_fact);
+  coarsePressureMatrix->set_factor(pr_mat_fact);
   pressureMatrix->set_bc_types(pr_bc_types);
-  pressureMatrix->calc_mat();
+  pressureSolver->set_coarse_matrix(coarsePressureMatrix);
   pressureSolver->set_bcs(prBC);
   converged = pressureSolver->solve(pRHS, pr);
   timer->endTimer("MPINSSolver2D - Pressure Linear Solve");

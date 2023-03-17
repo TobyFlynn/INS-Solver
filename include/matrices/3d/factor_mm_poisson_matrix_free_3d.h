@@ -8,7 +8,6 @@ public:
   FactorMMPoissonMatrixFree3D(DGMesh3D *m);
 
   void set_mm_factor(op_dat f);
-  virtual void apply_bc(op_dat rhs, op_dat bc) override;
   virtual void mult(op_dat in, op_dat out) override;
 
 private:

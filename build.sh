@@ -66,10 +66,19 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         matrices/poisson_matrix.cpp \
         matrices/poisson_coarse_matrix.cpp \
         matrices/poisson_semi_matrix_free.cpp \
+        matrices/poisson_matrix_free.cpp \
         matrices/2d/poisson_matrix.cpp \
+        matrices/2d/poisson_coarse_matrix.cpp \
+        matrices/2d/poisson_semi_matrix_free.cpp \
+        matrices/2d/poisson_matrix_free.cpp \
         matrices/2d/mm_poisson_matrix.cpp \
+        matrices/2d/mm_poisson_matrix_free.cpp \
         matrices/2d/factor_poisson_matrix.cpp \
+        matrices/2d/factor_poisson_coarse_matrix.cpp \
+        matrices/2d/factor_poisson_semi_matrix_free.cpp \
+        matrices/2d/factor_poisson_matrix_free.cpp \
         matrices/2d/factor_mm_poisson_matrix.cpp \
+        matrices/2d/factor_mm_poisson_matrix_free.cpp \
         matrices/2d/cub_poisson_matrix.cpp \
         matrices/2d/cub_factor_poisson_matrix.cpp \
         matrices/2d/cub_mm_poisson_matrix.cpp \
@@ -108,6 +117,7 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         matrices/3d/factor_poisson_semi_matrix_free.cpp \
         matrices/3d/factor_poisson_matrix_free.cpp \
         matrices/3d/factor_mm_poisson_matrix.cpp \
+        matrices/3d/factor_mm_poisson_semi_matrix_free.cpp \
         matrices/3d/factor_mm_poisson_matrix_free.cpp \
         linear_solvers/petsc_block_jacobi/petsc_block_jacobi.cpp \
         linear_solvers/pmultigrid/pmultigrid.cpp \
@@ -117,8 +127,11 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
 sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins3d_kernels.cu
 sed -i "4i #include \"dg_compiler_defs.h\"" openmp/ins3d_kernels.cpp
 sed -i "4i #include \"dg_compiler_defs.h\"" seq/ins3d_seqkernels.cpp
-sed -i "5i #include \"cblas.h\"" openmp/ins3d_kernels.cpp
-sed -i "5i #include \"cblas.h\"" seq/ins3d_seqkernels.cpp
+sed -i "5i #include \"liquid_whistle_consts.h\"" cuda/ins3d_kernels.cu
+sed -i "5i #include \"liquid_whistle_consts.h\"" openmp/ins3d_kernels.cpp
+sed -i "5i #include \"liquid_whistle_consts.h\"" seq/ins3d_seqkernels.cpp
+sed -i "6i #include \"cblas.h\"" openmp/ins3d_kernels.cpp
+sed -i "6i #include \"cblas.h\"" seq/ins3d_seqkernels.cpp
 
 cd ..
 

@@ -117,12 +117,21 @@ void PETScInvMassSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
   timer->startTimer("PETScInvMassSolver - precond");
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
+  #if DG_DIM == 3
   op_par_loop(petsc_pre_inv_mass, "petsc_pre_inv_mass", mesh->cells,
               op_arg_gbl(constants->get_mat_ptr(DGConstants::INV_MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(&factor,  1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->J, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(in,      -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(out,     -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  #else
+  op_par_loop(petsc_pre_inv_mass_2d, "petsc_pre_inv_mass_2d", mesh->cells,
+              op_arg_gbl(constants->get_mat_ptr(DGConstants::INV_MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(&factor,  1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->J, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(in,      -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(out,     -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  #endif
 
   PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
   timer->endTimer("PETScInvMassSolver - precond");

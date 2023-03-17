@@ -11,9 +11,6 @@ __device__ void _pmf_3d_mult_cells_emat_gpu(const int ind, const int *order, con
   const int p = *order;
   const DG_FP *emat_mat = &eMat[(p - 1) * DG_NUM_FACES * DG_NPF * DG_NP];
 
-  out0[ind] = 0.0;
-  out1[ind] = 0.0;
-  out2[ind] = 0.0;
   out3[ind] = 0.0;
   for(int j = 0; j < DG_NUM_FACES * dg_npf; j++) {
     int mat_ind = DG_MAT_IND(ind, j, dg_np, DG_NUM_FACES * dg_npf);

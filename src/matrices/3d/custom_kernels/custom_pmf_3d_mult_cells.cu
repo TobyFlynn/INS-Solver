@@ -30,8 +30,7 @@ __device__ void _pmf_3d_mult_cells_gpu(const int ind, const int *p, const DG_FP 
                             const DG_FP *rx, const DG_FP *sx, const DG_FP *tx,
                             const DG_FP *ry, const DG_FP *sy, const DG_FP *ty,
                             const DG_FP *rz, const DG_FP *sz, const DG_FP *tz,
-                            const DG_FP *l_x, const DG_FP *l_y,
-                            const DG_FP *l_z, const DG_FP *in_x, const DG_FP *in_y,
+                            const DG_FP *in_x, const DG_FP *in_y,
                             const DG_FP *in_z, DG_FP *out) {
   const DG_FP *dr_mat = &dr[(*p - 1) * DG_NP * DG_NP];
   const DG_FP *ds_mat = &ds[(*p - 1) * DG_NP * DG_NP];
@@ -39,9 +38,9 @@ __device__ void _pmf_3d_mult_cells_gpu(const int ind, const int *p, const DG_FP 
 
   for(int n = 0; n < dg_np; n++) {
     int mat_ind = DG_MAT_IND(n, ind, dg_np, dg_np);
-    out[ind] += dr_mat[mat_ind] * (rx[0] * (in_x[n] + l_x[n]) + ry[0] * (in_y[n] + l_y[n]) + rz[0] * (in_z[n] + l_z[n]));
-    out[ind] += ds_mat[mat_ind] * (sx[0] * (in_x[n] + l_x[n]) + sy[0] * (in_y[n] + l_y[n]) + sz[0] * (in_z[n] + l_z[n]));
-    out[ind] += dt_mat[mat_ind] * (tx[0] * (in_x[n] + l_x[n]) + ty[0] * (in_y[n] + l_y[n]) + tz[0] * (in_z[n] + l_z[n]));
+    out[ind] += dr_mat[mat_ind] * (rx[0] * in_x[n] + ry[0] * in_y[n] + rz[0] * in_z[n]);
+    out[ind] += ds_mat[mat_ind] * (sx[0] * in_x[n] + sy[0] * in_y[n] + sz[0] * in_z[n]);
+    out[ind] += dt_mat[mat_ind] * (tx[0] * in_x[n] + ty[0] * in_y[n] + tz[0] * in_z[n]);
   }
 }
 
@@ -61,9 +60,6 @@ __global__ void _op_cuda_pmf_3d_mult_cells(
   const DG_FP *__restrict arg10,
   const DG_FP *__restrict arg11,
   const DG_FP *__restrict arg12,
-  const DG_FP *__restrict arg13,
-  const DG_FP *__restrict arg14,
-  const DG_FP *__restrict arg15,
   const DG_FP *__restrict arg16,
   const DG_FP *__restrict arg17,
   const DG_FP *__restrict arg18,
@@ -97,9 +93,9 @@ __global__ void _op_cuda_pmf_3d_mult_cells(
       const int start_ind = ((n - threadIdx.x) / DG_NP) * DG_NP;
       const int num_elem  = ((n - threadIdx.x + blockDim.x) / DG_NP) - ((n - threadIdx.x) / DG_NP) + 1;
       for(int i = threadIdx.x; i < num_elem * DG_NP; i += blockDim.x) {
-        ux_shared[i] = arg13[start_ind + i] + arg16[start_ind + i];
-        uy_shared[i] = arg14[start_ind + i] + arg17[start_ind + i];
-        uz_shared[i] = arg15[start_ind + i] + arg18[start_ind + i];
+        ux_shared[i] = arg16[start_ind + i];
+        uy_shared[i] = arg17[start_ind + i];
+        uz_shared[i] = arg18[start_ind + i];
       }
 
       __syncthreads();
@@ -179,9 +175,6 @@ __global__ void _op_cuda_pmf_3d_mult_cells(
                             arg10 + cell_id * 1,
                             arg11 + cell_id * 1,
                             arg12 + cell_id * 1,
-                            arg13 + cell_id * DG_NP,
-                            arg14 + cell_id * DG_NP,
-                            arg15 + cell_id * DG_NP,
                             arg16 + cell_id * DG_NP,
                             arg17 + cell_id * DG_NP,
                             arg18 + cell_id * DG_NP,
@@ -201,9 +194,6 @@ __global__ void _op_cuda_pmf_3d_mult_cells(
                             arg10 + cell_id * 1,
                             arg11 + cell_id * 1,
                             arg12 + cell_id * 1,
-                            arg13 + cell_id * DG_NP,
-                            arg14 + cell_id * DG_NP,
-                            arg15 + cell_id * DG_NP,
                             arg16 + cell_id * DG_NP,
                             arg17 + cell_id * DG_NP,
                             arg18 + cell_id * DG_NP,
@@ -223,9 +213,6 @@ __global__ void _op_cuda_pmf_3d_mult_cells(
                             arg10 + cell_id * 1,
                             arg11 + cell_id * 1,
                             arg12 + cell_id * 1,
-                            arg13 + cell_id * DG_NP,
-                            arg14 + cell_id * DG_NP,
-                            arg15 + cell_id * DG_NP,
                             arg16 + cell_id * DG_NP,
                             arg17 + cell_id * DG_NP,
                             arg18 + cell_id * DG_NP,
@@ -329,16 +316,13 @@ void custom_kernel_pmf_3d_mult_cells(char const *name, op_set set,
   op_arg arg13,
   op_arg arg14,
   op_arg arg15,
-  op_arg arg16,
-  op_arg arg17,
-  op_arg arg18,
-  op_arg arg19){
+  op_arg arg16){
 
   DG_FP*arg1h = (DG_FP *)arg1.data;
   DG_FP*arg2h = (DG_FP *)arg2.data;
   DG_FP*arg3h = (DG_FP *)arg3.data;
-  int nargs = 20;
-  op_arg args[20];
+  int nargs = 17;
+  op_arg args[17];
 
   args[0] = arg0;
   args[1] = arg1;
@@ -357,9 +341,6 @@ void custom_kernel_pmf_3d_mult_cells(char const *name, op_set set,
   args[14] = arg14;
   args[15] = arg15;
   args[16] = arg16;
-  args[17] = arg17;
-  args[18] = arg18;
-  args[19] = arg19;
 
   if (OP_diags>2) {
     printf(" kernel routine w/o indirection:  pmf_3d_mult_cells");
@@ -378,23 +359,14 @@ void custom_kernel_pmf_3d_mult_cells(char const *name, op_set set,
     arg1.data   = OP_consts_h + consts_bytes;
     arg1.data_d = OP_consts_d + consts_bytes;
     memcpy(arg1.data, arg1h, DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
-    // for ( int d=0; d<DG_ORDER * DG_NP * DG_NP; d++ ){
-    //   ((DG_FP *)arg1.data)[d] = arg1h[d];
-    // }
     consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
     arg2.data   = OP_consts_h + consts_bytes;
     arg2.data_d = OP_consts_d + consts_bytes;
     memcpy(arg2.data, arg2h, DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
-    // for ( int d=0; d<DG_ORDER * DG_NP * DG_NP; d++ ){
-    //   ((DG_FP *)arg2.data)[d] = arg2h[d];
-    // }
     consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
     arg3.data   = OP_consts_h + consts_bytes;
     arg3.data_d = OP_consts_d + consts_bytes;
     memcpy(arg3.data, arg3h, DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
-    // for ( int d=0; d<DG_ORDER * DG_NP * DG_NP; d++ ){
-    //   ((DG_FP *)arg3.data)[d] = arg3h[d];
-    // }
     consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
     mvConstArraysToDevice(consts_bytes);
 
@@ -421,9 +393,6 @@ void custom_kernel_pmf_3d_mult_cells(char const *name, op_set set,
       (DG_FP *) arg14.data_d,
       (DG_FP *) arg15.data_d,
       (DG_FP *) arg16.data_d,
-      (DG_FP *) arg17.data_d,
-      (DG_FP *) arg18.data_d,
-      (DG_FP *) arg19.data_d,
       set->size );
   }
   op_mpi_set_dirtybit_cuda(nargs, args);

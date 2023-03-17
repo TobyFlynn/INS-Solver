@@ -10,6 +10,7 @@
 #include "matrices/2d/cub_factor_poisson_matrix_2d.h"
 #include "matrices/2d/cub_factor_mm_poisson_matrix_2d.h"
 #include "linear_solvers/linear_solver.h"
+#include "linear_solvers/petsc_pmultigrid.h"
 #include "solvers/2d/ls_solver.h"
 
 #include "dg_mesh/dg_mesh_2d.h"

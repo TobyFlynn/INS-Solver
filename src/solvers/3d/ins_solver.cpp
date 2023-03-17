@@ -143,6 +143,9 @@ void INSSolver3D::setup_common() {
   dpdz = tmp_np[2];
   vis_coeff = tmp_np[0];
   vis_mm = tmp_np[1];
+  visRHS[0] = tmp_np[2];
+  visRHS[1] = tmp_np[3];
+  visRHS[2] = tmp_np[4];
 
   advec_flux[0] = tmp_npf[0];
   advec_flux[1] = tmp_npf[1];
@@ -168,7 +171,7 @@ void INSSolver3D::setup_common() {
   tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
   pressureSolver = tmp_pressureSolver;
   pressureSolver->set_matrix(pressureMatrix);
-  pressureSolver->set_nullspace(true);
+  pressureSolver->set_nullspace(false);
   viscositySolver->set_matrix(viscosityMatrix);
   viscositySolver->set_nullspace(false);
 }
@@ -382,6 +385,7 @@ void INSSolver3D::pressure() {
   timer->endTimer("INSSolver3D - Pressure RHS");
 
   timer->startTimer("INSSolver3D - Pressure Linear Solve");
+  pressureCoarseMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->set_bc_types(pr_bc_types);
   pressureSolver->set_bcs(pr_bc);
   bool converged = pressureSolver->solve(divVelT, pr);
@@ -409,30 +413,40 @@ void INSSolver3D::pressure() {
 
 void INSSolver3D::viscosity() {
   timer->startTimer("INSSolver3D - Viscosity RHS");
-  mesh->mass(velTT[0]);
-  mesh->mass(velTT[1]);
-  mesh->mass(velTT[2]);
-
   DG_FP factor = reynolds / dt;
   op_par_loop(ins_3d_vis_0, "ins_3d_vis_0", mesh->cells,
               op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+              op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(visRHS[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  
+  mesh->mass(visRHS[0]);
+  mesh->mass(visRHS[1]);
+  mesh->mass(visRHS[2]);
+  timer->endTimer("INSSolver3D - Viscosity RHS");
 
   DG_FP vis_time = time + dt;
   if(mesh->bface2cells) {
-    op_par_loop(ins_3d_vis_1, "ins_3d_vis_1", mesh->bfaces,
+    op_par_loop(ins_3d_vis_x, "ins_3d_vis_x", mesh->bfaces,
                 op_arg_gbl(&vis_time, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bnz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->z, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[2], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(vis_bc, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
-  timer->endTimer("INSSolver3D - Viscosity RHS");
 
   timer->startTimer("INSSolver3D - Viscosity Linear Solve");
   factor = g0 * reynolds / dt;
@@ -444,24 +458,55 @@ void INSSolver3D::viscosity() {
     viscositySolver->setFactor(1.0 / factor);
   }
   viscositySolver->set_bcs(vis_bc);
-  bool convergedX = viscositySolver->solve(velTT[0], vel[(currentInd + 1) % 2][0]);
+  bool convergedX = viscositySolver->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
     throw std::runtime_error("\nViscosity X solve failed to converge\n");
 
   if(mesh->bface2cells) {
-    op_par_loop(ins_3d_vis_2, "ins_3d_vis_2", mesh->bfaces,
+    op_par_loop(ins_3d_vis_y, "ins_3d_vis_y", mesh->bfaces,
+                op_arg_gbl(&vis_time, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bnz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->z, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[2], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(vis_bc, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
 
   viscositySolver->set_bcs(vis_bc);
-  bool convergedY = viscositySolver->solve(velTT[1], vel[(currentInd + 1) % 2][1]);
+  bool convergedY = viscositySolver->solve(visRHS[1], vel[(currentInd + 1) % 2][1]);
   if(!convergedY)
     throw std::runtime_error("\nViscosity Y solve failed to converge\n");
 
+  if(mesh->bface2cells) {
+    op_par_loop(ins_3d_vis_z, "ins_3d_vis_z", mesh->bfaces,
+                op_arg_gbl(&vis_time, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bnz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->z, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[2], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE),
+                op_arg_dat(vis_bc, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
+  }
+
   viscositySolver->set_bcs(vis_bc);
-  bool convergedZ = viscositySolver->solve(velTT[2], vel[(currentInd + 1) % 2][2]);
+  bool convergedZ = viscositySolver->solve(visRHS[2], vel[(currentInd + 1) % 2][2]);
   if(!convergedZ)
     throw std::runtime_error("\nViscosity Z solve failed to converge\n");
 
