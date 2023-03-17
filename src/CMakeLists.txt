@@ -100,6 +100,7 @@ elseif(DIM EQUAL 3)
   list(APPEND GPU_SRC matrices/3d/custom_kernels/custom_pmf_3d_mult_cells_emat.cu)
   list(APPEND GPU_SRC matrices/3d/custom_kernels/custom_pmf_3d_mult_cells.cu)
   list(APPEND GPU_SRC matrices/3d/custom_kernels/custom_fpmf_3d_mult_cells.cu)
+  list(APPEND GPU_SRC matrices/3d/custom_kernels/custom_fpmf_grad_3d.cu)
   list(APPEND GPU_SRC ${LINEAR_SOLVER_GPU_SRC})
   list(APPEND GPU_SRC ${ALL_DIM_GPU_SRC})
 

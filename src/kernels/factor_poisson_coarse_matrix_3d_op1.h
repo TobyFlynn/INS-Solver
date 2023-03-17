@@ -33,9 +33,9 @@ inline void factor_poisson_coarse_matrix_3d_op1(const DG_FP *dr,
         int a_ind = DG_MAT_IND(i, k, DG_NP_N1, DG_NP_N1);
         // int b_ind = j * DG_NP_N1 + k;
         int b_ind = DG_MAT_IND(k, j, DG_NP_N1, DG_NP_N1);
-        Dx_t[op_ind] += mass_mat[a_ind] * Dx[b_ind];
-        Dy_t[op_ind] += mass_mat[a_ind] * Dy[b_ind];
-        Dz_t[op_ind] += mass_mat[a_ind] * Dz[b_ind];
+        Dx_t[op_ind] += mass_mat[a_ind] * factor[k] * Dx[b_ind];
+        Dy_t[op_ind] += mass_mat[a_ind] * factor[k] * Dy[b_ind];
+        Dz_t[op_ind] += mass_mat[a_ind] * factor[k] * Dz[b_ind];
       }
     }
   }
@@ -50,8 +50,7 @@ inline void factor_poisson_coarse_matrix_3d_op1(const DG_FP *dr,
         int a_ind = DG_MAT_IND(k, i, DG_NP_N1, DG_NP_N1);
         // int b_ind = j * DG_NP_N1 + k;
         int b_ind = DG_MAT_IND(k, j, DG_NP_N1, DG_NP_N1);
-        DG_FP tmp = Dx[a_ind] * Dx_t[b_ind] + Dy[a_ind] * Dy_t[b_ind] + Dz[a_ind] * Dz_t[b_ind];
-        op1[op_ind] += factor[k] * tmp;
+        op1[op_ind] += Dx[a_ind] * Dx_t[b_ind] + Dy[a_ind] * Dy_t[b_ind] + Dz[a_ind] * Dz_t[b_ind];
       }
       op1[op_ind] *= J[0];
     }
