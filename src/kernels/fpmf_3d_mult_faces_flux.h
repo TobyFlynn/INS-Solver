@@ -22,9 +22,9 @@ inline void fpmf_3d_mult_faces_flux(const int *p, const int *faceNums,
 
     for(int j = 0; j < dg_npf; j++) {
       const DG_FP diffL_u = in[0][fmaskL[j]] - in[i + 1][fmaskR[j]];
-      const DG_FP diffL_u_x = nx[i] * (factor[i + 1][fmaskR[j]] * in_x[i + 1][fmaskR[j]] + factor[0][fmaskL[j]] * in_x[0][fmaskL[j]]);
-      const DG_FP diffL_u_y = ny[i] * (factor[i + 1][fmaskR[j]] * in_y[i + 1][fmaskR[j]] + factor[0][fmaskL[j]] * in_y[0][fmaskL[j]]);
-      const DG_FP diffL_u_z = nz[i] * (factor[i + 1][fmaskR[j]] * in_z[i + 1][fmaskR[j]] + factor[0][fmaskL[j]] * in_z[0][fmaskL[j]]);
+      const DG_FP diffL_u_x = nx[i] * (in_x[i + 1][fmaskR[j]] + in_x[0][fmaskL[j]]);
+      const DG_FP diffL_u_y = ny[i] * (in_y[i + 1][fmaskR[j]] + in_y[0][fmaskL[j]]);
+      const DG_FP diffL_u_z = nz[i] * (in_z[i + 1][fmaskR[j]] + in_z[0][fmaskL[j]]);
       const DG_FP diffL_u_grad = diffL_u_x + diffL_u_y + diffL_u_z;
 
       const int indL = findL + j;

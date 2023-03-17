@@ -23,9 +23,9 @@ inline void fpmf_3d_mult_bfaces(const int *order, const int *bc_type, const int 
 
   for(int j = 0; j < dg_npf; j++) {
     const DG_FP diff_u = in[fmaskB[j]];
-    const DG_FP diff_u_x = nx[0] * fact[fmaskB[j]] * in_x[fmaskB[j]];
-    const DG_FP diff_u_y = ny[0] * fact[fmaskB[j]] * in_y[fmaskB[j]];
-    const DG_FP diff_u_z = nz[0] * fact[fmaskB[j]] * in_z[fmaskB[j]];
+    const DG_FP diff_u_x = nx[0] * in_x[fmaskB[j]];
+    const DG_FP diff_u_y = ny[0] * in_y[fmaskB[j]];
+    const DG_FP diff_u_z = nz[0] * in_z[fmaskB[j]];
     const DG_FP diff_u_grad = diff_u_x + diff_u_y + diff_u_z;
 
     const int ind = find + j;

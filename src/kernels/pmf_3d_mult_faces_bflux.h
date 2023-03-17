@@ -24,10 +24,10 @@ inline void pmf_3d_mult_faces_bflux(const int *p, const int *faceL,
     const DG_FP diffL_u_grad = diffL_u_x + diffL_u_y + diffL_u_z;
 
     const int indL = findL + j;
-    out[indL] = 0.5 * sJ[faceInd] * (gtau * diffL_u - diffL_u_grad);
+    out[indL] += 0.5 * sJ[faceInd] * (gtau * diffL_u - diffL_u_grad);
     const DG_FP l_tmpL = 0.5 * sJ[faceInd] * -diffL_u;
-    l_x[indL] = nx[faceInd] * l_tmpL;
-    l_y[indL] = ny[faceInd] * l_tmpL;
-    l_z[indL] = nz[faceInd] * l_tmpL;
+    l_x[indL] += nx[faceInd] * l_tmpL;
+    l_y[indL] += ny[faceInd] * l_tmpL;
+    l_z[indL] += nz[faceInd] * l_tmpL;
   }
 }
