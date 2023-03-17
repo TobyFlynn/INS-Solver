@@ -1,5 +1,5 @@
 inline void ins_3d_pr_2(const int *bc_type, int *type, DG_FP *bcs) {
-  if(*bc_type == 1)
+  if(*bc_type == LW_OUTFLOW_BC)
     *type = 0;
   else
     *type = 1;

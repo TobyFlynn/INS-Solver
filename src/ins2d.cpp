@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
 
     op_printf("Iter %d\n", i);
 
-    if((i + 1) % 25 == 0) {
+    if(save > 0 && (i + 1) % save == 0) {
       string out_file_tmp = outputDir + "iter-" + to_string(i + 1) + ".h5";
       mpins2d->dump_data(out_file_tmp);
     }
