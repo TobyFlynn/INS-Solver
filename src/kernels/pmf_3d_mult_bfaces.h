@@ -17,10 +17,11 @@ inline void pmf_3d_mult_bfaces(const int *order, const int *bc_type, const int *
   const DG_FP gtau = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * fscale[0];
 
   for(int j = 0; j < dg_npf; j++) {
-    const DG_FP diff_u = in[fmaskB[j]];
-    const DG_FP diff_u_x = nx[0] * in_x[fmaskB[j]];
-    const DG_FP diff_u_y = ny[0] * in_y[fmaskB[j]];
-    const DG_FP diff_u_z = nz[0] * in_z[fmaskB[j]];
+    const int fmaskInd = fmaskB[j];
+    const DG_FP diff_u = in[fmaskInd];
+    const DG_FP diff_u_x = nx[0] * in_x[fmaskInd];
+    const DG_FP diff_u_y = ny[0] * in_y[fmaskInd];
+    const DG_FP diff_u_z = nz[0] * in_z[fmaskInd];
     const DG_FP diff_u_grad = diff_u_x + diff_u_y + diff_u_z;
 
     const int ind = find + j;

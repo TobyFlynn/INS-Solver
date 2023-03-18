@@ -22,15 +22,16 @@ inline void fpmf_3d_mult_bfaces(const int *order, const int *bc_type, const int 
   gtau *= 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * *fscale;
 
   for(int j = 0; j < dg_npf; j++) {
-    const DG_FP diff_u = in[fmaskB[j]];
-    const DG_FP diff_u_x = nx[0] * in_x[fmaskB[j]];
-    const DG_FP diff_u_y = ny[0] * in_y[fmaskB[j]];
-    const DG_FP diff_u_z = nz[0] * in_z[fmaskB[j]];
+    const int fmaskInd = fmaskB[j];
+    const DG_FP diff_u = in[fmaskInd];
+    const DG_FP diff_u_x = nx[0] * in_x[fmaskInd];
+    const DG_FP diff_u_y = ny[0] * in_y[fmaskInd];
+    const DG_FP diff_u_z = nz[0] * in_z[fmaskInd];
     const DG_FP diff_u_grad = diff_u_x + diff_u_y + diff_u_z;
 
     const int ind = find + j;
     out[ind] += sJ[0] * (gtau * diff_u - diff_u_grad);
-    const DG_FP l_tmp = fact[fmaskB[j]] * sJ[0] * -diff_u;
+    const DG_FP l_tmp = fact[fmaskInd] * sJ[0] * -diff_u;
     l_x[ind] += nx[0] * l_tmp;
     l_y[ind] += ny[0] * l_tmp;
     l_z[ind] += nz[0] * l_tmp;
