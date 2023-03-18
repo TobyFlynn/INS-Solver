@@ -33,6 +33,10 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
     n[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
     name = "ins_solver_n1" + std::to_string(i);
     n[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    name = "ins_solver_force0" + std::to_string(i);
+    force[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    name = "ins_solver_force1" + std::to_string(i);
+    force[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
   }
   pr  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ins_solver_pr");
   free(dg_np_data);
@@ -74,6 +78,12 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int
   n[1][1] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_n11");
   n[0][2] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_n02");
   n[1][2] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_n12");
+  force[0][0] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_force00");
+  force[1][0] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_force10");
+  force[0][1] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_force01");
+  force[1][1] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_force11");
+  force[0][2] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_force02");
+  force[1][2] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_force12");
   pr = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_pr");
   dPdN[0] = op_decl_dat_hdf5(mesh->cells, 4 * DG_NPF, DG_FP_STR, filename.c_str(), "ins_solver_dPdN0");
   dPdN[1] = op_decl_dat_hdf5(mesh->cells, 4 * DG_NPF, DG_FP_STR, filename.c_str(), "ins_solver_dPdN1");
@@ -156,6 +166,13 @@ void MPINSSolver3D::setup_common() {
   visRHS[0] = tmp_np[2];
   visRHS[1] = tmp_np[3];
   visRHS[2] = tmp_np[4];
+  ls_normals[0] = tmp_np[0];
+  ls_normals[1] = tmp_np[1];
+  ls_normals[2] = tmp_np[2];
+  ls_delta[0]   = tmp_np[3];
+  ls_delta[1]   = tmp_np[4];
+  ls_delta[2]   = tmp_np[5];
+  ls_curv       = tmp_np[6];
 
   advec_flux[0] = tmp_npf[0];
   advec_flux[1] = tmp_npf[1];
@@ -229,6 +246,20 @@ void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
   }
 
   lsSolver->getRhoMu(rho, mu);
+  lsSolver->getNormalsCurvature(ls_normals[0], ls_normals[1], ls_normals[2], ls_curv);
+  lsSolver->getDiracDelta(ls_delta[0], ls_delta[1], ls_delta[2]);
+
+  op_par_loop(mp_ins_3d_surf_ten, "mp_ins_3d_surf_ten", mesh->cells,
+              op_arg_dat(ls_normals[0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_normals[1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_normals[2], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_curv, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_delta[0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_delta[1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_delta[2], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(force[0][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(force[0][1], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(force[0][2], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
   timer->endTimer("MPINSSolver3D - Init");
 }
@@ -329,7 +360,8 @@ void MPINSSolver3D::advection() {
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, advec_flux[2], 1.0, n[currentInd][2]);
 
   // Calculate the intermediate velocity values
-  op_par_loop(ins_3d_advec_3, "ins_3d_advec_3", mesh->cells,
+  // TODO force
+  op_par_loop(mp_ins_3d_advec_3, "mp_ins_3d_advec_3", mesh->cells,
               op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
@@ -347,6 +379,12 @@ void MPINSSolver3D::advection() {
               op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(n[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(force[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(force[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(force[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(force[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(force[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(force[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
@@ -537,6 +575,20 @@ void MPINSSolver3D::surface() {
   lsSolver->setBCTypes(bc_types);
   // lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2], dt);
   lsSolver->getRhoMu(rho, mu);
+  lsSolver->getNormalsCurvature(ls_normals[0], ls_normals[1], ls_normals[2], ls_curv);
+  lsSolver->getDiracDelta(ls_delta[0], ls_delta[1], ls_delta[2]);
+
+  op_par_loop(mp_ins_3d_surf_ten, "mp_ins_3d_surf_ten", mesh->cells,
+              op_arg_dat(ls_normals[0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_normals[1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_normals[2], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_curv, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_delta[0], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_delta[1], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(ls_delta[2], -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(force[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(force[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, "double", OP_WRITE),
+              op_arg_dat(force[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, "double", OP_WRITE));
 }
 
 DG_FP MPINSSolver3D::get_time() {

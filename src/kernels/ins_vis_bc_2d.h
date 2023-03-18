@@ -7,9 +7,9 @@ inline void ins_vis_bc_2d(const DG_FP *t, const int *bedge_type,
 
   if(*bedge_type == 0) {
     // Inflow - BC function dependant on time
-    for(int i = 0; i < DG_GF_NP; i++) {
-      exQ0[exInd + i] += 1.0;
-    }
+    // for(int i = 0; i < DG_GF_NP; i++) {
+    //   exQ0[exInd + i] += 1.0;
+    // }
   } else if(*bedge_type == 1) {
     // Outflow - Natural boundary condition
   } else {

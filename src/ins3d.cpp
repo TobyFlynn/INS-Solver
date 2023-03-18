@@ -20,7 +20,7 @@ Timing *timer;
 using namespace std;
 
 // Global constants
-DG_FP r_ynolds, mu0, mu1, rho0, rho1;
+DG_FP r_ynolds, weber, mu0, mu1, rho0, rho1;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 1);
@@ -78,15 +78,18 @@ int main(int argc, char **argv) {
   }
 
   mu0  = 1.0;
-  mu1  = 1.0;
+  mu1  = 10.0;
   rho0 = 1.0;
-  rho1 = 1.0;
+  rho1 = 100.0;
 
-  const DG_FP refRho = 1.0;
-  const DG_FP refVel = 1.0;
-  const DG_FP refLen = 0.005;
-  const DG_FP refMu  = 1.0e-5;
+  const double refRho = 1.0;
+  const double refVel = 1.0;
+  const double refLen = 0.001;
+  const double refMu  = 1.0e-4;
+  const double refSurfTen = 0.0756;
+
   r_ynolds = refRho * refVel * refLen / refMu;
+  weber = refRho * refVel * refLen / refSurfTen;
 
   int re = -1;
   PetscOptionsGetInt(NULL, NULL, "-re", &re, &found);
@@ -95,6 +98,7 @@ int main(int argc, char **argv) {
   }
 
   op_printf("Reynolds number: %g\n", r_ynolds);
+  op_printf("Weber: %g\n\n", weber);
 
   DGMesh3D *mesh = new DGMesh3D(filename);
   MPINSSolver3D *ins3d;
@@ -109,6 +113,7 @@ int main(int argc, char **argv) {
 
   // Application constants
   op_decl_const(1, DG_FP_STR, &r_ynolds);
+  op_decl_const(1, DG_FP_STR, &weber);
   op_decl_const(1, DG_FP_STR, &mu0);
   op_decl_const(1, DG_FP_STR, &mu1);
   op_decl_const(1, DG_FP_STR, &rho0);

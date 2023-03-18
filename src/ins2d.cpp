@@ -77,15 +77,15 @@ int main(int argc, char **argv) {
   }
 
   mu0  = 1.0;
-  mu1  = 100.0;
+  mu1  = 10.0;
   rho0 = 1.0;
-  rho1 = 1000.0;
+  rho1 = 100.0;
 
-  const DG_FP refRho = 1.0;
-  const DG_FP refVel = 1.0;
-  const DG_FP refLen = 0.005;
-  const DG_FP refMu  = 1.0e-5;
-  const DG_FP refSurfTen = 0.0756;
+  const double refRho = 1.0;
+  const double refVel = 1.0;
+  const double refLen = 0.001;
+  const double refMu  = 1.0e-4;
+  const double refSurfTen = 0.0756;
 
   r_ynolds = refRho * refVel * refLen / refMu;
   weber = refRho * refVel * refLen / refSurfTen;

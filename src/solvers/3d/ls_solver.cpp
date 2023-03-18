@@ -25,6 +25,7 @@ LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m) {
   DG_FP * dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s");
   s_modal = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s_modal");
+  smoothing = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_smoothing");
   free(dg_np_data);
 
   DG_FP *ls_sample_np_data = (DG_FP *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(DG_FP));
@@ -83,7 +84,7 @@ void LevelSetSolver3D::init() {
   // alpha = 2.0 * h / DG_ORDER;
   // order_width = 2.0 * h;
   // epsilon = h / DG_ORDER;
-  alpha = 12.0 * h;
+  alpha = 20.0 * h;
   // order_width = 12.0 * h;
   // epsilon = h;
   // reinit_width = 10.0 * h;
@@ -102,11 +103,40 @@ void LevelSetSolver3D::getRhoMu(op_dat rho, op_dat mu) {
 }
 
 void LevelSetSolver3D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_dat curv) {
-  // Assume | grad s | is approx 1 so this is sufficient for getting normals
-  timer->startTimer("LevelSetSolver3D - getNormalsCurvature");
-  mesh->grad(s, nx, ny, nz);
-  mesh->div(nx, ny, nz, curv);
-  timer->endTimer("LevelSetSolver3D - getNormalsCurvature");
+  op_par_loop(ls_smoothing, "ls_smoothing", mesh->cells,
+              op_arg_gbl(&alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(smoothing, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  mesh->grad_with_central_flux(smoothing, nx, ny, nz);
+
+  op_par_loop(ls_3d_normals, "ls_3d_normals", mesh->cells,
+              op_arg_dat(s,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(nx, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(ny, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(nz, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  mesh->div_with_central_flux(nx, ny, nz, curv);
+
+  op_par_loop(ls_3d_normals_curv, "ls_3d_normals_curv", mesh->cells,
+              op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
+              op_arg_dat(s,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->z, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(nx, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(ny, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(nz, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(curv, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+}
+
+void LevelSetSolver3D::getDiracDelta(op_dat delta_x, op_dat delta_y, op_dat delta_z) {
+  op_par_loop(ls_smoothing, "ls_smoothing", mesh->cells,
+              op_arg_gbl(&alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(smoothing, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  mesh->grad_with_central_flux(smoothing, delta_x, delta_y, delta_z);
 }
 
 void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const DG_FP dt) {

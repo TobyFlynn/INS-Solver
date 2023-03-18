@@ -21,10 +21,11 @@ public:
   void step(op_dat u, op_dat v, op_dat w, DG_FP dt);
   void getRhoMu(op_dat rho, op_dat mu);
   void getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_dat curv);
+  void getDiracDelta(op_dat delta_x, op_dat delta_y, op_dat delta_z);
 
   DGMesh3D *mesh;
 
-  op_dat s, s_modal, sampleX, sampleY, sampleZ, bc_types;
+  op_dat s, s_modal, sampleX, sampleY, sampleZ, bc_types, smoothing;
 
   DG_FP alpha, order_width;
 private:
