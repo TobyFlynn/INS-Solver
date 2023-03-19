@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
 
   const DG_FP refRho = 1.0;
   const DG_FP refVel = 1.0;
-  const DG_FP refLen = 0.005;
+  const DG_FP refLen = 0.001;
   const DG_FP refMu  = 1.0e-5;
   r_ynolds = refRho * refVel * refLen / refMu;
 
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
   mesh->init();
   ins3d->init(r_ynolds, refVel);
 
-  string out_file_ic = outputDir + "test_ic.h5";
+  string out_file_ic = outputDir + "ic.h5";
   ins3d->dump_data(out_file_ic);
 
   timer->startTimer("Main loop");
@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
   }
   timer->endTimer("Main loop");
 
-  string out_file_end = outputDir + "test_end.h5";
+  string out_file_end = outputDir + "end.h5";
   ins3d->dump_data(out_file_end);
 
 

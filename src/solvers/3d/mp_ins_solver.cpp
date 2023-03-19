@@ -356,11 +356,15 @@ void MPINSSolver3D::pressure() {
   // mesh->div(velT[0], velT[1], velT[2], divVelT);
   mesh->div_with_central_flux(velT[0], velT[1], velT[2], divVelT);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], vel[currentInd][2], curlVel[0], curlVel[1], curlVel[2]);
-  // TODO potentially need to multiply curl by Mu here
+
+  op_par_loop(mp_ins_3d_pr_mu, "mp_ins_3d_pr_mu", mesh->cells,
+              op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(curlVel[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(curlVel[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(curlVel[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
   mesh->curl(curlVel[0], curlVel[1], curlVel[2], curl2Vel[0], curl2Vel[1], curl2Vel[2]);
 
-  // TODO or maybe better to multiply by Mu after taking curl
-  // (as how we smooth interface will have an effect before)
   if(mesh->bface2cells) {
     op_par_loop(mp_ins_3d_pr_0, "mp_ins_3d_pr_0", mesh->bfaces,
                 op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),

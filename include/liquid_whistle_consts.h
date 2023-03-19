@@ -6,7 +6,12 @@
 #define LW_SLIP_WALL_BC 2
 #define LW_NO_SLIP_WALL_BC 3
 
-#define LW_LENGTH 5.0
-#define LW_INLET_RADIUS 0.1
+#define LW_LENGTH 50.0
+#define LW_LENGTH_SHORT 12.0
+#define LW_INLET_RADIUS 0.5
+#define LW_INLET_NO_SLIP_RADIUS 0.75
+#define LW_INLET_LENGTH 2.0
+#define LW_RADIUS 5.833
+#define LW_BLADE_START_X 0.6
 
 #endif
