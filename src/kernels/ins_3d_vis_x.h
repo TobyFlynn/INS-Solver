@@ -14,7 +14,10 @@ inline void ins_3d_vis_x(const DG_FP *t, const DG_FP *g0, const int *bc_type, co
   if(*bc_type == LW_INFLOW_BC) {
     for(int i = 0; i < DG_NPF; i++) {
       // bcs[i] = sin(PI * (*t));
-      bcs[i] = 1.0;
+      DG_FP tmp = y[fmaskB[i]] * y[fmaskB[i]] + z[fmaskB[i]] * z[fmaskB[i]] - LW_INLET_RADIUS * LW_INLET_RADIUS;
+      tmp = fabs(tmp);
+      tmp = fmin(1.0, tmp / 0.1);
+      bcs[i] = tmp * 1.0;
     }
   } else if(*bc_type == LW_NO_SLIP_WALL_BC) {
     for(int i = 0; i < DG_NPF; i++) {

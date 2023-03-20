@@ -5,7 +5,10 @@ inline void ins_3d_set_ic(const DG_FP *x, const DG_FP *y, const DG_FP *z,
     // u0[i] = 0.0;
     // v0[i] = 0.0;
     // w0[i] = 0.0;
-    u0[i] = fmax(0.0, 0.0 - (x[i] + 1.0));
+    DG_FP tmp = y[i] * y[i] + z[i] * z[i] - LW_INLET_RADIUS * LW_INLET_RADIUS;
+    tmp = fabs(tmp);
+    tmp = fmin(1.0, tmp / 0.1);
+    u0[i] = tmp * fmax(0.0, 0.0 - (x[i] + 1.0));
     v0[i] = 0.0;
     w0[i] = 0.0;
     u1[i] = u0[i];

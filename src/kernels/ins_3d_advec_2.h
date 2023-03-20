@@ -11,7 +11,10 @@ inline void ins_3d_advec_2(const DG_FP *t, const int *bc_type, const int *faceNu
   if(*bc_type == LW_INFLOW_BC) {
     for(int i = 0; i < DG_NPF; i++) {
       // uR[i] = sin(PI * (*t));
-      uR[i] = 1.0;
+      DG_FP tmp = y[fmaskB[i]] * y[fmaskB[i]] + z[fmaskB[i]] * z[fmaskB[i]] - LW_INLET_RADIUS * LW_INLET_RADIUS;
+      tmp = fabs(tmp);
+      tmp = fmin(1.0, tmp / 0.1);
+      uR[i] = tmp * 1.0;
       vR[i] = 0.0;
       wR[i] = 0.0;
     }
