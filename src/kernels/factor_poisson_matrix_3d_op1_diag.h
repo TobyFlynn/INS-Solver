@@ -1,4 +1,4 @@
-inline void factor_poisson_matrix_3d_op1(const int *order, const DG_FP *dr,
+inline void factor_poisson_matrix_3d_op1_diag(const int *order, const DG_FP *dr,
                                          const DG_FP *ds, const DG_FP *dt,
                                          const DG_FP *mass, const DG_FP *rx,
                                          const DG_FP *sx, const DG_FP *tx,
@@ -6,7 +6,7 @@ inline void factor_poisson_matrix_3d_op1(const int *order, const DG_FP *dr,
                                          const DG_FP *ty, const DG_FP *rz,
                                          const DG_FP *sz, const DG_FP *tz,
                                          const DG_FP *J, const DG_FP *factor,
-                                         DG_FP *op1) {
+                                         DG_FP *diag) {
   const DG_FP *dr_mat = &dr[(*order - 1) * DG_NP * DG_NP];
   const DG_FP *ds_mat = &ds[(*order - 1) * DG_NP * DG_NP];
   const DG_FP *dt_mat = &dt[(*order - 1) * DG_NP * DG_NP];
@@ -45,40 +45,14 @@ inline void factor_poisson_matrix_3d_op1(const int *order, const DG_FP *dr,
   }
 
   for(int i = 0; i < dg_np; i++) {
-    for(int j = 0; j < dg_np; j++) {
-      // int op_ind = i + j * dg_np;
-      int op_ind = DG_MAT_IND(i, j, dg_np, dg_np);
-      op1[op_ind] = 0.0;
-      for(int k = 0; k < dg_np; k++) {
-        // int a_ind = i * dg_np + k;
-        int a_ind = DG_MAT_IND(k, i, dg_np, dg_np);
-        // int b_ind = j * dg_np + k;
-        int b_ind = DG_MAT_IND(k, j, dg_np, dg_np);
-        op1[op_ind] += Dx[a_ind] * Dx_t[b_ind] + Dy[a_ind] * Dy_t[b_ind] + Dz[a_ind] * Dz_t[b_ind];
-      }
-      op1[op_ind] *= J[0];
+    diag[i] = 0.0;
+    for(int k = 0; k < dg_np; k++) {
+      // int a_ind = i * dg_np + k;
+      int a_ind = DG_MAT_IND(k, i, dg_np, dg_np);
+      // int b_ind = j * dg_np + k;
+      int b_ind = DG_MAT_IND(k, i, dg_np, dg_np);
+      diag[i] += Dx[a_ind] * Dx_t[b_ind] + Dy[a_ind] * Dy_t[b_ind] + Dz[a_ind] * Dz_t[b_ind];
     }
+    diag[i] *= J[0];
   }
-/*
-  op2_in_kernel_gemm(false, false, dg_np, dg_np, dg_np, 1.0, mass_mat, dg_np, Dx, dg_np, 0.0, Dx_t, dg_np);
-  op2_in_kernel_gemm(false, false, dg_np, dg_np, dg_np, 1.0, mass_mat, dg_np, Dy, dg_np, 0.0, Dy_t, dg_np);
-  op2_in_kernel_gemm(false, false, dg_np, dg_np, dg_np, 1.0, mass_mat, dg_np, Dz, dg_np, 0.0, Dz_t, dg_np);
-
-  for(int i = 0; i < dg_np; i++) {
-    for(int j = 0; j < dg_np; j++) {
-      // int op_ind = i + j * dg_np;
-      int op_ind = DG_MAT_IND(i, j, dg_np, dg_np);
-      op1[op_ind] = 0.0;
-      for(int k = 0; k < dg_np; k++) {
-        // int a_ind = i * dg_np + k;
-        int a_ind = DG_MAT_IND(k, i, dg_np, dg_np);
-        // int b_ind = j * dg_np + k;
-        int b_ind = DG_MAT_IND(k, j, dg_np, dg_np);
-        DG_FP tmp = Dx[a_ind] * Dx_t[b_ind] + Dy[a_ind] * Dy_t[b_ind] + Dz[a_ind] * Dz_t[b_ind];
-        op1[op_ind] += factor[k] * tmp;
-      }
-      op1[op_ind] *= J[0];
-    }
-  }
-*/
 }

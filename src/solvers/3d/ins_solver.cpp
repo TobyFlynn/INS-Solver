@@ -158,7 +158,8 @@ void INSSolver3D::setup_common() {
 
   // pressureMatrix = new PoissonMatrix3D(mesh);
   pressureCoarseMatrix = new PoissonCoarseMatrix3D(mesh);
-  pressureMatrix = new PoissonSemiMatrixFree3D(mesh);
+  // pressureMatrix = new PoissonSemiMatrixFree3D(mesh);
+  pressureMatrix = new PoissonMatrixFreeDiag3D(mesh);
   // viscosityMatrix = new MMPoissonMatrix3D(mesh);
   viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
   // pressureSolver = new PETScAMGSolver(mesh);
@@ -422,7 +423,7 @@ void INSSolver3D::viscosity() {
               op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(visRHS[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-  
+
   mesh->mass(visRHS[0]);
   mesh->mass(visRHS[1]);
   mesh->mass(visRHS[2]);

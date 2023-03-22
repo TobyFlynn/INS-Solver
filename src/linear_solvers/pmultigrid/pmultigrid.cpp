@@ -43,17 +43,23 @@ PMultigridPoissonSolver::~PMultigridPoissonSolver() {
 }
 
 void PMultigridPoissonSolver::set_matrix(PoissonMatrix *mat) {
-  if(dynamic_cast<PoissonSemiMatrixFree*>(mat) == nullptr) {
-    throw std::runtime_error("PMultigridPoissonSolver matrix should be of type PoissonSemiMatrixFree\n");
+  if(dynamic_cast<PoissonSemiMatrixFree*>(mat) == nullptr && dynamic_cast<PoissonMatrixFreeDiag*>(mat) == nullptr) {
+    throw std::runtime_error("PMultigridPoissonSolver matrix should be of type PoissonSemiMatrixFree or PoissonMatrixFreeDiag\n");
   }
   matrix = mat;
-  smfMatrix = dynamic_cast<PoissonSemiMatrixFree*>(mat);
+  if(dynamic_cast<PoissonSemiMatrixFree*>(mat)) {
+    smfMatrix = dynamic_cast<PoissonSemiMatrixFree*>(mat);
+    diagMat = false;
+  } else {
+    mfdMatrix = dynamic_cast<PoissonMatrixFreeDiag*>(mat);
+    diagMat = true;
+  }
 }
 
 bool PMultigridPoissonSolver::solve(op_dat rhs, op_dat ans) {
   timer->startTimer("PMultigridPoissonSolver - solve");
   if(bc)
-    smfMatrix->apply_bc(rhs, bc);
+    matrix->apply_bc(rhs, bc);
 
   int order = DG_ORDER;
 
@@ -94,7 +100,11 @@ void PMultigridPoissonSolver::cycle(int order) {
   }
 
   timer->startTimer("PMultigridPoissonSolver - Calc Mat Partial");
-  smfMatrix->calc_mat_partial();
+  if(diagMat) {
+    mfdMatrix->calc_mat_partial();
+  } else {
+    smfMatrix->calc_mat_partial();
+  }
   timer->endTimer("PMultigridPoissonSolver - Calc Mat Partial");
 
   // Calc factor for relaxation
@@ -114,7 +124,7 @@ void PMultigridPoissonSolver::cycle(int order) {
   timer->startTimer("PMultigridPoissonSolver - Restriction");
   int order_new = order / 2;
   // F = I^T (F - Au)
-  smfMatrix->mult(u_dat[order-1], tmp_dat[order-1]);
+  matrix->mult(u_dat[order-1], tmp_dat[order-1]);
   op_par_loop(p_multigrid_restriction, "p_multigrid_restriction", mesh->cells,
               op_arg_dat(mesh->order,        -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(tmp_dat[order-1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -147,7 +157,11 @@ void PMultigridPoissonSolver::cycle(int order) {
   timer->endTimer("PMultigridPoissonSolver - Prolongation");
 
   timer->startTimer("PMultigridPoissonSolver - Calc Mat Partial");
-  smfMatrix->calc_mat_partial();
+  if(diagMat) {
+    mfdMatrix->calc_mat_partial();
+  } else {
+    smfMatrix->calc_mat_partial();
+  }
   timer->endTimer("PMultigridPoissonSolver - Calc Mat Partial");
 
   // Relaxation
@@ -178,7 +192,7 @@ DG_FP PMultigridPoissonSolver::maxEigenValue() {
   timer->endTimer("PMultigridPoissonSolver - Random Vec");
 
   for(int i = 0; i < 10; i++) {
-    smfMatrix->multJacobi(eg_tmp_0, eg_tmp_1);
+    matrix->multJacobi(eg_tmp_0, eg_tmp_1);
 
     // Normalise vector
     DG_FP norm = 0.0;
@@ -196,7 +210,8 @@ DG_FP PMultigridPoissonSolver::maxEigenValue() {
   }
 
   // Calculate eigenvalue from approx eigenvector using Rayleigh quotient
-  smfMatrix->multJacobi(eg_tmp_0, eg_tmp_1);
+  matrix->multJacobi(eg_tmp_0, eg_tmp_1);
+
   DG_FP tmp0 = 0.0;
   DG_FP tmp1 = 0.0;
   op_par_loop(p_multigrid_rayleigh_quotient, "p_multigrid_rayleigh_quotient", mesh->cells,
@@ -229,14 +244,24 @@ void PMultigridPoissonSolver::setRandomVector(op_dat vec) {
 }
 
 void PMultigridPoissonSolver::smoother(const int order) {
-  smfMatrix->mult(u_dat[order-1], tmp_dat[order-1]);
-  op_par_loop(p_multigrid_relaxation_jacobi, "p_multigrid_relaxation_jacobi", mesh->cells,
-              op_arg_gbl(&w, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(tmp_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(b_dat[order-1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(smfMatrix->op1,      -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(u_dat[order-1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  matrix->mult(u_dat[order-1], tmp_dat[order-1]);
+  if(diagMat) {
+    op_par_loop(p_multigrid_relaxation_jacobi_diag, "p_multigrid_relaxation_jacobi_diag", mesh->cells,
+                op_arg_gbl(&w, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(tmp_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(b_dat[order-1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mfdMatrix->diag,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(u_dat[order-1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  } else {
+    op_par_loop(p_multigrid_relaxation_jacobi, "p_multigrid_relaxation_jacobi", mesh->cells,
+                op_arg_gbl(&w, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(tmp_dat[order-1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(b_dat[order-1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(smfMatrix->op1,      -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(u_dat[order-1],   -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  }
 }
 /*
 void PMultigridPoissonSolver::smoother(const int order) {
