@@ -14,6 +14,7 @@
 #include "matrices/3d/factor_mm_poisson_semi_matrix_free_3d.h"
 #include "linear_solvers/linear_solver.h"
 #include "linear_solvers/petsc_pmultigrid.h"
+#include "linear_solvers/petsc_inv_mass.h"
 
 #include <string>
 
@@ -46,7 +47,8 @@ private:
   FactorMMPoissonSemiMatrixFree3D *viscosityMatrix;
   // LinearSolver *pressureSolver;
   PETScPMultigrid *pressureSolver;
-  LinearSolver *viscositySolver;
+  // LinearSolver *viscositySolver;
+  PETScInvMassSolver *viscositySolver;
   LevelSetSolver3D *lsSolver;
   DG_FP g0, a0, a1, b0, b1, dt, time, h;
   DG_FP reynolds;

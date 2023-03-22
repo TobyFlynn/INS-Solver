@@ -23,6 +23,7 @@ PETScInvMassSolver::PETScInvMassSolver(DGMesh *m) {
   pMatInit = false;
   mesh = m;
   factor = 1.0;
+  dat_factor = false;
 
   DG_FP *tmp_np = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
 
@@ -118,12 +119,21 @@ void PETScInvMassSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
   PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
 
   #if DG_DIM == 3
-  op_par_loop(petsc_pre_inv_mass, "petsc_pre_inv_mass", mesh->cells,
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::INV_MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(&factor,  1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->J, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(in,      -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(out,     -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  if(dat_factor) {
+    op_par_loop(petsc_pre_inv_mass_dat, "petsc_pre_inv_mass_dat", mesh->cells,
+                op_arg_gbl(constants->get_mat_ptr(DGConstants::INV_MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->J, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(factor_dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(in,      -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(out,     -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  } else {
+    op_par_loop(petsc_pre_inv_mass, "petsc_pre_inv_mass", mesh->cells,
+                op_arg_gbl(constants->get_mat_ptr(DGConstants::INV_MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_gbl(&factor,  1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->J, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(in,      -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(out,     -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  }
   #else
   op_par_loop(petsc_pre_inv_mass_2d, "petsc_pre_inv_mass_2d", mesh->cells,
               op_arg_gbl(constants->get_mat_ptr(DGConstants::INV_MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
@@ -139,4 +149,9 @@ void PETScInvMassSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
 
 void PETScInvMassSolver::setFactor(const double f) {
   factor = f;
+}
+
+void PETScInvMassSolver::setFactor(op_dat f) {
+  factor_dat = f;
+  dat_factor = true;
 }

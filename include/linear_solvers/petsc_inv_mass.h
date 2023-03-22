@@ -17,6 +17,7 @@ public:
   void calc_rhs(const DG_FP *in_d, DG_FP *out_d);
   void precond(const DG_FP *in_d, DG_FP *out_d);
   void setFactor(const double f);
+  void setFactor(op_dat f);
 
 private:
   void calc_precond_mat();
@@ -25,8 +26,8 @@ private:
 
   DGMesh *mesh;
   KSP ksp;
-  op_dat in, out;
-  bool pMatInit;
+  op_dat in, out, factor_dat;
+  bool pMatInit, dat_factor;
   Mat pMat;
   DG_FP factor;
 };

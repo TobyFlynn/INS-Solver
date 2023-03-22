@@ -11,7 +11,7 @@ inline void advec_3d_bflux(const int *faceNum, const int *bc_type, const DG_FP *
     for(int i = 0; i < DG_NPF; i++) {
       int find = *faceNum * DG_NPF + i;
       DG_FP flux0 = *nx * u[fmask[i]] + *ny * v[fmask[i]] + *nz * w[fmask[i]];
-      DG_FP flux1 = sqrt(x[fmask[i]] * x[fmask[i]] + y[fmask[i]] * y[fmask[i]] + z[fmask[i]] * z[fmask[i]]) - LW_INLET_RADIUS;
+      DG_FP flux1 = -LW_INLET_RADIUS;
 
       flux[find] += *fscale * flux0 * flux1;
     }
