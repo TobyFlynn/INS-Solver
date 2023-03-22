@@ -8,6 +8,7 @@
 #include "matrices/3d/poisson_matrix_3d.h"
 #include "matrices/3d/poisson_coarse_matrix_3d.h"
 #include "matrices/3d/poisson_semi_matrix_free_3d.h"
+#include "matrices/3d/poisson_matrix_free_diag_3d.h"
 #include "matrices/3d/mm_poisson_matrix_3d.h"
 #include "matrices/3d/mm_poisson_matrix_free_3d.h"
 #include "linear_solvers/linear_solver.h"
@@ -37,7 +38,8 @@ private:
   DGMesh3D *mesh;
   // PoissonMatrix3D *pressureMatrix;
   PoissonCoarseMatrix3D *pressureCoarseMatrix;
-  PoissonSemiMatrixFree3D *pressureMatrix;
+  // PoissonSemiMatrixFree3D *pressureMatrix;
+  PoissonMatrixFreeDiag3D *pressureMatrix;
   // MMPoissonMatrix3D *viscosityMatrix;
   MMPoissonMatrixFree3D *viscosityMatrix;
   LinearSolver *pressureSolver;

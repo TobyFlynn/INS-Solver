@@ -19,7 +19,6 @@ void FactorMMPoissonSemiMatrixFree3D::set_mm_factor(op_dat f) {
 
 void FactorMMPoissonSemiMatrixFree3D::calc_mat_partial() {
   timer->startTimer("FactorMMPoissonSemiMatrixFree3D - calc_mat_partial");
-  calc_glb_ind();
   calc_op1();
   calc_op2();
   calc_opbc();

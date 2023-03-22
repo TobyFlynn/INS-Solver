@@ -168,6 +168,7 @@ void MPINSSolver3D::setup_common() {
 
   coarsePressureMatrix = new FactorPoissonCoarseMatrix3D(mesh);
   pressureMatrix = new FactorPoissonSemiMatrixFree3D(mesh);
+  // pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh);
   viscosityMatrix = new FactorMMPoissonSemiMatrixFree3D(mesh);
   // pressureSolver = new PETScAMGSolver(mesh);
   pressureSolver = new PETScPMultigrid(mesh);

@@ -9,6 +9,7 @@
 #include "petsc_amg_coarse.h"
 #include "matrices/poisson_coarse_matrix.h"
 #include "matrices/poisson_semi_matrix_free.h"
+#include "matrices/poisson_matrix_free_diag.h"
 
 class PMultigridPoissonSolver : public LinearSolver {
 public:
@@ -32,8 +33,10 @@ private:
   PETScAMGCoarseSolver *coarseSolver;
 
   PoissonSemiMatrixFree *smfMatrix;
+  PoissonMatrixFreeDiag *mfdMatrix;
   PoissonCoarseMatrix *coarseMatrix;
   bool coarseMatCalcRequired;
+  bool diagMat;
 
   op_dat tmp_dat[DG_ORDER], u_dat[DG_ORDER], b_dat[DG_ORDER];
   op_dat eg_tmp_0, eg_tmp_1, rk[3], rkQ;
