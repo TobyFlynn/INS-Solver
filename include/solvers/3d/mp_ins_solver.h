@@ -40,8 +40,8 @@ private:
 
   DGMesh3D *mesh;
   FactorPoissonCoarseMatrix3D *coarsePressureMatrix;
-  FactorPoissonSemiMatrixFree3D *pressureMatrix;
-  // FactorPoissonMatrixFreeDiag3D *pressureMatrix;
+  // FactorPoissonSemiMatrixFree3D *pressureMatrix;
+  FactorPoissonMatrixFreeDiag3D *pressureMatrix;
   // FactorMMPoissonMatrix3D *viscosityMatrix;
   FactorMMPoissonSemiMatrixFree3D *viscosityMatrix;
   // LinearSolver *pressureSolver;
