@@ -98,14 +98,26 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int
 }
 
 void MPINSSolver3D::setup_common() {
+  coarsePressureMatrix = new FactorPoissonCoarseMatrix3D(mesh);
+  // pressureMatrix = new FactorPoissonSemiMatrixFree3D(mesh);
+  pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh, false);
+  // viscosityMatrix = new FactorMMPoissonSemiMatrixFree3D(mesh);
+  viscosityMatrix = new FactorMMPoissonMatrixFreeDiag3D(mesh, false);
+  // pressureSolver = new PETScAMGSolver(mesh);
+  pressureSolver = new PETScPMultigrid(mesh);
+  // pressureSolver = new PMultigridPoissonSolver(mesh);
+  // viscositySolver = new PETScBlockJacobiSolver(mesh);
+  // viscositySolver = new PETScInvMassSolver(mesh);
+  viscositySolver = new PETScJacobiSolver(mesh);
+  // viscositySolver = new PETScAMGSolver(mesh);
+  pressureSolver->set_coarse_matrix(coarsePressureMatrix);
+  pressureSolver->set_matrix(pressureMatrix);
+  pressureSolver->set_nullspace(false);
+  viscositySolver->set_matrix(viscosityMatrix);
+  viscositySolver->set_nullspace(false);
+
   std::string name;
   DG_FP * dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  for(int i = 0; i < 3; i++) {
-    name = "ins_solver_velT" + std::to_string(i);
-    velT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
-    name = "ins_solver_velTT" + std::to_string(i);
-    velTT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
-  }
   for(int i = 0; i < 9; i++) {
     name = "ins_solver_tmp_np" + std::to_string(i);
     tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
@@ -118,6 +130,7 @@ void MPINSSolver3D::setup_common() {
   tmp_npf[0] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, dg_npf_data, "ins_solver_tmp_npf0");
   tmp_npf[1] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, dg_npf_data, "ins_solver_tmp_npf1");
   tmp_npf[2] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, dg_npf_data, "ins_solver_tmp_npf2");
+  tmp_npf[3] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, dg_npf_data, "ins_solver_tmp_npf3");
   free(dg_npf_data);
 
   DG_FP *dg_npf_bc_data = (DG_FP *)calloc(DG_NPF * mesh->bfaces->size, sizeof(DG_FP));
@@ -137,6 +150,9 @@ void MPINSSolver3D::setup_common() {
   f[1][0] = tmp_np[3]; f[1][1] = tmp_np[4]; f[1][2] = tmp_np[5];
   f[2][0] = tmp_np[6]; f[2][1] = tmp_np[7]; f[2][2] = tmp_np[8];
 
+  velT[0]     = tmp_np[7];
+  velT[1]     = tmp_np[8];
+  velT[2]     = tmp_np[9];
   divVelT     = tmp_np[0];
   curlVel[0]  = tmp_np[1];
   curlVel[1]  = tmp_np[2];
@@ -151,11 +167,13 @@ void MPINSSolver3D::setup_common() {
   shock_u = tmp_np[0];
   shock_u_hat = tmp_np[1];
   shock_u_modal = tmp_np[2];
-  vis_factor    = tmp_np[0];
+  velTT[0] = tmp_np[3];
+  velTT[1] = tmp_np[4];
+  velTT[2] = tmp_np[5];
   vis_mm_factor = tmp_np[1];
-  visRHS[0] = tmp_np[2];
-  visRHS[1] = tmp_np[3];
-  visRHS[2] = tmp_np[4];
+  visRHS[0] = tmp_np[7];
+  visRHS[1] = tmp_np[8];
+  visRHS[2] = tmp_np[9];
 
   advec_flux[0] = tmp_npf[0];
   advec_flux[1] = tmp_npf[1];
@@ -166,24 +184,8 @@ void MPINSSolver3D::setup_common() {
   pr_bc  = tmp_npf_bc;
   vis_bc = tmp_npf_bc;
 
-  coarsePressureMatrix = new FactorPoissonCoarseMatrix3D(mesh);
-  // pressureMatrix = new FactorPoissonSemiMatrixFree3D(mesh);
-  pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh);
-  // viscosityMatrix = new FactorMMPoissonSemiMatrixFree3D(mesh);
-  viscosityMatrix = new FactorMMPoissonMatrixFreeDiag3D(mesh);
-  // pressureSolver = new PETScAMGSolver(mesh);
-  pressureSolver = new PETScPMultigrid(mesh);
-  // pressureSolver = new PMultigridPoissonSolver(mesh);
-  // viscositySolver = new PETScBlockJacobiSolver(mesh);
-  // viscositySolver = new PETScInvMassSolver(mesh);
-  viscositySolver = new PETScJacobiSolver(mesh);
-  // viscositySolver = new PETScAMGSolver(mesh);
-
-  pressureSolver->set_coarse_matrix(coarsePressureMatrix);
-  pressureSolver->set_matrix(pressureMatrix);
-  pressureSolver->set_nullspace(false);
-  viscositySolver->set_matrix(viscosityMatrix);
-  viscositySolver->set_nullspace(false);
+  pressureMatrix->set_tmp_dats(tmp_np[2], tmp_np[3], tmp_np[4], tmp_npf[0], tmp_npf[1], tmp_npf[2], tmp_npf[3]);
+  viscosityMatrix->set_tmp_dats(tmp_np[0], tmp_np[2], tmp_np[6], tmp_npf[0], tmp_npf[1], tmp_npf[2], tmp_npf[3]);
 }
 
 MPINSSolver3D::~MPINSSolver3D() {
@@ -446,7 +448,7 @@ void MPINSSolver3D::viscosity() {
               op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&factor2, 1, DG_FP_STR, OP_READ),
               op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mu,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mu,  -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(art_vis,  -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -454,7 +456,6 @@ void MPINSSolver3D::viscosity() {
               op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(visRHS[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(vis_factor,    -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(vis_mm_factor, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
   mesh->mass(visRHS[0]);
@@ -482,7 +483,7 @@ void MPINSSolver3D::viscosity() {
   }
 
   timer->startTimer("Vis Linear Solve");
-  viscosityMatrix->set_factor(vis_factor);
+  viscosityMatrix->set_factor(mu);
   viscosityMatrix->set_mm_factor(vis_mm_factor);
   viscosityMatrix->set_bc_types(vis_bc_types);
   viscosityMatrix->calc_mat_partial();
@@ -571,12 +572,6 @@ void MPINSSolver3D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(n[1][0], filename.c_str());
   op_fetch_data_hdf5_file(n[1][1], filename.c_str());
   op_fetch_data_hdf5_file(n[1][2], filename.c_str());
-  op_fetch_data_hdf5_file(velT[0], filename.c_str());
-  op_fetch_data_hdf5_file(velT[1], filename.c_str());
-  op_fetch_data_hdf5_file(velT[2], filename.c_str());
-  op_fetch_data_hdf5_file(velTT[0], filename.c_str());
-  op_fetch_data_hdf5_file(velTT[1], filename.c_str());
-  op_fetch_data_hdf5_file(velTT[2], filename.c_str());
   op_fetch_data_hdf5_file(pr, filename.c_str());
   op_fetch_data_hdf5_file(rho, filename.c_str());
   op_fetch_data_hdf5_file(mu, filename.c_str());

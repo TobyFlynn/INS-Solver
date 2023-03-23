@@ -9,7 +9,7 @@
 extern DGConstants *constants;
 extern Timing *timer;
 
-FactorMMPoissonSemiMatrixFree3D::FactorMMPoissonSemiMatrixFree3D(DGMesh3D *m) : FactorPoissonSemiMatrixFree3D(m) {
+FactorMMPoissonSemiMatrixFree3D::FactorMMPoissonSemiMatrixFree3D(DGMesh3D *m, bool alloc_tmp_dats) : FactorPoissonSemiMatrixFree3D(m, alloc_tmp_dats) {
 
 }
 

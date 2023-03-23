@@ -61,7 +61,7 @@ void custom_kernel_fpmf_grad_3d(char const *name, op_set set,
   op_arg arg15,
   op_arg arg16);
 
-FactorPoissonMatrixFree3D::FactorPoissonMatrixFree3D(DGMesh3D *m) : PoissonMatrixFree3D(m) {
+FactorPoissonMatrixFree3D::FactorPoissonMatrixFree3D(DGMesh3D *m, bool alloc_tmp_dats) : PoissonMatrixFree3D(m, alloc_tmp_dats) {
 
 }
 

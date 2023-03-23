@@ -41,23 +41,37 @@ void custom_kernel_pmf_3d_mult_cells(char const *name, op_set set,
   op_arg arg15,
   op_arg arg16);
 
-PoissonMatrixFree3D::PoissonMatrixFree3D(DGMesh3D *m) {
+PoissonMatrixFree3D::PoissonMatrixFree3D(DGMesh3D *m, bool alloc_tmp_dats) {
   mesh = m;
   _mesh = m;
 
-  DG_FP *tmp_np  = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  DG_FP *tmp_npf_data = (DG_FP *)calloc(4 * DG_NPF * mesh->cells->size, sizeof(DG_FP));
+  if(alloc_tmp_dats) {
+    DG_FP *tmp_np  = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+    DG_FP *tmp_npf_data = (DG_FP *)calloc(4 * DG_NPF * mesh->cells->size, sizeof(DG_FP));
 
-  in_grad[0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_in_0");
-  in_grad[1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_in_1");
-  in_grad[2] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_in_2");
-  tmp_npf[0] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, tmp_npf_data, "poisson_matrix_free_tmp_npf0");
-  tmp_npf[1] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, tmp_npf_data, "poisson_matrix_free_tmp_npf1");
-  tmp_npf[2] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, tmp_npf_data, "poisson_matrix_free_tmp_npf2");
-  tmp_npf[3] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, tmp_npf_data, "poisson_matrix_free_tmp_npf3");
+    in_grad[0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_in_0");
+    in_grad[1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_in_1");
+    in_grad[2] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_in_2");
+    tmp_npf[0] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, tmp_npf_data, "poisson_matrix_free_tmp_npf0");
+    tmp_npf[1] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, tmp_npf_data, "poisson_matrix_free_tmp_npf1");
+    tmp_npf[2] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, tmp_npf_data, "poisson_matrix_free_tmp_npf2");
+    tmp_npf[3] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, tmp_npf_data, "poisson_matrix_free_tmp_npf3");
 
-  free(tmp_npf_data);
-  free(tmp_np);
+    free(tmp_npf_data);
+    free(tmp_np);
+  }
+}
+
+void PoissonMatrixFree3D::set_tmp_dats(op_dat np0, op_dat np1, op_dat np2,
+                                       op_dat npf0, op_dat npf1, op_dat npf2,
+                                       op_dat npf3) {
+  in_grad[0] = np0;
+  in_grad[1] = np1;
+  in_grad[2] = np2;
+  tmp_npf[0] = npf0;
+  tmp_npf[1] = npf1;
+  tmp_npf[2] = npf2;
+  tmp_npf[3] = npf3;
 }
 
 void PoissonMatrixFree3D::apply_bc(op_dat rhs, op_dat bc) {

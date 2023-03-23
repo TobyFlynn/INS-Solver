@@ -7,7 +7,7 @@
 
 class FactorPoissonSemiMatrixFree3D : public PoissonSemiMatrixFree3D {
 public:
-  FactorPoissonSemiMatrixFree3D(DGMesh3D *m);
+  FactorPoissonSemiMatrixFree3D(DGMesh3D *m, bool alloc_tmp_dats = true);
 
   // op_dat bc_types - 0 for Dirichlet, 1 for Neumann
   virtual void apply_bc(op_dat rhs, op_dat bc) override;

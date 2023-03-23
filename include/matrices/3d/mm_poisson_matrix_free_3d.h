@@ -5,7 +5,7 @@
 
 class MMPoissonMatrixFree3D : public PoissonMatrixFree3D {
 public:
-  MMPoissonMatrixFree3D(DGMesh3D *m);
+  MMPoissonMatrixFree3D(DGMesh3D *m, bool alloc_tmp_dats = true);
 
   void set_factor(DG_FP f);
   DG_FP get_factor();

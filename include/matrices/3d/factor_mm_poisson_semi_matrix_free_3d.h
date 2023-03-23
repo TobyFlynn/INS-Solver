@@ -5,7 +5,7 @@
 
 class FactorMMPoissonSemiMatrixFree3D : public FactorPoissonSemiMatrixFree3D {
 public:
-  FactorMMPoissonSemiMatrixFree3D(DGMesh3D *m);
+  FactorMMPoissonSemiMatrixFree3D(DGMesh3D *m, bool alloc_tmp_dats = true);
 
   void set_mm_factor(op_dat f);
   virtual void mult(op_dat in, op_dat out) override;

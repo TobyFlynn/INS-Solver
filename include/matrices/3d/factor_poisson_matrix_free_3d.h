@@ -7,7 +7,7 @@
 
 class FactorPoissonMatrixFree3D : public PoissonMatrixFree3D {
 public:
-  FactorPoissonMatrixFree3D(DGMesh3D *m);
+  FactorPoissonMatrixFree3D(DGMesh3D *m, bool alloc_tmp_dats = true);
 
   // op_dat bc_types - 0 for Dirichlet, 1 for Neumann
   virtual void apply_bc(op_dat rhs, op_dat bc) override;
