@@ -41,8 +41,8 @@ private:
   op_dat tmp_dat[DG_ORDER], u_dat[DG_ORDER], b_dat[DG_ORDER];
   op_dat eg_tmp_0, eg_tmp_1, rk[3], rkQ;
 
-  const static int num_pre_relax_iter = 80;
-  const static int num_post_relax_iter = 80;
+  const static int num_pre_relax_iter = 20;
+  const static int num_post_relax_iter = 40;
 
   int num_levels;
 
