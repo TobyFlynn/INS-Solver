@@ -9,11 +9,14 @@ extern DGConstants *constants;
 extern Timing *timer;
 
 FactorPoissonCoarseMatrix3D::FactorPoissonCoarseMatrix3D(DGMesh3D *m) : PoissonCoarseMatrix3D(m) {
+  DG_FP *tmp_np  = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+  factor = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_coarse_factor");
+  free(tmp_np);
 
 }
 
 void FactorPoissonCoarseMatrix3D::set_factor(op_dat f) {
-  factor = f;
+  mesh->interp_dat_between_orders(DG_ORDER, 1, f, factor);
 }
 
 void FactorPoissonCoarseMatrix3D::calc_op1() {
