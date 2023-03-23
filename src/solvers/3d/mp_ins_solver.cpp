@@ -169,12 +169,14 @@ void MPINSSolver3D::setup_common() {
   coarsePressureMatrix = new FactorPoissonCoarseMatrix3D(mesh);
   // pressureMatrix = new FactorPoissonSemiMatrixFree3D(mesh);
   pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh);
-  viscosityMatrix = new FactorMMPoissonSemiMatrixFree3D(mesh);
+  // viscosityMatrix = new FactorMMPoissonSemiMatrixFree3D(mesh);
+  viscosityMatrix = new FactorMMPoissonMatrixFreeDiag3D(mesh);
   // pressureSolver = new PETScAMGSolver(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
   // pressureSolver = new PMultigridPoissonSolver(mesh);
   // viscositySolver = new PETScBlockJacobiSolver(mesh);
-  viscositySolver = new PETScInvMassSolver(mesh);
+  // viscositySolver = new PETScInvMassSolver(mesh);
+  viscositySolver = new PETScJacobiSolver(mesh);
   // viscositySolver = new PETScAMGSolver(mesh);
 
   pressureSolver->set_coarse_matrix(coarsePressureMatrix);
@@ -485,7 +487,6 @@ void MPINSSolver3D::viscosity() {
   viscosityMatrix->set_bc_types(vis_bc_types);
   viscosityMatrix->calc_mat_partial();
   viscositySolver->set_bcs(vis_bc);
-  viscositySolver->setFactor(vis_mm_factor);
   bool convergedX = viscositySolver->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
     throw std::runtime_error("\nViscosity X solve failed to converge\n");

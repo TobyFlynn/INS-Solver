@@ -5,16 +5,19 @@ list(APPEND LINEAR_SOLVER_SRC linear_solvers_op/petsc_block_jacobi/petsc_block_j
 list(APPEND LINEAR_SOLVER_SRC linear_solvers_op/pmultigrid/pmultigrid_op.cpp)
 list(APPEND LINEAR_SOLVER_SRC linear_solvers/petsc_pmultigrid/petsc_pmultigrid.cpp)
 list(APPEND LINEAR_SOLVER_SRC linear_solvers_op/petsc_inv_mass/petsc_inv_mass_op.cpp)
+list(APPEND LINEAR_SOLVER_SRC linear_solvers_op/petsc_jacobi/petsc_jacobi_op.cpp)
 
 set(LINEAR_SOLVER_CPU_SRC linear_solvers/petsc_utils/utils.cpp)
 list(APPEND LINEAR_SOLVER_CPU_SRC linear_solvers/petsc_block_jacobi/petsc_block_jacobi_cpu.cpp)
 list(APPEND LINEAR_SOLVER_CPU_SRC linear_solvers/petsc_pmultigrid/petsc_pmultigrid_cpu.cpp)
 list(APPEND LINEAR_SOLVER_CPU_SRC linear_solvers/petsc_inv_mass/petsc_inv_mass_cpu.cpp)
+list(APPEND LINEAR_SOLVER_CPU_SRC linear_solvers/petsc_jacobi/petsc_jacobi_cpu.cpp)
 
 set(LINEAR_SOLVER_GPU_SRC linear_solvers/petsc_utils/utils.cu)
 list(APPEND LINEAR_SOLVER_GPU_SRC linear_solvers/petsc_block_jacobi/petsc_block_jacobi_gpu.cu)
 list(APPEND LINEAR_SOLVER_GPU_SRC linear_solvers/petsc_pmultigrid/petsc_pmultigrid_gpu.cu)
 list(APPEND LINEAR_SOLVER_GPU_SRC linear_solvers/petsc_inv_mass/petsc_inv_mass_gpu.cu)
+list(APPEND LINEAR_SOLVER_GPU_SRC linear_solvers/petsc_jacobi/petsc_jacobi_gpu.cu)
 
 set(ALL_DIM_SRC timing.cpp matrices_op/poisson_matrix_op.cpp)
 list(APPEND ALL_DIM_SRC matrices_op/poisson_coarse_matrix_op.cpp)
@@ -92,6 +95,7 @@ elseif(DIM EQUAL 3)
   list(APPEND COMMON_SRC matrices_op/3d/factor_mm_poisson_matrix_op.cpp)
   list(APPEND COMMON_SRC matrices_op/3d/factor_mm_poisson_semi_matrix_free_op.cpp)
   list(APPEND COMMON_SRC matrices_op/3d/factor_mm_poisson_matrix_free_op.cpp)
+  list(APPEND COMMON_SRC matrices_op/3d/factor_mm_poisson_matrix_free_diag_op.cpp)
   list(APPEND COMMON_SRC ${LINEAR_SOLVER_SRC})
   list(APPEND COMMON_SRC ${ALL_DIM_SRC})
 
