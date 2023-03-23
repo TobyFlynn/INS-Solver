@@ -11,8 +11,8 @@
 
 class LevelSetSolver3D {
 public:
-  LevelSetSolver3D(DGMesh3D *m);
-  LevelSetSolver3D(DGMesh3D *m, const std::string &filename);
+  LevelSetSolver3D(DGMesh3D *m, bool alloc_tmp_dats = true);
+  LevelSetSolver3D(DGMesh3D *m, const std::string &filename, bool alloc_tmp_dats = true);
   ~LevelSetSolver3D();
 
   void init();
@@ -21,6 +21,8 @@ public:
   void step(op_dat u, op_dat v, op_dat w, DG_FP dt);
   void getRhoMu(op_dat rho, op_dat mu);
   void getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_dat curv);
+  void set_tmp_dats(op_dat np0, op_dat np1, op_dat np2, op_dat np3, op_dat np4,
+                    op_dat np5, op_dat np6, op_dat np7, op_dat npf0);
 
   DGMesh3D *mesh;
 

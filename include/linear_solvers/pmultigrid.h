@@ -22,8 +22,8 @@ public:
 
   void calc_rhs(const DG_FP *u_d, DG_FP *rhs_d);
 private:
-  void cycle(int order);
-  void smoother(const int order);
+  void cycle(int order, const int level);
+  void smoother(const int order, const int level);
 
   DG_FP maxEigenValue();
   void setRandomVector(op_dat vec);
@@ -43,6 +43,8 @@ private:
 
   const static int num_pre_relax_iter = 80;
   const static int num_post_relax_iter = 80;
+
+  int num_levels;
 
   DG_FP w;
 };

@@ -17,14 +17,16 @@
 
 extern Timing *timer;
 
-LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m) {
+LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m, bool alloc_tmp_dats) {
   mesh = m;
   resuming = false;
-  advectionSolver = new AdvectionSolver3D(m);
+  advectionSolver = new AdvectionSolver3D(m, alloc_tmp_dats);
 
   DG_FP * dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s");
-  s_modal = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s_modal");
+  if(alloc_tmp_dats) {
+    s_modal = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s_modal");
+  }
   free(dg_np_data);
 
   DG_FP *ls_sample_np_data = (DG_FP *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(DG_FP));
@@ -37,16 +39,18 @@ LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m) {
   reinit_count = 0;
 }
 
-LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m, const std::string &filename) {
+LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m, const std::string &filename, bool alloc_tmp_dats) {
   mesh = m;
   resuming = true;
-  advectionSolver = new AdvectionSolver3D(m);
+  advectionSolver = new AdvectionSolver3D(m, alloc_tmp_dats);
 
   s = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ls_solver_s");
 
-  DG_FP * dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  s_modal = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s_modal");
-  free(dg_np_data);
+  if(alloc_tmp_dats) {
+    DG_FP *dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+    s_modal = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s_modal");
+    free(dg_np_data);
+  }
 
   DG_FP *ls_sample_np_data = (DG_FP *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(DG_FP));
   sampleX = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleX");
@@ -56,6 +60,13 @@ LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m, const std::string &filename) {
 
   h = 0;
   reinit_count = 0;
+}
+
+void LevelSetSolver3D::set_tmp_dats(op_dat np0, op_dat np1, op_dat np2, op_dat np3,
+                                    op_dat np4, op_dat np5, op_dat np6, op_dat np7,
+                                    op_dat npf0) {
+  s_modal = np0;
+  advectionSolver->set_tmp_dats(np1, np2, np3, np4, np5, np6, np7, npf0);
 }
 
 LevelSetSolver3D::~LevelSetSolver3D() {

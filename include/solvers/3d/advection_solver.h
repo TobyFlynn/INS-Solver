@@ -8,12 +8,14 @@
 
 class AdvectionSolver3D {
 public:
-  AdvectionSolver3D(DGMesh3D *m);
+  AdvectionSolver3D(DGMesh3D *m, bool alloc_tmp_dats = true);
 
   void step(op_dat val, op_dat u, op_dat v, op_dat w);
   void set_dt();
   void set_dt(const DG_FP t);
   void set_bc_types(op_dat bc);
+  void set_tmp_dats(op_dat np0, op_dat np1, op_dat np2, op_dat np3, op_dat np4,
+                    op_dat np5, op_dat np6, op_dat npf0);
 private:
   void rhs(op_dat val, op_dat u, op_dat v, op_dat w, op_dat val_out);
 

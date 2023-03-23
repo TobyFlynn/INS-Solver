@@ -8,24 +8,39 @@
 
 extern Timing *timer;
 
-AdvectionSolver3D::AdvectionSolver3D(DGMesh3D *m) {
+AdvectionSolver3D::AdvectionSolver3D(DGMesh3D *m, bool alloc_tmp_dats) {
   mesh = m;
 
-  DG_FP *data_t0 = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  f = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_f");
-  g = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_g");
-  h = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_h");
-  rk[0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_rk0");
-  rk[1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_rk1");
-  rk[2] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_rk2");
-  rkQ   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_rkQ");
-  free(data_t0);
+  if(alloc_tmp_dats) {
+    DG_FP *data_t0 = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+    f = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_f");
+    g = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_g");
+    h = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_h");
+    rk[0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_rk0");
+    rk[1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_rk1");
+    rk[2] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_rk2");
+    rkQ   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_rkQ");
+    free(data_t0);
 
-  DG_FP *data_t1 = (DG_FP *)calloc(DG_NUM_FACES * DG_NPF * mesh->cells->size, sizeof(DG_FP));
-  flux = op_decl_dat(mesh->cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, data_t1, "advection_flux");
-  free(data_t1);
+    DG_FP *data_t1 = (DG_FP *)calloc(DG_NUM_FACES * DG_NPF * mesh->cells->size, sizeof(DG_FP));
+    flux = op_decl_dat(mesh->cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, data_t1, "advection_flux");
+    free(data_t1);
+  }
 
   dt = -1.0;
+}
+
+void AdvectionSolver3D::set_tmp_dats(op_dat np0, op_dat np1, op_dat np2,
+                                     op_dat np3, op_dat np4, op_dat np5,
+                                     op_dat np6, op_dat npf0) {
+  f = np0;
+  g = np1;
+  h = np2;
+  rk[0] = np3;
+  rk[1] = np4;
+  rk[2] = np5;
+  rkQ = np6;
+  flux = npf0;
 }
 
 void AdvectionSolver3D::step(op_dat val, op_dat u, op_dat v, op_dat w) {

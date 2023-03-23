@@ -20,8 +20,6 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
   mesh = m;
   resuming = false;
 
-  setup_common();
-
   std::string name;
   DG_FP * dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   for(int i = 0; i < 3; i++) {
@@ -53,14 +51,14 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
 
   currentInd = 0;
 
-  lsSolver = new LevelSetSolver3D(mesh);
+  lsSolver = new LevelSetSolver3D(mesh, false);
+
+  setup_common();
 }
 
 MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int iter) {
   mesh = m;
   resuming = true;
-
-  setup_common();
 
   vel[0][0] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_vel00");
   vel[1][0] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_vel10");
@@ -94,7 +92,9 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int
     g0 = 1.0;
   }
 
-  lsSolver = new LevelSetSolver3D(mesh, filename);
+  lsSolver = new LevelSetSolver3D(mesh, filename, false);
+
+  setup_common();
 }
 
 void MPINSSolver3D::setup_common() {
@@ -186,6 +186,7 @@ void MPINSSolver3D::setup_common() {
 
   pressureMatrix->set_tmp_dats(tmp_np[2], tmp_np[3], tmp_np[4], tmp_npf[0], tmp_npf[1], tmp_npf[2], tmp_npf[3]);
   viscosityMatrix->set_tmp_dats(tmp_np[0], tmp_np[2], tmp_np[6], tmp_npf[0], tmp_npf[1], tmp_npf[2], tmp_npf[3]);
+  lsSolver->set_tmp_dats(tmp_np[0], tmp_np[1], tmp_np[2], tmp_np[3], tmp_np[4], tmp_np[5], tmp_np[6], tmp_np[7], tmp_npf[0]);
 }
 
 MPINSSolver3D::~MPINSSolver3D() {
@@ -544,7 +545,7 @@ void MPINSSolver3D::viscosity() {
 
 void MPINSSolver3D::surface() {
   lsSolver->setBCTypes(bc_types);
-  // lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2], dt);
+  lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2], dt);
   lsSolver->getRhoMu(rho, mu);
 }
 
