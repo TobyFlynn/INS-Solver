@@ -118,7 +118,7 @@ void MPINSSolver3D::setup_common() {
 
   std::string name;
   DG_FP * dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  for(int i = 0; i < 9; i++) {
+  for(int i = 0; i < 10; i++) {
     name = "ins_solver_tmp_np" + std::to_string(i);
     tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
   }

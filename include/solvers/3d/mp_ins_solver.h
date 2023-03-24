@@ -58,7 +58,7 @@ private:
   int currentInd;
   bool resuming;
 
-  op_dat tmp_np[9], tmp_npf[4], tmp_bc_1, tmp_npf_bc;
+  op_dat tmp_np[10], tmp_npf[4], tmp_bc_1, tmp_npf_bc;
   op_dat f[3][3], n[2][3], advec_flux[3], curlVel[3], divVelT;
   op_dat curl2Vel[3], dPdN[2], pr_bc, pr_bc_types, dpdx, dpdy, dpdz;
   op_dat vis_bc_types, vis_bc, bc_types, pr_factor, vis_mm_factor;
