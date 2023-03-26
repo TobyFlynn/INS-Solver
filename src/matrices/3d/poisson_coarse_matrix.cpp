@@ -12,6 +12,8 @@ PoissonCoarseMatrix3D::PoissonCoarseMatrix3D(DGMesh3D *m) {
   mesh = m;
   _mesh = m;
 
+  petscMatInit = false;
+
   DG_FP *data_t0 = (DG_FP *)calloc(DG_NP_N1 * DG_NP_N1 * mesh->cells->size, sizeof(DG_FP));
   op1 = op_decl_dat(mesh->cells, DG_NP_N1 * DG_NP_N1, DG_FP_STR, data_t0, "poisson_matrix_op1");
   free(data_t0);
