@@ -24,7 +24,7 @@ PETScAMGSolver::PETScAMGSolver(DGMesh *m) {
   PC pc;
   KSPGetPC(ksp, &pc);
   PCSetType(pc, PCGAMG);
-  PCGAMGSetNSmooths(pc, 4);
+  // PCGAMGSetNSmooths(pc, 4);
   PCGAMGSetSquareGraph(pc, 1);
   PCGAMGSetNlevels(pc, 20);
   PCMGSetLevels(pc, 20, NULL);
