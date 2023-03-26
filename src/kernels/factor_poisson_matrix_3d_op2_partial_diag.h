@@ -45,21 +45,16 @@ inline void factor_poisson_matrix_3d_op2_partial_diag(const int **order,
   const int *fmaskL = &fmask[faceNum[0] * dg_npf];
   const int *fmaskR = &fmask[faceNum[1] * dg_npf];
 
-  DG_FP DL[DG_NP * DG_NP], DR[DG_NP * DG_NP];
+  DG_FP D[DG_NP * DG_NP];
   for(int i = 0; i < dg_np; i++) {
     for(int j = 0; j < dg_np; j++) {
       // int ind = i + j * dg_np;
       int ind = DG_MAT_IND(i, j, dg_np, dg_np);
 
-      DL[ind] = nx[0] * (rx[0][0] * dr_mat[ind] + sx[0][0] * ds_mat[ind] + tx[0][0] * dt_mat[ind]);
-      DL[ind] += ny[0] * (ry[0][0] * dr_mat[ind] + sy[0][0] * ds_mat[ind] + ty[0][0] * dt_mat[ind]);
-      DL[ind] += nz[0] * (rz[0][0] * dr_mat[ind] + sz[0][0] * ds_mat[ind] + tz[0][0] * dt_mat[ind]);
-      DL[ind] *= factor[0][i];
-
-      DR[ind] = nx[1] * (rx[1][0] * dr_mat[ind] + sx[1][0] * ds_mat[ind] + tx[1][0] * dt_mat[ind]);
-      DR[ind] += ny[1] * (ry[1][0] * dr_mat[ind] + sy[1][0] * ds_mat[ind] + ty[1][0] * dt_mat[ind]);
-      DR[ind] += nz[1] * (rz[1][0] * dr_mat[ind] + sz[1][0] * ds_mat[ind] + tz[1][0] * dt_mat[ind]);
-      DR[ind] *= factor[1][i];
+      D[ind] = nx[0] * (rx[0][0] * dr_mat[ind] + sx[0][0] * ds_mat[ind] + tx[0][0] * dt_mat[ind]);
+      D[ind] += ny[0] * (ry[0][0] * dr_mat[ind] + sy[0][0] * ds_mat[ind] + ty[0][0] * dt_mat[ind]);
+      D[ind] += nz[0] * (rz[0][0] * dr_mat[ind] + sz[0][0] * ds_mat[ind] + tz[0][0] * dt_mat[ind]);
+      D[ind] *= factor[0][i];
     }
   }
 
@@ -76,10 +71,22 @@ inline void factor_poisson_matrix_3d_op2_partial_diag(const int **order,
       int b_ind_t1 = DG_MAT_IND(k, i, dg_np, dg_np);
       int a_ind_t2 = DG_MAT_IND(k, i, dg_np, dg_np);
       int b_ind_t2 = DG_MAT_IND(k, i, dg_np, dg_np);
-      tmp += mmFL[a_ind_t1] * DL[b_ind_t1] + DL[a_ind_t2] * mmFL[b_ind_t2];
+      tmp += mmFL[a_ind_t1] * D[b_ind_t1] + D[a_ind_t2] * mmFL[b_ind_t2];
     }
     int ind_t3 = DG_MAT_IND(i, i,  dg_np,  dg_np);
     diagL[i] += 0.5 * sJ[0] * (gtau * mmFL[ind_t3] - tmp);
+  }
+
+  for(int i = 0; i < dg_np; i++) {
+    for(int j = 0; j < dg_np; j++) {
+      // int ind = i + j * dg_np;
+      int ind = DG_MAT_IND(i, j, dg_np, dg_np);
+
+      D[ind] = nx[1] * (rx[1][0] * dr_mat[ind] + sx[1][0] * ds_mat[ind] + tx[1][0] * dt_mat[ind]);
+      D[ind] += ny[1] * (ry[1][0] * dr_mat[ind] + sy[1][0] * ds_mat[ind] + ty[1][0] * dt_mat[ind]);
+      D[ind] += nz[1] * (rz[1][0] * dr_mat[ind] + sz[1][0] * ds_mat[ind] + tz[1][0] * dt_mat[ind]);
+      D[ind] *= factor[1][i];
+    }
   }
 
   for(int i = 0; i < dg_np; i++) {
@@ -89,7 +96,7 @@ inline void factor_poisson_matrix_3d_op2_partial_diag(const int **order,
       int b_ind_t1 = DG_MAT_IND(k, i, dg_np, dg_np);
       int a_ind_t2 = DG_MAT_IND(k, i, dg_np, dg_np);
       int b_ind_t2 = DG_MAT_IND(k, i, dg_np, dg_np);
-      tmp += mmFR[a_ind_t1] * DR[b_ind_t1] + DR[a_ind_t2] * mmFR[b_ind_t2];
+      tmp += mmFR[a_ind_t1] * D[b_ind_t1] + D[a_ind_t2] * mmFR[b_ind_t2];
     }
     int ind_t3 = DG_MAT_IND(i, i, dg_np, dg_np);
     diagR[i] += 0.5 * sJ[1] * (gtau * mmFR[ind_t3] - tmp);
