@@ -67,6 +67,16 @@ FactorPoissonMatrixFreeDiag3D::FactorPoissonMatrixFreeDiag3D(DGMesh3D *m, bool a
 
 void FactorPoissonMatrixFreeDiag3D::set_factor(op_dat f) {
   factor = f;
+
+  timer->startTimer("FactorPoissonMatrixFreeDiag3D - calc tau");
+  op_par_loop(fpmf_3d_calc_tau, "fpmf_3d_calc_tau", mesh->fluxes,
+              op_arg_dat(mesh->order, 0, mesh->flux2cells, 1, "int", OP_READ),
+              op_arg_dat(mesh->fluxFaceNums, -1, OP_ID, 8, "int", OP_READ),
+              op_arg_dat(mesh->fluxFmask,    -1, OP_ID, 4 * DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->fluxFscale, -1, OP_ID, 8, DG_FP_STR, OP_READ),
+              op_arg_dat(factor, -5, mesh->flux2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(gtau, -1, OP_ID, 4, DG_FP_STR, OP_WRITE));
+  timer->endTimer("FactorPoissonMatrixFreeDiag3D - calc tau");
 }
 
 void FactorPoissonMatrixFreeDiag3D::apply_bc(op_dat rhs, op_dat bc) {
@@ -166,6 +176,7 @@ void FactorPoissonMatrixFreeDiag3D::mult(op_dat in, op_dat out) {
               op_arg_dat(mesh->fluxNz, -1, OP_ID, 4, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->fluxFscale, -1, OP_ID, 8, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->fluxSJ, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(gtau, -1, OP_ID, 4, DG_FP_STR, OP_READ),
               op_arg_dat(in, -5, mesh->flux2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(factor, -5, mesh->flux2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in_grad[0], -5, mesh->flux2cells, DG_NP, DG_FP_STR, OP_READ),

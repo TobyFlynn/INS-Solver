@@ -17,7 +17,7 @@ public:
 
 protected:
   DGMesh3D *mesh;
-  op_dat in_grad[3], tmp_npf[4], l[3];
+  op_dat in_grad[3], tmp_npf[4], l[3], gtau;
 };
 
 #endif

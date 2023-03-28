@@ -1,7 +1,7 @@
 inline void fpmf_3d_mult_faces_flux(const int *p, const int *faceNums,
                           const int *fmaskF, const DG_FP *nx, const DG_FP *ny,
                           const DG_FP *nz, const DG_FP *fscale, const DG_FP *sJ,
-                          const DG_FP **in, const DG_FP **factor,
+                          const DG_FP *tau, const DG_FP **in, const DG_FP **factor,
                           const DG_FP **in_x, const DG_FP **in_y,
                           const DG_FP **in_z, DG_FP *l_x, DG_FP *l_y,
                           DG_FP *l_z, DG_FP *out) {
@@ -23,12 +23,6 @@ inline void fpmf_3d_mult_faces_flux(const int *p, const int *faceNums,
     const DG_FP *in_yR = in_y[i + 1];
     const DG_FP *in_zR = in_z[i + 1];
     const DG_FP *factorR = factor[i + 1];
-
-    DG_FP gtau = 0.0;
-    for(int j = 0; j < dg_npf; j++) {
-      DG_FP tmp = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(fscale[i * 2] * factorL[fmaskL[j]], fscale[i * 2 + 1] * factorR[fmaskR[j]]);
-      gtau = fmax(gtau, tmp);
-    }
     const DG_FP int_fact = 0.5 * sJ[i];
 
     for(int j = 0; j < dg_npf; j++) {
@@ -41,7 +35,7 @@ inline void fpmf_3d_mult_faces_flux(const int *p, const int *faceNums,
       const DG_FP diffL_u_grad = diffL_u_x + diffL_u_y + diffL_u_z;
 
       const int indL = findL + j;
-      out[indL] = int_fact * (gtau * diffL_u - diffL_u_grad);
+      out[indL] = int_fact * (tau[i] * diffL_u - diffL_u_grad);
       const DG_FP l_tmpL = int_fact * factorL[fmaskIndL] * -diffL_u;
       l_x[indL] = nx[i] * l_tmpL;
       l_y[indL] = ny[i] * l_tmpL;

@@ -60,6 +60,10 @@ PoissonMatrixFree3D::PoissonMatrixFree3D(DGMesh3D *m, bool alloc_tmp_dats) {
     free(tmp_npf_data);
     free(tmp_np);
   }
+
+  DG_FP *tmp_4 = (DG_FP *)calloc(4 * mesh->fluxes->size, sizeof(DG_FP));
+  gtau = op_decl_dat(mesh->fluxes, 4, DG_FP_STR, tmp_4, "poisson_matrix_free_tau");
+  free(tmp_4);
 }
 
 void PoissonMatrixFree3D::set_tmp_dats(op_dat np0, op_dat np1, op_dat np2,
