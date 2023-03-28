@@ -190,7 +190,7 @@ void PMultigridPoissonSolver::set_coarse_matrix(PoissonCoarseMatrix *c_mat) {
 void PMultigridPoissonSolver::setupDirectSolve() {
   // coarseSolver->set_bcs(bc);
   coarseSolver->set_nullspace(nullspace);
-  coarseSolver->set_tol(1e-2);
+  coarseSolver->set_tol(coarse_solve_tol);
 }
 
 DG_FP PMultigridPoissonSolver::maxEigenValue() {
@@ -199,7 +199,7 @@ DG_FP PMultigridPoissonSolver::maxEigenValue() {
   setRandomVector(eg_tmp_0);
   timer->endTimer("PMultigridPoissonSolver - Random Vec");
 
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < num_eigen_val_iter; i++) {
     matrix->multJacobi(eg_tmp_0, eg_tmp_1);
 
     // Normalise vector

@@ -31,9 +31,9 @@ PETScBlockJacobiSolver::PETScBlockJacobiSolver(DGMesh *m) {
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPGMRES);
   if(std::is_same<DG_FP,double>::value)
-    KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 2.5e2);
+    KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 5e2);
   else
-    KSPSetTolerances(ksp, 1e-6, 1e-50, 1e5, 2.5e2);
+    KSPSetTolerances(ksp, 1e-6, 1e-50, 1e5, 5e2);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
   PC pc;
   KSPGetPC(ksp, &pc);
@@ -131,6 +131,7 @@ void PETScBlockJacobiSolver::calc_precond_mat() {
   const DG_FP *op1_ptr = getOP2PtrHost(matrix->op1, OP_READ);
   DG_FP *pre_ptr = getOP2PtrHost(pre, OP_WRITE);
 
+  #pragma omp parallel for
   for(int i = 0; i < mesh->cells->size; i++) {
     const DG_FP *in_c = op1_ptr + i * matrix->op1->dim;
     DG_FP *inv_c      = pre_ptr + i * pre->dim;
