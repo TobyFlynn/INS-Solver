@@ -5,8 +5,9 @@ project(INS-Solver CXX)
 enable_language(C)
 
 # Import compiler flags for all build types
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fopenmp")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fopenmp -g -O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -g -O3")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --disable-warnings -g -O3")
 
 # Default OP2 location for me
 if(NOT OP2_DIR)

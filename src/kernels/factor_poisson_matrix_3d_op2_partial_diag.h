@@ -46,14 +46,24 @@ inline void factor_poisson_matrix_3d_op2_partial_diag(const int **order,
   const int *fmaskR = &fmask[faceNum[1] * dg_npf];
 
   DG_FP D[DG_NP * DG_NP];
-  for(int i = 0; i < dg_np; i++) {
-    for(int j = 0; j < dg_np; j++) {
+  const DG_FP nx_rx_0 = nx[0] * rx[0][0];
+  const DG_FP nx_sx_0 = nx[0] * sx[0][0];
+  const DG_FP nx_tx_0 = nx[0] * tx[0][0];
+  const DG_FP ny_ry_0 = ny[0] * ry[0][0];
+  const DG_FP ny_sy_0 = ny[0] * sy[0][0];
+  const DG_FP ny_ty_0 = ny[0] * ty[0][0];
+  const DG_FP nz_rz_0 = nz[0] * rz[0][0];
+  const DG_FP nz_sz_0 = nz[0] * sz[0][0];
+  const DG_FP nz_tz_0 = nz[0] * tz[0][0];
+  for(int j = 0; j < dg_np; j++) {
+    #pragma omp simd
+    for(int i = 0; i < dg_np; i++) {
       // int ind = i + j * dg_np;
       int ind = DG_MAT_IND(i, j, dg_np, dg_np);
 
-      D[ind] = nx[0] * (rx[0][0] * dr_mat[ind] + sx[0][0] * ds_mat[ind] + tx[0][0] * dt_mat[ind]);
-      D[ind] += ny[0] * (ry[0][0] * dr_mat[ind] + sy[0][0] * ds_mat[ind] + ty[0][0] * dt_mat[ind]);
-      D[ind] += nz[0] * (rz[0][0] * dr_mat[ind] + sz[0][0] * ds_mat[ind] + tz[0][0] * dt_mat[ind]);
+      D[ind] = nx_rx_0 * dr_mat[ind] + nx_sx_0 * ds_mat[ind] + nx_tx_0 * dt_mat[ind];
+      D[ind] += ny_ry_0 * dr_mat[ind] + ny_sy_0 * ds_mat[ind] + ny_ty_0 * dt_mat[ind];
+      D[ind] += nz_rz_0 * dr_mat[ind] + nz_sz_0 * ds_mat[ind] + nz_tz_0 * dt_mat[ind];
       D[ind] *= factor[0][i];
     }
   }
@@ -77,14 +87,25 @@ inline void factor_poisson_matrix_3d_op2_partial_diag(const int **order,
     diagL[i] += 0.5 * sJ[0] * (gtau * mmFL[ind_t3] - tmp);
   }
 
-  for(int i = 0; i < dg_np; i++) {
-    for(int j = 0; j < dg_np; j++) {
+  const DG_FP nx_rx_1 = nx[1] * rx[1][0];
+  const DG_FP nx_sx_1 = nx[1] * sx[1][0];
+  const DG_FP nx_tx_1 = nx[1] * tx[1][0];
+  const DG_FP ny_ry_1 = ny[1] * ry[1][0];
+  const DG_FP ny_sy_1 = ny[1] * sy[1][0];
+  const DG_FP ny_ty_1 = ny[1] * ty[1][0];
+  const DG_FP nz_rz_1 = nz[1] * rz[1][0];
+  const DG_FP nz_sz_1 = nz[1] * sz[1][0];
+  const DG_FP nz_tz_1 = nz[1] * tz[1][0];
+
+  for(int j = 0; j < dg_np; j++) {
+    #pragma omp simd
+    for(int i = 0; i < dg_np; i++) {
       // int ind = i + j * dg_np;
       int ind = DG_MAT_IND(i, j, dg_np, dg_np);
 
-      D[ind] = nx[1] * (rx[1][0] * dr_mat[ind] + sx[1][0] * ds_mat[ind] + tx[1][0] * dt_mat[ind]);
-      D[ind] += ny[1] * (ry[1][0] * dr_mat[ind] + sy[1][0] * ds_mat[ind] + ty[1][0] * dt_mat[ind]);
-      D[ind] += nz[1] * (rz[1][0] * dr_mat[ind] + sz[1][0] * ds_mat[ind] + tz[1][0] * dt_mat[ind]);
+      D[ind] = nx_rx_1 * dr_mat[ind] + nx_sx_1 * ds_mat[ind] + nx_tx_1 * dt_mat[ind];
+      D[ind] += ny_ry_1 * dr_mat[ind] + ny_sy_1 * ds_mat[ind] + ny_ty_1 * dt_mat[ind];
+      D[ind] += nz_rz_1 * dr_mat[ind] + nz_sz_1 * ds_mat[ind] + nz_tz_1 * dt_mat[ind];
       D[ind] *= factor[1][i];
     }
   }
