@@ -59,7 +59,6 @@ __global__ void _op_cuda_fpmf_grad_3d(
   __shared__ DG_FP ds_shared[DG_ORDER * DG_NP * DG_NP];
   __shared__ DG_FP dt_shared[DG_ORDER * DG_NP * DG_NP];
   __shared__ DG_FP u_shared[NUM_CELLS * DG_NP];
-  __shared__ DG_FP fact_shared[NUM_CELLS * DG_NP];
 
   for(int i = threadIdx.x; i < DG_ORDER * DG_NP * DG_NP; i += blockDim.x) {
     dr_shared[i] = arg1[i];
@@ -81,7 +80,6 @@ __global__ void _op_cuda_fpmf_grad_3d(
       const int num_elem  = ((n - threadIdx.x + blockDim.x) / DG_NP) - ((n - threadIdx.x) / DG_NP) + 1;
       for(int i = threadIdx.x; i < num_elem * DG_NP; i += blockDim.x) {
         u_shared[i] = arg4[start_ind + i];
-        fact_shared[i] = argFactor[start_ind + i];
       }
       // u_shared[threadIdx.x] = arg4[cell_id * DG_NP + node_id];
       __syncthreads();
@@ -93,7 +91,7 @@ __global__ void _op_cuda_fpmf_grad_3d(
                 ds_shared,
                 dt_shared,
                 u_shared + local_cell_id * DG_NP, //arg4 + cell_id * DG_NP,
-                fact_shared + local_cell_id * DG_NP,
+                argFactor + cell_id * DG_NP,
                 arg5 + cell_id * 1,
                 arg6 + cell_id * 1,
                 arg7 + cell_id * 1,
@@ -113,7 +111,7 @@ __global__ void _op_cuda_fpmf_grad_3d(
                 ds_shared,
                 dt_shared,
                 u_shared + local_cell_id * DG_NP, //arg4 + cell_id * DG_NP,
-                fact_shared + local_cell_id * DG_NP,
+                argFactor + cell_id * DG_NP,
                 arg5 + cell_id * 1,
                 arg6 + cell_id * 1,
                 arg7 + cell_id * 1,
@@ -133,7 +131,7 @@ __global__ void _op_cuda_fpmf_grad_3d(
                 ds_shared,
                 dt_shared,
                 u_shared + local_cell_id * DG_NP, //arg4 + cell_id * DG_NP,
-                fact_shared + local_cell_id * DG_NP,
+                argFactor + cell_id * DG_NP,
                 arg5 + cell_id * 1,
                 arg6 + cell_id * 1,
                 arg7 + cell_id * 1,
