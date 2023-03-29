@@ -154,6 +154,13 @@ inline void fact_poisson_gauss_op2(const int **p, const DG_FP *gF0Dr,
     }
   }
 
+  if(nx[0][exIndL] + nx[1][exIndR] > 1e-8) {
+    printf("Non match x normals: %g\n", nx[0][exIndL] + nx[1][exIndR]);
+  }
+
+  if(ny[0][exIndL] + ny[1][exIndR] > 1e-8) {
+    printf("Non match y normals: %g\n", ny[0][exIndL] + ny[1][exIndR]);
+  }
 
   DG_FP tauL[DG_GF_NP], tauR[DG_GF_NP];
   DG_FP maxtau = 0.0;

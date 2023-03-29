@@ -7,6 +7,10 @@
 
 #include "matrices/2d/factor_poisson_matrix_2d.h"
 #include "matrices/2d/factor_mm_poisson_matrix_2d.h"
+#include "matrices/2d/poisson_matrix_2d.h"
+#include "matrices/2d/mm_poisson_matrix_2d.h"
+#include "matrices/2d/cub_poisson_matrix_2d.h"
+#include "matrices/2d/cub_mm_poisson_matrix_2d.h"
 #include "matrices/2d/cub_factor_poisson_matrix_2d.h"
 #include "matrices/2d/cub_factor_mm_poisson_matrix_2d.h"
 #include "linear_solvers/linear_solver.h"

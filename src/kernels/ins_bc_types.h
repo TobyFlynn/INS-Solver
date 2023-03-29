@@ -5,7 +5,7 @@ inline void ins_bc_types(const DG_FP **nodes, int *type, int *pr_type,
   // 2 is wall
   *type = 0;
   *pr_type = 0;
-  *vis_type = 1;
+  *vis_type = 0;
   /*
   const DG_FP inlet_radius_2 = 0.05 * 0.05 + 1e-8;
   const DG_FP inlet_radius_2_ = 0.2 * 0.2 + 1e-8;
