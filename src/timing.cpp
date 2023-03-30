@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <sys/time.h>
 
 using namespace std;
 
@@ -41,14 +42,18 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
 #endif
 
 void Timing::startTimer(const std::string &name) {
-  double cpu, wall;
-  op_timers(&cpu, &wall);
+  double wall;
+  struct timeval t;
+  gettimeofday(&t, (struct timezone *)0);
+  wall = t.tv_sec + t.tv_usec * 1.0e-6;
   startTime[name] = wall;
 }
 
 void Timing::endTimer(const std::string &name) {
-  double cpu, wall;
-  op_timers(&cpu, &wall);
+  double wall;
+  struct timeval t;
+  gettimeofday(&t, (struct timezone *)0);
+  wall = t.tv_sec + t.tv_usec * 1.0e-6;
   totalTime[name] += wall - startTime[name];
 }
 
