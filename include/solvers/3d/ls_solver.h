@@ -23,6 +23,7 @@ public:
   void getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_dat curv);
   void set_tmp_dats(op_dat np0, op_dat np1, op_dat np2, op_dat np3, op_dat np4,
                     op_dat np5, op_dat np6, op_dat np7, op_dat npf0);
+  void reinitLS();
 
   DGMesh3D *mesh;
 
@@ -31,7 +32,7 @@ public:
   DG_FP alpha, order_width;
 private:
   void sampleInterface();
-  void reinitLS();
+  // void reinitLS();
   // bool reinitNeeded();
 
   DG_FP h, epsilon, reinit_dt, reinit_width;

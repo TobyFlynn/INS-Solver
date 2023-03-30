@@ -97,11 +97,13 @@ int main(int argc, char **argv) {
   op_printf("Reynolds number: %g\n", r_ynolds);
 
   DGMesh3D *mesh = new DGMesh3D(filename);
-  MPINSSolver3D *ins3d;
-  if(resumeIter == 0)
-    ins3d = new MPINSSolver3D(mesh);
-  else
-    ins3d = new MPINSSolver3D(mesh, checkpointFile, resumeIter);
+  // MPINSSolver3D *ins3d;
+  // if(resumeIter == 0)
+  //   ins3d = new MPINSSolver3D(mesh);
+  // else
+  //   ins3d = new MPINSSolver3D(mesh, checkpointFile, resumeIter);
+
+  LevelSetSolver3D *ls3d = new LevelSetSolver3D(mesh);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 2, "int", DG_CONSTANTS);
@@ -119,29 +121,32 @@ int main(int argc, char **argv) {
   timer->endTimer("OP2 Partitioning");
 
   mesh->init();
-  ins3d->init(r_ynolds, refVel);
+  ls3d->init();
+  // ins3d->init(r_ynolds, refVel);
 
   string out_file_ic = outputDir + "ic.h5";
-  ins3d->dump_data(out_file_ic);
+  op_fetch_data_hdf5_file(mesh->x, out_file_ic.c_str());
+  op_fetch_data_hdf5_file(mesh->y, out_file_ic.c_str());
+  op_fetch_data_hdf5_file(mesh->z, out_file_ic.c_str());
+  op_fetch_data_hdf5_file(ls3d->s, out_file_ic.c_str());
+  // ins3d->dump_data(out_file_ic);
 
   timer->startTimer("Main loop");
   for(int i = 0; i < iter; i++) {
-    ins3d->step();
-
-    if(save > 0 && (i + 1) % save == 0) {
-      string out_file_tmp = outputDir + "iter-" + to_string(i + 1) + ".h5";
-      ins3d->dump_data(out_file_tmp);
-    }
+    ls3d->reinitLS();
   }
   timer->endTimer("Main loop");
 
   string out_file_end = outputDir + "end.h5";
-  ins3d->dump_data(out_file_end);
+  op_fetch_data_hdf5_file(mesh->x, out_file_end.c_str());
+  op_fetch_data_hdf5_file(mesh->y, out_file_end.c_str());
+  op_fetch_data_hdf5_file(mesh->z, out_file_end.c_str());
+  op_fetch_data_hdf5_file(ls3d->s, out_file_end.c_str());
+  // ins3d->dump_data(out_file_end);
 
+  timer->exportTimings(outputDir + "timings.txt", iter, 0.0);
 
-  timer->exportTimings(outputDir + "timings.txt", iter, ins3d->get_time());
-
-  delete ins3d;
+  delete ls3d;
 
   ierr = PetscFinalize();
 
