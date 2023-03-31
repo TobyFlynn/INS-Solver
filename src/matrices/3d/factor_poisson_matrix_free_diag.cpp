@@ -61,6 +61,26 @@ void custom_kernel_fpmf_grad_3d(char const *name, op_set set,
   op_arg arg15,
   op_arg arg16);
 
+void custom_kernel_fpmf_3d_mult_faces_flux(char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5,
+  op_arg arg6,
+  op_arg arg7,
+  op_arg arg8,
+  op_arg arg9,
+  op_arg arg14,
+  op_arg arg19,
+  op_arg arg24,
+  op_arg arg29,
+  op_arg arg34,
+  op_arg arg35,
+  op_arg arg36,
+  op_arg arg37);
+
 FactorPoissonMatrixFreeDiag3D::FactorPoissonMatrixFreeDiag3D(DGMesh3D *m, bool alloc_tmp_dats) : PoissonMatrixFreeDiag3D(m, alloc_tmp_dats) {
 
 }
@@ -167,6 +187,27 @@ void FactorPoissonMatrixFreeDiag3D::mult(op_dat in, op_dat out) {
               op_arg_dat(tmp_npf[3], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
   timer->startTimer("FactorPoissonMatrixFreeDiag3D - mult faces flux");
+  #ifdef OP2_DG_CUDA
+  custom_kernel_fpmf_3d_mult_faces_flux("fpmf_3d_mult_faces_flux", mesh->fluxes,
+              op_arg_dat(mesh->order, 0, mesh->flux2cells, 1, "int", OP_READ),
+              op_arg_dat(mesh->fluxFaceNums, -1, OP_ID, 8, "int", OP_READ),
+              op_arg_dat(mesh->fluxFmask,    -1, OP_ID, 4 * DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->fluxNx, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fluxNy, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fluxNz, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fluxFscale, -1, OP_ID, 8, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fluxSJ, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(gtau, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(in, -5, mesh->flux2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(factor, -5, mesh->flux2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(in_grad[0], -5, mesh->flux2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(in_grad[1], -5, mesh->flux2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(in_grad[2], -5, mesh->flux2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_npf[0], 0, mesh->flux2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_npf[1], 0, mesh->flux2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_npf[2], 0, mesh->flux2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_npf[3], 0, mesh->flux2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  #else
   op_par_loop(fpmf_3d_mult_faces_flux, "fpmf_3d_mult_faces_flux", mesh->fluxes,
               op_arg_dat(mesh->order, 0, mesh->flux2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->fluxFaceNums, -1, OP_ID, 8, "int", OP_READ),
@@ -186,6 +227,7 @@ void FactorPoissonMatrixFreeDiag3D::mult(op_dat in, op_dat out) {
               op_arg_dat(tmp_npf[1], 0, mesh->flux2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(tmp_npf[2], 0, mesh->flux2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(tmp_npf[3], 0, mesh->flux2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  #endif
   timer->endTimer("FactorPoissonMatrixFreeDiag3D - mult faces flux");
 
   timer->startTimer("FactorPoissonMatrixFreeDiag3D - mult faces bflux");
