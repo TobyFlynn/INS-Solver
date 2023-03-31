@@ -216,13 +216,7 @@ void custom_kernel_fpmf_3d_mult_faces_flux(char const *name, op_set set,
   }
   int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
   if (set_size > 0) {
-
-    //set CUDA execution parameters
-    #ifdef OP_BLOCK_SIZE_72
-      int nthread = OP_BLOCK_SIZE_72;
-    #else
-      int nthread = OP_block_size;
-    #endif
+    int nthread = OP_block_size;
 
     for ( int round=0; round<2; round++ ){
       if (round==1) {
@@ -231,28 +225,53 @@ void custom_kernel_fpmf_3d_mult_faces_flux(char const *name, op_set set,
       int start = round==0 ? 0 : set->core_size;
       int end = round==0 ? set->core_size : set->size + set->exec_size;
       if (end-start>0) {
-        int nblocks = ((end-start-1)/nthread+1) * DG_NPF;
-        _op_cuda_fpmf_3d_mult_faces_flux<<<nblocks,nthread>>>(
-        (int *)arg0.data_d,
-        (double *)arg9.data_d,
-        (double *)arg14.data_d,
-        (double *)arg19.data_d,
-        (double *)arg24.data_d,
-        (double *)arg29.data_d,
-        (double *)arg34.data_d,
-        (double *)arg35.data_d,
-        (double *)arg36.data_d,
-        (double *)arg37.data_d,
-        arg0.map_data_d,
-        (int*)arg1.data_d,
-        (int*)arg2.data_d,
-        (double*)arg3.data_d,
-        (double*)arg4.data_d,
-        (double*)arg5.data_d,
-        (double*)arg6.data_d,
-        (double*)arg7.data_d,
-        (double*)arg8.data_d,
-        start,end,set->size+set->exec_size);
+        if(round == 0) {
+          int nblocks = ((end-start-1)/nthread+1) * DG_NPF;
+          _op_cuda_fpmf_3d_mult_faces_flux<<<nblocks,nthread>>>(
+          (int *)arg0.data_d,
+          (double *)arg9.data_d,
+          (double *)arg14.data_d,
+          (double *)arg19.data_d,
+          (double *)arg24.data_d,
+          (double *)arg29.data_d,
+          (double *)arg34.data_d,
+          (double *)arg35.data_d,
+          (double *)arg36.data_d,
+          (double *)arg37.data_d,
+          arg0.map_data_d,
+          (int*)arg1.data_d,
+          (int*)arg2.data_d,
+          (double*)arg3.data_d,
+          (double*)arg4.data_d,
+          (double*)arg5.data_d,
+          (double*)arg6.data_d,
+          (double*)arg7.data_d,
+          (double*)arg8.data_d,
+          start,end,set->size+set->exec_size);
+        } else {
+          int nblocks = (end-start-1)/nthread+1;
+          op_cuda_fpmf_3d_mult_faces_flux<<<nblocks,nthread>>>(
+          (int *)arg0.data_d,
+          (double *)arg9.data_d,
+          (double *)arg14.data_d,
+          (double *)arg19.data_d,
+          (double *)arg24.data_d,
+          (double *)arg29.data_d,
+          (double *)arg34.data_d,
+          (double *)arg35.data_d,
+          (double *)arg36.data_d,
+          (double *)arg37.data_d,
+          arg0.map_data_d,
+          (int*)arg1.data_d,
+          (int*)arg2.data_d,
+          (double*)arg3.data_d,
+          (double*)arg4.data_d,
+          (double*)arg5.data_d,
+          (double*)arg6.data_d,
+          (double*)arg7.data_d,
+          (double*)arg8.data_d,
+          start,end,set->size+set->exec_size);
+        }
       }
     }
   }
