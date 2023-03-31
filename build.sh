@@ -114,7 +114,7 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         matrices/3d/poisson_matrix.cpp \
         matrices/3d/poisson_coarse_matrix.cpp \
         matrices/3d/poisson_semi_matrix_free.cpp \
-        matrices/3d/poisson_matrix_free.cpp \
+        matrices/3d/poisson_matrix_free_mult.cpp \
         matrices/3d/poisson_matrix_free_diag.cpp \
         matrices/3d/mm_poisson_matrix.cpp \
         matrices/3d/mm_poisson_matrix_free.cpp \
@@ -122,7 +122,7 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         matrices/3d/factor_poisson_coarse_matrix.cpp \
         matrices/3d/factor_poisson_semi_matrix_free.cpp \
         matrices/3d/factor_poisson_matrix_free_diag.cpp \
-        matrices/3d/factor_poisson_matrix_free.cpp \
+        matrices/3d/factor_poisson_matrix_free_mult.cpp \
         matrices/3d/factor_mm_poisson_matrix.cpp \
         matrices/3d/factor_mm_poisson_semi_matrix_free.cpp \
         matrices/3d/factor_mm_poisson_matrix_free.cpp \
