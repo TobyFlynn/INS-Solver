@@ -5,22 +5,19 @@
 #include "dg_compiler_defs.h"
 
 template<int dg_np>
-__device__ void shared_pmf_3d_mult_cells_gpu(const int ind, const int *p, const DG_FP *dr,
+__device__ void shared_no_geo_pmf_3d_mult_cells_gpu(const int ind, const int *p, const DG_FP *dr,
                             const DG_FP *ds, const DG_FP *dt,
-                            const DG_FP *rx, const DG_FP *sx, const DG_FP *tx,
-                            const DG_FP *ry, const DG_FP *sy, const DG_FP *ty,
-                            const DG_FP *rz, const DG_FP *sz, const DG_FP *tz,
-                            const DG_FP *in_x, const DG_FP *in_y,
-                            const DG_FP *in_z, DG_FP *out) {
+                            const DG_FP *in_r, const DG_FP *in_s,
+                            const DG_FP *in_t, DG_FP *out) {
   const DG_FP *dr_mat = &dr[(*p - 1) * DG_NP * DG_NP];
   const DG_FP *ds_mat = &ds[(*p - 1) * DG_NP * DG_NP];
   const DG_FP *dt_mat = &dt[(*p - 1) * DG_NP * DG_NP];
 
   for(int n = 0; n < dg_np; n++) {
     int mat_ind = DG_MAT_IND(n, ind, dg_np, dg_np);
-    out[ind] += dr_mat[mat_ind] * (rx[0] * in_x[n] + ry[0] * in_y[n] + rz[0] * in_z[n]);
-    out[ind] += ds_mat[mat_ind] * (sx[0] * in_x[n] + sy[0] * in_y[n] + sz[0] * in_z[n]);
-    out[ind] += dt_mat[mat_ind] * (tx[0] * in_x[n] + ty[0] * in_y[n] + tz[0] * in_z[n]);
+    out[ind] += dr_mat[mat_ind] * in_r[n];
+    out[ind] += ds_mat[mat_ind] * in_s[n];
+    out[ind] += dt_mat[mat_ind] * in_t[n];
   }
 }
 
@@ -36,16 +33,18 @@ __device__ void _pmf_3d_mult_cells_gpu(const int ind, const int *p, const DG_FP 
   const DG_FP *ds_mat = &ds[(*p - 1) * DG_NP * DG_NP];
   const DG_FP *dt_mat = &dt[(*p - 1) * DG_NP * DG_NP];
 
+  DG_FP tmp = 0.0;
   for(int n = 0; n < dg_np; n++) {
     int mat_ind = DG_MAT_IND(n, ind, dg_np, dg_np);
-    out[ind] += dr_mat[mat_ind] * (rx[0] * in_x[n] + ry[0] * in_y[n] + rz[0] * in_z[n]);
-    out[ind] += ds_mat[mat_ind] * (sx[0] * in_x[n] + sy[0] * in_y[n] + sz[0] * in_z[n]);
-    out[ind] += dt_mat[mat_ind] * (tx[0] * in_x[n] + ty[0] * in_y[n] + tz[0] * in_z[n]);
+    tmp += dr_mat[mat_ind] * (rx[0] * in_x[n] + ry[0] * in_y[n] + rz[0] * in_z[n]);
+    tmp += ds_mat[mat_ind] * (sx[0] * in_x[n] + sy[0] * in_y[n] + sz[0] * in_z[n]);
+    tmp += dt_mat[mat_ind] * (tx[0] * in_x[n] + ty[0] * in_y[n] + tz[0] * in_z[n]);
   }
+  out[ind] += tmp;
 }
 
 // CUDA kernel function
-template<int NUM_CELLS>
+template<int p, int NUM_CELLS>
 __global__ void _op_cuda_pmf_3d_mult_cells(
   const int *__restrict arg0,
   const DG_FP *arg1,
@@ -65,6 +64,7 @@ __global__ void _op_cuda_pmf_3d_mult_cells(
   const DG_FP *__restrict arg18,
   DG_FP *arg19,
   int   set_size ) {
+  const int NP = (p + 1) * (p + 2) * (p + 3) / 6;
 
   // Load matrices into shared memory
   __shared__ DG_FP dr_shared[DG_ORDER * DG_NP * DG_NP];
@@ -73,6 +73,9 @@ __global__ void _op_cuda_pmf_3d_mult_cells(
   __shared__ DG_FP ux_shared[NUM_CELLS * DG_NP];
   __shared__ DG_FP uy_shared[NUM_CELLS * DG_NP];
   __shared__ DG_FP uz_shared[NUM_CELLS * DG_NP];
+  __shared__ DG_FP ur_shared[NUM_CELLS * DG_NP];
+  __shared__ DG_FP us_shared[NUM_CELLS * DG_NP];
+  __shared__ DG_FP ut_shared[NUM_CELLS * DG_NP];
 
   for(int i = threadIdx.x; i < DG_ORDER * DG_NP * DG_NP; i += blockDim.x) {
     dr_shared[i] = arg1[i];
@@ -97,72 +100,26 @@ __global__ void _op_cuda_pmf_3d_mult_cells(
         uy_shared[i] = arg17[start_ind + i];
         uz_shared[i] = arg18[start_ind + i];
       }
+      __syncthreads();
+      for(int i = threadIdx.x; i < num_elem * DG_NP; i += blockDim.x) {
+        int curr_cell = i / DG_NP + (n - threadIdx.x) / DG_NP;
+        ur_shared[i] = *(arg4 + curr_cell) * ux_shared[i] + *(arg7 + curr_cell) * uy_shared[i] + *(arg10 + curr_cell) * uz_shared[i];
+        us_shared[i] = *(arg5 + curr_cell) * ux_shared[i] + *(arg8 + curr_cell) * uy_shared[i] + *(arg11 + curr_cell) * uz_shared[i];
+        ut_shared[i] = *(arg6 + curr_cell) * ux_shared[i] + *(arg9 + curr_cell) * uy_shared[i] + *(arg12 + curr_cell) * uz_shared[i];
+      }
 
       __syncthreads();
 
-      switch(*(arg0 + cell_id * 1)) {
-        case 1:
-          shared_pmf_3d_mult_cells_gpu<4>(node_id, arg0 + cell_id * 1,
+      shared_no_geo_pmf_3d_mult_cells_gpu<NP>(node_id, arg0 + cell_id * 1,
                             dr_shared,
                             ds_shared,
                             dt_shared,
-                            arg4 + cell_id * 1,
-                            arg5 + cell_id * 1,
-                            arg6 + cell_id * 1,
-                            arg7 + cell_id * 1,
-                            arg8 + cell_id * 1,
-                            arg9 + cell_id * 1,
-                            arg10 + cell_id * 1,
-                            arg11 + cell_id * 1,
-                            arg12 + cell_id * 1,
-                            ux_shared + local_cell_id * DG_NP,
-                            uy_shared + local_cell_id * DG_NP,
-                            uz_shared + local_cell_id * DG_NP,
+                            ur_shared + local_cell_id * DG_NP,
+                            us_shared + local_cell_id * DG_NP,
+                            ut_shared + local_cell_id * DG_NP,
                             arg19 + cell_id * DG_NP);
-          break;
-        case 2:
-          shared_pmf_3d_mult_cells_gpu<10>(node_id, arg0 + cell_id * 1,
-                            dr_shared,
-                            ds_shared,
-                            dt_shared,
-                            arg4 + cell_id * 1,
-                            arg5 + cell_id * 1,
-                            arg6 + cell_id * 1,
-                            arg7 + cell_id * 1,
-                            arg8 + cell_id * 1,
-                            arg9 + cell_id * 1,
-                            arg10 + cell_id * 1,
-                            arg11 + cell_id * 1,
-                            arg12 + cell_id * 1,
-                            ux_shared + local_cell_id * DG_NP,
-                            uy_shared + local_cell_id * DG_NP,
-                            uz_shared + local_cell_id * DG_NP,
-                            arg19 + cell_id * DG_NP);
-          break;
-        case 3:
-          shared_pmf_3d_mult_cells_gpu<20>(node_id, arg0 + cell_id * 1,
-                            dr_shared,
-                            ds_shared,
-                            dt_shared,
-                            arg4 + cell_id * 1,
-                            arg5 + cell_id * 1,
-                            arg6 + cell_id * 1,
-                            arg7 + cell_id * 1,
-                            arg8 + cell_id * 1,
-                            arg9 + cell_id * 1,
-                            arg10 + cell_id * 1,
-                            arg11 + cell_id * 1,
-                            arg12 + cell_id * 1,
-                            ux_shared + local_cell_id * DG_NP,
-                            uy_shared + local_cell_id * DG_NP,
-                            uz_shared + local_cell_id * DG_NP,
-                            arg19 + cell_id * DG_NP);
-          break;
-      }
     } else {
-      switch(*(arg0 + cell_id * 1)) {
-        case 1:
-          _pmf_3d_mult_cells_gpu<4>(node_id, arg0 + cell_id * 1,
+      _pmf_3d_mult_cells_gpu<NP>(node_id, arg0 + cell_id * 1,
                             dr_shared,
                             ds_shared,
                             dt_shared,
@@ -179,122 +136,8 @@ __global__ void _op_cuda_pmf_3d_mult_cells(
                             arg17 + cell_id * DG_NP,
                             arg18 + cell_id * DG_NP,
                             arg19 + cell_id * DG_NP);
-          break;
-        case 2:
-          _pmf_3d_mult_cells_gpu<10>(node_id, arg0 + cell_id * 1,
-                            dr_shared,
-                            ds_shared,
-                            dt_shared,
-                            arg4 + cell_id * 1,
-                            arg5 + cell_id * 1,
-                            arg6 + cell_id * 1,
-                            arg7 + cell_id * 1,
-                            arg8 + cell_id * 1,
-                            arg9 + cell_id * 1,
-                            arg10 + cell_id * 1,
-                            arg11 + cell_id * 1,
-                            arg12 + cell_id * 1,
-                            arg16 + cell_id * DG_NP,
-                            arg17 + cell_id * DG_NP,
-                            arg18 + cell_id * DG_NP,
-                            arg19 + cell_id * DG_NP);
-          break;
-        case 3:
-          _pmf_3d_mult_cells_gpu<20>(node_id, arg0 + cell_id * 1,
-                            dr_shared,
-                            ds_shared,
-                            dt_shared,
-                            arg4 + cell_id * 1,
-                            arg5 + cell_id * 1,
-                            arg6 + cell_id * 1,
-                            arg7 + cell_id * 1,
-                            arg8 + cell_id * 1,
-                            arg9 + cell_id * 1,
-                            arg10 + cell_id * 1,
-                            arg11 + cell_id * 1,
-                            arg12 + cell_id * 1,
-                            arg16 + cell_id * DG_NP,
-                            arg17 + cell_id * DG_NP,
-                            arg18 + cell_id * DG_NP,
-                            arg19 + cell_id * DG_NP);
-          break;
-      }
     }
   }
-/*
-  //process set elements
-  for ( int n=threadIdx.x+blockIdx.x*blockDim.x; n<set_size; n+=blockDim.x*gridDim.x ){
-
-    switch(*(arg0+n*1)) {
-      case 1:
-        _pmf_3d_mult_cells_gpu<4>(arg0+n*1,
-                          dr_shared,
-                          ds_shared,
-                          dt_shared,
-                          arg4+n*1,
-                          arg5+n*1,
-                          arg6+n*1,
-                          arg7+n*1,
-                          arg8+n*1,
-                          arg9+n*1,
-                          arg10+n*1,
-                          arg11+n*1,
-                          arg12+n*1,
-                          arg13+n*DG_NP,
-                          arg14+n*DG_NP,
-                          arg15+n*DG_NP,
-                          arg16+n*DG_NP,
-                          arg17+n*DG_NP,
-                          arg18+n*DG_NP,
-                          arg19+n*DG_NP);
-        break;
-      case 2:
-        _pmf_3d_mult_cells_gpu<10>(arg0+n*1,
-                          dr_shared,
-                          ds_shared,
-                          dt_shared,
-                          arg4+n*1,
-                          arg5+n*1,
-                          arg6+n*1,
-                          arg7+n*1,
-                          arg8+n*1,
-                          arg9+n*1,
-                          arg10+n*1,
-                          arg11+n*1,
-                          arg12+n*1,
-                          arg13+n*DG_NP,
-                          arg14+n*DG_NP,
-                          arg15+n*DG_NP,
-                          arg16+n*DG_NP,
-                          arg17+n*DG_NP,
-                          arg18+n*DG_NP,
-                          arg19+n*DG_NP);
-        break;
-      case 3:
-        _pmf_3d_mult_cells_gpu<20>(arg0+n*1,
-                          dr_shared,
-                          ds_shared,
-                          dt_shared,
-                          arg4+n*1,
-                          arg5+n*1,
-                          arg6+n*1,
-                          arg7+n*1,
-                          arg8+n*1,
-                          arg9+n*1,
-                          arg10+n*1,
-                          arg11+n*1,
-                          arg12+n*1,
-                          arg13+n*DG_NP,
-                          arg14+n*DG_NP,
-                          arg15+n*DG_NP,
-                          arg16+n*DG_NP,
-                          arg17+n*DG_NP,
-                          arg18+n*DG_NP,
-                          arg19+n*DG_NP);
-        break;
-    }
-  }
-  */
 }
 
 
@@ -375,7 +218,7 @@ void custom_kernel_pmf_3d_mult_cells(char const *name, op_set set,
     const int nblocks = 200 < (set->size * DG_NP) / nthread + 1 ? 200 : (set->size * DG_NP) / nthread + 1;
     const int num_cells = (nthread / DG_NP) + 2;
 
-    _op_cuda_pmf_3d_mult_cells<num_cells><<<nblocks,nthread>>>(
+    _op_cuda_pmf_3d_mult_cells<3,num_cells><<<nblocks,nthread>>>(
       (int *) arg0.data_d,
       (DG_FP *) arg1.data_d,
       (DG_FP *) arg2.data_d,
