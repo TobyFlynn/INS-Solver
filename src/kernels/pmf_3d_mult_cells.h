@@ -20,34 +20,4 @@ inline void pmf_3d_mult_cells(const int *p, const DG_FP *dr,
   op2_in_kernel_gemv(true, dg_np, dg_np, 1.0, dr_mat, dg_np, tmp_dr, 1.0, out);
   op2_in_kernel_gemv(true, dg_np, dg_np, 1.0, ds_mat, dg_np, tmp_ds, 1.0, out);
   op2_in_kernel_gemv(true, dg_np, dg_np, 1.0, dt_mat, dg_np, tmp_dt, 1.0, out);
-
-/*
-  #ifndef OP2_DG_CUDA
-  DG_FP tmp_dr[DG_NP], tmp_ds[DG_NP], tmp_dt[DG_NP];
-  for(int n = 0; n < dg_np; n++) {
-    tmp_dr[n] = rx[0] * (in_x[n] + l_x[n]) + ry[0] * (in_y[n] + l_y[n]) + rz[0] * (in_z[n] + l_z[n]);
-    tmp_ds[n] = sx[0] * (in_x[n] + l_x[n]) + sy[0] * (in_y[n] + l_y[n]) + sz[0] * (in_z[n] + l_z[n]);
-    tmp_dt[n] = tx[0] * (in_x[n] + l_x[n]) + ty[0] * (in_y[n] + l_y[n]) + tz[0] * (in_z[n] + l_z[n]);
-  }
-  #if DG_DOUBLE == 1
-  cblas_dgemv(CblasColMajor, CblasTrans, dg_np, dg_np, 1.0, dr_mat, dg_np, tmp_dr, 1, 1.0, out, 1);
-  cblas_dgemv(CblasColMajor, CblasTrans, dg_np, dg_np, 1.0, ds_mat, dg_np, tmp_ds, 1, 1.0, out, 1);
-  cblas_dgemv(CblasColMajor, CblasTrans, dg_np, dg_np, 1.0, dt_mat, dg_np, tmp_dt, 1, 1.0, out, 1);
-  #else
-  cblas_sgemv(CblasColMajor, CblasTrans, dg_np, dg_np, 1.0, dr_mat, dg_np, tmp_dr, 1, 1.0, out, 1);
-  cblas_sgemv(CblasColMajor, CblasTrans, dg_np, dg_np, 1.0, ds_mat, dg_np, tmp_ds, 1, 1.0, out, 1);
-  cblas_sgemv(CblasColMajor, CblasTrans, dg_np, dg_np, 1.0, dt_mat, dg_np, tmp_dt, 1, 1.0, out, 1);
-  #endif
-  #else
-  for(int n = 0; n < dg_np; n++) {
-    for(int m = 0; m < dg_np; m++) {
-      // int ind = m * dg_np + n;
-      int ind = DG_MAT_IND(n, m, dg_np, dg_np);
-      out[m] += dr_mat[ind] * (rx[0] * (in_x[n] + l_x[n]) + ry[0] * (in_y[n] + l_y[n]) + rz[0] * (in_z[n] + l_z[n]));
-      out[m] += ds_mat[ind] * (sx[0] * (in_x[n] + l_x[n]) + sy[0] * (in_y[n] + l_y[n]) + sz[0] * (in_z[n] + l_z[n]));
-      out[m] += dt_mat[ind] * (tx[0] * (in_x[n] + l_x[n]) + ty[0] * (in_y[n] + l_y[n]) + tz[0] * (in_z[n] + l_z[n]));
-    }
-  }
-  #endif
-*/
 }
