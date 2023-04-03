@@ -141,6 +141,9 @@ void KDTree3DMPI::build_tree() {
 
   if(points.size() == 0) {
     empty = true;
+    // So saving timer info at end for MPI doesn't break
+    timer->startTimer("K-D Tree - Construct Tree");
+    timer->endTimer("K-D Tree - Construct Tree");
     return;
   }
   empty = false;

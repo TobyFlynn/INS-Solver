@@ -39,6 +39,7 @@ PETScAMGSolver::~PETScAMGSolver() {
 
 bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
   timer->startTimer("PETScAMGSolver - solve");
+  timer->startTimer("PETScAMGSolver - get PETSc matrix");
   if(matrix->getPETScMat(&pMat)) {
     if(nullspace) {
       MatNullSpace ns;
@@ -49,6 +50,7 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
     }
     KSPSetOperators(ksp, *pMat, *pMat);
   }
+  timer->endTimer("PETScAMGSolver - get PETSc matrix");
 
   if(bc)
     matrix->apply_bc(rhs, bc);

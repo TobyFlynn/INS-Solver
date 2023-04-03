@@ -7,6 +7,9 @@
 #include "dg_utils.h"
 #include "dg_global_constants/dg_global_constants_2d.h"
 
+#include "timing.h"
+extern Timing *timer;
+
 int PoissonCoarseMatrix::getUnknowns() {
   const int setSize_ = _mesh->order->set->size;
   int unknowns = setSize_ * DG_NP_N1;
@@ -41,6 +44,7 @@ void PoissonCoarseMatrix::set_glb_ind() {
 
 void PoissonCoarseMatrix::setPETScMatrix() {
   if(!petscMatInit) {
+    timer->startTimer("setPETScMatrix - Create Matrix");
     MatCreate(PETSC_COMM_WORLD, &pMat);
     petscMatInit = true;
     int unknowns = getUnknowns();
@@ -54,20 +58,26 @@ void PoissonCoarseMatrix::setPETScMatrix() {
     MatSeqAIJSetPreallocation(pMat, DG_NP_N1 * (DG_NUM_FACES + 1), NULL);
     #endif
     MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+    timer->endTimer("setPETScMatrix - Create Matrix");
   }
+
+  timer->startTimer("setPETScMatrix - OP2 op1");
   // Add cubature OP to Poisson matrix
   op_arg args[] = {
     op_arg_dat(op1, -1, OP_ID, DG_NP_N1 * DG_NP_N1, DG_FP_STR, OP_READ),
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(_mesh->cells, 2, args);
+  op_mpi_set_dirtybit_cuda(2, args);
+  timer->endTimer("setPETScMatrix - OP2 op1");
 
+  timer->startTimer("setPETScMatrix - Copy op1 to host");
   const int setSize = _mesh->cells->size;
   DG_FP *op1_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * setSize * sizeof(DG_FP));
   int *glb   = (int *)malloc(setSize * sizeof(int));
   cudaMemcpy(op1_data, op1->data_d, setSize * DG_NP_N1 * DG_NP_N1 * sizeof(DG_FP), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb, glb_ind->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
-  op_mpi_set_dirtybit_cuda(2, args);
+  timer->endTimer("setPETScMatrix - Copy op1 to host");
 
   #ifdef DG_COL_MAJ
   MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_FALSE);
@@ -75,6 +85,7 @@ void PoissonCoarseMatrix::setPETScMatrix() {
   MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_TRUE);
   #endif
 
+  timer->startTimer("setPETScMatrix - Set values op1");
   for(int i = 0; i < setSize; i++) {
     int currentRow = glb[i];
     int currentCol = glb[i];
@@ -86,10 +97,12 @@ void PoissonCoarseMatrix::setPETScMatrix() {
 
     MatSetValues(pMat, DG_NP_N1, idxm, DG_NP_N1, idxn, &op1_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
   }
+  timer->endTimer("setPETScMatrix - Set values op1");
 
   free(op1_data);
   free(glb);
 
+  timer->startTimer("setPETScMatrix - OP2 op2");
   op_arg edge_args[] = {
     op_arg_dat(op2[0], -1, OP_ID, DG_NP_N1 * DG_NP_N1, DG_FP_STR, OP_READ),
     op_arg_dat(op2[1], -1, OP_ID, DG_NP_N1 * DG_NP_N1, DG_FP_STR, OP_READ),
@@ -97,6 +110,10 @@ void PoissonCoarseMatrix::setPETScMatrix() {
     op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(_mesh->faces, 4, edge_args);
+  op_mpi_set_dirtybit_cuda(4, edge_args);
+  timer->endTimer("setPETScMatrix - OP2 op2");
+
+  timer->startTimer("setPETScMatrix - Copy op2 to host");
   DG_FP *op2L_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * _mesh->faces->size * sizeof(DG_FP));
   DG_FP *op2R_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * _mesh->faces->size * sizeof(DG_FP));
   int *glb_l = (int *)malloc(_mesh->faces->size * sizeof(int));
@@ -106,8 +123,10 @@ void PoissonCoarseMatrix::setPETScMatrix() {
   cudaMemcpy(op2R_data, op2[1]->data_d, DG_NP_N1 * DG_NP_N1 * _mesh->faces->size * sizeof(DG_FP), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb_l, glb_indL->data_d, _mesh->faces->size * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb_r, glb_indR->data_d, _mesh->faces->size * sizeof(int), cudaMemcpyDeviceToHost);
+  timer->endTimer("setPETScMatrix - Copy op2 to host");
 
   // Add Gauss OP and OPf to Poisson matrix
+  timer->startTimer("setPETScMatrix - Set values op2");
   for(int i = 0; i < _mesh->faces->size; i++) {
     int leftRow = glb_l[i];
     int rightRow = glb_r[i];
@@ -121,14 +140,15 @@ void PoissonCoarseMatrix::setPETScMatrix() {
     MatSetValues(pMat, DG_NP_N1, idxl, DG_NP_N1, idxr, &op2L_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
     MatSetValues(pMat, DG_NP_N1, idxr, DG_NP_N1, idxl, &op2R_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
   }
+  timer->endTimer("setPETScMatrix - Set values op2");
 
   free(op2L_data);
   free(op2R_data);
   free(glb_l);
   free(glb_r);
 
-  op_mpi_set_dirtybit_cuda(4, edge_args);
-
+  timer->startTimer("setPETScMatrix - Assembly");
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
+  timer->endTimer("setPETScMatrix - Assembly");
 }

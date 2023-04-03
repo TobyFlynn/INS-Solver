@@ -319,24 +319,14 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
 
 void LevelSetSolver3D::reinitLS() {
   timer->startTimer("LevelSetSolver3D - reinitLS");
+  timer->startTimer("LevelSetSolver3D - sample interface");
   sampleInterface();
+  timer->endTimer("LevelSetSolver3D - sample interface");
 
+  timer->startTimer("LevelSetSolver3D - build KD-Tree");
   const DG_FP *sample_pts_x = getOP2PtrHost(sampleX, OP_READ);
   const DG_FP *sample_pts_y = getOP2PtrHost(sampleY, OP_READ);
   const DG_FP *sample_pts_z = getOP2PtrHost(sampleZ, OP_READ);
-
-  #ifndef INS_MPI
-  /*
-  std::ofstream pts_file("pts.csv");
-  pts_file << "x,y,z" << std::endl;
-  for(int i = 0; i < mesh->cells->size * LS_SAMPLE_NP; i++) {
-    if(!isnan(sample_pts_x[i])) {
-      pts_file << sample_pts_x[i] << "," << sample_pts_y[i] << "," << sample_pts_z[i] << std::endl;
-    }
-  }
-  pts_file.close();
-  */
-  #endif
 
   #ifdef INS_MPI
   KDTree3DMPI kdtree(sample_pts_x, sample_pts_y, sample_pts_z, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
@@ -349,7 +339,9 @@ void LevelSetSolver3D::reinitLS() {
   releaseOP2PtrHost(sampleX, OP_READ, sample_pts_x);
   releaseOP2PtrHost(sampleY, OP_READ, sample_pts_y);
   releaseOP2PtrHost(sampleZ, OP_READ, sample_pts_z);
+  timer->endTimer("LevelSetSolver3D - build KD-Tree");
 
+  timer->startTimer("LevelSetSolver3D - query KD-Tree");
   const DG_FP *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
   const DG_FP *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
   const DG_FP *z_ptr = getOP2PtrHost(mesh->z, OP_READ);
@@ -373,8 +365,7 @@ void LevelSetSolver3D::reinitLS() {
 
     polys = kdtree.get_polys();
   }
-
-  DG_FP *surface_ptr = getOP2PtrHost(s, OP_RW);
+  timer->endTimer("LevelSetSolver3D - query KD-Tree");
 
   if(h == 0.0) {
     op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,
@@ -383,12 +374,15 @@ void LevelSetSolver3D::reinitLS() {
     h = 1.0 / h;
   }
 
+  timer->startTimer("LevelSetSolver3D - newton method");
+  DG_FP *surface_ptr = getOP2PtrHost(s, OP_RW);
   // Newton method
   if(!kdtree.empty) {
     newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, closest_z,
                   x_ptr, y_ptr, z_ptr, poly_ind, polys, surface_ptr, h);
   }
   releaseOP2PtrHost(s, OP_RW, surface_ptr);
+  timer->endTimer("LevelSetSolver3D - newton method");
 
   free(closest_x);
   free(closest_y);
