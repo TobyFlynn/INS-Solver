@@ -88,7 +88,7 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
 
   // Get averages
   for(int j = 0; j < num_timers; j++) {
-    avg[i] /= (double)comm_size;
+    avg[j] /= (double)comm_size;
   }
 
   ofstream file(filename);
