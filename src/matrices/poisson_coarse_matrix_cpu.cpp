@@ -34,8 +34,7 @@ void PoissonCoarseMatrix::set_glb_ind() {
   int *data_ptr = (int *)glb_ind->data;
   #pragma omp parallel for
   for(int i = 0; i < _mesh->cells->size; i++) {
-    // data_ptr[i] = global_ind + i * DG_NP_N1;
-    data_ptr[i] = global_ind + i;
+    data_ptr[i] = global_ind + i * DG_NP_N1;
   }
   op_mpi_set_dirtybit(1, args);
 }
@@ -46,7 +45,6 @@ void PoissonCoarseMatrix::setPETScMatrix() {
     MatCreate(PETSC_COMM_WORLD, &pMat);
     petscMatInit = true;
     int unknowns = getUnknowns();
-    MatSetBlockSize(pMat, DG_NP_N1);
     MatSetSizes(pMat, unknowns, unknowns, PETSC_DECIDE, PETSC_DECIDE);
 
     #ifdef INS_MPI
@@ -90,7 +88,7 @@ void PoissonCoarseMatrix::setPETScMatrix() {
       idxn[n] = currentCol + n;
     }
 
-    MatSetValuesBlocked(pMat, 1, &glb[i], 1, &glb[i], &op1_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    MatSetValues(pMat, DG_NP_N1, idxm, DG_NP_N1, idxn, &op1_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
   }
   timer->endTimer("setPETScMatrix - Set values op1");
 
@@ -122,8 +120,8 @@ void PoissonCoarseMatrix::setPETScMatrix() {
       idxr[n] = rightRow + n;
     }
 
-    MatSetValuesBlocked(pMat, 1, &glb_l[i], 1, &glb_r[i], &op2L_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
-    MatSetValuesBlocked(pMat, 1, &glb_r[i], 1, &glb_l[i], &op2R_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    MatSetValues(pMat, DG_NP_N1, idxl, DG_NP_N1, idxr, &op2L_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    MatSetValues(pMat, DG_NP_N1, idxr, DG_NP_N1, idxl, &op2R_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
   }
   timer->endTimer("setPETScMatrix - Set values op2");
 
