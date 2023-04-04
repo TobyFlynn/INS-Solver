@@ -40,6 +40,7 @@ private:
   void viscosity();
   void surface();
   void shock_capturing();
+  void project_velocity();
 
   DGMesh3D *mesh;
   FactorPoissonCoarseMatrix3D *coarsePressureMatrix;
@@ -57,6 +58,7 @@ private:
   DG_FP reynolds;
   int currentInd;
   bool resuming;
+  bool div_div_proj = true;
 
   op_dat tmp_np[10], tmp_npf[4], tmp_bc_1, tmp_npf_bc;
   op_dat f[3][3], n[2][3], advec_flux[3], curlVel[3], divVelT;
@@ -64,6 +66,7 @@ private:
   op_dat vis_bc_types, vis_bc, bc_types, pr_factor, vis_mm_factor;
   op_dat art_vis, shock_u, shock_u_hat, shock_u_modal;
   op_dat visRHS[3];
+  op_dat projRHS[3], proj_h, proj_pen;
 };
 
 #endif

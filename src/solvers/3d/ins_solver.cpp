@@ -3,6 +3,9 @@
 #include "op_seq.h"
 
 #include "dg_op2_blas.h"
+#include "dg_constants/dg_constants.h"
+
+extern DGConstants *constants;
 
 #include "timing.h"
 // #include "shocks.h"
@@ -124,7 +127,9 @@ void INSSolver3D::setup_common() {
   free(bc_1_data);
 
   DG_FP *cell_1_data = (DG_FP *)calloc(mesh->cells->size, sizeof(DG_FP));
-  art_vis = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_art_vis");
+  art_vis  = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_art_vis");
+  proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_proj_h");
+  proj_pen = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_proj_pen");
   free(cell_1_data);
 
   f[0][0] = tmp_np[0]; f[0][1] = tmp_np[1]; f[0][2] = tmp_np[2];
@@ -141,6 +146,9 @@ void INSSolver3D::setup_common() {
   dpdx = tmp_np[0];
   dpdy = tmp_np[1];
   dpdz = tmp_np[2];
+  projRHS[0] = tmp_np[3];
+  projRHS[1] = tmp_np[4];
+  projRHS[2] = tmp_np[5];
   vis_coeff = tmp_np[0];
   vis_mm = tmp_np[1];
   visRHS[0] = tmp_np[2];
@@ -218,6 +226,21 @@ void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
     op_par_loop(ins_3d_bc_types, "ins_3d_bc_types", mesh->bfaces,
                 op_arg_dat(mesh->node_coords, -3, mesh->bface2nodes, 3, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_WRITE));
+  }
+
+  // Set up pressure projection
+  if(div_div_proj) {
+    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+                op_arg_dat(tmp_npf[0], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+
+    op_par_loop(ins_3d_proj_setup_0, "ins_3d_proj_setup_0", mesh->faces,
+                op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
+                op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_npf[0], -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
+
+    op_par_loop(ins_3d_proj_setup_1, "ins_3d_proj_setup_1", mesh->cells,
+                op_arg_dat(tmp_npf[0], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
   }
 
   timer->endTimer("INSSolver3D - Init");
@@ -390,26 +413,97 @@ void INSSolver3D::pressure() {
   pressureMatrix->set_bc_types(pr_bc_types);
   pressureSolver->set_bcs(pr_bc);
   bool converged = pressureSolver->solve(divVelT, pr);
-  // if(!converged)
-  //   throw std::runtime_error("\nPressure solve failed to converge\n");
+  if(!converged)
+    throw std::runtime_error("\nPressure solve failed to converge\n");
   timer->endTimer("INSSolver3D - Pressure Linear Solve");
 
   timer->startTimer("INSSolver3D - Pressure Projection");
+  project_velocity();
+  timer->endTimer("INSSolver3D - Pressure Projection");
+}
+
+void INSSolver3D::project_velocity() {
   mesh->grad_with_central_flux(pr, dpdx, dpdy, dpdz);
 
-  op_par_loop(ins_3d_pr_3, "ins_3d_pr_3", mesh->cells,
-              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(dpdz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
-  timer->endTimer("INSSolver3D - Pressure Projection");
+
+  if(div_div_proj) {
+    op_par_loop(ins_3d_proj_rhs, "ins_3d_proj_rhs", mesh->cells,
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(projRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(projRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(projRHS[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    mesh->mass(projRHS[0]);
+    mesh->mass(projRHS[1]);
+    mesh->mass(projRHS[2]);
+
+    DG_FP factor = dt * 1.0;
+    // DG_FP factor = dt / Cr;
+    // op_printf("Cr: %g\n", Cr);
+    op_par_loop(ins_3d_proj_pen, "ins_3d_proj_pen", mesh->cells,
+                op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_pen, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+
+    int num_cells = 0;
+    int num_converge = 0;
+    DG_FP num_iter = 0.0;
+    op_par_loop(ins_3d_proj_cg, "ins_3d_proj_cg", mesh->cells,
+                op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_gbl(constants->get_mat_ptr(DGConstants::DT), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->rx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->sx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->tx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->ry, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->sy, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->ty, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->rz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->sz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->tz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->J,  -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_pen, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(projRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(projRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(projRHS[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_gbl(&num_cells, 1, "int", OP_INC),
+                op_arg_gbl(&num_converge, 1, "int", OP_INC),
+                op_arg_gbl(&num_iter, 1, DG_FP_STR, OP_INC));
+    if(num_cells != num_converge) {
+      op_printf("%d out of %d cells converged on projection step\n", num_converge, num_cells);
+      exit(-1);
+    }
+  } else {
+    op_par_loop(ins_3d_pr_3, "ins_3d_pr_3", mesh->cells,
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  }
 }
 
 void INSSolver3D::viscosity() {

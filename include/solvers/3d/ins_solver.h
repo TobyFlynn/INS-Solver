@@ -33,6 +33,7 @@ private:
   void advection();
   void pressure();
   void viscosity();
+  void project_velocity();
   // void shock_capturing();
 
   DGMesh3D *mesh;
@@ -49,12 +50,14 @@ private:
   DG_FP reynolds;
   int currentInd;
   bool resuming;
+  bool div_div_proj = true;
 
   op_dat tmp_np[9], tmp_npf[3], tmp_bc_1, tmp_npf_bc;
   op_dat f[3][3], n[2][3], advec_flux[3], curlVel[3];
   op_dat curl2Vel[3], dPdN[2], pr_bc, pr_bc_types, dpdx, dpdy, dpdz;
   op_dat vis_bc_types, vis_bc, bc_types;
   op_dat art_vis, vis_coeff, vis_mm, divVelT, visRHS[3];
+  op_dat projRHS[3], proj_h, proj_pen;
 };
 
 #endif
