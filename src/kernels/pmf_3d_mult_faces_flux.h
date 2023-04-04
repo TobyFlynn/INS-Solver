@@ -21,6 +21,7 @@ inline void pmf_3d_mult_faces_flux(const int *p, const int *faceNums,
     const int *fmaskL = &fmask[faceNums[2 * i] * dg_npf];
     const int *fmaskR = &fmaskF[i * dg_npf];
 
+    #pragma omp simd
     for(int j = 0; j < dg_npf; j++) {
       const int fmaskIndL = fmaskL[j];
       const int fmaskIndR = fmaskR[j];
