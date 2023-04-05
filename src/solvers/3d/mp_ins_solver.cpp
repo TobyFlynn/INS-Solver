@@ -174,6 +174,9 @@ void MPINSSolver3D::setup_common() {
   dpdx = tmp_np[0];
   dpdy = tmp_np[1];
   dpdz = tmp_np[2];
+  projRHS[0] = tmp_np[3];
+  projRHS[1] = tmp_np[4];
+  projRHS[2] = tmp_np[5];
   shock_u = tmp_np[0];
   shock_u_hat = tmp_np[1];
   shock_u_modal = tmp_np[2];

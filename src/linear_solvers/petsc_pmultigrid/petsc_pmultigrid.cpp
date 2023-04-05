@@ -37,7 +37,8 @@ PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
 }
 
 PETScPMultigrid::~PETScPMultigrid() {
-  MatDestroy(&pMat);
+  if(pMatInit)
+    MatDestroy(&pMat);
   KSPDestroy(&ksp);
   delete pmultigridSolver;
 }

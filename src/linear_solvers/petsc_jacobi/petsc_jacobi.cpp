@@ -44,7 +44,8 @@ PETScJacobiSolver::PETScJacobiSolver(DGMesh *m) {
 }
 
 PETScJacobiSolver::~PETScJacobiSolver() {
-  MatDestroy(&pMat);
+  if(pMatInit)
+    MatDestroy(&pMat);
   KSPDestroy(&ksp);
 }
 
