@@ -11,6 +11,8 @@
 #include "matrices/poisson_semi_matrix_free.h"
 #include "matrices/poisson_matrix_free_diag.h"
 
+#include <vector>
+
 class PMultigridPoissonSolver : public LinearSolver {
 public:
   PMultigridPoissonSolver(DGMesh *m);
@@ -38,13 +40,14 @@ private:
   bool coarseMatCalcRequired;
   bool diagMat;
 
-  op_dat tmp_dat[DG_ORDER], u_dat[DG_ORDER], b_dat[DG_ORDER];
   op_dat eg_tmp_0, eg_tmp_1, rk[3], rkQ;
 
-  const static int num_pre_relax_iter = 10;
-  const static int num_post_relax_iter = 20;
-  const static int num_eigen_val_iter = 5;
-  constexpr static double coarse_solve_tol = 1e-3;
+  std::vector<int> orders;
+  std::vector<int> pre_it;
+  std::vector<int> post_it;
+  std::vector<op_dat> tmp_dat, u_dat, b_dat;
+  int num_eigen_val_iter;
+  double coarse_solve_tol;
 
   int num_levels;
 

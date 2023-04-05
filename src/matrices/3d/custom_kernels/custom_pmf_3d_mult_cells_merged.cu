@@ -9,6 +9,8 @@ __device__ void _pmf_3d_mult_cells_part1_gpu(const int ind, const double *mMat, 
                       const double *J, const double *lx, const double *ly, const double *lz,
                       const double *out_tmp, const double *ux, const double *uy, const double *uz,
                       double *outx, double *outy, double *outz, double *out) {
+  if(!(ind < dg_np))
+    return;
   const double *mmat_mat = &mMat[(p - 1) * 20 * 20];
   const double *emat_mat = &eMat[(p - 1) * 4 * 10 * 20];
 
@@ -43,6 +45,8 @@ __device__ void _pmf_3d_mult_cells_part2_gpu(const int ind, const double *dr,
                             const double *ds, const double *dt,
                             const double *in_r, const double *in_s,
                             const double *in_t, double *out) {
+  if(!(ind < dg_np))
+    return;
   const double *dr_mat = &dr[(p - 1) * 20 * 20];
   const double *ds_mat = &ds[(p - 1) * 20 * 20];
   const double *dt_mat = &dt[(p - 1) * 20 * 20];
@@ -118,22 +122,24 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
     }
     __syncthreads();
     //user-supplied kernel call
+    const int np  = (p + 1) * (p + 2) * (p + 3) / 6;
+    const int npf = (p + 1) * (p + 2) / 2;
     if(n < set_size * 20)
-    _pmf_3d_mult_cells_part1_gpu<3,20,10>(node_id,
-                             arg2,
-                             arg1,
-                             arg15+cell_id*1,
-                             lx_shared+local_cell_id*40,
-                             ly_shared+local_cell_id*40,
-                             lz_shared+local_cell_id*40,
-                             out_tmp_shared+local_cell_id*40,
-                             ux_shared+local_cell_id*20,
-                             uy_shared+local_cell_id*20,
-                             uz_shared+local_cell_id*20,
-                             tmp_x_shared + local_cell_id * 20,
-                             tmp_y_shared + local_cell_id * 20,
-                             tmp_z_shared + local_cell_id * 20,
-                             arg23+cell_id*20);
+      _pmf_3d_mult_cells_part1_gpu<p,np,npf>(node_id,
+                               arg2,
+                               arg1,
+                               arg15+cell_id*1,
+                               lx_shared+local_cell_id*40,
+                               ly_shared+local_cell_id*40,
+                               lz_shared+local_cell_id*40,
+                               out_tmp_shared+local_cell_id*40,
+                               ux_shared+local_cell_id*20,
+                               uy_shared+local_cell_id*20,
+                               uz_shared+local_cell_id*20,
+                               tmp_x_shared + local_cell_id * 20,
+                               tmp_y_shared + local_cell_id * 20,
+                               tmp_z_shared + local_cell_id * 20,
+                               arg23+cell_id*20);
     __syncthreads();
     for(int i = threadIdx.x; i < num_elem * 20; i += blockDim.x) {
       int curr_cell = i / 20 + (n - threadIdx.x) / 20;
@@ -143,17 +149,17 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
     }
     __syncthreads();
     if(n < set_size * 20)
-    _pmf_3d_mult_cells_part2_gpu<3,20>(node_id, arg3, arg4, arg5,
-                                ux_shared + local_cell_id * 20,
-                                uy_shared + local_cell_id * 20,
-                                uz_shared + local_cell_id * 20,
-                                arg23+cell_id*20);
+      _pmf_3d_mult_cells_part2_gpu<p,np>(node_id, arg3, arg4, arg5,
+                                  ux_shared + local_cell_id * 20,
+                                  uy_shared + local_cell_id * 20,
+                                  uz_shared + local_cell_id * 20,
+                                  arg23+cell_id*20);
   }
 }
 
 
 //host stub function
-void custom_kernel_pmf_3d_mult_cells_merged(char const *name, op_set set,
+void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
@@ -255,32 +261,92 @@ void custom_kernel_pmf_3d_mult_cells_merged(char const *name, op_set set,
     const int nblocks = 200 < (set->size * 20) / nthread + 1 ? 200 : (set->size * 20) / nthread + 1;
     const int num_cells = (nthread / 20) + 1;
 
-    _op_cuda_pmf_3d_mult_cells_merged<3,num_cells><<<nblocks,nthread>>>(
-      (int *) arg0.data_d,
-      (double *) arg1.data_d,
-      (double *) arg2.data_d,
-      (double *) arg3.data_d,
-      (double *) arg4.data_d,
-      (double *) arg5.data_d,
-      (double *) arg6.data_d,
-      (double *) arg7.data_d,
-      (double *) arg8.data_d,
-      (double *) arg9.data_d,
-      (double *) arg10.data_d,
-      (double *) arg11.data_d,
-      (double *) arg12.data_d,
-      (double *) arg13.data_d,
-      (double *) arg14.data_d,
-      (double *) arg15.data_d,
-      (double *) arg16.data_d,
-      (double *) arg17.data_d,
-      (double *) arg18.data_d,
-      (double *) arg19.data_d,
-      (double *) arg20.data_d,
-      (double *) arg21.data_d,
-      (double *) arg22.data_d,
-      (double *) arg23.data_d,
-      set->size );
+    switch(order) {
+      case 1:
+        _op_cuda_pmf_3d_mult_cells_merged<1,num_cells><<<nblocks,nthread>>>(
+          (int *) arg0.data_d,
+          (double *) arg1.data_d,
+          (double *) arg2.data_d,
+          (double *) arg3.data_d,
+          (double *) arg4.data_d,
+          (double *) arg5.data_d,
+          (double *) arg6.data_d,
+          (double *) arg7.data_d,
+          (double *) arg8.data_d,
+          (double *) arg9.data_d,
+          (double *) arg10.data_d,
+          (double *) arg11.data_d,
+          (double *) arg12.data_d,
+          (double *) arg13.data_d,
+          (double *) arg14.data_d,
+          (double *) arg15.data_d,
+          (double *) arg16.data_d,
+          (double *) arg17.data_d,
+          (double *) arg18.data_d,
+          (double *) arg19.data_d,
+          (double *) arg20.data_d,
+          (double *) arg21.data_d,
+          (double *) arg22.data_d,
+          (double *) arg23.data_d,
+          set->size );
+          break;
+        case 2:
+          _op_cuda_pmf_3d_mult_cells_merged<2,num_cells><<<nblocks,nthread>>>(
+            (int *) arg0.data_d,
+            (double *) arg1.data_d,
+            (double *) arg2.data_d,
+            (double *) arg3.data_d,
+            (double *) arg4.data_d,
+            (double *) arg5.data_d,
+            (double *) arg6.data_d,
+            (double *) arg7.data_d,
+            (double *) arg8.data_d,
+            (double *) arg9.data_d,
+            (double *) arg10.data_d,
+            (double *) arg11.data_d,
+            (double *) arg12.data_d,
+            (double *) arg13.data_d,
+            (double *) arg14.data_d,
+            (double *) arg15.data_d,
+            (double *) arg16.data_d,
+            (double *) arg17.data_d,
+            (double *) arg18.data_d,
+            (double *) arg19.data_d,
+            (double *) arg20.data_d,
+            (double *) arg21.data_d,
+            (double *) arg22.data_d,
+            (double *) arg23.data_d,
+            set->size );
+            break;
+          case 3:
+            _op_cuda_pmf_3d_mult_cells_merged<3,num_cells><<<nblocks,nthread>>>(
+              (int *) arg0.data_d,
+              (double *) arg1.data_d,
+              (double *) arg2.data_d,
+              (double *) arg3.data_d,
+              (double *) arg4.data_d,
+              (double *) arg5.data_d,
+              (double *) arg6.data_d,
+              (double *) arg7.data_d,
+              (double *) arg8.data_d,
+              (double *) arg9.data_d,
+              (double *) arg10.data_d,
+              (double *) arg11.data_d,
+              (double *) arg12.data_d,
+              (double *) arg13.data_d,
+              (double *) arg14.data_d,
+              (double *) arg15.data_d,
+              (double *) arg16.data_d,
+              (double *) arg17.data_d,
+              (double *) arg18.data_d,
+              (double *) arg19.data_d,
+              (double *) arg20.data_d,
+              (double *) arg21.data_d,
+              (double *) arg22.data_d,
+              (double *) arg23.data_d,
+              set->size );
+              break;
+    }
   }
   op_mpi_set_dirtybit_cuda(nargs, args);
   cutilSafeCall(cudaDeviceSynchronize());

@@ -58,7 +58,7 @@ private:
   DG_FP reynolds;
   int currentInd;
   bool resuming;
-  bool div_div_proj = true;
+  bool div_div_proj;
 
   op_dat tmp_np[10], tmp_npf[4], tmp_bc_1, tmp_npf_bc;
   op_dat f[3][3], n[2][3], advec_flux[3], curlVel[3], divVelT;

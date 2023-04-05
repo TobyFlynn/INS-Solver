@@ -85,7 +85,7 @@ void custom_kernel_fpmf_3d_mult_faces_flux(char const *name, op_set set,
   op_arg arg32,
   op_arg arg33);
 
-void custom_kernel_pmf_3d_mult_cells_merged(char const *name, op_set set,
+void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
@@ -341,7 +341,7 @@ void FactorPoissonMatrixFreeMult3D::mat_free_mult(op_dat in, op_dat out) {
 
   timer->startTimer("FactorPoissonMatrixFreeMult3D - mult cells");
   #ifdef OP2_DG_CUDA
-  custom_kernel_pmf_3d_mult_cells_merged("pmf_3d_mult_cells_merged", mesh->cells,
+  custom_kernel_pmf_3d_mult_cells_merged(3, "pmf_3d_mult_cells_merged", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::EMAT), DG_ORDER * DG_NUM_FACES * DG_NPF * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),

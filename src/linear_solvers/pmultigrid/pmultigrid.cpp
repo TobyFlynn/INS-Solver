@@ -4,35 +4,96 @@
 
 #include <random>
 #include <string>
+#include <stdexcept>
 
 #include "matrices/3d/poisson_semi_matrix_free_3d.h"
 #include "utils.h"
 #include "timing.h"
+#include "config.h"
 
 extern Timing *timer;
+extern Config *config;
 
 #define RAND_VEC_SIZE 25
+
+std::vector<int> parseInts(const std::string &str) {
+  std::vector<int> result;
+  std::stringstream ss(str);
+  while(ss.good()) {
+    std::string sub_str;
+    std::getline(ss, sub_str, ',');
+    if(sub_str != " ")
+      result.push_back(std::stoi(sub_str));
+  }
+  return result;
+}
 
 PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
   bc = nullptr;
   mesh = m;
 
-  num_levels = 1;
-  int tmp_order = DG_ORDER;
-  while(tmp_order != 1) {
-    num_levels++;
-    tmp_order /= 2;
+  std::string orders_str;
+  if(config->getStr("p-multigrid", "orders", orders_str)) {
+    orders = parseInts(orders_str);
+    bool contains_first_order = false;
+    for(const int &o : orders) {
+      if(o == 1)
+        contains_first_order = true;
+    }
+    if(!contains_first_order) {
+      throw std::runtime_error("\nParsed orders for P-Multigrid does not contain a first order solve.\n");
+    }
+  } else {
+    int tmp_order = DG_ORDER;
+    while(tmp_order != 1) {
+      orders.push_back(tmp_order);
+      tmp_order /= 2;
+    }
   }
+
+  int num_levels = orders.size();
+
+  std::string pre_str;
+  if(config->getStr("p-multigrid", "pre_it", pre_str)) {
+    pre_it = parseInts(pre_str);
+    if(!(pre_it.size() == num_levels)) {
+      throw std::runtime_error("\nParsed pre smoothing iterations for P-Multigrid does not match number of levels.\n");
+    }
+  } else {
+    pre_it.push_back(20);
+    for(int i = 1; i < num_levels; i++) {
+      pre_it.push_back(pre_it[i - 1] / 4);
+    }
+  }
+
+  std::string post_str;
+  if(config->getStr("p-multigrid", "post_it", post_str)) {
+    post_it = parseInts(post_str);
+    if(!(post_it.size() == num_levels)) {
+      throw std::runtime_error("\nParsed post smoothing iterations for P-Multigrid does not match number of levels.\n");
+    }
+  } else {
+    post_it.push_back(10);
+    for(int i = 1; i < num_levels; i++) {
+      post_it.push_back(post_it[i - 1] / 4);
+    }
+  }
+
+  num_eigen_val_iter = 5;
+  config->getInt("p-multigrid", "w_iter", num_eigen_val_iter);
+
+  coarse_solve_tol = 1e-2;
+  config->getDouble("p-multigrid", "coarse_residual", coarse_solve_tol);
 
   DG_FP *tmp_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   std::string name;
   for(int i = 0; i < num_levels; i++) {
     name = "p_multigrid_tmp" + std::to_string(i);
-    tmp_dat[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str());
+    tmp_dat.push_back(op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str()));
     name = "p_multigrid_u" + std::to_string(i);
-    u_dat[i]   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str());
+    u_dat.push_back(op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str()));
     name = "p_multigrid_b" + std::to_string(i);
-    b_dat[i]   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str());
+    b_dat.push_back(op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str()));
   }
   eg_tmp_0 = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_eg_tmp_0");
   eg_tmp_1 = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_eg_tmp_1");
@@ -123,14 +184,14 @@ void PMultigridPoissonSolver::cycle(int order, const int level) {
   // Relaxation
   // u = u + R^-1 (F - Au)
   timer->startTimer("PMultigridPoissonSolver - Relaxation");
-  for(int i = 0; i < num_pre_relax_iter; i++) {
+  for(int i = 0; i < pre_it[level]; i++) {
     smoother(order, level);
   }
   timer->endTimer("PMultigridPoissonSolver - Relaxation");
 
   // Restriction
   timer->startTimer("PMultigridPoissonSolver - Restriction");
-  int order_new = order / 2;
+  int order_new = orders[level + 1];
   // F = I^T (F - Au)
   matrix->mult(u_dat[level], tmp_dat[level]);
   op_par_loop(p_multigrid_restriction, "p_multigrid_restriction", mesh->cells,
@@ -175,7 +236,7 @@ void PMultigridPoissonSolver::cycle(int order, const int level) {
   // Relaxation
   // u = u + R^-1 (F - Au)
   timer->startTimer("PMultigridPoissonSolver - Relaxation");
-  for(int i = 0; i < num_post_relax_iter; i++) {
+  for(int i = 0; i < post_it[level]; i++) {
     smoother(order, level);
   }
   timer->endTimer("PMultigridPoissonSolver - Relaxation");

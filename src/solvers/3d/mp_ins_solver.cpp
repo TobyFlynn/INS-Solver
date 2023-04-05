@@ -7,6 +7,7 @@
 #include "dg_constants/dg_constants.h"
 
 #include "timing.h"
+#include "config.h"
 #include "utils.h"
 #include "linear_solvers/petsc_amg.h"
 #include "linear_solvers/petsc_block_jacobi.h"
@@ -15,6 +16,7 @@
 
 extern Timing *timer;
 extern DGConstants *constants;
+extern Config *config;
 
 MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
   mesh = m;
@@ -116,6 +118,10 @@ void MPINSSolver3D::setup_common() {
   viscositySolver->set_matrix(viscosityMatrix);
   viscositySolver->set_nullspace(false);
 
+  int tmp_div = 1;
+  config->getInt("solver-options", "div_div", tmp_div);
+  div_div_proj = tmp_div != 0;
+
   std::string name;
   DG_FP * dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   for(int i = 0; i < 10; i++) {
@@ -144,8 +150,10 @@ void MPINSSolver3D::setup_common() {
 
   DG_FP *cell_1_data = (DG_FP *)calloc(mesh->cells->size, sizeof(DG_FP));
   art_vis  = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_art_vis");
-  proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_proj_h");
-  proj_pen = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_proj_pen");
+  if(div_div_proj) {
+    proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_proj_h");
+    proj_pen = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_proj_pen");
+  }
   free(cell_1_data);
 
   f[0][0] = tmp_np[0]; f[0][1] = tmp_np[1]; f[0][2] = tmp_np[2];

@@ -8,6 +8,7 @@
 extern DGConstants *constants;
 
 #include "timing.h"
+#include "config.h"
 // #include "shocks.h"
 #include "linear_solvers/petsc_amg.h"
 #include "linear_solvers/petsc_block_jacobi.h"
@@ -18,6 +19,7 @@ extern DGConstants *constants;
 #include <stdexcept>
 
 extern Timing *timer;
+extern Config *config;
 
 INSSolver3D::INSSolver3D(DGMesh3D *m) {
   mesh = m;
@@ -97,6 +99,10 @@ INSSolver3D::INSSolver3D(DGMesh3D *m, const std::string &filename, const int ite
 }
 
 void INSSolver3D::setup_common() {
+  int tmp_div = 1;
+  config->getInt("solver-options", "div_div", tmp_div);
+  div_div_proj = tmp_div != 0;
+
   std::string name;
   DG_FP *dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   for(int i = 0; i < 3; i++) {
@@ -128,8 +134,10 @@ void INSSolver3D::setup_common() {
 
   DG_FP *cell_1_data = (DG_FP *)calloc(mesh->cells->size, sizeof(DG_FP));
   art_vis  = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_art_vis");
-  proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_proj_h");
-  proj_pen = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_proj_pen");
+  if(div_div_proj) {
+    proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_proj_h");
+    proj_pen = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_proj_pen");
+  }
   free(cell_1_data);
 
   f[0][0] = tmp_np[0]; f[0][1] = tmp_np[1]; f[0][2] = tmp_np[2];
