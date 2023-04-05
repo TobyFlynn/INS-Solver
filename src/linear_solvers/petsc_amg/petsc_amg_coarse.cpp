@@ -14,6 +14,7 @@ PETScAMGCoarseSolver::PETScAMGCoarseSolver(DGMesh *m) : PETScAMGSolver(m) {
 
 bool PETScAMGCoarseSolver::solve(op_dat rhs, op_dat ans) {
   timer->startTimer("PETScAMGCoarseSolver - solve");
+  timer->startTimer("PETScAMGCoarseSolver - get PETSc matrix");
   if(matrix->getPETScMat(&pMat)) {
     if(nullspace) {
       MatNullSpace ns;
@@ -24,6 +25,7 @@ bool PETScAMGCoarseSolver::solve(op_dat rhs, op_dat ans) {
     }
     KSPSetOperators(ksp, *pMat, *pMat);
   }
+  timer->endTimer("PETScAMGCoarseSolver - get PETSc matrix");
 
   if(bc)
     matrix->apply_bc(rhs, bc);

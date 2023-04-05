@@ -374,11 +374,8 @@ void PoissonMatrixFreeMult3D::mat_free_mult(op_dat in, op_dat out) {
   timer->endTimer("PoissonMatrixFreeMult3D - mult cells Emat");
 
   timer->startTimer("PoissonMatrixFreeMult3D - mult cells cells");
-  op_par_loop(pmf_3d_mult_cells, "pmf_3d_mult_cells", mesh->cells,
+  op_par_loop(pmf_3d_mult_cells_2, "pmf_3d_mult_cells_2", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DT), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->rx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->tx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
@@ -388,10 +385,13 @@ void PoissonMatrixFreeMult3D::mat_free_mult(op_dat in, op_dat out) {
               op_arg_dat(mesh->rz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->tz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(in_grad[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(in_grad[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(in_grad[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+              op_arg_dat(in_grad[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(in_grad[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(in_grad[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, true, 1.0, DGConstants::DR, in_grad[0], 1.0, out);
+  op2_gemv(mesh, true, 1.0, DGConstants::DS, in_grad[1], 1.0, out);
+  op2_gemv(mesh, true, 1.0, DGConstants::DT, in_grad[2], 1.0, out);
   timer->endTimer("PoissonMatrixFreeMult3D - mult cells cells");
   #endif
   timer->endTimer("PoissonMatrixFreeMult3D - mult cells");
