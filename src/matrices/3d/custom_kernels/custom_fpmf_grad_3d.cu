@@ -182,23 +182,23 @@ void custom_kernel_fpmf_grad_3d(const int order, char const *name, op_set set,
 
     //transfer constants to GPU
     int consts_bytes = 0;
-    consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP*sizeof(DG_FP));
-    consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP*sizeof(DG_FP));
-    consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP*sizeof(DG_FP));
+    consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
+    consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
+    consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
     reallocConstArrays(consts_bytes);
     consts_bytes = 0;
     arg1.data   = OP_consts_h + consts_bytes;
     arg1.data_d = OP_consts_d + consts_bytes;
     memcpy(arg1.data, arg1h, DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
-    consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP*sizeof(DG_FP));
+    consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
     arg2.data   = OP_consts_h + consts_bytes;
     arg2.data_d = OP_consts_d + consts_bytes;
     memcpy(arg2.data, arg2h, DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
-    consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP*sizeof(DG_FP));
+    consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
     arg3.data   = OP_consts_h + consts_bytes;
     arg3.data_d = OP_consts_d + consts_bytes;
     memcpy(arg3.data, arg3h, DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
-    consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP*sizeof(DG_FP));
+    consts_bytes += ROUND_UP(DG_ORDER * DG_NP * DG_NP * sizeof(DG_FP));
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
@@ -253,6 +253,50 @@ void custom_kernel_fpmf_grad_3d(const int order, char const *name, op_set set,
         break;
       case 3:
         _op_cuda_fpmf_grad_3d<3,num_cells><<<nblocks,nthread>>>(
+          (int *) arg0.data_d,
+          (DG_FP *) arg1.data_d,
+          (DG_FP *) arg2.data_d,
+          (DG_FP *) arg3.data_d,
+          (DG_FP *) arg4.data_d,
+          (DG_FP *) argFactor.data_d,
+          (DG_FP *) arg5.data_d,
+          (DG_FP *) arg6.data_d,
+          (DG_FP *) arg7.data_d,
+          (DG_FP *) arg8.data_d,
+          (DG_FP *) arg9.data_d,
+          (DG_FP *) arg10.data_d,
+          (DG_FP *) arg11.data_d,
+          (DG_FP *) arg12.data_d,
+          (DG_FP *) arg13.data_d,
+          (DG_FP *) arg14.data_d,
+          (DG_FP *) arg15.data_d,
+          (DG_FP *) arg16.data_d,
+          set->size );
+        break;
+      case 4:
+        _op_cuda_fpmf_grad_3d<4,num_cells><<<nblocks,nthread>>>(
+          (int *) arg0.data_d,
+          (DG_FP *) arg1.data_d,
+          (DG_FP *) arg2.data_d,
+          (DG_FP *) arg3.data_d,
+          (DG_FP *) arg4.data_d,
+          (DG_FP *) argFactor.data_d,
+          (DG_FP *) arg5.data_d,
+          (DG_FP *) arg6.data_d,
+          (DG_FP *) arg7.data_d,
+          (DG_FP *) arg8.data_d,
+          (DG_FP *) arg9.data_d,
+          (DG_FP *) arg10.data_d,
+          (DG_FP *) arg11.data_d,
+          (DG_FP *) arg12.data_d,
+          (DG_FP *) arg13.data_d,
+          (DG_FP *) arg14.data_d,
+          (DG_FP *) arg15.data_d,
+          (DG_FP *) arg16.data_d,
+          set->size );
+        break;
+      case 5:
+        _op_cuda_fpmf_grad_3d<5,num_cells><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (DG_FP *) arg1.data_d,
           (DG_FP *) arg2.data_d,

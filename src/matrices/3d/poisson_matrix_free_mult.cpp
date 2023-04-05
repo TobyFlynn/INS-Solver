@@ -10,37 +10,6 @@
 extern DGConstants *constants;
 extern Timing *timer;
 
-void custom_kernel_pmf_3d_mult_cells_emat(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9);
-
-void custom_kernel_pmf_3d_mult_cells(char const *name, op_set set,
-  op_arg arg0,
-  op_arg arg1,
-  op_arg arg2,
-  op_arg arg3,
-  op_arg arg4,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11,
-  op_arg arg12,
-  op_arg arg13,
-  op_arg arg14,
-  op_arg arg15,
-  op_arg arg16);
-
 void custom_kernel_pmf_3d_mult_faces_flux(const int order, char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,

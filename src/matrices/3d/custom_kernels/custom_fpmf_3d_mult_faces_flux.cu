@@ -8,9 +8,9 @@ __device__ void _fpmf_3d_mult_faces_flux_gpu(const int node, const int *faceNums
                           const double **in_x_p, const double **in_y_p,
                           const double **in_z_p, double *l_x, double *l_y,
                           double *l_z, double *out) {
-  const int *fmask = &FMASK_cuda[(p - 1) * 4 * 10];
+  const int *fmask = &FMASK_cuda[(p - 1) * DG_NUM_FACES * DG_NPF];
 
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < DG_NUM_FACES; i++) {
     const int findL = faceNums[2 * i] * dg_npf;
     const int *fmaskL = &fmask[faceNums[2 * i] * dg_npf];
     const int *fmaskR = &fmaskF[i * dg_npf];
@@ -84,50 +84,50 @@ __global__ void _op_cuda_fpmf_3d_mult_faces_flux(
     map12idx = opDat10Map[n + set_size * 2];
     map13idx = opDat10Map[n + set_size * 3];
     const double* arg10_vec[] = {
-       &ind_arg2[20 * map10idx],
-       &ind_arg2[20 * map11idx],
-       &ind_arg2[20 * map12idx],
-       &ind_arg2[20 * map13idx]};
+       &ind_arg2[DG_NP * map10idx],
+       &ind_arg2[DG_NP * map11idx],
+       &ind_arg2[DG_NP * map12idx],
+       &ind_arg2[DG_NP * map13idx]};
     const double* arg18_vec[] = {
-       &ind_arg7[20 * map10idx],
-       &ind_arg7[20 * map11idx],
-       &ind_arg7[20 * map12idx],
-       &ind_arg7[20 * map13idx]};
+       &ind_arg7[DG_NP * map10idx],
+       &ind_arg7[DG_NP * map11idx],
+       &ind_arg7[DG_NP * map12idx],
+       &ind_arg7[DG_NP * map13idx]};
     const double* arg22_vec[] = {
-       &ind_arg8[20 * map10idx],
-       &ind_arg8[20 * map11idx],
-       &ind_arg8[20 * map12idx],
-       &ind_arg8[20 * map13idx]};
+       &ind_arg8[DG_NP * map10idx],
+       &ind_arg8[DG_NP * map11idx],
+       &ind_arg8[DG_NP * map12idx],
+       &ind_arg8[DG_NP * map13idx]};
     const double* arg26_vec[] = {
-       &ind_arg9[20 * map10idx],
-       &ind_arg9[20 * map11idx],
-       &ind_arg9[20 * map12idx],
-       &ind_arg9[20 * map13idx]};
+       &ind_arg9[DG_NP * map10idx],
+       &ind_arg9[DG_NP * map11idx],
+       &ind_arg9[DG_NP * map12idx],
+       &ind_arg9[DG_NP * map13idx]};
 
     // ind_arg0+map0idx*1
     const int npf = (p + 1) * (p + 2) / 2;
     _fpmf_3d_mult_faces_flux_gpu<p,npf>(node,
-                            arg1+n*8,
-                            arg2+n*40,
-                            arg3+n*4,
-                            arg4+n*4,
-                            arg5+n*4,
-                            arg6+n*8,
-                            arg7+n*4,
-                            arg8+n*4,
-                            ind_arg1+map0idx*20,
+                            arg1 + n * 8,
+                            arg2 + n * DG_NUM_FACES * DG_NPF,
+                            arg3 + n * 4,
+                            arg4 + n * 4,
+                            arg5 + n * 4,
+                            arg6 + n * 8,
+                            arg7 + n * 4,
+                            arg8 + n * 4,
+                            ind_arg1 + map0idx * DG_NP,
                             arg10_vec,
-                            ind_arg3+map0idx*20,
-                            ind_arg4+map0idx*20,
-                            ind_arg5+map0idx*20,
-                            ind_arg6+map0idx*20,
+                            ind_arg3 + map0idx * DG_NP,
+                            ind_arg4 + map0idx * DG_NP,
+                            ind_arg5 + map0idx * DG_NP,
+                            ind_arg6 + map0idx * DG_NP,
                             arg18_vec,
                             arg22_vec,
                             arg26_vec,
-                            ind_arg10+map0idx*40,
-                            ind_arg11+map0idx*40,
-                            ind_arg12+map0idx*40,
-                            ind_arg13+map0idx*40);
+                            ind_arg10 + map0idx * DG_NUM_FACES * DG_NPF,
+                            ind_arg11 + map0idx * DG_NUM_FACES * DG_NPF,
+                            ind_arg12 + map0idx * DG_NUM_FACES * DG_NPF,
+                            ind_arg13 + map0idx * DG_NUM_FACES * DG_NPF);
   }
 }
 
@@ -173,7 +173,7 @@ void custom_kernel_fpmf_3d_mult_faces_flux(const int order, char const *name, op
   arg10.idx = 0;
   args[10] = arg10;
   for ( int v=1; v<4; v++ ){
-    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, 20, "double", OP_READ);
+    args[10 + v] = op_arg_dat(arg10.dat, v, arg10.map, DG_NP, "double", OP_READ);
   }
 
   args[14] = arg14;
@@ -183,19 +183,19 @@ void custom_kernel_fpmf_3d_mult_faces_flux(const int order, char const *name, op
   arg18.idx = 0;
   args[18] = arg18;
   for ( int v=1; v<4; v++ ){
-    args[18 + v] = op_arg_dat(arg18.dat, v, arg18.map, 20, "double", OP_READ);
+    args[18 + v] = op_arg_dat(arg18.dat, v, arg18.map, DG_NP, "double", OP_READ);
   }
 
   arg22.idx = 0;
   args[22] = arg22;
   for ( int v=1; v<4; v++ ){
-    args[22 + v] = op_arg_dat(arg22.dat, v, arg22.map, 20, "double", OP_READ);
+    args[22 + v] = op_arg_dat(arg22.dat, v, arg22.map, DG_NP, "double", OP_READ);
   }
 
   arg26.idx = 0;
   args[26] = arg26;
   for ( int v=1; v<4; v++ ){
-    args[26 + v] = op_arg_dat(arg26.dat, v, arg26.map, 20, "double", OP_READ);
+    args[26 + v] = op_arg_dat(arg26.dat, v, arg26.map, DG_NP, "double", OP_READ);
   }
 
   args[30] = arg30;
@@ -281,6 +281,62 @@ void custom_kernel_fpmf_3d_mult_faces_flux(const int order, char const *name, op
             break;
           case 3:
             _op_cuda_fpmf_3d_mult_faces_flux<3><<<nblocks,nthread>>>(
+            (int *)arg0.data_d,
+            (double *)arg9.data_d,
+            (double *)arg10.data_d,
+            (double *)arg14.data_d,
+            (double *)arg15.data_d,
+            (double *)arg16.data_d,
+            (double *)arg17.data_d,
+            (double *)arg18.data_d,
+            (double *)arg22.data_d,
+            (double *)arg26.data_d,
+            (double *)arg30.data_d,
+            (double *)arg31.data_d,
+            (double *)arg32.data_d,
+            (double *)arg33.data_d,
+            arg0.map_data_d,
+            arg10.map_data_d,
+            (int*)arg1.data_d,
+            (int*)arg2.data_d,
+            (double*)arg3.data_d,
+            (double*)arg4.data_d,
+            (double*)arg5.data_d,
+            (double*)arg6.data_d,
+            (double*)arg7.data_d,
+            (double*)arg8.data_d,
+            start,end,set->size+set->exec_size);
+            break;
+          case 4:
+            _op_cuda_fpmf_3d_mult_faces_flux<4><<<nblocks,nthread>>>(
+            (int *)arg0.data_d,
+            (double *)arg9.data_d,
+            (double *)arg10.data_d,
+            (double *)arg14.data_d,
+            (double *)arg15.data_d,
+            (double *)arg16.data_d,
+            (double *)arg17.data_d,
+            (double *)arg18.data_d,
+            (double *)arg22.data_d,
+            (double *)arg26.data_d,
+            (double *)arg30.data_d,
+            (double *)arg31.data_d,
+            (double *)arg32.data_d,
+            (double *)arg33.data_d,
+            arg0.map_data_d,
+            arg10.map_data_d,
+            (int*)arg1.data_d,
+            (int*)arg2.data_d,
+            (double*)arg3.data_d,
+            (double*)arg4.data_d,
+            (double*)arg5.data_d,
+            (double*)arg6.data_d,
+            (double*)arg7.data_d,
+            (double*)arg8.data_d,
+            start,end,set->size+set->exec_size);
+            break;
+          case 5:
+            _op_cuda_fpmf_3d_mult_faces_flux<5><<<nblocks,nthread>>>(
             (int *)arg0.data_d,
             (double *)arg9.data_d,
             (double *)arg10.data_d,
