@@ -68,6 +68,11 @@ endif()
 include_directories(${HDF5_DIR}/include)
 set(HDF5_LIB "-L${HDF5_DIR}/lib -lhdf5")
 
+if(NOT INIPP_DIR)
+  message(FATAL_ERROR "INIPP_DIR is not specified")
+endif()
+include_directories(${INIPP_DIR})
+
 if(BUILD_GPU)
   enable_language(CUDA)
   find_package(CUDAToolkit)

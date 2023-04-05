@@ -24,6 +24,7 @@ list(APPEND ALL_DIM_SRC matrices_op/poisson_coarse_matrix_op.cpp)
 list(APPEND ALL_DIM_SRC matrices_op/poisson_semi_matrix_free_op.cpp)
 list(APPEND ALL_DIM_SRC matrices/poisson_matrix_free.cpp)
 list(APPEND ALL_DIM_SRC matrices_op/poisson_matrix_free_diag_op.cpp)
+list(APPEND ALL_DIM_SRC config.cpp)
 
 set(ALL_DIM_CPU_SRC utils.cpp matrices/poisson_matrix_cpu.cpp)
 list(APPEND ALL_DIM_CPU_SRC matrices/poisson_coarse_matrix_cpu.cpp)

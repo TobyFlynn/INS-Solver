@@ -159,6 +159,7 @@ cmake .. \
   -DOP2DGTOOLKIT_DIR=/home/u1717021/Code/PhD/OP2-DG-Toolkit/build \
   -DHDF5_DIR=/usr/local/module-software/hdf5-1.12.0-parallel \
   -DARMA_DIR=/home/u1717021/Code/PhD/armadillo-10.5.3/build \
+  -DINIPP_DIR=/home/u1717021/Code/PhD/inipp/inipp \
   -DORDER=$ORDER \
   -DBUILD_SN=ON \
   -DBUILD_CPU=ON \
