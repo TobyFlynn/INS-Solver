@@ -90,7 +90,8 @@ void AdvectionSolver3D::rhs(op_dat val, op_dat u, op_dat v, op_dat w, op_dat val
               op_arg_dat(g,   -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(h,   -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-  mesh->div_weak(f, g, h, val_out);
+  // mesh->div_weak(f, g, h, val_out);
+  mesh->div(f, g, h, val_out);
 
   op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
               op_arg_dat(flux, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
@@ -127,7 +128,8 @@ void AdvectionSolver3D::rhs(op_dat val, op_dat u, op_dat v, op_dat w, op_dat val
                 op_arg_dat(flux, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
   }
 
-  op2_gemv(mesh, false, -1.0, DGConstants::LIFT, flux, 1.0, val_out);
+  // op2_gemv(mesh, false, -1.0, DGConstants::LIFT, flux, 1.0, val_out);
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, flux, -1.0, val_out);
 }
 
 void AdvectionSolver3D::set_dt() {

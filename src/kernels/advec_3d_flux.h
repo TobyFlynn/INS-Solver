@@ -14,7 +14,8 @@ inline void advec_3d_flux(const int *faceNum, const int *fmaskL_corrected,
     DG_FP flux1 = 0.5 * (val[0][fmaskL[i]] + val[1][fmaskR_corrected[i]]);
     DG_FP flux2 = fabs(flux0);
     DG_FP flux3 = val[0][fmaskL[i]] - val[1][fmaskR_corrected[i]];
-    DG_FP flux4 = flux0 * flux1 + 0.5 * flux2 * flux3;
+    // DG_FP flux4 = flux0 * flux1 + 0.5 * flux2 * flux3;
+    DG_FP flux4 = flux0 * flux3;
 
     flux[0][find] += fscale[0] * flux4;
   }
@@ -25,7 +26,8 @@ inline void advec_3d_flux(const int *faceNum, const int *fmaskL_corrected,
     DG_FP flux1 = 0.5 * (val[1][fmaskR[i]] + val[0][fmaskL_corrected[i]]);
     DG_FP flux2 = fabs(flux0);
     DG_FP flux3 = val[1][fmaskR[i]] - val[0][fmaskL_corrected[i]];
-    DG_FP flux4 = flux0 * flux1 + 0.5 * flux2 * flux3;
+    // DG_FP flux4 = flux0 * flux1 + 0.5 * flux2 * flux3;
+    DG_FP flux4 = flux0 * flux3;
 
     flux[1][find] += fscale[1] * flux4;
   }

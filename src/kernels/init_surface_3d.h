@@ -10,6 +10,6 @@ inline void init_surface_3d(const DG_FP *x, const DG_FP *y, const DG_FP *z,
     if(x[i] >= -1e-10)
       s[i] = sqrt(x[i] * x[i] + y[i] * y[i] + z[i] * z[i]) - LW_INLET_RADIUS;
     else
-      s[i] = -LW_INLET_RADIUS;
+      s[i] = fmin(x[i], sqrt(x[i] * x[i] + y[i] * y[i] + z[i] * z[i]) - LW_INLET_RADIUS);
   }
 }
