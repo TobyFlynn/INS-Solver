@@ -100,6 +100,8 @@ void LevelSetSolver3D::init() {
   // reinit_width = 10.0 * h;
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
+
+  reinitLS();
 }
 
 void LevelSetSolver3D::getRhoMu(op_dat rho, op_dat mu) {
@@ -122,12 +124,20 @@ void LevelSetSolver3D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_d
 
 void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const DG_FP dt) {
   timer->startTimer("LevelSetSolver3D - step");
-  advectionSolver->set_dt(dt);
-  advectionSolver->step(s, u, v, w);
+  int num_steps = 1;
+  advectionSolver->set_dt(dt / (double)num_steps);
+  for(int i = 0; i < num_steps; i++)
+    advectionSolver->step(s, u, v, w);
+
+  op_par_loop(ls_post_advec, "ls_post_advec", mesh->cells,
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   if(reinit_count > 49) {
     reinitLS();
     reinit_count = 0;
+    op_par_loop(ls_post_reinit, "ls_post_reinit", mesh->cells,
+                op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
   }
   reinit_count++;
   timer->endTimer("LevelSetSolver3D - step");
