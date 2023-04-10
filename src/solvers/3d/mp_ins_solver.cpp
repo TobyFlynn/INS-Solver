@@ -112,8 +112,6 @@ void MPINSSolver3D::setup_common() {
   // viscositySolver = new PETScInvMassSolver(mesh);
   viscositySolver = new PETScJacobiSolver(mesh);
   // viscositySolver = new PETScAMGSolver(mesh);
-  pressureSolver->set_coarse_matrix(coarsePressureMatrix);
-  pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(false);
   viscositySolver->set_matrix(viscosityMatrix);
   viscositySolver->set_nullspace(false);
@@ -448,6 +446,7 @@ void MPINSSolver3D::pressure() {
   pressureMatrix->set_bc_types(pr_bc_types);
   coarsePressureMatrix->set_bc_types(pr_bc_types);
   pressureSolver->set_coarse_matrix(coarsePressureMatrix);
+  pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_bcs(pr_bc);
   bool converged = pressureSolver->solve(divVelT, pr);
   if(!converged)

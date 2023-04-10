@@ -9,6 +9,7 @@ __device__ void _fpmf_3d_mult_faces_flux_gpu(const int node, const int *faceNums
                           const double **in_z_p, double *l_x, double *l_y,
                           double *l_z, double *out) {
   const int *fmask = &FMASK_cuda[(p - 1) * DG_NUM_FACES * DG_NPF];
+  if(!(node < DG_NUM_FACES * dg_npf)) return;
 
   for(int i = 0; i < DG_NUM_FACES; i++) {
     const int findL = faceNums[2 * i] * dg_npf;

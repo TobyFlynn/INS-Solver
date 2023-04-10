@@ -15,6 +15,8 @@ inline void factor_poisson_matrix_3d_bop(const int *order, const DG_FP *dr,
   if(*bc_type == 1)
     return;
 
+  const DG_FP tau_order = (DG_FP) *order; // (DG_FP) DG_ORDER;
+
   // Handle Dirichlet boundary conditions
   const DG_FP *dr_mat = &dr[(*order - 1) * DG_NP * DG_NP];
   const DG_FP *ds_mat = &ds[(*order - 1) * DG_NP * DG_NP];
@@ -55,7 +57,7 @@ inline void factor_poisson_matrix_3d_bop(const int *order, const DG_FP *dr,
 
   DG_FP gtau = 0.0;
   for(int i = 0; i < dg_npf; i++) {
-    gtau = fmax(gtau, (DG_FP)2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * *fscale * factor[fmaskB[i]]);
+    gtau = fmax(gtau, (DG_FP)2.0 * (tau_order + 1) * (tau_order + 2) * *fscale * factor[fmaskB[i]]);
   }
 
   for(int i = 0; i < dg_np; i++) {

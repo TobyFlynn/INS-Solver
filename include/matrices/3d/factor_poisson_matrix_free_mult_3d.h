@@ -17,10 +17,10 @@ public:
 protected:
   op_dat mat_free_factor, mat_free_factor_copy, mat_free_gtau;
 
+  void check_current_order();
+
 private:
   int factor_order, current_order;
-
-  void check_current_order();
 };
 
 #endif

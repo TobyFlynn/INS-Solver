@@ -11,6 +11,8 @@ inline void fpmf_3d_mult_bfaces(const int *order, const int *bc_type, const int 
   const int dg_np  = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS];
   const int dg_npf = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS + 1];
 
+  const DG_FP tau_order = (DG_FP) p; // (DG_FP) DG_ORDER;
+
   const int find = faceNum[0] * dg_npf;
   const int *fmask  = &FMASK[(p - 1) * 4 * DG_NPF];
   const int *fmaskB = &fmask[faceNum[0] * dg_npf];
@@ -19,7 +21,7 @@ inline void fpmf_3d_mult_bfaces(const int *order, const int *bc_type, const int 
   for(int i = 1; i < dg_npf; i++) {
     gtau = fmax(gtau, fact[fmaskB[i]]);
   }
-  gtau *= 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * *fscale;
+  gtau *= 2.0 * (tau_order + 1) * (tau_order + 2) * *fscale;
 
   for(int j = 0; j < dg_npf; j++) {
     const int fmaskInd = fmaskB[j];

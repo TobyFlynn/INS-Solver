@@ -20,6 +20,8 @@ inline void factor_poisson_matrix_3d_op2_partial(const int **order,
   const int dg_np  = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS];
   const int dg_npf = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS + 1];
 
+  const DG_FP tau_order = (DG_FP) p; // (DG_FP) DG_ORDER;
+
   const DG_FP *mmFL, *mmFR;
   if(faceNum[0] == 0)
     mmFL = mmF0_mat;
@@ -67,7 +69,7 @@ inline void factor_poisson_matrix_3d_op2_partial(const int **order,
 
   DG_FP gtau = 0.0;
   for(int i = 0; i < dg_npf; i++) {
-    DG_FP tmp = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(fscale[0] * factor[0][fmaskL[i]], fscale[1] * factor[1][fmaskR_corrected[i]]);
+    DG_FP tmp = 2.0 * (tau_order + 1) * (tau_order + 2) * fmax(fscale[0] * factor[0][fmaskL[i]], fscale[1] * factor[1][fmaskR_corrected[i]]);
     gtau = fmax(gtau, tmp);
   }
 

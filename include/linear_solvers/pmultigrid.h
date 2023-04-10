@@ -25,11 +25,17 @@ public:
   void calc_rhs(const DG_FP *u_d, DG_FP *rhs_d);
 private:
   void cycle(int order, const int level);
-  void smoother(const int order, const int level);
+  void smooth(const int iter, const int level);
+  void jacobi_smoother(const int level);
+  void chebyshev_smoother(const int level);
 
   DG_FP maxEigenValue();
   void setRandomVector(op_dat vec);
   void setupDirectSolve();
+
+  enum Smoothers {
+    JACOBI, CHEBYSHEV
+  };
 
   DGMesh *mesh;
   PETScAMGCoarseSolver *coarseSolver;
@@ -40,18 +46,22 @@ private:
   bool coarseMatCalcRequired;
   bool diagMat;
 
+  Smoothers smoother;
+
   op_dat eg_tmp_0, eg_tmp_1, rk[3], rkQ;
 
   std::vector<int> orders;
   std::vector<int> pre_it;
   std::vector<int> post_it;
-  std::vector<op_dat> tmp_dat, u_dat, b_dat;
-  int num_eigen_val_iter;
+  std::vector<double> eig_vals;
+  std::vector<op_dat> tmp_dat, u_dat, b_dat, diag_dats;
+  op_dat eigen_tmps[10];
   double coarse_solve_tol;
+  double eigen_val_saftey_factor;
 
   int num_levels;
 
-  DG_FP w;
+  DG_FP w, max_eig;
 };
 
 #endif

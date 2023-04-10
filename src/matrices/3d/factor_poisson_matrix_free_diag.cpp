@@ -40,6 +40,7 @@ void FactorPoissonMatrixFreeDiag3D::mult(op_dat in, op_dat out) {
 
 void FactorPoissonMatrixFreeDiag3D::calc_mat_partial() {
   timer->startTimer("FactorPoissonMatrixFreeDiag3D - calc_mat_partial");
+  check_current_order();
   calc_op1();
   calc_op2();
   calc_opbc();
@@ -65,7 +66,7 @@ void FactorPoissonMatrixFreeDiag3D::calc_op1() {
               op_arg_dat(mesh->sz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->tz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->J,  -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(factor,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mat_free_factor_copy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   timer->endTimer("FactorPoissonMatrixFreeDiag3D - calc_op1");
 }
@@ -98,7 +99,7 @@ void FactorPoissonMatrixFreeDiag3D::calc_op2() {
               op_arg_dat(mesh->rz, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sz, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->tz, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(factor,   -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mat_free_factor_copy, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(diag, 0, mesh->face2cells, DG_NP, DG_FP_STR, OP_INC),
               op_arg_dat(diag, 1, mesh->face2cells, DG_NP, DG_FP_STR, OP_INC));
   timer->endTimer("FactorPoissonMatrixFreeDiag3D - calc_op2");
@@ -132,7 +133,7 @@ void FactorPoissonMatrixFreeDiag3D::calc_opbc() {
                 op_arg_dat(mesh->rz, 0, mesh->bface2cells, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->sz, 0, mesh->bface2cells, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->tz, 0, mesh->bface2cells, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(factor,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mat_free_factor_copy, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(diag, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_INC));
   }
   timer->endTimer("FactorPoissonMatrixFreeDiag3D - calc_opbc");

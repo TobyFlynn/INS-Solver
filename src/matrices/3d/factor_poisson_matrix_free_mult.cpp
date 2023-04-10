@@ -115,8 +115,19 @@ void FactorPoissonMatrixFreeMult3D::mat_free_set_factor(op_dat f) {
 void FactorPoissonMatrixFreeMult3D::check_current_order() {
   timer->startTimer("FactorPoissonMatrixFreeMult3D - check order");
   if(current_order != mesh->order_int) {
-    mesh->interp_dat_between_orders(factor_order, mesh->order_int, mat_free_factor, mat_free_factor_copy);
+    mesh->interp_dat_between_orders(current_order, mesh->order_int, mat_free_factor, mat_free_factor_copy);
     current_order = mesh->order_int;
+
+    timer->startTimer("FactorPoissonMatrixFreeMult3D - calc tau");
+    op_par_loop(fpmf_3d_calc_tau, "fpmf_3d_calc_tau", mesh->fluxes,
+                op_arg_dat(mesh->order, 0, mesh->flux2main_cell, 1, "int", OP_READ),
+                op_arg_dat(mesh->fluxFaceNums, -1, OP_ID, 8, "int", OP_READ),
+                op_arg_dat(mesh->fluxFmask,    -1, OP_ID, 4 * DG_NPF, "int", OP_READ),
+                op_arg_dat(mesh->fluxFscale, -1, OP_ID, 8, DG_FP_STR, OP_READ),
+                op_arg_dat(mat_free_factor_copy, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mat_free_factor_copy, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mat_free_gtau, -1, OP_ID, 4, DG_FP_STR, OP_WRITE));
+    timer->endTimer("FactorPoissonMatrixFreeMult3D - calc tau");
   }
   timer->endTimer("FactorPoissonMatrixFreeMult3D - check order");
 }

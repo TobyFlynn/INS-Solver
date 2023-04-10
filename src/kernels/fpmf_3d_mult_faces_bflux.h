@@ -11,13 +11,15 @@ inline void fpmf_3d_mult_faces_bflux(const int *p, const int *faceL,
   const int *fmask  = &FMASK[(*p - 1) * 4 * DG_NPF];
   const int faceInd = *faceL ? 0 : 1;
 
+  const DG_FP tau_order = (DG_FP) *p; // (DG_FP) DG_ORDER;
+
   const int findL = faceNums[faceInd] * dg_npf;
   const int *fmaskL = &fmask[faceNums[faceInd] * dg_npf];
   const int *fmaskR = *faceL ? fmaskR_corrected : fmaskL_corrected;
 
   DG_FP gtau = 0.0;
   for(int j = 0; j < dg_npf; j++) {
-    DG_FP tmp = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(fscale[0] * factor[0][fmaskL[j]], fscale[1] * factor[1][fmaskR[j]]);
+    DG_FP tmp = 2.0 * (tau_order + 1) * (tau_order + 2) * fmax(fscale[0] * factor[0][fmaskL[j]], fscale[1] * factor[1][fmaskR[j]]);
     gtau = fmax(gtau, tmp);
   }
   const DG_FP int_fact = 0.5 * sJ[faceInd];

@@ -21,6 +21,8 @@ inline void factor_poisson_matrix_3d_opbc(const int *order, const DG_FP *dr,
   const int dg_np  = DG_CONSTANTS[(*order - 1) * DG_NUM_CONSTANTS];
   const int dg_npf = DG_CONSTANTS[(*order - 1) * DG_NUM_CONSTANTS + 1];
 
+  const DG_FP tau_order = (DG_FP) *order; // (DG_FP) DG_ORDER;
+
   const DG_FP *mmF;
   if(*faceNum == 0)
     mmF = mmF0_mat;
@@ -52,7 +54,7 @@ inline void factor_poisson_matrix_3d_opbc(const int *order, const DG_FP *dr,
 
     DG_FP gtau = 0.0;
     for(int i = 0; i < dg_npf; i++) {
-      gtau = fmax(gtau, (DG_FP)2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * *fscale * factor[fmaskB[i]]);
+      gtau = fmax(gtau, (DG_FP)2.0 * (tau_order + 1) * (tau_order + 2) * *fscale * factor[fmaskB[i]]);
     }
 
     for(int i = 0; i < dg_np; i++) {

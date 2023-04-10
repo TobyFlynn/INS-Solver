@@ -6,6 +6,9 @@
 #include <string>
 #include <stdexcept>
 
+#define ARMA_ALLOW_FAKE_GCC
+#include <armadillo>
+
 #include "matrices/3d/poisson_semi_matrix_free_3d.h"
 #include "utils.h"
 #include "timing.h"
@@ -15,6 +18,7 @@ extern Timing *timer;
 extern Config *config;
 
 #define RAND_VEC_SIZE 25
+#define MAX_ITER_EIG_APPROX 10
 
 std::vector<int> parseInts(const std::string &str) {
   std::vector<int> result;
@@ -79,11 +83,17 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
     }
   }
 
-  num_eigen_val_iter = 5;
-  config->getInt("p-multigrid", "w_iter", num_eigen_val_iter);
-
   coarse_solve_tol = 1e-2;
   config->getDouble("p-multigrid", "coarse_residual", coarse_solve_tol);
+
+  eigen_val_saftey_factor = 1.1;
+  config->getDouble("p-multigrid", "eigen_val_saftey_factor", eigen_val_saftey_factor);
+
+  std::string smoother_str;
+  smoother = CHEBYSHEV;
+  if(config->getStr("p-multigrid", "smoother", smoother_str) && smoother_str == "jacobi") {
+      smoother = JACOBI;
+  }
 
   DG_FP *tmp_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   std::string name;
@@ -94,6 +104,17 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
     u_dat.push_back(op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str()));
     name = "p_multigrid_b" + std::to_string(i);
     b_dat.push_back(op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str()));
+  }
+  for(int i = 0; i < MAX_ITER_EIG_APPROX; i++) {
+    name = "p_multigrid_eigen_tmp" + std::to_string(i);
+    eigen_tmps[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str());
+  }
+  for(int i = 0; i < std::min(num_levels, MAX_ITER_EIG_APPROX - 3); i++) {
+    diag_dats.push_back(eigen_tmps[i + 3]);
+  }
+  for(int i = MAX_ITER_EIG_APPROX - 3; i < num_levels; i++) {
+    name = "p_multigrid_diag" + std::to_string(i);
+    diag_dats.push_back(op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str()));
   }
   eg_tmp_0 = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_eg_tmp_0");
   eg_tmp_1 = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_eg_tmp_1");
@@ -123,6 +144,39 @@ void PMultigridPoissonSolver::set_matrix(PoissonMatrix *mat) {
     mfdMatrix = dynamic_cast<PoissonMatrixFreeDiag*>(mat);
     diagMat = true;
   }
+
+  eig_vals.clear();
+  int current_mesh_order = ((DGMesh3D *)mesh)->order_int;
+  std::vector<op_dat> empty_vec;
+  timer->startTimer("PMultigridPoissonSolver - Calc Eigen Values");
+  for(int i = 0; i < orders.size(); i++) {
+    mesh->update_order(orders[i], empty_vec);
+    if(diagMat) {
+      mfdMatrix->calc_mat_partial();
+    } else {
+      smfMatrix->calc_mat_partial();
+    }
+    eig_vals.push_back(maxEigenValue());
+  }
+  timer->endTimer("PMultigridPoissonSolver - Calc Eigen Values");
+  timer->startTimer("PMultigridPoissonSolver - Calc Mat Partial");
+  for(int i = 0; i < orders.size(); i++) {
+    mesh->update_order(orders[i], empty_vec);
+    if(diagMat) {
+      mfdMatrix->calc_mat_partial();
+      op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
+                  op_arg_dat(mfdMatrix->diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(diag_dats[i], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    } else {
+      smfMatrix->calc_mat_partial();
+      op_par_loop(copy_diag, "copy_diag", mesh->cells,
+                  op_arg_dat(mesh->order,    -1, OP_ID, 1, "int", OP_READ),
+                  op_arg_dat(smfMatrix->op1, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(diag_dats[i],   -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    }
+  }
+  timer->endTimer("PMultigridPoissonSolver - Calc Mat Partial");
+  mesh->update_order(current_mesh_order, empty_vec);
 }
 
 bool PMultigridPoissonSolver::solve(op_dat rhs, op_dat ans) {
@@ -153,6 +207,12 @@ bool PMultigridPoissonSolver::solve(op_dat rhs, op_dat ans) {
 }
 
 void PMultigridPoissonSolver::cycle(int order, const int level) {
+  // Relaxation
+  // u = u + R^-1 (F - Au)
+  timer->startTimer("PMultigridPoissonSolver - Relaxation");
+  smooth(pre_it[level], level);
+  timer->endTimer("PMultigridPoissonSolver - Relaxation");
+
   if(order == 1) {
     // u = A^-1 (F)
     if(coarseMatCalcRequired) {
@@ -165,29 +225,14 @@ void PMultigridPoissonSolver::cycle(int order, const int level) {
     timer->startTimer("PMultigridPoissonSolver - Direct Solve");
     coarseSolver->solve(b_dat[level], u_dat[level]);
     timer->endTimer("PMultigridPoissonSolver - Direct Solve");
+
+    // Relaxation
+    // u = u + R^-1 (F - Au)
+    timer->startTimer("PMultigridPoissonSolver - Relaxation");
+    smooth(post_it[level], level);
+    timer->endTimer("PMultigridPoissonSolver - Relaxation");
     return;
   }
-
-  timer->startTimer("PMultigridPoissonSolver - Calc Mat Partial");
-  if(diagMat) {
-    mfdMatrix->calc_mat_partial();
-  } else {
-    smfMatrix->calc_mat_partial();
-  }
-  timer->endTimer("PMultigridPoissonSolver - Calc Mat Partial");
-
-  // Calc factor for relaxation
-  timer->startTimer("PMultigridPoissonSolver - w");
-  w = (4.0 / 3.0) * (1.0 / maxEigenValue());
-  timer->endTimer("PMultigridPoissonSolver - w");
-
-  // Relaxation
-  // u = u + R^-1 (F - Au)
-  timer->startTimer("PMultigridPoissonSolver - Relaxation");
-  for(int i = 0; i < pre_it[level]; i++) {
-    smoother(order, level);
-  }
-  timer->endTimer("PMultigridPoissonSolver - Relaxation");
 
   // Restriction
   timer->startTimer("PMultigridPoissonSolver - Restriction");
@@ -225,20 +270,10 @@ void PMultigridPoissonSolver::cycle(int order, const int level) {
               op_arg_dat(u_dat[level],     -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
   timer->endTimer("PMultigridPoissonSolver - Prolongation");
 
-  timer->startTimer("PMultigridPoissonSolver - Calc Mat Partial");
-  if(diagMat) {
-    mfdMatrix->calc_mat_partial();
-  } else {
-    smfMatrix->calc_mat_partial();
-  }
-  timer->endTimer("PMultigridPoissonSolver - Calc Mat Partial");
-
   // Relaxation
   // u = u + R^-1 (F - Au)
   timer->startTimer("PMultigridPoissonSolver - Relaxation");
-  for(int i = 0; i < post_it[level]; i++) {
-    smoother(order, level);
-  }
+  smooth(post_it[level], level);
   timer->endTimer("PMultigridPoissonSolver - Relaxation");
 }
 
@@ -257,39 +292,70 @@ void PMultigridPoissonSolver::setupDirectSolve() {
 DG_FP PMultigridPoissonSolver::maxEigenValue() {
   // Get approx eigenvector using power iteration
   timer->startTimer("PMultigridPoissonSolver - Random Vec");
-  setRandomVector(eg_tmp_0);
+  setRandomVector(eg_tmp_1);
   timer->endTimer("PMultigridPoissonSolver - Random Vec");
 
-  for(int i = 0; i < num_eigen_val_iter; i++) {
-    matrix->multJacobi(eg_tmp_0, eg_tmp_1);
+  DG_FP norm = 0.0;
+  op_par_loop(p_multigrid_vec_norm, "p_multigrid_vec_norm", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(eg_tmp_1, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(&norm, 1, DG_FP_STR, OP_INC));
 
-    // Normalise vector
-    DG_FP norm = 0.0;
-    op_par_loop(p_multigrid_vec_norm, "p_multigrid_vec_norm", mesh->cells,
-                op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(eg_tmp_1, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(&norm, 1, DG_FP_STR, OP_INC));
+  norm = sqrt(norm);
+  op_par_loop(p_multigrid_vec_normalise, "p_multigrid_vec_normalise", mesh->cells,
+              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(eg_tmp_1, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(&norm, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(eigen_tmps[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-    norm = sqrt(norm);
-    op_par_loop(p_multigrid_vec_normalise, "p_multigrid_vec_normalise", mesh->cells,
-                op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(eg_tmp_1, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(&norm, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(eg_tmp_0, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  const int N = ((DGMesh3D *)mesh)->order_int;
+  const int k = std::min(MAX_ITER_EIG_APPROX, (N + 1) * (N + 2) * (N + 3) / 6);
+  arma::mat H(k, k, arma::fill::zeros);
+  for(int n = 0; n < k; n++) {
+    matrix->multJacobi(eigen_tmps[n], eg_tmp_0);
+
+    for(int j = 0; j <= n; j++) {
+      DG_FP dot = 0.0;
+      op_par_loop(p_multigrid_vec_dot, "p_multigrid_vec_dot", mesh->cells,
+                  op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+                  op_arg_dat(eigen_tmps[j], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(eg_tmp_0, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_gbl(&dot, 1, DG_FP_STR, OP_INC));
+      H(j,n) = dot;
+
+      op_par_loop(p_multigrid_vec_minus, "p_multigrid_vec_minus", mesh->cells,
+                  op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+                  op_arg_dat(eigen_tmps[j], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(eg_tmp_0, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_gbl(&dot, 1, DG_FP_STR, OP_READ));
+    }
+
+    if(n + 1 < k) {
+      DG_FP norm = 0.0;
+      op_par_loop(p_multigrid_vec_norm, "p_multigrid_vec_norm", mesh->cells,
+                  op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+                  op_arg_dat(eg_tmp_0, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_gbl(&norm, 1, DG_FP_STR, OP_INC));
+
+      norm = sqrt(norm);
+      op_par_loop(p_multigrid_vec_normalise, "p_multigrid_vec_normalise", mesh->cells,
+                  op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
+                  op_arg_dat(eg_tmp_0, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_gbl(&norm, 1, DG_FP_STR, OP_READ),
+                  op_arg_dat(eigen_tmps[n+1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+      H(n+1,n) = norm;
+    }
   }
 
-  // Calculate eigenvalue from approx eigenvector using Rayleigh quotient
-  matrix->multJacobi(eg_tmp_0, eg_tmp_1);
+  auto eigen_values = arma::eig_gen(H);
+  // std::cout << eigen_values << std::endl;
+  double max_ = 0.0;
+  for(int i = 0; i < eigen_values.n_elem; i++) {
+    double tmp = std::abs(eigen_values[i]);
+    max_ = std::max(max_, tmp);
+  }
 
-  DG_FP tmp0 = 0.0;
-  DG_FP tmp1 = 0.0;
-  op_par_loop(p_multigrid_rayleigh_quotient, "p_multigrid_rayleigh_quotient", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(eg_tmp_0, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(eg_tmp_1, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(&tmp0, 1, DG_FP_STR, OP_INC),
-              op_arg_gbl(&tmp1, 1, DG_FP_STR, OP_INC));
-  return tmp0 / tmp1;
+  return eigen_val_saftey_factor * max_;
 }
 
 void PMultigridPoissonSolver::setRandomVector(op_dat vec) {
@@ -302,7 +368,7 @@ void PMultigridPoissonSolver::setRandomVector(op_dat vec) {
     rand_vec[i] = dist(eng);
   }
 
-  DG_FP *vec_ptr = getOP2PtrHost(vec, OP_WRITE);
+  DG_FP *vec_ptr = getOP2PtrHost(vec, RAND_VEC_SIZE);
 
   #pragma omp parallel for
   for(int i = 0; i < vec->set->size * vec->dim; i++) {
@@ -312,26 +378,89 @@ void PMultigridPoissonSolver::setRandomVector(op_dat vec) {
   releaseOP2PtrHost(vec, OP_WRITE, vec_ptr);
 }
 
-void PMultigridPoissonSolver::smoother(const int order, const int level) {
-  matrix->mult(u_dat[level], tmp_dat[level]);
-  if(diagMat) {
-    op_par_loop(p_multigrid_relaxation_jacobi_diag, "p_multigrid_relaxation_jacobi_diag", mesh->cells,
-                op_arg_gbl(&w, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(tmp_dat[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(b_dat[level],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mfdMatrix->diag,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(u_dat[level],   -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-  } else {
-    op_par_loop(p_multigrid_relaxation_jacobi, "p_multigrid_relaxation_jacobi", mesh->cells,
-                op_arg_gbl(&w, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(tmp_dat[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(b_dat[level],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(smfMatrix->op1,      -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(u_dat[level],   -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+void PMultigridPoissonSolver::smooth(const int iter, const int level) {
+  max_eig = eig_vals[level];
+  w = (4.0 / 3.0) * (1.0 / max_eig);
+  switch(smoother) {
+    case JACOBI:
+      for(int i = 0; i < iter; i++) {
+        jacobi_smoother(level);
+      }
+      break;
+    case CHEBYSHEV:
+      for(int i = 0; i < iter; i++) {
+        chebyshev_smoother(level);
+      }
+      break;
   }
 }
+
+void PMultigridPoissonSolver::jacobi_smoother(const int level) {
+  matrix->mult(u_dat[level], tmp_dat[level]);
+  op_par_loop(p_multigrid_relaxation_jacobi_diag, "p_multigrid_relaxation_jacobi_diag", mesh->cells,
+              op_arg_gbl(&w, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(tmp_dat[level],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(b_dat[level],     -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(diag_dats[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u_dat[level],     -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+}
+
+void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
+  const DG_FP lamda1 = max_eig;
+  const DG_FP lamda0 = lamda1 / 10.0;
+  const DG_FP theta = 0.5 * (lamda1 + lamda0);
+  const DG_FP delta = 0.5 * (lamda1 - lamda0);
+  const DG_FP invTheta = 1.0 / theta;
+  const DG_FP sigma = theta / delta;
+  DG_FP rho_n = 1.0 / sigma;
+  DG_FP rho_np1;
+  op_dat RES = eigen_tmps[0];
+  op_dat Ad = eigen_tmps[1];
+  op_dat d = eigen_tmps[2];
+
+  matrix->mult(u_dat[level], RES);
+  op_par_loop(p_multigrid_relaxation_chebyshev_0, "p_multigrid_relaxation_chebyshev_0", mesh->cells,
+              op_arg_gbl(&invTheta, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(b_dat[level],     -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(diag_dats[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(RES, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(d,   -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  for(int i = 0; i < 2; i++) {
+    op_par_loop(p_multigrid_relaxation_chebyshev_1, "p_multigrid_relaxation_chebyshev_1", mesh->cells,
+                op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(d, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(u_dat[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    matrix->mult(d, Ad);
+    op_par_loop(p_multigrid_relaxation_chebyshev_2, "p_multigrid_relaxation_chebyshev_2", mesh->cells,
+                op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(Ad, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(diag_dats[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(RES, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    rho_np1 = 1.0 / (2.0 * sigma - rho_n);
+    DG_FP rhoDivDelta = 2.0 * rho_np1 / delta;
+    DG_FP tmp = rho_np1 * rho_n;
+
+    op_par_loop(p_multigrid_relaxation_chebyshev_3, "p_multigrid_relaxation_chebyshev_3", mesh->cells,
+                op_arg_gbl(&rhoDivDelta, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&tmp, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(RES, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(d, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    rho_n = rho_np1;
+  }
+
+  op_par_loop(p_multigrid_relaxation_chebyshev_1, "p_multigrid_relaxation_chebyshev_1", mesh->cells,
+              op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(d, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u_dat[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+}
+
 /*
 void PMultigridPoissonSolver::smoother(const int order) {
   int x = -1;

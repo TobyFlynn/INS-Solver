@@ -17,6 +17,8 @@ inline void factor_poisson_coarse_matrix_3d_op2(const DG_FP *dr,
   const DG_FP *mmF2_mat = mmF2;
   const DG_FP *mmF3_mat = mmF3;
 
+  const DG_FP tau_order = 1.0; // (DG_FP) DG_ORDER;
+
   const DG_FP *mmFL, *mmFR;
   if(faceNum[0] == 0)
     mmFL = mmF0_mat;
@@ -64,7 +66,7 @@ inline void factor_poisson_coarse_matrix_3d_op2(const DG_FP *dr,
 
   DG_FP gtau = 0.0;
   for(int i = 0; i < DG_NPF_N1; i++) {
-    DG_FP tmp = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(fscale[0] * factor[0][fmaskL[i]], fscale[1] * factor[1][fmaskR_corrected[i]]);
+    DG_FP tmp = 2.0 * (tau_order + 1) * (tau_order + 2) * fmax(fscale[0] * factor[0][fmaskL[i]], fscale[1] * factor[1][fmaskR_corrected[i]]);
     gtau = fmax(gtau, tmp);
   }
 

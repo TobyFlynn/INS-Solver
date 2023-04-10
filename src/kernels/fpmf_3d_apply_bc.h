@@ -16,6 +16,8 @@ inline void fpmf_3d_apply_bc(const int *p, const DG_FP *dr, const DG_FP *ds, con
   const int dg_np  = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
   const int dg_npf = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS + 1];
 
+  const DG_FP tau_order = (DG_FP) *p; // (DG_FP) DG_ORDER;
+
   const DG_FP *mmF;
   if(*faceNum == 0)
     mmF = mmF0_mat;
@@ -49,7 +51,7 @@ inline void fpmf_3d_apply_bc(const int *p, const DG_FP *dr, const DG_FP *ds, con
     for(int i = 1; i < dg_npf; i++) {
       gtau = fmax(gtau, fact[fmaskB[i]]);
     }
-    gtau *= 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * *fscale;
+    gtau *= 2.0 * (tau_order + 1) * (tau_order + 2) * *fscale;
 
     DG_FP tmp[DG_NP];
     for(int i = 0; i < dg_np; i++) {

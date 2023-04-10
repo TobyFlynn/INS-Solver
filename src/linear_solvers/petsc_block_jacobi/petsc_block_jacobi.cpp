@@ -31,9 +31,9 @@ PETScBlockJacobiSolver::PETScBlockJacobiSolver(DGMesh *m) {
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPGMRES);
   if(std::is_same<DG_FP,double>::value)
-    KSPSetTolerances(ksp, 1e-10, 1e-50, 1e5, 5e2);
+    KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 5e2);
   else
-    KSPSetTolerances(ksp, 1e-6, 1e-50, 1e5, 5e2);
+    KSPSetTolerances(ksp, 1e-5, 1e-50, 1e5, 5e2);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
   PC pc;
   KSPGetPC(ksp, &pc);
