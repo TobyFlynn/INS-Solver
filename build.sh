@@ -18,7 +18,7 @@ mkdir -p linear_solvers/petsc_amg
 mkdir -p linear_solvers/petsc_utils
 mkdir -p linear_solvers/petsc_block_jacobi
 mkdir -p linear_solvers/petsc_jacobi
-mkdir -p linear_solvers/pmultigrid
+mkdir -p linear_solvers/pmultigrid/custom_kernels
 mkdir -p linear_solvers/petsc_pmultigrid
 mkdir -p linear_solvers/petsc_inv_mass
 
@@ -36,7 +36,7 @@ mkdir -p linear_solvers/petsc_amg
 mkdir -p linear_solvers/petsc_utils
 mkdir -p linear_solvers/petsc_block_jacobi
 mkdir -p linear_solvers/petsc_jacobi
-mkdir -p linear_solvers/pmultigrid
+mkdir -p linear_solvers/pmultigrid/custom_kernels
 mkdir -p linear_solvers/petsc_pmultigrid
 mkdir -p linear_solvers/petsc_inv_mass
 

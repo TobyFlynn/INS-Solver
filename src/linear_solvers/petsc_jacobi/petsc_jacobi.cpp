@@ -74,8 +74,10 @@ bool PETScJacobiSolver::solve(op_dat rhs, op_dat ans) {
   PETScUtils::create_vec_p_adapt(&b, matrix->getUnknowns());
   PETScUtils::create_vec_p_adapt(&x, matrix->getUnknowns());
 
-  PETScUtils::load_vec_p_adapt(&b, rhs, mesh);
-  PETScUtils::load_vec_p_adapt(&x, ans, mesh);
+  // PETScUtils::load_vec_p_adapt(&b, rhs, mesh);
+  // PETScUtils::load_vec_p_adapt(&x, ans, mesh);
+  PETScUtils::load_vec(&b, rhs);
+  PETScUtils::load_vec(&x, ans);
 
   timer->startTimer("PETScJacobiSolver - KSPSolve");
   KSPSolve(ksp, b, x);
@@ -97,7 +99,8 @@ bool PETScJacobiSolver::solve(op_dat rhs, op_dat ans) {
 
   Vec solution;
   KSPGetSolution(ksp, &solution);
-  PETScUtils::store_vec_p_adapt(&solution, ans, mesh);
+  // PETScUtils::store_vec_p_adapt(&solution, ans, mesh);
+  PETScUtils::store_vec(&solution, ans);
 
   PETScUtils::destroy_vec(&b);
   PETScUtils::destroy_vec(&x);
@@ -110,24 +113,28 @@ bool PETScJacobiSolver::solve(op_dat rhs, op_dat ans) {
 void PETScJacobiSolver::calc_rhs(const DG_FP *in_d, DG_FP *out_d) {
   timer->startTimer("PETScJacobiSolver - calc_rhs");
   // Copy u to OP2 dat
-  PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
+  // PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
+  PETScUtils::copy_vec_to_dat(in, in_d);
 
   matrix->mult(in, out);
 
-  PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
+  // PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
+  PETScUtils::copy_dat_to_vec(out, out_d);
   timer->endTimer("PETScJacobiSolver - calc_rhs");
 }
 
 // Matrix-free inv Mass preconditioning function
 void PETScJacobiSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
   timer->startTimer("PETScJacobiSolver - precond");
-  PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
+  // PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
+  PETScUtils::copy_vec_to_dat(in, in_d);
 
   op_par_loop(petsc_pre_jacobi, "petsc_pre_jacobi", mesh->cells,
               op_arg_dat(diagMat->diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-  PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
+  // PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
+  PETScUtils::copy_dat_to_vec(out, out_d);
   timer->endTimer("PETScJacobiSolver - precond");
 }

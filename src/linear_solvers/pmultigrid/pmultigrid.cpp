@@ -20,6 +20,32 @@ extern Config *config;
 #define RAND_VEC_SIZE 25
 #define MAX_ITER_EIG_APPROX 10
 
+void custom_kernel_p_multigrid_relaxation_chebyshev_0(const int order, char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4,
+  op_arg arg5);
+
+void custom_kernel_p_multigrid_relaxation_chebyshev_1(const int order, char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
+void custom_kernel_p_multigrid_relaxation_chebyshev_2(const int order, char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3);
+
+void custom_kernel_p_multigrid_relaxation_chebyshev_3(const int order, char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2,
+  op_arg arg3,
+  op_arg arg4);
+
 std::vector<int> parseInts(const std::string &str) {
   std::vector<int> result;
   std::stringstream ss(str);
@@ -419,7 +445,18 @@ void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
   op_dat Ad = eigen_tmps[1];
   op_dat d = eigen_tmps[2];
 
+  timer->startTimer("PMultigridPoissonSolver - Relaxation - Mult");
   matrix->mult(u_dat[level], RES);
+  timer->endTimer("PMultigridPoissonSolver - Relaxation - Mult");
+  #ifdef OP2_DG_CUDA
+  custom_kernel_p_multigrid_relaxation_chebyshev_0(orders[level], "p_multigrid_relaxation_chebyshev_0", mesh->cells,
+              op_arg_gbl(&invTheta, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(b_dat[level],     -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(diag_dats[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(RES, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(d,   -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  #else
   op_par_loop(p_multigrid_relaxation_chebyshev_0, "p_multigrid_relaxation_chebyshev_0", mesh->cells,
               op_arg_gbl(&invTheta, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
@@ -427,38 +464,72 @@ void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
               op_arg_dat(diag_dats[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(RES, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(d,   -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  #endif
 
   for(int i = 0; i < 2; i++) {
+    #ifdef OP2_DG_CUDA
+    custom_kernel_p_multigrid_relaxation_chebyshev_1(orders[level], "p_multigrid_relaxation_chebyshev_1", mesh->cells,
+                op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(d, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(u_dat[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    #else
     op_par_loop(p_multigrid_relaxation_chebyshev_1, "p_multigrid_relaxation_chebyshev_1", mesh->cells,
                 op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(d, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(u_dat[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    #endif
 
+    timer->startTimer("PMultigridPoissonSolver - Relaxation - Mult");
     matrix->mult(d, Ad);
+    timer->endTimer("PMultigridPoissonSolver - Relaxation - Mult");
+    #ifdef OP2_DG_CUDA
+    custom_kernel_p_multigrid_relaxation_chebyshev_2(orders[level], "p_multigrid_relaxation_chebyshev_2", mesh->cells,
+                op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(Ad, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(diag_dats[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(RES, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    #else
     op_par_loop(p_multigrid_relaxation_chebyshev_2, "p_multigrid_relaxation_chebyshev_2", mesh->cells,
                 op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(Ad, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(diag_dats[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(RES, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    #endif
 
     rho_np1 = 1.0 / (2.0 * sigma - rho_n);
     DG_FP rhoDivDelta = 2.0 * rho_np1 / delta;
     DG_FP tmp = rho_np1 * rho_n;
 
+    #ifdef OP2_DG_CUDA
+    custom_kernel_p_multigrid_relaxation_chebyshev_3(orders[level], "p_multigrid_relaxation_chebyshev_3", mesh->cells,
+                op_arg_gbl(&rhoDivDelta, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&tmp, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(RES, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(d, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    #else
     op_par_loop(p_multigrid_relaxation_chebyshev_3, "p_multigrid_relaxation_chebyshev_3", mesh->cells,
                 op_arg_gbl(&rhoDivDelta, 1, DG_FP_STR, OP_READ),
                 op_arg_gbl(&tmp, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(RES, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(d, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    #endif
 
     rho_n = rho_np1;
   }
 
+  #ifdef OP2_DG_CUDA
+  custom_kernel_p_multigrid_relaxation_chebyshev_1(orders[level], "p_multigrid_relaxation_chebyshev_1", mesh->cells,
+              op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(d, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u_dat[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  #else
   op_par_loop(p_multigrid_relaxation_chebyshev_1, "p_multigrid_relaxation_chebyshev_1", mesh->cells,
               op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(d, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(u_dat[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  #endif
 }
 
 /*
