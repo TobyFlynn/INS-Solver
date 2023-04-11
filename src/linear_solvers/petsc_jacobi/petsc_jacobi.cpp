@@ -17,6 +17,11 @@
 extern DGConstants *constants;
 extern Timing *timer;
 
+void custom_kernel_petsc_pre_jacobi(const int order, char const *name, op_set set,
+  op_arg arg0,
+  op_arg arg1,
+  op_arg arg2);
+
 PETScJacobiSolver::PETScJacobiSolver(DGMesh *m) {
   bc = nullptr;
   nullspace = false;
@@ -129,10 +134,17 @@ void PETScJacobiSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
   // PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
   PETScUtils::copy_vec_to_dat(in, in_d);
 
+  #ifdef OP2_DG_CUDA
+  custom_kernel_petsc_pre_jacobi(DG_ORDER, "petsc_pre_jacobi", mesh->cells,
+              op_arg_dat(diagMat->diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(in,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  #else
   op_par_loop(petsc_pre_jacobi, "petsc_pre_jacobi", mesh->cells,
               op_arg_dat(diagMat->diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  #endif
 
   // PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
   PETScUtils::copy_dat_to_vec(out, out_d);

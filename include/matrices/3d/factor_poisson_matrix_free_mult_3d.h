@@ -15,7 +15,7 @@ public:
   virtual void mat_free_set_factor(op_dat f);
 
 protected:
-  op_dat mat_free_factor, mat_free_factor_copy, mat_free_gtau;
+  op_dat mat_free_factor, mat_free_factor_copy, mat_free_gtau, mat_free_gtau_bflux;
 
   void check_current_order();
 

@@ -92,10 +92,6 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
   __shared__ double ux_shared[NUM_CELLS * DG_NP];
   __shared__ double uy_shared[NUM_CELLS * DG_NP];
   __shared__ double uz_shared[NUM_CELLS * DG_NP];
-  __shared__ double lx_shared[NUM_CELLS * DG_NUM_FACES * DG_NPF];
-  __shared__ double ly_shared[NUM_CELLS * DG_NUM_FACES * DG_NPF];
-  __shared__ double lz_shared[NUM_CELLS * DG_NUM_FACES * DG_NPF];
-  __shared__ double out_tmp_shared[NUM_CELLS * DG_NUM_FACES * DG_NPF];
   __shared__ double tmp_x_shared[NUM_CELLS * DG_NP];
   __shared__ double tmp_y_shared[NUM_CELLS * DG_NP];
   __shared__ double tmp_z_shared[NUM_CELLS * DG_NP];
@@ -105,22 +101,8 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
     const int node_id = n % DG_NP;
     const int cell_id = n / DG_NP;
     const int local_cell_id = (n / DG_NP) - ((n - threadIdx.x) / DG_NP);
-    __syncthreads();
     const int start_ind = ((n - threadIdx.x) / DG_NP) * DG_NP;
     const int num_elem  = min((n - threadIdx.x + blockDim.x) / DG_NP, set_size) - ((n - threadIdx.x) / DG_NP) + 1;
-    for(int i = threadIdx.x; i < num_elem * DG_NP; i += blockDim.x) {
-      ux_shared[i] = arg20[start_ind + i];
-      uy_shared[i] = arg21[start_ind + i];
-      uz_shared[i] = arg22[start_ind + i];
-    }
-    const int start_ind1 = ((n - threadIdx.x) / DG_NP) * DG_NUM_FACES * DG_NPF;
-    for(int i = threadIdx.x; i < num_elem * DG_NUM_FACES * DG_NPF; i += blockDim.x) {
-      lx_shared[i] = arg16[start_ind1 + i];
-      ly_shared[i] = arg17[start_ind1 + i];
-      lz_shared[i] = arg18[start_ind1 + i];
-      out_tmp_shared[i] = arg19[start_ind1 + i];
-    }
-    __syncthreads();
     //user-supplied kernel call
     const int np  = (p + 1) * (p + 2) * (p + 3) / 6;
     const int npf = (p + 1) * (p + 2) / 2;
@@ -129,13 +111,13 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
                                arg2,
                                arg1,
                                arg15 + cell_id,
-                               lx_shared + local_cell_id * DG_NUM_FACES * DG_NPF,
-                               ly_shared + local_cell_id * DG_NUM_FACES * DG_NPF,
-                               lz_shared + local_cell_id * DG_NUM_FACES * DG_NPF,
-                               out_tmp_shared + local_cell_id * DG_NUM_FACES * DG_NPF,
-                               ux_shared + local_cell_id * DG_NP,
-                               uy_shared + local_cell_id * DG_NP,
-                               uz_shared + local_cell_id * DG_NP,
+                               arg16 + cell_id * DG_NUM_FACES * DG_NPF,
+                               arg17 + cell_id * DG_NUM_FACES * DG_NPF,
+                               arg18 + cell_id * DG_NUM_FACES * DG_NPF,
+                               arg19 + cell_id * DG_NUM_FACES * DG_NPF,
+                               arg20 + cell_id * DG_NP,
+                               arg21 + cell_id * DG_NP,
+                               arg22 + cell_id * DG_NP,
                                tmp_x_shared + local_cell_id * DG_NP,
                                tmp_y_shared + local_cell_id * DG_NP,
                                tmp_z_shared + local_cell_id * DG_NP,

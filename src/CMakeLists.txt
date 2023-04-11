@@ -18,6 +18,7 @@ list(APPEND LINEAR_SOLVER_GPU_SRC linear_solvers/petsc_block_jacobi/petsc_block_
 list(APPEND LINEAR_SOLVER_GPU_SRC linear_solvers/petsc_pmultigrid/petsc_pmultigrid_gpu.cu)
 list(APPEND LINEAR_SOLVER_GPU_SRC linear_solvers/petsc_inv_mass/petsc_inv_mass_gpu.cu)
 list(APPEND LINEAR_SOLVER_GPU_SRC linear_solvers/petsc_jacobi/petsc_jacobi_gpu.cu)
+list(APPEND LINEAR_SOLVER_GPU_SRC linear_solvers/petsc_jacobi/custom_kernels/custom_petsc_pre_jacobi.cu)
 
 set(ALL_DIM_SRC timing.cpp matrices_op/poisson_matrix_op.cpp)
 list(APPEND ALL_DIM_SRC matrices_op/poisson_coarse_matrix_op.cpp)
