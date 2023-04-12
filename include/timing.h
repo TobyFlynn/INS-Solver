@@ -14,6 +14,7 @@ public:
 
 private:
   std::map<std::string,double> startTime, totalTime;
+  std::map<std::string,int> numCalls;
 
   static const int col_width = 50;
 };

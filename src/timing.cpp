@@ -17,7 +17,8 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   file << std::left << std::setw(col_width) << "Iterations:" << iter << std::endl;
   file << std::left << std::setw(col_width) << "Final time:" << time << std::endl;
   for (auto it = totalTime.begin(); it != totalTime.end(); it++) {
-    file << std::left << std::setw(col_width) << it->first + ":" << it->second << std::endl;
+    file << std::left << std::setw(col_width) << it->first + ":";
+    file << std::left << std::setw(10) << it->second << numCalls[it->first] << std::endl;
   }
 
   file.close();
@@ -120,6 +121,10 @@ void Timing::endTimer(const std::string &name) {
   gettimeofday(&t, (struct timezone *)0);
   wall = t.tv_sec + t.tv_usec * 1.0e-6;
   totalTime[name] += wall - startTime[name];
+  if(numCalls.count(name) == 0)
+    numCalls[name] = 1;
+  else
+    numCalls[name]++;
 }
 
 double Timing::getTime(const std::string &name) {
