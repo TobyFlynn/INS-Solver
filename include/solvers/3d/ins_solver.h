@@ -34,6 +34,11 @@ private:
   void pressure();
   void viscosity();
   void project_velocity();
+  void advec_standard();
+  void advec_sub_cycle();
+  void advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
+                           op_dat u_out, op_dat v_out, op_dat w_out,
+                           const double t);
   // void shock_capturing();
 
   DGMesh3D *mesh;
@@ -46,18 +51,19 @@ private:
   LinearSolver *pressureSolver;
   // LinearSolver *viscositySolver;
   PETScInvMassSolver *viscositySolver;
-  DG_FP g0, a0, a1, b0, b1, dt, time, h;
+  DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, h;
   DG_FP reynolds;
-  int currentInd;
+  int currentInd, sub_cycles;
   bool resuming;
   bool div_div_proj;
 
-  op_dat tmp_np[9], tmp_npf[3], tmp_bc_1, tmp_npf_bc;
+  op_dat tmp_np[12], tmp_npf[3], tmp_bc_1, tmp_npf_bc;
   op_dat f[3][3], n[2][3], advec_flux[3], curlVel[3];
   op_dat curl2Vel[3], dPdN[2], pr_bc, pr_bc_types, dpdx, dpdy, dpdz;
   op_dat vis_bc_types, vis_bc, bc_types;
   op_dat art_vis, vis_coeff, vis_mm, divVelT, visRHS[3];
   op_dat projRHS[3], proj_h, proj_pen;
+  op_dat advec_sc[3];
 };
 
 #endif
