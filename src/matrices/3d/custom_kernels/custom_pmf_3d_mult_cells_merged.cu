@@ -9,17 +9,14 @@ __device__ void _pmf_3d_mult_cells_part1_gpu(const int ind, const double *mMat, 
                       const double *J, const double *lx, const double *ly, const double *lz,
                       const double *out_tmp, const double *ux, const double *uy, const double *uz,
                       double *outx, double *outy, double *outz, double *out) {
-  const double *mmat_mat = &mMat[(p - 1) * DG_NP * DG_NP];
-  const double *emat_mat = &eMat[(p - 1) * DG_NUM_FACES * DG_NPF * DG_NP];
-
   double outx_t = 0.0;
   double outy_t = 0.0;
   double outz_t = 0.0;
   for(int j = 0; j < dg_np; j++) {
     int mat_ind = DG_MAT_IND(ind, j, dg_np, dg_np);
-    outx_t += mmat_mat[mat_ind] * ux[j];
-    outy_t += mmat_mat[mat_ind] * uy[j];
-    outz_t += mmat_mat[mat_ind] * uz[j];
+    outx_t += mMat[mat_ind] * ux[j];
+    outy_t += mMat[mat_ind] * uy[j];
+    outz_t += mMat[mat_ind] * uz[j];
   }
   outx_t *= *J;
   outy_t *= *J;
@@ -27,10 +24,10 @@ __device__ void _pmf_3d_mult_cells_part1_gpu(const int ind, const double *mMat, 
   double out_t = 0.0;
   for(int j = 0; j < DG_NUM_FACES * dg_npf; j++) {
     int mat_ind = DG_MAT_IND(ind, j, dg_np, DG_NUM_FACES * dg_npf);
-    outx_t += emat_mat[mat_ind] * lx[j];
-    outy_t += emat_mat[mat_ind] * ly[j];
-    outz_t += emat_mat[mat_ind] * lz[j];
-    out_t  += emat_mat[mat_ind] * out_tmp[j];
+    outx_t += eMat[mat_ind] * lx[j];
+    outy_t += eMat[mat_ind] * ly[j];
+    outz_t += eMat[mat_ind] * lz[j];
+    out_t  += eMat[mat_ind] * out_tmp[j];
   }
   outx[ind] = outx_t;
   outy[ind] = outy_t;
@@ -88,12 +85,20 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
   const int np = (p + 1) * (p + 2) * (p + 3) / 6;
   const int npf = (p + 1) * (p + 2) / 2;
 
-  __shared__ double ux_shared[NUM_CELLS * np];
-  __shared__ double uy_shared[NUM_CELLS * np];
-  __shared__ double uz_shared[NUM_CELLS * np];
+  __shared__ double mm_shared[DG_NP * DG_NP];
+  __shared__ double emat_shared[4 * DG_NPF * DG_NP];
+
   __shared__ double tmp_x_shared[NUM_CELLS * np];
   __shared__ double tmp_y_shared[NUM_CELLS * np];
   __shared__ double tmp_z_shared[NUM_CELLS * np];
+
+  for(int i = threadIdx.x; i < np * np; i += blockDim.x) {
+    mm_shared[i] = arg2[(p - 1) * DG_NP * DG_NP + i];
+  }
+
+  for(int i = threadIdx.x; i < 4 * npf * np; i += blockDim.x) {
+    emat_shared[i] = arg1[(p - 1) * 4 * DG_NPF * DG_NP + i];
+  }
 
   //process set elements
   for (int n = threadIdx.x + blockIdx.x * blockDim.x; n - threadIdx.x < set_size * np; n += blockDim.x * gridDim.x){
@@ -105,8 +110,8 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
     //user-supplied kernel call
     if(n < set_size * np)
       _pmf_3d_mult_cells_part1_gpu<p,np,npf>(node_id,
-                               arg2,
-                               arg1,
+                               mm_shared,
+                               emat_shared,
                                arg15 + cell_id,
                                arg16 + cell_id * DG_NUM_FACES * DG_NPF,
                                arg17 + cell_id * DG_NUM_FACES * DG_NPF,
@@ -122,16 +127,19 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
     __syncthreads();
     for(int i = threadIdx.x; i < num_elem * np; i += blockDim.x) {
       int curr_cell = i / np + (n - threadIdx.x) / np;
-      ux_shared[i] = *(arg6 + curr_cell) * tmp_x_shared[i] + *(arg9 + curr_cell) * tmp_y_shared[i] + *(arg12 + curr_cell) * tmp_z_shared[i];
-      uy_shared[i] = *(arg7 + curr_cell) * tmp_x_shared[i] + *(arg10 + curr_cell) * tmp_y_shared[i] + *(arg13 + curr_cell) * tmp_z_shared[i];
-      uz_shared[i] = *(arg8 + curr_cell) * tmp_x_shared[i] + *(arg11 + curr_cell) * tmp_y_shared[i] + *(arg14 + curr_cell) * tmp_z_shared[i];
+      DG_FP tmp_x = tmp_x_shared[i];
+      DG_FP tmp_y = tmp_y_shared[i];
+      DG_FP tmp_z = tmp_z_shared[i];
+      tmp_x_shared[i] = *(arg6 + curr_cell) * tmp_x + *(arg9 + curr_cell) * tmp_y + *(arg12 + curr_cell) * tmp_z;
+      tmp_y_shared[i] = *(arg7 + curr_cell) * tmp_x + *(arg10 + curr_cell) * tmp_y + *(arg13 + curr_cell) * tmp_z;
+      tmp_z_shared[i] = *(arg8 + curr_cell) * tmp_x + *(arg11 + curr_cell) * tmp_y + *(arg14 + curr_cell) * tmp_z;
     }
     __syncthreads();
     if(n < set_size * np)
       _pmf_3d_mult_cells_part2_gpu<p,np>(node_id, arg3, arg4, arg5,
-                                  ux_shared + local_cell_id * np,
-                                  uy_shared + local_cell_id * np,
-                                  uz_shared + local_cell_id * np,
+                                  tmp_x_shared + local_cell_id * np,
+                                  tmp_y_shared + local_cell_id * np,
+                                  tmp_z_shared + local_cell_id * np,
                                   arg23 + cell_id * DG_NP);
   }
 }
