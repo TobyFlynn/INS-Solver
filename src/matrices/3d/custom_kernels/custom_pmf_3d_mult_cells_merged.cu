@@ -139,6 +139,8 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
   }
 }
 
+#include "timing.h"
+extern Timing *timer;
 
 //host stub function
 void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, op_set set,
@@ -301,6 +303,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
           set->size );
         break;
       case 3:
+        timer->startTimer("fpmf_cells_merged 3rd order");
         _op_cuda_pmf_3d_mult_cells_merged<3,num_cells><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (double *) arg1.data_d,
@@ -327,6 +330,8 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
           (double *) arg22.data_d,
           (double *) arg23.data_d,
           set->size );
+        cutilSafeCall(cudaDeviceSynchronize());
+        timer->endTimer("fpmf_cells_merged 3rd order");
         break;
       case 4:
         _op_cuda_pmf_3d_mult_cells_merged<4,num_cells><<<nblocks,nthread>>>(

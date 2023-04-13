@@ -125,6 +125,8 @@ __global__ void _op_cuda_fpmf_grad_3d(
   }
 }
 
+#include "timing.h"
+extern Timing *timer;
 
 //host stub function
 void custom_kernel_fpmf_grad_3d(const int order, char const *name, op_set set,
@@ -252,6 +254,7 @@ void custom_kernel_fpmf_grad_3d(const int order, char const *name, op_set set,
           set->size );
         break;
       case 3:
+        timer->startTimer("fpmf_grad 3rd order");
         _op_cuda_fpmf_grad_3d<3,num_cells><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (DG_FP *) arg1.data_d,
@@ -272,6 +275,8 @@ void custom_kernel_fpmf_grad_3d(const int order, char const *name, op_set set,
           (DG_FP *) arg15.data_d,
           (DG_FP *) arg16.data_d,
           set->size );
+        cutilSafeCall(cudaDeviceSynchronize());
+        timer->endTimer("fpmf_grad 3rd order");
         break;
       case 4:
         _op_cuda_fpmf_grad_3d<4,num_cells><<<nblocks,nthread>>>(

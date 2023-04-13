@@ -50,7 +50,8 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
       file << std::left << std::setw(col_width) << "Iterations:" << iter << std::endl;
       file << std::left << std::setw(col_width) << "Final time:" << time << std::endl;
       for (auto it = totalTime.begin(); it != totalTime.end(); it++) {
-        file << std::left << std::setw(col_width) << it->first + ":" << it->second << std::endl;
+        file << std::left << std::setw(col_width) << it->first + ":";
+        file << std::left << std::setw(10) << it->second << numCalls[it->first] << std::endl;
       }
       file.close();
 
@@ -99,7 +100,8 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   i = 0;
   for (auto it = totalTime.begin(); it != totalTime.end(); it++) {
     file << std::left << std::setw(col_width) << it->first + ":" << it->second;
-    file << ",\t" << avg[i] << ",\t" << min[i] << ",\t" << max[i] << std::endl;
+    file << ",\t" << avg[i] << ",\t" << min[i] << ",\t" << max[i] << ",\t";
+    file << numCalls[it->first] << std::endl;
     i++;
   }
 
