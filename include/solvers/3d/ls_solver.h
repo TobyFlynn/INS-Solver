@@ -18,7 +18,7 @@ public:
   void init();
 
   void setBCTypes(op_dat bc);
-  void step(op_dat u, op_dat v, op_dat w, DG_FP dt);
+  void step(op_dat u, op_dat v, op_dat w, const DG_FP dt, const int num_steps);
   void getRhoMu(op_dat rho, op_dat mu);
   void getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_dat curv);
   void set_tmp_dats(op_dat np0, op_dat np1, op_dat np2, op_dat np3, op_dat np4,
