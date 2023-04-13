@@ -112,16 +112,17 @@ void FactorPoissonMatrixFreeMult3D::mat_free_set_factor(op_dat f) {
               op_arg_dat(mat_free_factor_copy, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mat_free_factor_copy, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mat_free_gtau, -1, OP_ID, 4, DG_FP_STR, OP_WRITE));
-
-  op_par_loop(fpmf_3d_calc_tau_bflux, "fpmf_3d_calc_tau_bflux", mesh->bfluxes,
-              op_arg_dat(mesh->order,   0, mesh->bflux2cells, 1, "int", OP_READ),
-              op_arg_dat(mesh->bfluxL, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->faceNum, 0, mesh->bflux2faces, 2, "int", OP_READ),
-              op_arg_dat(mesh->fmaskL,  0, mesh->bflux2faces, DG_NPF, "int", OP_READ),
-              op_arg_dat(mesh->fmaskR,  0, mesh->bflux2faces, DG_NPF, "int", OP_READ),
-              op_arg_dat(mesh->fscale, 0, mesh->bflux2faces, 2, DG_FP_STR, OP_READ),
-              op_arg_dat(mat_free_factor_copy, -2, mesh->bflux2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mat_free_gtau_bflux, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+  if(mesh->bflux2cells) {
+    op_par_loop(fpmf_3d_calc_tau_bflux, "fpmf_3d_calc_tau_bflux", mesh->bfluxes,
+                op_arg_dat(mesh->order,   0, mesh->bflux2cells, 1, "int", OP_READ),
+                op_arg_dat(mesh->bfluxL, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->faceNum, 0, mesh->bflux2faces, 2, "int", OP_READ),
+                op_arg_dat(mesh->fmaskL,  0, mesh->bflux2faces, DG_NPF, "int", OP_READ),
+                op_arg_dat(mesh->fmaskR,  0, mesh->bflux2faces, DG_NPF, "int", OP_READ),
+                op_arg_dat(mesh->fscale, 0, mesh->bflux2faces, 2, DG_FP_STR, OP_READ),
+                op_arg_dat(mat_free_factor_copy, -2, mesh->bflux2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mat_free_gtau_bflux, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+  }
   timer->endTimer("FactorPoissonMatrixFreeMult3D - calc tau");
 }
 

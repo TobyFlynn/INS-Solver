@@ -139,12 +139,12 @@ void AdvectionSolver3D::set_dt() {
               op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
   h = 1.0 / h;
   dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1));
-  op_printf("Advection dt is %g\n", dt);
+  // op_printf("Advection dt is %g\n", dt);
 }
 
 void AdvectionSolver3D::set_dt(const DG_FP t) {
   dt = t;
-  op_printf("Advection dt is %g\n", dt);
+  // op_printf("Advection dt is %g\n", dt);
 }
 
 void AdvectionSolver3D::set_bc_types(op_dat bc) {

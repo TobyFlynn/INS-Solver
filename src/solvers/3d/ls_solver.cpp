@@ -122,10 +122,9 @@ void LevelSetSolver3D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_d
   timer->endTimer("LevelSetSolver3D - getNormalsCurvature");
 }
 
-void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const DG_FP dt) {
+void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const DG_FP dt, const int num_steps) {
   timer->startTimer("LevelSetSolver3D - step");
-  int num_steps = 1;
-  advectionSolver->set_dt(dt / (double)num_steps);
+  advectionSolver->set_dt(dt);
   for(int i = 0; i < num_steps; i++)
     advectionSolver->step(s, u, v, w);
 

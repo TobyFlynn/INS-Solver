@@ -309,7 +309,7 @@ void INSSolver3D::advection() {
   }
 }
 
-void INSSolver3D::advec_standard() {
+void INSSolver3D::advec_current_non_linear() {
   op_par_loop(ins_3d_advec_0, "ins_3d_advec_0", mesh->cells,
               op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -373,6 +373,10 @@ void INSSolver3D::advec_standard() {
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, advec_flux[0], 1.0, n[currentInd][0]);
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, advec_flux[1], 1.0, n[currentInd][1]);
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, advec_flux[2], 1.0, n[currentInd][2]);
+}
+
+void INSSolver3D::advec_standard() {
+  advec_current_non_linear();
 
   // Calculate the intermediate velocity values
   op_par_loop(ins_3d_advec_3, "ins_3d_advec_3", mesh->cells,
@@ -546,6 +550,9 @@ void INSSolver3D::advec_sub_cycle() {
               op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  // Needed for Pressure boundary conditions
+  advec_current_non_linear();
 }
 
 void INSSolver3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
