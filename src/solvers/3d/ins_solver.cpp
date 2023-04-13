@@ -103,6 +103,8 @@ void INSSolver3D::setup_common() {
   config->getInt("solver-options", "div_div", tmp_div);
   div_div_proj = tmp_div != 0;
   config->getInt("solver-options", "sub_cycle", sub_cycles);
+  config->getInt("solver-options", "num_iter_before_sub_cycle", it_pre_sub_cycle);
+  it_pre_sub_cycle = it_pre_sub_cycle > 1 ? it_pre_sub_cycle : 1;
 
   std::string name;
   DG_FP *dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
@@ -202,12 +204,16 @@ void INSSolver3D::setup_common() {
   // viscositySolver = new PETScAMGSolver(mesh);
   viscositySolver = new PETScInvMassSolver(mesh);
 
+  int pr_tmp = 0;
+  int vis_tmp = 0;
+  config->getInt("solver-options", "pr_nullspace", pr_tmp);
+  config->getInt("solver-options", "vis_nullspace", vis_tmp);
   tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
   pressureSolver = tmp_pressureSolver;
   pressureSolver->set_matrix(pressureMatrix);
-  pressureSolver->set_nullspace(true);
+  pressureSolver->set_nullspace(pr_tmp == 1);
   viscositySolver->set_matrix(viscosityMatrix);
-  viscositySolver->set_nullspace(false);
+  viscositySolver->set_nullspace(vis_tmp == 1);
 }
 
 INSSolver3D::~INSSolver3D() {
@@ -298,8 +304,13 @@ void INSSolver3D::step() {
   a1 = -0.5;
   b0 = 2.0;
   b1 = -1.0;
-  sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
-  dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+  if(it_pre_sub_cycle > 1) {
+    it_pre_sub_cycle--;
+  } else {
+    sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
+    dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+    it_pre_sub_cycle = 0;
+  }
 }
 
 DG_FP INSSolver3D::max_vel() {
@@ -315,7 +326,7 @@ DG_FP INSSolver3D::max_vel() {
 }
 
 void INSSolver3D::advection() {
-  if(time == 0.0 || sub_cycles < 1) {
+  if(time == 0.0 || sub_cycles < 1 || it_pre_sub_cycle != 0) {
     advec_standard();
   } else {
     advec_sub_cycle();

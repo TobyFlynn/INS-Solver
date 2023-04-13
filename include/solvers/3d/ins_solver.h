@@ -55,7 +55,7 @@ private:
   PETScInvMassSolver *viscositySolver;
   DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, h;
   DG_FP reynolds;
-  int currentInd, sub_cycles;
+  int currentInd, sub_cycles, it_pre_sub_cycle;
   bool resuming;
   bool div_div_proj;
 
