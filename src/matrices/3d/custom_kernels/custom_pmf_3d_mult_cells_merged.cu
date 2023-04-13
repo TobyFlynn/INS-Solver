@@ -9,8 +9,6 @@ __device__ void _pmf_3d_mult_cells_part1_gpu(const int ind, const double *mMat, 
                       const double *J, const double *lx, const double *ly, const double *lz,
                       const double *out_tmp, const double *ux, const double *uy, const double *uz,
                       double *outx, double *outy, double *outz, double *out) {
-  if(!(ind < dg_np))
-    return;
   const double *mmat_mat = &mMat[(p - 1) * DG_NP * DG_NP];
   const double *emat_mat = &eMat[(p - 1) * DG_NUM_FACES * DG_NPF * DG_NP];
 
@@ -45,8 +43,6 @@ __device__ void _pmf_3d_mult_cells_part2_gpu(const int ind, const double *dr,
                             const double *ds, const double *dt,
                             const double *in_r, const double *in_s,
                             const double *in_t, double *out) {
-  if(!(ind < dg_np))
-    return;
   const double *dr_mat = &dr[(p - 1) * DG_NP * DG_NP];
   const double *ds_mat = &ds[(p - 1) * DG_NP * DG_NP];
   const double *dt_mat = &dt[(p - 1) * DG_NP * DG_NP];
@@ -89,24 +85,25 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
   const double *__restrict arg22,
   double *arg23,
   int   set_size ) {
-  __shared__ double ux_shared[NUM_CELLS * DG_NP];
-  __shared__ double uy_shared[NUM_CELLS * DG_NP];
-  __shared__ double uz_shared[NUM_CELLS * DG_NP];
-  __shared__ double tmp_x_shared[NUM_CELLS * DG_NP];
-  __shared__ double tmp_y_shared[NUM_CELLS * DG_NP];
-  __shared__ double tmp_z_shared[NUM_CELLS * DG_NP];
+  const int np = (p + 1) * (p + 2) * (p + 3) / 6;
+  const int npf = (p + 1) * (p + 2) / 2;
+
+  __shared__ double ux_shared[NUM_CELLS * np];
+  __shared__ double uy_shared[NUM_CELLS * np];
+  __shared__ double uz_shared[NUM_CELLS * np];
+  __shared__ double tmp_x_shared[NUM_CELLS * np];
+  __shared__ double tmp_y_shared[NUM_CELLS * np];
+  __shared__ double tmp_z_shared[NUM_CELLS * np];
 
   //process set elements
-  for (int n = threadIdx.x + blockIdx.x * blockDim.x; n - threadIdx.x < set_size * DG_NP; n += blockDim.x * gridDim.x){
-    const int node_id = n % DG_NP;
-    const int cell_id = n / DG_NP;
-    const int local_cell_id = (n / DG_NP) - ((n - threadIdx.x) / DG_NP);
-    const int start_ind = ((n - threadIdx.x) / DG_NP) * DG_NP;
-    const int num_elem  = min((n - threadIdx.x + blockDim.x) / DG_NP, set_size) - ((n - threadIdx.x) / DG_NP) + 1;
+  for (int n = threadIdx.x + blockIdx.x * blockDim.x; n - threadIdx.x < set_size * np; n += blockDim.x * gridDim.x){
+    const int node_id = n % np;
+    const int cell_id = n / np;
+    const int local_cell_id = (n / np) - ((n - threadIdx.x) / np);
+    const int start_ind = ((n - threadIdx.x) / np) * DG_NP;
+    const int num_elem  = min((n - threadIdx.x + blockDim.x) / np, set_size) - ((n - threadIdx.x) / np) + 1;
     //user-supplied kernel call
-    const int np  = (p + 1) * (p + 2) * (p + 3) / 6;
-    const int npf = (p + 1) * (p + 2) / 2;
-    if(n < set_size * DG_NP)
+    if(n < set_size * np)
       _pmf_3d_mult_cells_part1_gpu<p,np,npf>(node_id,
                                arg2,
                                arg1,
@@ -118,23 +115,23 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
                                arg20 + cell_id * DG_NP,
                                arg21 + cell_id * DG_NP,
                                arg22 + cell_id * DG_NP,
-                               tmp_x_shared + local_cell_id * DG_NP,
-                               tmp_y_shared + local_cell_id * DG_NP,
-                               tmp_z_shared + local_cell_id * DG_NP,
+                               tmp_x_shared + local_cell_id * np,
+                               tmp_y_shared + local_cell_id * np,
+                               tmp_z_shared + local_cell_id * np,
                                arg23 + cell_id * DG_NP);
     __syncthreads();
-    for(int i = threadIdx.x; i < num_elem * DG_NP; i += blockDim.x) {
-      int curr_cell = i / DG_NP + (n - threadIdx.x) / DG_NP;
+    for(int i = threadIdx.x; i < num_elem * np; i += blockDim.x) {
+      int curr_cell = i / np + (n - threadIdx.x) / np;
       ux_shared[i] = *(arg6 + curr_cell) * tmp_x_shared[i] + *(arg9 + curr_cell) * tmp_y_shared[i] + *(arg12 + curr_cell) * tmp_z_shared[i];
       uy_shared[i] = *(arg7 + curr_cell) * tmp_x_shared[i] + *(arg10 + curr_cell) * tmp_y_shared[i] + *(arg13 + curr_cell) * tmp_z_shared[i];
       uz_shared[i] = *(arg8 + curr_cell) * tmp_x_shared[i] + *(arg11 + curr_cell) * tmp_y_shared[i] + *(arg14 + curr_cell) * tmp_z_shared[i];
     }
     __syncthreads();
-    if(n < set_size * DG_NP)
+    if(n < set_size * np)
       _pmf_3d_mult_cells_part2_gpu<p,np>(node_id, arg3, arg4, arg5,
-                                  ux_shared + local_cell_id * DG_NP,
-                                  uy_shared + local_cell_id * DG_NP,
-                                  uz_shared + local_cell_id * DG_NP,
+                                  ux_shared + local_cell_id * np,
+                                  uy_shared + local_cell_id * np,
+                                  uz_shared + local_cell_id * np,
                                   arg23 + cell_id * DG_NP);
   }
 }
@@ -241,13 +238,14 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
     mvConstArraysToDevice(consts_bytes);
 
     //set CUDA execution parameters
-    const int nthread = (256 /  DG_NP) * DG_NP;
-    const int nblocks = 200 < (set->size * DG_NP) / nthread + 1 ? 200 : (set->size * DG_NP) / nthread + 1;
-    const int num_cells = (nthread / DG_NP) + 1;
+    const int np  = (order + 1) * (order + 2) * (order + 3) / 6;
+    const int nthread = (256 /  np) * np;
+    const int nblocks = 200 < (set->size * np) / nthread + 1 ? 200 : (set->size * np) / nthread + 1;
+    // const int num_cells = (nthread / DG_NP) + 1;
 
     switch(order) {
       case 1:
-        _op_cuda_pmf_3d_mult_cells_merged<1,num_cells><<<nblocks,nthread>>>(
+        _op_cuda_pmf_3d_mult_cells_merged<1,(256 / 4) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (double *) arg1.data_d,
           (double *) arg2.data_d,
@@ -275,7 +273,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
           set->size );
         break;
       case 2:
-        _op_cuda_pmf_3d_mult_cells_merged<2,num_cells><<<nblocks,nthread>>>(
+        _op_cuda_pmf_3d_mult_cells_merged<2,(256 / 10) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (double *) arg1.data_d,
           (double *) arg2.data_d,
@@ -304,7 +302,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
         break;
       case 3:
         timer->startTimer("fpmf_cells_merged 3rd order");
-        _op_cuda_pmf_3d_mult_cells_merged<3,num_cells><<<nblocks,nthread>>>(
+        _op_cuda_pmf_3d_mult_cells_merged<3,(256 / 20) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (double *) arg1.data_d,
           (double *) arg2.data_d,
@@ -334,7 +332,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
         timer->endTimer("fpmf_cells_merged 3rd order");
         break;
       case 4:
-        _op_cuda_pmf_3d_mult_cells_merged<4,num_cells><<<nblocks,nthread>>>(
+        _op_cuda_pmf_3d_mult_cells_merged<4,(256 / 35) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (double *) arg1.data_d,
           (double *) arg2.data_d,
@@ -362,7 +360,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
           set->size );
         break;
       case 5:
-        _op_cuda_pmf_3d_mult_cells_merged<5,num_cells><<<nblocks,nthread>>>(
+        _op_cuda_pmf_3d_mult_cells_merged<5,(256 / 56) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (double *) arg1.data_d,
           (double *) arg2.data_d,
