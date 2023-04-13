@@ -40,6 +40,7 @@ private:
   void advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
                            op_dat u_out, op_dat v_out, op_dat w_out,
                            const double t);
+  DG_FP max_vel();
   // void shock_capturing();
 
   DGMesh3D *mesh;

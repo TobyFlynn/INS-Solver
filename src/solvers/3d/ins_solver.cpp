@@ -241,7 +241,7 @@ void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
   h = 1.0 / h;
-  sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * refVel);
+  sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
   dt = sub_cycle_dt;
   if(resuming)
     dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
@@ -298,7 +298,20 @@ void INSSolver3D::step() {
   a1 = -0.5;
   b0 = 2.0;
   b1 = -1.0;
+  sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
   dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+}
+
+DG_FP INSSolver3D::max_vel() {
+  DG_FP max_vel_tmp = 0.0;
+
+  op_par_loop(ins_3d_max_vel, "ins_3d_max_vel", mesh->cells,
+              op_arg_gbl(&max_vel_tmp, 1, DG_FP_STR, OP_MAX)
+              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+
+  return std::max(1.0, sqrt(max_vel_tmp));
 }
 
 void INSSolver3D::advection() {
