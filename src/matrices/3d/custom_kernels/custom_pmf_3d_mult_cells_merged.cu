@@ -7,8 +7,8 @@
 template<int p, int dg_np, int dg_npf>
 __device__ void _pmf_3d_mult_cells_part1_gpu(const int ind, const double *mMat, const double *eMat,
                       const double *J, const double *lx, const double *ly, const double *lz,
-                      const double *ux, const double *uy, const double *uz,
-                      double *outx, double *outy, double *outz) {
+                      const double *out_tmp, const double *ux, const double *uy, const double *uz,
+                      double *outx, double *outy, double *outz, double *out) {
   const double *mmat_mat = &mMat[(p - 1) * DG_NP * DG_NP];
   const double *emat_mat = &eMat[(p - 1) * DG_NUM_FACES * DG_NPF * DG_NP];
 
@@ -24,40 +24,37 @@ __device__ void _pmf_3d_mult_cells_part1_gpu(const int ind, const double *mMat, 
   outx_t *= *J;
   outy_t *= *J;
   outz_t *= *J;
+  double out_t = 0.0;
   for(int j = 0; j < DG_NUM_FACES * dg_npf; j++) {
     int mat_ind = DG_MAT_IND(ind, j, dg_np, DG_NUM_FACES * dg_npf);
     outx_t += emat_mat[mat_ind] * lx[j];
     outy_t += emat_mat[mat_ind] * ly[j];
     outz_t += emat_mat[mat_ind] * lz[j];
+    out_t  += emat_mat[mat_ind] * out_tmp[j];
   }
   outx[ind] = outx_t;
   outy[ind] = outy_t;
   outz[ind] = outz_t;
+  out[ind] = out_t;
 }
 
-template<int p, int dg_np, int dg_npf>
+template<int p, int dg_np>
 __device__ void _pmf_3d_mult_cells_part2_gpu(const int ind, const double *dr,
-                            const double *ds, const double *dt, const double *eMat,
+                            const double *ds, const double *dt,
                             const double *in_r, const double *in_s,
-                            const double *in_t, const double *out_tmp, double *out) {
+                            const double *in_t, double *out) {
   const double *dr_mat = &dr[(p - 1) * DG_NP * DG_NP];
   const double *ds_mat = &ds[(p - 1) * DG_NP * DG_NP];
   const double *dt_mat = &dt[(p - 1) * DG_NP * DG_NP];
-  const double *emat_mat = &eMat[(p - 1) * DG_NUM_FACES * DG_NPF * DG_NP];
 
   double tmp = 0.0;
-  for(int j = 0; j < DG_NUM_FACES * dg_npf; j++) {
-    int mat_ind = DG_MAT_IND(ind, j, dg_np, DG_NUM_FACES * dg_npf);
-    tmp += emat_mat[mat_ind] * out_tmp[j];
-  }
-
   for(int n = 0; n < dg_np; n++) {
     int mat_ind = DG_MAT_IND(n, ind, dg_np, dg_np);
     tmp += dr_mat[mat_ind] * in_r[n];
     tmp += ds_mat[mat_ind] * in_s[n];
     tmp += dt_mat[mat_ind] * in_t[n];
   }
-  out[ind] = tmp;
+  out[ind] += tmp;
 }
 
 // CUDA kernel function
@@ -136,12 +133,14 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
                                lx_shared + local_cell_id * DG_NUM_FACES * npf,
                                ly_shared + local_cell_id * DG_NUM_FACES * npf,
                                lz_shared + local_cell_id * DG_NUM_FACES * npf,
+                               lo_shared + local_cell_id * DG_NUM_FACES * npf,
                                ux_shared + local_cell_id * np,
                                uy_shared + local_cell_id * np,
                                uz_shared + local_cell_id * np,
                                tmp_x_shared + local_cell_id * np,
                                tmp_y_shared + local_cell_id * np,
-                               tmp_z_shared + local_cell_id * np);
+                               tmp_z_shared + local_cell_id * np,
+                               arg23 + cell_id * DG_NP);
     __syncthreads();
     for(int i = threadIdx.x; i < num_elem * np; i += blockDim.x) {
       int curr_cell = i / np + (n - threadIdx.x) / np;
@@ -154,11 +153,10 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
     }
     __syncthreads();
     if(n < set_size * np)
-      _pmf_3d_mult_cells_part2_gpu<p,np,npf>(node_id, arg3, arg4, arg5, arg1,
+      _pmf_3d_mult_cells_part2_gpu<p,np>(node_id, arg3, arg4, arg5,
                                   tmp_x_shared + local_cell_id * np,
                                   tmp_y_shared + local_cell_id * np,
                                   tmp_z_shared + local_cell_id * np,
-                                  lo_shared + local_cell_id * DG_NUM_FACES * npf,
                                   arg23 + cell_id * DG_NP);
   }
 }
