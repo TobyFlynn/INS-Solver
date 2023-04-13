@@ -92,6 +92,11 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
   __shared__ double uy_shared[NUM_CELLS * np];
   __shared__ double uz_shared[NUM_CELLS * np];
 
+  __shared__ double lx_shared[NUM_CELLS * npf * 4];
+  __shared__ double ly_shared[NUM_CELLS * npf * 4];
+  __shared__ double lz_shared[NUM_CELLS * npf * 4];
+  __shared__ double lo_shared[NUM_CELLS * npf * 4];
+
   __shared__ double tmp_x_shared[NUM_CELLS * np];
   __shared__ double tmp_y_shared[NUM_CELLS * np];
   __shared__ double tmp_z_shared[NUM_CELLS * np];
@@ -110,6 +115,14 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
       uy_shared[i] = arg21[curr_cell * DG_NP + curr_node];
       uz_shared[i] = arg22[curr_cell * DG_NP + curr_node];
     }
+    for(int i = threadIdx.x; i < num_elem * npf * 4; i += blockDim.x) {
+      int curr_cell = i / (npf * 4) + (n - threadIdx.x) / np;
+      int curr_node = i % (npf * 4);
+      lx_shared[i] = arg16[curr_cell * DG_NPF * 4 + curr_node];
+      ly_shared[i] = arg17[curr_cell * DG_NPF * 4 + curr_node];
+      lz_shared[i] = arg18[curr_cell * DG_NPF * 4 + curr_node];
+      lo_shared[i] = arg19[curr_cell * DG_NPF * 4 + curr_node];
+    }
     __syncthreads();
     //user-supplied kernel call
     if(n < set_size * np)
@@ -117,10 +130,10 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
                                arg2,
                                arg1,
                                arg15 + cell_id,
-                               arg16 + cell_id * DG_NUM_FACES * DG_NPF,
-                               arg17 + cell_id * DG_NUM_FACES * DG_NPF,
-                               arg18 + cell_id * DG_NUM_FACES * DG_NPF,
-                               arg19 + cell_id * DG_NUM_FACES * DG_NPF,
+                               lx_shared + local_cell_id * DG_NUM_FACES * npf,
+                               ly_shared + local_cell_id * DG_NUM_FACES * npf,
+                               lz_shared + local_cell_id * DG_NUM_FACES * npf,
+                               lo_shared + local_cell_id * DG_NUM_FACES * npf,
                                ux_shared + local_cell_id * np,
                                uy_shared + local_cell_id * np,
                                uz_shared + local_cell_id * np,
