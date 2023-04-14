@@ -448,7 +448,7 @@ void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
   timer->startTimer("PMultigridPoissonSolver - Relaxation - Mult");
   matrix->mult(u_dat[level], RES);
   timer->endTimer("PMultigridPoissonSolver - Relaxation - Mult");
-  #ifdef OP2_DG_CUDA
+  #if defined(OP2_DG_CUDA) && !defined(USE_OP2_KERNELS)
   custom_kernel_p_multigrid_relaxation_chebyshev_0(orders[level], "p_multigrid_relaxation_chebyshev_0", mesh->cells,
               op_arg_gbl(&invTheta, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
@@ -467,7 +467,7 @@ void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
   #endif
 
   for(int i = 0; i < 2; i++) {
-    #ifdef OP2_DG_CUDA
+    #if defined(OP2_DG_CUDA) && !defined(USE_OP2_KERNELS)
     custom_kernel_p_multigrid_relaxation_chebyshev_1(orders[level], "p_multigrid_relaxation_chebyshev_1", mesh->cells,
                 op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(d, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -482,7 +482,7 @@ void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
     timer->startTimer("PMultigridPoissonSolver - Relaxation - Mult");
     matrix->mult(d, Ad);
     timer->endTimer("PMultigridPoissonSolver - Relaxation - Mult");
-    #ifdef OP2_DG_CUDA
+    #if defined(OP2_DG_CUDA) && !defined(USE_OP2_KERNELS)
     custom_kernel_p_multigrid_relaxation_chebyshev_2(orders[level], "p_multigrid_relaxation_chebyshev_2", mesh->cells,
                 op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(Ad, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -500,7 +500,7 @@ void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
     DG_FP rhoDivDelta = 2.0 * rho_np1 / delta;
     DG_FP tmp = rho_np1 * rho_n;
 
-    #ifdef OP2_DG_CUDA
+    #if defined(OP2_DG_CUDA) && !defined(USE_OP2_KERNELS)
     custom_kernel_p_multigrid_relaxation_chebyshev_3(orders[level], "p_multigrid_relaxation_chebyshev_3", mesh->cells,
                 op_arg_gbl(&rhoDivDelta, 1, DG_FP_STR, OP_READ),
                 op_arg_gbl(&tmp, 1, DG_FP_STR, OP_READ),
@@ -519,7 +519,7 @@ void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
     rho_n = rho_np1;
   }
 
-  #ifdef OP2_DG_CUDA
+  #if defined(OP2_DG_CUDA) && !defined(USE_OP2_KERNELS)
   custom_kernel_p_multigrid_relaxation_chebyshev_1(orders[level], "p_multigrid_relaxation_chebyshev_1", mesh->cells,
               op_arg_dat(mesh->order,  -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(d, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),

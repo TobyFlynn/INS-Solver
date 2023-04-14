@@ -134,7 +134,7 @@ void PETScJacobiSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
   // PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
   PETScUtils::copy_vec_to_dat(in, in_d);
 
-  #ifdef OP2_DG_CUDA
+  #if defined(OP2_DG_CUDA) && !defined(USE_OP2_KERNELS)
   custom_kernel_petsc_pre_jacobi(DG_ORDER, "petsc_pre_jacobi", mesh->cells,
               op_arg_dat(diagMat->diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
