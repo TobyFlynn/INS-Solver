@@ -394,7 +394,7 @@ void PMultigridPoissonSolver::setRandomVector(op_dat vec) {
     rand_vec[i] = dist(eng);
   }
 
-  DG_FP *vec_ptr = getOP2PtrHost(vec, RAND_VEC_SIZE);
+  DG_FP *vec_ptr = getOP2PtrHost(vec, OP_WRITE);
 
   #pragma omp parallel for
   for(int i = 0; i < vec->set->size * vec->dim; i++) {
