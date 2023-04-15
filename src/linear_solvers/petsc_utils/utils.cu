@@ -14,6 +14,16 @@ void get_num_nodes_petsc_utils(const int N, int *Np, int *Nfp) {
   #endif
 }
 
+__global__ void aos_to_soa(const int set_size, const DG_FP *in, DG_FP *out) {
+  const int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if(tid >= set_size * DG_NP) return;
+  const int in_ind = tid;
+  const int node = tid % DG_NP;
+  const int cell = tid / DG_NP;
+  const int out_ind = cell + node * set_size;
+  out[out_ind] = in[in_ind];
+}
+
 // Copy PETSc vec array to OP2 dat
 void PETScUtils::copy_vec_to_dat(op_dat dat, const DG_FP *dat_d) {
   timer->startTimer("PETScUtils - copy_vec_to_dat");
@@ -22,10 +32,24 @@ void PETScUtils::copy_vec_to_dat(op_dat dat, const DG_FP *dat_d) {
   };
   op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
 
-  cudaMemcpy(dat->data_d, dat_d, dat->set->size * DG_NP * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
+  // cudaMemcpy(dat->data_d, dat_d, dat->set->size * DG_NP * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
+
+  const int nthread = 512;
+  const int nblocks = dat->set->size * DG_NP / nthread + 1;
+  aos_to_soa<<<nblocks,nthread>>>(dat->set->size, dat_d, (DG_FP *)dat->data_d);
 
   op_mpi_set_dirtybit_cuda(1, copy_args);
   timer->endTimer("PETScUtils - copy_vec_to_dat");
+}
+
+__global__ void soa_to_aos(const int set_size, const DG_FP *in, DG_FP *out) {
+  const int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if(tid >= set_size * DG_NP) return;
+  const int in_ind = tid;
+  const int node = tid / set_size;
+  const int cell = tid % set_size;
+  const int out_ind = cell * DG_NP + node;
+  out[out_ind] = in[in_ind];
 }
 
 // Copy OP2 dat to PETSc vec array
@@ -36,7 +60,11 @@ void PETScUtils::copy_dat_to_vec(op_dat dat, DG_FP *dat_d) {
   };
   op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
 
-  cudaMemcpy(dat_d, dat->data_d , dat->set->size * DG_NP * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
+  // cudaMemcpy(dat_d, dat->data_d , dat->set->size * DG_NP * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
+
+  const int nthread = 512;
+  const int nblocks = dat->set->size * DG_NP / nthread + 1;
+  soa_to_aos<<<nblocks,nthread>>>(dat->set->size, (DG_FP *)dat->data_d, dat_d);
 
   op_mpi_set_dirtybit_cuda(1, copy_args);
   timer->endTimer("PETScUtils - copy_dat_to_vec");
@@ -226,6 +254,16 @@ void PETScUtils::store_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh *mesh) {
   timer->endTimer("PETScUtils - store_vec_p_adapt");
 }
 
+__global__ void aos_to_soa_coarse(const int set_size, const DG_FP *in, DG_FP *out) {
+  const int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if(tid >= set_size * DG_NP_N1) return;
+  const int in_ind = tid;
+  const int node = tid % DG_NP_N1;
+  const int cell = tid / DG_NP_N1;
+  const int out_ind = cell + node * set_size;
+  out[out_ind] = in[in_ind];
+}
+
 // Copy PETSc vec array to OP2 dat
 void PETScUtils::copy_vec_to_dat_coarse(op_dat dat, const DG_FP *dat_d) {
   timer->startTimer("PETScUtils - copy_vec_to_dat_coarse");
@@ -234,10 +272,24 @@ void PETScUtils::copy_vec_to_dat_coarse(op_dat dat, const DG_FP *dat_d) {
   };
   op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
 
-  cudaMemcpy2D(dat->data_d, DG_NP * sizeof(DG_FP), dat_d, DG_NP_N1 * sizeof(DG_FP), DG_NP_N1 * sizeof(DG_FP), dat->set->size, cudaMemcpyDeviceToDevice);
+  // cudaMemcpy2D(dat->data_d, DG_NP * sizeof(DG_FP), dat_d, DG_NP_N1 * sizeof(DG_FP), DG_NP_N1 * sizeof(DG_FP), dat->set->size, cudaMemcpyDeviceToDevice);
+
+  const int nthread = 512;
+  const int nblocks = dat->set->size * DG_NP_N1 / nthread + 1;
+  aos_to_soa_coarse<<<nblocks,nthread>>>(dat->set->size, dat_d, (DG_FP *)dat->data_d);
 
   op_mpi_set_dirtybit_cuda(1, copy_args);
   timer->endTimer("PETScUtils - copy_vec_to_dat_coarse");
+}
+
+__global__ void soa_to_aos_coarse(const int set_size, const DG_FP *in, DG_FP *out) {
+  const int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if(tid >= set_size * DG_NP_N1) return;
+  const int in_ind = tid;
+  const int node = tid / set_size;
+  const int cell = tid % set_size;
+  const int out_ind = cell * DG_NP_N1 + node;
+  out[out_ind] = in[in_ind];
 }
 
 // Copy OP2 dat to PETSc vec array
@@ -248,7 +300,11 @@ void PETScUtils::copy_dat_to_vec_coarse(op_dat dat, DG_FP *dat_d) {
   };
   op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
 
-  cudaMemcpy2D(dat_d, DG_NP_N1 * sizeof(DG_FP), dat->data_d, DG_NP * sizeof(DG_FP), DG_NP_N1 * sizeof(DG_FP), dat->set->size, cudaMemcpyDeviceToDevice);
+  // cudaMemcpy2D(dat_d, DG_NP_N1 * sizeof(DG_FP), dat->data_d, DG_NP * sizeof(DG_FP), DG_NP_N1 * sizeof(DG_FP), dat->set->size, cudaMemcpyDeviceToDevice);
+
+  const int nthread = 512;
+  const int nblocks = dat->set->size * DG_NP_N1 / nthread + 1;
+  aos_to_soa_coarse<<<nblocks,nthread>>>(dat->set->size, (DG_FP *)dat->data_d, dat_d);
 
   op_mpi_set_dirtybit_cuda(1, copy_args);
   timer->endTimer("PETScUtils - copy_dat_to_vec");

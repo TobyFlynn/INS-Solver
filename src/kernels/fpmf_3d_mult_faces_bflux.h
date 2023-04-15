@@ -11,26 +11,45 @@ inline void fpmf_3d_mult_faces_bflux(const int *p, const int *faceL,
   const int *fmask  = &FMASK[(*p - 1) * 4 * DG_NPF];
   const int faceInd = *faceL ? 0 : 1;
 
-  const int findL = faceNums[faceInd] * dg_npf;
-  const int *fmaskL = &fmask[faceNums[faceInd] * dg_npf];
-  const int *fmaskR = *faceL ? fmaskR_corrected : fmaskL_corrected;
+  const int faceNum = faceNums[faceInd];
+  const int findL = faceNum * dg_npf;
+  const int *fmaskL = &fmask[faceNum * dg_npf];
 
   const DG_FP int_fact = 0.5 * sJ[faceInd];
 
-  for(int j = 0; j < dg_npf; j++) {
-    const int fmaskIndL = fmaskL[j];
-    const int fmaskIndR = fmaskR[j];
-    const DG_FP diffL_u = in[0][fmaskIndL] - in[1][fmaskIndR];
-    const DG_FP diffL_u_x = nx[faceInd] * (in_x[1][fmaskIndR] + in_x[0][fmaskIndL]);
-    const DG_FP diffL_u_y = ny[faceInd] * (in_y[1][fmaskIndR] + in_y[0][fmaskIndL]);
-    const DG_FP diffL_u_z = nz[faceInd] * (in_z[1][fmaskIndR] + in_z[0][fmaskIndL]);
-    const DG_FP diffL_u_grad = diffL_u_x + diffL_u_y + diffL_u_z;
+  if(*faceL) {
+    for(int j = 0; j < dg_npf; j++) {
+      const int fmaskIndL = fmaskL[j];
+      const int fmaskIndR = fmaskR_corrected[j];
+      const DG_FP diffL_u = in[0][fmaskIndL] - in[1][fmaskIndR];
+      const DG_FP diffL_u_x = nx[faceInd] * (in_x[1][fmaskIndR] + in_x[0][fmaskIndL]);
+      const DG_FP diffL_u_y = ny[faceInd] * (in_y[1][fmaskIndR] + in_y[0][fmaskIndL]);
+      const DG_FP diffL_u_z = nz[faceInd] * (in_z[1][fmaskIndR] + in_z[0][fmaskIndL]);
+      const DG_FP diffL_u_grad = diffL_u_x + diffL_u_y + diffL_u_z;
 
-    const int indL = findL + j;
-    out[indL] += int_fact * (*tau * diffL_u - diffL_u_grad);
-    const DG_FP l_tmpL = int_fact * factor[fmaskIndL] * -diffL_u;
-    l_x[indL] += nx[faceInd] * l_tmpL;
-    l_y[indL] += ny[faceInd] * l_tmpL;
-    l_z[indL] += nz[faceInd] * l_tmpL;
+      const int indL = findL + j;
+      out[indL] += int_fact * (*tau * diffL_u - diffL_u_grad);
+      const DG_FP l_tmpL = int_fact * factor[fmaskIndL] * -diffL_u;
+      l_x[indL] += nx[faceInd] * l_tmpL;
+      l_y[indL] += ny[faceInd] * l_tmpL;
+      l_z[indL] += nz[faceInd] * l_tmpL;
+    }
+  } else {
+    for(int j = 0; j < dg_npf; j++) {
+      const int fmaskIndL = fmaskL[j];
+      const int fmaskIndR = fmaskL_corrected[j];
+      const DG_FP diffL_u = in[0][fmaskIndL] - in[1][fmaskIndR];
+      const DG_FP diffL_u_x = nx[faceInd] * (in_x[1][fmaskIndR] + in_x[0][fmaskIndL]);
+      const DG_FP diffL_u_y = ny[faceInd] * (in_y[1][fmaskIndR] + in_y[0][fmaskIndL]);
+      const DG_FP diffL_u_z = nz[faceInd] * (in_z[1][fmaskIndR] + in_z[0][fmaskIndL]);
+      const DG_FP diffL_u_grad = diffL_u_x + diffL_u_y + diffL_u_z;
+
+      const int indL = findL + j;
+      out[indL] += int_fact * (*tau * diffL_u - diffL_u_grad);
+      const DG_FP l_tmpL = int_fact * factor[fmaskIndL] * -diffL_u;
+      l_x[indL] += nx[faceInd] * l_tmpL;
+      l_y[indL] += ny[faceInd] * l_tmpL;
+      l_z[indL] += nz[faceInd] * l_tmpL;
+    }
   }
 }

@@ -12,23 +12,18 @@ inline void fpmf_3d_mult_faces_flux(const int *p, const int *faceNums,
   const int *fmask  = &FMASK[(*p - 1) * 4 * DG_NPF];
 
   for(int i = 0; i < DG_NUM_FACES; i++) {
-    const int findL = faceNums[2 * i] * dg_npf;
-    const int *fmaskL = &fmask[faceNums[2 * i] * dg_npf];
-    const int *fmaskR = &fmaskF[i * dg_npf];
-    const DG_FP *inR = in_p[i];
-    const DG_FP *in_xR = in_x_p[i];
-    const DG_FP *in_yR = in_y_p[i];
-    const DG_FP *in_zR = in_z_p[i];
+    const int faceNum = faceNums[2 * i];
+    const int findL = faceNum * dg_npf;
+    const int *fmaskL = &fmask[faceNum * dg_npf];
     const DG_FP int_fact = 0.5 * sJ[i];
 
-    #pragma omp simd
     for(int j = 0; j < dg_npf; j++) {
       const int fmaskIndL = fmaskL[j];
-      const int fmaskIndR = fmaskR[j];
-      const DG_FP diffL_u = in[fmaskIndL] - inR[fmaskIndR];
-      const DG_FP diffL_u_x = nx[i] * (in_xR[fmaskIndR] + in_x[fmaskIndL]);
-      const DG_FP diffL_u_y = ny[i] * (in_yR[fmaskIndR] + in_y[fmaskIndL]);
-      const DG_FP diffL_u_z = nz[i] * (in_zR[fmaskIndR] + in_z[fmaskIndL]);
+      const int fmaskIndR = fmaskF[i * dg_npf + j];
+      const DG_FP diffL_u = in[fmaskIndL] - in_p[i][fmaskIndR];
+      const DG_FP diffL_u_x = nx[i] * (in_x_p[i][fmaskIndR] + in_x[fmaskIndL]);
+      const DG_FP diffL_u_y = ny[i] * (in_y_p[i][fmaskIndR] + in_y[fmaskIndL]);
+      const DG_FP diffL_u_z = nz[i] * (in_z_p[i][fmaskIndR] + in_z[fmaskIndL]);
       const DG_FP diffL_u_grad = diffL_u_x + diffL_u_y + diffL_u_z;
 
       const int indL = findL + j;

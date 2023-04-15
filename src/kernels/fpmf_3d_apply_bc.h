@@ -47,9 +47,11 @@ inline void fpmf_3d_apply_bc(const int *p, const DG_FP *dr, const DG_FP *ds, con
       }
     }
 
-    DG_FP gtau = fact[fmaskB[0]];
+    const int fmask_ind_0 = fmaskB[0];
+    DG_FP gtau = fact[fmask_ind_0];
     for(int i = 1; i < dg_npf; i++) {
-      gtau = fmax(gtau, fact[fmaskB[i]]);
+      const int fmask_ind = fmaskB[i];
+      gtau = fmax(gtau, fact[fmask_ind]);
     }
     gtau *= 2.0 * (tau_order + 1) * (tau_order + 2) * *fscale;
 
@@ -57,8 +59,9 @@ inline void fpmf_3d_apply_bc(const int *p, const DG_FP *dr, const DG_FP *ds, con
     for(int i = 0; i < dg_np; i++) {
       tmp[i] = 0.0;
       for(int j = 0; j < dg_npf; j++) {
+        const int fmask_ind = fmaskB[j];
         // int mm_ind = i + fmaskB[j] * dg_np;
-        int mm_ind = DG_MAT_IND(i, fmaskB[j], dg_np, dg_np);
+        int mm_ind = DG_MAT_IND(i, fmask_ind, dg_np, dg_np);
         rhs[i] += gtau * *sJ * mmF[mm_ind] * bc[j];
         tmp[i] += *sJ * mmF[mm_ind] * bc[j];
       }
@@ -76,7 +79,8 @@ inline void fpmf_3d_apply_bc(const int *p, const DG_FP *dr, const DG_FP *ds, con
     for(int i = 0; i < dg_np; i++) {
       for(int j = 0; j < dg_npf; j++) {
         // int mm_ind = i + fmaskB[j] * dg_np;
-        int mm_ind = DG_MAT_IND(i, fmaskB[j], dg_np, dg_np);
+        const int fmask_ind = fmaskB[j];
+        int mm_ind = DG_MAT_IND(i, fmask_ind, dg_np, dg_np);
         rhs[i] += *sJ * mmF[mm_ind] * bc[j];
       }
     }

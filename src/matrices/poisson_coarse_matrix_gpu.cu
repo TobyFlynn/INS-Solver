@@ -95,7 +95,13 @@ void PoissonCoarseMatrix::setPETScMatrix() {
       idxn[n] = currentCol + n;
     }
 
-    MatSetValues(pMat, DG_NP_N1, idxm, DG_NP_N1, idxn, &op1_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    DG_FP tmp_op1[DG_NP_N1 * DG_NP_N1];
+    for(int n = 0; n < DG_NP_N1 * DG_NP_N1; n++) {
+      tmp_op1[n] = op1_data[i + n * setSize];
+    }
+
+    // MatSetValues(pMat, DG_NP_N1, idxm, DG_NP_N1, idxn, &op1_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    MatSetValues(pMat, DG_NP_N1, idxm, DG_NP_N1, idxn, tmp_op1, INSERT_VALUES);
   }
   timer->endTimer("setPETScMatrix - Set values op1");
 
@@ -137,8 +143,16 @@ void PoissonCoarseMatrix::setPETScMatrix() {
       idxr[n] = rightRow + n;
     }
 
-    MatSetValues(pMat, DG_NP_N1, idxl, DG_NP_N1, idxr, &op2L_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
-    MatSetValues(pMat, DG_NP_N1, idxr, DG_NP_N1, idxl, &op2R_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    DG_FP tmp_op2_l[DG_NP_N1 * DG_NP_N1], tmp_op2_r[DG_NP_N1 * DG_NP_N1];
+    for(int n = 0; n < DG_NP_N1 * DG_NP_N1; n++) {
+      tmp_op2_l[n] = op2L_data[i + n * setSize];
+      tmp_op2_r[n] = op2R_data[i + n * setSize];
+    }
+
+    // MatSetValues(pMat, DG_NP_N1, idxl, DG_NP_N1, idxr, &op2L_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    // MatSetValues(pMat, DG_NP_N1, idxr, DG_NP_N1, idxl, &op2R_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    MatSetValues(pMat, DG_NP_N1, idxl, DG_NP_N1, idxr, tmp_op2_l, INSERT_VALUES);
+    MatSetValues(pMat, DG_NP_N1, idxr, DG_NP_N1, idxl, tmp_op2_r, INSERT_VALUES);
   }
   timer->endTimer("setPETScMatrix - Set values op2");
 

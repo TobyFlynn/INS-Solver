@@ -41,11 +41,13 @@ inline void factor_poisson_matrix_3d_op2_partial_diag(const int **order,
   else
     mmFR = mmF3_mat;
 
-  const int findL = faceNum[0] * dg_npf;
-  const int findR = faceNum[1] * dg_npf;
+  const int faceNumL = faceNum[0];
+  const int faceNumR = faceNum[1];
+  const int findL = faceNumL * dg_npf;
+  const int findR = faceNumR * dg_npf;
   const int *fmask  = &FMASK[(p - 1) * 4 * DG_NPF];
-  const int *fmaskL = &fmask[faceNum[0] * dg_npf];
-  const int *fmaskR = &fmask[faceNum[1] * dg_npf];
+  const int *fmaskL = &fmask[faceNumL * dg_npf];
+  const int *fmaskR = &fmask[faceNumR * dg_npf];
 
   DG_FP D[DG_NP * DG_NP];
   const DG_FP r_fact_0 = nx[0] * rx[0][0] + ny[0] * ry[0][0] + nz[0] * rz[0][0];
@@ -63,7 +65,9 @@ inline void factor_poisson_matrix_3d_op2_partial_diag(const int **order,
 
   DG_FP gtau = 0.0;
   for(int i = 0; i < dg_npf; i++) {
-    DG_FP tmp = 2.0 * (tau_order + 1) * (tau_order + 2) * fmax(fscale[0] * factor[0][fmaskL[i]], fscale[1] * factor[1][fmaskR_corrected[i]]);
+    const int fmaskL_ind = fmaskL[i];
+    const int fmaskR_ind = fmaskR_corrected[i];
+    DG_FP tmp = 2.0 * (tau_order + 1) * (tau_order + 2) * fmax(fscale[0] * factor[0][fmaskL_ind], fscale[1] * factor[1][fmaskR_ind]);
     gtau = fmax(gtau, tmp);
   }
 
