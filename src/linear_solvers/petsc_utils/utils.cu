@@ -20,7 +20,9 @@ void PETScUtils::copy_vec_to_dat(op_dat dat, const DG_FP *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE)
   };
-  op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
+  // op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
+  op_mpi_halo_exchanges_grouped(dat->set, 1, copy_args, 2);
+  op_mpi_wait_all_grouped(1, copy_args, 2);
 
   cudaMemcpy(dat->data_d, dat_d, dat->set->size * DG_NP * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
 
@@ -34,7 +36,9 @@ void PETScUtils::copy_dat_to_vec(op_dat dat, DG_FP *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ)
   };
-  op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
+  // op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
+  op_mpi_halo_exchanges_grouped(dat->set, 1, copy_args, 2);
+  op_mpi_wait_all_grouped(1, copy_args, 2);
 
   cudaMemcpy(dat_d, dat->data_d , dat->set->size * DG_NP * sizeof(DG_FP), cudaMemcpyDeviceToDevice);
 
@@ -90,7 +94,9 @@ void PETScUtils::copy_vec_to_dat_p_adapt(op_dat dat, const DG_FP *dat_d, DGMesh 
     op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges_cuda(dat->set, 2, copy_args);
+  // op_mpi_halo_exchanges_cuda(dat->set, 2, copy_args);
+  op_mpi_halo_exchanges_grouped(dat->set, 2, copy_args, 2);
+  op_mpi_wait_all_grouped(2, copy_args, 2);
 
   int setSize = dat->set->size;
   int *tempOrder = (int *)malloc(setSize * sizeof(int));
@@ -145,7 +151,9 @@ void PETScUtils::copy_dat_to_vec_p_adapt(op_dat dat, DG_FP *dat_d, DGMesh *mesh)
     op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges_cuda(dat->set, 2, copy_args);
+  // op_mpi_halo_exchanges_cuda(dat->set, 2, copy_args);
+  op_mpi_halo_exchanges_grouped(dat->set, 2, copy_args, 2);
+  op_mpi_wait_all_grouped(2, copy_args, 2);
 
   int setSize = dat->set->size;
   int *tempOrder = (int *)malloc(setSize * sizeof(int));
@@ -232,7 +240,9 @@ void PETScUtils::copy_vec_to_dat_coarse(op_dat dat, const DG_FP *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE)
   };
-  op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
+  // op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
+  op_mpi_halo_exchanges_grouped(dat->set, 1, copy_args, 2);
+  op_mpi_wait_all_grouped(1, copy_args, 2);
 
   cudaMemcpy2D(dat->data_d, DG_NP * sizeof(DG_FP), dat_d, DG_NP_N1 * sizeof(DG_FP), DG_NP_N1 * sizeof(DG_FP), dat->set->size, cudaMemcpyDeviceToDevice);
 
@@ -246,7 +256,9 @@ void PETScUtils::copy_dat_to_vec_coarse(op_dat dat, DG_FP *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ)
   };
-  op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
+  // op_mpi_halo_exchanges_cuda(dat->set, 1, copy_args);
+  op_mpi_halo_exchanges_grouped(dat->set, 1, copy_args, 2);
+  op_mpi_wait_all_grouped(1, copy_args, 2);
 
   cudaMemcpy2D(dat_d, DG_NP_N1 * sizeof(DG_FP), dat->data_d, DG_NP * sizeof(DG_FP), DG_NP_N1 * sizeof(DG_FP), dat->set->size, cudaMemcpyDeviceToDevice);
 
