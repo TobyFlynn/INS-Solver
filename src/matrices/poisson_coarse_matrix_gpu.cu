@@ -25,7 +25,9 @@ void PoissonCoarseMatrix::set_glb_ind() {
   op_arg args[] = {
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE)
   };
-  op_mpi_halo_exchanges_cuda(_mesh->cells, 1, args);
+  // op_mpi_halo_exchanges_cuda(_mesh->cells, 1, args);
+  op_mpi_halo_exchanges_grouped(_mesh->cells, 1, args, 2);
+  op_mpi_wait_all_grouped(1, args, 2);
 
   const int setSize = _mesh->cells->size;
   int *data_ptr = (int *)malloc(setSize * sizeof(int));
@@ -67,8 +69,9 @@ void PoissonCoarseMatrix::setPETScMatrix() {
     op_arg_dat(op1, -1, OP_ID, DG_NP_N1 * DG_NP_N1, DG_FP_STR, OP_READ),
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges_cuda(_mesh->cells, 2, args);
-  op_mpi_set_dirtybit_cuda(2, args);
+  // op_mpi_halo_exchanges_cuda(_mesh->cells, 2, args);
+  op_mpi_halo_exchanges_grouped(_mesh->cells, 2, args, 2);
+  op_mpi_wait_all_grouped(2, args, 2);
   timer->endTimer("setPETScMatrix - OP2 op1");
 
   timer->startTimer("setPETScMatrix - Copy op1 to host");
@@ -78,6 +81,7 @@ void PoissonCoarseMatrix::setPETScMatrix() {
   cudaMemcpy(op1_data, op1->data_d, setSize * DG_NP_N1 * DG_NP_N1 * sizeof(DG_FP), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb, glb_ind->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
   timer->endTimer("setPETScMatrix - Copy op1 to host");
+  op_mpi_set_dirtybit_cuda(2, args);
 
   #ifdef DG_COL_MAJ
   MatSetOption(pMat, MAT_ROW_ORIENTED, PETSC_FALSE);
@@ -109,8 +113,9 @@ void PoissonCoarseMatrix::setPETScMatrix() {
     op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges_cuda(_mesh->faces, 4, edge_args);
-  op_mpi_set_dirtybit_cuda(4, edge_args);
+  // op_mpi_halo_exchanges_cuda(_mesh->faces, 4, edge_args);
+  op_mpi_halo_exchanges_grouped(_mesh->faces, 4, edge_args, 2);
+  op_mpi_wait_all_grouped(4, edge_args, 2);
   timer->endTimer("setPETScMatrix - OP2 op2");
 
   timer->startTimer("setPETScMatrix - Copy op2 to host");
@@ -124,6 +129,8 @@ void PoissonCoarseMatrix::setPETScMatrix() {
   cudaMemcpy(glb_l, glb_indL->data_d, _mesh->faces->size * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb_r, glb_indR->data_d, _mesh->faces->size * sizeof(int), cudaMemcpyDeviceToHost);
   timer->endTimer("setPETScMatrix - Copy op2 to host");
+
+  op_mpi_set_dirtybit_cuda(4, edge_args);
 
   // Add Gauss OP and OPf to Poisson matrix
   timer->startTimer("setPETScMatrix - Set values op2");
