@@ -141,8 +141,8 @@ sed -i "5i #include \"liquid_whistle_consts.h\"" openmp/ins3d_kernels.cpp
 sed -i "5i #include \"liquid_whistle_consts.h\"" seq/ins3d_seqkernels.cpp
 sed -i "6i #include \"cblas.h\"" openmp/ins3d_kernels.cpp
 sed -i "6i #include \"cblas.h\"" seq/ins3d_seqkernels.cpp
-sed -i "73i #include \"../matrices/3d/custom_kernels/custom_fpmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
-sed -i "73i #include \"../matrices/3d/custom_kernels/custom_pmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
+# sed -i "73i #include \"../matrices/3d/custom_kernels/custom_fpmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
+# sed -i "73i #include \"../matrices/3d/custom_kernels/custom_pmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
 
 cd ..
 

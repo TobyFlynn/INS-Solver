@@ -6,6 +6,8 @@
 
 extern Timing *timer;
 
+#include <stdexcept>
+
 void get_num_nodes_petsc_utils(const int N, int *Np, int *Nfp) {
   #if DG_DIM == 2
   DGUtils::numNodes2D(N, Np, Nfp);
@@ -36,6 +38,7 @@ void PETScUtils::copy_vec_to_dat(op_dat dat, const DG_FP *dat_d) {
 
   const int nthread = 512;
   const int nblocks = dat->set->size * DG_NP / nthread + 1;
+  // aos_to_soa<<<nblocks,nthread>>>(getSetSizeFromOpArg(&copy_args[0]), dat_d, (DG_FP *)dat->data_d);
   aos_to_soa<<<nblocks,nthread>>>(dat->set->size, dat_d, (DG_FP *)dat->data_d);
 
   op_mpi_set_dirtybit_cuda(1, copy_args);
@@ -64,6 +67,7 @@ void PETScUtils::copy_dat_to_vec(op_dat dat, DG_FP *dat_d) {
 
   const int nthread = 512;
   const int nblocks = dat->set->size * DG_NP / nthread + 1;
+  // soa_to_aos<<<nblocks,nthread>>>(getSetSizeFromOpArg(&copy_args[0]), (DG_FP *)dat->data_d, dat_d);
   soa_to_aos<<<nblocks,nthread>>>(dat->set->size, (DG_FP *)dat->data_d, dat_d);
 
   op_mpi_set_dirtybit_cuda(1, copy_args);
@@ -119,7 +123,7 @@ void PETScUtils::copy_vec_to_dat_p_adapt(op_dat dat, const DG_FP *dat_d, DGMesh 
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(dat->set, 2, copy_args);
-
+  throw std::runtime_error("PADAPT");
   int setSize = dat->set->size;
   int *tempOrder = (int *)malloc(setSize * sizeof(int));
   cudaMemcpy(tempOrder, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
@@ -174,7 +178,7 @@ void PETScUtils::copy_dat_to_vec_p_adapt(op_dat dat, DG_FP *dat_d, DGMesh *mesh)
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
   op_mpi_halo_exchanges_cuda(dat->set, 2, copy_args);
-
+  throw std::runtime_error("PADAPT");
   int setSize = dat->set->size;
   int *tempOrder = (int *)malloc(setSize * sizeof(int));
   cudaMemcpy(tempOrder, mesh->order->data_d, setSize * sizeof(int), cudaMemcpyDeviceToHost);
@@ -235,7 +239,7 @@ void PETScUtils::load_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh *mesh) {
   timer->startTimer("PETScUtils - load_vec_p_adapt");
   DG_FP *v_ptr;
   VecCUDAGetArray(*v, &v_ptr);
-
+throw std::runtime_error("PADAPT");
   copy_dat_to_vec_p_adapt(v_dat, v_ptr, mesh);
 
   VecCUDARestoreArray(*v, &v_ptr);
@@ -247,7 +251,7 @@ void PETScUtils::store_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh *mesh) {
   timer->startTimer("PETScUtils - store_vec_p_adapt");
   const DG_FP *v_ptr;
   VecCUDAGetArrayRead(*v, &v_ptr);
-
+throw std::runtime_error("PADAPT");
   copy_vec_to_dat_p_adapt(v_dat, v_ptr, mesh);
 
   VecCUDARestoreArrayRead(*v, &v_ptr);
@@ -276,6 +280,7 @@ void PETScUtils::copy_vec_to_dat_coarse(op_dat dat, const DG_FP *dat_d) {
 
   const int nthread = 512;
   const int nblocks = dat->set->size * DG_NP_N1 / nthread + 1;
+  // aos_to_soa_coarse<<<nblocks,nthread>>>(getSetSizeFromOpArg(&copy_args[0]), dat_d, (DG_FP *)dat->data_d);
   aos_to_soa_coarse<<<nblocks,nthread>>>(dat->set->size, dat_d, (DG_FP *)dat->data_d);
 
   op_mpi_set_dirtybit_cuda(1, copy_args);
@@ -304,7 +309,8 @@ void PETScUtils::copy_dat_to_vec_coarse(op_dat dat, DG_FP *dat_d) {
 
   const int nthread = 512;
   const int nblocks = dat->set->size * DG_NP_N1 / nthread + 1;
-  aos_to_soa_coarse<<<nblocks,nthread>>>(dat->set->size, (DG_FP *)dat->data_d, dat_d);
+  // soa_to_aos_coarse<<<nblocks,nthread>>>(getSetSizeFromOpArg(&copy_args[0]), (DG_FP *)dat->data_d, dat_d);
+  soa_to_aos_coarse<<<nblocks,nthread>>>(dat->set->size, (DG_FP *)dat->data_d, dat_d);
 
   op_mpi_set_dirtybit_cuda(1, copy_args);
   timer->endTimer("PETScUtils - copy_dat_to_vec");

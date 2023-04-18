@@ -305,13 +305,13 @@ void MPINSSolver3D::step() {
   // shock_capturing();
   // timer->endTimer("MPINSSolver3D - Shock Capturing");
 
-  // timer->startTimer("MPINSSolver3D - Viscosity");
-  // viscosity();
-  // timer->endTimer("MPINSSolver3D - Viscosity");
+  timer->startTimer("MPINSSolver3D - Viscosity");
+  viscosity();
+  timer->endTimer("MPINSSolver3D - Viscosity");
 
-  // timer->startTimer("MPINSSolver3D - Surface");
-  // surface();
-  // timer->endTimer("MPINSSolver3D - Surface");
+  timer->startTimer("MPINSSolver3D - Surface");
+  surface();
+  timer->endTimer("MPINSSolver3D - Surface");
 
   currentInd = (currentInd + 1) % 2;
   time += dt;
