@@ -60,7 +60,13 @@ void PoissonCoarseMatrix::setPETScMatrix() {
     MatSeqAIJSetPreallocation(pMat, DG_NP_N1 * (DG_NUM_FACES + 1), NULL);
     #endif
     MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+    MatSetOption(pMat, MAT_STRUCTURALLY_SYMMETRIC, PETSC_TRUE);
     timer->endTimer("setPETScMatrix - Create Matrix");
+  } else {
+    MatSetOption(pMat, MAT_NEW_NONZERO_LOCATIONS, PETSC_FALSE);
+    MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE);
+    MatSetOption(pMat, MAT_NO_OFF_PROC_ENTRIES, PETSC_TRUE);
+    MatSetOption(pMat, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
   }
 
   timer->startTimer("setPETScMatrix - OP2 op1");

@@ -2,11 +2,13 @@
 
 #include "linear_solvers/petsc_utils.h"
 #include "timing.h"
+#include "config.h"
 
 #include <iostream>
 #include <type_traits>
 
 extern Timing *timer;
+extern Config *config;
 
 PETScAMGSolver::PETScAMGSolver(DGMesh *m) {
   bc = nullptr;
@@ -25,12 +27,41 @@ PETScAMGSolver::PETScAMGSolver(DGMesh *m) {
   KSPGetPC(ksp, &pc);
   PCSetType(pc, PCGAMG);
   // PCGAMGSetNSmooths(pc, 4);
-  PCGAMGSetSquareGraph(pc, 1);
-  PCGAMGSetNlevels(pc, 20);
-  PCMGSetLevels(pc, 20, NULL);
-  PCMGSetCycleType(pc, PC_MG_CYCLE_W);
-  PCGAMGSetRepartition(pc, PETSC_TRUE);
-  PCGAMGSetReuseInterpolation(pc, PETSC_TRUE);
+  // PCGAMGSetSquareGraph(pc, 1);
+  int tmp = 20;
+  config->getInt("petsc-amg", "levels", tmp);
+  PCGAMGSetNlevels(pc, tmp);
+  PCMGSetLevels(pc, tmp, NULL);
+  tmp = 1;
+  config->getInt("petsc-amg", "w-cycle", tmp);
+  PCMGSetCycleType(pc, tmp == 1 ? PC_MG_CYCLE_W : PC_MG_CYCLE_V);
+  tmp = 1;
+  config->getInt("petsc-amg", "repartition", tmp);
+  PCGAMGSetRepartition(pc, tmp == 1 ? PETSC_TRUE : PETSC_FALSE);
+  tmp = 1;
+  config->getInt("petsc-amg", "reuse-interpolation", tmp);
+  PCGAMGSetReuseInterpolation(pc, tmp == 1 ? PETSC_TRUE : PETSC_FALSE);
+  tmp = 0;
+  config->getInt("petsc-amg", "coarse-eq-lim", tmp);
+  if(tmp > 0) {
+    PCGAMGSetCoarseEqLim(pc, tmp);
+  }
+  tmp = 0;
+  config->getInt("petsc-amg", "proc-eq-lim", tmp);
+  if(tmp > 0) {
+    PCGAMGSetProcEqLim(pc, tmp);
+  }
+  tmp = 0;
+  config->getInt("petsc-amg", "use-cpu-for-coarse-solve", tmp);
+  PCGAMGSetCpuPinCoarseGrids(pc, tmp == 1 ? PETSC_TRUE : PETSC_FALSE);
+  double tmp_d = 0.0;
+  config->getDouble("petsc-amg", "threshold-scale", tmp_d);
+  if(tmp_d > 0) {
+    PCGAMGSetThresholdScale(pc, tmp_d);
+  }
+  tmp = 0;
+  config->getInt("petsc-amg", "use-aggs", tmp);
+  PCGAMGASMSetUseAggs(pc, tmp == 1 ? PETSC_TRUE : PETSC_FALSE);
 }
 
 PETScAMGSolver::~PETScAMGSolver() {
