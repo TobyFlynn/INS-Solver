@@ -65,7 +65,7 @@ void PoissonCoarseMatrix::setPETScMatrix() {
   } else {
     MatSetOption(pMat, MAT_NEW_NONZERO_LOCATIONS, PETSC_FALSE);
     MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE);
-    MatSetOption(pMat, MAT_NO_OFF_PROC_ENTRIES, PETSC_TRUE);
+    // MatSetOption(pMat, MAT_NO_OFF_PROC_ENTRIES, PETSC_TRUE);
     MatSetOption(pMat, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
   }
 
