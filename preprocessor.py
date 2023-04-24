@@ -3,7 +3,7 @@ import sys
 
 gemv_template = \
 """
-#ifndef OP2_DG_CUDA
+#ifdef OP2_DG_CUDA__
 #if DG_DOUBLE == 1
 cblas_dgemv({row_col},{trans},{m},{n},{alpha},{A},{lda},{x}, 1,{beta},{y}, 1);
 #else
@@ -14,7 +14,7 @@ for(int i = 0; i < {outer}; i++) {{
   {y_init}
   for(int j = 0; j < {inner}; j++) {{
     int ind = DG_MAT_IND({ind_0},{ind_1},{m},{n});
-    ({y})[i] += {alpha_mult} ({A})[ind] * ({x})[j];
+    {y}[i] += {alpha_mult} {A}[ind] * {x}[j];
   }}
 }}
 #endif
@@ -42,9 +42,9 @@ def replace_gemv_kernels(input_str):
             ind1 = "i"
             outer_l = args_str[2]
             inner_l = args_str[1]
-        y_init_str = "({y})[i] *= {beta};".format(y = args_str[8], beta = args_str[7])
+        y_init_str = "{y}[i] *= {beta};".format(y = args_str[8], beta = args_str[7])
         if args_str[7].strip() == "0.0":
-            y_init_str = "({y})[i] = 0.0;".format(y = args_str[8])
+            y_init_str = "{y}[i] = 0.0;".format(y = args_str[8])
         alpha_mult_str = "({alpha}) * ".format(alpha = args_str[3])
         if args_str[3].strip() == "1.0":
             alpha_mult_str = ""
@@ -58,7 +58,7 @@ def replace_gemv_kernels(input_str):
 
 gemm_template = \
 """
-#ifndef OP2_DG_CUDA
+#ifdef OP2_DG_CUDA__
 #if DG_DOUBLE == 1
 cblas_dgemm({row_col}, {transA}, {transB}, {m}, {n}, {k}, {alpha}, {A}, {lda}, {B}, {ldb}, {beta}, {C}, {ldc});
 #else
@@ -73,7 +73,7 @@ for(int i = 0; i < {m}; i++) {{
     for(int k = 0; k < {k}; k++) {{
       int a_ind = DG_MAT_IND({indA_0}, {indA_1}, {m}, {k});
       int b_ind = DG_MAT_IND({indB_0}, {indB_1}, {k}, {n});
-      ({C})[c_ind] += {alpha_mult}({A})[a_ind] * ({B})[b_ind];
+      {C}[c_ind] += {alpha_mult}{A}[a_ind] * {B}[b_ind];
     }}
   }}
 }}
@@ -105,9 +105,9 @@ def replace_gemm_kernels(input_str):
             transpose_strB = " CblasTrans"
             indB0 = "j"
             indB1 = "k"
-        beta_init_str = "({C})[c_ind] *= {beta};".format(C = args_str[11], beta = args_str[10])
+        beta_init_str = "{C}[c_ind] *= {beta};".format(C = args_str[11], beta = args_str[10])
         if args_str[10].strip() == "0.0":
-            beta_init_str = "({C})[c_ind] = 0.0;".format(C = args_str[11])
+            beta_init_str = "{C}[c_ind] = 0.0;".format(C = args_str[11])
         alpha_mult_str = "({alpha}) * ".format(alpha = args_str[5])
         if args_str[5].strip() == "1.0":
             alpha_mult_str = ""

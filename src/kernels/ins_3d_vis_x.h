@@ -14,7 +14,8 @@ inline void ins_3d_vis_x(const DG_FP *t, const DG_FP *g0, const int *bc_type, co
   if(*bc_type == LW_INFLOW_BC) {
     for(int i = 0; i < DG_NPF; i++) {
       // bcs[i] = sin(PI * (*t));
-      DG_FP tmp = y[fmaskB[i]] * y[fmaskB[i]] + z[fmaskB[i]] * z[fmaskB[i]] - LW_INLET_RADIUS * LW_INLET_RADIUS;
+      const int fmask_ind = fmaskB[i];
+      DG_FP tmp = y[fmask_ind] * y[fmask_ind] + z[fmask_ind] * z[fmask_ind] - LW_INLET_RADIUS * LW_INLET_RADIUS;
       tmp = fabs(tmp);
       tmp = fmin(1.0, tmp / 0.1);
       bcs[i] = tmp * 1.0;
@@ -25,8 +26,9 @@ inline void ins_3d_vis_x(const DG_FP *t, const DG_FP *g0, const int *bc_type, co
     }
   } else if(*bc_type == LW_SLIP_WALL_BC) {
     for(int i = 0; i < DG_NPF; i++) {
-      const DG_FP dot = nx[0] * u[fmaskB[i]] + ny[0] * v[fmaskB[i]] + nz[0] * w[fmaskB[i]];
-      bcs[i] = (u[fmaskB[i]] - dot * nx[0]) / *g0;
+      const int fmask_ind = fmaskB[i];
+      const DG_FP dot = nx[0] * u[fmask_ind] + ny[0] * v[fmask_ind] + nz[0] * w[fmask_ind];
+      bcs[i] = (u[fmask_ind] - dot * nx[0]) / *g0;
     }
   } else if(*bc_type == LW_OUTFLOW_BC) {
     for(int i = 0; i < DG_NPF; i++) {

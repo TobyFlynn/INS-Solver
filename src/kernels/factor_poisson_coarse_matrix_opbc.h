@@ -48,15 +48,17 @@ inline void factor_poisson_coarse_matrix_3d_opbc(const DG_FP *dr,
 
     DG_FP gtau = 0.0;
     for(int i = 0; i < DG_NPF_N1; i++) {
-      gtau = fmax(gtau, (DG_FP)2.0 * (tau_order + 1) * (tau_order + 2) * *fscale * factor[fmaskB[i]]);
+      const int fmask_ind = fmaskB[i];
+      gtau = fmax(gtau, (DG_FP)2.0 * (tau_order + 1) * (tau_order + 2) * *fscale * factor[fmask_ind]);
     }
 
     for(int i = 0; i < DG_NP_N1; i++) {
       for(int j = 0; j < DG_NPF_N1; j++) {
+        const int fmask_ind = fmaskB[j];
         // int op_ind = i + j * DG_NP_N1;
         int op_ind = DG_MAT_IND(i, j, DG_NP_N1, DG_NP_N1);
         // int mm_ind = i + fmaskB[j] * DG_NP_N1;
-        int mm_ind = DG_MAT_IND(i, fmaskB[j], DG_NP_N1, DG_NP_N1);
+        int mm_ind = DG_MAT_IND(i, fmask_ind, DG_NP_N1, DG_NP_N1);
         op[op_ind] = gtau * *sJ * mmF[mm_ind];
       }
     }
@@ -66,10 +68,11 @@ inline void factor_poisson_coarse_matrix_3d_opbc(const DG_FP *dr,
         // int op_ind = i + j * DG_NP_N1;
         int op_ind = DG_MAT_IND(i, j, DG_NP_N1, DG_NPF_N1);
         for(int k = 0; k < DG_NP_N1; k++) {
+          const int fmask_ind = fmaskB[j];
           // int a_ind = i * DG_NP_N1 + k;
           int a_ind = DG_MAT_IND(k, i, DG_NP_N1, DG_NP_N1);
           // int b_ind = fmaskB[j] * DG_NP_N1 + k;
-          int b_ind = DG_MAT_IND(k, fmaskB[j], DG_NP_N1, DG_NP_N1);
+          int b_ind = DG_MAT_IND(k, fmask_ind, DG_NP_N1, DG_NP_N1);
           op[op_ind] += -D[a_ind] * *sJ * mmF[b_ind];
         }
       }
@@ -78,10 +81,11 @@ inline void factor_poisson_coarse_matrix_3d_opbc(const DG_FP *dr,
     // Neumann
     for(int i = 0; i < DG_NP_N1; i++) {
       for(int j = 0; j < DG_NPF_N1; j++) {
+        const int fmask_ind = fmaskB[j];
         // int op_ind = i + j * DG_NP_N1;
         int op_ind = DG_MAT_IND(i, j, DG_NP_N1, DG_NPF_N1);
         // int mm_ind = i + fmaskB[j] * DG_NP_N1;
-        int mm_ind = DG_MAT_IND(i, fmaskB[j], DG_NP_N1, DG_NP_N1);
+        int mm_ind = DG_MAT_IND(i, fmask_ind, DG_NP_N1, DG_NP_N1);
         op[op_ind] = *sJ * mmF[mm_ind];
       }
     }

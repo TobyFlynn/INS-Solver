@@ -81,7 +81,7 @@ void PoissonCoarseMatrix::setPETScMatrix() {
   timer->endTimer("setPETScMatrix - OP2 op1");
 
   timer->startTimer("setPETScMatrix - Copy op1 to host");
-  const int setSize = _mesh->cells->size;
+  const int setSize = getSetSizeFromOpArg(&args[0]);
   DG_FP *op1_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * setSize * sizeof(DG_FP));
   int *glb   = (int *)malloc(setSize * sizeof(int));
   cudaMemcpy(op1_data, op1->data_d, setSize * DG_NP_N1 * DG_NP_N1 * sizeof(DG_FP), cudaMemcpyDeviceToHost);
@@ -105,7 +105,13 @@ void PoissonCoarseMatrix::setPETScMatrix() {
       idxn[n] = currentCol + n;
     }
 
-    MatSetValues(pMat, DG_NP_N1, idxm, DG_NP_N1, idxn, &op1_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    DG_FP tmp_op1[DG_NP_N1 * DG_NP_N1];
+    for(int n = 0; n < DG_NP_N1 * DG_NP_N1; n++) {
+      tmp_op1[n] = op1_data[i + n * setSize];
+    }
+
+    // MatSetValues(pMat, DG_NP_N1, idxm, DG_NP_N1, idxn, &op1_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    MatSetValues(pMat, DG_NP_N1, idxm, DG_NP_N1, idxn, tmp_op1, INSERT_VALUES);
   }
   timer->endTimer("setPETScMatrix - Set values op1");
 
@@ -125,22 +131,23 @@ void PoissonCoarseMatrix::setPETScMatrix() {
   timer->endTimer("setPETScMatrix - OP2 op2");
 
   timer->startTimer("setPETScMatrix - Copy op2 to host");
-  DG_FP *op2L_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * _mesh->faces->size * sizeof(DG_FP));
-  DG_FP *op2R_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * _mesh->faces->size * sizeof(DG_FP));
-  int *glb_l = (int *)malloc(_mesh->faces->size * sizeof(int));
-  int *glb_r = (int *)malloc(_mesh->faces->size * sizeof(int));
+  const int faces_set_size = getSetSizeFromOpArg(&edge_args[0]);
+  DG_FP *op2L_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * faces_set_size * sizeof(DG_FP));
+  DG_FP *op2R_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * faces_set_size * sizeof(DG_FP));
+  int *glb_l = (int *)malloc(faces_set_size * sizeof(int));
+  int *glb_r = (int *)malloc(faces_set_size * sizeof(int));
 
-  cudaMemcpy(op2L_data, op2[0]->data_d, DG_NP_N1 * DG_NP_N1 * _mesh->faces->size * sizeof(DG_FP), cudaMemcpyDeviceToHost);
-  cudaMemcpy(op2R_data, op2[1]->data_d, DG_NP_N1 * DG_NP_N1 * _mesh->faces->size * sizeof(DG_FP), cudaMemcpyDeviceToHost);
-  cudaMemcpy(glb_l, glb_indL->data_d, _mesh->faces->size * sizeof(int), cudaMemcpyDeviceToHost);
-  cudaMemcpy(glb_r, glb_indR->data_d, _mesh->faces->size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(op2L_data, op2[0]->data_d, DG_NP_N1 * DG_NP_N1 * faces_set_size * sizeof(DG_FP), cudaMemcpyDeviceToHost);
+  cudaMemcpy(op2R_data, op2[1]->data_d, DG_NP_N1 * DG_NP_N1 * faces_set_size * sizeof(DG_FP), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_l, glb_indL->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_r, glb_indR->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
   timer->endTimer("setPETScMatrix - Copy op2 to host");
 
   op_mpi_set_dirtybit_cuda(4, edge_args);
 
   // Add Gauss OP and OPf to Poisson matrix
   timer->startTimer("setPETScMatrix - Set values op2");
-  for(int i = 0; i < _mesh->faces->size; i++) {
+  for(int i = 0; i < faces_set_size; i++) {
     int leftRow = glb_l[i];
     int rightRow = glb_r[i];
 
@@ -150,8 +157,16 @@ void PoissonCoarseMatrix::setPETScMatrix() {
       idxr[n] = rightRow + n;
     }
 
-    MatSetValues(pMat, DG_NP_N1, idxl, DG_NP_N1, idxr, &op2L_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
-    MatSetValues(pMat, DG_NP_N1, idxr, DG_NP_N1, idxl, &op2R_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    DG_FP tmp_op2_l[DG_NP_N1 * DG_NP_N1], tmp_op2_r[DG_NP_N1 * DG_NP_N1];
+    for(int n = 0; n < DG_NP_N1 * DG_NP_N1; n++) {
+      tmp_op2_l[n] = op2L_data[i + n * faces_set_size];
+      tmp_op2_r[n] = op2R_data[i + n * faces_set_size];
+    }
+
+    // MatSetValues(pMat, DG_NP_N1, idxl, DG_NP_N1, idxr, &op2L_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    // MatSetValues(pMat, DG_NP_N1, idxr, DG_NP_N1, idxl, &op2R_data[i * DG_NP_N1 * DG_NP_N1], INSERT_VALUES);
+    MatSetValues(pMat, DG_NP_N1, idxl, DG_NP_N1, idxr, tmp_op2_l, INSERT_VALUES);
+    MatSetValues(pMat, DG_NP_N1, idxr, DG_NP_N1, idxl, tmp_op2_r, INSERT_VALUES);
   }
   timer->endTimer("setPETScMatrix - Set values op2");
 

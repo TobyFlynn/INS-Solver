@@ -9,20 +9,22 @@ inline void advec_3d_bflux(const int *faceNum, const int *bc_type, const DG_FP *
 
   if(*bc_type == LW_INFLOW_BC) {
     for(int i = 0; i < DG_NPF; i++) {
-      int find = *faceNum * DG_NPF + i;
-      DG_FP flux0 = *nx * u[fmask[i]] + *ny * v[fmask[i]] + *nz * w[fmask[i]];
-      DG_FP flux1 = val[fmask[i]] - (x[fmask[i]]);
+      const int find = *faceNum * DG_NPF + i;
+      const int fmask_ind = fmask[i];
+      DG_FP flux0 = *nx * u[fmask_ind] + *ny * v[fmask_ind] + *nz * w[fmask_ind];
+      DG_FP flux1 = val[fmask_ind] - (x[fmask_ind]);
 
       flux[find] += *fscale * flux0 * (-1.0);
       // flux[find] += *fscale * flux0 * (val[fmask[i]] + 1.0);
     }
   } else {
     for(int i = 0; i < DG_NPF; i++) {
-      int find = *faceNum * DG_NPF + i;
-      DG_FP flux0 = *nx * u[fmask[i]] + *ny * v[fmask[i]] + *nz * w[fmask[i]];
-      DG_FP flux1 = val[fmask[i]] - (x[fmask[i]]);
+      const int find = *faceNum * DG_NPF + i;
+      const int fmask_ind = fmask[i];
+      DG_FP flux0 = *nx * u[fmask_ind] + *ny * v[fmask_ind] + *nz * w[fmask_ind];
+      DG_FP flux1 = val[fmask_ind] - (x[fmask_ind]);
 
-      flux[find] += *fscale * flux0 * val[fmask[i]];
+      flux[find] += *fscale * flux0 * val[fmask_ind];
     }
     /*if(fabs(x[fmask[0]]) < 1e-8 && fabs(x[fmask[0]] - x[fmask[1]]) < 1e-8
         && y[fmask[0]] * y[fmask[0]] + z[fmask[0]] * z[fmask[0]] < 1.0) {

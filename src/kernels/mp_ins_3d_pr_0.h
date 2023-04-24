@@ -13,9 +13,10 @@ inline void mp_ins_3d_pr_0(const DG_FP *t, const int *bc_type, const int *faceNu
 
   if(*bc_type == LW_INFLOW_BC || *bc_type == LW_NO_SLIP_WALL_BC || *bc_type == LW_SLIP_WALL_BC) {
     for(int i = 0; i < DG_NPF; i++) {
-      DG_FP res0 = -n0[fmaskB[i]] - curl20[fmaskB[i]] / (r_ynolds * rho[fmaskB[i]]);
-      DG_FP res1 = -n1[fmaskB[i]] - curl21[fmaskB[i]] / (r_ynolds * rho[fmaskB[i]]);
-      DG_FP res2 = -n2[fmaskB[i]] - curl22[fmaskB[i]] / (r_ynolds * rho[fmaskB[i]]);
+      const int fmask_ind = fmaskB[i];
+      DG_FP res0 = -n0[fmask_ind] - curl20[fmask_ind] / (r_ynolds * rho[fmask_ind]);
+      DG_FP res1 = -n1[fmask_ind] - curl21[fmask_ind] / (r_ynolds * rho[fmask_ind]);
+      DG_FP res2 = -n2[fmask_ind] - curl22[fmask_ind] / (r_ynolds * rho[fmask_ind]);
 
       dPdN[fInd + i] += *fscale * (*nx * res0 + *ny * res1 + *nz * res2);
     }

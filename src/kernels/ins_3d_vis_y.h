@@ -21,8 +21,9 @@ inline void ins_3d_vis_y(const DG_FP *t, const DG_FP *g0, const int *bc_type, co
     }
   } else if(*bc_type == LW_SLIP_WALL_BC) {
     for(int i = 0; i < DG_NPF; i++) {
-      const DG_FP dot = nx[0] * u[fmaskB[i]] + ny[0] * v[fmaskB[i]] + nz[0] * w[fmaskB[i]];
-      bcs[i] = (v[fmaskB[i]] - dot * ny[0]) / *g0;
+      const int fmask_ind = fmaskB[i];
+      const DG_FP dot = nx[0] * u[fmask_ind] + ny[0] * v[fmask_ind] + nz[0] * w[fmask_ind];
+      bcs[i] = (v[fmask_ind] - dot * ny[0]) / *g0;
     }
   } else if(*bc_type == LW_OUTFLOW_BC) {
     for(int i = 0; i < DG_NPF; i++) {

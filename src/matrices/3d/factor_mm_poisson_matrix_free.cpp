@@ -31,7 +31,7 @@ void FactorMMPoissonMatrixFree3D::mult(op_dat in, op_dat out) {
   FactorPoissonMatrixFree3D::mult(in, out);
 
   timer->startTimer("FactorMMPoissonMatrixFree3D - Mult MM");
-  #ifdef OP2_DG_CUDA
+  #if defined(OP2_DG_CUDA) && !defined(USE_OP2_KERNELS)
   custom_kernel_fpmf_3d_mult_mm(mesh->order_int, "fpmf_3d_mult_mm", _mesh->cells,
               op_arg_dat(_mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
