@@ -9,6 +9,7 @@
 #define ARMA_ALLOW_FAKE_GCC
 #include <armadillo>
 #include <type_traits>
+#include <stdexcept>
 
 extern Timing *timer;
 
@@ -130,6 +131,10 @@ void PETScBlockJacobiSolver::calc_precond_mat() {
   timer->startTimer("PETScBlockJacobiSolver - calc_precond_mat");
   const DG_FP *op1_ptr = getOP2PtrHost(matrix->op1, OP_READ);
   DG_FP *pre_ptr = getOP2PtrHost(pre, OP_WRITE);
+
+  #ifdef DG_OP2_SOA
+  throw std::runtime_error("calc_precond_mat not implemented for SoA");
+  #endif
 
   #pragma omp parallel for
   for(int i = 0; i < mesh->cells->size; i++) {

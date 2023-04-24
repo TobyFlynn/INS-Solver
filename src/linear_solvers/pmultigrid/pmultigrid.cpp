@@ -207,8 +207,8 @@ void PMultigridPoissonSolver::set_matrix(PoissonMatrix *mat) {
 
 bool PMultigridPoissonSolver::solve(op_dat rhs, op_dat ans) {
   timer->startTimer("PMultigridPoissonSolver - solve");
-  if(bc)
-    matrix->apply_bc(rhs, bc);
+  // if(bc)
+  //   matrix->apply_bc(rhs, bc);
 
   int order = DG_ORDER;
 
@@ -396,10 +396,21 @@ void PMultigridPoissonSolver::setRandomVector(op_dat vec) {
 
   DG_FP *vec_ptr = getOP2PtrHost(vec, OP_WRITE);
 
+  #ifdef DG_OP2_SOA
+  op_arg tmp_arg = op_arg_dat(vec, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ);
+  const int size = getSetSizeFromOpArg(&tmp_arg);
+  #pragma omp parallel for
+  for(int j = 0; j < vec->dim; j++) {
+    for(int i = 0; i < vec->set->size; i++) {
+      vec_ptr[i + j * size] = rand_vec[(i * vec->dim + j) % RAND_VEC_SIZE];
+    }
+  }
+  #else
   #pragma omp parallel for
   for(int i = 0; i < vec->set->size * vec->dim; i++) {
     vec_ptr[i] = rand_vec[i % RAND_VEC_SIZE];
   }
+  #endif
 
   releaseOP2PtrHost(vec, OP_WRITE, vec_ptr);
 }

@@ -22,6 +22,10 @@ using namespace std;
 DG_FP r_ynolds, mu0, mu1, rho0, rho1, gamma_e;
 
 int main(int argc, char **argv) {
+  #ifdef DG_OP2_SOA
+  throw std::runtime_error("2D not implemented for SoA");
+  #endif
+
   op_init(argc, argv, 1);
 
   timer = new Timing();

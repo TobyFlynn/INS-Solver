@@ -43,6 +43,7 @@ mkdir -p linear_solvers/petsc_inv_mass
 cd ..
 
 ORDER=3
+SOA=0
 
 python3 preprocessor.py 2 $ORDER
 
@@ -102,7 +103,11 @@ cd ..
 
 cd gen3d
 
-OP_AUTO_SOA=1 python3 $OP2_TRANSLATOR ins3d.cpp \
+if [ $SOA = 1 ]; then
+  export OP_AUTO_SOA=1
+fi
+
+python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/advection_solver.cpp \
         solvers/3d/ins_solver.cpp \
         solvers/3d/ls_solver.cpp \
@@ -141,8 +146,10 @@ sed -i "5i #include \"liquid_whistle_consts.h\"" openmp/ins3d_kernels.cpp
 sed -i "5i #include \"liquid_whistle_consts.h\"" seq/ins3d_seqkernels.cpp
 sed -i "6i #include \"cblas.h\"" openmp/ins3d_kernels.cpp
 sed -i "6i #include \"cblas.h\"" seq/ins3d_seqkernels.cpp
-# sed -i "73i #include \"../matrices/3d/custom_kernels/custom_fpmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
-# sed -i "73i #include \"../matrices/3d/custom_kernels/custom_pmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
+if [ $SOA = 0 ]; then
+  sed -i "73i #include \"../matrices/3d/custom_kernels/custom_fpmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
+  sed -i "73i #include \"../matrices/3d/custom_kernels/custom_pmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
+fi
 
 cd ..
 
@@ -161,6 +168,7 @@ cmake .. \
   -DARMA_DIR=/home/u1717021/Code/PhD/armadillo-10.5.3/build \
   -DINIPP_DIR=/home/u1717021/Code/PhD/inipp/inipp \
   -DORDER=$ORDER \
+  -DSOA=$SOA \
   -DBUILD_SN=ON \
   -DBUILD_CPU=ON \
   -DBUILD_MPI=ON \

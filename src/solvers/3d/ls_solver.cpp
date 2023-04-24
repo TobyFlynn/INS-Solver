@@ -327,6 +327,9 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
 }
 
 void LevelSetSolver3D::reinitLS() {
+  #ifdef DG_OP2_SOA
+  throw std::runtime_error("reinitLS not implemented for SoA");
+  #endif
   timer->startTimer("LevelSetSolver3D - reinitLS");
   timer->startTimer("LevelSetSolver3D - sample interface");
   sampleInterface();

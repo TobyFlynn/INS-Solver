@@ -69,6 +69,9 @@ void PoissonMatrix::set_glb_ind() {
 }
 
 void PoissonMatrix::setPETScMatrix() {
+  #ifdef DG_OP2_SOA
+  throw std::runtime_error("setPETScMatrix not implemented for SoA");
+  #endif
   if(!petscMatInit) {
     MatCreate(PETSC_COMM_WORLD, &pMat);
     petscMatInit = true;
