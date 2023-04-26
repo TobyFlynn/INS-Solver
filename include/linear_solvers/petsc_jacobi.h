@@ -25,7 +25,6 @@ private:
   DGMesh *mesh;
   PoissonMatrixFreeDiag *diagMat;
   KSP ksp;
-  op_dat in, out;
   bool pMatInit, dat_factor;
   Mat pMat;
 };

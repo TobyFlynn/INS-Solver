@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "linear_solvers/petsc_utils.h"
 #include "timing.h"
+#include "dg_dat_pool.h"
 
 #define ARMA_ALLOW_FAKE_GCC
 #include <armadillo>
@@ -16,6 +17,7 @@
 
 extern DGConstants *constants;
 extern Timing *timer;
+extern DGDatPool3D *dg_dat_pool;
 
 void custom_kernel_petsc_pre_jacobi(const int order, char const *name, op_set set,
   op_arg arg0,
@@ -27,13 +29,6 @@ PETScJacobiSolver::PETScJacobiSolver(DGMesh *m) {
   nullspace = false;
   pMatInit = false;
   mesh = m;
-
-  DG_FP *tmp_np = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-
-  in  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "jacobi_in");
-  out = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "jacobi_out");
-
-  free(tmp_np);
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPGMRES);
@@ -118,35 +113,43 @@ bool PETScJacobiSolver::solve(op_dat rhs, op_dat ans) {
 void PETScJacobiSolver::calc_rhs(const DG_FP *in_d, DG_FP *out_d) {
   timer->startTimer("PETScJacobiSolver - calc_rhs");
   // Copy u to OP2 dat
-  // PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
-  PETScUtils::copy_vec_to_dat(in, in_d);
+  DGTempDat tmp_in  = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat tmp_out = dg_dat_pool->requestTempDatCells(DG_NP);
+  // PETScUtils::copy_vec_to_dat_p_adapt(tmp_in.dat, in_d, mesh);
+  PETScUtils::copy_vec_to_dat(tmp_in.dat, in_d);
 
-  matrix->mult(in, out);
+  matrix->mult(tmp_in.dat, tmp_out.dat);
 
-  // PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
-  PETScUtils::copy_dat_to_vec(out, out_d);
+  // PETScUtils::copy_dat_to_vec_p_adapt(tmp_out.dat, out_d, mesh);
+  PETScUtils::copy_dat_to_vec(tmp_out.dat, out_d);
+  dg_dat_pool->releaseTempDatCells(tmp_in);
+  dg_dat_pool->releaseTempDatCells(tmp_out);
   timer->endTimer("PETScJacobiSolver - calc_rhs");
 }
 
 // Matrix-free inv Mass preconditioning function
 void PETScJacobiSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
   timer->startTimer("PETScJacobiSolver - precond");
-  // PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
-  PETScUtils::copy_vec_to_dat(in, in_d);
+  DGTempDat tmp_in  = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat tmp_out = dg_dat_pool->requestTempDatCells(DG_NP);
+  // PETScUtils::copy_vec_to_dat_p_adapt(tmp_in.dat, in_d, mesh);
+  PETScUtils::copy_vec_to_dat(tmp_in.dat, in_d);
 
   #if defined(OP2_DG_CUDA) && !defined(USE_OP2_KERNELS)
   custom_kernel_petsc_pre_jacobi(DG_ORDER, "petsc_pre_jacobi", mesh->cells,
               op_arg_dat(diagMat->diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(in,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+              op_arg_dat(tmp_in.dat,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_out.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   #else
   op_par_loop(petsc_pre_jacobi, "petsc_pre_jacobi", mesh->cells,
               op_arg_dat(diagMat->diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(in,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+              op_arg_dat(tmp_in.dat,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_out.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   #endif
 
-  // PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
-  PETScUtils::copy_dat_to_vec(out, out_d);
+  // PETScUtils::copy_dat_to_vec_p_adapt(tmp_out.dat, out_d, mesh);
+  PETScUtils::copy_dat_to_vec(tmp_out.dat, out_d);
+  dg_dat_pool->releaseTempDatCells(tmp_in);
+  dg_dat_pool->releaseTempDatCells(tmp_out);
   timer->endTimer("PETScJacobiSolver - precond");
 }

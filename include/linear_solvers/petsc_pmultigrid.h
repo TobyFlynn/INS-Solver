@@ -26,7 +26,6 @@ private:
   DGMesh *mesh;
   KSP ksp;
 
-  op_dat in, out;
   bool pMatInit;
   Mat pMat;
   PMultigridPoissonSolver *pmultigridSolver;

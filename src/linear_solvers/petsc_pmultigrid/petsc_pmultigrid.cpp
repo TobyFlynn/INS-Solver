@@ -7,19 +7,16 @@
 
 #include "linear_solvers/petsc_utils.h"
 #include "timing.h"
+#include "dg_dat_pool.h"
 
 extern Timing *timer;
+extern DGDatPool3D *dg_dat_pool;
 
 PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
   bc = nullptr;
   mesh = m;
   nullspace = false;
   pMatInit = false;
-
-  DG_FP *tmp_np = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  in  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "petsc_pmultigrid_in");
-  out = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "petsc_pmultigrid_out");
-  free(tmp_np);
 
   pmultigridSolver = new PMultigridPoissonSolver(mesh);
 
@@ -109,24 +106,32 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
 void PETScPMultigrid::calc_rhs(const DG_FP *in_d, DG_FP *out_d) {
   timer->startTimer("PETScPMultigrid - calc_rhs");
   // Copy u to OP2 dat
-  // PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
-  PETScUtils::copy_vec_to_dat(in, in_d);
+  DGTempDat tmp_in  = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat tmp_out = dg_dat_pool->requestTempDatCells(DG_NP);
+  // PETScUtils::copy_vec_to_dat_p_adapt(tmp_in.dat, in_d, mesh);
+  PETScUtils::copy_vec_to_dat(tmp_in.dat, in_d);
 
-  matrix->mult(in, out);
+  matrix->mult(tmp_in.dat, tmp_out.dat);
 
-  // PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
-  PETScUtils::copy_dat_to_vec(out, out_d);
+  // PETScUtils::copy_dat_to_vec_p_adapt(tmp_out.dat, out_d, mesh);
+  PETScUtils::copy_dat_to_vec(tmp_out.dat, out_d);
+  dg_dat_pool->releaseTempDatCells(tmp_in);
+  dg_dat_pool->releaseTempDatCells(tmp_out);
   timer->endTimer("PETScPMultigrid - calc_rhs");
 }
 
 void PETScPMultigrid::precond(const DG_FP *in_d, DG_FP *out_d) {
   timer->startTimer("PETScPMultigrid - precond");
-  // PETScUtils::copy_vec_to_dat_p_adapt(in, in_d, mesh);
-  PETScUtils::copy_vec_to_dat(in, in_d);
+  DGTempDat tmp_in  = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat tmp_out = dg_dat_pool->requestTempDatCells(DG_NP);
+  // PETScUtils::copy_vec_to_dat_p_adapt(tmp_in.dat, in_d, mesh);
+  PETScUtils::copy_vec_to_dat(tmp_in.dat, in_d);
 
-  pmultigridSolver->solve(in, out);
+  pmultigridSolver->solve(tmp_in.dat, tmp_out.dat);
 
-  // PETScUtils::copy_dat_to_vec_p_adapt(out, out_d, mesh);
-  PETScUtils::copy_dat_to_vec(out, out_d);
+  // PETScUtils::copy_dat_to_vec_p_adapt(tmp_out.dat, out_d, mesh);
+  PETScUtils::copy_dat_to_vec(tmp_out.dat, out_d);
+  dg_dat_pool->releaseTempDatCells(tmp_in);
+  dg_dat_pool->releaseTempDatCells(tmp_out);
   timer->endTimer("PETScPMultigrid - precond");
 }

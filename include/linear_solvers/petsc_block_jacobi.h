@@ -24,7 +24,7 @@ private:
 
   DGMesh *mesh;
   KSP ksp;
-  op_dat in, out, pre;
+  op_dat pre;
   bool pMatInit;
   Mat pMat;
 };

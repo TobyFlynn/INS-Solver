@@ -13,9 +13,11 @@
 #include "utils.h"
 #include "timing.h"
 #include "config.h"
+#include "dg_dat_pool.h"
 
 extern Timing *timer;
 extern Config *config;
+extern DGDatPool3D *dg_dat_pool;
 
 #define RAND_VEC_SIZE 25
 #define MAX_ITER_EIG_APPROX 10
@@ -81,7 +83,7 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
     }
   }
 
-  int num_levels = orders.size();
+  num_levels = orders.size();
 
   std::string pre_str;
   if(config->getStr("p-multigrid", "pre_it", pre_str)) {
@@ -124,26 +126,9 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
   DG_FP *tmp_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   std::string name;
   for(int i = 0; i < num_levels; i++) {
-    name = "p_multigrid_tmp" + std::to_string(i);
-    tmp_dat.push_back(op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str()));
-    name = "p_multigrid_u" + std::to_string(i);
-    u_dat.push_back(op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str()));
-    name = "p_multigrid_b" + std::to_string(i);
-    b_dat.push_back(op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str()));
-  }
-  for(int i = 0; i < MAX_ITER_EIG_APPROX; i++) {
-    name = "p_multigrid_eigen_tmp" + std::to_string(i);
-    eigen_tmps[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str());
-  }
-  for(int i = 0; i < std::min(num_levels, MAX_ITER_EIG_APPROX - 3); i++) {
-    diag_dats.push_back(eigen_tmps[i + 3]);
-  }
-  for(int i = MAX_ITER_EIG_APPROX - 3; i < num_levels; i++) {
     name = "p_multigrid_diag" + std::to_string(i);
     diag_dats.push_back(op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, name.c_str()));
   }
-  eg_tmp_0 = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_eg_tmp_0");
-  eg_tmp_1 = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_eg_tmp_1");
 
   // rk[0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_rk0");
   // rk[1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_rk1");
@@ -214,6 +199,19 @@ bool PMultigridPoissonSolver::solve(op_dat rhs, op_dat ans) {
 
   setupDirectSolve();
 
+  // Get temporary dats from pool
+  std::vector<DGTempDat> tmp_dats;
+  u_dat.clear();
+  b_dat.clear();
+  for(int i = 0; i < num_levels; i++) {
+    DGTempDat tmp0 = dg_dat_pool->requestTempDatCells(DG_NP);
+    DGTempDat tmp1 = dg_dat_pool->requestTempDatCells(DG_NP);
+    tmp_dats.push_back(tmp0);
+    tmp_dats.push_back(tmp1);
+    u_dat.push_back(tmp0.dat);
+    b_dat.push_back(tmp1.dat);
+  }
+
   op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
               op_arg_dat(ans, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(u_dat[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
@@ -227,8 +225,10 @@ bool PMultigridPoissonSolver::solve(op_dat rhs, op_dat ans) {
               op_arg_dat(u_dat[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(ans, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
+  for(int i = 0; i < tmp_dats.size(); i++) {
+    dg_dat_pool->releaseTempDatCells(tmp_dats[i]);
+  }
   timer->endTimer("PMultigridPoissonSolver - solve");
-
   return true;
 }
 
@@ -264,13 +264,15 @@ void PMultigridPoissonSolver::cycle(int order, const int level) {
   timer->startTimer("PMultigridPoissonSolver - Restriction");
   int order_new = orders[level + 1];
   // F = I^T (F - Au)
-  matrix->mult(u_dat[level], tmp_dat[level]);
+  DGTempDat tmp_dat = dg_dat_pool->requestTempDatCells(DG_NP);
+  matrix->mult(u_dat[level], tmp_dat.dat);
   op_par_loop(p_multigrid_restriction, "p_multigrid_restriction", mesh->cells,
               op_arg_dat(mesh->order,        -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(tmp_dat[level],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_dat.dat,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(b_dat[level],     -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(b_dat[level+1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(u_dat[level+1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  dg_dat_pool->releaseTempDatCells(tmp_dat);
 
   std::vector<op_dat> dats_to_update;
   dats_to_update.push_back(b_dat[level+1]);
@@ -317,42 +319,52 @@ void PMultigridPoissonSolver::setupDirectSolve() {
 
 DG_FP PMultigridPoissonSolver::maxEigenValue() {
   // Get approx eigenvector using power iteration
+  const int N = ((DGMesh3D *)mesh)->order_int;
+  const int k = std::min(MAX_ITER_EIG_APPROX, (N + 1) * (N + 2) * (N + 3) / 6);
+  std::vector<DGTempDat> tmp_dats;
+  eigen_tmps.clear();
+  for(int i = 0; i < k; i++) {
+    DGTempDat tmp0 = dg_dat_pool->requestTempDatCells(DG_NP);
+    tmp_dats.push_back(tmp0);
+    eigen_tmps.push_back(tmp0.dat);
+  }
+
+  DGTempDat tmp_eg = dg_dat_pool->requestTempDatCells(DG_NP);
+
   timer->startTimer("PMultigridPoissonSolver - Random Vec");
-  setRandomVector(eg_tmp_1);
+  setRandomVector(tmp_eg.dat);
   timer->endTimer("PMultigridPoissonSolver - Random Vec");
 
   DG_FP norm = 0.0;
   op_par_loop(p_multigrid_vec_norm, "p_multigrid_vec_norm", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(eg_tmp_1, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_eg.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(&norm, 1, DG_FP_STR, OP_INC));
 
   norm = sqrt(norm);
   op_par_loop(p_multigrid_vec_normalise, "p_multigrid_vec_normalise", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(eg_tmp_1, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_eg.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(&norm, 1, DG_FP_STR, OP_READ),
               op_arg_dat(eigen_tmps[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-  const int N = ((DGMesh3D *)mesh)->order_int;
-  const int k = std::min(MAX_ITER_EIG_APPROX, (N + 1) * (N + 2) * (N + 3) / 6);
   arma::mat H(k, k, arma::fill::zeros);
   for(int n = 0; n < k; n++) {
-    matrix->multJacobi(eigen_tmps[n], eg_tmp_0);
+    matrix->multJacobi(eigen_tmps[n], tmp_eg.dat);
 
     for(int j = 0; j <= n; j++) {
       DG_FP dot = 0.0;
       op_par_loop(p_multigrid_vec_dot, "p_multigrid_vec_dot", mesh->cells,
                   op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
                   op_arg_dat(eigen_tmps[j], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                  op_arg_dat(eg_tmp_0, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(tmp_eg.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                   op_arg_gbl(&dot, 1, DG_FP_STR, OP_INC));
       H(j,n) = dot;
 
       op_par_loop(p_multigrid_vec_minus, "p_multigrid_vec_minus", mesh->cells,
                   op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
                   op_arg_dat(eigen_tmps[j], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                  op_arg_dat(eg_tmp_0, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_dat(tmp_eg.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
                   op_arg_gbl(&dot, 1, DG_FP_STR, OP_READ));
     }
 
@@ -360,18 +372,23 @@ DG_FP PMultigridPoissonSolver::maxEigenValue() {
       DG_FP norm = 0.0;
       op_par_loop(p_multigrid_vec_norm, "p_multigrid_vec_norm", mesh->cells,
                   op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-                  op_arg_dat(eg_tmp_0, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(tmp_eg.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                   op_arg_gbl(&norm, 1, DG_FP_STR, OP_INC));
 
       norm = sqrt(norm);
       op_par_loop(p_multigrid_vec_normalise, "p_multigrid_vec_normalise", mesh->cells,
                   op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-                  op_arg_dat(eg_tmp_0, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(tmp_eg.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                   op_arg_gbl(&norm, 1, DG_FP_STR, OP_READ),
                   op_arg_dat(eigen_tmps[n+1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
       H(n+1,n) = norm;
     }
   }
+
+  for(int i = 0; i < tmp_dats.size(); i++) {
+    dg_dat_pool->releaseTempDatCells(tmp_dats[i]);
+  }
+  dg_dat_pool->releaseTempDatCells(tmp_eg);
 
   auto eigen_values = arma::eig_gen(H);
   // std::cout << eigen_values << std::endl;
@@ -433,14 +450,16 @@ void PMultigridPoissonSolver::smooth(const int iter, const int level) {
 }
 
 void PMultigridPoissonSolver::jacobi_smoother(const int level) {
-  matrix->mult(u_dat[level], tmp_dat[level]);
+  DGTempDat tmp_dat = dg_dat_pool->requestTempDatCells(DG_NP);
+  matrix->mult(u_dat[level], tmp_dat.dat);
   op_par_loop(p_multigrid_relaxation_jacobi_diag, "p_multigrid_relaxation_jacobi_diag", mesh->cells,
               op_arg_gbl(&w, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->order,      -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(tmp_dat[level],   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_dat.dat,      -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(b_dat[level],     -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(diag_dats[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(u_dat[level],     -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  dg_dat_pool->releaseTempDatCells(tmp_dat);
 }
 
 void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
@@ -452,9 +471,12 @@ void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
   const DG_FP sigma = theta / delta;
   DG_FP rho_n = 1.0 / sigma;
   DG_FP rho_np1;
-  op_dat RES = eigen_tmps[0];
-  op_dat Ad = eigen_tmps[1];
-  op_dat d = eigen_tmps[2];
+  DGTempDat tmp0 = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat tmp1 = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat tmp2 = dg_dat_pool->requestTempDatCells(DG_NP);
+  op_dat RES = tmp0.dat;
+  op_dat Ad  = tmp1.dat;
+  op_dat d   = tmp2.dat;
 
   timer->startTimer("PMultigridPoissonSolver - Relaxation - Mult");
   matrix->mult(u_dat[level], RES);
@@ -541,6 +563,10 @@ void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
               op_arg_dat(d, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(u_dat[level], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
   #endif
+
+  dg_dat_pool->releaseTempDatCells(tmp0);
+  dg_dat_pool->releaseTempDatCells(tmp1);
+  dg_dat_pool->releaseTempDatCells(tmp2);
 }
 
 /*

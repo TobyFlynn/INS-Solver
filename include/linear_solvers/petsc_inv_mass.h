@@ -26,7 +26,7 @@ private:
 
   DGMesh *mesh;
   KSP ksp;
-  op_dat in, out, factor_dat;
+  op_dat factor_dat;
   bool pMatInit, dat_factor;
   Mat pMat;
   DG_FP factor;

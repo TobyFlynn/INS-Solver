@@ -48,14 +48,13 @@ private:
 
   Smoothers smoother;
 
-  op_dat eg_tmp_0, eg_tmp_1, rk[3], rkQ;
+  // op_dat rk[3], rkQ;
 
   std::vector<int> orders;
   std::vector<int> pre_it;
   std::vector<int> post_it;
   std::vector<double> eig_vals;
-  std::vector<op_dat> tmp_dat, u_dat, b_dat, diag_dats;
-  op_dat eigen_tmps[10];
+  std::vector<op_dat> u_dat, b_dat, diag_dats, eigen_tmps;
   double coarse_solve_tol;
   double eigen_val_saftey_factor;
 
