@@ -13,6 +13,7 @@ extern DGConstants *constants;
 #include "linear_solvers/petsc_amg.h"
 #include "linear_solvers/petsc_block_jacobi.h"
 #include "linear_solvers/petsc_pmultigrid.h"
+#include "dg_dat_pool.h"
 
 #include <string>
 #include <iostream>
@@ -20,6 +21,7 @@ extern DGConstants *constants;
 
 extern Timing *timer;
 extern Config *config;
+extern DGDatPool3D *dg_dat_pool;
 
 INSSolver3D::INSSolver3D(DGMesh3D *m) {
   mesh = m;
@@ -28,24 +30,20 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) {
   setup_common();
 
   std::string name;
-  DG_FP *dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   for(int i = 0; i < 3; i++) {
     name = "ins_solver_vel0" + std::to_string(i);
-    vel[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    vel[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "ins_solver_vel1" + std::to_string(i);
-    vel[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    vel[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "ins_solver_n0" + std::to_string(i);
-    n[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    n[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "ins_solver_n1" + std::to_string(i);
-    n[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    n[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
   }
-  pr = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ins_solver_pr");
-  free(dg_np_data);
+  pr = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_pr");
 
-  DG_FP *dg_npf_data = (DG_FP *)calloc(4 * DG_NPF * mesh->cells->size, sizeof(DG_FP));
-  dPdN[0]    = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, dg_npf_data, "ins_solver_dPdN0");
-  dPdN[1]    = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, dg_npf_data, "ins_solver_dPdN1");
-  free(dg_npf_data);
+  dPdN[0] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN0");
+  dPdN[1] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN1");
 
   a0 = 1.0;
   a1 = 0.0;
@@ -107,84 +105,25 @@ void INSSolver3D::setup_common() {
   it_pre_sub_cycle = it_pre_sub_cycle > 1 ? it_pre_sub_cycle : 1;
 
   std::string name;
-  DG_FP *dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   for(int i = 0; i < 3; i++) {
     name = "ins_solver_velT" + std::to_string(i);
-    velT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    velT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "ins_solver_velTT" + std::to_string(i);
-    velTT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
-    name = "ins_solver_rk0" + std::to_string(i);
-    advec_sc_rk[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
-    name = "ins_solver_rk1" + std::to_string(i);
-    advec_sc_rk[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
-    name = "ins_solver_rk2" + std::to_string(i);
-    advec_sc_rk[2][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    velTT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
   }
-  for(int i = 0; i < 12; i++) {
-    name = "ins_solver_tmp_np" + std::to_string(i);
-    tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
-  }
-  free(dg_np_data);
 
-  DG_FP *dg_npf_data = (DG_FP *)calloc(4 * DG_NPF * mesh->cells->size, sizeof(DG_FP));
-  tmp_npf[0] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, dg_npf_data, "ins_solver_tmp_npf0");
-  tmp_npf[1] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, dg_npf_data, "ins_solver_tmp_npf1");
-  tmp_npf[2] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, dg_npf_data, "ins_solver_tmp_npf2");
-  free(dg_npf_data);
+  tmp_npf_bc = op_decl_dat(mesh->bfaces, DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_tmp_npf_bc");
 
-  DG_FP *dg_npf_bc_data = (DG_FP *)calloc(DG_NPF * mesh->bfaces->size, sizeof(DG_FP));
-  tmp_npf_bc = op_decl_dat(mesh->bfaces, DG_NPF, DG_FP_STR, dg_npf_bc_data, "ins_solver_tmp_npf_bc");
-  free(dg_npf_bc_data);
+  tmp_bc_1 = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_tmp_bc_1");
+  bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_bc_types");
 
-  int *bc_1_data = (int *)calloc(mesh->bfaces->size, sizeof(int));
-  tmp_bc_1 = op_decl_dat(mesh->bfaces, 1, "int", bc_1_data, "ins_solver_tmp_bc_1");
-  bc_types = op_decl_dat(mesh->bfaces, 1, "int", bc_1_data, "ins_solver_bc_types");
-  free(bc_1_data);
-
-  DG_FP *cell_1_data = (DG_FP *)calloc(mesh->cells->size, sizeof(DG_FP));
-  art_vis  = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_art_vis");
+  // art_vis  = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_art_vis");
   if(div_div_proj) {
-    proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_proj_h");
-    proj_pen = op_decl_dat(mesh->cells, 1, DG_FP_STR, cell_1_data, "ins_solver_proj_pen");
+    proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_proj_h");
   }
-  free(cell_1_data);
 
-  f[0][0] = tmp_np[0]; f[0][1] = tmp_np[1]; f[0][2] = tmp_np[2];
-  f[1][0] = tmp_np[3]; f[1][1] = tmp_np[4]; f[1][2] = tmp_np[5];
-  f[2][0] = tmp_np[6]; f[2][1] = tmp_np[7]; f[2][2] = tmp_np[8];
-
-  advec_sc[0] = tmp_np[9];
-  advec_sc[1] = tmp_np[10];
-  advec_sc[2] = tmp_np[11];
-  // advec_sc_tmp[0] = tmp_np[12];
-  // advec_sc_tmp[1] = tmp_np[13];
-  // advec_sc_tmp[2] = tmp_np[14];
-  advec_sc_tmp[0] = velTT[0];
-  advec_sc_tmp[1] = velTT[1];
-  advec_sc_tmp[2] = velTT[2];
-
-  divVelT     = tmp_np[0];
-  curlVel[0]  = tmp_np[1];
-  curlVel[1]  = tmp_np[2];
-  curlVel[2]  = tmp_np[3];
-  curl2Vel[0] = tmp_np[4];
-  curl2Vel[1] = tmp_np[5];
-  curl2Vel[2] = tmp_np[6];
-  dpdx = tmp_np[0];
-  dpdy = tmp_np[1];
-  dpdz = tmp_np[2];
-  projRHS[0] = tmp_np[3];
-  projRHS[1] = tmp_np[4];
-  projRHS[2] = tmp_np[5];
-  vis_coeff = tmp_np[0];
-  vis_mm = tmp_np[1];
-  visRHS[0] = tmp_np[2];
-  visRHS[1] = tmp_np[3];
-  visRHS[2] = tmp_np[4];
-
-  advec_flux[0] = tmp_npf[0];
-  advec_flux[1] = tmp_npf[1];
-  advec_flux[2] = tmp_npf[2];
+  // vis_coeff = tmp_np[0];
+  // vis_mm = tmp_np[1];
 
   pr_bc_types  = tmp_bc_1;
   vis_bc_types = tmp_bc_1;
@@ -264,17 +203,19 @@ void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
 
   // Set up pressure projection
   if(div_div_proj) {
+    DGTempDat tmp_npf = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
     op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-                op_arg_dat(tmp_npf[0], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+                op_arg_dat(tmp_npf.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
 
     op_par_loop(ins_3d_proj_setup_0, "ins_3d_proj_setup_0", mesh->faces,
                 op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
                 op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
-                op_arg_dat(tmp_npf[0], -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
+                op_arg_dat(tmp_npf.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
 
     op_par_loop(ins_3d_proj_setup_1, "ins_3d_proj_setup_1", mesh->cells,
-                op_arg_dat(tmp_npf[0], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_npf.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_READ),
                 op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+    dg_dat_pool->releaseTempDatCells(tmp_npf);
   }
 
   timer->endTimer("INSSolver3D - Init");
@@ -334,28 +275,52 @@ void INSSolver3D::advection() {
 }
 
 void INSSolver3D::advec_current_non_linear() {
+  DGTempDat f[3][3];
+  f[0][0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[0][1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[0][2] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[1][0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[1][1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[1][2] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[2][0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[2][1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[2][2] = dg_dat_pool->requestTempDatCells(DG_NP);
   op_par_loop(ins_3d_advec_0, "ins_3d_advec_0", mesh->cells,
               op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(f[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[0][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[1][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+              op_arg_dat(f[0][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[0][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[0][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[1][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[1][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[1][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[2][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[2][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[2][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-  mesh->div(f[0][0], f[0][1], f[0][2], n[currentInd][0]);
-  mesh->div(f[1][0], f[1][1], f[1][2], n[currentInd][1]);
-  mesh->div(f[2][0], f[2][1], f[2][2], n[currentInd][2]);
+  mesh->div(f[0][0].dat, f[0][1].dat, f[0][2].dat, n[currentInd][0]);
+  mesh->div(f[1][0].dat, f[1][1].dat, f[1][2].dat, n[currentInd][1]);
+  mesh->div(f[2][0].dat, f[2][1].dat, f[2][2].dat, n[currentInd][2]);
+
+  dg_dat_pool->releaseTempDatCells(f[0][0]);
+  dg_dat_pool->releaseTempDatCells(f[0][1]);
+  dg_dat_pool->releaseTempDatCells(f[0][2]);
+  dg_dat_pool->releaseTempDatCells(f[1][0]);
+  dg_dat_pool->releaseTempDatCells(f[1][1]);
+  dg_dat_pool->releaseTempDatCells(f[1][2]);
+  dg_dat_pool->releaseTempDatCells(f[2][0]);
+  dg_dat_pool->releaseTempDatCells(f[2][1]);
+  dg_dat_pool->releaseTempDatCells(f[2][2]);
+
+  DGTempDat tmp_advec_flux0 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  DGTempDat tmp_advec_flux1 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  DGTempDat tmp_advec_flux2 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
 
   op_par_loop(zero_npf_3, "zero_npf_3", mesh->cells,
-              op_arg_dat(advec_flux[0], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(advec_flux[1], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(advec_flux[2], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+              op_arg_dat(tmp_advec_flux0.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_advec_flux1.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_advec_flux2.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
 
   // Flux across faces
   op_par_loop(ins_3d_advec_1, "ins_3d_advec_1", mesh->faces,
@@ -369,9 +334,9 @@ void INSSolver3D::advec_current_non_linear() {
               op_arg_dat(vel[currentInd][0], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(vel[currentInd][1], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(vel[currentInd][2], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_flux[0], -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
-              op_arg_dat(advec_flux[1], -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
-              op_arg_dat(advec_flux[2], -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
+              op_arg_dat(tmp_advec_flux0.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
+              op_arg_dat(tmp_advec_flux1.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
+              op_arg_dat(tmp_advec_flux2.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
 
   // Boundary flux
   if(mesh->bface2cells) {
@@ -389,14 +354,18 @@ void INSSolver3D::advec_current_non_linear() {
                 op_arg_dat(vel[currentInd][0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vel[currentInd][1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vel[currentInd][2], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_flux[0], 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
-                op_arg_dat(advec_flux[1], 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
-                op_arg_dat(advec_flux[2], 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
+                op_arg_dat(tmp_advec_flux0.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
+                op_arg_dat(tmp_advec_flux1.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
+                op_arg_dat(tmp_advec_flux2.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
   }
 
-  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, advec_flux[0], 1.0, n[currentInd][0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, advec_flux[1], 1.0, n[currentInd][1]);
-  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, advec_flux[2], 1.0, n[currentInd][2]);
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_advec_flux0.dat, 1.0, n[currentInd][0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_advec_flux1.dat, 1.0, n[currentInd][1]);
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_advec_flux2.dat, 1.0, n[currentInd][2]);
+
+  dg_dat_pool->releaseTempDatCells(tmp_advec_flux0);
+  dg_dat_pool->releaseTempDatCells(tmp_advec_flux1);
+  dg_dat_pool->releaseTempDatCells(tmp_advec_flux2);
 }
 
 void INSSolver3D::advec_standard() {
@@ -426,6 +395,89 @@ void INSSolver3D::advec_standard() {
               op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 }
 
+void INSSolver3D::advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_dat v, op_dat w) {
+  // Request temporary dats
+  DGTempDat advec_sc_rk[3][3];
+  advec_sc_rk[0][0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  advec_sc_rk[0][1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  advec_sc_rk[0][2] = dg_dat_pool->requestTempDatCells(DG_NP);
+  advec_sc_rk[1][0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  advec_sc_rk[1][1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  advec_sc_rk[1][2] = dg_dat_pool->requestTempDatCells(DG_NP);
+  advec_sc_rk[2][0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  advec_sc_rk[2][1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  advec_sc_rk[2][2] = dg_dat_pool->requestTempDatCells(DG_NP);
+
+  op_par_loop(ins_3d_advec_sc_copy, "ins_3d_advec_sc_copy", mesh->cells,
+              op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(w, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc_rk[0][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(advec_sc_rk[0][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(advec_sc_rk[0][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  for(int rk_step = 0; rk_step < 3; rk_step++) {
+    double rk_time = time_sc;
+    if(rk_step == 1) rk_time += sub_cycle_dt;
+    if(rk_step == 2) rk_time += 0.5 * sub_cycle_dt;
+    const int rk_ind = rk_step == 2 ? 2 : rk_step + 1;
+    advec_sub_cycle_rhs(advec_sc_rk[0][0].dat, advec_sc_rk[0][1].dat, advec_sc_rk[0][2].dat,
+                        advec_sc_rk[rk_ind][0].dat, advec_sc_rk[rk_ind][1].dat,
+                        advec_sc_rk[rk_ind][2].dat, rk_time);
+    // Set up next step
+    if(rk_step == 0) {
+      op_par_loop(ins_3d_advec_sc_rk_0, "ins_3d_advec_sc_rk_0", mesh->cells,
+                  op_arg_gbl(&sub_cycle_dt, 1, DG_FP_STR, OP_READ),
+                  op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(w, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(advec_sc_rk[1][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(advec_sc_rk[1][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(advec_sc_rk[1][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(advec_sc_rk[0][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                  op_arg_dat(advec_sc_rk[0][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                  op_arg_dat(advec_sc_rk[0][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    } else if(rk_step == 1) {
+      op_par_loop(ins_3d_advec_sc_rk_1, "ins_3d_advec_sc_rk_1", mesh->cells,
+                  op_arg_gbl(&sub_cycle_dt, 1, DG_FP_STR, OP_READ),
+                  op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(w, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(advec_sc_rk[1][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_dat(advec_sc_rk[1][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_dat(advec_sc_rk[1][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_dat(advec_sc_rk[2][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(advec_sc_rk[2][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(advec_sc_rk[2][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(advec_sc_rk[0][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                  op_arg_dat(advec_sc_rk[0][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                  op_arg_dat(advec_sc_rk[0][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    }
+  }
+  // Update velT
+  op_par_loop(ins_3d_advec_sc_rk_2, "ins_3d_advec_sc_rk_2", mesh->cells,
+              op_arg_gbl(&sub_cycle_dt, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc_rk[1][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc_rk[1][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc_rk[1][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc_rk[2][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc_rk[2][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc_rk[2][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(w, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  dg_dat_pool->releaseTempDatCells(advec_sc_rk[0][0]);
+  dg_dat_pool->releaseTempDatCells(advec_sc_rk[0][1]);
+  dg_dat_pool->releaseTempDatCells(advec_sc_rk[0][2]);
+  dg_dat_pool->releaseTempDatCells(advec_sc_rk[1][0]);
+  dg_dat_pool->releaseTempDatCells(advec_sc_rk[1][1]);
+  dg_dat_pool->releaseTempDatCells(advec_sc_rk[1][2]);
+  dg_dat_pool->releaseTempDatCells(advec_sc_rk[2][0]);
+  dg_dat_pool->releaseTempDatCells(advec_sc_rk[2][1]);
+  dg_dat_pool->releaseTempDatCells(advec_sc_rk[2][2]);
+}
+
 void INSSolver3D::advec_sub_cycle() {
   op_par_loop(ins_3d_advec_sc_copy, "ins_3d_advec_sc_copy", mesh->cells,
               op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -434,146 +486,45 @@ void INSSolver3D::advec_sub_cycle() {
               op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
   // Advance 2 * number of subcycles
   for(int i = 0; i < 2 * sub_cycles; i++) {
-    op_par_loop(ins_3d_advec_sc_copy, "ins_3d_advec_sc_copy", mesh->cells,
-                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(advec_sc_rk[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(advec_sc_rk[0][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-    for(int rk_step = 0; rk_step < 3; rk_step++) {
-      double rk_time = time - dt + i * sub_cycle_dt;
-      if(rk_step == 1) rk_time += sub_cycle_dt;
-      if(rk_step == 2) rk_time += 0.5 * sub_cycle_dt;
-      const int rk_ind = rk_step == 2 ? 2 : rk_step + 1;
-      advec_sub_cycle_rhs(advec_sc_rk[0][0], advec_sc_rk[0][1], advec_sc_rk[0][2],
-                          advec_sc_rk[rk_ind][0], advec_sc_rk[rk_ind][1],
-                          advec_sc_rk[rk_ind][2], rk_time);
-      // Set up next step
-      if(rk_step == 0) {
-        op_par_loop(ins_3d_advec_sc_rk_0, "ins_3d_advec_sc_rk_0", mesh->cells,
-                    op_arg_gbl(&sub_cycle_dt, 1, DG_FP_STR, OP_READ),
-                    op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[1][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                    op_arg_dat(advec_sc_rk[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                    op_arg_dat(advec_sc_rk[0][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-      } else if(rk_step == 1) {
-        op_par_loop(ins_3d_advec_sc_rk_1, "ins_3d_advec_sc_rk_1", mesh->cells,
-                    op_arg_gbl(&sub_cycle_dt, 1, DG_FP_STR, OP_READ),
-                    op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                    op_arg_dat(advec_sc_rk[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                    op_arg_dat(advec_sc_rk[1][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                    op_arg_dat(advec_sc_rk[2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                    op_arg_dat(advec_sc_rk[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                    op_arg_dat(advec_sc_rk[0][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-      }
-    }
-    // Update velT
-    op_par_loop(ins_3d_advec_sc_rk_2, "ins_3d_advec_sc_rk_2", mesh->cells,
-                op_arg_gbl(&sub_cycle_dt, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[1][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    advec_sub_cycle_rk_step(time - dt + i * sub_cycle_dt, velT[0], velT[1], velT[2]);
   }
+
+  DGTempDat advec_sc_tmp[3];
+  advec_sc_tmp[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  advec_sc_tmp[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  advec_sc_tmp[2] = dg_dat_pool->requestTempDatCells(DG_NP);
 
   // Other velocity
   op_par_loop(ins_3d_advec_sc_copy, "ins_3d_advec_sc_copy", mesh->cells,
               op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc_tmp[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(advec_sc_tmp[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(advec_sc_tmp[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+              op_arg_dat(advec_sc_tmp[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(advec_sc_tmp[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(advec_sc_tmp[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
   // Advance number of subcycles
   for(int i = 0; i < sub_cycles; i++) {
-    op_par_loop(ins_3d_advec_sc_copy, "ins_3d_advec_sc_copy", mesh->cells,
-                op_arg_dat(advec_sc_tmp[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_tmp[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_tmp[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(advec_sc_rk[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(advec_sc_rk[0][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-    for(int rk_step = 0; rk_step < 3; rk_step++) {
-      double rk_time = time - dt + i * sub_cycle_dt;
-      if(rk_step == 1) rk_time += sub_cycle_dt;
-      if(rk_step == 2) rk_time += 0.5 * sub_cycle_dt;
-      const int rk_ind = rk_step == 2 ? 2 : rk_step + 1;
-      advec_sub_cycle_rhs(advec_sc_rk[0][0], advec_sc_rk[0][1], advec_sc_rk[0][2],
-                          advec_sc_rk[rk_ind][0], advec_sc_rk[rk_ind][1],
-                          advec_sc_rk[rk_ind][2], rk_time);
-      // Set up next step
-      if(rk_step == 0) {
-        op_par_loop(ins_3d_advec_sc_rk_0, "ins_3d_advec_sc_rk_0", mesh->cells,
-                    op_arg_gbl(&sub_cycle_dt, 1, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_tmp[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_tmp[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_tmp[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[1][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                    op_arg_dat(advec_sc_rk[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                    op_arg_dat(advec_sc_rk[0][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-      } else if(rk_step == 1) {
-        op_par_loop(ins_3d_advec_sc_rk_1, "ins_3d_advec_sc_rk_1", mesh->cells,
-                    op_arg_gbl(&sub_cycle_dt, 1, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_tmp[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_tmp[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_tmp[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                    op_arg_dat(advec_sc_rk[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                    op_arg_dat(advec_sc_rk[1][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                    op_arg_dat(advec_sc_rk[2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                    op_arg_dat(advec_sc_rk[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                    op_arg_dat(advec_sc_rk[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                    op_arg_dat(advec_sc_rk[0][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-      }
-    }
-    // Update velT
-    op_par_loop(ins_3d_advec_sc_rk_2, "ins_3d_advec_sc_rk_2", mesh->cells,
-                op_arg_gbl(&sub_cycle_dt, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[1][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_rk[2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc_tmp[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                op_arg_dat(advec_sc_tmp[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                op_arg_dat(advec_sc_tmp[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    advec_sub_cycle_rk_step(time + i * sub_cycle_dt, advec_sc_tmp[0].dat, advec_sc_tmp[1].dat, advec_sc_tmp[2].dat);
   }
 
   // Get final velT
   op_par_loop(ins_3d_advec_sc_update, "ins_3d_advec_sc_update", mesh->cells,
               op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc_tmp[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc_tmp[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc_tmp[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc_tmp[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc_tmp[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc_tmp[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  dg_dat_pool->releaseTempDatCells(advec_sc_tmp[0]);
+  dg_dat_pool->releaseTempDatCells(advec_sc_tmp[1]);
+  dg_dat_pool->releaseTempDatCells(advec_sc_tmp[2]);
 
   // Needed for Pressure boundary conditions
   advec_current_non_linear();
@@ -585,6 +536,11 @@ void INSSolver3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
   double t0 = time - dt;
   double t1 = time;
   double tI = t;
+  DGTempDat advec_sc[3];
+  advec_sc[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  advec_sc[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  advec_sc[2] = dg_dat_pool->requestTempDatCells(DG_NP);
+
   op_par_loop(ins_3d_advec_sc_interp, "ins_3d_advec_sc_interp", mesh->cells,
               op_arg_gbl(&t0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&t1, 1, DG_FP_STR, OP_READ),
@@ -595,35 +551,60 @@ void INSSolver3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
               op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(advec_sc[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(advec_sc[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+              op_arg_dat(advec_sc[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(advec_sc[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(advec_sc[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  DGTempDat f[3][3];
+  f[0][0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[0][1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[0][2] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[1][0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[1][1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[1][2] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[2][0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[2][1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[2][2] = dg_dat_pool->requestTempDatCells(DG_NP);
 
   op_par_loop(ins_3d_advec_sc_rhs_0, "ins_3d_advec_sc_rhs_0", mesh->cells,
               op_arg_dat(u_in, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(v_in, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(w_in, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(f[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[0][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[1][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+              op_arg_dat(advec_sc[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(f[0][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[0][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[0][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[1][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[1][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[1][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[2][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[2][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[2][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-  mesh->div(f[0][0], f[0][1], f[0][2], u_out);
-  mesh->div(f[1][0], f[1][1], f[1][2], v_out);
-  mesh->div(f[2][0], f[2][1], f[2][2], w_out);
+  mesh->div(f[0][0].dat, f[0][1].dat, f[0][2].dat, u_out);
+  mesh->div(f[1][0].dat, f[1][1].dat, f[1][2].dat, v_out);
+  mesh->div(f[2][0].dat, f[2][1].dat, f[2][2].dat, w_out);
+
+  dg_dat_pool->releaseTempDatCells(f[0][0]);
+  dg_dat_pool->releaseTempDatCells(f[0][1]);
+  dg_dat_pool->releaseTempDatCells(f[0][2]);
+  dg_dat_pool->releaseTempDatCells(f[1][0]);
+  dg_dat_pool->releaseTempDatCells(f[1][1]);
+  dg_dat_pool->releaseTempDatCells(f[1][2]);
+  dg_dat_pool->releaseTempDatCells(f[2][0]);
+  dg_dat_pool->releaseTempDatCells(f[2][1]);
+  dg_dat_pool->releaseTempDatCells(f[2][2]);
+
+  DGTempDat tmp_advec_flux0 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  DGTempDat tmp_advec_flux1 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  DGTempDat tmp_advec_flux2 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
 
   op_par_loop(zero_npf_3, "zero_npf_3", mesh->cells,
-              op_arg_dat(advec_flux[0], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(advec_flux[1], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(advec_flux[2], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+              op_arg_dat(tmp_advec_flux0.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_advec_flux1.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_advec_flux2.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
 
   op_par_loop(ins_3d_advec_sc_rhs_1, "ins_3d_advec_sc_rhs_1", mesh->faces,
               op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
@@ -636,12 +617,12 @@ void INSSolver3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
               op_arg_dat(u_in, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(v_in, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(w_in, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc[0], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc[1], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc[2], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_flux[0], -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
-              op_arg_dat(advec_flux[1], -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
-              op_arg_dat(advec_flux[2], -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
+              op_arg_dat(advec_sc[0].dat, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc[1].dat, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(advec_sc[2].dat, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_advec_flux0.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
+              op_arg_dat(tmp_advec_flux1.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
+              op_arg_dat(tmp_advec_flux2.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_advec_sc_rhs_2, "ins_3d_advec_sc_rhs_2", mesh->bfaces,
@@ -657,25 +638,48 @@ void INSSolver3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
                 op_arg_dat(u_in, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(v_in, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(w_in, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_sc[2], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(advec_flux[0], 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
-                op_arg_dat(advec_flux[1], 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
-                op_arg_dat(advec_flux[2], 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
+                op_arg_dat(advec_sc[0].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(advec_sc[1].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(advec_sc[2].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_advec_flux0.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
+                op_arg_dat(tmp_advec_flux1.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
+                op_arg_dat(tmp_advec_flux2.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
   }
 
-  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, advec_flux[0], 1.0, u_out);
-  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, advec_flux[1], 1.0, v_out);
-  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, advec_flux[2], 1.0, w_out);
+  dg_dat_pool->releaseTempDatCells(advec_sc[0]);
+  dg_dat_pool->releaseTempDatCells(advec_sc[1]);
+  dg_dat_pool->releaseTempDatCells(advec_sc[2]);
+
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_advec_flux0.dat, 1.0, u_out);
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_advec_flux1.dat, 1.0, v_out);
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_advec_flux2.dat, 1.0, w_out);
+
+  dg_dat_pool->releaseTempDatCells(tmp_advec_flux0);
+  dg_dat_pool->releaseTempDatCells(tmp_advec_flux1);
+  dg_dat_pool->releaseTempDatCells(tmp_advec_flux2);
 }
 
 void INSSolver3D::pressure() {
   timer->startTimer("INSSolver3D - Pressure RHS");
+  DGTempDat divVelT = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat curlVel[3];
+  curlVel[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  curlVel[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  curlVel[2] = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat curl2Vel[3];
+  curl2Vel[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  curl2Vel[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  curl2Vel[2] = dg_dat_pool->requestTempDatCells(DG_NP);
   // mesh->div(velT[0], velT[1], velT[2], divVelT);
-  mesh->div_with_central_flux(velT[0], velT[1], velT[2], divVelT);
-  mesh->curl(vel[currentInd][0], vel[currentInd][1], vel[currentInd][2], curlVel[0], curlVel[1], curlVel[2]);
-  mesh->curl(curlVel[0], curlVel[1], curlVel[2], curl2Vel[0], curl2Vel[1], curl2Vel[2]);
+  mesh->div_with_central_flux(velT[0], velT[1], velT[2], divVelT.dat);
+  mesh->curl(vel[currentInd][0], vel[currentInd][1], vel[currentInd][2],
+             curlVel[0].dat, curlVel[1].dat, curlVel[2].dat);
+  mesh->curl(curlVel[0].dat, curlVel[1].dat, curlVel[2].dat, curl2Vel[0].dat,
+             curl2Vel[1].dat, curl2Vel[2].dat);
+
+  dg_dat_pool->releaseTempDatCells(curlVel[0]);
+  dg_dat_pool->releaseTempDatCells(curlVel[1]);
+  dg_dat_pool->releaseTempDatCells(curlVel[2]);
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_pr_0, "ins_3d_pr_0", mesh->bfaces,
@@ -692,11 +696,15 @@ void INSSolver3D::pressure() {
                 op_arg_dat(n[currentInd][0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(n[currentInd][1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(n[currentInd][2], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(curl2Vel[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(curl2Vel[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(curl2Vel[2], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(curl2Vel[0].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(curl2Vel[1].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(curl2Vel[2].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(dPdN[currentInd], 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
   }
+
+  dg_dat_pool->releaseTempDatCells(curl2Vel[0]);
+  dg_dat_pool->releaseTempDatCells(curl2Vel[1]);
+  dg_dat_pool->releaseTempDatCells(curl2Vel[2]);
 
   op_par_loop(ins_3d_pr_1, "ins_3d_pr_1", mesh->cells,
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
@@ -704,10 +712,10 @@ void INSSolver3D::pressure() {
               op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[currentInd], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_RW),
-              op_arg_dat(divVelT, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+              op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
-  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT);
-  mesh->mass(divVelT);
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT.dat);
+  mesh->mass(divVelT.dat);
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_pr_2, "ins_3d_pr_2", mesh->bfaces,
@@ -721,10 +729,12 @@ void INSSolver3D::pressure() {
   pressureCoarseMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->set_bc_types(pr_bc_types);
   pressureSolver->set_bcs(pr_bc);
-  bool converged = pressureSolver->solve(divVelT, pr);
+  bool converged = pressureSolver->solve(divVelT.dat, pr);
   if(!converged)
     throw std::runtime_error("\nPressure solve failed to converge\n");
   timer->endTimer("INSSolver3D - Pressure Linear Solve");
+
+  dg_dat_pool->releaseTempDatCells(divVelT);
 
   timer->startTimer("INSSolver3D - Pressure Projection");
   project_velocity();
@@ -732,31 +742,40 @@ void INSSolver3D::pressure() {
 }
 
 void INSSolver3D::project_velocity() {
-  mesh->grad_with_central_flux(pr, dpdx, dpdy, dpdz);
+  DGTempDat dpdx = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat dpdy = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat dpdz = dg_dat_pool->requestTempDatCells(DG_NP);
+  mesh->grad_with_central_flux(pr, dpdx.dat, dpdy.dat, dpdz.dat);
 
   op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
 
   if(div_div_proj) {
+    DGTempDat projRHS[3];
+    projRHS[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+    projRHS[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+    projRHS[2] = dg_dat_pool->requestTempDatCells(DG_NP);
+
     op_par_loop(ins_3d_proj_rhs, "ins_3d_proj_rhs", mesh->cells,
                 op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdz.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(projRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(projRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(projRHS[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+                op_arg_dat(projRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(projRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(projRHS[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-    mesh->mass(projRHS[0]);
-    mesh->mass(projRHS[1]);
-    mesh->mass(projRHS[2]);
+    mesh->mass(projRHS[0].dat);
+    mesh->mass(projRHS[1].dat);
+    mesh->mass(projRHS[2].dat);
 
+    DGTempDat proj_pen = dg_dat_pool->requestTempDatCells(DG_NP);
     DG_FP factor = dt * 1.0;
     // DG_FP factor = dt / Cr;
     // op_printf("Cr: %g\n", Cr);
@@ -766,7 +785,7 @@ void INSSolver3D::project_velocity() {
                 op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(proj_pen, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+                op_arg_dat(proj_pen.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
     int num_cells = 0;
     int num_converge = 0;
@@ -786,16 +805,21 @@ void INSSolver3D::project_velocity() {
                 op_arg_dat(mesh->sz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->tz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->J,  -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(proj_pen, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(projRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(projRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(projRHS[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_pen.dat, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(projRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(projRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(projRHS[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
                 op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
                 op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
                 op_arg_gbl(&num_cells, 1, "int", OP_INC),
                 op_arg_gbl(&num_converge, 1, "int", OP_INC),
                 op_arg_gbl(&num_iter, 1, DG_FP_STR, OP_INC));
+
+    dg_dat_pool->releaseTempDatCells(proj_pen);
+    dg_dat_pool->releaseTempDatCells(projRHS[0]);
+    dg_dat_pool->releaseTempDatCells(projRHS[1]);
+    dg_dat_pool->releaseTempDatCells(projRHS[2]);
     if(num_cells != num_converge) {
       op_printf("%d out of %d cells converged on projection step\n", num_converge, num_cells);
       exit(-1);
@@ -803,9 +827,9 @@ void INSSolver3D::project_velocity() {
   } else {
     op_par_loop(ins_3d_pr_3, "ins_3d_pr_3", mesh->cells,
                 op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdz.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -813,23 +837,31 @@ void INSSolver3D::project_velocity() {
                 op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   }
+
+  dg_dat_pool->releaseTempDatCells(dpdx);
+  dg_dat_pool->releaseTempDatCells(dpdy);
+  dg_dat_pool->releaseTempDatCells(dpdz);
 }
 
 void INSSolver3D::viscosity() {
   timer->startTimer("INSSolver3D - Viscosity RHS");
+  DGTempDat visRHS[3];
+  visRHS[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  visRHS[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  visRHS[2] = dg_dat_pool->requestTempDatCells(DG_NP);
   DG_FP factor = reynolds / dt;
   op_par_loop(ins_3d_vis_0, "ins_3d_vis_0", mesh->cells,
               op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
               op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(visRHS[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+              op_arg_dat(visRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(visRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(visRHS[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-  mesh->mass(visRHS[0]);
-  mesh->mass(visRHS[1]);
-  mesh->mass(visRHS[2]);
+  mesh->mass(visRHS[0].dat);
+  mesh->mass(visRHS[1].dat);
+  mesh->mass(visRHS[2].dat);
   timer->endTimer("INSSolver3D - Viscosity RHS");
 
   DG_FP vis_time = time + dt;
@@ -862,7 +894,7 @@ void INSSolver3D::viscosity() {
     viscositySolver->setFactor(1.0 / factor);
   }
   viscositySolver->set_bcs(vis_bc);
-  bool convergedX = viscositySolver->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);
+  bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
     throw std::runtime_error("\nViscosity X solve failed to converge\n");
 
@@ -886,7 +918,7 @@ void INSSolver3D::viscosity() {
   }
 
   viscositySolver->set_bcs(vis_bc);
-  bool convergedY = viscositySolver->solve(visRHS[1], vel[(currentInd + 1) % 2][1]);
+  bool convergedY = viscositySolver->solve(visRHS[1].dat, vel[(currentInd + 1) % 2][1]);
   if(!convergedY)
     throw std::runtime_error("\nViscosity Y solve failed to converge\n");
 
@@ -910,10 +942,13 @@ void INSSolver3D::viscosity() {
   }
 
   viscositySolver->set_bcs(vis_bc);
-  bool convergedZ = viscositySolver->solve(visRHS[2], vel[(currentInd + 1) % 2][2]);
+  bool convergedZ = viscositySolver->solve(visRHS[2].dat, vel[(currentInd + 1) % 2][2]);
   if(!convergedZ)
     throw std::runtime_error("\nViscosity Z solve failed to converge\n");
 
+  dg_dat_pool->releaseTempDatCells(visRHS[0]);
+  dg_dat_pool->releaseTempDatCells(visRHS[1]);
+  dg_dat_pool->releaseTempDatCells(visRHS[2]);
   timer->endTimer("INSSolver3D - Viscosity Linear Solve");
 }
 /*
