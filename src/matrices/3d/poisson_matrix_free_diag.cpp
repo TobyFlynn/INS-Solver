@@ -10,12 +10,10 @@
 extern DGConstants *constants;
 extern Timing *timer;
 
-PoissonMatrixFreeDiag3D::PoissonMatrixFreeDiag3D(DGMesh3D *m, bool alloc_tmp_dats) : PoissonMatrixFreeMult3D(m, alloc_tmp_dats) {
+PoissonMatrixFreeDiag3D::PoissonMatrixFreeDiag3D(DGMesh3D *m) : PoissonMatrixFreeMult3D(m) {
   _mesh = m;
 
-  DG_FP *tmp_np  = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  diag = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "poisson_matrix_free_diag");
-  free(tmp_np);
+  diag = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "poisson_matrix_free_diag");
 }
 
 void PoissonMatrixFreeDiag3D::set_bc_types(op_dat bc_ty) {

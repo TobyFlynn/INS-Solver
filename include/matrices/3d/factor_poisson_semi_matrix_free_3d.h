@@ -8,7 +8,7 @@
 
 class FactorPoissonSemiMatrixFree3D : public PoissonSemiMatrixFree, public FactorPoissonMatrixFreeMult3D {
 public:
-  FactorPoissonSemiMatrixFree3D(DGMesh3D *m, bool alloc_tmp_dats = true);
+  FactorPoissonSemiMatrixFree3D(DGMesh3D *m);
 
   virtual void set_bc_types(op_dat bc_ty) override;
   virtual void apply_bc(op_dat rhs, op_dat bc) override;

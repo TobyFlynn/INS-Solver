@@ -17,7 +17,7 @@ void custom_kernel_fpmf_3d_mult_mm(const int order, char const *name, op_set set
   op_arg arg4,
   op_arg arg5);
 
-FactorMMPoissonSemiMatrixFree3D::FactorMMPoissonSemiMatrixFree3D(DGMesh3D *m, bool alloc_tmp_dats) : FactorPoissonSemiMatrixFree3D(m, alloc_tmp_dats) {
+FactorMMPoissonSemiMatrixFree3D::FactorMMPoissonSemiMatrixFree3D(DGMesh3D *m) : FactorPoissonSemiMatrixFree3D(m) {
 
 }
 

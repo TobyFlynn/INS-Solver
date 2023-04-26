@@ -10,12 +10,10 @@
 extern DGConstants *constants;
 extern Timing *timer;
 
-FactorPoissonSemiMatrixFree3D::FactorPoissonSemiMatrixFree3D(DGMesh3D *m, bool alloc_tmp_dats) : FactorPoissonMatrixFreeMult3D(m, alloc_tmp_dats) {
+FactorPoissonSemiMatrixFree3D::FactorPoissonSemiMatrixFree3D(DGMesh3D *m) : FactorPoissonMatrixFreeMult3D(m) {
   _mesh = m;
 
-  DG_FP *data_t0 = (DG_FP *)calloc(DG_NP * DG_NP * mesh->cells->size, sizeof(DG_FP));
-  op1 = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, data_t0, "poisson_matrix_op1");
-  free(data_t0);
+  op1 = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, (DG_FP *)NULL, "poisson_matrix_op1");
 }
 
 void FactorPoissonSemiMatrixFree3D::set_bc_types(op_dat bc_ty) {

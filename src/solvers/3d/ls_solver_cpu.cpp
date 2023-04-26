@@ -6,6 +6,9 @@
 #include "dg_utils.h"
 #include "utils.h"
 #include "ls_utils/3d/poly_approx.h"
+#include "dg_dat_pool.h"
+
+extern DGDatPool3D *dg_dat_pool;
 
 void rst2xyz(DG_FP &sampleX, DG_FP &sampleY, DG_FP &sampleZ,
              const DG_FP *nodeX, const DG_FP *nodeY,
@@ -386,16 +389,17 @@ void intersect_4pts(const DG_FP *s, const DG_FP *nodeX, const DG_FP *nodeY,
 }
 
 
-void LevelSetSolver3D::sampleInterface() {
+void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sampleZ) {
   DG_FP ref_r[LS_SAMPLE_NP], ref_s[LS_SAMPLE_NP], ref_t[LS_SAMPLE_NP];
   set_sample_start_coords(ref_r, ref_s, ref_t);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, s_modal);
+  DGTempDat tmp_s_modal = dg_dat_pool->requestTempDatCells(DG_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, tmp_s_modal.dat);
 
   const DG_FP *ref_r_ptr = ref_r;
   const DG_FP *ref_s_ptr = ref_s;
   const DG_FP *ref_t_ptr = ref_t;
   const DG_FP *s_ptr = getOP2PtrHost(s, OP_READ);
-  const DG_FP *s_modal_ptr = getOP2PtrHost(s_modal, OP_READ);
+  const DG_FP *s_modal_ptr = getOP2PtrHost(tmp_s_modal.dat, OP_READ);
   const DG_FP *nodeX_ptr = getOP2PtrHost(mesh->nodeX, OP_READ);
   const DG_FP *nodeY_ptr = getOP2PtrHost(mesh->nodeY, OP_READ);
   const DG_FP *nodeZ_ptr = getOP2PtrHost(mesh->nodeZ, OP_READ);
@@ -540,11 +544,13 @@ void LevelSetSolver3D::sampleInterface() {
   releaseOP2PtrHost(mesh->z, OP_READ, z_ptr);
 
   releaseOP2PtrHost(s, OP_READ, s_ptr);
-  releaseOP2PtrHost(s_modal, OP_READ, s_modal_ptr);
+  releaseOP2PtrHost(tmp_s_modal.dat, OP_READ, s_modal_ptr);
   releaseOP2PtrHost(mesh->nodeX, OP_READ, nodeX_ptr);
   releaseOP2PtrHost(mesh->nodeY, OP_READ, nodeY_ptr);
   releaseOP2PtrHost(mesh->nodeZ, OP_READ, nodeZ_ptr);
   releaseOP2PtrHost(sampleX, OP_WRITE, sampleX_ptr);
   releaseOP2PtrHost(sampleY, OP_WRITE, sampleY_ptr);
   releaseOP2PtrHost(sampleZ, OP_WRITE, sampleZ_ptr);
+
+  dg_dat_pool->releaseTempDatCells(tmp_s_modal);
 }

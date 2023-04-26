@@ -5,6 +5,7 @@
 #include "dg_op2_blas.h"
 #include "dg_utils.h"
 #include "dg_constants/dg_constants.h"
+#include "dg_dat_pool.h"
 
 #include "timing.h"
 #include "config.h"
@@ -17,6 +18,7 @@
 extern Timing *timer;
 extern DGConstants *constants;
 extern Config *config;
+extern DGDatPool3D *dg_dat_pool;
 
 MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
   mesh = m;
@@ -53,7 +55,7 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
 
   currentInd = 0;
 
-  lsSolver = new LevelSetSolver3D(mesh, false);
+  lsSolver = new LevelSetSolver3D(mesh);
 
   setup_common();
 }
@@ -94,7 +96,7 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int
     g0 = 1.0;
   }
 
-  lsSolver = new LevelSetSolver3D(mesh, filename, false);
+  lsSolver = new LevelSetSolver3D(mesh, filename);
 
   setup_common();
 }
@@ -102,9 +104,9 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int
 void MPINSSolver3D::setup_common() {
   coarsePressureMatrix = new FactorPoissonCoarseMatrix3D(mesh);
   // pressureMatrix = new FactorPoissonSemiMatrixFree3D(mesh);
-  pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh, false);
+  pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh);
   // viscosityMatrix = new FactorMMPoissonSemiMatrixFree3D(mesh);
-  viscosityMatrix = new FactorMMPoissonMatrixFreeDiag3D(mesh, false);
+  viscosityMatrix = new FactorMMPoissonMatrixFreeDiag3D(mesh);
   // pressureSolver = new PETScAMGSolver(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
   // pressureSolver = new PMultigridPoissonSolver(mesh);
@@ -217,10 +219,6 @@ void MPINSSolver3D::setup_common() {
   vis_bc_types = tmp_bc_1;
   pr_bc  = tmp_npf_bc;
   vis_bc = tmp_npf_bc;
-
-  pressureMatrix->set_tmp_dats(tmp_np[2], tmp_np[3], tmp_np[4], tmp_npf[0], tmp_npf[1], tmp_npf[2], tmp_npf[3]);
-  viscosityMatrix->set_tmp_dats(tmp_np[0], tmp_np[2], tmp_np[6], tmp_npf[0], tmp_npf[1], tmp_npf[2], tmp_npf[3]);
-  lsSolver->set_tmp_dats(tmp_np[0], tmp_np[1], tmp_np[2], tmp_np[3], tmp_np[4], tmp_np[5], tmp_np[6], tmp_np[7], tmp_npf[0]);
 }
 
 MPINSSolver3D::~MPINSSolver3D() {

@@ -9,6 +9,7 @@
 #include "petscksp.h"
 
 #include "dg_global_constants/dg_global_constants_3d.h"
+#include "dg_dat_pool.h"
 
 #include "timing.h"
 #include "config.h"
@@ -19,6 +20,7 @@
 
 Timing *timer;
 Config *config;
+extern DGDatPool3D *dg_dat_pool;
 
 using namespace std;
 
@@ -157,8 +159,9 @@ int main(int argc, char **argv) {
   string out_file_end = outputDir + "end.h5";
   ins3d->dump_data(out_file_end);
 
-
   timer->exportTimings(outputDir + "timings.txt", iter, ins3d->get_time());
+
+  dg_dat_pool->report();
 
   delete ins3d;
 

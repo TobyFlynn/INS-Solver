@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "dg_op2_blas.h"
 #include "dg_utils.h"
+#include "dg_dat_pool.h"
 
 #include <iostream>
 #include <fstream>
@@ -16,57 +17,28 @@
 #include "timing.h"
 
 extern Timing *timer;
+extern DGDatPool3D *dg_dat_pool;
 
-LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m, bool alloc_tmp_dats) {
+LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m) {
   mesh = m;
   resuming = false;
-  advectionSolver = new AdvectionSolver3D(m, alloc_tmp_dats);
+  advectionSolver = new AdvectionSolver3D(m);
 
-  DG_FP * dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s");
-  if(alloc_tmp_dats) {
-    s_modal = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s_modal");
-  }
-  free(dg_np_data);
-
-  DG_FP *ls_sample_np_data = (DG_FP *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(DG_FP));
-  sampleX = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleX");
-  sampleY = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleY");
-  sampleZ = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleZ");
-  free(ls_sample_np_data);
+  s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_solver_s");
 
   h = 0;
   reinit_count = 0;
 }
 
-LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m, const std::string &filename, bool alloc_tmp_dats) {
+LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m, const std::string &filename) {
   mesh = m;
   resuming = true;
-  advectionSolver = new AdvectionSolver3D(m, alloc_tmp_dats);
+  advectionSolver = new AdvectionSolver3D(m);
 
   s = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ls_solver_s");
 
-  if(alloc_tmp_dats) {
-    DG_FP *dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-    s_modal = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "ls_solver_s_modal");
-    free(dg_np_data);
-  }
-
-  DG_FP *ls_sample_np_data = (DG_FP *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(DG_FP));
-  sampleX = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleX");
-  sampleY = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleY");
-  sampleZ = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, ls_sample_np_data, "ls_solver_sampleZ");
-  free(ls_sample_np_data);
-
   h = 0;
   reinit_count = 0;
-}
-
-void LevelSetSolver3D::set_tmp_dats(op_dat np0, op_dat np1, op_dat np2, op_dat np3,
-                                    op_dat np4, op_dat np5, op_dat np6, op_dat np7,
-                                    op_dat npf0) {
-  s_modal = np0;
-  advectionSolver->set_tmp_dats(np1, np2, np3, np4, np5, np6, np7, npf0);
 }
 
 LevelSetSolver3D::~LevelSetSolver3D() {
@@ -331,14 +303,17 @@ void LevelSetSolver3D::reinitLS() {
   throw std::runtime_error("reinitLS not implemented for SoA");
   #endif
   timer->startTimer("LevelSetSolver3D - reinitLS");
+  DGTempDat tmp_sampleX = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);
+  DGTempDat tmp_sampleY = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);
+  DGTempDat tmp_sampleZ = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);
   timer->startTimer("LevelSetSolver3D - sample interface");
-  sampleInterface();
+  sampleInterface(tmp_sampleX.dat, tmp_sampleY.dat, tmp_sampleZ.dat);
   timer->endTimer("LevelSetSolver3D - sample interface");
 
   timer->startTimer("LevelSetSolver3D - build KD-Tree");
-  const DG_FP *sample_pts_x = getOP2PtrHost(sampleX, OP_READ);
-  const DG_FP *sample_pts_y = getOP2PtrHost(sampleY, OP_READ);
-  const DG_FP *sample_pts_z = getOP2PtrHost(sampleZ, OP_READ);
+  const DG_FP *sample_pts_x = getOP2PtrHost(tmp_sampleX.dat, OP_READ);
+  const DG_FP *sample_pts_y = getOP2PtrHost(tmp_sampleY.dat, OP_READ);
+  const DG_FP *sample_pts_z = getOP2PtrHost(tmp_sampleZ.dat, OP_READ);
 
   #ifdef INS_MPI
   KDTree3DMPI kdtree(sample_pts_x, sample_pts_y, sample_pts_z, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
@@ -348,9 +323,13 @@ void LevelSetSolver3D::reinitLS() {
   kdtree.build_tree();
   #endif
 
-  releaseOP2PtrHost(sampleX, OP_READ, sample_pts_x);
-  releaseOP2PtrHost(sampleY, OP_READ, sample_pts_y);
-  releaseOP2PtrHost(sampleZ, OP_READ, sample_pts_z);
+  releaseOP2PtrHost(tmp_sampleX.dat, OP_READ, sample_pts_x);
+  releaseOP2PtrHost(tmp_sampleY.dat, OP_READ, sample_pts_y);
+  releaseOP2PtrHost(tmp_sampleZ.dat, OP_READ, sample_pts_z);
+
+  dg_dat_pool->releaseTempDatCells(tmp_sampleX);
+  dg_dat_pool->releaseTempDatCells(tmp_sampleY);
+  dg_dat_pool->releaseTempDatCells(tmp_sampleZ);
   timer->endTimer("LevelSetSolver3D - build KD-Tree");
 
   timer->startTimer("LevelSetSolver3D - query KD-Tree");
