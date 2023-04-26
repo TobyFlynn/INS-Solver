@@ -68,13 +68,12 @@ private:
   bool resuming;
   bool div_div_proj;
 
-  op_dat tmp_np[27], tmp_npf[4], tmp_bc_1, tmp_npf_bc;
+  op_dat tmp_bc_1, tmp_npf_bc;
   op_dat n[2][3];
-  op_dat dPdN[2], pr_bc, pr_bc_types, dpdx, dpdy, dpdz;
-  op_dat vis_bc_types, vis_bc, bc_types, vis_mm_factor;
-  op_dat art_vis, shock_u, shock_u_hat, shock_u_modal;
-  op_dat visRHS[3];
-  op_dat projRHS[3], proj_h, proj_pen;
+  op_dat dPdN[2], pr_bc, pr_bc_types;
+  op_dat vis_bc_types, vis_bc, bc_types;
+  op_dat art_vis;
+  op_dat proj_h;
 };
 
 #endif

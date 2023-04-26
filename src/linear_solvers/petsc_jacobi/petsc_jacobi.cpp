@@ -31,7 +31,8 @@ PETScJacobiSolver::PETScJacobiSolver(DGMesh *m) {
   mesh = m;
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
-  KSPSetType(ksp, KSPGMRES);
+  // KSPSetType(ksp, KSPGMRES);
+  KSPSetType(ksp, KSPCG);
   if(std::is_same<DG_FP,double>::value)
     KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 5e2);
   else

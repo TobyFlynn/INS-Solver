@@ -73,7 +73,7 @@ void LevelSetSolver3D::init() {
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
 
-  // reinitLS();
+  reinitLS();
 }
 
 void LevelSetSolver3D::getRhoMu(op_dat rho, op_dat mu) {
