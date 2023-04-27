@@ -796,7 +796,7 @@ void MPINSSolver3D::project_velocity() {
     mesh->mass(projRHS[1].dat);
     mesh->mass(projRHS[2].dat);
 
-    DGTempDat proj_pen = dg_dat_pool->requestTempDatCells(DG_NP);
+    DGTempDat proj_pen = dg_dat_pool->requestTempDatCells(1);
     DG_FP factor = dt * 1.0;
     // DG_FP factor = dt / Cr;
     // op_printf("Cr: %g\n", Cr);
