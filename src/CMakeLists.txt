@@ -147,6 +147,8 @@ if(BUILD_SN AND BUILD_GPU)
   add_executable(ins${DIM_POSTFIX}_cuda ${COMMON_SRC} ${GPU_SRC} ${SN_SRC} ${SN_GPU_SRC} cuda/ins${DIM_POSTFIX}_kernels.cu)
   target_link_libraries(ins${DIM_POSTFIX}_cuda -L${OP2_DIR}/lib -lop2_cuda -lop2_hdf5 ${HDF5_LIB} ${PETSC_LIB} ${ARMA_LIB} ${OPENBLAS_LIB} CUDA::cudart_static CUDA::cublas -L${OP2DGTOOLKIT_DIR}/lib -lop2dgtoolkit_${DIM_POSTFIX}_cuda -ldgtoolkit ${EXTRA_LIBS})
   target_compile_definitions(ins${DIM_POSTFIX}_cuda PRIVATE ${DG_COMPILER_DEFS} BUILD_CUDA OP2_DG_CUDA INS_CUDA DG_DIM=${DIM} DG_ORDER=${ORDER} OP2_PARTITIONER=${PART_LIB_NAME} DG_COL_MAJ MAX_CONST_SIZE=1024)
+
+  set_property(TARGET ins${DIM_POSTFIX}_cuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 endif()
 
 if(BUILD_MPI AND BUILD_CPU)
@@ -161,4 +163,6 @@ if(BUILD_MPI AND BUILD_GPU)
   target_include_directories(ins${DIM_POSTFIX}_mpi_cuda PRIVATE ${MPI_CXX_INCLUDE_PATH})
   target_link_libraries(ins${DIM_POSTFIX}_mpi_cuda -L${OP2_DIR}/lib -lop2_mpi_cuda -lop2_hdf5 ${HDF5_LIB} ${ARMA_LIB} CUDA::cudart_static CUDA::cublas -L${OP2DGTOOLKIT_DIR}/lib -lop2dgtoolkit_${DIM_POSTFIX}_mpi_cuda -ldgtoolkit ${PART_LIB} ${EXTRA_LIBS} ${PETSC_LIB} ${MPI_CXX_LIBRARIES})
   target_compile_definitions(ins${DIM_POSTFIX}_mpi_cuda PRIVATE ${DG_COMPILER_DEFS} BUILD_CUDA OP2_DG_CUDA INS_CUDA INS_MPI DG_DIM=${DIM} DG_ORDER=${ORDER} OP2_PARTITIONER=${PART_LIB_NAME} DG_COL_MAJ MAX_CONST_SIZE=1024)
+
+  set_property(TARGET ins${DIM_POSTFIX}_mpi_cuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 endif()

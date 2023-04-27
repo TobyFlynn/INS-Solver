@@ -106,3 +106,49 @@ void releaseOP2PtrHostMap(op_dat dat, op_map map, op_access acc, const DG_FP *pt
   free((void *)ptr);
   ptr = nullptr;
 }
+
+#if DG_DIM == 3
+#include "dg_global_constants/dg_mat_constants_dev_ptrs_3d.h"
+#include "op_cuda_rt_support.h"
+
+__constant__ DG_FP *dg_r_kernel;
+__constant__ DG_FP *dg_s_kernel;
+__constant__ DG_FP *dg_t_kernel;
+__constant__ DG_FP *dg_Dr_kernel;
+__constant__ DG_FP *dg_Ds_kernel;
+__constant__ DG_FP *dg_Dt_kernel;
+__constant__ DG_FP *dg_Drw_kernel;
+__constant__ DG_FP *dg_Dsw_kernel;
+__constant__ DG_FP *dg_Dtw_kernel;
+__constant__ DG_FP *dg_Mass_kernel;
+__constant__ DG_FP *dg_InvMass_kernel;
+__constant__ DG_FP *dg_InvV_kernel;
+__constant__ DG_FP *dg_Lift_kernel;
+__constant__ DG_FP *dg_MM_F0_kernel;
+__constant__ DG_FP *dg_MM_F1_kernel;
+__constant__ DG_FP *dg_MM_F2_kernel;
+__constant__ DG_FP *dg_MM_F3_kernel;
+__constant__ DG_FP *dg_Emat_kernel;
+__constant__ DG_FP *dg_Interp_kernel;
+
+void transfer_kernel_ptrs() {
+  cutilSafeCall(cudaMemcpyToSymbol(dg_r_kernel, &dg_r_d, sizeof(dg_r_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_s_kernel, &dg_s_d, sizeof(dg_s_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_t_kernel, &dg_t_d, sizeof(dg_t_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_Dr_kernel, &dg_Dr_d, sizeof(dg_Dr_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_Ds_kernel, &dg_Ds_d, sizeof(dg_Ds_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_Dt_kernel, &dg_Dt_d, sizeof(dg_Dt_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_Drw_kernel, &dg_Drw_d, sizeof(dg_Drw_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_Dsw_kernel, &dg_Dsw_d, sizeof(dg_Dsw_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_Dtw_kernel, &dg_Dtw_d, sizeof(dg_Dtw_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_Mass_kernel, &dg_Mass_d, sizeof(dg_Mass_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_InvMass_kernel, &dg_InvMass_d, sizeof(dg_InvMass_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_Lift_kernel, &dg_Lift_d, sizeof(dg_Lift_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_MM_F0_kernel, &dg_MM_F0_d, sizeof(dg_MM_F0_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_MM_F1_kernel, &dg_MM_F1_d, sizeof(dg_MM_F1_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_MM_F2_kernel, &dg_MM_F2_d, sizeof(dg_MM_F2_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_MM_F3_kernel, &dg_MM_F3_d, sizeof(dg_MM_F3_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_Emat_kernel, &dg_Emat_d, sizeof(dg_Emat_d)));
+  cutilSafeCall(cudaMemcpyToSymbol(dg_Interp_kernel, &dg_Interp_d, sizeof(dg_Interp_d)));
+}
+#endif

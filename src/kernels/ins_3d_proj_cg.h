@@ -1,15 +1,14 @@
-inline void ins_3d_proj_cg(const DG_FP *mass, const DG_FP *dr, const DG_FP *ds,
-                           const DG_FP *dt, const DG_FP *rx, const DG_FP *sx,
-                           const DG_FP *tx, const DG_FP *ry, const DG_FP *sy,
-                           const DG_FP *ty, const DG_FP *rz, const DG_FP *sz,
-                           const DG_FP *tz, const DG_FP *J, const DG_FP *pen,
-                           const DG_FP *rhs0, const DG_FP *rhs1,
-                           const DG_FP *rhs2, DG_FP *u, DG_FP *v, DG_FP *w,
-                           int *cell_g, int *conv_g, DG_FP *iter_g) {
-  const DG_FP *mass_mat = &mass[(DG_ORDER - 1) * DG_NP * DG_NP];
-  const DG_FP *dr_mat = &dr[(DG_ORDER - 1) * DG_NP * DG_NP];
-  const DG_FP *ds_mat = &ds[(DG_ORDER - 1) * DG_NP * DG_NP];
-  const DG_FP *dt_mat = &dt[(DG_ORDER - 1) * DG_NP * DG_NP];
+inline void ins_3d_proj_cg(const DG_FP *rx, const DG_FP *sx, const DG_FP *tx,
+                           const DG_FP *ry, const DG_FP *sy, const DG_FP *ty,
+                           const DG_FP *rz, const DG_FP *sz, const DG_FP *tz,
+                           const DG_FP *J, const DG_FP *pen, const DG_FP *rhs0,
+                           const DG_FP *rhs1, const DG_FP *rhs2, DG_FP *u,
+                           DG_FP *v, DG_FP *w, int *cell_g, int *conv_g,
+                           DG_FP *iter_g) {
+  const DG_FP *mass_mat = &dg_Mass_kernel[(DG_ORDER - 1) * DG_NP * DG_NP];
+  const DG_FP *dr_mat = &dg_Dr_kernel[(DG_ORDER - 1) * DG_NP * DG_NP];
+  const DG_FP *ds_mat = &dg_Ds_kernel[(DG_ORDER - 1) * DG_NP * DG_NP];
+  const DG_FP *dt_mat = &dg_Dt_kernel[(DG_ORDER - 1) * DG_NP * DG_NP];
 
   DG_FP r0[DG_NP], r1[DG_NP], r2[DG_NP];
   DG_FP r0_old[DG_NP], r1_old[DG_NP], r2_old[DG_NP];

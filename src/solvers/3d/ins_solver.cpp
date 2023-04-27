@@ -791,10 +791,6 @@ void INSSolver3D::project_velocity() {
     int num_converge = 0;
     DG_FP num_iter = 0.0;
     op_par_loop(ins_3d_proj_cg, "ins_3d_proj_cg", mesh->cells,
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::DT), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->rx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->sx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->tx, -1, OP_ID, 1, DG_FP_STR, OP_READ),

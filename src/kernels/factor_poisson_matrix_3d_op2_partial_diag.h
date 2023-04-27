@@ -1,7 +1,4 @@
-inline void factor_poisson_matrix_3d_op2_partial_diag(const int **order,
-                  const DG_FP *dr, const DG_FP *ds, const DG_FP *dt,
-                  const DG_FP *mmF0, const DG_FP *mmF1, const DG_FP *mmF2,
-                  const DG_FP *mmF3, const int *faceNum,
+inline void factor_poisson_matrix_3d_op2_partial_diag(const int **order, const int *faceNum,
                   const int *fmaskL_corrected, const int *fmaskR_corrected,
                   const DG_FP *nx, const DG_FP *ny, const DG_FP *nz,
                   const DG_FP *fscale, const DG_FP *sJ, const DG_FP **rx,
@@ -10,13 +7,13 @@ inline void factor_poisson_matrix_3d_op2_partial_diag(const int **order,
                   const DG_FP **sz, const DG_FP **tz, const DG_FP **factor,
                   DG_FP *diagL, DG_FP *diagR) {
   const int p = order[0][0];
-  const DG_FP *dr_mat = &dr[(p - 1) * DG_NP * DG_NP];
-  const DG_FP *ds_mat = &ds[(p - 1) * DG_NP * DG_NP];
-  const DG_FP *dt_mat = &dt[(p - 1) * DG_NP * DG_NP];
-  const DG_FP *mmF0_mat = &mmF0[(p - 1) * DG_NP * DG_NP];
-  const DG_FP *mmF1_mat = &mmF1[(p - 1) * DG_NP * DG_NP];
-  const DG_FP *mmF2_mat = &mmF2[(p - 1) * DG_NP * DG_NP];
-  const DG_FP *mmF3_mat = &mmF3[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *dr_mat = &dg_Dr_kernel[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *ds_mat = &dg_Ds_kernel[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *dt_mat = &dg_Dt_kernel[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF0_mat = &dg_MM_F0_kernel[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF1_mat = &dg_MM_F1_kernel[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF2_mat = &dg_MM_F2_kernel[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF3_mat = &dg_MM_F3_kernel[(p - 1) * DG_NP * DG_NP];
   const int dg_np  = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS];
   const int dg_npf = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS + 1];
 

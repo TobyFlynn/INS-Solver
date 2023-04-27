@@ -1,7 +1,6 @@
-inline void fpmf_3d_mult_mm(const int *p, const DG_FP *mass,
-                            const DG_FP *J, const DG_FP *mm_factor,
+inline void fpmf_3d_mult_mm(const int *p, const DG_FP *J, const DG_FP *mm_factor,
                             const DG_FP *in, DG_FP *out) {
-  const DG_FP *mass_mat = &mass[(*p - 1) * DG_NP * DG_NP];
+  const DG_FP *mass_mat = &dg_Mass_kernel[(*p - 1) * DG_NP * DG_NP];
   const int dg_np = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS];
 
   // TODO don't think this should be transpose

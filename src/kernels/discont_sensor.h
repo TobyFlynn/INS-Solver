@@ -1,7 +1,7 @@
 inline void discont_sensor(const DG_FP *e0, const DG_FP *s0, const DG_FP *k,
-                           const DG_FP *mass, const DG_FP *J, const DG_FP *u,
+                           const DG_FP *J, const DG_FP *u,
                            const DG_FP *u_hat, DG_FP *out) {
-  const DG_FP *mat = &mass[(DG_ORDER - 1) * DG_NP * DG_NP];
+  const DG_FP *mat = &dg_Mass_kernel[(DG_ORDER - 1) * DG_NP * DG_NP];
   const DG_FP PI = 3.141592653589793238463;
   DG_FP tmp_u[DG_NP];
   DG_FP tmp_u_hat[DG_NP];
