@@ -251,10 +251,11 @@ void MPINSSolver3D::step() {
   a1 = -0.5;
   b0 = 2.0;
   b1 = -1.0;
+  sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
   if(it_pre_sub_cycle > 1) {
     it_pre_sub_cycle--;
+    dt = sub_cycle_dt;
   } else {
-    sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
     dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
     it_pre_sub_cycle = 0;
   }
@@ -977,7 +978,8 @@ void MPINSSolver3D::viscosity() {
 
 void MPINSSolver3D::surface() {
   lsSolver->setBCTypes(bc_types);
-  lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2], sub_cycle_dt, time == 0.0 ? 1 : sub_cycles);
+  const int num_advec_steps = it_pre_sub_cycle != 0 ? 1 : std::max(sub_cycles, 1);
+  lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2], sub_cycle_dt, num_advec_steps);
   lsSolver->getRhoMu(rho, mu);
 }
 
