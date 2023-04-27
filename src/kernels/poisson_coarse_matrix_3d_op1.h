@@ -1,15 +1,11 @@
-inline void poisson_coarse_matrix_3d_op1(const DG_FP *dr,
-                                         const DG_FP *ds, const DG_FP *dt,
-                                         const DG_FP *mass, const DG_FP *rx,
-                                         const DG_FP *sx, const DG_FP *tx,
-                                         const DG_FP *ry, const DG_FP *sy,
-                                         const DG_FP *ty, const DG_FP *rz,
-                                         const DG_FP *sz, const DG_FP *tz,
-                                         const DG_FP *J, DG_FP *op1) {
-  const DG_FP *dr_mat = dr;
-  const DG_FP *ds_mat = ds;
-  const DG_FP *dt_mat = dt;
-  const DG_FP *mass_mat = mass;
+inline void poisson_coarse_matrix_3d_op1(const DG_FP *rx, const DG_FP *sx,
+                              const DG_FP *tx, const DG_FP *ry, const DG_FP *sy,
+                              const DG_FP *ty, const DG_FP *rz, const DG_FP *sz,
+                              const DG_FP *tz, const DG_FP *J, DG_FP *op1) {
+  const DG_FP *dr_mat = dg_Dr_kernel;
+  const DG_FP *ds_mat = dg_Ds_kernel;
+  const DG_FP *dt_mat = dg_Dt_kernel;
+  const DG_FP *mass_mat = dg_Mass_kernel;
 
   DG_FP Dx[DG_NP_N1 * DG_NP_N1], Dy[DG_NP_N1 * DG_NP_N1], Dz[DG_NP_N1 * DG_NP_N1];
   for(int i = 0; i < DG_NP_N1; i++) {

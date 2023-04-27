@@ -1,8 +1,4 @@
-inline void poisson_coarse_matrix_3d_bop(const DG_FP *dr,
-                                         const DG_FP *ds, const DG_FP *dt,
-                                         const DG_FP *mmF0, const DG_FP *mmF1,
-                                         const DG_FP *mmF2, const DG_FP *mmF3,
-                                         const int *faceNum, const int *bc_type,
+inline void poisson_coarse_matrix_3d_bop(const int *faceNum, const int *bc_type,
                                          const DG_FP *nx, const DG_FP *ny,
                                          const DG_FP *nz, const DG_FP *fscale,
                                          const DG_FP *sJ, const DG_FP *rx,
@@ -16,13 +12,13 @@ inline void poisson_coarse_matrix_3d_bop(const DG_FP *dr,
     return;
 
   // Handle Dirichlet boundary conditions
-  const DG_FP *dr_mat = dr;
-  const DG_FP *ds_mat = ds;
-  const DG_FP *dt_mat = dt;
-  const DG_FP *mmF0_mat = mmF0;
-  const DG_FP *mmF1_mat = mmF1;
-  const DG_FP *mmF2_mat = mmF2;
-  const DG_FP *mmF3_mat = mmF3;
+  const DG_FP *dr_mat = dg_Dr_kernel;
+  const DG_FP *ds_mat = dg_Ds_kernel;
+  const DG_FP *dt_mat = dg_Dt_kernel;
+  const DG_FP *mmF0_mat = dg_MM_F0_kernel;
+  const DG_FP *mmF1_mat = dg_MM_F1_kernel;
+  const DG_FP *mmF2_mat = dg_MM_F2_kernel;
+  const DG_FP *mmF3_mat = dg_MM_F3_kernel;
 
   const DG_FP *mmF;
   if(*faceNum == 0)

@@ -122,14 +122,12 @@ void PETScInvMassSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
   #if DG_DIM == 3
   if(dat_factor) {
     op_par_loop(petsc_pre_inv_mass_dat, "petsc_pre_inv_mass_dat", mesh->cells,
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::INV_MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->J, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(factor_dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(tmp_in.dat,      -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(tmp_out.dat,     -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   } else {
     op_par_loop(petsc_pre_inv_mass, "petsc_pre_inv_mass", mesh->cells,
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::INV_MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_gbl(&factor,  1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->J, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(tmp_in.dat,      -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),

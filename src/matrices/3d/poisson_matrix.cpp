@@ -12,29 +12,16 @@ PoissonMatrix3D::PoissonMatrix3D(DGMesh3D *m) {
   mesh = m;
   _mesh = m;
 
-  DG_FP *data_t0 = (DG_FP *)calloc(DG_NP * DG_NP * mesh->cells->size, sizeof(DG_FP));
-  op1 = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, data_t0, "poisson_matrix_op1");
-  free(data_t0);
+  op1    = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, (DG_FP *)NULL, "poisson_matrix_op1");
+  op2[0] = op_decl_dat(mesh->faces, DG_NP * DG_NP, DG_FP_STR, (DG_FP *)NULL, "poisson_matrix_op20");
+  op2[1] = op_decl_dat(mesh->faces, DG_NP * DG_NP, DG_FP_STR, (DG_FP *)NULL, "poisson_matrix_op21");
+  opbc   = op_decl_dat(mesh->bfaces, DG_NP * DG_NPF, DG_FP_STR, (DG_FP *)NULL, "poisson_matrix_opbc");
 
-  DG_FP *data_t1 = (DG_FP *)calloc(DG_NP * DG_NP * mesh->faces->size, sizeof(DG_FP));
-  op2[0] = op_decl_dat(mesh->faces, DG_NP * DG_NP, DG_FP_STR, data_t1, "poisson_matrix_op20");
-  op2[1] = op_decl_dat(mesh->faces, DG_NP * DG_NP, DG_FP_STR, data_t1, "poisson_matrix_op21");
-  free(data_t1);
-
-  DG_FP *data_t2 = (DG_FP *)calloc(DG_NP * DG_NPF * mesh->bfaces->size, sizeof(DG_FP));
-  opbc = op_decl_dat(mesh->bfaces, DG_NP * DG_NPF, DG_FP_STR, data_t2, "poisson_matrix_opbc");
-  free(data_t2);
-
-  int *data_t3 = (int *)calloc(mesh->cells->size, sizeof(int));
-  glb_ind = op_decl_dat(mesh->cells, 1, "int", data_t3, "poisson_matrix_glb_ind");
-  free(data_t3);
-
-  int *data_t4 = (int *)calloc(mesh->faces->size, sizeof(int));
-  glb_indL = op_decl_dat(mesh->faces, 1, "int", data_t4, "poisson_matrix_glb_indL");
-  glb_indR = op_decl_dat(mesh->faces, 1, "int", data_t4, "poisson_matrix_glb_indR");
-  orderL  = op_decl_dat(mesh->faces, 1, "int", data_t4, "poisson_orderL");
-  orderR  = op_decl_dat(mesh->faces, 1, "int", data_t4, "poisson_orderR");
-  free(data_t4);
+  glb_ind  = op_decl_dat(mesh->cells, 1, "int", (int *)NULL, "poisson_matrix_glb_ind");
+  glb_indL = op_decl_dat(mesh->faces, 1, "int", (int *)NULL, "poisson_matrix_glb_indL");
+  glb_indR = op_decl_dat(mesh->faces, 1, "int", (int *)NULL, "poisson_matrix_glb_indR");
+  orderL   = op_decl_dat(mesh->faces, 1, "int", (int *)NULL, "poisson_orderL");
+  orderR   = op_decl_dat(mesh->faces, 1, "int", (int *)NULL, "poisson_orderR");
 }
 
 void PoissonMatrix3D::calc_mat() {
@@ -62,10 +49,6 @@ void PoissonMatrix3D::calc_op1() {
   timer->startTimer("PoissonMatrix3D - calc_op1");
   op_par_loop(poisson_matrix_3d_op1, "poisson_matrix_3d_op1", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DT), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->rx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->tx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
@@ -85,13 +68,6 @@ void PoissonMatrix3D::calc_op2() {
   // TODO full p-adaptivity
   op_par_loop(poisson_matrix_3d_op2, "poisson_matrix_3d_op2", mesh->faces,
               op_arg_dat(mesh->order, -2, mesh->face2cells, 1, "int", OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DT), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::MM_F0), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::MM_F1), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::MM_F2), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::MM_F3), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
               op_arg_dat(mesh->fmaskR,  -1, OP_ID, DG_NPF, "int", OP_READ),
@@ -121,13 +97,6 @@ void PoissonMatrix3D::calc_opbc() {
   if(mesh->bface2cells) {
     op_par_loop(poisson_matrix_3d_bop, "poisson_matrix_3d_bop", mesh->bfaces,
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::DT), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::MM_F0), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::MM_F1), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::MM_F2), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::MM_F3), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
@@ -148,13 +117,6 @@ void PoissonMatrix3D::calc_opbc() {
 
     op_par_loop(poisson_matrix_3d_opbc, "poisson_matrix_3d_opbc", mesh->bfaces,
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::DT), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::MM_F0), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::MM_F1), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::MM_F2), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::MM_F3), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),

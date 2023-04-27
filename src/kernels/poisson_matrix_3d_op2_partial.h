@@ -1,24 +1,19 @@
-inline void poisson_matrix_3d_op2_partial(const int **order, const DG_FP *dr,
-                                  const DG_FP *ds, const DG_FP *dt,
-                                  const DG_FP *mmF0, const DG_FP *mmF1,
-                                  const DG_FP *mmF2, const DG_FP *mmF3,
-                                  const int *faceNum, const int *fmaskL_corrected,
-                                  const int *fmaskR_corrected, const DG_FP *nx,
-                                  const DG_FP *ny, const DG_FP *nz,
-                                  const DG_FP *fscale, const DG_FP *sJ,
-                                  const DG_FP **rx, const DG_FP **sx,
-                                  const DG_FP **tx, const DG_FP **ry,
-                                  const DG_FP **sy, const DG_FP **ty,
-                                  const DG_FP **rz, const DG_FP **sz,
-                                  const DG_FP **tz, DG_FP *op1L, DG_FP *op1R) {
+inline void poisson_matrix_3d_op2_partial(const int **order, const int *faceNum,
+                      const int *fmaskL_corrected, const int *fmaskR_corrected,
+                      const DG_FP *nx, const DG_FP *ny, const DG_FP *nz,
+                      const DG_FP *fscale, const DG_FP *sJ, const DG_FP **rx,
+                      const DG_FP **sx, const DG_FP **tx, const DG_FP **ry,
+                      const DG_FP **sy, const DG_FP **ty, const DG_FP **rz,
+                      const DG_FP **sz, const DG_FP **tz, DG_FP *op1L,
+                      DG_FP *op1R) {
   const int p = order[0][0];
-  const DG_FP *dr_mat = &dr[(p - 1) * DG_NP * DG_NP];
-  const DG_FP *ds_mat = &ds[(p - 1) * DG_NP * DG_NP];
-  const DG_FP *dt_mat = &dt[(p - 1) * DG_NP * DG_NP];
-  const DG_FP *mmF0_mat = &mmF0[(p - 1) * DG_NP * DG_NP];
-  const DG_FP *mmF1_mat = &mmF1[(p - 1) * DG_NP * DG_NP];
-  const DG_FP *mmF2_mat = &mmF2[(p - 1) * DG_NP * DG_NP];
-  const DG_FP *mmF3_mat = &mmF3[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *dr_mat = &dg_Dr_kernel[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *ds_mat = &dg_Ds_kernel[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *dt_mat = &dg_Dt_kernel[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF0_mat = &dg_MM_F0_kernel[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF1_mat = &dg_MM_F1_kernel[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF2_mat = &dg_MM_F2_kernel[(p - 1) * DG_NP * DG_NP];
+  const DG_FP *mmF3_mat = &dg_MM_F3_kernel[(p - 1) * DG_NP * DG_NP];
   const int dg_np  = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS];
   const int dg_npf = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS + 1];
 

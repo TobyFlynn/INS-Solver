@@ -21,14 +21,12 @@ DG_FP MMPoissonMatrixFree3D::get_factor() {
   return factor;
 }
 
-// Doesn't account for BCs
 void MMPoissonMatrixFree3D::mult(op_dat in, op_dat out) {
   timer->startTimer("MMPoissonMatrixFree3D - Mult");
   PoissonMatrixFree3D::mult(in, out);
 
   op_par_loop(pmf_3d_mult_mm, "pmf_3d_mult_mm", _mesh->cells,
               op_arg_dat(_mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->J, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&factor,  1, DG_FP_STR, OP_READ),
               op_arg_dat(in,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
