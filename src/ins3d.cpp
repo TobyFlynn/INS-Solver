@@ -141,9 +141,6 @@ int main(int argc, char **argv) {
   timer->endTimer("OP2 Partitioning");
 
   mesh->init();
-  #ifdef OP2_DG_CUDA
-  transfer_kernel_ptrs();
-  #endif
   ins3d->init(r_ynolds, refVel);
 
   string out_file_ic = outputDir + "ic.h5";
