@@ -52,11 +52,11 @@ void PoissonCoarseMatrix::setPETScMatrix() {
     MatSetSizes(pMat, unknowns, unknowns, PETSC_DECIDE, PETSC_DECIDE);
 
     #ifdef INS_MPI
-    MatSetType(pMat, MATMPIAIJCUSPARSE);
+    MatSetType(pMat, MATMPIAIJ);
     // Guess for the off diagonal preallocation at the moment
     MatMPIAIJSetPreallocation(pMat, DG_NP_N1 * (DG_NUM_FACES + 1), NULL, DG_NP_N1 * 2, NULL);
     #else
-    MatSetType(pMat, MATSEQAIJCUSPARSE);
+    MatSetType(pMat, MATSEQAIJ);
     MatSeqAIJSetPreallocation(pMat, DG_NP_N1 * (DG_NUM_FACES + 1), NULL);
     #endif
     MatSetOption(pMat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);

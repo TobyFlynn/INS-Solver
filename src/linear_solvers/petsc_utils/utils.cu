@@ -276,7 +276,7 @@ void PETScUtils::store_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh *mesh) {
 void PETScUtils::create_vec_coarse(Vec *v, op_set set) {
   timer->startTimer("PETScUtils - create_vec");
   VecCreate(PETSC_COMM_WORLD, v);
-  VecSetType(*v, VECCUDA);
+  VecSetType(*v, VECSTANDARD);
   VecSetSizes(*v, set->size * DG_NP_N1, PETSC_DECIDE);
   timer->endTimer("PETScUtils - create_vec");
 }
@@ -301,11 +301,12 @@ void PETScUtils::copy_vec_to_dat_coarse(op_dat dat, const DG_FP *dat_d) {
   op_mpi_wait_all_grouped(1, copy_args, 2);
 
   #ifdef DG_OP2_SOA
+  throw std::runtime_error("Coarse SoA not implemented for host AMG solve");
   const int nthread = 512;
   const int nblocks = dat->set->size * DG_NP_N1 / nthread + 1;
   aos_to_soa_coarse<<<nblocks,nthread>>>(dat->set->size, getSetSizeFromOpArg(&copy_args[0]), dat_d, (DG_FP *)dat->data_d);
   #else
-  cudaMemcpy2D(dat->data_d, DG_NP * sizeof(DG_FP), dat_d, DG_NP_N1 * sizeof(DG_FP), DG_NP_N1 * sizeof(DG_FP), dat->set->size, cudaMemcpyDeviceToDevice);
+  cudaMemcpy2D(dat->data_d, DG_NP * sizeof(DG_FP), dat_d, DG_NP_N1 * sizeof(DG_FP), DG_NP_N1 * sizeof(DG_FP), dat->set->size, cudaMemcpyHostToDevice);
   #endif
 
   op_mpi_set_dirtybit_cuda(1, copy_args);
@@ -332,11 +333,12 @@ void PETScUtils::copy_dat_to_vec_coarse(op_dat dat, DG_FP *dat_d) {
   op_mpi_wait_all_grouped(1, copy_args, 2);
 
   #ifdef DG_OP2_SOA
+  throw std::runtime_error("Coarse SoA not implemented for host AMG solve");
   const int nthread = 512;
   const int nblocks = dat->set->size * DG_NP_N1 / nthread + 1;
   soa_to_aos_coarse<<<nblocks,nthread>>>(dat->set->size, getSetSizeFromOpArg(&copy_args[0]), (DG_FP *)dat->data_d, dat_d);
   #else
-  cudaMemcpy2D(dat_d, DG_NP_N1 * sizeof(DG_FP), dat->data_d, DG_NP * sizeof(DG_FP), DG_NP_N1 * sizeof(DG_FP), dat->set->size, cudaMemcpyDeviceToDevice);
+  cudaMemcpy2D(dat_d, DG_NP_N1 * sizeof(DG_FP), dat->data_d, DG_NP * sizeof(DG_FP), DG_NP_N1 * sizeof(DG_FP), dat->set->size, cudaMemcpyDeviceToHost);
   #endif
 
   op_mpi_set_dirtybit_cuda(1, copy_args);
@@ -347,11 +349,11 @@ void PETScUtils::copy_dat_to_vec_coarse(op_dat dat, DG_FP *dat_d) {
 void PETScUtils::load_vec_coarse(Vec *v, op_dat v_dat) {
   timer->startTimer("PETScUtils - load_vec_coarse");
   DG_FP *v_ptr;
-  VecCUDAGetArray(*v, &v_ptr);
+  VecGetArray(*v, &v_ptr);
 
   copy_dat_to_vec_coarse(v_dat, v_ptr);
 
-  VecCUDARestoreArray(*v, &v_ptr);
+  VecRestoreArray(*v, &v_ptr);
   timer->endTimer("PETScUtils - load_vec_coarse");
 }
 
@@ -359,10 +361,10 @@ void PETScUtils::load_vec_coarse(Vec *v, op_dat v_dat) {
 void PETScUtils::store_vec_coarse(Vec *v, op_dat v_dat) {
   timer->startTimer("PETScUtils - store_vec_coarse");
   const DG_FP *v_ptr;
-  VecCUDAGetArrayRead(*v, &v_ptr);
+  VecGetArrayRead(*v, &v_ptr);
 
   copy_vec_to_dat_coarse(v_dat, v_ptr);
 
-  VecCUDARestoreArrayRead(*v, &v_ptr);
+  VecRestoreArrayRead(*v, &v_ptr);
   timer->endTimer("PETScUtils - store_vec_coarse");
 }
