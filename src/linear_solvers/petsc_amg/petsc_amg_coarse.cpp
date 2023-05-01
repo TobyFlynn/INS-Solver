@@ -12,6 +12,16 @@ PETScAMGCoarseSolver::PETScAMGCoarseSolver(DGMesh *m) : PETScAMGSolver(m) {
 
 }
 
+PETScAMGCoarseSolver::~PETScAMGCoarseSolver() {
+  PETScUtils::destroy_vec(&b);
+  PETScUtils::destroy_vec(&x);
+}
+
+void PETScAMGCoarseSolver::init() {
+  PETScUtils::create_vec_coarse(&b, mesh->cells);
+  PETScUtils::create_vec_coarse(&x, mesh->cells);
+}
+
 bool PETScAMGCoarseSolver::solve(op_dat rhs, op_dat ans) {
   timer->startTimer("PETScAMGCoarseSolver - solve");
   timer->startTimer("PETScAMGCoarseSolver - get PETSc matrix");
@@ -29,10 +39,6 @@ bool PETScAMGCoarseSolver::solve(op_dat rhs, op_dat ans) {
 
   // if(bc)
   //   matrix->apply_bc(rhs, bc);
-
-  Vec b, x;
-  PETScUtils::create_vec_p_adapt(&b, matrix->getUnknowns());
-  PETScUtils::create_vec_p_adapt(&x, matrix->getUnknowns());
 
   PETScUtils::load_vec_coarse(&b, rhs);
   PETScUtils::load_vec_coarse(&x, ans);
@@ -58,9 +64,6 @@ bool PETScAMGCoarseSolver::solve(op_dat rhs, op_dat ans) {
   Vec solution;
   KSPGetSolution(ksp, &solution);
   PETScUtils::store_vec_coarse(&solution, ans);
-
-  PETScUtils::destroy_vec(&b);
-  PETScUtils::destroy_vec(&x);
 
   timer->endTimer("PETScAMGCoarseSolver - solve");
 

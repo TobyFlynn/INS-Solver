@@ -273,6 +273,14 @@ void PETScUtils::store_vec_p_adapt(Vec *v, op_dat v_dat, DGMesh *mesh) {
   timer->endTimer("PETScUtils - store_vec_p_adapt");
 }
 
+void PETScUtils::create_vec_coarse(Vec *v, op_set set) {
+  timer->startTimer("PETScUtils - create_vec");
+  VecCreate(PETSC_COMM_WORLD, v);
+  VecSetType(*v, VECCUDA);
+  VecSetSizes(*v, set->size * DG_NP_N1, PETSC_DECIDE);
+  timer->endTimer("PETScUtils - create_vec");
+}
+
 __global__ void aos_to_soa_coarse(const int set_size, const int stride, const DG_FP *in, DG_FP *out) {
   const int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if(tid >= set_size * DG_NP_N1) return;

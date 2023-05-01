@@ -13,6 +13,8 @@ public:
   PETScPMultigrid(DGMesh *m);
   ~PETScPMultigrid();
 
+  void init() override;
+
   void set_coarse_matrix(PoissonCoarseMatrix *c_mat);
   bool solve(op_dat rhs, op_dat ans) override;
 
@@ -25,6 +27,7 @@ private:
 
   DGMesh *mesh;
   KSP ksp;
+  Vec b, x;
 
   bool pMatInit;
   Mat pMat;

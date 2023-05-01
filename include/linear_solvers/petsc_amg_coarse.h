@@ -10,8 +10,14 @@
 class PETScAMGCoarseSolver : public PETScAMGSolver {
 public:
   PETScAMGCoarseSolver(DGMesh *m);
+  ~PETScAMGCoarseSolver();
+
+  void init() override;
 
   virtual bool solve(op_dat rhs, op_dat ans) override;
+
+private:
+  Vec b, x;
 };
 
 #endif

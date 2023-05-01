@@ -12,6 +12,7 @@ public:
   void set_bcs(op_dat bcs);
   void set_nullspace(bool ns);
   virtual bool solve(op_dat rhs, op_dat ans) = 0;
+  virtual void init();
 
 protected:
   PoissonMatrix *matrix;

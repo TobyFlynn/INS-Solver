@@ -218,6 +218,9 @@ void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
     dg_dat_pool->releaseTempDatCells(tmp_npf);
   }
 
+  pressureSolver->init();
+  viscositySolver->init();
+
   timer->endTimer("INSSolver3D - Init");
 }
 

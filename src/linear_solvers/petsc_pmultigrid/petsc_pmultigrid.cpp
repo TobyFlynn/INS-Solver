@@ -34,10 +34,19 @@ PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
 }
 
 PETScPMultigrid::~PETScPMultigrid() {
+  PETScUtils::destroy_vec(&b);
+  PETScUtils::destroy_vec(&x);
   if(pMatInit)
     MatDestroy(&pMat);
   KSPDestroy(&ksp);
   delete pmultigridSolver;
+}
+
+void PETScPMultigrid::init() {
+  PETScUtils::create_vec(&b, mesh->cells);
+  PETScUtils::create_vec(&x, mesh->cells);
+  create_shell_mat();
+  pmultigridSolver->init();
 }
 
 void PETScPMultigrid::set_coarse_matrix(PoissonCoarseMatrix *c_mat) {
@@ -46,8 +55,6 @@ void PETScPMultigrid::set_coarse_matrix(PoissonCoarseMatrix *c_mat) {
 
 bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
   timer->startTimer("PETScPMultigrid - solve");
-  create_shell_mat();
-  KSPSetOperators(ksp, pMat, pMat);
   if(nullspace) {
     MatNullSpace ns;
     MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_TRUE, 0, 0, &ns);
@@ -55,16 +62,15 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
     MatSetTransposeNullSpace(pMat, ns);
     MatNullSpaceDestroy(&ns);
   }
+  MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
+  KSPSetOperators(ksp, pMat, pMat);
 
   pmultigridSolver->set_matrix(matrix);
   pmultigridSolver->set_nullspace(nullspace);
 
   if(bc)
     matrix->apply_bc(rhs, bc);
-
-  Vec b, x;
-  PETScUtils::create_vec_p_adapt(&b, matrix->getUnknowns());
-  PETScUtils::create_vec_p_adapt(&x, matrix->getUnknowns());
 
   // PETScUtils::load_vec_p_adapt(&b, rhs, mesh);
   // PETScUtils::load_vec_p_adapt(&x, ans, mesh);
@@ -94,9 +100,6 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
   KSPGetSolution(ksp, &solution);
   // PETScUtils::store_vec_p_adapt(&solution, ans, mesh);
   PETScUtils::store_vec(&solution, ans);
-
-  PETScUtils::destroy_vec(&b);
-  PETScUtils::destroy_vec(&x);
 
   timer->endTimer("PETScPMultigrid - solve");
 

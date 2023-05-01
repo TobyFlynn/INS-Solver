@@ -49,7 +49,7 @@ void PoissonCoarseMatrix::setPETScMatrix() {
 
     #ifdef INS_MPI
     MatSetType(pMat, MATMPIAIJ);
-    MatMPIAIJSetPreallocation(pMat, DG_NP_N1 * (DG_NUM_FACES + 1), NULL, 0, NULL);
+    MatMPIAIJSetPreallocation(pMat, DG_NP_N1 * (DG_NUM_FACES + 1), NULL, DG_NP_N1 * 2, NULL);
     #else
     MatSetType(pMat, MATSEQAIJ);
     MatSeqAIJSetPreallocation(pMat, DG_NP_N1 * (DG_NUM_FACES + 1), NULL);

@@ -223,6 +223,14 @@ void PETScUtils::create_vec_p_adapt(Vec *v, int local_unknowns) {
   timer->endTimer("PETScUtils - create_vec_p_adapt");
 }
 
+void PETScUtils::create_vec_coarse(Vec *v, op_set set) {
+  timer->startTimer("PETScUtils - create_vec");
+  VecCreate(PETSC_COMM_WORLD, v);
+  VecSetType(*v, VECSTANDARD);
+  VecSetSizes(*v, set->size * DG_NP_N1, PETSC_DECIDE);
+  timer->endTimer("PETScUtils - create_vec");
+}
+
 // Copy PETSc vec array to OP2 dat
 void PETScUtils::copy_vec_to_dat_coarse(op_dat dat, const DG_FP *dat_d) {
   timer->startTimer("PETScUtils - copy_vec_to_dat_coarse");

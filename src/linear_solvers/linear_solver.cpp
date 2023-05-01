@@ -11,3 +11,7 @@ void LinearSolver::set_bcs(op_dat bcs) {
 void LinearSolver::set_nullspace(bool ns) {
   nullspace = ns;
 }
+
+void LinearSolver::init() {
+
+}

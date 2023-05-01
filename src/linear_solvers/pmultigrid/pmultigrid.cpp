@@ -137,10 +137,15 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
   free(tmp_data);
 
   coarseSolver = new PETScAMGCoarseSolver(mesh);
+  coarseSolver->set_tol(coarse_solve_tol);
 }
 
 PMultigridPoissonSolver::~PMultigridPoissonSolver() {
   delete coarseSolver;
+}
+
+void PMultigridPoissonSolver::init() {
+  coarseSolver->init();
 }
 
 void PMultigridPoissonSolver::set_matrix(PoissonMatrix *mat) {
@@ -314,7 +319,6 @@ void PMultigridPoissonSolver::set_coarse_matrix(PoissonCoarseMatrix *c_mat) {
 void PMultigridPoissonSolver::setupDirectSolve() {
   // coarseSolver->set_bcs(bc);
   coarseSolver->set_nullspace(nullspace);
-  coarseSolver->set_tol(coarse_solve_tol);
 }
 
 DG_FP PMultigridPoissonSolver::maxEigenValue() {

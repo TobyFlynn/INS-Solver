@@ -13,6 +13,8 @@ public:
   PETScJacobiSolver(DGMesh *m);
   ~PETScJacobiSolver();
 
+  void init() override;
+
   bool solve(op_dat rhs, op_dat ans) override;
 
   void calc_rhs(const DG_FP *in_d, DG_FP *out_d);
@@ -25,6 +27,7 @@ private:
   DGMesh *mesh;
   PoissonMatrixFreeDiag *diagMat;
   KSP ksp;
+  Vec b, x;
   bool pMatInit, dat_factor;
   Mat pMat;
 };

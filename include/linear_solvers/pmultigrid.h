@@ -18,6 +18,8 @@ public:
   PMultigridPoissonSolver(DGMesh *m);
   ~PMultigridPoissonSolver();
 
+  void init() override;
+
   virtual void set_matrix(PoissonMatrix *mat) override;
   void set_coarse_matrix(PoissonCoarseMatrix *c_mat);
   bool solve(op_dat rhs, op_dat ans) override;
