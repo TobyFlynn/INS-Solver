@@ -243,7 +243,7 @@ void PETScUtils::copy_vec_to_dat_coarse(op_dat dat, const DG_FP *dat_d) {
 
   #pragma omp parallel for
   for(int i = 0; i < dat->set->size; i++) {
-    #pragma omp unroll full
+    #pragma unroll
     for(int j = 0; j < DG_NP_N1; j++) {
       op2_dat_ptr[i * DG_NP + j] = dat_d[i * DG_NP_N1 + j];
     }
@@ -265,7 +265,7 @@ void PETScUtils::copy_dat_to_vec_coarse(op_dat dat, DG_FP *dat_d) {
 
   #pragma omp parallel for
   for(int i = 0; i < dat->set->size; i++) {
-    #pragma omp unroll full
+    #pragma unroll
     for(int j = 0; j < DG_NP_N1; j++) {
       dat_d[i * DG_NP_N1 + j] = op2_dat_ptr[i * DG_NP + j];
     }
