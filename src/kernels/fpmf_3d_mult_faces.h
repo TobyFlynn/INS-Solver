@@ -20,8 +20,6 @@ inline void fpmf_3d_mult_faces(const int **order, const int *faceNum, const int 
 
   for(int j = 0; j < dg_npf; j++) {
     const int fmaskIndL = fmaskL[j];
-    const int fmaskIndR = fmaskR[j];
-    const int fmaskIndL_corr = fmaskL_corrected[j];
     const int fmaskIndR_corr = fmaskR_corrected[j];
 
     const DG_FP diffL_u = in[0][fmaskIndL] - in[1][fmaskIndR_corr];
@@ -36,6 +34,11 @@ inline void fpmf_3d_mult_faces(const int **order, const int *faceNum, const int 
     l_x[0][indL] += nx[0] * l_tmpL;
     l_y[0][indL] += ny[0] * l_tmpL;
     l_z[0][indL] += nz[0] * l_tmpL;
+  }
+
+  for(int j = 0; j < dg_npf; j++) {
+    const int fmaskIndR = fmaskR[j];
+    const int fmaskIndL_corr = fmaskL_corrected[j];
 
     const DG_FP diffR_u = in[1][fmaskIndR] - in[0][fmaskIndL_corr];
     const DG_FP diffR_u_x = nx[1] * (in_x[1][fmaskIndR] + in_x[0][fmaskIndL_corr]);
