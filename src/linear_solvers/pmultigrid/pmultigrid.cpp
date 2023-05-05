@@ -169,17 +169,6 @@ void PMultigridPoissonSolver::set_matrix(PoissonMatrix *mat) {
     mesh->update_order(orders[i], empty_vec);
     if(diagMat) {
       mfdMatrix->calc_mat_partial();
-    } else {
-      smfMatrix->calc_mat_partial();
-    }
-    eig_vals.push_back(maxEigenValue());
-  }
-  timer->endTimer("PMultigridPoissonSolver - Calc Eigen Values");
-  timer->startTimer("PMultigridPoissonSolver - Calc Mat Partial");
-  for(int i = 0; i < orders.size(); i++) {
-    mesh->update_order(orders[i], empty_vec);
-    if(diagMat) {
-      mfdMatrix->calc_mat_partial();
       op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
                   op_arg_dat(mfdMatrix->diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                   op_arg_dat(diag_dats[i], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
@@ -190,8 +179,9 @@ void PMultigridPoissonSolver::set_matrix(PoissonMatrix *mat) {
                   op_arg_dat(smfMatrix->op1, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
                   op_arg_dat(diag_dats[i],   -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
     }
+    eig_vals.push_back(maxEigenValue());
   }
-  timer->endTimer("PMultigridPoissonSolver - Calc Mat Partial");
+  timer->endTimer("PMultigridPoissonSolver - Calc Eigen Values");
   mesh->update_order(current_mesh_order, empty_vec);
 }
 
