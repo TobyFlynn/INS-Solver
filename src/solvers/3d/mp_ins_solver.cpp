@@ -166,6 +166,16 @@ void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
 
   lsSolver->init();
 
+  op_par_loop(zero_np_3, "zero_np_3", mesh->cells,
+              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  op_par_loop(zero_np_3, "zero_np_3", mesh->cells,
+              op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
   // Set initial conditions
   if(!resuming) {
     op_par_loop(ins_3d_set_ic, "ins_3d_set_ic", mesh->cells,
