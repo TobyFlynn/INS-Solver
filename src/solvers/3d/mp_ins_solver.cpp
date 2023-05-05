@@ -239,6 +239,16 @@ void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
 
     op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
                 op_arg_dat(pr, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    op_par_loop(zero_np_3, "zero_np_3", mesh->cells,
+                op_arg_dat(n[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(n[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(n[0][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    op_par_loop(zero_np_3, "zero_np_3", mesh->cells,
+                op_arg_dat(n[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(n[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(n[1][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   }
 
   pressureSolver->init();
