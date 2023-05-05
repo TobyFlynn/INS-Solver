@@ -220,11 +220,16 @@ void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
     dg_dat_pool->releaseTempDatCells(tmp_npf);
   }
 
-  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-              op_arg_dat(dPdN[0], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+  if(!resuming) {
+    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+                op_arg_dat(dPdN[0], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
 
-  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-              op_arg_dat(dPdN[1], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+                op_arg_dat(dPdN[1], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+
+    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                op_arg_dat(pr, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  }
 
   pressureSolver->init();
   viscositySolver->init();
