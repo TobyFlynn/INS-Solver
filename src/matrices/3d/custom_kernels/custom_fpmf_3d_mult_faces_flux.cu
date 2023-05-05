@@ -225,7 +225,7 @@ void custom_kernel_fpmf_3d_mult_faces_flux(const int order, char const *name, op
         int nblocks = ((end-start-1)/nthread+1) * DG_NPF;
         switch(order) {
           case 1:
-            _op_cuda_fpmf_3d_mult_faces_flux<1><<<nblocks,nthread>>>(
+            _op_cuda_fpmf_3d_mult_faces_flux<1><<<nblocks,nthread,0,round==0 ? op2_core_set : 0>>>(
             (int *)arg0.data_d,
             (double *)arg9.data_d,
             (double *)arg10.data_d,
@@ -253,7 +253,7 @@ void custom_kernel_fpmf_3d_mult_faces_flux(const int order, char const *name, op
             start,end,set->size+set->exec_size);
             break;
           case 2:
-            _op_cuda_fpmf_3d_mult_faces_flux<2><<<nblocks,nthread>>>(
+            _op_cuda_fpmf_3d_mult_faces_flux<2><<<nblocks,nthread,0,round==0 ? op2_core_set : 0>>>(
             (int *)arg0.data_d,
             (double *)arg9.data_d,
             (double *)arg10.data_d,
@@ -281,7 +281,7 @@ void custom_kernel_fpmf_3d_mult_faces_flux(const int order, char const *name, op
             start,end,set->size+set->exec_size);
             break;
           case 3:
-            _op_cuda_fpmf_3d_mult_faces_flux<3><<<nblocks,nthread>>>(
+            _op_cuda_fpmf_3d_mult_faces_flux<3><<<nblocks,nthread,0,round==0 ? op2_core_set : 0>>>(
             (int *)arg0.data_d,
             (double *)arg9.data_d,
             (double *)arg10.data_d,
@@ -309,7 +309,7 @@ void custom_kernel_fpmf_3d_mult_faces_flux(const int order, char const *name, op
             start,end,set->size+set->exec_size);
             break;
           case 4:
-            _op_cuda_fpmf_3d_mult_faces_flux<4><<<nblocks,nthread>>>(
+            _op_cuda_fpmf_3d_mult_faces_flux<4><<<nblocks,nthread,0,round==0 ? op2_core_set : 0>>>(
             (int *)arg0.data_d,
             (double *)arg9.data_d,
             (double *)arg10.data_d,
@@ -337,7 +337,7 @@ void custom_kernel_fpmf_3d_mult_faces_flux(const int order, char const *name, op
             start,end,set->size+set->exec_size);
             break;
           case 5:
-            _op_cuda_fpmf_3d_mult_faces_flux<5><<<nblocks,nthread>>>(
+            _op_cuda_fpmf_3d_mult_faces_flux<5><<<nblocks,nthread,0,round==0 ? op2_core_set : 0>>>(
             (int *)arg0.data_d,
             (double *)arg9.data_d,
             (double *)arg10.data_d,
