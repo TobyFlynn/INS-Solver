@@ -4,7 +4,7 @@
 
 #include "ls_utils/3d/kd_tree.h"
 #ifdef INS_MPI
-#include "ls_utils/3d/kd_tree_mpi.h"
+#include "ls_utils/3d/kd_tree_mpi_alpha.h"
 #endif
 #include "utils.h"
 #include "dg_op2_blas.h"
@@ -316,7 +316,7 @@ void LevelSetSolver3D::reinitLS() {
   const DG_FP *sample_pts_z = getOP2PtrHost(tmp_sampleZ.dat, OP_READ);
 
   #ifdef INS_MPI
-  KDTree3DMPI kdtree(sample_pts_x, sample_pts_y, sample_pts_z, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
+  KDTree3DMPIAlpha kdtree(sample_pts_x, sample_pts_y, sample_pts_z, LS_SAMPLE_NP * mesh->cells->size, mesh, s, alpha);
   kdtree.build_tree();
   #else
   KDTree3D kdtree(sample_pts_x, sample_pts_y, sample_pts_z, LS_SAMPLE_NP * mesh->cells->size, mesh, s);

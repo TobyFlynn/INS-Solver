@@ -126,7 +126,7 @@ elseif(DIM EQUAL 3)
   list(APPEND GPU_SRC ${ALL_DIM_GPU_SRC})
 
   set(MPI_SRC mpi_helper_func.cpp)
-  list(APPEND MPI_SRC solvers/3d/ls_utils/kd_tree_mpi.cpp)
+  list(APPEND MPI_SRC solvers/3d/ls_utils/kd_tree_mpi_alpha.cpp)
 
   set(DIM_POSTFIX 3d)
 endif()
