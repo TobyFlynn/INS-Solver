@@ -9,9 +9,7 @@ extern Timing *timer;
 
 using namespace std;
 
-KDTree3DMPIAlpha::KDTree3DMPIAlpha(const DG_FP *x, const DG_FP *y, const DG_FP *z,
-                                   const int num, DGMesh3D *m, op_dat s,
-                                   const int alpha) : KDTree3D(x, y, z, num, m, s) {
+KDTree3DMPIAlpha::KDTree3DMPIAlpha(DGMesh3D *m, const int alpha) : KDTree3D(m) {
   timer->startTimer("KDTree3DMPIAlpha - init");
   // Get local bounding box
   DG_FP min_x, max_x, min_y, max_y, min_z, max_z;
@@ -94,7 +92,10 @@ DG_FP KDTree3DMPIAlpha::min_dist_bb(const DG_FP *min_0, const DG_FP *max_0,
   return sqrt(dists[0] * dists[0] + dists[1] * dists[1] + dists[2] * dists[2]);
 }
 
-void KDTree3DMPIAlpha::build_tree() {
+void KDTree3DMPIAlpha::build_tree(const DG_FP *x, const DG_FP *y,
+                                  const DG_FP *z, const int num, op_dat s) {
+  pre_build_setup(x, y, z, num, s);
+
   timer->startTimer("KDTree3DMPIAlpha - comm");
   int rank, comm_size;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);

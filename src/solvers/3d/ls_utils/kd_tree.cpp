@@ -19,10 +19,22 @@ bool compareZ(KDCoord a, KDCoord b) {
   return a.z_rot < b.z_rot;
 }
 
-KDTree3D::KDTree3D(const DG_FP *x, const DG_FP *y, const DG_FP *z,
-                   const int num, DGMesh3D *m, op_dat s) {
-  n = 0;
+KDTree3D::KDTree3D(DGMesh3D *m) {
   mesh = m;
+}
+
+void KDTree3D::reset() {
+  points.clear();
+  nodes.clear();
+  cell2polyMap.clear();
+  polys.clear();
+  n = 0;
+}
+
+void KDTree3D::pre_build_setup(const DG_FP *x, const DG_FP *y, const DG_FP *z,
+                               const int num, op_dat s) {
+  timer->startTimer("K-D Tree - Pre build setup");
+  n = 0;
   for(int i = 0; i < num; i++) {
     if(!isnan(x[i]) && !isnan(y[i]) && !isnan(z[i])) {
       n++;
@@ -41,15 +53,19 @@ KDTree3D::KDTree3D(const DG_FP *x, const DG_FP *y, const DG_FP *z,
   // Construct cell to poly map for all these points
   construct_polys(points, s);
   update_poly_inds(points);
+  timer->endTimer("K-D Tree - Pre build setup");
 }
 
-void KDTree3D::build_tree() {
+void KDTree3D::build_tree(const DG_FP *x, const DG_FP *y, const DG_FP *z,
+                          const int num, op_dat s) {
+  pre_build_setup(x, y, z, num, s);
+
   if(points.size() == 0) {
     empty = true;
     return;
   }
   empty = false;
-  
+
   timer->startTimer("K-D Tree - Construct Tree");
   construct_tree(points.begin(), points.end(), false, 0);
   timer->endTimer("K-D Tree - Construct Tree");

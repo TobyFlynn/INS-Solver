@@ -6,6 +6,7 @@
 #include "op_seq.h"
 
 #include "solvers/3d/advection_solver.h"
+#include "ls_utils/3d/kd_tree.h"
 
 #include "dg_mesh/dg_mesh_3d.h"
 
@@ -37,6 +38,7 @@ private:
   bool resuming;
 
   AdvectionSolver3D *advectionSolver;
+  KDTree3D *kdtree;
 };
 
 #endif

@@ -40,10 +40,11 @@ struct KDNode {
 
 class KDTree3D {
 public:
-  KDTree3D(const DG_FP *x, const DG_FP *y, const DG_FP *z, const int num,
-           DGMesh3D *m, op_dat s);
+  KDTree3D(DGMesh3D *m);
 
-  virtual void build_tree();
+  virtual void build_tree(const DG_FP *x, const DG_FP *y, const DG_FP *z,
+                          const int num, op_dat s);
+  virtual void reset();
   KDCoord closest_point(DG_FP x, DG_FP y, DG_FP z);
   std::vector<PolyApprox3D> get_polys();
 
@@ -57,6 +58,9 @@ protected:
   std::set<int> cell_inds(std::vector<KDCoord> &points);
   void construct_polys(std::vector<KDCoord> &points, op_dat s);
   void update_poly_inds(std::vector<KDCoord> &points);
+
+  void pre_build_setup(const DG_FP *x, const DG_FP *y, const DG_FP *z,
+                       const int num, op_dat s);
 
   std::vector<KDNode> nodes;
 
