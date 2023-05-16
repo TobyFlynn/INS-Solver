@@ -211,6 +211,11 @@ void custom_kernel_fpmf_3d_mult_faces_flux(const int order, char const *name, op
     printf(" kernel routine with indirection: fpmf_3d_mult_faces_flux\n");
   }
   int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
+  cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_fpmf_3d_mult_faces_flux<1>, cudaFuncCachePreferL1));
+  cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_fpmf_3d_mult_faces_flux<2>, cudaFuncCachePreferL1));
+  cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_fpmf_3d_mult_faces_flux<3>, cudaFuncCachePreferL1));
+  cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_fpmf_3d_mult_faces_flux<4>, cudaFuncCachePreferL1));
+  cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_fpmf_3d_mult_faces_flux<5>, cudaFuncCachePreferL1));
   if (set_size > 0) {
     //set CUDA execution parameters
     int nthread = OP_block_size;

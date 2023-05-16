@@ -278,6 +278,8 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
 #include "timing.h"
 extern Timing *timer;
 
+#define CELLS_MERGED_NUM_THREADS 256
+
 //host stub function
 void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, op_set set,
   op_arg arg0,
@@ -328,16 +330,21 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
   }
 
   int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
+  cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_pmf_3d_mult_cells_merged_shared_mat<1,(CELLS_MERGED_NUM_THREADS / 4) + 1>, cudaFuncCachePreferShared));
+  cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_pmf_3d_mult_cells_merged_shared_mat<2,(CELLS_MERGED_NUM_THREADS / 10) + 1>, cudaFuncCachePreferShared));
+  cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_pmf_3d_mult_cells_merged_shared_mat<3,(CELLS_MERGED_NUM_THREADS / 20) + 1>, cudaFuncCachePreferShared));
+  // cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_pmf_3d_mult_cells_merged_shared_mat<4,(CELLS_MERGED_NUM_THREADS / 35) + 1>, cudaFuncCachePreferShared));
+  // cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_pmf_3d_mult_cells_merged_shared_mat<5,(CELLS_MERGED_NUM_THREADS / 56) + 1>, cudaFuncCachePreferShared));
   if (set_size > 0) {
-    //set CUDA execution parameters
+    // set CUDA execution parameters
     const int np  = (order + 1) * (order + 2) * (order + 3) / 6;
-    const int nthread = (256 /  np) * np;
+    const int nthread = (CELLS_MERGED_NUM_THREADS /  np) * np;
     const int nblocks = 200 < (set->size * np) / nthread + 1 ? 200 : (set->size * np) / nthread + 1;
     // const int num_cells = (nthread / DG_NP) + 1;
 
     switch(order) {
       case 1:
-        _op_cuda_pmf_3d_mult_cells_merged_shared_mat<1,(256 / 4) + 1><<<nblocks,nthread>>>(
+        _op_cuda_pmf_3d_mult_cells_merged_shared_mat<1,(CELLS_MERGED_NUM_THREADS / 4) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (double *) arg6.data_d,
           (double *) arg7.data_d,
@@ -360,7 +367,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
           set->size );
         break;
       case 2:
-        _op_cuda_pmf_3d_mult_cells_merged_shared_mat<2,(256 / 10) + 1><<<nblocks,nthread>>>(
+        _op_cuda_pmf_3d_mult_cells_merged_shared_mat<2,(CELLS_MERGED_NUM_THREADS / 10) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (double *) arg6.data_d,
           (double *) arg7.data_d,
@@ -384,7 +391,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
         break;
       case 3:
         timer->startTimer("fpmf_cells_merged 3rd order");
-        _op_cuda_pmf_3d_mult_cells_merged_shared_mat<3,(256 / 20) + 1><<<nblocks,nthread>>>(
+        _op_cuda_pmf_3d_mult_cells_merged_shared_mat<3,(CELLS_MERGED_NUM_THREADS / 20) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (double *) arg6.data_d,
           (double *) arg7.data_d,
@@ -409,7 +416,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
         timer->endTimer("fpmf_cells_merged 3rd order");
         break;
       case 4:
-        _op_cuda_pmf_3d_mult_cells_merged<4,(256 / 35) + 1><<<nblocks,nthread>>>(
+        _op_cuda_pmf_3d_mult_cells_merged<4,(CELLS_MERGED_NUM_THREADS / 35) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (double *) arg6.data_d,
           (double *) arg7.data_d,
@@ -432,7 +439,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
           set->size );
         break;
       case 5:
-        _op_cuda_pmf_3d_mult_cells_merged<5,(256 / 56) + 1><<<nblocks,nthread>>>(
+        _op_cuda_pmf_3d_mult_cells_merged<5,(CELLS_MERGED_NUM_THREADS / 56) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
           (double *) arg6.data_d,
           (double *) arg7.data_d,

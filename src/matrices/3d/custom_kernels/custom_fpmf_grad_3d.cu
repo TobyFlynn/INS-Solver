@@ -172,6 +172,12 @@ void custom_kernel_fpmf_grad_3d(const int order, char const *name, op_set set,
     const int nblocks = 200 < (set->size * DG_NP) / nthread + 1 ? 200 : (set->size * DG_NP) / nthread + 1;
     const int num_cells = (nthread / DG_NP) + 2;
 
+    cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_fpmf_grad_3d<1,num_cells>, cudaFuncCachePreferShared));
+    cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_fpmf_grad_3d<2,num_cells>, cudaFuncCachePreferShared));
+    cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_fpmf_grad_3d<3,num_cells>, cudaFuncCachePreferShared));
+    cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_fpmf_grad_3d<4,num_cells>, cudaFuncCachePreferShared));
+    cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_fpmf_grad_3d<5,num_cells>, cudaFuncCachePreferShared));
+
     switch(order) {
       case 1:
         _op_cuda_fpmf_grad_3d<1,num_cells><<<nblocks,nthread>>>(
