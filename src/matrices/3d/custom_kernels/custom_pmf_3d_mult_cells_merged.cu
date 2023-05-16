@@ -56,16 +56,7 @@ __device__ void _pmf_3d_mult_cells_part2_gpu(const int ind, const double *dr,
 template<int p, int NUM_CELLS>
 __global__ void _op_cuda_pmf_3d_mult_cells_merged_shared_mat(
   const int *__restrict arg0,
-  const double *__restrict arg6,
-  const double *__restrict arg7,
-  const double *__restrict arg8,
-  const double *__restrict arg9,
-  const double *__restrict arg10,
-  const double *__restrict arg11,
-  const double *__restrict arg12,
-  const double *__restrict arg13,
-  const double *__restrict arg14,
-  const double *__restrict arg15,
+  const double *__restrict argGeof,
   const double *__restrict arg16,
   const double *__restrict arg17,
   const double *__restrict arg18,
@@ -139,7 +130,7 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged_shared_mat(
       _pmf_3d_mult_cells_part1_gpu<np,npf>(node_id,
                                mass_shared,
                                emat_shared,
-                               arg15 + cell_id,
+                               argGeof + cell_id * 10 + J_IND,
                                lx_shared + local_cell_id * DG_NUM_FACES * npf,
                                ly_shared + local_cell_id * DG_NUM_FACES * npf,
                                lz_shared + local_cell_id * DG_NUM_FACES * npf,
@@ -157,9 +148,9 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged_shared_mat(
       DG_FP tmp_x = tmp_x_shared[i];
       DG_FP tmp_y = tmp_y_shared[i];
       DG_FP tmp_z = tmp_z_shared[i];
-      tmp_x_shared[i] = *(arg6 + curr_cell) * tmp_x + *(arg9 + curr_cell) * tmp_y + *(arg12 + curr_cell) * tmp_z;
-      tmp_y_shared[i] = *(arg7 + curr_cell) * tmp_x + *(arg10 + curr_cell) * tmp_y + *(arg13 + curr_cell) * tmp_z;
-      tmp_z_shared[i] = *(arg8 + curr_cell) * tmp_x + *(arg11 + curr_cell) * tmp_y + *(arg14 + curr_cell) * tmp_z;
+      tmp_x_shared[i] = argGeof[curr_cell * 10 + RX_IND] * tmp_x + argGeof[curr_cell * 10 + RY_IND] * tmp_y + argGeof[curr_cell * 10 + RZ_IND] * tmp_z;
+      tmp_y_shared[i] = argGeof[curr_cell * 10 + SX_IND] * tmp_x + argGeof[curr_cell * 10 + SY_IND] * tmp_y + argGeof[curr_cell * 10 + SZ_IND] * tmp_z;
+      tmp_z_shared[i] = argGeof[curr_cell * 10 + TX_IND] * tmp_x + argGeof[curr_cell * 10 + TY_IND] * tmp_y + argGeof[curr_cell * 10 + TZ_IND] * tmp_z;
     }
     __syncthreads();
     if(n < set_size * np)
@@ -174,16 +165,7 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged_shared_mat(
 template<int p, int NUM_CELLS>
 __global__ void _op_cuda_pmf_3d_mult_cells_merged(
   const int *__restrict arg0,
-  const double *__restrict arg6,
-  const double *__restrict arg7,
-  const double *__restrict arg8,
-  const double *__restrict arg9,
-  const double *__restrict arg10,
-  const double *__restrict arg11,
-  const double *__restrict arg12,
-  const double *__restrict arg13,
-  const double *__restrict arg14,
-  const double *__restrict arg15,
+  const double *__restrict argGeof,
   const double *__restrict arg16,
   const double *__restrict arg17,
   const double *__restrict arg18,
@@ -242,7 +224,7 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
       _pmf_3d_mult_cells_part1_gpu<np,npf>(node_id,
                                dg_Mass_kernel + start_ind_mat,
                                dg_Emat_kernel + start_ind_emat,
-                               arg15 + cell_id,
+                               argGeof + cell_id * 10 + J_IND,
                                lx_shared + local_cell_id * DG_NUM_FACES * npf,
                                ly_shared + local_cell_id * DG_NUM_FACES * npf,
                                lz_shared + local_cell_id * DG_NUM_FACES * npf,
@@ -260,9 +242,9 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
       DG_FP tmp_x = tmp_x_shared[i];
       DG_FP tmp_y = tmp_y_shared[i];
       DG_FP tmp_z = tmp_z_shared[i];
-      tmp_x_shared[i] = *(arg6 + curr_cell) * tmp_x + *(arg9 + curr_cell) * tmp_y + *(arg12 + curr_cell) * tmp_z;
-      tmp_y_shared[i] = *(arg7 + curr_cell) * tmp_x + *(arg10 + curr_cell) * tmp_y + *(arg13 + curr_cell) * tmp_z;
-      tmp_z_shared[i] = *(arg8 + curr_cell) * tmp_x + *(arg11 + curr_cell) * tmp_y + *(arg14 + curr_cell) * tmp_z;
+      tmp_x_shared[i] = argGeof[curr_cell * 10 + RX_IND] * tmp_x + argGeof[curr_cell * 10 + RY_IND] * tmp_y + argGeof[curr_cell * 10 + RZ_IND] * tmp_z;
+      tmp_y_shared[i] = argGeof[curr_cell * 10 + SX_IND] * tmp_x + argGeof[curr_cell * 10 + SY_IND] * tmp_y + argGeof[curr_cell * 10 + SZ_IND] * tmp_z;
+      tmp_z_shared[i] = argGeof[curr_cell * 10 + TX_IND] * tmp_x + argGeof[curr_cell * 10 + TY_IND] * tmp_y + argGeof[curr_cell * 10 + TZ_IND] * tmp_z;
     }
     __syncthreads();
     if(n < set_size * np)
@@ -283,16 +265,7 @@ extern Timing *timer;
 //host stub function
 void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, op_set set,
   op_arg arg0,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11,
-  op_arg arg12,
-  op_arg arg13,
-  op_arg arg14,
-  op_arg arg15,
+  op_arg argGeof,
   op_arg arg16,
   op_arg arg17,
   op_arg arg18,
@@ -302,28 +275,19 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
   op_arg arg22,
   op_arg arg23){
 
-  int nargs = 19;
-  op_arg args[19];
+  int nargs = 10;
+  op_arg args[10];
 
   args[0] = arg0;
-  args[1] = arg6;
-  args[2] = arg7;
-  args[3] = arg8;
-  args[4] = arg9;
-  args[5] = arg10;
-  args[6] = arg11;
-  args[7] = arg12;
-  args[8] = arg13;
-  args[9] = arg14;
-  args[10] = arg15;
-  args[11] = arg16;
-  args[12] = arg17;
-  args[13] = arg18;
-  args[14] = arg19;
-  args[15] = arg20;
-  args[16] = arg21;
-  args[17] = arg22;
-  args[18] = arg23;
+  args[1] = argGeof;
+  args[2] = arg16;
+  args[3] = arg17;
+  args[4] = arg18;
+  args[5] = arg19;
+  args[6] = arg20;
+  args[7] = arg21;
+  args[8] = arg22;
+  args[9] = arg23;
 
   if (OP_diags>2) {
     printf(" kernel routine w/o indirection:  pmf_3d_mult_cells_merged");
@@ -346,16 +310,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
       case 1:
         _op_cuda_pmf_3d_mult_cells_merged_shared_mat<1,(CELLS_MERGED_NUM_THREADS / 4) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
-          (double *) arg6.data_d,
-          (double *) arg7.data_d,
-          (double *) arg8.data_d,
-          (double *) arg9.data_d,
-          (double *) arg10.data_d,
-          (double *) arg11.data_d,
-          (double *) arg12.data_d,
-          (double *) arg13.data_d,
-          (double *) arg14.data_d,
-          (double *) arg15.data_d,
+          (double *) argGeof.data_d,
           (double *) arg16.data_d,
           (double *) arg17.data_d,
           (double *) arg18.data_d,
@@ -369,16 +324,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
       case 2:
         _op_cuda_pmf_3d_mult_cells_merged_shared_mat<2,(CELLS_MERGED_NUM_THREADS / 10) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
-          (double *) arg6.data_d,
-          (double *) arg7.data_d,
-          (double *) arg8.data_d,
-          (double *) arg9.data_d,
-          (double *) arg10.data_d,
-          (double *) arg11.data_d,
-          (double *) arg12.data_d,
-          (double *) arg13.data_d,
-          (double *) arg14.data_d,
-          (double *) arg15.data_d,
+          (double *) argGeof.data_d,
           (double *) arg16.data_d,
           (double *) arg17.data_d,
           (double *) arg18.data_d,
@@ -393,16 +339,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
         timer->startTimer("fpmf_cells_merged 3rd order");
         _op_cuda_pmf_3d_mult_cells_merged_shared_mat<3,(CELLS_MERGED_NUM_THREADS / 20) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
-          (double *) arg6.data_d,
-          (double *) arg7.data_d,
-          (double *) arg8.data_d,
-          (double *) arg9.data_d,
-          (double *) arg10.data_d,
-          (double *) arg11.data_d,
-          (double *) arg12.data_d,
-          (double *) arg13.data_d,
-          (double *) arg14.data_d,
-          (double *) arg15.data_d,
+          (double *) argGeof.data_d,
           (double *) arg16.data_d,
           (double *) arg17.data_d,
           (double *) arg18.data_d,
@@ -418,16 +355,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
       case 4:
         _op_cuda_pmf_3d_mult_cells_merged<4,(CELLS_MERGED_NUM_THREADS / 35) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
-          (double *) arg6.data_d,
-          (double *) arg7.data_d,
-          (double *) arg8.data_d,
-          (double *) arg9.data_d,
-          (double *) arg10.data_d,
-          (double *) arg11.data_d,
-          (double *) arg12.data_d,
-          (double *) arg13.data_d,
-          (double *) arg14.data_d,
-          (double *) arg15.data_d,
+          (double *) argGeof.data_d,
           (double *) arg16.data_d,
           (double *) arg17.data_d,
           (double *) arg18.data_d,
@@ -441,16 +369,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
       case 5:
         _op_cuda_pmf_3d_mult_cells_merged<5,(CELLS_MERGED_NUM_THREADS / 56) + 1><<<nblocks,nthread>>>(
           (int *) arg0.data_d,
-          (double *) arg6.data_d,
-          (double *) arg7.data_d,
-          (double *) arg8.data_d,
-          (double *) arg9.data_d,
-          (double *) arg10.data_d,
-          (double *) arg11.data_d,
-          (double *) arg12.data_d,
-          (double *) arg13.data_d,
-          (double *) arg14.data_d,
-          (double *) arg15.data_d,
+          (double *) argGeof.data_d,
           (double *) arg16.data_d,
           (double *) arg17.data_d,
           (double *) arg18.data_d,

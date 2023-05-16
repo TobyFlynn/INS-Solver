@@ -8,10 +8,7 @@
 template<int dg_np>
 __device__ void _fpmf_grad_3d_gpu(const int ind, const DG_FP *dr, const DG_FP *ds,
                              const DG_FP *dt, const DG_FP *u, const DG_FP *fact,
-                             const DG_FP *rx, const DG_FP *sx, const DG_FP *tx,
-                             const DG_FP *ry, const DG_FP *sy, const DG_FP *ty,
-                             const DG_FP *rz, const DG_FP *sz, const DG_FP *tz,
-                             DG_FP *ux, DG_FP *uy, DG_FP *uz) {
+                             const DG_FP *geof, DG_FP *ux, DG_FP *uy, DG_FP *uz) {
   if(!(ind < dg_np)) return;
 
   DG_FP tmp_r = 0.0;
@@ -23,9 +20,11 @@ __device__ void _fpmf_grad_3d_gpu(const int ind, const DG_FP *dr, const DG_FP *d
     tmp_s += ds[mat_ind] * u[n];
     tmp_t += dt[mat_ind] * u[n];
   }
-  ux[ind] = fact[ind] * (*rx * tmp_r + *sx * tmp_s + *tx * tmp_t);
-  uy[ind] = fact[ind] * (*ry * tmp_r + *sy * tmp_s + *ty * tmp_t);
-  uz[ind] = fact[ind] * (*rz * tmp_r + *sz * tmp_s + *tz * tmp_t);
+
+  const DG_FP fact_ = fact[ind];
+  ux[ind] = fact_ * (geof[RX_IND] * tmp_r + geof[SX_IND] * tmp_s + geof[TX_IND] * tmp_t);
+  uy[ind] = fact_ * (geof[RY_IND] * tmp_r + geof[SY_IND] * tmp_s + geof[TY_IND] * tmp_t);
+  uz[ind] = fact_ * (geof[RZ_IND] * tmp_r + geof[SZ_IND] * tmp_s + geof[TZ_IND] * tmp_t);
 }
 
 // CUDA kernel function
@@ -34,15 +33,7 @@ __global__ void _op_cuda_fpmf_grad_3d(
   const int *__restrict arg0,
   const DG_FP *__restrict arg4,
   const DG_FP *__restrict argFactor,
-  const DG_FP *__restrict arg5,
-  const DG_FP *__restrict arg6,
-  const DG_FP *__restrict arg7,
-  const DG_FP *__restrict arg8,
-  const DG_FP *__restrict arg9,
-  const DG_FP *__restrict arg10,
-  const DG_FP *__restrict arg11,
-  const DG_FP *__restrict arg12,
-  const DG_FP *__restrict arg13,
+  const DG_FP *__restrict argGeof,
   DG_FP *arg14,
   DG_FP *arg15,
   DG_FP *arg16,
@@ -85,15 +76,7 @@ __global__ void _op_cuda_fpmf_grad_3d(
                 dt_shared,
                 u_shared + local_cell_id * DG_NP, //arg4 + cell_id * DG_NP,
                 argFactor + cell_id * DG_NP,
-                arg5 + cell_id * 1,
-                arg6 + cell_id * 1,
-                arg7 + cell_id * 1,
-                arg8 + cell_id * 1,
-                arg9 + cell_id * 1,
-                arg10 + cell_id * 1,
-                arg11 + cell_id * 1,
-                arg12 + cell_id * 1,
-                arg13 + cell_id * 1,
+                argGeof + cell_id * 10,
                 arg14 + cell_id * DG_NP,
                 arg15 + cell_id * DG_NP,
                 arg16 + cell_id * DG_NP);
@@ -104,15 +87,7 @@ __global__ void _op_cuda_fpmf_grad_3d(
                 dt_shared,
                 arg4 + cell_id * DG_NP,
                 argFactor + cell_id * DG_NP,
-                arg5 + cell_id * 1,
-                arg6 + cell_id * 1,
-                arg7 + cell_id * 1,
-                arg8 + cell_id * 1,
-                arg9 + cell_id * 1,
-                arg10 + cell_id * 1,
-                arg11 + cell_id * 1,
-                arg12 + cell_id * 1,
-                arg13 + cell_id * 1,
+                argGeof + cell_id * 10,
                 arg14 + cell_id * DG_NP,
                 arg15 + cell_id * DG_NP,
                 arg16 + cell_id * DG_NP);
@@ -128,37 +103,21 @@ void custom_kernel_fpmf_grad_3d(const int order, char const *name, op_set set,
   op_arg arg0,
   op_arg arg4,
   op_arg argFactor,
-  op_arg arg5,
-  op_arg arg6,
-  op_arg arg7,
-  op_arg arg8,
-  op_arg arg9,
-  op_arg arg10,
-  op_arg arg11,
-  op_arg arg12,
-  op_arg arg13,
+  op_arg argGeof,
   op_arg arg14,
   op_arg arg15,
   op_arg arg16){
 
-  int nargs = 15;
-  op_arg args[15];
+  int nargs = 7;
+  op_arg args[7];
 
   args[0] = arg0;
   args[1] = arg4;
   args[2] = argFactor;
-  args[3] = arg5;
-  args[4] = arg6;
-  args[5] = arg7;
-  args[6] = arg8;
-  args[7] = arg9;
-  args[8] = arg10;
-  args[9] = arg11;
-  args[10] = arg12;
-  args[11] = arg13;
-  args[12] = arg14;
-  args[13] = arg15;
-  args[14] = arg16;
+  args[3] = argGeof;
+  args[4] = arg14;
+  args[5] = arg15;
+  args[6] = arg16;
 
 
   if (OP_diags>2) {
@@ -184,15 +143,7 @@ void custom_kernel_fpmf_grad_3d(const int order, char const *name, op_set set,
           (int *) arg0.data_d,
           (DG_FP *) arg4.data_d,
           (DG_FP *) argFactor.data_d,
-          (DG_FP *) arg5.data_d,
-          (DG_FP *) arg6.data_d,
-          (DG_FP *) arg7.data_d,
-          (DG_FP *) arg8.data_d,
-          (DG_FP *) arg9.data_d,
-          (DG_FP *) arg10.data_d,
-          (DG_FP *) arg11.data_d,
-          (DG_FP *) arg12.data_d,
-          (DG_FP *) arg13.data_d,
+          (DG_FP *) argGeof.data_d,
           (DG_FP *) arg14.data_d,
           (DG_FP *) arg15.data_d,
           (DG_FP *) arg16.data_d,
@@ -203,15 +154,7 @@ void custom_kernel_fpmf_grad_3d(const int order, char const *name, op_set set,
           (int *) arg0.data_d,
           (DG_FP *) arg4.data_d,
           (DG_FP *) argFactor.data_d,
-          (DG_FP *) arg5.data_d,
-          (DG_FP *) arg6.data_d,
-          (DG_FP *) arg7.data_d,
-          (DG_FP *) arg8.data_d,
-          (DG_FP *) arg9.data_d,
-          (DG_FP *) arg10.data_d,
-          (DG_FP *) arg11.data_d,
-          (DG_FP *) arg12.data_d,
-          (DG_FP *) arg13.data_d,
+          (DG_FP *) argGeof.data_d,
           (DG_FP *) arg14.data_d,
           (DG_FP *) arg15.data_d,
           (DG_FP *) arg16.data_d,
@@ -223,15 +166,7 @@ void custom_kernel_fpmf_grad_3d(const int order, char const *name, op_set set,
           (int *) arg0.data_d,
           (DG_FP *) arg4.data_d,
           (DG_FP *) argFactor.data_d,
-          (DG_FP *) arg5.data_d,
-          (DG_FP *) arg6.data_d,
-          (DG_FP *) arg7.data_d,
-          (DG_FP *) arg8.data_d,
-          (DG_FP *) arg9.data_d,
-          (DG_FP *) arg10.data_d,
-          (DG_FP *) arg11.data_d,
-          (DG_FP *) arg12.data_d,
-          (DG_FP *) arg13.data_d,
+          (DG_FP *) argGeof.data_d,
           (DG_FP *) arg14.data_d,
           (DG_FP *) arg15.data_d,
           (DG_FP *) arg16.data_d,
@@ -244,15 +179,7 @@ void custom_kernel_fpmf_grad_3d(const int order, char const *name, op_set set,
           (int *) arg0.data_d,
           (DG_FP *) arg4.data_d,
           (DG_FP *) argFactor.data_d,
-          (DG_FP *) arg5.data_d,
-          (DG_FP *) arg6.data_d,
-          (DG_FP *) arg7.data_d,
-          (DG_FP *) arg8.data_d,
-          (DG_FP *) arg9.data_d,
-          (DG_FP *) arg10.data_d,
-          (DG_FP *) arg11.data_d,
-          (DG_FP *) arg12.data_d,
-          (DG_FP *) arg13.data_d,
+          (DG_FP *) argGeof.data_d,
           (DG_FP *) arg14.data_d,
           (DG_FP *) arg15.data_d,
           (DG_FP *) arg16.data_d,
@@ -263,15 +190,7 @@ void custom_kernel_fpmf_grad_3d(const int order, char const *name, op_set set,
           (int *) arg0.data_d,
           (DG_FP *) arg4.data_d,
           (DG_FP *) argFactor.data_d,
-          (DG_FP *) arg5.data_d,
-          (DG_FP *) arg6.data_d,
-          (DG_FP *) arg7.data_d,
-          (DG_FP *) arg8.data_d,
-          (DG_FP *) arg9.data_d,
-          (DG_FP *) arg10.data_d,
-          (DG_FP *) arg11.data_d,
-          (DG_FP *) arg12.data_d,
-          (DG_FP *) arg13.data_d,
+          (DG_FP *) argGeof.data_d,
           (DG_FP *) arg14.data_d,
           (DG_FP *) arg15.data_d,
           (DG_FP *) arg16.data_d,
