@@ -194,10 +194,9 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged(
   const int start_ind_mat = (p - 1) * DG_NP * DG_NP;
   const int start_ind_emat = (p - 1) * DG_NP * DG_NPF * DG_NUM_FACES;
 
-  __syncthreads();
-
   //process set elements
-  for (int n = threadIdx.x + blockIdx.x * blockDim.x; n - threadIdx.x < set_size * np; n += blockDim.x * gridDim.x){
+  int n = threadIdx.x + blockIdx.x * blockDim.x;
+  if(n - threadIdx.x < set_size * np) {
     const int node_id = n % np;
     const int cell_id = n / np;
     const int local_cell_id = (n / np) - ((n - threadIdx.x) / np);
@@ -303,7 +302,8 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
     // set CUDA execution parameters
     const int np  = (order + 1) * (order + 2) * (order + 3) / 6;
     const int nthread = (CELLS_MERGED_NUM_THREADS /  np) * np;
-    const int nblocks = 200 < (set->size * np) / nthread + 1 ? 200 : (set->size * np) / nthread + 1;
+    // const int nblocks = 200 < (set->size * np) / nthread + 1 ? 200 : (set->size * np) / nthread + 1;
+    const int nblocks = (set->size * np) / nthread + 1;
     // const int num_cells = (nthread / DG_NP) + 1;
 
     switch(order) {
