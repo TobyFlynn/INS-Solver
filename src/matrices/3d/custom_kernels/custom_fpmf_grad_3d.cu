@@ -40,19 +40,21 @@ __global__ void _op_cuda_fpmf_grad_3d(
   int   set_size ) {
   const int np = (p + 1) * (p + 2) * (p + 3) / 6;
   // Load matrices into shared memory
-  __shared__ DG_FP dr_shared[DG_NP * DG_NP];
-  __shared__ DG_FP ds_shared[DG_NP * DG_NP];
-  __shared__ DG_FP dt_shared[DG_NP * DG_NP];
+  // __shared__ DG_FP dr_shared[DG_NP * DG_NP];
+  // __shared__ DG_FP ds_shared[DG_NP * DG_NP];
+  // __shared__ DG_FP dt_shared[DG_NP * DG_NP];
   __shared__ DG_FP u_shared[NUM_CELLS * DG_NP];
+  __shared__ DG_FP geof_shared[NUM_CELLS * 10];
 
   const int start_ind_mat = (p - 1) * DG_NP * DG_NP;
-  for(int i = threadIdx.x; i < DG_NP * DG_NP; i += blockDim.x) {
-    dr_shared[i] = dg_Dr_kernel[start_ind_mat + i];
-    ds_shared[i] = dg_Ds_kernel[start_ind_mat + i];
-    dt_shared[i] = dg_Dt_kernel[start_ind_mat + i];
-  }
-
-  __syncthreads();
+  // for(int i = threadIdx.x; i < DG_NP * DG_NP; i += blockDim.x) {
+  //   dr_shared[i] = dg_Dr_kernel[start_ind_mat + i];
+  //   ds_shared[i] = dg_Ds_kernel[start_ind_mat + i];
+  //   dt_shared[i] = dg_Dt_kernel[start_ind_mat + i];
+  // }
+  const DG_FP *dr_shared = dg_Dr_kernel + start_ind_mat;
+  const DG_FP *ds_shared = dg_Ds_kernel + start_ind_mat;
+  const DG_FP *dt_shared = dg_Dt_kernel + start_ind_mat;
 
   int n = threadIdx.x + blockIdx.x * blockDim.x;
   if(n < set_size * DG_NP) {
@@ -62,9 +64,13 @@ __global__ void _op_cuda_fpmf_grad_3d(
     // If entire thread is in set
     if(n - threadIdx.x + blockDim.x < set_size * DG_NP) {
       const int start_ind = ((n - threadIdx.x) / DG_NP) * DG_NP;
+      const int start_ind_geof = ((n - threadIdx.x) / DG_NP) * 10;
       const int num_elem  = ((n - threadIdx.x + blockDim.x) / DG_NP) - ((n - threadIdx.x) / DG_NP) + 1;
       for(int i = threadIdx.x; i < num_elem * DG_NP; i += blockDim.x) {
         u_shared[i] = arg4[start_ind + i];
+      }
+      for(int i = threadIdx.x; i < num_elem * 10; i += blockDim.x) {
+        geof_shared[i] = argGeof[start_ind_geof + i];
       }
       // u_shared[threadIdx.x] = arg4[cell_id * DG_NP + node_id];
       __syncthreads();
@@ -75,7 +81,7 @@ __global__ void _op_cuda_fpmf_grad_3d(
                 dt_shared,
                 u_shared + local_cell_id * DG_NP, //arg4 + cell_id * DG_NP,
                 argFactor + cell_id * DG_NP,
-                argGeof + cell_id * 10,
+                geof_shared + local_cell_id * 10, // argGeof + cell_id * 10,
                 arg14 + cell_id * DG_NP,
                 arg15 + cell_id * DG_NP,
                 arg16 + cell_id * DG_NP);
@@ -91,6 +97,8 @@ __global__ void _op_cuda_fpmf_grad_3d(
                 arg15 + cell_id * DG_NP,
                 arg16 + cell_id * DG_NP);
     }
+  } else {
+    __syncthreads();
   }
 }
 
