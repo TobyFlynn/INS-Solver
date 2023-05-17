@@ -82,23 +82,28 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged_shared_mat(
   __shared__ double tmp_y_shared[NUM_CELLS * np];
   __shared__ double tmp_z_shared[NUM_CELLS * np];
 
-  __shared__ DG_FP mass_shared[np * np];
-  __shared__ DG_FP emat_shared[npf * DG_NUM_FACES * np];
-  __shared__ DG_FP dr_shared[np * np];
-  __shared__ DG_FP ds_shared[np * np];
-  __shared__ DG_FP dt_shared[np * np];
+  // __shared__ DG_FP mass_shared[np * np];
+  // __shared__ DG_FP emat_shared[npf * DG_NUM_FACES * np];
+  // __shared__ DG_FP dr_shared[np * np];
+  // __shared__ DG_FP ds_shared[np * np];
+  // __shared__ DG_FP dt_shared[np * np];
 
   const int start_ind_mat = (p - 1) * DG_NP * DG_NP;
-  for(int i = threadIdx.x; i < np * np; i += blockDim.x) {
-    dr_shared[i] = dg_Dr_kernel[start_ind_mat + i];
-    ds_shared[i] = dg_Ds_kernel[start_ind_mat + i];
-    dt_shared[i] = dg_Dt_kernel[start_ind_mat + i];
-    mass_shared[i] = dg_Mass_kernel[start_ind_mat + i];
-  }
+  // for(int i = threadIdx.x; i < np * np; i += blockDim.x) {
+  //   dr_shared[i] = dg_Dr_kernel[start_ind_mat + i];
+  //   ds_shared[i] = dg_Ds_kernel[start_ind_mat + i];
+  //   dt_shared[i] = dg_Dt_kernel[start_ind_mat + i];
+  //   mass_shared[i] = dg_Mass_kernel[start_ind_mat + i];
+  // }
   const int start_ind_emat = (p - 1) * DG_NP * DG_NPF * DG_NUM_FACES;
-  for(int i = threadIdx.x; i < npf * DG_NUM_FACES * np; i += blockDim.x) {
-    emat_shared[i] = dg_Emat_kernel[start_ind_emat + i];
-  }
+  // for(int i = threadIdx.x; i < npf * DG_NUM_FACES * np; i += blockDim.x) {
+  //   emat_shared[i] = dg_Emat_kernel[start_ind_emat + i];
+  // }
+  const DG_FP *dr_shared = dg_Dr_kernel + start_ind_mat;
+  const DG_FP *ds_shared = dg_Ds_kernel + start_ind_mat;
+  const DG_FP *dt_shared = dg_Dt_kernel + start_ind_mat;
+  const DG_FP *mass_shared = dg_Mass_kernel + start_ind_mat;
+  const DG_FP *emat_shared = dg_Emat_kernel + start_ind_emat;
 
   __syncthreads();
 
