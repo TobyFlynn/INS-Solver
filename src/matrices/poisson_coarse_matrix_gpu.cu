@@ -4,6 +4,9 @@
 #include "mpi_helper_func.h"
 #endif
 
+#include <vector>
+#include <algorithm>
+
 #include "dg_utils.h"
 #include "dg_global_constants/dg_global_constants_2d.h"
 
@@ -192,4 +195,174 @@ void PoissonCoarseMatrix::setPETScMatrix() {
   MatAssemblyBegin(pMat, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
   timer->endTimer("setPETScMatrix - Assembly");
+}
+
+extern AMGX_resources_handle amgx_res_handle;
+extern AMGX_config_handle amgx_config_handle;
+
+#ifdef INS_MPI
+#include "mpi.h"
+#endif
+
+void PoissonCoarseMatrix::setAmgXMatrix() {
+  if(!amgx_mat_init) {
+    AMGX_matrix_create(&amgx_mat, amgx_res_handle, AMGX_mode_dDDI);
+  }
+
+  int global_size = getUnknowns();
+  int local_size = getUnknowns();
+  #ifdef INS_MPI
+  global_size = global_sum(global_size);
+  #endif
+  // Keep track of how many non-zero entries locally
+  // int nnz = 0;
+  const int cell_set_size = _mesh->cells->size;
+  const int faces_set_size = _mesh->faces->size;
+  int nnz = cell_set_size * DG_NP_N1 * DG_NP_N1 + faces_set_size * DG_NP_N1 * DG_NP_N1 * 2;
+  // Which entry are on which rows
+  int *row_ptr = (int *)malloc((local_size + 1) * sizeof(int));
+  #ifdef INS_MPI
+  int64_t *col_inds = (int64_t *)malloc(nnz * sizeof(int64_t));
+  #else
+  int *col_inds = (int *)malloc(nnz * sizeof(int));
+  #endif
+  DG_FP *data_ptr = (DG_FP *)malloc(nnz * sizeof(DG_FP));
+
+  // Get data from OP2
+  DG_FP *op1_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * cell_set_size * sizeof(DG_FP));
+  int *glb   = (int *)malloc(cell_set_size * sizeof(int));
+  cudaMemcpy(op1_data, op1->data_d, cell_set_size * DG_NP_N1 * DG_NP_N1 * sizeof(DG_FP), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb, glb_ind->data_d, cell_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+  DG_FP *op2L_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * faces_set_size * sizeof(DG_FP));
+  DG_FP *op2R_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * faces_set_size * sizeof(DG_FP));
+  int *glb_l = (int *)malloc(faces_set_size * sizeof(int));
+  int *glb_r = (int *)malloc(faces_set_size * sizeof(int));
+  cudaMemcpy(op2L_data, op2[0]->data_d, DG_NP_N1 * DG_NP_N1 * faces_set_size * sizeof(DG_FP), cudaMemcpyDeviceToHost);
+  cudaMemcpy(op2R_data, op2[1]->data_d, DG_NP_N1 * DG_NP_N1 * faces_set_size * sizeof(DG_FP), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_l, glb_indL->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_r, glb_indR->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+
+  // TODO SoA
+  int current_nnz = 0;
+  int current_row = 0;
+  for(int c = 0; c < cell_set_size; c++) {
+    std::vector<std::pair<int,DG_FP>> bufs[DG_NP_N1];
+
+    // Add diagonal block to buffer
+    int diag_base_col = glb[c];
+    DG_FP *diag_data_ptr = op1_data + c * DG_NP_N1 * DG_NP_N1;
+    for(int i = 0; i < DG_NP_N1; i++) {
+      for(int j = 0; j < DG_NP_N1; j++) {
+        int ind = i + j * DG_NP_N1;
+        bufs[i].push_back({diag_base_col + j, diag_data_ptr[ind]});
+      }
+    }
+
+    // Search through global inds on faces for mat entries on this row
+    for(int k = 0; k < faces_set_size; k++) {
+      if(glb_l[k] == diag_base_col) {
+        int base_col = glb_r[k];
+        DG_FP *face_data_ptr = op2L_data + k * DG_NP_N1 * DG_NP_N1;
+        for(int i = 0; i < DG_NP_N1; i++) {
+          for(int j = 0; j < DG_NP_N1; j++) {
+            int ind = i + j * DG_NP_N1;
+            bufs[i].push_back({base_col + j, face_data_ptr[ind]});
+          }
+        }
+      }
+    }
+
+    for(int k = 0; k < faces_set_size; k++) {
+      if(glb_r[k] == diag_base_col) {
+        int base_col = glb_l[k];
+        DG_FP *face_data_ptr = op2R_data + k * DG_NP_N1 * DG_NP_N1;
+        for(int i = 0; i < DG_NP_N1; i++) {
+          for(int j = 0; j < DG_NP_N1; j++) {
+            int ind = i + j * DG_NP_N1;
+            bufs[i].push_back({base_col + j, face_data_ptr[ind]});
+          }
+        }
+      }
+    }
+
+    // Sort buffers (maybe doesn't need to be sorted)
+    for(int i = 0; i < DG_NP_N1; i++) {
+      std::sort(bufs[i].begin(), bufs[i].end());
+    }
+
+    // Update AmgX buffers
+    for(int i = 0; i < DG_NP_N1; i++) {
+      row_ptr[current_row] = current_nnz;
+      current_row++;
+      for(int k = 0; k < bufs[i].size(); k++) {
+        col_inds[current_nnz] = bufs[i][k].first;
+        data_ptr[current_nnz] = bufs[i][k].second;
+        current_nnz++;
+      }
+    }
+  }
+  row_ptr[current_row] = current_nnz;
+  op_printf("cr: %d ls: %d nnz: %d cnnz: %d\n", current_row, local_size, nnz, current_nnz);
+  op_printf("gs: %d ls: %d\n", global_size, local_size);
+
+  free(op1_data);
+  free(glb);
+  free(op2L_data);
+  free(op2R_data);
+  free(glb_l);
+  free(glb_r);
+
+  AMGX_SAFE_CALL(AMGX_pin_memory(row_ptr, (local_size + 1) * sizeof(int)));
+  AMGX_SAFE_CALL(AMGX_pin_memory(col_inds, nnz * sizeof(int)));
+  AMGX_SAFE_CALL(AMGX_pin_memory(data_ptr, nnz * sizeof(DG_FP)));
+
+  if(!amgx_mat_init) {
+    #ifdef INS_MPI
+    int nrings;
+    AMGX_config_get_default_number_of_rings(amgx_config_handle, &nrings);
+    int nranks, rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &nranks);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // If no partition vector is given, we assume a partitioning with contiguous blocks (see example above). It is sufficient (and faster/more scalable)
+    // to calculate the partition offsets and pass those into the API call instead of creating a full partition vector.
+    int64_t* partition_offsets = (int64_t*)malloc((nranks+1) * sizeof(int64_t));
+    // gather the number of rows on each rank, and perform an exclusive scan to get the offsets.
+    int64_t n64 = local_size;
+    partition_offsets[0] = 0; // rows of rank 0 always start at index 0
+    MPI_Allgather(&n64, 1, MPI_INT64_T, &partition_offsets[1], 1, MPI_INT64_T, MPI_COMM_WORLD);
+    for (int i = 2; i < nranks + 1; ++i) {
+      partition_offsets[i] += partition_offsets[i-1];
+    }
+    global_size = partition_offsets[nranks]; // last element always has global number of rows
+
+    for(int i = 0; i < nranks + 1; i++) {
+      op_printf("%d\n", partition_offsets[i]);
+    }
+
+    AMGX_distribution_handle dist;
+    AMGX_distribution_create(&dist, amgx_config_handle);
+    AMGX_distribution_set_partition_data(dist, AMGX_DIST_PARTITION_OFFSETS, partition_offsets);
+    AMGX_matrix_upload_distributed(amgx_mat, global_size, local_size, current_nnz, 1, 1, row_ptr, col_inds, data_ptr, NULL, dist);
+    AMGX_distribution_destroy(dist);
+    free(partition_offsets);
+    // int nrings;
+    // AMGX_config_get_default_number_of_rings(amgx_config_handle, &nrings);
+    // AMGX_SAFE_CALL(AMGX_matrix_upload_all_global(amgx_mat, global_size, local_size, current_nnz, 1, 1,
+    //                               row_ptr, col_inds, data_ptr, NULL, nrings, nrings, part_vec));
+    #else
+    AMGX_SAFE_CALL(AMGX_matrix_upload_all(amgx_mat, local_size, current_nnz, 1, 1, row_ptr, col_inds, data_ptr, NULL));
+    #endif
+    amgx_mat_init = true;
+  } else {
+    AMGX_matrix_replace_coefficients(amgx_mat, local_size, current_nnz, data_ptr, NULL);
+  }
+  op_printf("Uploaded mat\n");
+
+  AMGX_SAFE_CALL(AMGX_unpin_memory(row_ptr));
+  AMGX_SAFE_CALL(AMGX_unpin_memory(col_inds));
+  AMGX_SAFE_CALL(AMGX_unpin_memory(data_ptr));
+
+  free(row_ptr);
+  free(col_inds);
+  free(data_ptr);
 }

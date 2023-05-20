@@ -35,3 +35,19 @@ void PoissonCoarseMatrix::multJacobi(op_dat in, op_dat out) {
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
   timer->endTimer("PoissonCoarseMatrix - multJacobi");
 }
+
+#ifdef INS_CUDA
+bool PoissonCoarseMatrix::getAmgXMat(AMGX_matrix_handle** mat) {
+  timer->startTimer("PoissonCoarseMatrix - getAmgXMat");
+  bool reset = false;
+  if(petscMatResetRequired) {
+    setAmgXMatrix();
+    petscMatResetRequired = false;
+    *mat = &amgx_mat;
+    reset = true;
+  }
+  timer->endTimer("PoissonCoarseMatrix - getAmgXMat");
+
+  return reset;
+}
+#endif

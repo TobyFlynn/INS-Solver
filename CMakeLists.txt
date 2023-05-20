@@ -62,6 +62,12 @@ endif()
 include_directories(${ARMA_DIR}/include)
 set(ARMA_LIB "-L${ARMA_DIR}/lib -larmadillo")
 
+if(NOT AMGX_DIR)
+  message(FATAL_ERROR "AMGX_DIR is not specified")
+endif()
+include_directories(${AMGX_DIR}/include)
+set(AMGX_LIB "-L${AMGX_DIR}/lib -lamgx")
+
 if(NOT HDF5_DIR)
   message(FATAL_ERROR "HDF5_DIR is not specified")
 endif()

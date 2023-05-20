@@ -136,8 +136,12 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
   // rkQ   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_rkQ");
   free(tmp_data);
 
+  #ifdef INS_CUDA
+  coarseSolver = new AmgXAMGSolver(mesh);
+  #else
   coarseSolver = new PETScAMGCoarseSolver(mesh);
   coarseSolver->set_tol(coarse_solve_tol);
+  #endif
 }
 
 PMultigridPoissonSolver::~PMultigridPoissonSolver() {
@@ -235,6 +239,7 @@ void PMultigridPoissonSolver::cycle(int order, const int level) {
   timer->endTimer("PMultigridPoissonSolver - Relaxation");
 
   if(order == 1) {
+    op_printf("Order 1\n");
     // u = A^-1 (F)
     if(coarseMatCalcRequired) {
       timer->startTimer("PMultigridPoissonSolver - Calc Mat");
@@ -243,6 +248,7 @@ void PMultigridPoissonSolver::cycle(int order, const int level) {
       timer->endTimer("PMultigridPoissonSolver - Calc Mat");
     }
 
+    op_printf("About to coarse solve\n");
     timer->startTimer("PMultigridPoissonSolver - Direct Solve");
     coarseSolver->solve(b_dat[level], u_dat[level]);
     timer->endTimer("PMultigridPoissonSolver - Direct Solve");
