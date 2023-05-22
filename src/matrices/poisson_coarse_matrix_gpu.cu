@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "utils.h"
 #include "dg_utils.h"
 #include "dg_global_constants/dg_global_constants_2d.h"
 
@@ -229,16 +230,13 @@ void PoissonCoarseMatrix::setAmgXMatrix() {
   DG_FP *data_ptr = (DG_FP *)malloc(nnz * sizeof(DG_FP));
 
   // Get data from OP2
-  DG_FP *op1_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * cell_set_size * sizeof(DG_FP));
+  DG_FP *op1_data = getOP2PtrHost(op1, OP_READ);
+  DG_FP *op2L_data = getOP2PtrHost(op2[0], OP_READ);
+  DG_FP *op2R_data = getOP2PtrHost(op2[1], OP_READ);
   int *glb   = (int *)malloc(cell_set_size * sizeof(int));
-  cudaMemcpy(op1_data, op1->data_d, cell_set_size * DG_NP_N1 * DG_NP_N1 * sizeof(DG_FP), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb, glb_ind->data_d, cell_set_size * sizeof(int), cudaMemcpyDeviceToHost);
-  DG_FP *op2L_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * faces_set_size * sizeof(DG_FP));
-  DG_FP *op2R_data = (DG_FP *)malloc(DG_NP_N1 * DG_NP_N1 * faces_set_size * sizeof(DG_FP));
   int *glb_l = (int *)malloc(faces_set_size * sizeof(int));
   int *glb_r = (int *)malloc(faces_set_size * sizeof(int));
-  cudaMemcpy(op2L_data, op2[0]->data_d, DG_NP_N1 * DG_NP_N1 * faces_set_size * sizeof(DG_FP), cudaMemcpyDeviceToHost);
-  cudaMemcpy(op2R_data, op2[1]->data_d, DG_NP_N1 * DG_NP_N1 * faces_set_size * sizeof(DG_FP), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb_l, glb_indL->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb_r, glb_indR->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
 
@@ -305,10 +303,10 @@ void PoissonCoarseMatrix::setAmgXMatrix() {
   op_printf("cr: %d ls: %d nnz: %d cnnz: %d\n", current_row, local_size, nnz, current_nnz);
   op_printf("gs: %d ls: %d\n", global_size, local_size);
 
-  free(op1_data);
+  releaseOP2PtrHost(op1, OP_READ, op1_data);
+  releaseOP2PtrHost(op2[0], OP_READ, op2L_data);
+  releaseOP2PtrHost(op2[1], OP_READ, op2R_data);
   free(glb);
-  free(op2L_data);
-  free(op2R_data);
   free(glb_l);
   free(glb_r);
 

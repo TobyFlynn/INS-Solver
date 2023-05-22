@@ -239,7 +239,6 @@ void PMultigridPoissonSolver::cycle(int order, const int level) {
   timer->endTimer("PMultigridPoissonSolver - Relaxation");
 
   if(order == 1) {
-    op_printf("Order 1\n");
     // u = A^-1 (F)
     if(coarseMatCalcRequired) {
       timer->startTimer("PMultigridPoissonSolver - Calc Mat");
@@ -248,7 +247,6 @@ void PMultigridPoissonSolver::cycle(int order, const int level) {
       timer->endTimer("PMultigridPoissonSolver - Calc Mat");
     }
 
-    op_printf("About to coarse solve\n");
     timer->startTimer("PMultigridPoissonSolver - Direct Solve");
     coarseSolver->solve(b_dat[level], u_dat[level]);
     timer->endTimer("PMultigridPoissonSolver - Direct Solve");
