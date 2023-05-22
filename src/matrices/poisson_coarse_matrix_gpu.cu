@@ -218,7 +218,7 @@ void PoissonCoarseMatrix::setAmgXMatrix() {
   // Keep track of how many non-zero entries locally
   // int nnz = 0;
   const int cell_set_size = _mesh->cells->size;
-  const int faces_set_size = _mesh->faces->size;
+  const int faces_set_size = _mesh->faces->size + _mesh->faces->exec_size;
   int nnz = cell_set_size * DG_NP_N1 * DG_NP_N1 + faces_set_size * DG_NP_N1 * DG_NP_N1 * 2;
   // Which entry are on which rows
   int *row_ptr = (int *)malloc((local_size + 1) * sizeof(int));
@@ -300,8 +300,8 @@ void PoissonCoarseMatrix::setAmgXMatrix() {
     }
   }
   row_ptr[current_row] = current_nnz;
-  op_printf("cr: %d ls: %d nnz: %d cnnz: %d\n", current_row, local_size, nnz, current_nnz);
-  op_printf("gs: %d ls: %d\n", global_size, local_size);
+  printf("cr: %d ls: %d nnz: %d cnnz: %d\n", current_row, local_size, nnz, current_nnz);
+  printf("gs: %d ls: %d\n", global_size, local_size);
 
   releaseOP2PtrHost(op1, OP_READ, op1_data);
   releaseOP2PtrHost(op2[0], OP_READ, op2L_data);
