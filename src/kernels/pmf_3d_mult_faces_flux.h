@@ -10,7 +10,7 @@ inline void pmf_3d_mult_faces_flux(const int *p, const int *faceNums,
   const int *fmask  = &FMASK[(*p - 1) * 4 * DG_NPF];
 
   for(int i = 0; i < DG_NUM_FACES; i++) {
-    const DG_FP gtau = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(fscale[i * 2], fscale[i * 2 + 1]);
+    const DG_FP gtau = 2.0 * (*p + 1) * (*p + 2) * fmax(fscale[i * 2], fscale[i * 2 + 1]);
     const DG_FP int_fact = 0.5 * sJ[i];
     const DG_FP *inR = in_p[i];
     const DG_FP *in_xR = in_x_p[i];

@@ -10,17 +10,16 @@ inline void pmf_3d_mult_faces_bflux(const int *p, const int *faceL,
   const int *fmask  = &FMASK[(*p - 1) * 4 * DG_NPF];
   const int faceInd = *faceL ? 0 : 1;
 
-  const DG_FP gtau = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(fscale[0], fscale[1]);
+  const DG_FP gtau = 2.0 * (*p + 1) * (*p + 2) * fmax(fscale[0], fscale[1]);
   const DG_FP int_fact = 0.5 * sJ[faceInd];
 
   const int findL = faceNums[faceInd] * dg_npf;
   const int *fmaskL = &fmask[faceNums[faceInd] * dg_npf];
-  const int *fmaskR = *faceL ? fmaskR_corrected : fmaskL_corrected;
 
   for(int j = 0; j < dg_npf; j++) {
     const int fmaskIndL = fmaskL[j];
-    const int fmaskIndR = fmaskR[j];
-    const DG_FP diffL_u = in[0][fmaskIndL] - in[1][fmaskR[j]];
+    const int fmaskIndR = *faceL ? fmaskR_corrected[j] : fmaskL_corrected[j];
+    const DG_FP diffL_u = in[0][fmaskIndL] - in[1][fmaskIndR];
     const DG_FP diffL_u_x = nx[faceInd] * (in_x[1][fmaskIndL] + in_x[0][fmaskIndR]);
     const DG_FP diffL_u_y = ny[faceInd] * (in_y[1][fmaskIndL] + in_y[0][fmaskIndR]);
     const DG_FP diffL_u_z = nz[faceInd] * (in_z[1][fmaskIndL] + in_z[0][fmaskIndR]);

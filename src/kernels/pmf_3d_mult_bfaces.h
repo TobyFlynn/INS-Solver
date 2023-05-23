@@ -14,7 +14,7 @@ inline void pmf_3d_mult_bfaces(const int *order, const int *bc_type, const int *
   const int *fmask  = &FMASK[(p - 1) * 4 * DG_NPF];
   const int *fmaskB = &fmask[faceNum[0] * dg_npf];
 
-  const DG_FP gtau = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * fscale[0];
+  const DG_FP gtau = 2.0 * (p + 1) * (p + 2) * fscale[0];
 
   for(int j = 0; j < dg_npf; j++) {
     const int fmaskInd = fmaskB[j];
