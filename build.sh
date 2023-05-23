@@ -152,6 +152,8 @@ sed -i "7i #include \"cblas.h\"" seq/ins3d_seqkernels.cpp
 if [ $SOA = 0 ]; then
   sed -i "73i #include \"../matrices/3d/custom_kernels/custom_fpmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
   sed -i "73i #include \"../matrices/3d/custom_kernels/custom_pmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
+else
+  sed -i "73i #include \"../matrices/3d/custom_kernels/custom_soa_pmf_3d_mult_complete_flux.cu\"" cuda/ins3d_kernels.cu
 fi
 
 cd ..

@@ -12,7 +12,7 @@ extern DGConstants *constants;
 extern Timing *timer;
 extern DGDatPool3D *dg_dat_pool;
 
-void custom_kernel_pmf_3d_mult_faces_flux(const int order, char const *name, op_set set,
+void custom_kernel_pmf_3d_mult_complete_flux(const int order, char const *name, op_set set,
   op_arg arg0,
   op_arg arg1,
   op_arg arg2,
@@ -23,28 +23,14 @@ void custom_kernel_pmf_3d_mult_faces_flux(const int order, char const *name, op_
   op_arg arg7,
   op_arg arg8,
   op_arg arg9,
-  op_arg arg13,
+  op_arg arg10,
   op_arg arg14,
   op_arg arg15,
   op_arg arg16,
-  op_arg arg20,
-  op_arg arg24,
-  op_arg arg28,
-  op_arg arg29,
-  op_arg arg30,
-  op_arg arg31);
-
-void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, op_set set,
-  op_arg arg0,
-  op_arg argGeof,
-  op_arg arg16,
   op_arg arg17,
-  op_arg arg18,
-  op_arg arg19,
-  op_arg arg20,
   op_arg arg21,
-  op_arg arg22,
-  op_arg arg23);
+  op_arg arg25,
+  op_arg arg29);
 
 PoissonMatrixFreeMult3D::PoissonMatrixFreeMult3D(DGMesh3D *m) {
   mesh = m;
@@ -89,6 +75,27 @@ void PoissonMatrixFreeMult3D::mat_free_mult(op_dat in, op_dat out) {
   timer->endTimer("PoissonMatrixFreeMult3D - mult grad");
 
   timer->startTimer("PoissonMatrixFreeMult3D - mult fluxes");
+  #ifdef DG_OP2_SOA
+  custom_kernel_pmf_3d_mult_complete_flux(mesh->order_int, "pmf_3d_mult_faces_flux", mesh->fluxes,
+              op_arg_dat(mesh->order, 0, mesh->flux2main_cell, 1, "int", OP_READ),
+              op_arg_dat(mesh->fluxFaceNums, -1, OP_ID, 8, "int", OP_READ),
+              op_arg_dat(mesh->fluxFmask,    -1, OP_ID, 4 * DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->fluxNx, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fluxNy, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fluxNz, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fluxFscale, -1, OP_ID, 8, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fluxSJ, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->geof, 0, mesh->flux2main_cell, 10, DG_FP_STR, OP_READ),
+              op_arg_dat(in, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(in, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_grad0.dat, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_grad1.dat, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_grad2.dat, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_grad0.dat, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_grad1.dat, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_grad2.dat, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(out, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_WRITE));
+  #else
   op_par_loop(pmf_3d_mult_complete_flux, "pmf_3d_mult_faces_flux", mesh->fluxes,
               op_arg_dat(mesh->order, 0, mesh->flux2main_cell, 1, "int", OP_READ),
               op_arg_dat(mesh->fluxFaceNums, -1, OP_ID, 8, "int", OP_READ),
@@ -108,6 +115,7 @@ void PoissonMatrixFreeMult3D::mat_free_mult(op_dat in, op_dat out) {
               op_arg_dat(tmp_grad1.dat, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(tmp_grad2.dat, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(out, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_WRITE));
+  #endif
   timer->endTimer("PoissonMatrixFreeMult3D - mult fluxes");
 
   timer->startTimer("PoissonMatrixFreeMult3D - mult bfluxes");
