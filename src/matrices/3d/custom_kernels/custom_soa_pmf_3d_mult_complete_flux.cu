@@ -14,14 +14,32 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *faceNums,
                             const double *in_y, const double *in_z,
                             const double **in_x_p, const double **in_y_p,
                             const double **in_z_p, double *out) {
-  const int *fmask  = &FMASK_cuda[(p - 1) * 4 * 10];
+  const int *fmask = &FMASK_cuda[(p - 1) * 4 * 10];
   const double *emat_mat = &dg_Emat_kernel[(p - 1) * 4 * 10 * 20];
   const double *dr_mat = &dg_Dr_kernel[(p - 1) * 20 * 20];
   const double *ds_mat = &dg_Ds_kernel[(p - 1) * 20 * 20];
   const double *dt_mat = &dg_Dt_kernel[(p - 1) * 20 * 20];
   const double *mass_mat = &dg_Mass_kernel[(p - 1) * 20 * 20];
 
-  double tmp_0[dg_npf * 4], tmp_1[dg_npf * 4], tmp_2[dg_npf * 4], tmp_3[dg_npf * 4];
+  for(int i = 0; i < dg_np; i++) {
+    out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] = 0.0;
+  }
+
+  double tmp_0[4 * dg_npf], tmp_4[dg_np], tmp_5[dg_np], tmp_6[dg_np];
+  const double cell_J = geof[(J_IND)*opDat0_custom_pmf_stride_OP2CONSTANT];
+  for(int i = 0; i < dg_np; i++) {
+    double tmp_gemv[3] = {};
+    for(int j = 0; j < dg_np; j++) {
+      int ind = DG_MAT_IND(i,j, dg_np, dg_np);
+      tmp_gemv[0] += mass_mat[ind] * in_x[(j)*opDat0_custom_pmf_stride_OP2CONSTANT];
+      tmp_gemv[1] += mass_mat[ind] * in_y[(j)*opDat0_custom_pmf_stride_OP2CONSTANT];
+      tmp_gemv[2] += mass_mat[ind] * in_z[(j)*opDat0_custom_pmf_stride_OP2CONSTANT];
+    }
+     tmp_4[i] = cell_J * tmp_gemv[0];
+     tmp_5[i] = cell_J * tmp_gemv[1];
+     tmp_6[i] = cell_J * tmp_gemv[2];
+  }
+
   for(int i = 0; i < 4; i++) {
     const double gtau = 2.0 * (p + 1) * (p + 2) * fmax(fscale[(i * 2)*direct_custom_pmf_stride_OP2CONSTANT], fscale[(i * 2 + 1)*direct_custom_pmf_stride_OP2CONSTANT]);
 
@@ -38,15 +56,20 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *faceNums,
       const double diffL_u_grad = diffL_u_x + diffL_u_y + diffL_u_z;
 
       const int indL = findL + j;
-      tmp_0[indL] = 0.5 * sJ[(i)*direct_custom_pmf_stride_OP2CONSTANT] * (gtau * diffL_u - diffL_u_grad);
-      const double l_tmpL = 0.5 * sJ[(i)*direct_custom_pmf_stride_OP2CONSTANT] * -diffL_u;
-      tmp_1[indL] = nx[(i)*direct_custom_pmf_stride_OP2CONSTANT] * l_tmpL;
-      tmp_2[indL] = ny[(i)*direct_custom_pmf_stride_OP2CONSTANT] * l_tmpL;
-      tmp_3[indL] = nz[(i)*direct_custom_pmf_stride_OP2CONSTANT] * l_tmpL;
+      const double int_fact = 0.5 * sJ[(i)*direct_custom_pmf_stride_OP2CONSTANT];
+      tmp_0[indL] = int_fact * (gtau * diffL_u - diffL_u_grad);
+      const double l_tmpL = int_fact * -diffL_u;
+      const double tmp_1 = nx[(i)*direct_custom_pmf_stride_OP2CONSTANT] * l_tmpL;
+      const double tmp_2 = ny[(i)*direct_custom_pmf_stride_OP2CONSTANT] * l_tmpL;
+      const double tmp_3 = nz[(i)*direct_custom_pmf_stride_OP2CONSTANT] * l_tmpL;
+      for(int i = 0; i < dg_np; i++) {
+        int ind = DG_MAT_IND(i, indL, dg_np, 4 * dg_npf);
+        tmp_4[i] += emat_mat[ind] * tmp_1;
+        tmp_5[i] += emat_mat[ind] * tmp_2;
+        tmp_6[i] += emat_mat[ind] * tmp_3;
+      }
     }
   }
-
-  double tmp_4[dg_np], tmp_5[dg_np], tmp_6[dg_np];
 
   for(int i = 0; i < dg_np; i++) {
     double tmp_gemv = 0.0;
@@ -57,92 +80,24 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *faceNums,
      out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] = tmp_gemv;
   }
 
-  for(int i = 0; i < dg_np; i++) {
-    double tmp_gemv = 0.0;
-    for(int j = 0; j < 4 * dg_npf; j++) {
-      int ind = DG_MAT_IND(i,j, dg_np, 4 * dg_npf);
-      tmp_gemv += emat_mat[ind] * tmp_1[j];
-    }
-     tmp_4[i] = tmp_gemv;
-  }
-
-  for(int i = 0; i < dg_np; i++) {
-    double tmp_gemv = 0.0;
-    for(int j = 0; j < 4 * dg_npf; j++) {
-      int ind = DG_MAT_IND(i,j, dg_np, 4 * dg_npf);
-      tmp_gemv += emat_mat[ind] * tmp_2[j];
-    }
-     tmp_5[i] = tmp_gemv;
-  }
-
-  for(int i = 0; i < dg_np; i++) {
-    double tmp_gemv = 0.0;
-    for(int j = 0; j < 4 * dg_npf; j++) {
-      int ind = DG_MAT_IND(i,j, dg_np, 4 * dg_npf);
-      tmp_gemv += emat_mat[ind] * tmp_3[j];
-    }
-     tmp_6[i] = tmp_gemv;
-  }
-
-  for(int i = 0; i < dg_np; i++) {
-    double tmp_gemv = 0.0;
-    for(int j = 0; j < dg_np; j++) {
-      int ind = DG_MAT_IND(i,j, dg_np, dg_np);
-      tmp_gemv += mass_mat[ind] * in_x[(j)*opDat0_custom_pmf_stride_OP2CONSTANT];
-    }
-     tmp_4[i] = tmp_4[i] + geof[(J_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_gemv;
-  }
-
-  for(int i = 0; i < dg_np; i++) {
-    double tmp_gemv = 0.0;
-    for(int j = 0; j < dg_np; j++) {
-      int ind = DG_MAT_IND(i,j, dg_np, dg_np);
-      tmp_gemv += mass_mat[ind] * in_y[(j)*opDat0_custom_pmf_stride_OP2CONSTANT];
-    }
-     tmp_5[i] = tmp_5[i] + geof[(J_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_gemv;
-  }
-
-  for(int i = 0; i < dg_np; i++) {
-    double tmp_gemv = 0.0;
-    for(int j = 0; j < dg_np; j++) {
-      int ind = DG_MAT_IND(i,j, dg_np, dg_np);
-      tmp_gemv += mass_mat[ind] * in_z[(j)*opDat0_custom_pmf_stride_OP2CONSTANT];
-    }
-     tmp_6[i] = tmp_6[i] + geof[(J_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_gemv;
-  }
-
-  double tmp_dr[20], tmp_ds[20], tmp_dt[20];
   for(int n = 0; n < dg_np; n++) {
-    tmp_dr[n] = geof[(RX_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_4[n] + geof[(RY_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_5[n] + geof[(RZ_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_6[n];
-    tmp_ds[n] = geof[(SX_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_4[n] + geof[(SY_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_5[n] + geof[(SZ_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_6[n];
-    tmp_dt[n] = geof[(TX_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_4[n] + geof[(TY_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_5[n] + geof[(TZ_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_6[n];
+    const double tmp_x = tmp_4[n];
+    const double tmp_y = tmp_5[n];
+    const double tmp_z = tmp_6[n];
+    tmp_4[n] = geof[(RX_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_x + geof[(RY_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_y + geof[(RZ_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_z;
+    tmp_5[n] = geof[(SX_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_x + geof[(SY_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_y + geof[(SZ_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_z;
+    tmp_6[n] = geof[(TX_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_x + geof[(TY_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_y + geof[(TZ_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_z;
   }
 
   for(int i = 0; i < dg_np; i++) {
     double tmp_gemv = 0.0;
     for(int j = 0; j < dg_np; j++) {
       int ind = DG_MAT_IND(j,i, dg_np, dg_np);
-      tmp_gemv += dr_mat[ind] * tmp_dr[j];
+      tmp_gemv += dr_mat[ind] * tmp_4[j];
+      tmp_gemv += ds_mat[ind] * tmp_5[j];
+      tmp_gemv += dt_mat[ind] * tmp_6[j];
     }
-     out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] = out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] + tmp_gemv;
-  }
-
-  for(int i = 0; i <  dg_np; i++) {
-    double tmp_gemv = 0.0;
-    for(int j = 0; j <  dg_np; j++) {
-      int ind = DG_MAT_IND(j,i, dg_np, dg_np);
-      tmp_gemv +=  ds_mat[ind] *  tmp_ds[j];
-    }
-     out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] = out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] + tmp_gemv;
-  }
-
-  for(int i = 0; i < dg_np; i++) {
-    double tmp_gemv = 0.0;
-    for(int j = 0; j < dg_np; j++) {
-      int ind = DG_MAT_IND(j,i, dg_np, dg_np);
-      tmp_gemv +=  dt_mat[ind] *  tmp_dt[j];
-    }
-     out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] = out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] + tmp_gemv;
+     out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] += tmp_gemv;
   }
 }
 
