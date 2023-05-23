@@ -21,7 +21,7 @@ extern DGConstants *constants;
 
 extern Timing *timer;
 extern Config *config;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 INSSolver3D::INSSolver3D(DGMesh3D *m) {
   mesh = m;

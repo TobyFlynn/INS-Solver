@@ -10,7 +10,7 @@
 #include "dg_dat_pool.h"
 
 extern Timing *timer;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
   bc = nullptr;

@@ -10,7 +10,7 @@
 
 extern DGConstants *constants;
 extern Timing *timer;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 void custom_kernel_pmf_3d_mult_faces_flux(const int order, char const *name, op_set set,
   op_arg arg0,

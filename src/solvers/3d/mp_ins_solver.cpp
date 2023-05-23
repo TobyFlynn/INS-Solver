@@ -18,7 +18,7 @@
 extern Timing *timer;
 extern DGConstants *constants;
 extern Config *config;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) {
   mesh = m;

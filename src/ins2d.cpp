@@ -11,10 +11,12 @@
 #include "dg_global_constants/dg_global_constants_2d.h"
 
 #include "timing.h"
+#include "config.h"
 #include "solvers/2d/mp_ins_solver.h"
 #include "solvers/2d/ins_solver.h"
 
 Timing *timer;
+Config *config;
 
 using namespace std;
 
@@ -52,6 +54,14 @@ int main(int argc, char **argv) {
     return -1;
   }
   string filename = string(inputFile);
+
+  char configFile[255];
+  PetscOptionsGetString(NULL, NULL, "-config", configFile, 255, &found);
+  if(!found) {
+    op_printf("Did not specify a configuration file, use the -config flag\n");
+    return -1;
+  }
+  config = new Config(string(configFile));
 
   char outDir[255];
   string outputDir = "";
@@ -155,6 +165,7 @@ int main(int argc, char **argv) {
   ierr = PetscFinalize();
 
   delete timer;
+  delete config;
 
   // Clean up OP2
   op_exit();

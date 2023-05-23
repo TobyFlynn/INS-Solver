@@ -21,7 +21,7 @@
 
 Timing *timer;
 Config *config;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 using namespace std;
 

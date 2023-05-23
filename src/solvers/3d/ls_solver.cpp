@@ -17,7 +17,7 @@
 #include "timing.h"
 
 extern Timing *timer;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m) {
   mesh = m;

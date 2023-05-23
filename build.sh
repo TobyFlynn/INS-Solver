@@ -96,6 +96,9 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
 sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins2d_kernels.cu
 sed -i "4i #include \"dg_compiler_defs.h\"" openmp/ins2d_kernels.cpp
 sed -i "4i #include \"dg_compiler_defs.h\"" seq/ins2d_seqkernels.cpp
+sed -i "6i #include \"dg_global_constants/dg_mat_constants_2d.h\"" cuda/ins2d_kernels.cu
+sed -i "6i #include \"dg_global_constants/dg_mat_constants_2d.h\"" openmp/ins2d_kernels.cpp
+sed -i "6i #include \"dg_global_constants/dg_mat_constants_2d.h\"" seq/ins2d_seqkernels.cpp
 sed -i "5i #include \"cblas.h\"" openmp/ins2d_kernels.cpp
 sed -i "5i #include \"cblas.h\"" seq/ins2d_seqkernels.cpp
 
