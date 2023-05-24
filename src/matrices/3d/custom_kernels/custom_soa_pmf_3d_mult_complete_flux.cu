@@ -14,19 +14,13 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *faceNums,
                             const double *in_y, const double *in_z,
                             const double **in_x_p, const double **in_y_p,
                             const double **in_z_p, double *out) {
-  const int *fmask = &FMASK_cuda[(p - 1) * 4 * 10];
-  const double *emat_mat = &dg_Emat_kernel[(p - 1) * 4 * 10 * 20];
-  const double *dr_mat = &dg_Dr_kernel[(p - 1) * 20 * 20];
-  const double *ds_mat = &dg_Ds_kernel[(p - 1) * 20 * 20];
-  const double *dt_mat = &dg_Dt_kernel[(p - 1) * 20 * 20];
-  const double *mass_mat = &dg_Mass_kernel[(p - 1) * 20 * 20];
-
   for(int i = 0; i < dg_np; i++) {
     out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] = 0.0;
   }
 
-  double tmp_0[4 * dg_npf], tmp_4[dg_np], tmp_5[dg_np], tmp_6[dg_np];
+  double tmp_4[dg_np], tmp_5[dg_np], tmp_6[dg_np];
   const double cell_J = geof[(J_IND)*opDat0_custom_pmf_stride_OP2CONSTANT];
+  const double *mass_mat = &dg_Mass_kernel[(p - 1) * 20 * 20];
   for(int i = 0; i < dg_np; i++) {
     double tmp_gemv[3] = {};
     for(int j = 0; j < dg_np; j++) {
@@ -40,11 +34,12 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *faceNums,
      tmp_6[i] = cell_J * tmp_gemv[2];
   }
 
+  const double *emat_mat = &dg_Emat_kernel[(p - 1) * 4 * 10 * 20];
   for(int i = 0; i < 4; i++) {
     const double gtau = 2.0 * (p + 1) * (p + 2) * fmax(fscale[(i * 2)*direct_custom_pmf_stride_OP2CONSTANT], fscale[(i * 2 + 1)*direct_custom_pmf_stride_OP2CONSTANT]);
 
     const int findL = faceNums[(2 * i)*direct_custom_pmf_stride_OP2CONSTANT] * dg_npf;
-    const int *fmaskL = &fmask[faceNums[(2 * i)*direct_custom_pmf_stride_OP2CONSTANT] * dg_npf];
+    const int *fmaskL = FMASK_cuda[(p - 1) * 4 * 10 + faceNums[(2 * i)*direct_custom_pmf_stride_OP2CONSTANT] * dg_npf];
 
     for(int j = 0; j < dg_npf; j++) {
       const int fmaskIndL = fmaskL[j];
@@ -57,7 +52,7 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *faceNums,
 
       const int indL = findL + j;
       const double int_fact = 0.5 * sJ[(i)*direct_custom_pmf_stride_OP2CONSTANT];
-      tmp_0[indL] = int_fact * (gtau * diffL_u - diffL_u_grad);
+      const double tmp_0 = int_fact * (gtau * diffL_u - diffL_u_grad);
       const double l_tmpL = int_fact * -diffL_u;
       const double tmp_1 = nx[(i)*direct_custom_pmf_stride_OP2CONSTANT] * l_tmpL;
       const double tmp_2 = ny[(i)*direct_custom_pmf_stride_OP2CONSTANT] * l_tmpL;
@@ -67,17 +62,9 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *faceNums,
         tmp_4[i] += emat_mat[ind] * tmp_1;
         tmp_5[i] += emat_mat[ind] * tmp_2;
         tmp_6[i] += emat_mat[ind] * tmp_3;
+        out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] += emat_mat[ind] * tmp_0;
       }
     }
-  }
-
-  for(int i = 0; i < dg_np; i++) {
-    double tmp_gemv = 0.0;
-    for(int j = 0; j < 4 * dg_npf; j++) {
-      int ind = DG_MAT_IND(i,j, dg_np, 4 * dg_npf);
-      tmp_gemv += emat_mat[ind] * tmp_0[j];
-    }
-     out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] = tmp_gemv;
   }
 
   for(int n = 0; n < dg_np; n++) {
@@ -89,6 +76,9 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *faceNums,
     tmp_6[n] = geof[(TX_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_x + geof[(TY_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_y + geof[(TZ_IND)*opDat0_custom_pmf_stride_OP2CONSTANT] * tmp_z;
   }
 
+  const double *dr_mat = &dg_Dr_kernel[(p - 1) * 20 * 20];
+  const double *ds_mat = &dg_Ds_kernel[(p - 1) * 20 * 20];
+  const double *dt_mat = &dg_Dt_kernel[(p - 1) * 20 * 20];
   for(int i = 0; i < dg_np; i++) {
     double tmp_gemv = 0.0;
     for(int j = 0; j < dg_np; j++) {
