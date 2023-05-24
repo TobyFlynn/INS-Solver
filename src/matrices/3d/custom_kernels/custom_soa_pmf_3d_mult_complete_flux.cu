@@ -14,7 +14,7 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *fmash_sh, const int *f
                             const double *in_y, const double *in_z,
                             const double **in_x_p, const double **in_y_p,
                             const double **in_z_p, double *out) {
-
+  #pragma unroll
   for(int i = 0; i < dg_np; i++) {
     out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] = 0.0;
   }
@@ -24,6 +24,7 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *fmash_sh, const int *f
   const double *mass_mat = &dg_Mass_kernel[(p - 1) * 20 * 20];
   for(int i = 0; i < dg_np; i++) {
     double tmp_gemv[3] = {};
+    #pragma unroll
     for(int j = 0; j < dg_np; j++) {
       int ind = DG_MAT_IND(i,j, dg_np, dg_np);
       tmp_gemv[0] += mass_mat[ind] * in_x[(j)*opDat0_custom_pmf_stride_OP2CONSTANT];
@@ -40,7 +41,7 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *fmash_sh, const int *f
     const double gtau = 2.0 * (p + 1) * (p + 2) * fmax(fscale[(i * 2)*direct_custom_pmf_stride_OP2CONSTANT], fscale[(i * 2 + 1)*direct_custom_pmf_stride_OP2CONSTANT]);
 
     const int findL = faceNums[(2 * i)*direct_custom_pmf_stride_OP2CONSTANT] * dg_npf;
-    const int *fmaskL = fmash_sh[faceNums[(2 * i)*direct_custom_pmf_stride_OP2CONSTANT] * dg_npf];
+    const int *fmaskL = &fmash_sh[faceNums[(2 * i)*direct_custom_pmf_stride_OP2CONSTANT] * dg_npf];
 
     for(int j = 0; j < dg_npf; j++) {
       const int fmaskIndL = fmaskL[j];
@@ -58,6 +59,7 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *fmash_sh, const int *f
       const double tmp_1 = nx[(i)*direct_custom_pmf_stride_OP2CONSTANT] * l_tmpL;
       const double tmp_2 = ny[(i)*direct_custom_pmf_stride_OP2CONSTANT] * l_tmpL;
       const double tmp_3 = nz[(i)*direct_custom_pmf_stride_OP2CONSTANT] * l_tmpL;
+      #pragma unroll
       for(int i = 0; i < dg_np; i++) {
         int ind = DG_MAT_IND(i, indL, dg_np, 4 * dg_npf);
         tmp_4[i] += emat_mat[ind] * tmp_1;
@@ -68,6 +70,7 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *fmash_sh, const int *f
     }
   }
 
+  #pragma unroll
   for(int n = 0; n < dg_np; n++) {
     const double tmp_x = tmp_4[n];
     const double tmp_y = tmp_5[n];
@@ -82,6 +85,7 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *fmash_sh, const int *f
   const double *dt_mat = &dg_Dt_kernel[(p - 1) * 20 * 20];
   for(int i = 0; i < dg_np; i++) {
     double tmp_gemv = 0.0;
+    #pragma unroll
     for(int j = 0; j < dg_np; j++) {
       int ind = DG_MAT_IND(j,i, dg_np, dg_np);
       tmp_gemv += dr_mat[ind] * tmp_4[j];
@@ -117,11 +121,13 @@ __global__ void _op_cuda_pmf_3d_mult_complete_flux(
   int start,
   int end,
   int   set_size) {
-  __shared__ int fmask_sh[4 * dg_npf];
-  for(int i = threadIdx.x; i < 4 * dg_npf; i++) {
+  const int np = (p + 1) * (p + 2) * (p + 3) / 6;
+  const int npf = (p + 1) * (p + 2) / 2;
+  __shared__ int fmask_sh[4 * npf];
+  for(int i = threadIdx.x; i < 4 * npf; i++) {
     fmask_sh[i] = FMASK_cuda[(p - 1) * 4 * 10 + i];
   }
-  __synchthreads();
+  __syncthreads();
 
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
@@ -158,8 +164,6 @@ __global__ void _op_cuda_pmf_3d_mult_complete_flux(
        &ind_arg9[map12idx],
        &ind_arg9[map13idx]};
 
-    const int np = (p + 1) * (p + 2) * (p + 3) / 6;
-    const int npf = (p + 1) * (p + 2) / 2;
     _pmf_3d_mult_complete_flux_gpu<p, np, npf>(fmask_sh,
                               arg1+n,
                               arg2+n,
