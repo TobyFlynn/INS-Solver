@@ -6,7 +6,7 @@ __constant__ int direct_custom_pmf_stride_OP2CONSTANT;
 int direct_custom_pmf_stride_OP2HOST=-1;
 
 template<int p, int dg_np, int dg_npf>
-__device__ void _pmf_3d_mult_complete_flux_gpu(const int *faceNums,
+__device__ void _pmf_3d_mult_complete_flux_gpu(const int *fmash_sh, const int *faceNums,
                             const int *fmaskF, const double *nx, const double *ny,
                             const double *nz, const double *fscale,
                             const double *sJ, const double *geof, const double *in,
@@ -14,6 +14,7 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *faceNums,
                             const double *in_y, const double *in_z,
                             const double **in_x_p, const double **in_y_p,
                             const double **in_z_p, double *out) {
+
   for(int i = 0; i < dg_np; i++) {
     out[(i)*opDat0_custom_pmf_stride_OP2CONSTANT] = 0.0;
   }
@@ -39,7 +40,7 @@ __device__ void _pmf_3d_mult_complete_flux_gpu(const int *faceNums,
     const double gtau = 2.0 * (p + 1) * (p + 2) * fmax(fscale[(i * 2)*direct_custom_pmf_stride_OP2CONSTANT], fscale[(i * 2 + 1)*direct_custom_pmf_stride_OP2CONSTANT]);
 
     const int findL = faceNums[(2 * i)*direct_custom_pmf_stride_OP2CONSTANT] * dg_npf;
-    const int *fmaskL = FMASK_cuda[(p - 1) * 4 * 10 + faceNums[(2 * i)*direct_custom_pmf_stride_OP2CONSTANT] * dg_npf];
+    const int *fmaskL = fmash_sh[faceNums[(2 * i)*direct_custom_pmf_stride_OP2CONSTANT] * dg_npf];
 
     for(int j = 0; j < dg_npf; j++) {
       const int fmaskIndL = fmaskL[j];
@@ -116,6 +117,12 @@ __global__ void _op_cuda_pmf_3d_mult_complete_flux(
   int start,
   int end,
   int   set_size) {
+  __shared__ int fmask_sh[4 * dg_npf];
+  for(int i = threadIdx.x; i < 4 * dg_npf; i++) {
+    fmask_sh[i] = FMASK_cuda[(p - 1) * 4 * 10 + i];
+  }
+  __synchthreads();
+
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid + start < end) {
     int n = tid + start;
@@ -153,7 +160,7 @@ __global__ void _op_cuda_pmf_3d_mult_complete_flux(
 
     const int np = (p + 1) * (p + 2) * (p + 3) / 6;
     const int npf = (p + 1) * (p + 2) / 2;
-    _pmf_3d_mult_complete_flux_gpu<p, np, npf>(
+    _pmf_3d_mult_complete_flux_gpu<p, np, npf>(fmask_sh,
                               arg1+n,
                               arg2+n,
                               arg3+n,
