@@ -13,10 +13,9 @@ inline void pmf_3d_mult_faces(const int **order, const int *faceNum, const int *
     const int fmaskL_ind = FMASK[(p - 1) * 4 * DG_NPF + faceNum[0] * dg_npf + j];
     const int fmaskR_ind_corr = fmaskR_corrected[j];
     const DG_FP diffL_u = in[0][fmaskL_ind] - in[1][fmaskR_ind_corr];
-    const DG_FP diffL_u_x = nx[0] * (in_x[1][fmaskR_ind_corr] + in_x[0][fmaskL_ind]);
-    const DG_FP diffL_u_y = ny[0] * (in_y[1][fmaskR_ind_corr] + in_y[0][fmaskL_ind]);
-    const DG_FP diffL_u_z = nz[0] * (in_z[1][fmaskR_ind_corr] + in_z[0][fmaskL_ind]);
-    const DG_FP diffL_u_grad = diffL_u_x + diffL_u_y + diffL_u_z;
+    const DG_FP diffL_u_grad = nx[0] * (in_x[1][fmaskR_ind_corr] + in_x[0][fmaskL_ind])
+                             + ny[0] * (in_y[1][fmaskR_ind_corr] + in_y[0][fmaskL_ind])
+                             + nz[0] * (in_z[1][fmaskR_ind_corr] + in_z[0][fmaskL_ind]);
 
     const int indL = faceNum[0] * dg_npf + j;
     out[0][indL] = 0.5 * sJ[0] * (gtau * diffL_u - diffL_u_grad);
@@ -28,10 +27,9 @@ inline void pmf_3d_mult_faces(const int **order, const int *faceNum, const int *
     const int fmaskR_ind = FMASK[(p - 1) * 4 * DG_NPF + faceNum[1] * dg_npf + j];
     const int fmaskL_ind_corr = fmaskL_corrected[j];
     const DG_FP diffR_u = in[1][fmaskR_ind] - in[0][fmaskL_ind_corr];
-    const DG_FP diffR_u_x = nx[1] * (in_x[1][fmaskR_ind] + in_x[0][fmaskL_ind_corr]);
-    const DG_FP diffR_u_y = ny[1] * (in_y[1][fmaskR_ind] + in_y[0][fmaskL_ind_corr]);
-    const DG_FP diffR_u_z = nz[1] * (in_z[1][fmaskR_ind] + in_z[0][fmaskL_ind_corr]);
-    const DG_FP diffR_u_grad = diffR_u_x + diffR_u_y + diffR_u_z;
+    const DG_FP diffR_u_grad = nx[1] * (in_x[1][fmaskR_ind] + in_x[0][fmaskL_ind_corr])
+                             + ny[1] * (in_y[1][fmaskR_ind] + in_y[0][fmaskL_ind_corr])
+                             + nz[1] * (in_z[1][fmaskR_ind] + in_z[0][fmaskL_ind_corr]);
 
     const int indR = faceNum[1] * dg_npf + j;
     out[1][indR] = 0.5 * sJ[1] * (gtau * diffR_u - diffR_u_grad);
