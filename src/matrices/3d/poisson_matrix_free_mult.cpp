@@ -74,51 +74,6 @@ void PoissonMatrixFreeMult3D::mat_free_mult(op_dat in, op_dat out) {
   mesh->grad(in, tmp_grad0.dat, tmp_grad1.dat, tmp_grad2.dat);
   timer->endTimer("PoissonMatrixFreeMult3D - mult grad");
 
-  timer->startTimer("PoissonMatrixFreeMult3D - mult fluxes");
-  #ifdef DG_OP2_SOA
-  custom_kernel_pmf_3d_mult_complete_flux(mesh->order_int, "pmf_3d_mult_faces_flux", mesh->fluxes,
-              op_arg_dat(mesh->order, 0, mesh->flux2main_cell, 1, "int", OP_READ),
-              op_arg_dat(mesh->fluxFaceNums, -1, OP_ID, 8, "int", OP_READ),
-              op_arg_dat(mesh->fluxFmask,    -1, OP_ID, 4 * DG_NPF, "int", OP_READ),
-              op_arg_dat(mesh->fluxNx, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->fluxNy, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->fluxNz, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->fluxFscale, -1, OP_ID, 8, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->fluxSJ, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->geof, 0, mesh->flux2main_cell, 10, DG_FP_STR, OP_READ),
-              op_arg_dat(in, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(in, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad0.dat, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad1.dat, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad2.dat, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad0.dat, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad1.dat, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad2.dat, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(out, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_WRITE));
-  #else
-  op_par_loop(pmf_3d_mult_complete_flux, "pmf_3d_mult_faces_flux", mesh->fluxes,
-              op_arg_dat(mesh->order, 0, mesh->flux2main_cell, 1, "int", OP_READ),
-              op_arg_dat(mesh->fluxFaceNums, -1, OP_ID, 8, "int", OP_READ),
-              op_arg_dat(mesh->fluxFmask,    -1, OP_ID, 4 * DG_NPF, "int", OP_READ),
-              op_arg_dat(mesh->fluxNx, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->fluxNy, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->fluxNz, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->fluxFscale, -1, OP_ID, 8, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->fluxSJ, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->geof, 0, mesh->flux2main_cell, 10, DG_FP_STR, OP_READ),
-              op_arg_dat(in, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(in, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad0.dat, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad1.dat, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad2.dat, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad0.dat, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad1.dat, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad2.dat, -4, mesh->flux2neighbour_cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(out, 0, mesh->flux2main_cell, DG_NP, DG_FP_STR, OP_WRITE));
-  #endif
-  timer->endTimer("PoissonMatrixFreeMult3D - mult fluxes");
-
-  timer->startTimer("PoissonMatrixFreeMult3D - mult bfluxes");
   DGTempDat tmp_npf0 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
   DGTempDat tmp_npf1 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
   DGTempDat tmp_npf2 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
@@ -132,31 +87,28 @@ void PoissonMatrixFreeMult3D::mat_free_mult(op_dat in, op_dat out) {
               op_arg_dat(tmp_npf2.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(tmp_npf3.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
-  timer->startTimer("PoissonMatrixFreeMult3D - mult bfluxes - bfluxes");
-  if(mesh->bflux2cells) {
-    op_par_loop(pmf_3d_mult_faces_bflux, "pmf_3d_mult_faces_bflux", mesh->bfluxes,
-                op_arg_dat(mesh->order,   0, mesh->bflux2cells, 1, "int", OP_READ),
-                op_arg_dat(mesh->bfluxL, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->faceNum, 0, mesh->bflux2faces, 2, "int", OP_READ),
-                op_arg_dat(mesh->fmaskL,  0, mesh->bflux2faces, DG_NPF, "int", OP_READ),
-                op_arg_dat(mesh->fmaskR,  0, mesh->bflux2faces, DG_NPF, "int", OP_READ),
-                op_arg_dat(mesh->nx, 0, mesh->bflux2faces, 2, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->ny, 0, mesh->bflux2faces, 2, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->nz, 0, mesh->bflux2faces, 2, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->fscale, 0, mesh->bflux2faces, 2, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->sJ, 0, mesh->bflux2faces, 2, DG_FP_STR, OP_READ),
-                op_arg_dat(in, -2, mesh->bflux2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(tmp_grad0.dat, -2, mesh->bflux2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(tmp_grad1.dat, -2, mesh->bflux2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(tmp_grad2.dat, -2, mesh->bflux2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(tmp_npf0.dat, 0, mesh->bflux2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
-                op_arg_dat(tmp_npf1.dat, 0, mesh->bflux2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
-                op_arg_dat(tmp_npf2.dat, 0, mesh->bflux2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
-                op_arg_dat(tmp_npf3.dat, 0, mesh->bflux2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
-  }
-  timer->endTimer("PoissonMatrixFreeMult3D - mult bfluxes - bfluxes");
+  timer->startTimer("PoissonMatrixFreeMult3D - mult faces");
+  op_par_loop(pmf_3d_mult_faces, "pmf_3d_mult_faces", mesh->faces,
+              op_arg_dat(mesh->order, -2, mesh->face2cells, 1, "int", OP_READ),
+              op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->fmaskL, -1, OP_ID, DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->fmaskR, -1, OP_ID, DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->nx, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ny, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nz, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sJ, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(in, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_grad0.dat, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_grad1.dat, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_grad2.dat, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_npf0.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_npf1.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_npf2.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_npf3.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  timer->endTimer("PoissonMatrixFreeMult3D - mult faces");
 
-  timer->startTimer("PoissonMatrixFreeMult3D - mult bfluxes - bfaces");
+  timer->startTimer("PoissonMatrixFreeMult3D - mult bfaces");
   if(mesh->bface2cells) {
     op_par_loop(pmf_3d_mult_bfaces, "pmf_3d_mult_bfaces", mesh->bfaces,
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),
@@ -176,29 +128,39 @@ void PoissonMatrixFreeMult3D::mat_free_mult(op_dat in, op_dat out) {
                 op_arg_dat(tmp_npf2.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
                 op_arg_dat(tmp_npf3.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
   }
-  timer->endTimer("PoissonMatrixFreeMult3D - mult bfluxes - bfaces");
+  timer->endTimer("PoissonMatrixFreeMult3D - mult bfaces");
 
-  timer->startTimer("PoissonMatrixFreeMult3D - mult bfluxes - cells");
-  op_par_loop(pmf_3d_mult_bcells_merged, "pmf_3d_mult_bcells_merged", mesh->cells,
+  timer->startTimer("PoissonMatrixFreeMult3D - cells");
+  timer->startTimer("PoissonMatrixFreeMult3D - mult cells MM");
+  mesh->mass(tmp_grad0.dat);
+  mesh->mass(tmp_grad1.dat);
+  mesh->mass(tmp_grad2.dat);
+  timer->endTimer("PoissonMatrixFreeMult3D - mult cells MM");
+  timer->startTimer("PoissonMatrixFreeMult3D - mult cells Emat");
+  op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf0.dat, 1.0, tmp_grad0.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf1.dat, 1.0, tmp_grad1.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf2.dat, 1.0, tmp_grad2.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::EMAT, tmp_npf3.dat, 0.0, out);
+  timer->endTimer("PoissonMatrixFreeMult3D - mult cells Emat");
+  timer->startTimer("PoissonMatrixFreeMult3D - mult cells geof");
+  op_par_loop(pmf_3d_mult_cells_geof, "pmf_3d_mult_cells_geof", mesh->cells,
               op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->bcell, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_npf0.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_npf1.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_npf2.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_npf3.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad0.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad1.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_grad2.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-  timer->endTimer("PoissonMatrixFreeMult3D - mult bfluxes - cells");
+              op_arg_dat(tmp_grad0.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(tmp_grad1.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(tmp_grad2.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  timer->endTimer("PoissonMatrixFreeMult3D - mult cells geof");
+  timer->startTimer("PoissonMatrixFreeMult3D - mult cells D");
+  op2_gemv(mesh, true, 1.0, DGConstants::DR, tmp_grad0.dat, 1.0, out);
+  op2_gemv(mesh, true, 1.0, DGConstants::DS, tmp_grad1.dat, 1.0, out);
+  op2_gemv(mesh, true, 1.0, DGConstants::DT, tmp_grad2.dat, 1.0, out);
+  timer->endTimer("PoissonMatrixFreeMult3D - mult cells D");
+  timer->endTimer("PoissonMatrixFreeMult3D - cells");
 
   dg_dat_pool->releaseTempDatCells(tmp_npf0);
   dg_dat_pool->releaseTempDatCells(tmp_npf1);
   dg_dat_pool->releaseTempDatCells(tmp_npf2);
   dg_dat_pool->releaseTempDatCells(tmp_npf3);
-  timer->endTimer("PoissonMatrixFreeMult3D - mult bfluxes");
-
   dg_dat_pool->releaseTempDatCells(tmp_grad0);
   dg_dat_pool->releaseTempDatCells(tmp_grad1);
   dg_dat_pool->releaseTempDatCells(tmp_grad2);

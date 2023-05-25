@@ -119,11 +119,11 @@ int main(int argc, char **argv) {
   op_printf("Reynolds number: %g\n", r_ynolds);
 
   DGMesh3D *mesh = new DGMesh3D(filename);
-  MPINSSolver3D *ins3d;
+  INSSolver3D *ins3d;
   if(resumeIter == 0)
-    ins3d = new MPINSSolver3D(mesh);
+    ins3d = new INSSolver3D(mesh);
   else
-    ins3d = new MPINSSolver3D(mesh, checkpointFile, resumeIter);
+    ins3d = new INSSolver3D(mesh, checkpointFile, resumeIter);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 2, "int", DG_CONSTANTS);
@@ -138,6 +138,7 @@ int main(int argc, char **argv) {
 
   timer->startTimer("OP2 Partitioning");
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
+  op_renumber(mesh->face2cells);
   timer->endTimer("OP2 Partitioning");
 
   mesh->init();
