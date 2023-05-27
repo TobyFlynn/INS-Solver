@@ -15,7 +15,7 @@ public:
 
 protected:
   DGMesh3D *mesh;
-  op_dat mat_free_bcs;
+  op_dat mat_free_bcs, mat_free_tau_c;
 };
 
 #endif
