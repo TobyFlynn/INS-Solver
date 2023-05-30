@@ -50,4 +50,23 @@ bool PoissonCoarseMatrix::getAmgXMat(AMGX_matrix_handle** mat) {
 
   return reset;
 }
+
+bool PoissonCoarseMatrix::getHYPREMat(HYPRE_ParCSRMatrix** mat) {
+  timer->startTimer("PoissonCoarseMatrix - getHYPREMat");
+  bool reset = false;
+  if(petscMatResetRequired) {
+    setHYPREMatrix();
+    HYPRE_IJMatrixGetObject(hypre_mat, (void**)&hypre_parcsr_mat);
+    petscMatResetRequired = false;
+    reset = true;
+  }
+  *mat = &hypre_parcsr_mat;
+  timer->endTimer("PoissonCoarseMatrix - getHYPREMat");
+
+  return reset;
+}
+
+void PoissonCoarseMatrix::getHYPRERanges(int *ilower, int *iupper, int *jlower, int *jupper) {
+  HYPRE_IJMatrixGetLocalRange(hypre_mat, ilower, iupper, jlower, jupper);
+}
 #endif

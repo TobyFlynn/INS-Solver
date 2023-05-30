@@ -8,6 +8,7 @@
 #include "linear_solver.h"
 #ifdef INS_CUDA
 #include "amgx_amg.h"
+#include "hypre_amg.h"
 #else
 #include "petsc_amg_coarse.h"
 #endif
@@ -45,7 +46,8 @@ private:
 
   DGMesh *mesh;
   #ifdef INS_CUDA
-  AmgXAMGSolver *coarseSolver;
+  // AmgXAMGSolver *coarseSolver;
+  HYPREAMGSolver *coarseSolver;
   #else
   PETScAMGCoarseSolver *coarseSolver;
   #endif

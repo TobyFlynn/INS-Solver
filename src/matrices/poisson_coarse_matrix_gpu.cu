@@ -389,3 +389,161 @@ void PoissonCoarseMatrix::setAmgXMatrix() {
   free(col_inds);
   free(data_ptr);
 }
+
+void PoissonCoarseMatrix::setHYPREMatrix() {
+  int global_size = getUnknowns();
+  int local_size = getUnknowns();
+  #ifdef INS_MPI
+  global_size = global_sum(global_size);
+  #endif
+  // Keep track of how many non-zero entries locally
+  // int nnz = 0;
+  const int cell_set_size = _mesh->cells->size;
+  const int faces_set_size = _mesh->faces->size + _mesh->faces->exec_size + _mesh->faces->nonexec_size;
+  int nnz = cell_set_size * DG_NP_N1 * DG_NP_N1 + faces_set_size * DG_NP_N1 * DG_NP_N1 * 2;
+
+  DG_FP *data_buf_ptr_h = (DG_FP *)malloc(nnz * sizeof(DG_FP));
+  int *col_buf_ptr_h = (int *)malloc(nnz * sizeof(int));
+  int *row_num_ptr_h = (int *)malloc(local_size * sizeof(int));
+  int *num_col_ptr_h = (int *)malloc(local_size * sizeof(int));
+
+  // Exchange halos
+  DGMesh3D *mesh = dynamic_cast<DGMesh3D*>(_mesh);
+  op_arg args[] = {
+    op_arg_dat(op2[0], 0, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[0], 1, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[0], 2, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[0], 3, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[1], 0, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[1], 1, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[1], 2, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[1], 3, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(glb_indL, 0, mesh->flux2faces, glb_indL->dim, "int", OP_READ),
+    op_arg_dat(glb_indL, 1, mesh->flux2faces, glb_indL->dim, "int", OP_READ),
+    op_arg_dat(glb_indL, 2, mesh->flux2faces, glb_indL->dim, "int", OP_READ),
+    op_arg_dat(glb_indL, 3, mesh->flux2faces, glb_indL->dim, "int", OP_READ),
+    op_arg_dat(glb_indR, 0, mesh->flux2faces, glb_indR->dim, "int", OP_READ),
+    op_arg_dat(glb_indR, 1, mesh->flux2faces, glb_indR->dim, "int", OP_READ),
+    op_arg_dat(glb_indR, 2, mesh->flux2faces, glb_indR->dim, "int", OP_READ),
+    op_arg_dat(glb_indR, 3, mesh->flux2faces, glb_indR->dim, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges_grouped(mesh->fluxes, 16, args, 2);
+  op_mpi_wait_all_grouped(16, args, 2);
+  cudaDeviceSynchronize();
+
+  // Get data from OP2
+  DG_FP *op1_data = getOP2PtrHost(op1, OP_READ);
+  DG_FP *op2L_data = getOP2PtrHost(op2[0], OP_READ);
+  DG_FP *op2R_data = getOP2PtrHost(op2[1], OP_READ);
+  int *glb   = (int *)malloc(cell_set_size * sizeof(int));
+  cudaMemcpy(glb, glb_ind->data_d, cell_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+  int *glb_l = (int *)malloc(faces_set_size * sizeof(int));
+  int *glb_r = (int *)malloc(faces_set_size * sizeof(int));
+  cudaMemcpy(glb_l, glb_indL->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_r, glb_indR->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+
+  if(!hypre_mat_init) {
+    const int ilower = glb[0];
+    const int iupper = glb[0] + local_size - 1;
+    op_printf("ilower: %d iupper: %d\n", ilower, iupper);
+    HYPRE_IJMatrixCreate(MPI_COMM_WORLD, ilower, iupper, ilower, iupper, &hypre_mat);
+    HYPRE_IJMatrixSetObjectType(hypre_mat, HYPRE_PARCSR);
+    HYPRE_IJMatrixInitialize(hypre_mat);
+    hypre_mat_init = true;
+  }
+
+  // TODO SoA
+  int current_nnz = 0;
+  int current_row = 0;
+  for(int c = 0; c < cell_set_size; c++) {
+    std::vector<std::pair<int,DG_FP>> bufs[DG_NP_N1];
+
+    // Add diagonal block to buffer
+    int diag_base_col = glb[c];
+    DG_FP *diag_data_ptr = op1_data + c * DG_NP_N1 * DG_NP_N1;
+    for(int i = 0; i < DG_NP_N1; i++) {
+      for(int j = 0; j < DG_NP_N1; j++) {
+        int ind = i + j * DG_NP_N1;
+        bufs[i].push_back({diag_base_col + j, diag_data_ptr[ind]});
+      }
+    }
+
+    // Search through global inds on faces for mat entries on this row
+    for(int k = 0; k < faces_set_size; k++) {
+      if(glb_l[k] == diag_base_col) {
+        int base_col = glb_r[k];
+        DG_FP *face_data_ptr = op2L_data + k * DG_NP_N1 * DG_NP_N1;
+        for(int i = 0; i < DG_NP_N1; i++) {
+          for(int j = 0; j < DG_NP_N1; j++) {
+            int ind = i + j * DG_NP_N1;
+            bufs[i].push_back({base_col + j, face_data_ptr[ind]});
+          }
+        }
+      }
+    }
+
+    for(int k = 0; k < faces_set_size; k++) {
+      if(glb_r[k] == diag_base_col) {
+        int base_col = glb_l[k];
+        DG_FP *face_data_ptr = op2R_data + k * DG_NP_N1 * DG_NP_N1;
+        for(int i = 0; i < DG_NP_N1; i++) {
+          for(int j = 0; j < DG_NP_N1; j++) {
+            int ind = i + j * DG_NP_N1;
+            bufs[i].push_back({base_col + j, face_data_ptr[ind]});
+          }
+        }
+      }
+    }
+
+    // Sort buffers (maybe doesn't need to be sorted)
+    for(int i = 0; i < DG_NP_N1; i++) {
+      std::sort(bufs[i].begin(), bufs[i].end());
+    }
+
+    for(int i = 0; i < DG_NP_N1; i++) {
+      row_num_ptr_h[current_row] = diag_base_col + i;
+      num_col_ptr_h[current_row] = bufs[i].size();
+      current_row++;
+      for(int k = 0; k < bufs[i].size(); k++) {
+        col_buf_ptr_h[current_nnz] = bufs[i][k].first;
+        data_buf_ptr_h[current_nnz] = bufs[i][k].second;
+        current_nnz++;
+      }
+    }
+  }
+
+  DG_FP *data_buf_ptr;
+  cudaMalloc(&data_buf_ptr, current_nnz * sizeof(DG_FP));
+  int *col_buf_ptr;
+  cudaMalloc(&col_buf_ptr, current_nnz * sizeof(int));
+  int *row_num_ptr;
+  cudaMalloc(&row_num_ptr, local_size * sizeof(int));
+  int *num_col_ptr;
+  cudaMalloc(&num_col_ptr, local_size * sizeof(int));
+
+  cudaMemcpy(row_num_ptr, row_num_ptr_h, local_size * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(num_col_ptr, num_col_ptr_h, local_size * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(col_buf_ptr, col_buf_ptr_h, current_nnz * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(data_buf_ptr, data_buf_ptr_h, current_nnz * sizeof(DG_FP), cudaMemcpyHostToDevice);
+
+  HYPRE_IJMatrixSetValues(hypre_mat, local_size, num_col_ptr, row_num_ptr, col_buf_ptr, data_buf_ptr);
+
+  cudaFree(data_buf_ptr);
+  cudaFree(col_buf_ptr);
+  cudaFree(row_num_ptr);
+  cudaFree(num_col_ptr);
+  free(data_buf_ptr_h);
+  free(col_buf_ptr_h);
+  free(row_num_ptr_h);
+  free(num_col_ptr_h);
+
+  releaseOP2PtrHost(op1, OP_READ, op1_data);
+  releaseOP2PtrHost(op2[0], OP_READ, op2L_data);
+  releaseOP2PtrHost(op2[1], OP_READ, op2R_data);
+  free(glb);
+  free(glb_l);
+  free(glb_r);
+
+  HYPRE_IJMatrixAssemble(hypre_mat);
+  op_printf("Finish HYPRE Assembly\n");
+}

@@ -68,6 +68,12 @@ endif()
 include_directories(${AMGX_DIR}/include)
 set(AMGX_LIB "-L${AMGX_DIR}/lib -lamgx")
 
+if(NOT HYPRE_DIR)
+  message(FATAL_ERROR "HYPRE_DIR is not specified")
+endif()
+include_directories(${HYPRE_DIR}/include)
+set(HYPRE_LIB "-L${HYPRE_DIR}/lib -lHYPRE")
+
 if(NOT HDF5_DIR)
   message(FATAL_ERROR "HDF5_DIR is not specified")
 endif()

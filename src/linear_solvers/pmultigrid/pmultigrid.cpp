@@ -137,7 +137,8 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
   free(tmp_data);
 
   #ifdef INS_CUDA
-  coarseSolver = new AmgXAMGSolver(mesh);
+  // coarseSolver = new AmgXAMGSolver(mesh);
+  coarseSolver = new HYPREAMGSolver(mesh);
   #else
   coarseSolver = new PETScAMGCoarseSolver(mesh);
   coarseSolver->set_tol(coarse_solve_tol);

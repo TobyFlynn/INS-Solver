@@ -13,6 +13,9 @@
 
 #ifdef INS_CUDA
 #include <amgx_c.h>
+#include "HYPRE_krylov.h"
+#include "HYPRE.h"
+#include "HYPRE_parcsr_ls.h"
 #endif
 
 class PoissonCoarseMatrix : public PoissonMatrix {
@@ -23,6 +26,8 @@ public:
 
   #ifdef INS_CUDA
   bool getAmgXMat(AMGX_matrix_handle** mat);
+  bool getHYPREMat(HYPRE_ParCSRMatrix** mat);
+  void getHYPRERanges(int *ilower, int *iupper, int *jlower, int *jupper);
   #endif
 
 protected:
@@ -30,9 +35,13 @@ protected:
   virtual void setPETScMatrix() override;
   #ifdef INS_CUDA
   virtual void setAmgXMatrix();
+  virtual void setHYPREMatrix();
 
   AMGX_matrix_handle amgx_mat;
   bool amgx_mat_init = false;
+  HYPRE_IJMatrix hypre_mat;
+  bool hypre_mat_init = false;
+  HYPRE_ParCSRMatrix hypre_parcsr_mat;
   #endif
 };
 
