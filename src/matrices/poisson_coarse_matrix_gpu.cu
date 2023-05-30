@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <map>
 
 #include "utils.h"
 #include "dg_utils.h"
@@ -445,7 +446,7 @@ void PoissonCoarseMatrix::setHYPREMatrix() {
   if(!hypre_mat_init) {
     const int ilower = glb[0];
     const int iupper = glb[0] + local_size - 1;
-    op_printf("ilower: %d iupper: %d\n", ilower, iupper);
+    printf("ilower: %d iupper: %d\n", ilower, iupper);
     HYPRE_IJMatrixCreate(MPI_COMM_WORLD, ilower, iupper, ilower, iupper, &hypre_mat);
     HYPRE_IJMatrixSetObjectType(hypre_mat, HYPRE_PARCSR);
     HYPRE_IJMatrixInitialize(hypre_mat);
@@ -453,63 +454,67 @@ void PoissonCoarseMatrix::setHYPREMatrix() {
   }
 
   // TODO SoA
-  int current_nnz = 0;
-  int current_row = 0;
-  for(int c = 0; c < cell_set_size; c++) {
-    std::vector<std::pair<int,DG_FP>> bufs[DG_NP_N1];
+  std::map<int,std::vector<std::pair<int,DG_FP>>> mat_buffer;
 
+  for(int c = 0; c < cell_set_size; c++) {
     // Add diagonal block to buffer
     int diag_base_col = glb[c];
     DG_FP *diag_data_ptr = op1_data + c * DG_NP_N1 * DG_NP_N1;
     for(int i = 0; i < DG_NP_N1; i++) {
+      std::vector<std::pair<int,DG_FP>> row_buf;
       for(int j = 0; j < DG_NP_N1; j++) {
         int ind = i + j * DG_NP_N1;
-        bufs[i].push_back({diag_base_col + j, diag_data_ptr[ind]});
+        row_buf.push_back({diag_base_col + j, diag_data_ptr[ind]});
       }
+      mat_buffer.insert({diag_base_col + i, row_buf});
     }
+  }
 
-    // Search through global inds on faces for mat entries on this row
-    for(int k = 0; k < faces_set_size; k++) {
-      if(glb_l[k] == diag_base_col) {
-        int base_col = glb_r[k];
-        DG_FP *face_data_ptr = op2L_data + k * DG_NP_N1 * DG_NP_N1;
-        for(int i = 0; i < DG_NP_N1; i++) {
-          for(int j = 0; j < DG_NP_N1; j++) {
-            int ind = i + j * DG_NP_N1;
-            bufs[i].push_back({base_col + j, face_data_ptr[ind]});
-          }
+  for(int k = 0; k < faces_set_size; k++) {
+    if(glb_l[k] >= glb[0] && glb_l[k] < glb[0] + local_size) {
+      int base_col = glb_r[k];
+      DG_FP *face_data_ptr = op2L_data + k * DG_NP_N1 * DG_NP_N1;
+      for(int i = 0; i < DG_NP_N1; i++) {
+        std::vector<std::pair<int,DG_FP>> &row_buf = mat_buffer.at(glb_l[k] + i);
+        for(int j = 0; j < DG_NP_N1; j++) {
+          int ind = i + j * DG_NP_N1;
+          row_buf.push_back({base_col + j, face_data_ptr[ind]});
         }
       }
     }
+  }
 
-    for(int k = 0; k < faces_set_size; k++) {
-      if(glb_r[k] == diag_base_col) {
-        int base_col = glb_l[k];
-        DG_FP *face_data_ptr = op2R_data + k * DG_NP_N1 * DG_NP_N1;
-        for(int i = 0; i < DG_NP_N1; i++) {
-          for(int j = 0; j < DG_NP_N1; j++) {
-            int ind = i + j * DG_NP_N1;
-            bufs[i].push_back({base_col + j, face_data_ptr[ind]});
-          }
+  for(int k = 0; k < faces_set_size; k++) {
+    if(glb_r[k] >= glb[0] && glb_r[k] < glb[0] + local_size) {
+      int base_col = glb_l[k];
+      DG_FP *face_data_ptr = op2R_data + k * DG_NP_N1 * DG_NP_N1;
+      for(int i = 0; i < DG_NP_N1; i++) {
+        std::vector<std::pair<int,DG_FP>> &row_buf = mat_buffer.at(glb_r[k] + i);
+        for(int j = 0; j < DG_NP_N1; j++) {
+          int ind = i + j * DG_NP_N1;
+          row_buf.push_back({base_col + j, face_data_ptr[ind]});
         }
       }
     }
+  }
 
-    // Sort buffers (maybe doesn't need to be sorted)
-    for(int i = 0; i < DG_NP_N1; i++) {
-      std::sort(bufs[i].begin(), bufs[i].end());
-    }
+  int current_nnz = 0;
+  int current_row = 0;
+  for(auto it = mat_buffer.begin(); it != mat_buffer.end(); it++) {
+    std::sort(it->second.begin(), it->second.end());
 
-    for(int i = 0; i < DG_NP_N1; i++) {
-      row_num_ptr_h[current_row] = diag_base_col + i;
-      num_col_ptr_h[current_row] = bufs[i].size();
-      current_row++;
-      for(int k = 0; k < bufs[i].size(); k++) {
-        col_buf_ptr_h[current_nnz] = bufs[i][k].first;
-        data_buf_ptr_h[current_nnz] = bufs[i][k].second;
+    row_num_ptr_h[current_row] = it->first;
+    int num_this_col = 0;
+    for(int i = 0; i < it->second.size(); i++) {
+      if(fabs(it->second[i].second) > 1e-8) {
+        col_buf_ptr_h[current_nnz] = it->second[i].first;
+        data_buf_ptr_h[current_nnz] = it->second[i].second;
+        num_this_col++;
         current_nnz++;
       }
     }
+    num_col_ptr_h[current_row] = num_this_col;
+    current_row++;
   }
 
   DG_FP *data_buf_ptr;
@@ -545,5 +550,6 @@ void PoissonCoarseMatrix::setHYPREMatrix() {
   free(glb_r);
 
   HYPRE_IJMatrixAssemble(hypre_mat);
+  // HYPRE_IJMatrixPrint(hypre_mat, "IJ.out.hypre_mat");
   op_printf("Finish HYPRE Assembly\n");
 }

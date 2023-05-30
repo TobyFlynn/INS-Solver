@@ -49,7 +49,7 @@ bool HYPREAMGSolver::solve(op_dat rhs, op_dat ans) {
   PoissonCoarseMatrix *coarse_mat = dynamic_cast<PoissonCoarseMatrix*>(matrix);
 
   HYPRE_ParCSRMatrix *hypre_mat;
-  bool setup_solver = true;
+  bool setup_solver = false;
   timer->startTimer("HYPREAMGSolver - Get matrix and setup");
   if(coarse_mat->getHYPREMat(&hypre_mat)) {
     if(!vec_init) {
@@ -69,24 +69,19 @@ bool HYPREAMGSolver::solve(op_dat rhs, op_dat ans) {
       HYPRE_PCGSetLogging(solver, 1); /* needed to get run info later */
 
       /* Now set up the AMG preconditioner and specify any parameters */
-      // HYPRE_BoomerAMGCreate(&precond);
-      // HYPRE_BoomerAMGSetPrintLevel(precond, 1);
-      // HYPRE_BoomerAMGSetCoarsenType(precond, 10);
-      // HYPRE_BoomerAMGSetRelaxType(precond, 18);
-      // HYPRE_BoomerAMGSetNumSweeps(precond, 1);
-      // HYPRE_BoomerAMGSetTol(precond, 0.0);
-      // HYPRE_BoomerAMGSetMaxIter(precond, 1);
-      // HYPRE_BoomerAMGSetKeepTranspose(precond, 1);
-      // HYPRE_BoomerAMGSetRAP2(precond, 1);
-      // HYPRE_BoomerAMGSetModuleRAP2(precond, 1);
       HYPRE_BoomerAMGCreate(&precond);
       HYPRE_BoomerAMGSetPrintLevel(precond, 1); /* print amg solution info */
-      HYPRE_BoomerAMGSetCoarsenType(precond, 6);
+      HYPRE_BoomerAMGSetCoarsenType(precond, 8);
       HYPRE_BoomerAMGSetOldDefault(precond);
-      HYPRE_BoomerAMGSetRelaxType(precond, 6); /* Sym G.S./Jacobi hybrid */
+      HYPRE_BoomerAMGSetRelaxType(precond, 18); /* Sym G.S./Jacobi hybrid */
       HYPRE_BoomerAMGSetNumSweeps(precond, 1);
       HYPRE_BoomerAMGSetTol(precond, 0.0); /* conv. tolerance zero */
       HYPRE_BoomerAMGSetMaxIter(precond, 1); /* do only one iteration! */
+      HYPRE_BoomerAMGSetKeepTranspose(precond, 1);
+      HYPRE_BoomerAMGSetRAP2(precond, 1);
+      HYPRE_BoomerAMGSetModuleRAP2(precond, 1);
+      HYPRE_BoomerAMGSetStrongThreshold(precond, 0.5);
+      HYPRE_BoomerAMGSetTruncFactor(precond, 0.2);
 
       /* Set the PCG preconditioner */
       HYPRE_PCGSetPrecond(solver, (HYPRE_PtrToSolverFcn) HYPRE_BoomerAMGSolve,
