@@ -21,7 +21,7 @@ void print_callback(const char *msg, int length) {
   if (rank == 0) { printf("%s", msg); }
 }
 
-AmgXAMGSolver::AmgXAMGSolver(DGMesh *m) {
+AmgXAMGSolver::AmgXAMGSolver(DGMesh *m, const std::string &config_path) {
   bc = nullptr;
   mesh = m;
   nullspace = false;
@@ -30,8 +30,7 @@ AmgXAMGSolver::AmgXAMGSolver(DGMesh *m) {
   AMGX_SAFE_CALL(AMGX_initialize_plugins());
   AMGX_SAFE_CALL(AMGX_register_print_callback(&print_callback));
   AMGX_SAFE_CALL(AMGX_install_signal_handler());
-  // AMGX_SAFE_CALL(AMGX_config_create_from_file(&amgx_config_handle, "/home/u1717021/Code/PhD/INS-Solver/config/config.amgx"));
-  AMGX_SAFE_CALL(AMGX_config_create_from_file(&amgx_config_handle, "/home/u1717021/Code/PhD/INS-Solver/config/amgx.json"));
+  AMGX_SAFE_CALL(AMGX_config_create_from_file(&amgx_config_handle, config_path.c_str()));
 
   #ifdef INS_MPI
   amgx_comm = MPI_COMM_WORLD;

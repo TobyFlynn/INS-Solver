@@ -12,10 +12,11 @@
 #endif
 
 #include <amgx_c.h>
+#include <string>
 
 class AmgXAMGSolver : public LinearSolver {
 public:
-  AmgXAMGSolver(DGMesh *m);
+  AmgXAMGSolver(DGMesh *m, const std::string &config_path);
   ~AmgXAMGSolver();
 
   virtual bool solve(op_dat rhs, op_dat ans) override;

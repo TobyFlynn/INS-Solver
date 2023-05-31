@@ -158,13 +158,17 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
     case PETSC:
       coarseSolver = new PETScAMGCoarseSolver(mesh);
       break;
-    case AMGX:
+    case AMGX: {
       #ifdef INS_BUILD_WITH_AMGX
-      coarseSolver = new AmgXAMGSolver(mesh);
+      std::string amgx_config_path = "";
+      if(!config->getStr("p-multigrid", "amgx_config_file", amgx_config_path))
+        throw std::runtime_error("AmgX configuration file not specified ('amgx_config_file' in ini file)");
+      coarseSolver = new AmgXAMGSolver(mesh, amgx_config_path);
       #else
       throw std::runtime_error("Not built with AmgX");
       #endif
       break;
+    }
     case HYPRE:
       #ifdef INS_BUILD_WITH_HYPRE
       coarseSolver = new HYPREAMGSolver(mesh);
