@@ -124,6 +124,6 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
   return converged;
 }
 
-void PETScAMGSolver::set_tol(const DG_FP tol) {
-  KSPSetTolerances(ksp, tol, 1e-50, 1e5, 2.5e2);
+void PETScAMGSolver::set_tol(const DG_FP r_tol, const DG_FP a_tol) {
+  KSPSetTolerances(ksp, r_tol, a_tol, 1e5, 2.5e2);
 }

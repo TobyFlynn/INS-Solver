@@ -1,6 +1,8 @@
 #ifndef __AMGX_AMG_H
 #define __AMGX_AMG_H
 
+#if defined(INS_BUILD_WITH_AMGX) && defined(INS_CUDA)
+
 #include "op_seq.h"
 #include "linear_solver.h"
 #include "dg_mesh/dg_mesh.h"
@@ -17,6 +19,7 @@ public:
   ~AmgXAMGSolver();
 
   virtual bool solve(op_dat rhs, op_dat ans) override;
+  virtual void set_tol(const DG_FP r_tol, const DG_FP a_tol) override;
 
 protected:
   DGMesh *mesh;
@@ -33,5 +36,7 @@ protected:
   MPI_Comm amgx_comm;
   #endif
 };
+
+#endif
 
 #endif

@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 
   timer->startTimer("OP2 Partitioning");
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
-  op_renumber(mesh->face2cells);
+  // op_renumber(mesh->face2cells);
   timer->endTimer("OP2 Partitioning");
 
   mesh->init();

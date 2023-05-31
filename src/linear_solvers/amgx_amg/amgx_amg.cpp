@@ -30,7 +30,8 @@ AmgXAMGSolver::AmgXAMGSolver(DGMesh *m) {
   AMGX_SAFE_CALL(AMGX_initialize_plugins());
   AMGX_SAFE_CALL(AMGX_register_print_callback(&print_callback));
   AMGX_SAFE_CALL(AMGX_install_signal_handler());
-  AMGX_SAFE_CALL(AMGX_config_create_from_file(&amgx_config_handle, "/home/u1717021/Code/PhD/INS-Solver/config/config.amgx"));
+  // AMGX_SAFE_CALL(AMGX_config_create_from_file(&amgx_config_handle, "/home/u1717021/Code/PhD/INS-Solver/config/config.amgx"));
+  AMGX_SAFE_CALL(AMGX_config_create_from_file(&amgx_config_handle, "/home/u1717021/Code/PhD/INS-Solver/config/amgx.json"));
 
   #ifdef INS_MPI
   amgx_comm = MPI_COMM_WORLD;
@@ -139,4 +140,8 @@ bool AmgXAMGSolver::solve(op_dat rhs, op_dat ans) {
   timer->endTimer("AmgXAMGSolver - solve");
 
   return true;
+}
+
+void AmgXAMGSolver::set_tol(const DG_FP r_tol, const DG_FP a_tol) {
+  op_printf("TODO set_tol for AmgXAMGSolver\n");
 }

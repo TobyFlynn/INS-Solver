@@ -186,3 +186,7 @@ bool HYPREAMGSolver::solve(op_dat rhs, op_dat ans) {
 
   return true;
 }
+
+void HYPREAMGSolver::set_tol(const DG_FP r_tol, const DG_FP a_tol) {
+  op_printf("TODO set_tol for HYPREAMGSolver\n");
+}

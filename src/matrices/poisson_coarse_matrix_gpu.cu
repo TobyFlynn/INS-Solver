@@ -208,6 +208,7 @@ extern AMGX_config_handle amgx_config_handle;
 
 #include "dg_mesh/dg_mesh_3d.h"
 
+#ifdef INS_BUILD_WITH_AMGX
 void PoissonCoarseMatrix::setAmgXMatrix() {
   if(!amgx_mat_init) {
     AMGX_matrix_create(&amgx_mat, amgx_res_handle, AMGX_mode_dDDI);
@@ -267,67 +268,67 @@ void PoissonCoarseMatrix::setAmgXMatrix() {
   cudaMemcpy(glb_r, glb_indR->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
 
   // TODO SoA
-  int current_nnz = 0;
-  int current_row = 0;
+  std::map<int,std::vector<std::pair<int,DG_FP>>> mat_buffer;
   for(int c = 0; c < cell_set_size; c++) {
-    std::vector<std::pair<int,DG_FP>> bufs[DG_NP_N1];
-
     // Add diagonal block to buffer
     int diag_base_col = glb[c];
     DG_FP *diag_data_ptr = op1_data + c * DG_NP_N1 * DG_NP_N1;
     for(int i = 0; i < DG_NP_N1; i++) {
+      std::vector<std::pair<int,DG_FP>> row_buf;
       for(int j = 0; j < DG_NP_N1; j++) {
         int ind = i + j * DG_NP_N1;
-        bufs[i].push_back({diag_base_col + j, diag_data_ptr[ind]});
+        row_buf.push_back({diag_base_col + j, diag_data_ptr[ind]});
       }
+      mat_buffer.insert({diag_base_col + i, row_buf});
     }
+  }
 
-    // Search through global inds on faces for mat entries on this row
-    for(int k = 0; k < faces_set_size; k++) {
-      if(glb_l[k] == diag_base_col) {
-        int base_col = glb_r[k];
-        DG_FP *face_data_ptr = op2L_data + k * DG_NP_N1 * DG_NP_N1;
-        for(int i = 0; i < DG_NP_N1; i++) {
-          for(int j = 0; j < DG_NP_N1; j++) {
-            int ind = i + j * DG_NP_N1;
-            bufs[i].push_back({base_col + j, face_data_ptr[ind]});
-          }
+  for(int k = 0; k < faces_set_size; k++) {
+    if(glb_l[k] >= glb[0] && glb_l[k] < glb[0] + local_size) {
+      int base_col = glb_r[k];
+      DG_FP *face_data_ptr = op2L_data + k * DG_NP_N1 * DG_NP_N1;
+      for(int i = 0; i < DG_NP_N1; i++) {
+        std::vector<std::pair<int,DG_FP>> &row_buf = mat_buffer.at(glb_l[k] + i);
+        for(int j = 0; j < DG_NP_N1; j++) {
+          int ind = i + j * DG_NP_N1;
+          row_buf.push_back({base_col + j, face_data_ptr[ind]});
         }
-      }
-    }
-
-    for(int k = 0; k < faces_set_size; k++) {
-      if(glb_r[k] == diag_base_col) {
-        int base_col = glb_l[k];
-        DG_FP *face_data_ptr = op2R_data + k * DG_NP_N1 * DG_NP_N1;
-        for(int i = 0; i < DG_NP_N1; i++) {
-          for(int j = 0; j < DG_NP_N1; j++) {
-            int ind = i + j * DG_NP_N1;
-            bufs[i].push_back({base_col + j, face_data_ptr[ind]});
-          }
-        }
-      }
-    }
-
-    // Sort buffers (maybe doesn't need to be sorted)
-    for(int i = 0; i < DG_NP_N1; i++) {
-      std::sort(bufs[i].begin(), bufs[i].end());
-    }
-
-    // Update AmgX buffers
-    for(int i = 0; i < DG_NP_N1; i++) {
-      row_ptr[current_row] = current_nnz;
-      current_row++;
-      for(int k = 0; k < bufs[i].size(); k++) {
-        col_inds[current_nnz] = bufs[i][k].first;
-        data_ptr[current_nnz] = bufs[i][k].second;
-        current_nnz++;
       }
     }
   }
+
+  for(int k = 0; k < faces_set_size; k++) {
+    if(glb_r[k] >= glb[0] && glb_r[k] < glb[0] + local_size) {
+      int base_col = glb_l[k];
+      DG_FP *face_data_ptr = op2R_data + k * DG_NP_N1 * DG_NP_N1;
+      for(int i = 0; i < DG_NP_N1; i++) {
+        std::vector<std::pair<int,DG_FP>> &row_buf = mat_buffer.at(glb_r[k] + i);
+        for(int j = 0; j < DG_NP_N1; j++) {
+          int ind = i + j * DG_NP_N1;
+          row_buf.push_back({base_col + j, face_data_ptr[ind]});
+        }
+      }
+    }
+  }
+
+  int current_nnz = 0;
+  int current_row = 0;
+  for(auto it = mat_buffer.begin(); it != mat_buffer.end(); it++) {
+    std::sort(it->second.begin(), it->second.end());
+
+    row_ptr[current_row] = current_nnz;
+    for(int i = 0; i < it->second.size(); i++) {
+      if(fabs(it->second[i].second) > 1e-8) {
+        col_inds[current_nnz] = it->second[i].first;
+        data_ptr[current_nnz] = it->second[i].second;
+        current_nnz++;
+      }
+    }
+    current_row++;
+  }
   row_ptr[current_row] = current_nnz;
-  printf("cr: %d ls: %d nnz: %d cnnz: %d\n", current_row, local_size, nnz, current_nnz);
-  printf("gs: %d ls: %d\n", global_size, local_size);
+  // printf("cr: %d ls: %d nnz: %d cnnz: %d\n", current_row, local_size, nnz, current_nnz);
+  // printf("gs: %d ls: %d\n", global_size, local_size);
 
   releaseOP2PtrHost(op1, OP_READ, op1_data);
   releaseOP2PtrHost(op2[0], OP_READ, op2L_data);
@@ -359,9 +360,9 @@ void PoissonCoarseMatrix::setAmgXMatrix() {
     }
     global_size = partition_offsets[nranks]; // last element always has global number of rows
 
-    for(int i = 0; i < nranks + 1; i++) {
-      op_printf("%d\n", partition_offsets[i]);
-    }
+    // for(int i = 0; i < nranks + 1; i++) {
+    //   op_printf("%d\n", partition_offsets[i]);
+    // }
 
     AMGX_distribution_handle dist;
     AMGX_distribution_create(&dist, amgx_config_handle);
@@ -380,7 +381,6 @@ void PoissonCoarseMatrix::setAmgXMatrix() {
   } else {
     AMGX_matrix_replace_coefficients(amgx_mat, local_size, current_nnz, data_ptr, NULL);
   }
-  op_printf("Uploaded mat\n");
 
   AMGX_SAFE_CALL(AMGX_unpin_memory(row_ptr));
   AMGX_SAFE_CALL(AMGX_unpin_memory(col_inds));
@@ -390,7 +390,9 @@ void PoissonCoarseMatrix::setAmgXMatrix() {
   free(col_inds);
   free(data_ptr);
 }
+#endif
 
+#ifdef INS_BUILD_WITH_HYPRE
 void PoissonCoarseMatrix::setHYPREMatrix() {
   int global_size = getUnknowns();
   int local_size = getUnknowns();
@@ -446,7 +448,7 @@ void PoissonCoarseMatrix::setHYPREMatrix() {
   if(!hypre_mat_init) {
     const int ilower = glb[0];
     const int iupper = glb[0] + local_size - 1;
-    printf("ilower: %d iupper: %d\n", ilower, iupper);
+    // printf("ilower: %d iupper: %d\n", ilower, iupper);
     HYPRE_IJMatrixCreate(MPI_COMM_WORLD, ilower, iupper, ilower, iupper, &hypre_mat);
     HYPRE_IJMatrixSetObjectType(hypre_mat, HYPRE_PARCSR);
     HYPRE_IJMatrixInitialize(hypre_mat);
@@ -551,5 +553,6 @@ void PoissonCoarseMatrix::setHYPREMatrix() {
 
   HYPRE_IJMatrixAssemble(hypre_mat);
   // HYPRE_IJMatrixPrint(hypre_mat, "IJ.out.hypre_mat");
-  op_printf("Finish HYPRE Assembly\n");
+  // op_printf("Finish HYPRE Assembly\n");
 }
+#endif

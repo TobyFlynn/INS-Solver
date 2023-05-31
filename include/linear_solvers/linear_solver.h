@@ -13,6 +13,7 @@ public:
   void set_nullspace(bool ns);
   virtual bool solve(op_dat rhs, op_dat ans) = 0;
   virtual void init();
+  virtual void set_tol(const DG_FP r_tol, const DG_FP a_tol);
 
 protected:
   PoissonMatrix *matrix;

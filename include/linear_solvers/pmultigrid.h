@@ -6,12 +6,6 @@
 #include "petscvec.h"
 #include "petscksp.h"
 #include "linear_solver.h"
-#ifdef INS_CUDA
-#include "amgx_amg.h"
-#include "hypre_amg.h"
-#else
-#include "petsc_amg_coarse.h"
-#endif
 #include "matrices/poisson_coarse_matrix.h"
 #include "matrices/poisson_semi_matrix_free.h"
 #include "matrices/poisson_matrix_free_diag.h"
@@ -44,13 +38,12 @@ private:
     JACOBI, CHEBYSHEV
   };
 
+  enum CoarseSolvers {
+    PETSC, AMGX, HYPRE
+  };
+
   DGMesh *mesh;
-  #ifdef INS_CUDA
-  // AmgXAMGSolver *coarseSolver;
-  HYPREAMGSolver *coarseSolver;
-  #else
-  PETScAMGCoarseSolver *coarseSolver;
-  #endif
+  LinearSolver *coarseSolver;
 
   PoissonSemiMatrixFree *smfMatrix;
   PoissonMatrixFreeDiag *mfdMatrix;
@@ -59,6 +52,7 @@ private:
   bool diagMat;
 
   Smoothers smoother;
+  CoarseSolvers coarseSolver_type;
 
   // op_dat rk[3], rkQ;
 

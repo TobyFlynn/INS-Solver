@@ -1,6 +1,8 @@
 #ifndef __HYPRE_AMG_H
 #define __HYPRE_AMG_H
 
+#if defined(INS_BUILD_WITH_HYPRE) && defined(INS_CUDA)
+
 #include "op_seq.h"
 #include "linear_solver.h"
 #include "dg_mesh/dg_mesh.h"
@@ -19,6 +21,7 @@ public:
   ~HYPREAMGSolver();
 
   virtual bool solve(op_dat rhs, op_dat ans) override;
+  virtual void set_tol(const DG_FP r_tol, const DG_FP a_tol) override;
 
 protected:
   DGMesh *mesh;
@@ -37,5 +40,7 @@ protected:
   MPI_Comm hypre_comm;
   #endif
 };
+
+#endif
 
 #endif
