@@ -199,9 +199,6 @@ void PoissonCoarseMatrix::setPETScMatrix() {
   timer->endTimer("setPETScMatrix - Assembly");
 }
 
-extern AMGX_resources_handle amgx_res_handle;
-extern AMGX_config_handle amgx_config_handle;
-
 #ifdef INS_MPI
 #include "mpi.h"
 #endif
@@ -209,6 +206,10 @@ extern AMGX_config_handle amgx_config_handle;
 #include "dg_mesh/dg_mesh_3d.h"
 
 #ifdef INS_BUILD_WITH_AMGX
+
+extern AMGX_resources_handle amgx_res_handle;
+extern AMGX_config_handle amgx_config_handle;
+
 void PoissonCoarseMatrix::setAmgXMatrix() {
   if(!amgx_mat_init) {
     AMGX_matrix_create(&amgx_mat, amgx_res_handle, AMGX_mode_dDDI);
