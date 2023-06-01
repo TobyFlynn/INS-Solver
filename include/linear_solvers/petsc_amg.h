@@ -13,7 +13,6 @@ public:
   ~PETScAMGSolver();
 
   virtual bool solve(op_dat rhs, op_dat ans) override;
-  virtual void set_tol(const DG_FP r_tol, const DG_FP a_tol) override;
 
 protected:
   DGMesh *mesh;

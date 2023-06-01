@@ -21,7 +21,6 @@ public:
   ~HYPREAMGSolver();
 
   virtual bool solve(op_dat rhs, op_dat ans) override;
-  virtual void set_tol(const DG_FP r_tol, const DG_FP a_tol) override;
 
 protected:
   DGMesh *mesh;
@@ -39,6 +38,11 @@ protected:
   #ifdef INS_MPI
   MPI_Comm hypre_comm;
   #endif
+
+  int max_pcg_iter, pcg_print_level, pcg_logging, amg_print_level;
+  int amg_coarsen_type, amg_relax_type, amg_num_sweeps, amg_iter;
+  int amg_keep_transpose, amg_rap2, amg_module_rap2;
+  double pcg_tol, amg_strong_threshold, amg_trunc_factor;
 };
 
 #endif

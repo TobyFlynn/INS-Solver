@@ -61,7 +61,6 @@ private:
   std::vector<int> post_it;
   std::vector<double> eig_vals;
   std::vector<op_dat> u_dat, b_dat, diag_dats, eigen_tmps;
-  double coarse_solve_tol;
   double eigen_val_saftey_factor;
 
   int num_levels;

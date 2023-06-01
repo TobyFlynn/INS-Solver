@@ -29,6 +29,36 @@ HYPREAMGSolver::HYPREAMGSolver(DGMesh *m) {
   HYPRE_SetMemoryLocation(HYPRE_MEMORY_DEVICE);
   HYPRE_SetUseGpuRand(1);
   #endif
+
+  // Read parameters from config file
+  max_pcg_iter = 100;
+  config->getInt("hypre", "max_pcg_iter", max_pcg_iter);
+  pcg_tol = 1e-7;
+  config->getDouble("hypre", "pcg_tol", pcg_tol);
+  pcg_print_level = 2;
+  config->getInt("hypre", "pcg_print_level", pcg_print_level);
+  pcg_logging = 1;
+  config->getInt("hypre", "pcg_logging", pcg_logging);
+  amg_print_level = 1;
+  config->getInt("hypre", "amg_print_level", amg_print_level);
+  amg_coarsen_type = 8;
+  config->getInt("hypre", "amg_coarsen_type", amg_coarsen_type);
+  amg_relax_type = 18;
+  config->getInt("hypre", "amg_relax_type", amg_relax_type);
+  amg_num_sweeps = 1;
+  config->getInt("hypre", "amg_num_sweeps", amg_num_sweeps);
+  amg_iter = 1;
+  config->getInt("hypre", "amg_iter", amg_iter);
+  amg_keep_transpose = 1;
+  config->getInt("hypre", "amg_keep_transpose", amg_keep_transpose);
+  amg_rap2 = 1;
+  config->getInt("hypre", "amg_rap2", amg_rap2);
+  amg_module_rap2 = 1;
+  config->getInt("hypre", "amg_module_rap2", amg_module_rap2);
+  amg_strong_threshold = 0.5;
+  config->getDouble("hypre", "amg_strong_threshold", amg_strong_threshold);
+  amg_trunc_factor = 0.2;
+  config->getDouble("hypre", "amg_trunc_factor", amg_trunc_factor);
 }
 
 HYPREAMGSolver::~HYPREAMGSolver() {
@@ -64,25 +94,25 @@ bool HYPREAMGSolver::solve(op_dat rhs, op_dat ans) {
       HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
 
       HYPRE_ParCSRPCGCreate(MPI_COMM_WORLD, &solver);
-      HYPRE_PCGSetMaxIter(solver, 100);
-      HYPRE_PCGSetTol(solver, 1e-7);
+      HYPRE_PCGSetMaxIter(solver, max_pcg_iter);
+      HYPRE_PCGSetTol(solver, pcg_tol);
       HYPRE_PCGSetTwoNorm(solver, 1);
-      HYPRE_PCGSetPrintLevel(solver, 2);
-      HYPRE_PCGSetLogging(solver, 1);
+      HYPRE_PCGSetPrintLevel(solver, pcg_print_level);
+      HYPRE_PCGSetLogging(solver, pcg_logging);
 
       HYPRE_BoomerAMGCreate(&precond);
-      HYPRE_BoomerAMGSetPrintLevel(precond, 1);
-      HYPRE_BoomerAMGSetCoarsenType(precond, 8);
+      HYPRE_BoomerAMGSetPrintLevel(precond, amg_print_level);
+      HYPRE_BoomerAMGSetCoarsenType(precond, amg_coarsen_type);
       // HYPRE_BoomerAMGSetOldDefault(precond);
-      HYPRE_BoomerAMGSetRelaxType(precond, 18);
-      HYPRE_BoomerAMGSetNumSweeps(precond, 1);
+      HYPRE_BoomerAMGSetRelaxType(precond, amg_relax_type);
+      HYPRE_BoomerAMGSetNumSweeps(precond, amg_num_sweeps);
       HYPRE_BoomerAMGSetTol(precond, 0.0);
-      HYPRE_BoomerAMGSetMaxIter(precond, 1);
-      HYPRE_BoomerAMGSetKeepTranspose(precond, 1);
-      HYPRE_BoomerAMGSetRAP2(precond, 1);
-      HYPRE_BoomerAMGSetModuleRAP2(precond, 1);
-      HYPRE_BoomerAMGSetStrongThreshold(precond, 0.5);
-      HYPRE_BoomerAMGSetTruncFactor(precond, 0.2);
+      HYPRE_BoomerAMGSetMaxIter(precond, amg_iter);
+      HYPRE_BoomerAMGSetKeepTranspose(precond, amg_keep_transpose);
+      HYPRE_BoomerAMGSetRAP2(precond, amg_rap2);
+      HYPRE_BoomerAMGSetModuleRAP2(precond, amg_module_rap2);
+      HYPRE_BoomerAMGSetStrongThreshold(precond, amg_strong_threshold);
+      HYPRE_BoomerAMGSetTruncFactor(precond, amg_trunc_factor);
 
       HYPRE_PCGSetPrecond(solver, (HYPRE_PtrToSolverFcn) HYPRE_BoomerAMGSolve,
                               (HYPRE_PtrToSolverFcn) HYPRE_BoomerAMGSetup, precond);
@@ -194,8 +224,4 @@ bool HYPREAMGSolver::solve(op_dat rhs, op_dat ans) {
   timer->endTimer("HYPREAMGSolver - Transfer vec");
 
   return true;
-}
-
-void HYPREAMGSolver::set_tol(const DG_FP r_tol, const DG_FP a_tol) {
-  op_printf("TODO set_tol for HYPREAMGSolver\n");
 }

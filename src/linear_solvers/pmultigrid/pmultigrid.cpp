@@ -115,9 +115,6 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
     }
   }
 
-  coarse_solve_tol = 1e-2;
-  config->getDouble("p-multigrid", "coarse_residual", coarse_solve_tol);
-
   eigen_val_saftey_factor = 1.1;
   config->getDouble("p-multigrid", "eigen_val_saftey_factor", eigen_val_saftey_factor);
 
@@ -158,17 +155,13 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
     case PETSC:
       coarseSolver = new PETScAMGCoarseSolver(mesh);
       break;
-    case AMGX: {
+    case AMGX:
       #ifdef INS_BUILD_WITH_AMGX
-      std::string amgx_config_path = "";
-      if(!config->getStr("p-multigrid", "amgx_config_file", amgx_config_path))
-        throw std::runtime_error("AmgX configuration file not specified ('amgx_config_file' in ini file)");
-      coarseSolver = new AmgXAMGSolver(mesh, amgx_config_path);
+      coarseSolver = new AmgXAMGSolver(mesh);
       #else
       throw std::runtime_error("Not built with AmgX");
       #endif
       break;
-    }
     case HYPRE:
       #ifdef INS_BUILD_WITH_HYPRE
       coarseSolver = new HYPREAMGSolver(mesh);
@@ -177,8 +170,6 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
       #endif
       break;
   }
-
-  coarseSolver->set_tol(coarse_solve_tol, coarse_solve_tol * 1e-1);
 }
 
 PMultigridPoissonSolver::~PMultigridPoissonSolver() {

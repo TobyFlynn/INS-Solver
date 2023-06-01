@@ -21,16 +21,20 @@ void print_callback(const char *msg, int length) {
   if (rank == 0) { printf("%s", msg); }
 }
 
-AmgXAMGSolver::AmgXAMGSolver(DGMesh *m, const std::string &config_path) {
+AmgXAMGSolver::AmgXAMGSolver(DGMesh *m) {
   bc = nullptr;
   mesh = m;
   nullspace = false;
+
+  std::string amgx_config_path = "";
+  if(!config->getStr("amgx", "amgx_config_file", amgx_config_path))
+    throw std::runtime_error("AmgX configuration file not specified ('amgx_config_file' in ini file)");
 
   AMGX_SAFE_CALL(AMGX_initialize());
   AMGX_SAFE_CALL(AMGX_initialize_plugins());
   AMGX_SAFE_CALL(AMGX_register_print_callback(&print_callback));
   AMGX_SAFE_CALL(AMGX_install_signal_handler());
-  AMGX_SAFE_CALL(AMGX_config_create_from_file(&amgx_config_handle, config_path.c_str()));
+  AMGX_SAFE_CALL(AMGX_config_create_from_file(&amgx_config_handle, amgx_config_path.c_str()));
 
   #ifdef INS_MPI
   amgx_comm = MPI_COMM_WORLD;
@@ -139,8 +143,4 @@ bool AmgXAMGSolver::solve(op_dat rhs, op_dat ans) {
   timer->endTimer("AmgXAMGSolver - solve");
 
   return true;
-}
-
-void AmgXAMGSolver::set_tol(const DG_FP r_tol, const DG_FP a_tol) {
-  op_printf("TODO set_tol for AmgXAMGSolver\n");
 }
