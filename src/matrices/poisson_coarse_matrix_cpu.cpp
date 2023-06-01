@@ -8,6 +8,7 @@
 #include "op_mpi_core.h"
 #endif
 
+#include "utils.h"
 #include "dg_utils.h"
 #include "dg_global_constants/dg_global_constants_2d.h"
 
@@ -139,3 +140,148 @@ void PoissonCoarseMatrix::setPETScMatrix() {
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
   timer->endTimer("setPETScMatrix - Assembly");
 }
+
+#ifdef INS_MPI
+#include "mpi.h"
+#endif
+
+#include "dg_mesh/dg_mesh_3d.h"
+
+#ifdef INS_BUILD_WITH_HYPRE
+void PoissonCoarseMatrix::setHYPREMatrix() {
+  int global_size = getUnknowns();
+  int local_size = getUnknowns();
+  #ifdef INS_MPI
+  global_size = global_sum(global_size);
+  #endif
+  // Keep track of how many non-zero entries locally
+  // int nnz = 0;
+  const int cell_set_size = _mesh->cells->size;
+  const int faces_set_size = _mesh->faces->size + _mesh->faces->exec_size + _mesh->faces->nonexec_size;
+  int nnz = cell_set_size * DG_NP_N1 * DG_NP_N1 + faces_set_size * DG_NP_N1 * DG_NP_N1 * 2;
+
+  DG_FP *data_buf_ptr_h = (DG_FP *)malloc(nnz * sizeof(DG_FP));
+  int *col_buf_ptr_h = (int *)malloc(nnz * sizeof(int));
+  int *row_num_ptr_h = (int *)malloc(local_size * sizeof(int));
+  int *num_col_ptr_h = (int *)malloc(local_size * sizeof(int));
+
+  // Exchange halos
+  DGMesh3D *mesh = dynamic_cast<DGMesh3D*>(_mesh);
+  op_arg args[] = {
+    op_arg_dat(op2[0], 0, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[0], 1, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[0], 2, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[0], 3, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[1], 0, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[1], 1, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[1], 2, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(op2[1], 3, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_READ),
+    op_arg_dat(glb_indL, 0, mesh->flux2faces, glb_indL->dim, "int", OP_READ),
+    op_arg_dat(glb_indL, 1, mesh->flux2faces, glb_indL->dim, "int", OP_READ),
+    op_arg_dat(glb_indL, 2, mesh->flux2faces, glb_indL->dim, "int", OP_READ),
+    op_arg_dat(glb_indL, 3, mesh->flux2faces, glb_indL->dim, "int", OP_READ),
+    op_arg_dat(glb_indR, 0, mesh->flux2faces, glb_indR->dim, "int", OP_READ),
+    op_arg_dat(glb_indR, 1, mesh->flux2faces, glb_indR->dim, "int", OP_READ),
+    op_arg_dat(glb_indR, 2, mesh->flux2faces, glb_indR->dim, "int", OP_READ),
+    op_arg_dat(glb_indR, 3, mesh->flux2faces, glb_indR->dim, "int", OP_READ)
+  };
+  op_mpi_halo_exchanges(mesh->fluxes, 16, args);
+  op_mpi_wait_all(16, args);
+
+  // Get data from OP2
+  DG_FP *op1_data = getOP2PtrHost(op1, OP_READ);
+  DG_FP *op2L_data = getOP2PtrHost(op2[0], OP_READ);
+  DG_FP *op2R_data = getOP2PtrHost(op2[1], OP_READ);
+  const int *glb   = (int *)glb_ind->data;
+  const int *glb_l = (int *)glb_indL->data;
+  const int *glb_r = (int *)glb_indR->data;
+
+  if(!hypre_mat_init) {
+    const int ilower = glb[0];
+    const int iupper = glb[0] + local_size - 1;
+    HYPRE_IJMatrixCreate(MPI_COMM_WORLD, ilower, iupper, ilower, iupper, &hypre_mat);
+    HYPRE_IJMatrixSetObjectType(hypre_mat, HYPRE_PARCSR);
+    HYPRE_IJMatrixInitialize(hypre_mat);
+    hypre_mat_init = true;
+  }
+
+  std::map<int,std::vector<std::pair<int,DG_FP>>> mat_buffer;
+
+  for(int c = 0; c < cell_set_size; c++) {
+    // Add diagonal block to buffer
+    int diag_base_col = glb[c];
+    DG_FP *diag_data_ptr = op1_data + c * DG_NP_N1 * DG_NP_N1;
+    for(int i = 0; i < DG_NP_N1; i++) {
+      std::vector<std::pair<int,DG_FP>> row_buf;
+      for(int j = 0; j < DG_NP_N1; j++) {
+        int ind = i + j * DG_NP_N1;
+        row_buf.push_back({diag_base_col + j, diag_data_ptr[ind]});
+      }
+      mat_buffer.insert({diag_base_col + i, row_buf});
+    }
+  }
+
+  for(int k = 0; k < faces_set_size; k++) {
+    if(glb_l[k] >= glb[0] && glb_l[k] < glb[0] + local_size) {
+      int base_col = glb_r[k];
+      DG_FP *face_data_ptr = op2L_data + k * DG_NP_N1 * DG_NP_N1;
+      for(int i = 0; i < DG_NP_N1; i++) {
+        std::vector<std::pair<int,DG_FP>> &row_buf = mat_buffer.at(glb_l[k] + i);
+        for(int j = 0; j < DG_NP_N1; j++) {
+          int ind = i + j * DG_NP_N1;
+          row_buf.push_back({base_col + j, face_data_ptr[ind]});
+        }
+      }
+    }
+  }
+
+  for(int k = 0; k < faces_set_size; k++) {
+    if(glb_r[k] >= glb[0] && glb_r[k] < glb[0] + local_size) {
+      int base_col = glb_l[k];
+      DG_FP *face_data_ptr = op2R_data + k * DG_NP_N1 * DG_NP_N1;
+      for(int i = 0; i < DG_NP_N1; i++) {
+        std::vector<std::pair<int,DG_FP>> &row_buf = mat_buffer.at(glb_r[k] + i);
+        for(int j = 0; j < DG_NP_N1; j++) {
+          int ind = i + j * DG_NP_N1;
+          row_buf.push_back({base_col + j, face_data_ptr[ind]});
+        }
+      }
+    }
+  }
+
+  int current_nnz = 0;
+  int current_row = 0;
+  const int ilower = glb[0];
+  const int iupper = glb[0] + local_size - 1;
+  for(auto it = mat_buffer.begin(); it != mat_buffer.end(); it++) {
+    std::sort(it->second.begin(), it->second.end());
+
+    row_num_ptr_h[current_row] = it->first;
+    int num_this_col = 0;
+    for(int i = 0; i < it->second.size(); i++) {
+      if(fabs(it->second[i].second) > 1e-8) {
+        col_buf_ptr_h[current_nnz] = it->second[i].first;
+        data_buf_ptr_h[current_nnz] = it->second[i].second;
+        num_this_col++;
+        current_nnz++;
+      }
+    }
+    num_col_ptr_h[current_row] = num_this_col;
+    current_row++;
+  }
+
+
+  HYPRE_IJMatrixSetValues(hypre_mat, local_size, num_col_ptr_h, row_num_ptr_h, col_buf_ptr_h, data_buf_ptr_h);
+
+  free(data_buf_ptr_h);
+  free(col_buf_ptr_h);
+  free(row_num_ptr_h);
+  free(num_col_ptr_h);
+
+  releaseOP2PtrHost(op1, OP_READ, op1_data);
+  releaseOP2PtrHost(op2[0], OP_READ, op2L_data);
+  releaseOP2PtrHost(op2[1], OP_READ, op2R_data);
+
+  HYPRE_IJMatrixAssemble(hypre_mat);
+}
+#endif

@@ -14,6 +14,8 @@ mkdir -p solvers/2d/ls_utils
 mkdir -p solvers/3d/ls_utils
 mkdir -p matrices/2d
 mkdir -p matrices/3d/custom_kernels
+mkdir -p linear_solvers/amgx_amg
+mkdir -p linear_solvers/hypre_amg
 mkdir -p linear_solvers/petsc_amg
 mkdir -p linear_solvers/petsc_utils
 mkdir -p linear_solvers/petsc_block_jacobi
@@ -32,7 +34,9 @@ mkdir -p solvers/2d/ls_utils
 mkdir -p solvers/3d/ls_utils
 mkdir -p matrices/2d
 mkdir -p matrices/3d/custom_kernels
+mkdir -p linear_solvers/amgx_amg
 mkdir -p linear_solvers/petsc_amg
+mkdir -p linear_solvers/hypre_amg
 mkdir -p linear_solvers/petsc_utils
 mkdir -p linear_solvers/petsc_block_jacobi
 mkdir -p linear_solvers/petsc_jacobi/custom_kernels
@@ -172,6 +176,8 @@ cmake .. \
   -DHDF5_DIR=/usr/local/module-software/hdf5-1.12.0-parallel \
   -DARMA_DIR=/home/u1717021/Code/PhD/armadillo-10.5.3/build \
   -DINIPP_DIR=/home/u1717021/Code/PhD/inipp/inipp \
+  -DAMGX_DIR=/home/u1717021/Code/PhD/AMGX-install \
+  -DHYPRE_DIR=/home/u1717021/Code/PhD/hypre-install \
   -DORDER=$ORDER \
   -DSOA=$SOA \
   -DBUILD_SN=ON \

@@ -6,7 +6,6 @@
 #include "petscvec.h"
 #include "petscksp.h"
 #include "linear_solver.h"
-#include "petsc_amg_coarse.h"
 #include "matrices/poisson_coarse_matrix.h"
 #include "matrices/poisson_semi_matrix_free.h"
 #include "matrices/poisson_matrix_free_diag.h"
@@ -39,8 +38,12 @@ private:
     JACOBI, CHEBYSHEV
   };
 
+  enum CoarseSolvers {
+    PETSC, AMGX, HYPRE
+  };
+
   DGMesh *mesh;
-  PETScAMGCoarseSolver *coarseSolver;
+  LinearSolver *coarseSolver;
 
   PoissonSemiMatrixFree *smfMatrix;
   PoissonMatrixFreeDiag *mfdMatrix;
@@ -49,6 +52,7 @@ private:
   bool diagMat;
 
   Smoothers smoother;
+  CoarseSolvers coarseSolver_type;
 
   // op_dat rk[3], rkQ;
 
@@ -57,7 +61,6 @@ private:
   std::vector<int> post_it;
   std::vector<double> eig_vals;
   std::vector<op_dat> u_dat, b_dat, diag_dats, eigen_tmps;
-  double coarse_solve_tol;
   double eigen_val_saftey_factor;
 
   int num_levels;

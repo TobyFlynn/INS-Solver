@@ -19,11 +19,21 @@ PETScAMGSolver::PETScAMGSolver(DGMesh *m) {
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   // KSPSetType(ksp, KSPGMRES);
   KSPSetType(ksp, KSPCG);
-  if(std::is_same<DG_FP,double>::value)
-    KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 2.5e2);
-  else
-    KSPSetTolerances(ksp, 1e-5, 1e-50, 1e5, 2.5e2);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
+  double r_tol, a_tol;
+  if(std::is_same<DG_FP,double>::value) {
+    r_tol = 1e-8;
+    a_tol = 1e-9;
+  } else {
+    r_tol = 1e-5;
+    a_tol = 1e-6;
+  }
+  config->getDouble("petsc-amg", "r_tol", r_tol);
+  config->getDouble("petsc-amg", "a_tol", a_tol);
+  int max_iter = 250;
+  config->getInt("petsc-amg", "max_iter", max_iter);
+  KSPSetTolerances(ksp, r_tol, a_tol, 1e5, max_iter);
+
   PC pc;
   KSPGetPC(ksp, &pc);
   PCSetType(pc, PCGAMG);
@@ -122,8 +132,4 @@ bool PETScAMGSolver::solve(op_dat rhs, op_dat ans) {
   timer->endTimer("PETScAMGSolver - solve");
 
   return converged;
-}
-
-void PETScAMGSolver::set_tol(const DG_FP tol) {
-  KSPSetTolerances(ksp, tol, 1e-50, 1e5, 2.5e2);
 }
