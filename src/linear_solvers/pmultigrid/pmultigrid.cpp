@@ -15,6 +15,10 @@
 #include "config.h"
 #include "dg_dat_pool.h"
 
+#include "linear_solvers/amgx_amg.h"
+#include "linear_solvers/hypre_amg.h"
+#include "linear_solvers/petsc_amg_coarse.h"
+
 extern Timing *timer;
 extern Config *config;
 extern DGDatPool *dg_dat_pool;
@@ -111,9 +115,6 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
     }
   }
 
-  coarse_solve_tol = 1e-2;
-  config->getDouble("p-multigrid", "coarse_residual", coarse_solve_tol);
-
   eigen_val_saftey_factor = 1.1;
   config->getDouble("p-multigrid", "eigen_val_saftey_factor", eigen_val_saftey_factor);
 
@@ -136,8 +137,39 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
   // rkQ   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_data, "p_multigrid_rkQ");
   free(tmp_data);
 
-  coarseSolver = new PETScAMGCoarseSolver(mesh);
-  coarseSolver->set_tol(coarse_solve_tol);
+  std::string coarseSolver_str;
+  coarseSolver_type = PETSC;
+  if(config->getStr("p-multigrid", "coarse_solver", coarseSolver_str)) {
+      if(coarseSolver_str == "petsc") {
+        coarseSolver_type = PETSC;
+      } else if(coarseSolver_str == "amgx") {
+        coarseSolver_type = AMGX;
+      } else if(coarseSolver_str == "hypre") {
+        coarseSolver_type = HYPRE;
+      } else {
+        op_printf("Unrecognised coarse solver for p-multigrid, defaulting to PETSc\n");
+      }
+  }
+
+  switch(coarseSolver_type) {
+    case PETSC:
+      coarseSolver = new PETScAMGCoarseSolver(mesh);
+      break;
+    case AMGX:
+      #ifdef INS_BUILD_WITH_AMGX
+      coarseSolver = new AmgXAMGSolver(mesh);
+      #else
+      throw std::runtime_error("Not built with AmgX");
+      #endif
+      break;
+    case HYPRE:
+      #ifdef INS_BUILD_WITH_HYPRE
+      coarseSolver = new HYPREAMGSolver(mesh);
+      #else
+      throw std::runtime_error("Not built with HYPRE");
+      #endif
+      break;
+  }
 }
 
 PMultigridPoissonSolver::~PMultigridPoissonSolver() {

@@ -108,7 +108,7 @@ __global__ void _op_cuda_pmf_3d_mult_cells_merged_shared_mat(
     const int cell_id = n / np;
     const int local_cell_id = (n / np) - ((n - threadIdx.x) / np);
     const int start_ind = ((n - threadIdx.x) / np) * DG_NP;
-    const int num_elem  = min((n - threadIdx.x + blockDim.x) / np, set_size) - ((n - threadIdx.x) / np) + 1;
+    const int num_elem  = min((n - threadIdx.x + blockDim.x) / np - ((n - threadIdx.x) / np) + 1, set_size - ((n - threadIdx.x) / np));
     for(int i = threadIdx.x; i < num_elem * np; i += blockDim.x) {
       int curr_cell = i / np + (n - threadIdx.x) / np;
       int curr_node = i % np;

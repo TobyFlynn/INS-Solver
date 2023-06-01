@@ -5,6 +5,8 @@
 
 #include "op_seq.h"
 
+int global_sum(int local);
+
 int compute_local_size(int global_size, int mpi_comm_size, int mpi_rank);
 
 int compute_global_start(int global_size, int mpi_comm_size, int mpi_rank);

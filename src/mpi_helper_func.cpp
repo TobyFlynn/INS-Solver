@@ -4,6 +4,12 @@
 
 #include <memory>
 
+int global_sum(int local) {
+  int result;
+  MPI_Allreduce(&local, &result, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  return result;
+}
+
 int compute_local_size(int global_size, int mpi_comm_size, int mpi_rank) {
   int local_size = global_size / mpi_comm_size;
   int remainder = global_size % mpi_comm_size;

@@ -138,13 +138,22 @@ int main(int argc, char **argv) {
 
   timer->startTimer("OP2 Partitioning");
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
+  int renumber_elements = 0;
+  config->getInt("simulation-constants", "renumber_elements", renumber_elements);
+  if(renumber_elements) {
+    op_renumber(mesh->face2cells);
+  }
   timer->endTimer("OP2 Partitioning");
 
   mesh->init();
   ins3d->init(r_ynolds, refVel);
 
-  string out_file_ic = outputDir + "ic.h5";
-  ins3d->dump_data(out_file_ic);
+  int save_ic = 1;
+  config->getInt("simulation-constants", "save_ic", save_ic);
+  if(save_ic) {
+    string out_file_ic = outputDir + "ic.h5";
+    ins3d->dump_data(out_file_ic);
+  }
 
   timer->startTimer("Main loop");
   for(int i = 0; i < iter; i++) {
@@ -157,8 +166,12 @@ int main(int argc, char **argv) {
   }
   timer->endTimer("Main loop");
 
-  string out_file_end = outputDir + "end.h5";
-  ins3d->dump_data(out_file_end);
+  int save_end = 1;
+  config->getInt("simulation-constants", "save_end", save_end);
+  if(save_end) {
+    string out_file_end = outputDir + "end.h5";
+    ins3d->dump_data(out_file_end);
+  }
 
   timer->exportTimings(outputDir + "timings.txt", iter, ins3d->get_time());
 

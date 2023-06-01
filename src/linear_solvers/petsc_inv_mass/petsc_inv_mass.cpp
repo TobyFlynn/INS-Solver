@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "linear_solvers/petsc_utils.h"
 #include "timing.h"
+#include "config.h"
 #include "dg_dat_pool.h"
 
 #define ARMA_ALLOW_FAKE_GCC
@@ -16,6 +17,7 @@
 #include <type_traits>
 
 extern DGConstants *constants;
+extern Config *config;
 extern Timing *timer;
 extern DGDatPool *dg_dat_pool;
 
@@ -29,10 +31,17 @@ PETScInvMassSolver::PETScInvMassSolver(DGMesh *m) {
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
   KSPSetType(ksp, KSPGMRES);
-  if(std::is_same<DG_FP,double>::value)
-    KSPSetTolerances(ksp, 1e-8, 1e-50, 1e5, 5e2);
-  else
-    KSPSetTolerances(ksp, 1e-5, 1e-50, 1e5, 5e2);
+  double r_tol, a_tol;
+  if(std::is_same<DG_FP,double>::value) {
+    r_tol = 1e-8;
+    a_tol = 1e-9;
+  } else {
+    r_tol = 1e-5;
+    a_tol = 1e-6;
+  }
+  config->getDouble("top-level-linear-solvers", "r_tol", r_tol);
+  config->getDouble("top-level-linear-solvers", "a_tol", a_tol);
+  KSPSetTolerances(ksp, r_tol, a_tol, 1e5, 5e2);
   KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
   PC pc;
   KSPGetPC(ksp, &pc);

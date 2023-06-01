@@ -14,6 +14,8 @@ mkdir -p solvers/2d/ls_utils
 mkdir -p solvers/3d/ls_utils
 mkdir -p matrices/2d
 mkdir -p matrices/3d/custom_kernels
+mkdir -p linear_solvers/amgx_amg
+mkdir -p linear_solvers/hypre_amg
 mkdir -p linear_solvers/petsc_amg
 mkdir -p linear_solvers/petsc_utils
 mkdir -p linear_solvers/petsc_block_jacobi
@@ -32,7 +34,9 @@ mkdir -p solvers/2d/ls_utils
 mkdir -p solvers/3d/ls_utils
 mkdir -p matrices/2d
 mkdir -p matrices/3d/custom_kernels
+mkdir -p linear_solvers/amgx_amg
 mkdir -p linear_solvers/petsc_amg
+mkdir -p linear_solvers/hypre_amg
 mkdir -p linear_solvers/petsc_utils
 mkdir -p linear_solvers/petsc_block_jacobi
 mkdir -p linear_solvers/petsc_jacobi/custom_kernels
@@ -163,6 +167,9 @@ mkdir build
 
 cd build
 
+#-DAMGX_DIR=/home/u1717021/Code/PhD/AMGX-install \
+#-DHYPRE_DIR=/home/u1717021/Code/PhD/hypre-install \
+
 cmake .. \
   -DOP2_DIR=/home/u1717021/Code/PhD/OP2-Common/op2 \
   -DOPENBLAS_DIR=/opt/OpenBLAS \
@@ -180,5 +187,5 @@ cmake .. \
   -DBUILD_MPI=ON \
   -DBUILD_GPU=ON
 
-make -j 8
+make -j 16
 make

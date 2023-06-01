@@ -35,3 +35,40 @@ void PoissonCoarseMatrix::multJacobi(op_dat in, op_dat out) {
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
   timer->endTimer("PoissonCoarseMatrix - multJacobi");
 }
+
+#ifdef INS_BUILD_WITH_AMGX
+bool PoissonCoarseMatrix::getAmgXMat(AMGX_matrix_handle** mat) {
+  timer->startTimer("PoissonCoarseMatrix - getAmgXMat");
+  bool reset = false;
+  if(petscMatResetRequired) {
+    setAmgXMatrix();
+    petscMatResetRequired = false;
+    *mat = &amgx_mat;
+    reset = true;
+  }
+  timer->endTimer("PoissonCoarseMatrix - getAmgXMat");
+
+  return reset;
+}
+#endif
+
+#ifdef INS_BUILD_WITH_HYPRE
+bool PoissonCoarseMatrix::getHYPREMat(HYPRE_ParCSRMatrix** mat) {
+  timer->startTimer("PoissonCoarseMatrix - getHYPREMat");
+  bool reset = false;
+  if(petscMatResetRequired) {
+    setHYPREMatrix();
+    HYPRE_IJMatrixGetObject(hypre_mat, (void**)&hypre_parcsr_mat);
+    petscMatResetRequired = false;
+    reset = true;
+  }
+  *mat = &hypre_parcsr_mat;
+  timer->endTimer("PoissonCoarseMatrix - getHYPREMat");
+
+  return reset;
+}
+
+void PoissonCoarseMatrix::getHYPRERanges(int *ilower, int *iupper, int *jlower, int *jupper) {
+  HYPRE_IJMatrixGetLocalRange(hypre_mat, ilower, iupper, jlower, jupper);
+}
+#endif

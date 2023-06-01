@@ -4,6 +4,11 @@
 #include "mpi_helper_func.h"
 #endif
 
+#include <vector>
+#include <algorithm>
+#include <map>
+
+#include "utils.h"
 #include "dg_utils.h"
 #include "dg_global_constants/dg_global_constants_2d.h"
 
@@ -193,3 +198,371 @@ void PoissonCoarseMatrix::setPETScMatrix() {
   MatAssemblyEnd(pMat, MAT_FINAL_ASSEMBLY);
   timer->endTimer("setPETScMatrix - Assembly");
 }
+
+#ifdef INS_MPI
+#include "mpi.h"
+#endif
+
+#include "dg_mesh/dg_mesh_3d.h"
+
+#ifdef INS_BUILD_WITH_AMGX
+
+extern AMGX_resources_handle amgx_res_handle;
+extern AMGX_config_handle amgx_config_handle;
+
+void PoissonCoarseMatrix::setAmgXMatrix() {
+  if(!amgx_mat_init) {
+    AMGX_matrix_create(&amgx_mat, amgx_res_handle, AMGX_mode_dDDI);
+  }
+
+  int global_size = getUnknowns();
+  int local_size = getUnknowns();
+  #ifdef INS_MPI
+  global_size = global_sum(global_size);
+  #endif
+  // Keep track of how many non-zero entries locally
+  // int nnz = 0;
+  const int cell_set_size = _mesh->cells->size;
+  const int faces_set_size = _mesh->faces->size + _mesh->faces->exec_size + _mesh->faces->nonexec_size;
+  int nnz = cell_set_size * DG_NP_N1 * DG_NP_N1 + faces_set_size * DG_NP_N1 * DG_NP_N1 * 2;
+  // Which entry are on which rows
+  int *row_ptr = (int *)malloc((local_size + 1) * sizeof(int));
+  #ifdef INS_MPI
+  int64_t *col_inds = (int64_t *)malloc(nnz * sizeof(int64_t));
+  #else
+  int *col_inds = (int *)malloc(nnz * sizeof(int));
+  #endif
+  DG_FP *data_ptr = (DG_FP *)malloc(nnz * sizeof(DG_FP));
+
+  // Exchange halos
+  DGMesh3D *mesh = dynamic_cast<DGMesh3D*>(_mesh);
+  op_arg args[] = {
+    op_arg_dat(op2[0], 0, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[0], 1, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[0], 2, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[0], 3, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 0, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 1, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 2, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 3, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(glb_indL, 0, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indL, 1, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indL, 2, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indL, 3, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 0, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 1, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 2, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 3, mesh->flux2faces, glb_indR->dim, "int", OP_RW)
+  };
+  op_mpi_halo_exchanges_grouped(mesh->fluxes, 16, args, 2);
+  op_mpi_wait_all_grouped(16, args, 2);
+  cudaDeviceSynchronize();
+
+  // Get data from OP2
+  DG_FP *op1_data = getOP2PtrHost(op1, OP_READ);
+  DG_FP *op2L_data = getOP2PtrHost(op2[0], OP_READ);
+  DG_FP *op2R_data = getOP2PtrHost(op2[1], OP_READ);
+  int *glb   = (int *)malloc(cell_set_size * sizeof(int));
+  cudaMemcpy(glb, glb_ind->data_d, cell_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+  int *glb_l = (int *)malloc(faces_set_size * sizeof(int));
+  int *glb_r = (int *)malloc(faces_set_size * sizeof(int));
+  cudaMemcpy(glb_l, glb_indL->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_r, glb_indR->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+
+  // TODO SoA
+  #ifdef DG_OP2_SOA
+  throw std::runtime_error("setAmgXMatrix not implmented for SoA yet");
+  #endif
+
+  std::map<int,std::vector<std::pair<int,DG_FP>>> mat_buffer;
+  for(int c = 0; c < cell_set_size; c++) {
+    // Add diagonal block to buffer
+    int diag_base_col = glb[c];
+    DG_FP *diag_data_ptr = op1_data + c * DG_NP_N1 * DG_NP_N1;
+    for(int i = 0; i < DG_NP_N1; i++) {
+      std::vector<std::pair<int,DG_FP>> row_buf;
+      for(int j = 0; j < DG_NP_N1; j++) {
+        int ind = i + j * DG_NP_N1;
+        row_buf.push_back({diag_base_col + j, diag_data_ptr[ind]});
+      }
+      mat_buffer.insert({diag_base_col + i, row_buf});
+    }
+  }
+
+  for(int k = 0; k < faces_set_size; k++) {
+    if(glb_l[k] >= glb[0] && glb_l[k] < glb[0] + local_size) {
+      int base_col = glb_r[k];
+      DG_FP *face_data_ptr = op2L_data + k * DG_NP_N1 * DG_NP_N1;
+      for(int i = 0; i < DG_NP_N1; i++) {
+        std::vector<std::pair<int,DG_FP>> &row_buf = mat_buffer.at(glb_l[k] + i);
+        for(int j = 0; j < DG_NP_N1; j++) {
+          int ind = i + j * DG_NP_N1;
+          row_buf.push_back({base_col + j, face_data_ptr[ind]});
+        }
+      }
+    }
+  }
+
+  for(int k = 0; k < faces_set_size; k++) {
+    if(glb_r[k] >= glb[0] && glb_r[k] < glb[0] + local_size) {
+      int base_col = glb_l[k];
+      DG_FP *face_data_ptr = op2R_data + k * DG_NP_N1 * DG_NP_N1;
+      for(int i = 0; i < DG_NP_N1; i++) {
+        std::vector<std::pair<int,DG_FP>> &row_buf = mat_buffer.at(glb_r[k] + i);
+        for(int j = 0; j < DG_NP_N1; j++) {
+          int ind = i + j * DG_NP_N1;
+          row_buf.push_back({base_col + j, face_data_ptr[ind]});
+        }
+      }
+    }
+  }
+
+  int current_nnz = 0;
+  int current_row = 0;
+  for(auto it = mat_buffer.begin(); it != mat_buffer.end(); it++) {
+    std::sort(it->second.begin(), it->second.end());
+
+    row_ptr[current_row] = current_nnz;
+    for(int i = 0; i < it->second.size(); i++) {
+      if(fabs(it->second[i].second) > 1e-8) {
+        col_inds[current_nnz] = it->second[i].first;
+        data_ptr[current_nnz] = it->second[i].second;
+        current_nnz++;
+      }
+    }
+    current_row++;
+  }
+  row_ptr[current_row] = current_nnz;
+  // printf("cr: %d ls: %d nnz: %d cnnz: %d\n", current_row, local_size, nnz, current_nnz);
+  // printf("gs: %d ls: %d\n", global_size, local_size);
+
+  releaseOP2PtrHost(op1, OP_READ, op1_data);
+  releaseOP2PtrHost(op2[0], OP_READ, op2L_data);
+  releaseOP2PtrHost(op2[1], OP_READ, op2R_data);
+  free(glb);
+  free(glb_l);
+  free(glb_r);
+
+  AMGX_SAFE_CALL(AMGX_pin_memory(row_ptr, (local_size + 1) * sizeof(int)));
+  AMGX_SAFE_CALL(AMGX_pin_memory(col_inds, nnz * sizeof(int)));
+  AMGX_SAFE_CALL(AMGX_pin_memory(data_ptr, nnz * sizeof(DG_FP)));
+
+  if(!amgx_mat_init) {
+    #ifdef INS_MPI
+    int nrings;
+    AMGX_config_get_default_number_of_rings(amgx_config_handle, &nrings);
+    int nranks, rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &nranks);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // If no partition vector is given, we assume a partitioning with contiguous blocks (see example above). It is sufficient (and faster/more scalable)
+    // to calculate the partition offsets and pass those into the API call instead of creating a full partition vector.
+    int64_t* partition_offsets = (int64_t*)malloc((nranks+1) * sizeof(int64_t));
+    // gather the number of rows on each rank, and perform an exclusive scan to get the offsets.
+    int64_t n64 = local_size;
+    partition_offsets[0] = 0; // rows of rank 0 always start at index 0
+    MPI_Allgather(&n64, 1, MPI_INT64_T, &partition_offsets[1], 1, MPI_INT64_T, MPI_COMM_WORLD);
+    for (int i = 2; i < nranks + 1; ++i) {
+      partition_offsets[i] += partition_offsets[i-1];
+    }
+    global_size = partition_offsets[nranks]; // last element always has global number of rows
+
+    // for(int i = 0; i < nranks + 1; i++) {
+    //   op_printf("%d\n", partition_offsets[i]);
+    // }
+
+    AMGX_distribution_handle dist;
+    AMGX_distribution_create(&dist, amgx_config_handle);
+    AMGX_distribution_set_partition_data(dist, AMGX_DIST_PARTITION_OFFSETS, partition_offsets);
+    AMGX_matrix_upload_distributed(amgx_mat, global_size, local_size, current_nnz, 1, 1, row_ptr, col_inds, data_ptr, NULL, dist);
+    AMGX_distribution_destroy(dist);
+    free(partition_offsets);
+    // int nrings;
+    // AMGX_config_get_default_number_of_rings(amgx_config_handle, &nrings);
+    // AMGX_SAFE_CALL(AMGX_matrix_upload_all_global(amgx_mat, global_size, local_size, current_nnz, 1, 1,
+    //                               row_ptr, col_inds, data_ptr, NULL, nrings, nrings, part_vec));
+    #else
+    AMGX_SAFE_CALL(AMGX_matrix_upload_all(amgx_mat, local_size, current_nnz, 1, 1, row_ptr, col_inds, data_ptr, NULL));
+    #endif
+    amgx_mat_init = true;
+  } else {
+    AMGX_matrix_replace_coefficients(amgx_mat, local_size, current_nnz, data_ptr, NULL);
+  }
+
+  AMGX_SAFE_CALL(AMGX_unpin_memory(row_ptr));
+  AMGX_SAFE_CALL(AMGX_unpin_memory(col_inds));
+  AMGX_SAFE_CALL(AMGX_unpin_memory(data_ptr));
+
+  free(row_ptr);
+  free(col_inds);
+  free(data_ptr);
+}
+#endif
+
+#ifdef INS_BUILD_WITH_HYPRE
+void PoissonCoarseMatrix::setHYPREMatrix() {
+  int global_size = getUnknowns();
+  int local_size = getUnknowns();
+  #ifdef INS_MPI
+  global_size = global_sum(global_size);
+  #endif
+  // Keep track of how many non-zero entries locally
+  // int nnz = 0;
+  const int cell_set_size = _mesh->cells->size;
+  const int faces_set_size = _mesh->faces->size + _mesh->faces->exec_size + _mesh->faces->nonexec_size;
+  int nnz = cell_set_size * DG_NP_N1 * DG_NP_N1 + faces_set_size * DG_NP_N1 * DG_NP_N1 * 2;
+
+  DG_FP *data_buf_ptr_h = (DG_FP *)malloc(nnz * sizeof(DG_FP));
+  int *col_buf_ptr_h = (int *)malloc(nnz * sizeof(int));
+  int *row_num_ptr_h = (int *)malloc(local_size * sizeof(int));
+  int *num_col_ptr_h = (int *)malloc(local_size * sizeof(int));
+
+  // Exchange halos
+  DGMesh3D *mesh = dynamic_cast<DGMesh3D*>(_mesh);
+  op_arg args[] = {
+    op_arg_dat(op2[0], 0, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[0], 1, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[0], 2, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[0], 3, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 0, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 1, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 2, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 3, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(glb_indL, 0, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indL, 1, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indL, 2, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indL, 3, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 0, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 1, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 2, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 3, mesh->flux2faces, glb_indR->dim, "int", OP_RW)
+  };
+  op_mpi_halo_exchanges_grouped(mesh->fluxes, 16, args, 2);
+  op_mpi_wait_all_grouped(16, args, 2);
+  cudaDeviceSynchronize();
+
+  // Get data from OP2
+  DG_FP *op1_data = getOP2PtrHost(op1, OP_READ);
+  DG_FP *op2L_data = getOP2PtrHost(op2[0], OP_READ);
+  DG_FP *op2R_data = getOP2PtrHost(op2[1], OP_READ);
+  int *glb   = (int *)malloc(cell_set_size * sizeof(int));
+  cudaMemcpy(glb, glb_ind->data_d, cell_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+  int *glb_l = (int *)malloc(faces_set_size * sizeof(int));
+  int *glb_r = (int *)malloc(faces_set_size * sizeof(int));
+  cudaMemcpy(glb_l, glb_indL->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(glb_r, glb_indR->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
+
+  if(!hypre_mat_init) {
+    const int ilower = glb[0];
+    const int iupper = glb[0] + local_size - 1;
+    // printf("ilower: %d iupper: %d\n", ilower, iupper);
+    HYPRE_IJMatrixCreate(MPI_COMM_WORLD, ilower, iupper, ilower, iupper, &hypre_mat);
+    HYPRE_IJMatrixSetObjectType(hypre_mat, HYPRE_PARCSR);
+    HYPRE_IJMatrixInitialize(hypre_mat);
+    hypre_mat_init = true;
+  }
+
+
+  #ifdef DG_OP2_SOA
+  throw std::runtime_error("setHYPREMatrix not implmented for SoA yet");
+  #endif
+
+  std::map<int,std::vector<std::pair<int,DG_FP>>> mat_buffer;
+
+  for(int c = 0; c < cell_set_size; c++) {
+    // Add diagonal block to buffer
+    int diag_base_col = glb[c];
+    DG_FP *diag_data_ptr = op1_data + c * DG_NP_N1 * DG_NP_N1;
+    for(int i = 0; i < DG_NP_N1; i++) {
+      std::vector<std::pair<int,DG_FP>> row_buf;
+      for(int j = 0; j < DG_NP_N1; j++) {
+        int ind = i + j * DG_NP_N1;
+        row_buf.push_back({diag_base_col + j, diag_data_ptr[ind]});
+      }
+      mat_buffer.insert({diag_base_col + i, row_buf});
+    }
+  }
+
+  for(int k = 0; k < faces_set_size; k++) {
+    if(glb_l[k] >= glb[0] && glb_l[k] < glb[0] + local_size) {
+      int base_col = glb_r[k];
+      DG_FP *face_data_ptr = op2L_data + k * DG_NP_N1 * DG_NP_N1;
+      for(int i = 0; i < DG_NP_N1; i++) {
+        std::vector<std::pair<int,DG_FP>> &row_buf = mat_buffer.at(glb_l[k] + i);
+        for(int j = 0; j < DG_NP_N1; j++) {
+          int ind = i + j * DG_NP_N1;
+          row_buf.push_back({base_col + j, face_data_ptr[ind]});
+        }
+      }
+    }
+  }
+
+  for(int k = 0; k < faces_set_size; k++) {
+    if(glb_r[k] >= glb[0] && glb_r[k] < glb[0] + local_size) {
+      int base_col = glb_l[k];
+      DG_FP *face_data_ptr = op2R_data + k * DG_NP_N1 * DG_NP_N1;
+      for(int i = 0; i < DG_NP_N1; i++) {
+        std::vector<std::pair<int,DG_FP>> &row_buf = mat_buffer.at(glb_r[k] + i);
+        for(int j = 0; j < DG_NP_N1; j++) {
+          int ind = i + j * DG_NP_N1;
+          row_buf.push_back({base_col + j, face_data_ptr[ind]});
+        }
+      }
+    }
+  }
+
+  int current_nnz = 0;
+  int current_row = 0;
+  for(auto it = mat_buffer.begin(); it != mat_buffer.end(); it++) {
+    std::sort(it->second.begin(), it->second.end());
+
+    row_num_ptr_h[current_row] = it->first;
+    int num_this_col = 0;
+    for(int i = 0; i < it->second.size(); i++) {
+      if(fabs(it->second[i].second) > 1e-8) {
+        col_buf_ptr_h[current_nnz] = it->second[i].first;
+        data_buf_ptr_h[current_nnz] = it->second[i].second;
+        num_this_col++;
+        current_nnz++;
+      }
+    }
+    num_col_ptr_h[current_row] = num_this_col;
+    current_row++;
+  }
+
+  DG_FP *data_buf_ptr;
+  cudaMalloc(&data_buf_ptr, current_nnz * sizeof(DG_FP));
+  int *col_buf_ptr;
+  cudaMalloc(&col_buf_ptr, current_nnz * sizeof(int));
+  int *row_num_ptr;
+  cudaMalloc(&row_num_ptr, local_size * sizeof(int));
+  int *num_col_ptr;
+  cudaMalloc(&num_col_ptr, local_size * sizeof(int));
+
+  cudaMemcpy(row_num_ptr, row_num_ptr_h, local_size * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(num_col_ptr, num_col_ptr_h, local_size * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(col_buf_ptr, col_buf_ptr_h, current_nnz * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(data_buf_ptr, data_buf_ptr_h, current_nnz * sizeof(DG_FP), cudaMemcpyHostToDevice);
+
+  HYPRE_IJMatrixSetValues(hypre_mat, local_size, num_col_ptr, row_num_ptr, col_buf_ptr, data_buf_ptr);
+
+  cudaFree(data_buf_ptr);
+  cudaFree(col_buf_ptr);
+  cudaFree(row_num_ptr);
+  cudaFree(num_col_ptr);
+  free(data_buf_ptr_h);
+  free(col_buf_ptr_h);
+  free(row_num_ptr_h);
+  free(num_col_ptr_h);
+
+  releaseOP2PtrHost(op1, OP_READ, op1_data);
+  releaseOP2PtrHost(op2[0], OP_READ, op2L_data);
+  releaseOP2PtrHost(op2[1], OP_READ, op2R_data);
+  free(glb);
+  free(glb_l);
+  free(glb_r);
+
+  HYPRE_IJMatrixAssemble(hypre_mat);
+  // HYPRE_IJMatrixPrint(hypre_mat, "IJ.out.hypre_mat");
+  // op_printf("Finish HYPRE Assembly\n");
+}
+#endif
