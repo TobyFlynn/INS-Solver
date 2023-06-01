@@ -8,7 +8,9 @@
 #include <iostream>
 #include <type_traits>
 #include <stdexcept>
+#ifdef INS_CUDA
 #include <cuda_runtime.h>
+#endif
 
 extern Timing *timer;
 extern Config *config;
@@ -62,30 +64,29 @@ bool HYPREAMGSolver::solve(op_dat rhs, op_dat ans) {
       HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
 
       HYPRE_ParCSRPCGCreate(MPI_COMM_WORLD, &solver);
-      HYPRE_PCGSetMaxIter(solver, 100); /* max iterations */
-      HYPRE_PCGSetTol(solver, 1e-7); /* conv. tolerance */
-      HYPRE_PCGSetTwoNorm(solver, 1); /* use the two norm as the stopping criteria */
-      HYPRE_PCGSetPrintLevel(solver, 2); /* print solve info */
-      HYPRE_PCGSetLogging(solver, 1); /* needed to get run info later */
+      HYPRE_PCGSetMaxIter(solver, 100);
+      HYPRE_PCGSetTol(solver, 1e-7);
+      HYPRE_PCGSetTwoNorm(solver, 1);
+      HYPRE_PCGSetPrintLevel(solver, 2);
+      HYPRE_PCGSetLogging(solver, 1);
 
-      /* Now set up the AMG preconditioner and specify any parameters */
       HYPRE_BoomerAMGCreate(&precond);
-      HYPRE_BoomerAMGSetPrintLevel(precond, 1); /* print amg solution info */
+      HYPRE_BoomerAMGSetPrintLevel(precond, 1);
       HYPRE_BoomerAMGSetCoarsenType(precond, 8);
-      HYPRE_BoomerAMGSetOldDefault(precond);
-      HYPRE_BoomerAMGSetRelaxType(precond, 18); /* Sym G.S./Jacobi hybrid */
+      // HYPRE_BoomerAMGSetOldDefault(precond);
+      HYPRE_BoomerAMGSetRelaxType(precond, 18);
       HYPRE_BoomerAMGSetNumSweeps(precond, 1);
-      HYPRE_BoomerAMGSetTol(precond, 0.0); /* conv. tolerance zero */
-      HYPRE_BoomerAMGSetMaxIter(precond, 1); /* do only one iteration! */
+      HYPRE_BoomerAMGSetTol(precond, 0.0);
+      HYPRE_BoomerAMGSetMaxIter(precond, 1);
       HYPRE_BoomerAMGSetKeepTranspose(precond, 1);
       HYPRE_BoomerAMGSetRAP2(precond, 1);
       HYPRE_BoomerAMGSetModuleRAP2(precond, 1);
       HYPRE_BoomerAMGSetStrongThreshold(precond, 0.5);
       HYPRE_BoomerAMGSetTruncFactor(precond, 0.2);
 
-      /* Set the PCG preconditioner */
       HYPRE_PCGSetPrecond(solver, (HYPRE_PtrToSolverFcn) HYPRE_BoomerAMGSolve,
                               (HYPRE_PtrToSolverFcn) HYPRE_BoomerAMGSetup, precond);
+
       vec_init = true;
       setup_solver = true;
     }
@@ -118,6 +119,7 @@ bool HYPREAMGSolver::solve(op_dat rhs, op_dat ans) {
   releaseOP2PtrHost(rhs, OP_READ, rhs_ptr);
   releaseOP2PtrHost(ans, OP_READ, ans_ptr);
 
+  #ifdef INS_CUDA
   DG_FP *data_rhs_ptr;
   cudaMalloc(&data_rhs_ptr, num_unknowns_l * sizeof(DG_FP));
   DG_FP *data_ans_ptr;
@@ -133,9 +135,12 @@ bool HYPREAMGSolver::solve(op_dat rhs, op_dat ans) {
   HYPRE_IJVectorSetValues(x, num_unknowns_l, data_ind_ptr, data_ans_ptr);
 
   cudaFree(data_rhs_ptr);
+  #else
+  HYPRE_IJVectorSetValues(b, num_unknowns_l, ind_ptr_h, rhs_ptr_h);
+  HYPRE_IJVectorSetValues(x, num_unknowns_l, ind_ptr_h, ans_ptr_h);
+  #endif
 
   free(rhs_ptr_h);
-  free(ind_ptr_h);
 
   HYPRE_IJVectorAssemble(b);
   HYPRE_IJVectorGetObject(b, (void **) &par_b);
@@ -154,7 +159,6 @@ bool HYPREAMGSolver::solve(op_dat rhs, op_dat ans) {
   HYPRE_ParCSRPCGSolve(solver, *hypre_mat, par_b, par_x);
   timer->endTimer("HYPREAMGSolver - Run solver");
 
-  /* Run info - needed logging turned on */
   int num_iterations;
   double final_res_norm;
   HYPRE_PCGGetNumIterations(solver, &num_iterations);
@@ -168,8 +172,14 @@ bool HYPREAMGSolver::solve(op_dat rhs, op_dat ans) {
   timer->startTimer("HYPREAMGSolver - Transfer vec");
   DG_FP *ans_ptr_w = getOP2PtrHost(ans, OP_WRITE);
 
+  #ifdef INS_CUDA
   HYPRE_IJVectorGetValues(x, num_unknowns_l, data_ind_ptr, data_ans_ptr);
   cudaMemcpy(ans_ptr_h, data_ans_ptr, num_unknowns_l * sizeof(DG_FP), cudaMemcpyDeviceToHost);
+  cudaFree(data_ans_ptr);
+  cudaFree(data_ind_ptr);
+  #else
+  HYPRE_IJVectorGetValues(x, num_unknowns_l, ind_ptr_h, ans_ptr_h);
+  #endif
 
   for(int i = 0; i < mesh->cells->size; i++) {
     for(int j = 0; j < DG_NP_N1; j++) {
@@ -180,8 +190,7 @@ bool HYPREAMGSolver::solve(op_dat rhs, op_dat ans) {
   releaseOP2PtrHost(ans, OP_WRITE, ans_ptr_w);
 
   free(ans_ptr_h);
-  cudaFree(data_ans_ptr);
-  cudaFree(data_ind_ptr);
+  free(ind_ptr_h);
   timer->endTimer("HYPREAMGSolver - Transfer vec");
 
   return true;

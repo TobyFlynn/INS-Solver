@@ -11,8 +11,10 @@
 #include "dg_mesh/dg_mesh.h"
 #include "poisson_matrix.h"
 
-#ifdef INS_CUDA
+#ifdef INS_BUILD_WITH_AMGX
 #include <amgx_c.h>
+#endif
+#ifdef INS_BUILD_WITH_HYPRE
 #include "HYPRE_krylov.h"
 #include "HYPRE.h"
 #include "HYPRE_parcsr_ls.h"

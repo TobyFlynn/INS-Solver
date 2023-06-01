@@ -36,7 +36,7 @@ void PoissonCoarseMatrix::multJacobi(op_dat in, op_dat out) {
   timer->endTimer("PoissonCoarseMatrix - multJacobi");
 }
 
-#ifdef INS_CUDA
+#ifdef INS_BUILD_WITH_AMGX
 bool PoissonCoarseMatrix::getAmgXMat(AMGX_matrix_handle** mat) {
   timer->startTimer("PoissonCoarseMatrix - getAmgXMat");
   bool reset = false;
@@ -50,7 +50,9 @@ bool PoissonCoarseMatrix::getAmgXMat(AMGX_matrix_handle** mat) {
 
   return reset;
 }
+#endif
 
+#ifdef INS_BUILD_WITH_HYPRE
 bool PoissonCoarseMatrix::getHYPREMat(HYPRE_ParCSRMatrix** mat) {
   timer->startTimer("PoissonCoarseMatrix - getHYPREMat");
   bool reset = false;
