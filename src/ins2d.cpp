@@ -12,8 +12,8 @@
 
 #include "timing.h"
 #include "config.h"
-#include "solvers/2d/mp_ins_solver.h"
-#include "solvers/2d/ins_solver.h"
+#include "solvers/2d/mp_ins_solver_over_int.h"
+#include "solvers/2d/ins_solver_over_int.h"
 
 Timing *timer;
 Config *config;
@@ -119,11 +119,11 @@ int main(int argc, char **argv) {
   gamma_e = 1.4;
 
   DGMesh2D *mesh = new DGMesh2D(filename);
-  INSSolver2D *mpins2d;
+  INSSolverOverInt2D *mpins2d;
   if(resumeIter == 0)
-    mpins2d = new INSSolver2D(mesh);
+    mpins2d = new INSSolverOverInt2D(mesh);
   else
-    mpins2d = new INSSolver2D(mesh, checkpointFile, resumeIter);
+    mpins2d = new INSSolverOverInt2D(mesh, checkpointFile, resumeIter);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);

@@ -10,7 +10,7 @@
 extern Timing *timer;
 extern DGConstants *constants;
 
-CubPoissonMatrix2D::CubPoissonMatrix2D(DGMesh2D *m) : PoissonMatrix2D(m) {
+CubPoissonMatrix2D::CubPoissonMatrix2D(DGMesh2D *m) : PoissonMatrixOverInt2D(m) {
 
 }
 

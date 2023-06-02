@@ -3,9 +3,9 @@
 
 #include "op_seq.h"
 #include "dg_mesh/dg_mesh_2d.h"
-#include "poisson_matrix_2d.h"
+#include "poisson_matrix_over_int_2d.h"
 
-class CubPoissonMatrix2D : public PoissonMatrix2D {
+class CubPoissonMatrix2D : public PoissonMatrixOverInt2D {
 public:
   CubPoissonMatrix2D(DGMesh2D *m);
 

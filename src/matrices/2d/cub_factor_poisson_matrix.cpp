@@ -10,7 +10,7 @@
 extern Timing *timer;
 extern DGConstants *constants;
 
-CubFactorPoissonMatrix2D::CubFactorPoissonMatrix2D(DGMesh2D *m) : FactorPoissonMatrix2D(m) {
+CubFactorPoissonMatrix2D::CubFactorPoissonMatrix2D(DGMesh2D *m) : FactorPoissonMatrixOverInt2D(m) {
   DG_FP *tmp_cub_np = (DG_FP *)calloc(DG_CUB_NP * mesh->cells->size, sizeof(DG_FP));
   cFactor  = op_decl_dat(mesh->cells, DG_CUB_NP, DG_FP_STR, tmp_cub_np, "poisson_cFactor");
   free(tmp_cub_np);
