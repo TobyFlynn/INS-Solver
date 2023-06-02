@@ -15,17 +15,11 @@ LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m) {
   mesh = m;
   resuming = false;
 
-  DG_FP *tmp_np = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  DG_FP *tmp_ls_sample_np = (DG_FP *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(DG_FP));
-
-  s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "ls_s");
-  dsdx = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "ls_dsdx");
-  dsdy = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "ls_dsdy");
-  s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, tmp_ls_sample_np, "s_sample_x");
-  s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, tmp_ls_sample_np, "s_sample_y");
-
-  free(tmp_ls_sample_np);
-  free(tmp_np);
+  s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_s");
+  dsdx = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_dsdx");
+  dsdy = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_dsdy");
+  s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_x");
+  s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_y");
 
   advecSolver = new AdvectionSolver2D(mesh);
 }
@@ -36,16 +30,10 @@ LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m, const std::string &filename) {
 
   s = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ls_s");
 
-  DG_FP *tmp_np = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  DG_FP *tmp_ls_sample_np = (DG_FP *)calloc(LS_SAMPLE_NP * mesh->cells->size, sizeof(DG_FP));
-
-  dsdx = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "ls_dsdx");
-  dsdy = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, "ls_dsdy");
-  s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, tmp_ls_sample_np, "s_sample_x");
-  s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, tmp_ls_sample_np, "s_sample_y");
-
-  free(tmp_ls_sample_np);
-  free(tmp_np);
+  dsdx = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_dsdx");
+  dsdy = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_dsdy");
+  s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_x");
+  s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_y");
 
   advecSolver = new AdvectionSolver2D(mesh);
 }

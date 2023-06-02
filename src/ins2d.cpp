@@ -39,14 +39,7 @@ int main(int argc, char **argv) {
     return ierr;
   }
 
-  // Get input from args
-  int iter = 1;
   PetscBool found;
-  PetscOptionsGetInt(NULL, NULL, "-iter", &iter, &found);
-
-  int save = -1;
-  PetscOptionsGetInt(NULL, NULL, "-save", &save, &found);
-
   char inputFile[255];
   PetscOptionsGetString(NULL, NULL, "-input", inputFile, 255, &found);
   if(!found) {
@@ -90,15 +83,29 @@ int main(int argc, char **argv) {
     checkpointFile = string(checkFile);
   }
 
+  int iter = 1;
+  config->getInt("simulation-constants", "iter", iter);
+
+  int save = -1;
+  config->getInt("simulation-constants", "save", save);
+
   mu0  = 1.0;
   mu1  = 1.0;
   rho0 = 1.0;
   rho1 = 1.0;
+  config->getDouble("fluid-constants", "mu0", mu0);
+  config->getDouble("fluid-constants", "mu1", mu1);
+  config->getDouble("fluid-constants", "rho0", rho0);
+  config->getDouble("fluid-constants", "rho1", rho1);
 
-  const DG_FP refRho = 1.0;
-  const DG_FP refVel = 1.0;
-  const DG_FP refLen = 0.005;
-  const DG_FP refMu  = 1.0e-5;
+  DG_FP refRho = 1.0;
+  DG_FP refVel = 1.0;
+  DG_FP refLen = 0.005;
+  DG_FP refMu  = 1.0e-5;
+  config->getDouble("fluid-constants", "refRho", refRho);
+  config->getDouble("fluid-constants", "refVel", refVel);
+  config->getDouble("fluid-constants", "refLen", refLen);
+  config->getDouble("fluid-constants", "refMu", refMu);
   r_ynolds = refRho * refVel * refLen / refMu;
 
   int re = -1;

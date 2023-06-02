@@ -9,10 +9,12 @@
 #include "dg_op2_blas.h"
 
 #include "timing.h"
+#include "config.h"
 #include "linear_solvers/petsc_amg.h"
 #include "linear_solvers/petsc_block_jacobi.h"
 
 extern Timing *timer;
+extern Config *config;
 
 using namespace std;
 
@@ -24,24 +26,20 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) {
   setup_common();
 
   std::string name;
-  DG_FP *dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   for(int i = 0; i < 2; i++) {
     name = "mp_ins_solver_vel0" + std::to_string(i);
-    vel[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    vel[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "mp_ins_solver_vel1" + std::to_string(i);
-    vel[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    vel[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "mp_ins_solver_n0" + std::to_string(i);
-    n[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    n[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "mp_ins_solver_n1" + std::to_string(i);
-    n[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    n[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
   }
-  pr  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "mp_ins_solver_pr");
-  free(dg_np_data);
+  pr  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "mp_ins_solver_pr");
 
-  DG_FP *g_np_data = (DG_FP *)calloc(DG_G_NP * mesh->cells->size, sizeof(DG_FP));
-  dPdN[0] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, g_np_data, "mp_ins_solver_dPdN0");
-  dPdN[1] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, g_np_data, "mp_ins_solver_dPdN1");
-  free(g_np_data);
+  dPdN[0] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, "mp_ins_solver_dPdN0");
+  dPdN[1] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, "mp_ins_solver_dPdN1");
 
   currentInd = 0;
   time = 0.0;
@@ -99,40 +97,39 @@ void MPINSSolver2D::setup_common() {
   pressureSolver = new PETScPMultigrid(mesh);
   viscositySolver = new PETScBlockJacobiSolver(mesh);
 
+  int pr_tmp = 0;
+  int vis_tmp = 0;
+  config->getInt("solver-options", "pr_nullspace", pr_tmp);
+  config->getInt("solver-options", "vis_nullspace", vis_tmp);
+
   pressureSolver->set_coarse_matrix(coarsePressureMatrix);
   pressureSolver->set_matrix(pressureMatrix);
-  pressureSolver->set_nullspace(true);
+  pressureSolver->set_nullspace(pr_tmp == 1);
   viscositySolver->set_matrix(viscosityMatrix);
-  viscositySolver->set_nullspace(false);
+  viscositySolver->set_nullspace(vis_tmp == 1);
 
   std::string name;
-  DG_FP *dg_np_data = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
   for(int i = 0; i < 2; i++) {
     name = "mp_ins_solver_velT" + std::to_string(i);
-    velT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    velT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "mp_ins_solver_velTT" + std::to_string(i);
-    velTT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    velTT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
   }
   for(int i = 0; i < 4; i++) {
     name = "mp_ins_solver_tmp_np" + std::to_string(i);
-    tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, name.c_str());
+    tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
   }
-  rho = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "mp_ins_solver_rho");
-  mu  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, dg_np_data, "mp_ins_solver_mu");
-  free(dg_np_data);
+  rho = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "mp_ins_solver_rho");
+  mu  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "mp_ins_solver_mu");
 
-  DG_FP *g_np_data = (DG_FP *)calloc(DG_G_NP * mesh->cells->size, sizeof(DG_FP));
   for(int i = 0; i < 5; i++) {
     string name    = "tmp_g_np" + to_string(i);
-    tmp_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, g_np_data, name.c_str());
+    tmp_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
   }
-  free(g_np_data);
 
-  int *bc_1_data = (int *)calloc(mesh->bfaces->size, sizeof(int));
-  bc_types     = op_decl_dat(mesh->bfaces, 1, "int", bc_1_data, "ins_solver_bc_types");
-  pr_bc_types  = op_decl_dat(mesh->bfaces, 1, "int", bc_1_data, "ins_solver_pr_bc_types");
-  vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", bc_1_data, "ins_solver_vis_bc_types");
-  free(bc_1_data);
+  bc_types     = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_bc_types");
+  pr_bc_types  = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_pr_bc_types");
+  vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_vis_bc_types");
 
   f[0] = tmp_np[0];
   f[1] = tmp_np[1];

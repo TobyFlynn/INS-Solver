@@ -13,21 +13,17 @@ extern Timing *timer;
 AdvectionSolver2D::AdvectionSolver2D(DGMesh2D *m) {
   mesh = m;
 
-  DG_FP *data_t0 = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  f = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_2d_f");
-  g = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_2d_g");
-  rk[0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_2d_rk0");
-  rk[1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_2d_rk1");
-  rk[2] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_2d_rk2");
-  rkQ   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, data_t0, "advection_2d_rkQ");
-  free(data_t0);
+  f = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "advection_2d_f");
+  g = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "advection_2d_g");
+  rk[0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "advection_2d_rk0");
+  rk[1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "advection_2d_rk1");
+  rk[2] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "advection_2d_rk2");
+  rkQ   = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "advection_2d_rkQ");
 
-  DG_FP *data_t1 = (DG_FP *)calloc(DG_G_NP * mesh->cells->size, sizeof(DG_FP));
-  flux = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, data_t1, "advection_2d_flux");
-  gVal = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, data_t1, "advection_2d_gVal");
-  gU   = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, data_t1, "advection_2d_gU");
-  gV   = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, data_t1, "advection_2d_gV");
-  free(data_t1);
+  flux = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, "advection_2d_flux");
+  gVal = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, "advection_2d_gVal");
+  gU   = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, "advection_2d_gU");
+  gV   = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, "advection_2d_gV");
 
   dt = -1.0;
 }

@@ -12,30 +12,26 @@ extern Timing *timer;
 CompressibleEulerSolver2D::CompressibleEulerSolver2D(DGMesh2D *m) {
   mesh = m;
   std::string name;
-  DG_FP *tmp_np = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
-  DG_FP *tmp_g_np = (DG_FP *)calloc(DG_G_NP * mesh->cells->size, sizeof(DG_FP));
   for(int i = 0; i < 4; i++) {
     name = "Q" + std::to_string(i);
-    Q[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, name.c_str());
+    Q[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "F" + std::to_string(i);
-    F[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, name.c_str());
+    F[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "G" + std::to_string(i);
-    G[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, name.c_str());
+    G[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "rk_wQ" + std::to_string(i);
-    rk_wQ[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, name.c_str());
+    rk_wQ[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "rk_RHSQ0" + std::to_string(i);
-    rk_RHSQ[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, name.c_str());
+    rk_RHSQ[0][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "rk_RHSQ1" + std::to_string(i);
-    rk_RHSQ[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, name.c_str());
+    rk_RHSQ[1][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "rk_RHSQ2" + std::to_string(i);
-    rk_RHSQ[2][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, tmp_np, name.c_str());
+    rk_RHSQ[2][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "gQ" + std::to_string(i);
-    gQ[i] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, tmp_g_np, name.c_str());
+    gQ[i] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "gRHSQ" + std::to_string(i);
-    gRHSQ[i] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, tmp_g_np, name.c_str());
+    gRHSQ[i] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
   }
-  free(tmp_g_np);
-  free(tmp_np);
 }
 
 void CompressibleEulerSolver2D::init() {
