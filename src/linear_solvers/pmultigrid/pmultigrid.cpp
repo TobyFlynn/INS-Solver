@@ -194,7 +194,7 @@ void PMultigridPoissonSolver::set_matrix(PoissonMatrix *mat) {
   }
 
   eig_vals.clear();
-  int current_mesh_order = ((DGMesh3D *)mesh)->order_int;
+  int current_mesh_order = mesh->order_int;
   std::vector<op_dat> empty_vec;
   timer->startTimer("PMultigridPoissonSolver - Calc Eigen Values");
   for(int i = 0; i < orders.size(); i++) {
@@ -345,7 +345,7 @@ void PMultigridPoissonSolver::setupDirectSolve() {
 
 DG_FP PMultigridPoissonSolver::maxEigenValue() {
   // Get approx eigenvector using power iteration
-  const int N = ((DGMesh3D *)mesh)->order_int;
+  const int N = mesh->order_int;
   const int k = std::min(MAX_ITER_EIG_APPROX, (N + 1) * (N + 2) * (N + 3) / 6);
   std::vector<DGTempDat> tmp_dats;
   eigen_tmps.clear();

@@ -219,6 +219,8 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
 
   pressureCoarseMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->set_bc_types(pr_bc_types);
+  pressureSolver->init();
+  viscositySolver->init();
 
   // Setup div-div pressure projection
   op_par_loop(project_2d_setup, "project_2d_setup", mesh->cells,

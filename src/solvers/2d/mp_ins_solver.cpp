@@ -210,6 +210,9 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
 
   ls->getRhoMu(rho, mu);
 
+  pressureSolver->init();
+  viscositySolver->init();
+
   timer->endTimer("MPINSSolver2D - Init");
 }
 
