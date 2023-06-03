@@ -14,6 +14,7 @@
 #include "config.h"
 #include "solvers/2d/mp_ins_solver_over_int.h"
 #include "solvers/2d/ins_solver_over_int.h"
+#include "solvers/2d/ins_solver.h"
 
 Timing *timer;
 Config *config;
@@ -118,12 +119,12 @@ int main(int argc, char **argv) {
   // For 2D compressible Euler
   gamma_e = 1.4;
 
-  DGMesh2D *mesh = new DGMesh2D(filename);
-  INSSolverOverInt2D *mpins2d;
+  DGMesh2D *mesh = new DGMesh2D(filename, false);
+  INSSolver2D *mpins2d;
   if(resumeIter == 0)
-    mpins2d = new INSSolverOverInt2D(mesh);
+    mpins2d = new INSSolver2D(mesh);
   else
-    mpins2d = new INSSolverOverInt2D(mesh, checkpointFile, resumeIter);
+    mpins2d = new INSSolver2D(mesh, checkpointFile, resumeIter);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
@@ -146,8 +147,12 @@ int main(int argc, char **argv) {
   mesh->init();
   mpins2d->init(r_ynolds, refVel);
 
-  string out_file_ic = outputDir + "ic.h5";
-  mpins2d->dump_data(out_file_ic);
+  int save_ic = 1;
+  config->getInt("simulation-constants", "save_ic", save_ic);
+  if(save_ic) {
+    string out_file_ic = outputDir + "ic.h5";
+    mpins2d->dump_data(out_file_ic);
+  }
 
   timer->startTimer("Main loop");
   for(int i = resumeIter; i < iter; i++) {
@@ -162,8 +167,12 @@ int main(int argc, char **argv) {
   }
   timer->endTimer("Main loop");
 
-  string out_file_end = outputDir + "end.h5";
-  mpins2d->dump_data(out_file_end);
+  int save_end = 1;
+  config->getInt("simulation-constants", "save_end", save_end);
+  if(save_end) {
+    string out_file_end = outputDir + "end.h5";
+    mpins2d->dump_data(out_file_end);
+  }
 
   timer->exportTimings(outputDir + "timings.txt", iter, mpins2d->get_time());
 

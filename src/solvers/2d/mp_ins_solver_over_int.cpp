@@ -265,7 +265,7 @@ void MPINSSolverOverInt2D::advection() {
               op_arg_dat(gAdvecFlux[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 
   // Exchange values on edges between elements
-  op_par_loop(ins_advec_faces_2d, "ins_advec_faces_2d", mesh->faces,
+  op_par_loop(ins_advec_faces_over_int_2d, "ins_advec_faces_over_int_2d", mesh->faces,
               op_arg_dat(mesh->order,     -2, mesh->face2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
@@ -279,7 +279,7 @@ void MPINSSolverOverInt2D::advection() {
 
   // Enforce BCs
   if(mesh->bface2cells) {
-    op_par_loop(ins_advec_bc_2d, "ins_advec_bc_2d", mesh->bfaces,
+    op_par_loop(ins_advec_bc_over_int_2d, "ins_advec_bc_over_int_2d", mesh->bfaces,
                 op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->order,     0, mesh->bface2cells, 1, "int", OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
@@ -385,7 +385,7 @@ bool MPINSSolverOverInt2D::pressure() {
 
   timer->startTimer("MPINSSolverOverInt2D - Pressure Projection");
   // Calculate gradient of pressure
-  mesh->grad_with_central_flux(pr, dpdx, dpdy);
+  mesh->grad_with_central_flux_over_int(pr, dpdx, dpdy);
 
   // Calculate new velocity intermediate values
   op_par_loop(mp_ins_pressure_update_2d, "mp_ins_pressure_update_2d", mesh->cells,

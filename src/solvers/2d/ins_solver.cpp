@@ -1,4 +1,4 @@
-#include "solvers/2d/ins_solver_over_int.h"
+#include "solvers/2d/ins_solver.h"
 
 // Include OP2 stuff
 #include "op_seq.h"
@@ -8,6 +8,7 @@
 
 #include "dg_op2_blas.h"
 #include "dg_constants/dg_constants.h"
+#include "dg_dat_pool.h"
 
 #include "timing.h"
 #include "config.h"
@@ -18,10 +19,11 @@
 extern Timing *timer;
 extern Config *config;
 extern DGConstants *constants;
+extern DGDatPool *dg_dat_pool;
 
 using namespace std;
 
-INSSolverOverInt2D::INSSolverOverInt2D(DGMesh2D *m) {
+INSSolver2D::INSSolver2D(DGMesh2D *m) {
   mesh = m;
   resuming = false;
 
@@ -52,7 +54,7 @@ INSSolverOverInt2D::INSSolverOverInt2D(DGMesh2D *m) {
   g0 = 1.0;
 }
 
-INSSolverOverInt2D::INSSolverOverInt2D(DGMesh2D *m, const std::string &filename, const int iter) {
+INSSolver2D::INSSolver2D(DGMesh2D *m, const std::string &filename, const int iter) {
   mesh = m;
   resuming = true;
 
@@ -87,29 +89,29 @@ INSSolverOverInt2D::INSSolverOverInt2D(DGMesh2D *m, const std::string &filename,
   }
 }
 
-void INSSolverOverInt2D::setup_common() {
+void INSSolver2D::setup_common() {
   // pressureMatrix = new PoissonMatrixOverInt2D(mesh);
-  pressureCoarseMatrix = new PoissonCoarseMatrixOverInt2D(mesh);
-  pressureMatrix = new PoissonSemiMatrixFreeOverInt2D(mesh);
+  // pressureCoarseMatrix = new PoissonCoarseMatrixOverInt2D(mesh);
+  // pressureMatrix = new PoissonSemiMatrixFreeOverInt2D(mesh);
   // viscosityMatrix = new MMPoissonMatrixOverInt2D(mesh);
-  viscosityMatrix = new MMPoissonMatrixFreeOverInt2D(mesh);
+  // viscosityMatrix = new MMPoissonMatrixFreeOverInt2D(mesh);
   // pressureSolver = new PETScAMGSolver(mesh);
-  PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
+  // PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
   // pressureSolver = new PETScPMultigrid(mesh);
   // viscositySolver = new PETScBlockJacobiSolver(mesh);
-  viscositySolver = new PETScInvMassSolver(mesh);
-  tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
-  pressureSolver = tmp_pressureSolver;
+  // viscositySolver = new PETScInvMassSolver(mesh);
+  // tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
+  // pressureSolver = tmp_pressureSolver;
 
   int pr_tmp = 0;
   int vis_tmp = 0;
   config->getInt("solver-options", "pr_nullspace", pr_tmp);
   config->getInt("solver-options", "vis_nullspace", vis_tmp);
 
-  pressureSolver->set_matrix(pressureMatrix);
-  pressureSolver->set_nullspace(pr_tmp == 1);
-  viscositySolver->set_matrix(viscosityMatrix);
-  viscositySolver->set_nullspace(vis_tmp == 1);
+  // pressureSolver->set_matrix(pressureMatrix);
+  // pressureSolver->set_nullspace(pr_tmp == 1);
+  // viscositySolver->set_matrix(viscosityMatrix);
+  // viscositySolver->set_nullspace(vis_tmp == 1);
 
   std::string name;
   for(int i = 0; i < 2; i++) {
@@ -118,67 +120,25 @@ void INSSolverOverInt2D::setup_common() {
     name = "ins_solver_velTT" + std::to_string(i);
     velTT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
   }
-  for(int i = 0; i < 4; i++) {
-    name = "ins_solver_tmp_np" + std::to_string(i);
-    tmp_np[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
-  }
-
-  for(int i = 0; i < 4; i++) {
-    string name    = "tmp_g_np" + to_string(i);
-    tmp_g_np[i] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
-  }
 
   bc_types     = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_bc_types");
   pr_bc_types  = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_pr_bc_types");
   vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_vis_bc_types");
 
-  proj_op_xx = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, (DG_FP *)NULL, "proj_op_xx");
-  proj_op_yy = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, (DG_FP *)NULL, "proj_op_yy");
-  proj_op_xy = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, (DG_FP *)NULL, "proj_op_xy");
-  proj_op_yx = op_decl_dat(mesh->cells, DG_NP * DG_NP, DG_FP_STR, (DG_FP *)NULL, "proj_op_yx");
-
-  proj_pen = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "proj_pen");
-  proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "proj_h");
-
-  f[0] = tmp_np[0];
-  f[1] = tmp_np[1];
-  f[2] = tmp_np[2];
-  f[3] = tmp_np[3];
-  divVelT = tmp_np[0];
-  curlVel = tmp_np[1];
-  gradCurlVel[0] = tmp_np[2];
-  gradCurlVel[1] = tmp_np[3];
-  pRHS = tmp_np[1];
-  dpdx = tmp_np[1];
-  dpdy = tmp_np[2];
-  proj_rhs_x = tmp_np[0];
-  proj_rhs_y = tmp_np[3];
-  visRHS[0] = tmp_np[0];
-  visRHS[1] = tmp_np[1];
-
-  gVel[0] = tmp_g_np[0];
-  gVel[1] = tmp_g_np[1];
-  gAdvecFlux[0] = tmp_g_np[2];
-  gAdvecFlux[1] = tmp_g_np[3];
-  gN[0] = tmp_g_np[0];
-  gN[1] = tmp_g_np[1];
-  gGradCurl[0] = tmp_g_np[2];
-  gGradCurl[1] = tmp_g_np[3];
-  prBC = tmp_g_np[0];
-  visBC[0] = tmp_g_np[0];
-  visBC[1] = tmp_g_np[1];
+  // proj_pen = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "proj_pen");
+  // proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "proj_h");
 }
 
-INSSolverOverInt2D::~INSSolverOverInt2D() {
-  delete pressureCoarseMatrix;
-  delete pressureMatrix;
-  delete viscosityMatrix;
-  delete pressureSolver;
-  delete viscositySolver;
+INSSolver2D::~INSSolver2D() {
+  // delete pressureCoarseMatrix;
+  // delete pressureMatrix;
+  // delete viscosityMatrix;
+  // delete pressureSolver;
+  // delete viscositySolver;
 }
 
-void INSSolverOverInt2D::init(const DG_FP re, const DG_FP refVel) {
-  timer->startTimer("INSSolverOverInt2D - Init");
+void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
+  timer->startTimer("INSSolver2D - Init");
   reynolds = re;
 
   // Set initial conditions
@@ -215,49 +175,30 @@ void INSSolverOverInt2D::init(const DG_FP re, const DG_FP refVel) {
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
   }
 
-  pressureCoarseMatrix->set_bc_types(pr_bc_types);
-  pressureMatrix->set_bc_types(pr_bc_types);
-  pressureSolver->init();
-  viscositySolver->init();
+  // pressureCoarseMatrix->set_bc_types(pr_bc_types);
+  // pressureMatrix->set_bc_types(pr_bc_types);
+  // pressureSolver->init();
+  // viscositySolver->init();
 
-  // Setup div-div pressure projection
-  op_par_loop(project_2d_setup, "project_2d_setup", mesh->cells,
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->rx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->sx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->ry, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->sy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(proj_op_xx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(proj_op_yy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(proj_op_yx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(proj_op_xy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
-
-  op_par_loop(poisson_h, "poisson_h", mesh->cells,
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
-              op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
-
-  timer->endTimer("INSSolverOverInt2D - Init");
+  timer->endTimer("INSSolver2D - Init");
 }
 
-void INSSolverOverInt2D::step() {
-  timer->startTimer("INSSolverOverInt2D - Advection");
+void INSSolver2D::step() {
+  timer->startTimer("INSSolver2D - Advection");
   advection();
-  timer->endTimer("INSSolverOverInt2D - Advection");
+  timer->endTimer("INSSolver2D - Advection");
 
-  timer->startTimer("INSSolverOverInt2D - Pressure");
-  pressure();
-  timer->endTimer("INSSolverOverInt2D - Pressure");
+  // timer->startTimer("INSSolver2D - Pressure");
+  // pressure();
+  // timer->endTimer("INSSolver2D - Pressure");
 
   // timer->startTimer("Shock Capturing");
   // shock_capturing();
   // timer->endTimer("Shock Capturing");
 
-  timer->startTimer("INSSolverOverInt2D - Viscosity");
-  viscosity();
-  timer->endTimer("INSSolverOverInt2D - Viscosity");
+  // timer->startTimer("INSSolver2D - Viscosity");
+  // viscosity();
+  // timer->endTimer("INSSolver2D - Viscosity");
 
   currentInd = (currentInd + 1) % 2;
   time += dt;
@@ -269,58 +210,69 @@ void INSSolverOverInt2D::step() {
 }
 
 // Calculate Nonlinear Terms
-void INSSolverOverInt2D::advection() {
+void INSSolver2D::advection() {
+  DGTempDat f[2][2];
+  f[0][0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[0][1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[1][0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  f[1][1] = dg_dat_pool->requestTempDatCells(DG_NP);
   // Calculate flux values
   op_par_loop(ins_advec_flux_2d, "ins_advec_flux_2d", mesh->cells,
               op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(f[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(f[3], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+              op_arg_dat(f[0][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[0][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[1][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[1][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-  mesh->div(f[0], f[1], n[currentInd][0]);
-  mesh->div(f[2], f[3], n[currentInd][1]);
+  mesh->div(f[0][0].dat, f[0][1].dat, n[currentInd][0]);
+  mesh->div(f[1][0].dat, f[1][1].dat, n[currentInd][1]);
 
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, vel[currentInd][0], 0.0, gVel[0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, vel[currentInd][1], 0.0, gVel[1]);
+  dg_dat_pool->releaseTempDatCells(f[0][0]);
+  dg_dat_pool->releaseTempDatCells(f[0][1]);
+  dg_dat_pool->releaseTempDatCells(f[1][0]);
+  dg_dat_pool->releaseTempDatCells(f[1][1]);
 
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
-              op_arg_dat(gAdvecFlux[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(gAdvecFlux[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
+  DGTempDat tmp_advec_flux0 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  DGTempDat tmp_advec_flux1 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
 
-  // Exchange values on edges between elements
-  op_par_loop(ins_advec_faces_over_int_2d, "ins_advec_faces_over_int_2d", mesh->faces,
-              op_arg_dat(mesh->order,     -2, mesh->face2cells, 1, "int", OP_READ),
-              op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(mesh->gauss->nx, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->gauss->ny, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->gauss->sJ, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(gVel[0],         -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(gVel[1],         -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(gAdvecFlux[0],   -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_INC),
-              op_arg_dat(gAdvecFlux[1],   -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_INC));
+  op_par_loop(zero_npf_2, "zero_npf_2", mesh->cells,
+              op_arg_dat(tmp_advec_flux0.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_advec_flux1.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+
+  op_par_loop(ins_advec_faces_2d, "ins_advec_faces_2d", mesh->faces,
+              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(mesh->nx,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ny,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale,  -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][0],  -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][1],  -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_advec_flux0.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_advec_flux1.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
   // Enforce BCs
   if(mesh->bface2cells) {
-    op_par_loop(ins_advec_bc_over_int_2d, "ins_advec_bc_over_int_2d", mesh->bfaces,
+    op_par_loop(ins_advec_bc_2d, "ins_advec_bc_2d", mesh->bfaces,
                 op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->order,     0, mesh->bface2cells, 1, "int", OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->gauss->sJ, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(gVel[0],         0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(gVel[1],         0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(gAdvecFlux[0],   0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC),
-                op_arg_dat(gAdvecFlux[1],   0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC));
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_advec_flux0.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+                op_arg_dat(tmp_advec_flux1.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
   }
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, gAdvecFlux[0], 1.0, n[currentInd][0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, gAdvecFlux[1], 1.0, n[currentInd][1]);
+
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_advec_flux0.dat, 1.0, n[currentInd][0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_advec_flux1.dat, 1.0, n[currentInd][1]);
+
+  dg_dat_pool->releaseTempDatCells(tmp_advec_flux0);
+  dg_dat_pool->releaseTempDatCells(tmp_advec_flux1);
 
   // Calculate the intermediate velocity values
   op_par_loop(ins_advec_intermediate_vel_2d, "ins_advec_intermediate_vel_2d", mesh->cells,
@@ -341,8 +293,9 @@ void INSSolverOverInt2D::advection() {
               op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 }
 
-bool INSSolverOverInt2D::pressure() {
-  timer->startTimer("INSSolverOverInt2D - Pressure RHS");
+bool INSSolver2D::pressure() {
+/*
+  timer->startTimer("INSSolver2D - Pressure RHS");
 
   // mesh->div(velT[0], velT[1], divVelT);
   mesh->cub_div_with_central_flux(velT[0], velT[1], divVelT);
@@ -389,22 +342,25 @@ bool INSSolverOverInt2D::pressure() {
 
   op2_gemv(mesh, false, 1.0, DGConstants::MASS, divVelT, 0.0, pRHS);
   op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, dPdN[(currentInd + 1) % 2], 1.0, pRHS);
-  timer->endTimer("INSSolverOverInt2D - Pressure RHS");
+  timer->endTimer("INSSolver2D - Pressure RHS");
 
   // Call PETSc linear solver
-  timer->startTimer("INSSolverOverInt2D - Pressure Linear Solve");
+  timer->startTimer("INSSolver2D - Pressure Linear Solve");
   pressureSolver->set_bcs(prBC);
   bool converged = pressureSolver->solve(pRHS, pr);
-  timer->endTimer("INSSolverOverInt2D - Pressure Linear Solve");
+  timer->endTimer("INSSolver2D - Pressure Linear Solve");
 
-  timer->startTimer("INSSolverOverInt2D - Pressure Projection");
+  timer->startTimer("INSSolver2D - Pressure Projection");
   project_velocity();
-  timer->endTimer("INSSolverOverInt2D - Pressure Projection");
+  timer->endTimer("INSSolver2D - Pressure Projection");
 
   return converged;
+*/
+  return true;
 }
 
-void INSSolverOverInt2D::project_velocity() {
+void INSSolver2D::project_velocity() {
+  /*
   // Calculate gradient of pressure
   mesh->cub_grad_with_central_flux(pr, dpdx, dpdy);
 
@@ -473,10 +429,12 @@ void INSSolverOverInt2D::project_velocity() {
       exit(-1);
     }
   }
+  */
 }
 
-bool INSSolverOverInt2D::viscosity() {
-  timer->startTimer("INSSolverOverInt2D - Viscosity RHS");
+bool INSSolver2D::viscosity() {
+  /*
+  timer->startTimer("INSSolver2D - Viscosity RHS");
   DG_FP time_n1 = time + dt;
 
   op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
@@ -512,10 +470,10 @@ bool INSSolverOverInt2D::viscosity() {
               op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
-  timer->endTimer("INSSolverOverInt2D - Viscosity RHS");
+  timer->endTimer("INSSolver2D - Viscosity RHS");
 
   // Call PETSc linear solver
-  timer->startTimer("INSSolverOverInt2D - Viscosity Linear Solve");
+  timer->startTimer("INSSolver2D - Viscosity Linear Solve");
   factor = g0 * reynolds / dt;
   if(factor != viscosityMatrix->get_factor()) {
     viscosityMatrix->set_factor(factor);
@@ -528,7 +486,7 @@ bool INSSolverOverInt2D::viscosity() {
 
   viscositySolver->set_bcs(visBC[1]);
   bool convergedY = viscositySolver->solve(visRHS[1], vel[(currentInd + 1) % 2][1]);
-  timer->endTimer("INSSolverOverInt2D - Viscosity Linear Solve");
+  timer->endTimer("INSSolver2D - Viscosity Linear Solve");
 
   // timer->startTimer("Filtering");
   // filter(mesh, Q[(currentInd + 1) % 2][0]);
@@ -536,18 +494,20 @@ bool INSSolverOverInt2D::viscosity() {
   // timer->endTimer("Filtering");
 
   return convergedX && convergedY;
+  */
+  return true;
 }
 
-DG_FP INSSolverOverInt2D::get_time() {
+DG_FP INSSolver2D::get_time() {
   return time;
 }
 
-DG_FP INSSolverOverInt2D::get_dt() {
+DG_FP INSSolver2D::get_dt() {
   return dt;
 }
 
-void INSSolverOverInt2D::dump_data(const std::string &filename) {
-  timer->startTimer("INSSolverOverInt2D - Dump Data");
+void INSSolver2D::dump_data(const std::string &filename) {
+  timer->startTimer("INSSolver2D - Dump Data");
   op_fetch_data_hdf5_file(mesh->x, filename.c_str());
   op_fetch_data_hdf5_file(mesh->y, filename.c_str());
   op_fetch_data_hdf5_file(vel[0][0], filename.c_str());
@@ -566,5 +526,5 @@ void INSSolverOverInt2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(velTT[1], filename.c_str());
   op_fetch_data_hdf5_file(pr, filename.c_str());
   op_fetch_data_hdf5_file(mesh->order, filename.c_str());
-  timer->endTimer("INSSolverOverInt2D - Dump Data");
+  timer->endTimer("INSSolver2D - Dump Data");
 }

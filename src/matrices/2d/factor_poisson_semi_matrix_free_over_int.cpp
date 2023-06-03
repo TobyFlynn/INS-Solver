@@ -40,7 +40,7 @@ void FactorPoissonSemiMatrixFreeOverInt2D::apply_bc(op_dat rhs, op_dat bc) {
                 op_arg_dat(mesh->gauss->sJ, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->fscale, 0, mesh->bface2cells, 3 * DG_NPF, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->fscale_c, 0, mesh->bface2cells, 3 * DG_NPF, DG_FP_STR, OP_READ),
                 op_arg_dat(gFactor, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(bc,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(rhs, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_INC));
@@ -73,7 +73,7 @@ void FactorPoissonSemiMatrixFreeOverInt2D::mult(op_dat in, op_dat out) {
               op_arg_dat(mesh->gauss->sJ, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->gauss->nx, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->gauss->ny, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->fscale, -2, mesh->face2cells, 3 * DG_NPF, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale_c, -2, mesh->face2cells, 3 * DG_NPF, DG_FP_STR, OP_READ),
               op_arg_dat(gFactor, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
               op_arg_dat(gIn, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
               op_arg_dat(gIn_grad[0], -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
@@ -90,7 +90,7 @@ void FactorPoissonSemiMatrixFreeOverInt2D::mult(op_dat in, op_dat out) {
                 op_arg_dat(mesh->gauss->sJ, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->fscale, 0, mesh->bface2cells, 3 * DG_NPF, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->fscale_c, 0, mesh->bface2cells, 3 * DG_NPF, DG_FP_STR, OP_READ),
                 op_arg_dat(gFactor, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(gIn, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(gIn_grad[0], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
@@ -168,7 +168,7 @@ void FactorPoissonSemiMatrixFreeOverInt2D::calc_op2() {
               op_arg_dat(mesh->gauss->sJ, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->gauss->nx, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->gauss->ny, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->fscale, -2, mesh->face2cells, 3 * DG_NPF, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale_c, -2, mesh->face2cells, 3 * DG_NPF, DG_FP_STR, OP_READ),
               op_arg_dat(gFactor, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
               op_arg_dat(op1, 0, mesh->face2cells, DG_NP * DG_NP, DG_FP_STR, OP_INC),
               op_arg_dat(op1, 1, mesh->face2cells, DG_NP * DG_NP, DG_FP_STR, OP_INC);
@@ -196,7 +196,7 @@ void FactorPoissonSemiMatrixFreeOverInt2D::calc_opbc() {
                 op_arg_dat(mesh->gauss->sJ, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->fscale, 0, mesh->bface2cells, 3 * DG_NPF, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->fscale_c, 0, mesh->bface2cells, 3 * DG_NPF, DG_FP_STR, OP_READ),
                 op_arg_dat(gFactor, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(op1, 0, mesh->bface2cells, DG_NP * DG_NP, DG_FP_STR, OP_INC));
   }
