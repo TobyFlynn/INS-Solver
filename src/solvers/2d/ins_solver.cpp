@@ -332,8 +332,6 @@ bool INSSolver2D::pressure() {
   op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
               op_arg_dat(prBC.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
-  // TODO: CURRENTLY HERE
-
   // Calculate RHS of pressure solve
   // This assumes that the boundaries will always be order DG_ORDER
   op_par_loop(ins_pressure_rhs_2d, "ins_pressure_rhs_2d", mesh->cells,

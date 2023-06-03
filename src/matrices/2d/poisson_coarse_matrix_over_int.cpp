@@ -106,22 +106,15 @@ void PoissonCoarseMatrixOverInt2D::apply_bc(op_dat rhs, op_dat bc) {
 
 void PoissonCoarseMatrixOverInt2D::calc_op1() {
   timer->startTimer("PoissonCoarseMatrixOverInt2D - calc_op1");
-op_par_loop(poisson_coarse_matrix_2d_op1, "poisson_coarse_matrix_2d_op1", mesh->cells,
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->rx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->sx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->ry, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->sy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->J, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+  op_par_loop(poisson_coarse_matrix_2d_op1, "poisson_coarse_matrix_2d_op1", mesh->cells,
+              op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
               op_arg_dat(op1, -1, OP_ID, DG_NP_N1 * DG_NP_N1, DG_FP_STR, OP_WRITE));
   timer->endTimer("PoissonCoarseMatrixOverInt2D - calc_op1");
 }
 
 void PoissonCoarseMatrixOverInt2D::calc_op2() {
   timer->startTimer("PoissonCoarseMatrixOverInt2D - calc_op2");
-  op_par_loop(poisson_coarse_matrix_2d_op2, "poisson_coarse_matrix_2d_op2", mesh->faces,
+  op_par_loop(poisson_coarse_matrix_over_int_2d_op2, "poisson_coarse_matrix_over_int_2d_op2", mesh->faces,
               op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F0DR), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F0DS), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F1DR), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
