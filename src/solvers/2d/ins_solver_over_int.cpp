@@ -356,7 +356,7 @@ bool INSSolverOverInt2D::pressure() {
 
   // Apply Neumann pressure boundary conditions
   if(mesh->bface2cells) {
-    op_par_loop(ins_pressure_bc_2d, "ins_pressure_bc_2d", mesh->bfaces,
+    op_par_loop(ins_pressure_bc_over_int_2d, "ins_pressure_bc_over_int_2d", mesh->bfaces,
                 op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
@@ -376,7 +376,7 @@ bool INSSolverOverInt2D::pressure() {
 
   // Calculate RHS of pressure solve
   // This assumes that the boundaries will always be order DG_ORDER
-  op_par_loop(ins_pressure_rhs_2d, "ins_pressure_rhs_2d", mesh->cells,
+  op_par_loop(ins_pressure_rhs_over_int_2d, "ins_pressure_rhs_over_int_2d", mesh->cells,
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),

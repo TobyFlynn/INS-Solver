@@ -352,7 +352,7 @@ bool MPINSSolverOverInt2D::pressure() {
 
   // Calculate RHS of pressure solve
   // This assumes that the boundaries will always be order DG_ORDER
-  op_par_loop(ins_pressure_rhs_2d, "ins_pressure_rhs_2d", mesh->cells,
+  op_par_loop(ins_pressure_rhs_over_int_2d, "ins_pressure_rhs_over_int_2d", mesh->cells,
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),

@@ -42,8 +42,8 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) {
   }
   pr = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_pr");
 
-  dPdN[0] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN0");
-  dPdN[1] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN1");
+  dPdN[0] = op_decl_dat(mesh->cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN0");
+  dPdN[1] = op_decl_dat(mesh->cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN1");
 
   currentInd = 0;
 
@@ -69,8 +69,8 @@ INSSolver2D::INSSolver2D(DGMesh2D *m, const std::string &filename, const int ite
   n[0][1] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_n01");
   n[1][1] = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_n11");
   pr = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_pr");
-  dPdN[0] = op_decl_dat_hdf5(mesh->cells, DG_G_NP, DG_FP_STR, filename.c_str(), "ins_solver_dPdN0");
-  dPdN[1] = op_decl_dat_hdf5(mesh->cells, DG_G_NP, DG_FP_STR, filename.c_str(), "ins_solver_dPdN1");
+  dPdN[0] = op_decl_dat_hdf5(mesh->cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, filename.c_str(), "ins_solver_dPdN0");
+  dPdN[1] = op_decl_dat_hdf5(mesh->cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, filename.c_str(), "ins_solver_dPdN1");
 
   currentInd = iter;
 
@@ -151,9 +151,9 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
                 op_arg_dat(vel[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(vel[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-    op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
-                op_arg_dat(dPdN[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(dPdN[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
+    op_par_loop(zero_npf_2, "zero_npf_2", mesh->cells,
+                op_arg_dat(dPdN[0], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+                op_arg_dat(dPdN[1], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
   }
 
   dt = numeric_limits<DG_FP>::max();
@@ -188,9 +188,9 @@ void INSSolver2D::step() {
   advection();
   timer->endTimer("INSSolver2D - Advection");
 
-  // timer->startTimer("INSSolver2D - Pressure");
-  // pressure();
-  // timer->endTimer("INSSolver2D - Pressure");
+  timer->startTimer("INSSolver2D - Pressure");
+  pressure();
+  timer->endTimer("INSSolver2D - Pressure");
 
   // timer->startTimer("Shock Capturing");
   // shock_capturing();
@@ -294,18 +294,17 @@ void INSSolver2D::advection() {
 }
 
 bool INSSolver2D::pressure() {
-/*
   timer->startTimer("INSSolver2D - Pressure RHS");
+  DGTempDat divVelT = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat curlVel = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat gradCurlVel[2];
+  gradCurlVel[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  gradCurlVel[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  mesh->div_with_central_flux(velT[0], velT[1], divVelT.dat);
+  mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel.dat);
+  mesh->grad(curlVel.dat, gradCurlVel[0].dat, gradCurlVel[1].dat);
 
-  // mesh->div(velT[0], velT[1], divVelT);
-  mesh->cub_div_with_central_flux(velT[0], velT[1], divVelT);
-  mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel);
-  mesh->grad(curlVel, gradCurlVel[0], gradCurlVel[1]);
-
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, n[currentInd][0], 0.0, gN[0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, n[currentInd][1], 0.0, gN[1]);
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, gradCurlVel[0], 0.0, gGradCurl[0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, gradCurlVel[1], 0.0, gGradCurl[1]);
+  dg_dat_pool->releaseTempDatCells(curlVel);
 
   // Apply Neumann pressure boundary conditions
   if(mesh->bface2cells) {
@@ -313,19 +312,27 @@ bool INSSolver2D::pressure() {
                 op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(gN[0], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(gN[1], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(gGradCurl[0], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(gGradCurl[1], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dPdN[currentInd], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC));
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gradCurlVel[0].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(gradCurlVel[1].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dPdN[currentInd],   0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
   }
+
+  dg_dat_pool->releaseTempDatCells(gradCurlVel[0]);
+  dg_dat_pool->releaseTempDatCells(gradCurlVel[1]);
+
+  DGTempDat prBC = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
   // Apply Dirichlet BCs
-  op_par_loop(zero_g_np1, "zero_g_np1", mesh->cells,
-              op_arg_dat(prBC, -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
+  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+              op_arg_dat(prBC.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+
+  // TODO: CURRENTLY HERE
 
   // Calculate RHS of pressure solve
   // This assumes that the boundaries will always be order DG_ORDER
@@ -333,29 +340,27 @@ bool INSSolver2D::pressure() {
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->J, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->gauss->sJ, -1, OP_ID, DG_G_NP, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[currentInd], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(divVelT, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+              op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
-  op2_gemv(mesh, false, 1.0, DGConstants::MASS, divVelT, 0.0, pRHS);
-  op2_gemv(mesh, true, 1.0, DGConstants::GAUSS_INTERP, dPdN[(currentInd + 1) % 2], 1.0, pRHS);
+  mesh->mass(divVelT.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT.dat);
   timer->endTimer("INSSolver2D - Pressure RHS");
 
   // Call PETSc linear solver
   timer->startTimer("INSSolver2D - Pressure Linear Solve");
-  pressureSolver->set_bcs(prBC);
-  bool converged = pressureSolver->solve(pRHS, pr);
+  // pressureSolver->set_bcs(prBC.dat);
+  // bool converged = pressureSolver->solve(pRHS, pr);
+  dg_dat_pool->releaseTempDatCells(divVelT);
+  dg_dat_pool->releaseTempDatCells(prBC);
   timer->endTimer("INSSolver2D - Pressure Linear Solve");
 
   timer->startTimer("INSSolver2D - Pressure Projection");
   project_velocity();
   timer->endTimer("INSSolver2D - Pressure Projection");
 
-  return converged;
-*/
+  // return converged;
   return true;
 }
 
