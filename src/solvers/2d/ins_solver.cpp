@@ -90,26 +90,23 @@ INSSolver2D::INSSolver2D(DGMesh2D *m, const std::string &filename, const int ite
 }
 
 void INSSolver2D::setup_common() {
-  // pressureMatrix = new PoissonMatrixOverInt2D(mesh);
-  // pressureCoarseMatrix = new PoissonCoarseMatrixOverInt2D(mesh);
-  // pressureMatrix = new PoissonSemiMatrixFreeOverInt2D(mesh);
+  pressureMatrix = new PoissonMatrixFreeDiag2D(mesh);
+  pressureCoarseMatrix = new PoissonCoarseMatrix2D(mesh);
   // viscosityMatrix = new MMPoissonMatrixOverInt2D(mesh);
   // viscosityMatrix = new MMPoissonMatrixFreeOverInt2D(mesh);
-  // pressureSolver = new PETScAMGSolver(mesh);
-  // PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
-  // pressureSolver = new PETScPMultigrid(mesh);
+  PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
+  tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
+  pressureSolver = tmp_pressureSolver;
   // viscositySolver = new PETScBlockJacobiSolver(mesh);
   // viscositySolver = new PETScInvMassSolver(mesh);
-  // tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
-  // pressureSolver = tmp_pressureSolver;
 
   int pr_tmp = 0;
   int vis_tmp = 0;
   config->getInt("solver-options", "pr_nullspace", pr_tmp);
   config->getInt("solver-options", "vis_nullspace", vis_tmp);
 
-  // pressureSolver->set_matrix(pressureMatrix);
-  // pressureSolver->set_nullspace(pr_tmp == 1);
+  pressureSolver->set_matrix(pressureMatrix);
+  pressureSolver->set_nullspace(pr_tmp == 1);
   // viscositySolver->set_matrix(viscosityMatrix);
   // viscositySolver->set_nullspace(vis_tmp == 1);
 
@@ -130,10 +127,10 @@ void INSSolver2D::setup_common() {
 }
 
 INSSolver2D::~INSSolver2D() {
-  // delete pressureCoarseMatrix;
-  // delete pressureMatrix;
+  delete pressureCoarseMatrix;
+  delete pressureMatrix;
   // delete viscosityMatrix;
-  // delete pressureSolver;
+  delete pressureSolver;
   // delete viscositySolver;
 }
 
@@ -175,9 +172,9 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
   }
 
-  // pressureCoarseMatrix->set_bc_types(pr_bc_types);
-  // pressureMatrix->set_bc_types(pr_bc_types);
-  // pressureSolver->init();
+  pressureCoarseMatrix->set_bc_types(pr_bc_types);
+  pressureMatrix->set_bc_types(pr_bc_types);
+  pressureSolver->init();
   // viscositySolver->init();
 
   timer->endTimer("INSSolver2D - Init");
@@ -348,8 +345,8 @@ bool INSSolver2D::pressure() {
 
   // Call PETSc linear solver
   timer->startTimer("INSSolver2D - Pressure Linear Solve");
-  // pressureSolver->set_bcs(prBC.dat);
-  // bool converged = pressureSolver->solve(pRHS, pr);
+  pressureSolver->set_bcs(prBC.dat);
+  bool converged = pressureSolver->solve(divVelT.dat, pr);
   dg_dat_pool->releaseTempDatCells(divVelT);
   dg_dat_pool->releaseTempDatCells(prBC);
   timer->endTimer("INSSolver2D - Pressure Linear Solve");
@@ -358,8 +355,7 @@ bool INSSolver2D::pressure() {
   project_velocity();
   timer->endTimer("INSSolver2D - Pressure Projection");
 
-  // return converged;
-  return true;
+  return converged;
 }
 
 void INSSolver2D::project_velocity() {
