@@ -52,7 +52,12 @@ void PoissonCoarseMatrix2D::calc_glb_ind() {
 
 void PoissonCoarseMatrix2D::apply_bc(op_dat rhs, op_dat bc) {
   timer->startTimer("PoissonCoarseMatrix2D - apply_bc");
-  // TODO
+  if(mesh->bface2cells) {
+    op_par_loop(poisson_coarse_matrix_apply_bc, "poisson_coarse_matrix_apply_bc", mesh->bfaces,
+                op_arg_dat(opbc, -1, OP_ID, DG_NPF_N1 * DG_NP_N1, DG_FP_STR, OP_READ),
+                op_arg_dat(bc,   -1, OP_ID, DG_NPF, DG_FP_STR, OP_READ),
+                op_arg_dat(rhs,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_INC));
+  }
   timer->endTimer("PoissonCoarseMatrix2D - apply_bc");
 }
 
@@ -83,6 +88,26 @@ void PoissonCoarseMatrix2D::calc_op2() {
 
 void PoissonCoarseMatrix2D::calc_opbc() {
   timer->startTimer("PoissonCoarseMatrix2D - calc_opbc");
-  // TODO
+  if(mesh->bface2cells) {
+    op_par_loop(poisson_coarse_matrix_2d_bop, "poisson_coarse_matrix_2d_bop", mesh->bfaces,
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bsJ, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->geof, 0, mesh->bface2cells, 5, DG_FP_STR, OP_READ),
+                op_arg_dat(op1, 0, mesh->bface2cells, DG_NP_N1 * DG_NP_N1, DG_FP_STR, OP_INC));
+
+    op_par_loop(poisson_coarse_matrix_2d_opbc, "poisson_coarse_matrix_3d_opbc", mesh->bfaces,
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bsJ, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->geof, 0, mesh->bface2cells, 5, DG_FP_STR, OP_READ),
+                op_arg_dat(opbc, -1, OP_ID, DG_NPF_N1 * DG_NP_N1, DG_FP_STR, OP_WRITE));
+  }
   timer->endTimer("PoissonCoarseMatrix2D - calc_opbc");
 }

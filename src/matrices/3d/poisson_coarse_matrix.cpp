@@ -39,7 +39,7 @@ void PoissonCoarseMatrix3D::calc_mat() {
 void PoissonCoarseMatrix3D::apply_bc(op_dat rhs, op_dat bc) {
   timer->startTimer("PoissonCoarseMatrix3D - apply_bc");
   if(mesh->bface2cells) {
-    op_par_loop(poisson_coarse_matrix_3d_apply_bc, "poisson_coarse_matrix_3d_apply_bc", mesh->bfaces,
+    op_par_loop(poisson_coarse_matrix_apply_bc, "poisson_coarse_matrix_apply_bc", mesh->bfaces,
                 op_arg_dat(opbc, -1, OP_ID, DG_NPF_N1 * DG_NP_N1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc,   -1, OP_ID, DG_NPF, DG_FP_STR, OP_READ),
                 op_arg_dat(rhs,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_INC));

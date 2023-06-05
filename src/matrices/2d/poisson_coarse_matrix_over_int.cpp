@@ -142,7 +142,7 @@ void PoissonCoarseMatrixOverInt2D::calc_op2() {
 void PoissonCoarseMatrixOverInt2D::calc_opbc() {
   timer->startTimer("PoissonCoarseMatrixOverInt2D - calc_opbc");
   if(mesh->bface2cells) {
-    op_par_loop(poisson_coarse_matrix_2d_bop, "poisson_coarse_matrix_2d_bop", mesh->bfaces,
+    op_par_loop(poisson_coarse_matrix_2d_bop_over_int, "poisson_coarse_matrix_2d_bop_over_int", mesh->bfaces,
                 op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F0DR), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F0DS), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F1DR), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
