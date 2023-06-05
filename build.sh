@@ -77,6 +77,7 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         matrices/poisson_matrix_free_diag.cpp \
         matrices/poisson_matrix_free.cpp \
         matrices/2d/poisson_matrix_over_int.cpp \
+        matrices/2d/poisson_coarse_matrix.cpp \
         matrices/2d/poisson_coarse_matrix_over_int.cpp \
         matrices/2d/poisson_semi_matrix_free_over_int.cpp \
         matrices/2d/poisson_matrix_free_over_int.cpp \
