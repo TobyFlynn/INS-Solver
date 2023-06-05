@@ -66,7 +66,7 @@ void PoissonMatrixFreeOverInt2D::mult(op_dat in, op_dat out) {
               op_arg_dat(g_tmp[2], -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_INC));
 
   if(mesh->bface2cells) {
-    op_par_loop(pmf_2d_mult_bfaces, "pmf_2d_mult_bfaces", mesh->bfaces,
+    op_par_loop(pmf_2d_mult_bfaces_over_int, "pmf_2d_mult_bfaces_over_int", mesh->bfaces,
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
@@ -113,7 +113,7 @@ void PoissonMatrixFreeOverInt2D::mult(op_dat in, op_dat out) {
 void PoissonMatrixFreeOverInt2D::apply_bc(op_dat rhs, op_dat bc) {
   timer->startTimer("PoissonMatrixFreeOverInt2D - apply_bc");
   if(mesh->bface2cells) {
-    op_par_loop(pmf_2d_apply_bc, "pmf_2d_apply_bc", mesh->bfaces,
+    op_par_loop(pmf_2d_apply_bc_over_int, "pmf_2d_apply_bc_over_int", mesh->bfaces,
                 op_arg_dat(mesh->order, 0, mesh->bface2cells, 1, "int", OP_READ),
                 op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F0DR), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F0DS), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),

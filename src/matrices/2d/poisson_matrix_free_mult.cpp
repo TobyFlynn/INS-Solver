@@ -22,7 +22,17 @@ void PoissonMatrixFreeMult2D::mat_free_set_bc_types(op_dat bc_ty) {
 
 void PoissonMatrixFreeMult2D::mat_free_apply_bc(op_dat rhs, op_dat bc) {
   if(mesh->bface2cells) {
-    // TODO
+    op_par_loop(pmf_2d_apply_bc, "pmf_2d_apply_bc", mesh->bfaces,
+                op_arg_gbl(&mesh->order_int, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mat_free_bcs, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bsJ, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->geof, 0, mesh->bface2cells, 5, DG_FP_STR, OP_READ),
+                op_arg_dat(bc, -1, OP_ID, DG_NPF, DG_FP_STR, OP_READ),
+                op_arg_dat(rhs, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_INC));
   }
 }
 
@@ -62,7 +72,20 @@ void PoissonMatrixFreeMult2D::mat_free_mult(op_dat in, op_dat out) {
 
   timer->startTimer("PoissonMatrixFreeMult2D - mult bfaces");
   if(mesh->bface2cells) {
-    // TODO
+    op_par_loop(pmf_2d_mult_bfaces, "pmf_2d_mult_bfaces", mesh->bfaces,
+                op_arg_gbl(&mesh->order_int, 1, "int", OP_READ),
+                op_arg_dat(mat_free_bcs, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bsJ, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(in, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_grad0.dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_grad1.dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_npf0.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+                op_arg_dat(tmp_npf1.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+                op_arg_dat(tmp_npf2.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
   }
   timer->endTimer("PoissonMatrixFreeMult2D - mult bfaces");
 
