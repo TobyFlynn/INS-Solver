@@ -78,7 +78,7 @@ void PoissonSemiMatrixFreeOverInt2D::mult(op_dat in, op_dat out) {
   op_par_loop(zero_g_np1, "zero_g_np1", mesh->cells,
               op_arg_dat(g_tmp[2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 
-  op_par_loop(pmf_2d_mult_faces, "pmf_2d_mult_faces", mesh->faces,
+  op_par_loop(pmf_2d_mult_faces_over_int, "pmf_2d_mult_faces_over_int", mesh->faces,
               op_arg_dat(mesh->order, -2, mesh->face2cells, 1, "int", OP_READ),
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
