@@ -413,7 +413,7 @@ bool MPINSSolverOverInt2D::viscosity() {
 
   // Get BCs for viscosity solve
   if(mesh->bface2cells) {
-    op_par_loop(ins_vis_bc_2d, "ins_vis_bc_2d", mesh->bfaces,
+    op_par_loop(ins_vis_bc_over_int_2d, "ins_vis_bc_over_int_2d", mesh->bfaces,
                 op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),

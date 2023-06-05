@@ -90,15 +90,17 @@ INSSolver2D::INSSolver2D(DGMesh2D *m, const std::string &filename, const int ite
 }
 
 void INSSolver2D::setup_common() {
+  int tmp_div = 1;
+  config->getInt("solver-options", "div_div", tmp_div);
+  div_div_proj = tmp_div != 0;
+
   pressureMatrix = new PoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new PoissonCoarseMatrix2D(mesh);
-  // viscosityMatrix = new MMPoissonMatrixOverInt2D(mesh);
-  // viscosityMatrix = new MMPoissonMatrixFreeOverInt2D(mesh);
+  viscosityMatrix = new MMPoissonMatrixFree2D(mesh);
   PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
   tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
   pressureSolver = tmp_pressureSolver;
-  // viscositySolver = new PETScBlockJacobiSolver(mesh);
-  // viscositySolver = new PETScInvMassSolver(mesh);
+  viscositySolver = new PETScInvMassSolver(mesh);
 
   int pr_tmp = 0;
   int vis_tmp = 0;
@@ -107,8 +109,8 @@ void INSSolver2D::setup_common() {
 
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(pr_tmp == 1);
-  // viscositySolver->set_matrix(viscosityMatrix);
-  // viscositySolver->set_nullspace(vis_tmp == 1);
+  viscositySolver->set_matrix(viscosityMatrix);
+  viscositySolver->set_nullspace(vis_tmp == 1);
 
   std::string name;
   for(int i = 0; i < 2; i++) {
@@ -129,9 +131,9 @@ void INSSolver2D::setup_common() {
 INSSolver2D::~INSSolver2D() {
   delete pressureCoarseMatrix;
   delete pressureMatrix;
-  // delete viscosityMatrix;
+  delete viscosityMatrix;
   delete pressureSolver;
-  // delete viscositySolver;
+  delete viscositySolver;
 }
 
 void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
@@ -175,7 +177,7 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   pressureCoarseMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->set_bc_types(pr_bc_types);
   pressureSolver->init();
-  // viscositySolver->init();
+  viscositySolver->init();
 
   timer->endTimer("INSSolver2D - Init");
 }
@@ -193,9 +195,9 @@ void INSSolver2D::step() {
   // shock_capturing();
   // timer->endTimer("Shock Capturing");
 
-  // timer->startTimer("INSSolver2D - Viscosity");
-  // viscosity();
-  // timer->endTimer("INSSolver2D - Viscosity");
+  timer->startTimer("INSSolver2D - Viscosity");
+  viscosity();
+  timer->endTimer("INSSolver2D - Viscosity");
 
   currentInd = (currentInd + 1) % 2;
   time += dt;
@@ -359,22 +361,26 @@ bool INSSolver2D::pressure() {
 }
 
 void INSSolver2D::project_velocity() {
-  /*
+  DGTempDat dpdx = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat dpdy = dg_dat_pool->requestTempDatCells(DG_NP);
   // Calculate gradient of pressure
-  mesh->cub_grad_with_central_flux(pr, dpdx, dpdy);
+  mesh->grad_with_central_flux(pr, dpdx.dat, dpdy.dat);
 
-  if(false) {
+
+  if(!div_div_proj) {
     // Calculate new velocity intermediate values
     op_par_loop(ins_pressure_update_2d, "ins_pressure_update_2d", mesh->cells,
                 op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
+                op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
   } else {
+    throw std::runtime_error("div-div projection not implemented yet");
+    /*
     // Calculate new velocity intermediate values
     op_par_loop(project_2d_0, "project_2d_0", mesh->cells,
                 op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
@@ -427,18 +433,24 @@ void INSSolver2D::project_velocity() {
       op_printf("%d out of %d cells converged on projection step\n", num_converge, num_cells);
       exit(-1);
     }
+    */
   }
-  */
+
+  dg_dat_pool->releaseTempDatCells(dpdx);
+  dg_dat_pool->releaseTempDatCells(dpdy);
 }
 
 bool INSSolver2D::viscosity() {
-  /*
   timer->startTimer("INSSolver2D - Viscosity RHS");
   DG_FP time_n1 = time + dt;
 
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
-              op_arg_dat(visBC[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(visBC[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
+  DGTempDat visBC[2];
+  visBC[0] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  visBC[1] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+
+  op_par_loop(zero_npf_2, "zero_npf_2", mesh->cells,
+              op_arg_dat(visBC[0].dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(visBC[1].dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
   // Get BCs for viscosity solve
   if(mesh->bface2cells) {
@@ -446,28 +458,32 @@ bool INSSolver2D::viscosity() {
                 op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->gauss->x,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->gauss->y,  0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->gauss->nx, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->gauss->ny, 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(visBC[0], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC),
-                op_arg_dat(visBC[1], 0, mesh->bface2cells, DG_G_NP, DG_FP_STR, OP_INC));
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(visBC[0].dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+                op_arg_dat(visBC[1].dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
   }
+
   // Set up RHS for viscosity solve
+  DGTempDat visRHS[2];
+  visRHS[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  visRHS[1] = dg_dat_pool->requestTempDatCells(DG_NP);
   op_par_loop(ins_vis_copy_2d, "ins_vis_copy_2d", mesh->cells,
               op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+              op_arg_dat(visRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(visRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-   mesh->mass(visRHS[0]);
-   mesh->mass(visRHS[1]);
+   mesh->mass(visRHS[0].dat);
+   mesh->mass(visRHS[1].dat);
 
   DG_FP factor = reynolds / dt;
   op_par_loop(ins_vis_rhs_2d, "ins_vis_rhs_2d", mesh->cells,
               op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(visRHS[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(visRHS[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+              op_arg_dat(visRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(visRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   timer->endTimer("INSSolver2D - Viscosity RHS");
 
@@ -480,12 +496,17 @@ bool INSSolver2D::viscosity() {
     // viscosityMatrix->calc_mat();
     viscositySolver->setFactor(1.0 / factor);
   }
-  viscositySolver->set_bcs(visBC[0]);
-  bool convergedX = viscositySolver->solve(visRHS[0], vel[(currentInd + 1) % 2][0]);
+  viscositySolver->set_bcs(visBC[0].dat);
+  bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
 
-  viscositySolver->set_bcs(visBC[1]);
-  bool convergedY = viscositySolver->solve(visRHS[1], vel[(currentInd + 1) % 2][1]);
+  viscositySolver->set_bcs(visBC[1].dat);
+  bool convergedY = viscositySolver->solve(visRHS[1].dat, vel[(currentInd + 1) % 2][1]);
   timer->endTimer("INSSolver2D - Viscosity Linear Solve");
+
+  dg_dat_pool->releaseTempDatCells(visRHS[0]);
+  dg_dat_pool->releaseTempDatCells(visRHS[1]);
+  dg_dat_pool->releaseTempDatCells(visBC[0]);
+  dg_dat_pool->releaseTempDatCells(visBC[1]);
 
   // timer->startTimer("Filtering");
   // filter(mesh, Q[(currentInd + 1) % 2][0]);
@@ -493,8 +514,6 @@ bool INSSolver2D::viscosity() {
   // timer->endTimer("Filtering");
 
   return convergedX && convergedY;
-  */
-  return true;
 }
 
 DG_FP INSSolver2D::get_time() {

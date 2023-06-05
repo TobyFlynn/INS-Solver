@@ -7,12 +7,9 @@
 
 #include "matrices/2d/poisson_coarse_matrix_2d.h"
 #include "matrices/2d/poisson_matrix_free_diag_2d.h"
-// #include "matrices/2d/mm_poisson_matrix_over_int_2d.h"
-// #include "matrices/2d/mm_poisson_matrix_free_over_int_2d.h"
-// #include "matrices/2d/cub_poisson_matrix_2d.h"
-// #include "matrices/2d/cub_mm_poisson_matrix_2d.h"
+#include "matrices/2d/mm_poisson_matrix_free_2d.h"
 #include "linear_solvers/linear_solver.h"
-// #include "linear_solvers/petsc_inv_mass.h"
+#include "linear_solvers/petsc_inv_mass.h"
 
 #include "dg_mesh/dg_mesh_2d.h"
 
@@ -39,13 +36,12 @@ private:
 
   PoissonCoarseMatrix2D *pressureCoarseMatrix;
   PoissonMatrixFreeDiag2D *pressureMatrix;
-  // MMPoissonMatrixOverInt2D *viscosityMatrix;
-  // MMPoissonMatrixFreeOverInt2D *viscosityMatrix;
+  MMPoissonMatrixFree2D *viscosityMatrix;
   LinearSolver *pressureSolver;
-  // LinearSolver *viscositySolver;
-  // PETScInvMassSolver *viscositySolver;
+  PETScInvMassSolver *viscositySolver;
 
   bool resuming;
+  bool div_div_proj;
   int currentInd;
   DG_FP a0, a1, b0, b1, g0, dt, time;
   DG_FP reynolds;
