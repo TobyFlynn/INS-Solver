@@ -124,8 +124,8 @@ void INSSolver2D::setup_common() {
   pr_bc_types  = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_pr_bc_types");
   vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_vis_bc_types");
 
-  // proj_pen = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "proj_pen");
-  // proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "proj_h");
+  if(div_div_proj)
+    proj_h = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "proj_h");
 }
 
 INSSolver2D::~INSSolver2D() {
@@ -172,6 +172,22 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
                 op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(pr_bc_types,  -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
+  }
+
+  if(div_div_proj) {
+    DGTempDat tmp_npf = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+                op_arg_dat(tmp_npf.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+
+    op_par_loop(ins_proj_setup_0, "ins_proj_setup_0", mesh->faces,
+                op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+                op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_npf.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
+
+    op_par_loop(ins_proj_setup_1, "ins_proj_setup_1", mesh->cells,
+                op_arg_dat(tmp_npf.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+    dg_dat_pool->releaseTempDatCells(tmp_npf);
   }
 
   pressureCoarseMatrix->set_bc_types(pr_bc_types);
@@ -366,7 +382,6 @@ void INSSolver2D::project_velocity() {
   // Calculate gradient of pressure
   mesh->grad_with_central_flux(pr, dpdx.dat, dpdy.dat);
 
-
   if(!div_div_proj) {
     // Calculate new velocity intermediate values
     op_par_loop(ins_pressure_update_2d, "ins_pressure_update_2d", mesh->cells,
@@ -379,25 +394,28 @@ void INSSolver2D::project_velocity() {
                 op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
   } else {
-    throw std::runtime_error("div-div projection not implemented yet");
-    /*
+    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+                op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+
+    DGTempDat projRHS[2];
+    projRHS[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+    projRHS[1] = dg_dat_pool->requestTempDatCells(DG_NP);
     // Calculate new velocity intermediate values
-    op_par_loop(project_2d_0, "project_2d_0", mesh->cells,
+    op_par_loop(ins_proj_rhs_2d, "ins_proj_rhs_2d", mesh->cells,
                 op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->J, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(proj_rhs_x, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(proj_rhs_y, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
+                op_arg_dat(projRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(projRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-    mesh->mass(proj_rhs_x);
-    mesh->mass(proj_rhs_y);
+    mesh->mass(projRHS[0].dat);
+    mesh->mass(projRHS[1].dat);
 
+    DGTempDat proj_pen = dg_dat_pool->requestTempDatCells(1);
     DG_FP factor = dt * 1.0;
     // DG_FP factor = dt / Cr;
     // op_printf("Cr: %g\n", Cr);
@@ -406,22 +424,17 @@ void INSSolver2D::project_velocity() {
                 op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(proj_pen, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+                op_arg_dat(proj_pen.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
     // Do the 2 vector linear solve with project_mat as the matrix
     int num_cells = 0;
     int num_converge = 0;
     DG_FP num_iter = 0.0;
-    op_par_loop(project_2d_cg, "project_2d_cg", mesh->cells,
-                op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->J, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(proj_op_xx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(proj_op_yy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(proj_op_yx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(proj_op_xy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(proj_pen, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(proj_rhs_x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(proj_rhs_y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+    op_par_loop(ins_proj_cg_2d, "ins_proj_cg_2d", mesh->cells,
+                op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_pen.dat, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(projRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(projRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
                 op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
                 op_arg_gbl(&num_cells, 1, "int", OP_INC),
@@ -433,7 +446,10 @@ void INSSolver2D::project_velocity() {
       op_printf("%d out of %d cells converged on projection step\n", num_converge, num_cells);
       exit(-1);
     }
-    */
+
+    dg_dat_pool->releaseTempDatCells(proj_pen);
+    dg_dat_pool->releaseTempDatCells(projRHS[0]);
+    dg_dat_pool->releaseTempDatCells(projRHS[1]);
   }
 
   dg_dat_pool->releaseTempDatCells(dpdx);

@@ -48,6 +48,7 @@ private:
 
   op_dat vel[2][2], n[2][2], velT[2], velTT[2], pr, dPdN[2];
   op_dat bc_types, pr_bc_types, vis_bc_types;
+  op_dat proj_h;
 };
 
 #endif

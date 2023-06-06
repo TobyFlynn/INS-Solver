@@ -218,12 +218,12 @@ void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
     op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
                 op_arg_dat(tmp_npf.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
 
-    op_par_loop(ins_3d_proj_setup_0, "ins_3d_proj_setup_0", mesh->faces,
+    op_par_loop(ins_proj_setup_0, "ins_3d_proj_setup_0", mesh->faces,
                 op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
                 op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
                 op_arg_dat(tmp_npf.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
 
-    op_par_loop(ins_3d_proj_setup_1, "ins_3d_proj_setup_1", mesh->cells,
+    op_par_loop(ins_proj_setup_1, "ins_3d_proj_setup_1", mesh->cells,
                 op_arg_dat(tmp_npf.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_READ),
                 op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
