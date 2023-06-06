@@ -34,6 +34,14 @@ private:
   void project_velocity();
   bool viscosity();
 
+  DG_FP max_vel();
+
+  void advec_current_non_linear();
+  void advec_standard();
+  void advec_sub_cycle();
+  void advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_dat v);
+  void advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat u_out, op_dat v_out, const double t);
+
   PoissonCoarseMatrix2D *pressureCoarseMatrix;
   PoissonMatrixFreeDiag2D *pressureMatrix;
   MMPoissonMatrixFree2D *viscosityMatrix;
@@ -42,8 +50,8 @@ private:
 
   bool resuming;
   bool div_div_proj;
-  int currentInd;
-  DG_FP a0, a1, b0, b1, g0, dt, time;
+  int currentInd, sub_cycles, it_pre_sub_cycle;
+  DG_FP a0, a1, b0, b1, g0, dt, time, sub_cycle_dt, h;
   DG_FP reynolds;
 
   op_dat vel[2][2], n[2][2], velT[2], velTT[2], pr, dPdN[2];
