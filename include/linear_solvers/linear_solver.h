@@ -6,6 +6,8 @@
 #include "op_seq.h"
 #include "matrices/poisson_matrix.h"
 
+#include <vector>
+
 class LinearSolver {
 public:
   virtual void set_matrix(PoissonMatrix *mat);
@@ -18,6 +20,7 @@ protected:
   PoissonMatrix *matrix;
   bool nullspace;
   op_dat bc;
+  std::vector<int> iter_counts;
 };
 
 #endif

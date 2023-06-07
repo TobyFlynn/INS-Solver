@@ -6,7 +6,7 @@
 #include "dg_dat_pool.h"
 #include "dg_mesh/dg_mesh.h"
 
-#define EXTRAPOLATE_HISTORY_SIZE 4
+#define EXTRAPOLATE_HISTORY_SIZE 8
 
 void initial_guess_extrapolation(DGMesh *mesh, std::vector<std::pair<DG_FP,DGTempDat>> &history,
                                  op_dat init_guess, const DG_FP t_n1);

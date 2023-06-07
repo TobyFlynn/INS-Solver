@@ -23,7 +23,7 @@ PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
   pmultigridSolver = new PMultigridPoissonSolver(mesh);
 
   KSPCreate(PETSC_COMM_WORLD, &ksp);
-  KSPSetType(ksp, KSPGMRES);
+  KSPSetType(ksp, KSPFGMRES);
   double r_tol, a_tol;
   if(std::is_same<DG_FP,double>::value) {
     r_tol = 1e-8;
@@ -43,6 +43,11 @@ PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
 }
 
 PETScPMultigrid::~PETScPMultigrid() {
+  op_printf("\n");
+  for(int i = 0; i < iter_counts.size(); i++) {
+    op_printf("%d,", iter_counts[i]);
+  }
+  op_printf("\n");
   PETScUtils::destroy_vec(&b);
   PETScUtils::destroy_vec(&x);
   if(pMatInit)
@@ -92,6 +97,8 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
 
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
+  iter_counts.push_back(numIt);
+  op_printf("%d\n", numIt);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp, &reason);
   // Check that the solver converged

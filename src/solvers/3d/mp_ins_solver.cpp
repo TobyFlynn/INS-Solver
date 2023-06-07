@@ -791,9 +791,9 @@ void MPINSSolver3D::pressure() {
 
   if(extrapolate_initial_guess) {
     initial_guess_extrapolation(mesh, pr_history, pr, time + dt);
-    if(pr_history.size() == EXTRAPOLATE_HISTORY_SIZE) {
-      dump_data("extrapolate.h5");
-    }
+    // if(pr_history.size() == EXTRAPOLATE_HISTORY_SIZE) {
+    //   dump_data("extrapolate.h5");
+    // }
   }
 
   bool converged = pressureSolver->solve(divVelT.dat, pr);
