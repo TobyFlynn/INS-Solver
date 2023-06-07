@@ -4,6 +4,7 @@
 #include "dg_compiler_defs.h"
 
 #include "dg_mesh/dg_mesh_3d.h"
+#include "dg_dat_pool.h"
 #include "solvers/3d/ls_solver.h"
 #include "matrices/3d/factor_poisson_matrix_3d.h"
 #include "matrices/3d/factor_poisson_coarse_matrix_3d.h"
@@ -19,6 +20,7 @@
 #include "linear_solvers/petsc_jacobi.h"
 
 #include <string>
+#include <vector>
 
 class MPINSSolver3D {
 public:
@@ -49,6 +51,7 @@ private:
                            const double t);
   void advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_dat v, op_dat w);
   DG_FP max_vel();
+  void add_to_pr_history();
 
   DGMesh3D *mesh;
   FactorPoissonCoarseMatrix3D *coarsePressureMatrix;
@@ -67,6 +70,7 @@ private:
   int currentInd, sub_cycles, it_pre_sub_cycle;
   bool resuming;
   bool div_div_proj;
+  bool extrapolate_initial_guess;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat n[2][3];
@@ -74,6 +78,8 @@ private:
   op_dat vis_bc_types, vis_bc, bc_types;
   op_dat art_vis;
   op_dat proj_h;
+
+  std::vector<std::pair<DG_FP,DGTempDat>> pr_history;
 };
 
 #endif

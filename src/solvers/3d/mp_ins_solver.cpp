@@ -5,13 +5,13 @@
 #include "dg_op2_blas.h"
 #include "dg_utils.h"
 #include "dg_constants/dg_constants.h"
-#include "dg_dat_pool.h"
 
 #include "timing.h"
 #include "config.h"
 #include "utils.h"
 #include "linear_solvers/petsc_amg.h"
 #include "linear_solvers/petsc_block_jacobi.h"
+#include "linear_solvers/initial_guess_extrapolation.h"
 
 #include <string>
 
@@ -124,6 +124,10 @@ void MPINSSolver3D::setup_common() {
   config->getInt("solver-options", "sub_cycle", sub_cycles);
   config->getInt("solver-options", "num_iter_before_sub_cycle", it_pre_sub_cycle);
   it_pre_sub_cycle = it_pre_sub_cycle > 1 ? it_pre_sub_cycle : 1;
+
+  int tmp_eig = 1;
+  config->getInt("solver-options", "extrapolate_initial_guess", tmp_eig);
+  extrapolate_initial_guess = tmp_eig == 1;
 
   rho = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_rho");
   mu  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_mu");
@@ -784,9 +788,20 @@ void MPINSSolver3D::pressure() {
   pressureSolver->set_coarse_matrix(coarsePressureMatrix);
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_bcs(pr_bc);
+
+  if(extrapolate_initial_guess) {
+    initial_guess_extrapolation(mesh, pr_history, pr, time + dt);
+    if(pr_history.size() == EXTRAPOLATE_HISTORY_SIZE) {
+      dump_data("extrapolate.h5");
+    }
+  }
+
   bool converged = pressureSolver->solve(divVelT.dat, pr);
   if(!converged)
     throw std::runtime_error("\nPressure solve failed to converge\n");
+
+  if(extrapolate_initial_guess)
+    add_to_pr_history();
   timer->endTimer("MPINSSolver3D - Pressure Linear Solve");
 
   dg_dat_pool->releaseTempDatCells(pr_factor);
@@ -1094,4 +1109,20 @@ void MPINSSolver3D::shock_capturing() {
 
   dg_dat_pool->releaseTempDatCells(shock_u);
   dg_dat_pool->releaseTempDatCells(shock_u_hat);
+}
+
+void MPINSSolver3D::add_to_pr_history() {
+  const DG_FP t_n1 = time + dt;
+  DGTempDat pr_copy = dg_dat_pool->requestTempDatCells(DG_NP);
+
+  op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
+              op_arg_dat(pr, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(pr_copy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  pr_history.push_back({t_n1, pr_copy});
+
+  while(pr_history.size() > EXTRAPOLATE_HISTORY_SIZE) {
+    dg_dat_pool->releaseTempDatCells(pr_history[0].second);
+    pr_history.erase(pr_history.begin());
+  }
 }
