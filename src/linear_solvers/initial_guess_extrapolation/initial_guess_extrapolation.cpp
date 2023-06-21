@@ -36,7 +36,8 @@ void initial_guess_extrapolation(DGMesh *mesh, vector<pair<DG_FP,DGTempDat>> &hi
   one[0] = 2.0 * ((t_n1 - min_t) / diff_t) - 1.0;
   arma::mat V_tn1 = DGUtils::vandermonde1D(one, INTERP_ORDER);
 
-  arma::mat beta = V_tn1 * arma::inv(V_t.t() * V_t) * V_t.t();
+  // arma::mat beta = V_tn1 * arma::inv(V_t.t() * V_t) * V_t.t();
+  arma::vec beta = arma::solve(V_t, V_tn1.as_col());
   // std::cout << beta << std::endl;
 
   DG_FP beta_arr[EXTRAPOLATE_HISTORY_SIZE];
