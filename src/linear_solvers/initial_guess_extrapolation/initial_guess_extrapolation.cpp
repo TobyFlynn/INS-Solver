@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define INTERP_ORDER 2
+#define INTERP_ORDER 3
 
 void initial_guess_extrapolation(DGMesh *mesh, vector<pair<DG_FP,DGTempDat>> &history,
                                  op_dat init_guess, const DG_FP t_n1) {
