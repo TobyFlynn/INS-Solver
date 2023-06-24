@@ -35,11 +35,13 @@ inline void poisson_coarse_matrix_3d_op2(const int *faceNum, const int *fmaskL_c
   else
     mmFR = mmF3_mat;
 
-  const int findL = faceNum[0] * DG_NPF_N1;
-  const int findR = faceNum[1] * DG_NPF_N1;
+  const int faceNumL = faceNum[0];
+  const int faceNumR = faceNum[1];
+  const int findL = faceNumL * DG_NPF_N1;
+  const int findR = faceNumR * DG_NPF_N1;
   const int *fmask  = FMASK;
-  const int *fmaskL = &fmask[faceNum[0] * DG_NPF_N1];
-  const int *fmaskR = &fmask[faceNum[1] * DG_NPF_N1];
+  const int *fmaskL = &fmask[faceNumL * DG_NPF_N1];
+  const int *fmaskR = &fmask[faceNumR * DG_NPF_N1];
 
   DG_FP DL[DG_NP_N1 * DG_NP_N1], DR[DG_NP_N1 * DG_NP_N1];
   const DG_FP r_fact_0 = nx[0] * rx[0][0] + ny[0] * ry[0][0] + nz[0] * rz[0][0];
@@ -57,7 +59,7 @@ inline void poisson_coarse_matrix_3d_op2(const int *faceNum, const int *fmaskL_c
     }
   }
 
-  const DG_FP gtau = 2.0 * (DG_ORDER + 1) * (DG_ORDER + 2) * fmax(fscale[0], fscale[1]);
+  const DG_FP gtau = 2.0 * (1 + 1) * (1 + 2) * fmax(fscale[0], fscale[1]);
 
   op2_in_kernel_gemm(false, false, DG_NP_N1, DG_NP_N1, DG_NP_N1, -0.5 * sJ[0], mmFL, DG_NP_N1, DL, DG_NP_N1, 1.0, op1L, DG_NP_N1);
   op2_in_kernel_gemm(true, false, DG_NP_N1, DG_NP_N1, DG_NP_N1, -0.5 * sJ[0], DL, DG_NP_N1, mmFL, DG_NP_N1, 1.0, op1L, DG_NP_N1);
@@ -77,23 +79,28 @@ inline void poisson_coarse_matrix_3d_op2(const int *faceNum, const int *fmaskL_c
 
   for(int i = 0; i < DG_NP_N1; i++) {
     for(int j = 0; j < DG_NPF_N1; j++) {
+      const int fmaskL_ind = fmaskL[j];
+      const int fmaskR_ind = fmaskR_corrected[j];
       // int op_ind = i + fmaskR_corrected[j] * DG_NP_N1;
-      int op_ind = DG_MAT_IND(i, fmaskR_corrected[j], DG_NP_N1, DG_NP_N1);
+      int op_ind = DG_MAT_IND(i, fmaskR_ind, DG_NP_N1, DG_NP_N1);
       // int find = i + fmaskL[j] * DG_NP_N1;
-      int find = DG_MAT_IND(i, fmaskL[j], DG_NP_N1, DG_NP_N1);
+      int find = DG_MAT_IND(i, fmaskL_ind, DG_NP_N1, DG_NP_N1);
       op2L[op_ind] -= gtau * mmFL[find];
     }
   }
 
   for(int i = 0; i < DG_NPF_N1; i++) {
     for(int j = 0; j < DG_NP_N1; j++) {
+      const int fmaskL_ind_i = fmaskL[i];
       // int op_ind = fmaskL[i] + j * DG_NP_N1;
-      int op_ind = DG_MAT_IND(fmaskL[i], j, DG_NP_N1, DG_NP_N1);
+      int op_ind = DG_MAT_IND(fmaskL_ind_i, j, DG_NP_N1, DG_NP_N1);
       for(int k = 0; k < DG_NPF_N1; k++) {
+        const int fmaskL_ind_k = fmaskL[k];
+        const int fmaskR_ind_k = fmaskR_corrected[k];
         // int a_ind = fmaskL[i] + fmaskL[k] * DG_NP_N1;
-        int a_ind = DG_MAT_IND(fmaskL[i], fmaskL[k], DG_NP_N1, DG_NP_N1);
+        int a_ind = DG_MAT_IND(fmaskL_ind_i, fmaskL_ind_k, DG_NP_N1, DG_NP_N1);
         // int b_ind = j * DG_NP_N1 + fmaskR_corrected[k];
-        int b_ind = DG_MAT_IND(fmaskR_corrected[k], j, DG_NP_N1, DG_NP_N1);
+        int b_ind = DG_MAT_IND(fmaskR_ind_k, j, DG_NP_N1, DG_NP_N1);
         op2L[op_ind] += mmFL[a_ind] * DR[b_ind];
       }
     }
@@ -101,13 +108,15 @@ inline void poisson_coarse_matrix_3d_op2(const int *faceNum, const int *fmaskL_c
 
   for(int i = 0; i < DG_NP_N1; i++) {
     for(int j = 0; j < DG_NPF_N1; j++) {
+      const int fmaskR_ind = fmaskR_corrected[j];
       // int op_ind = i + fmaskR_corrected[j] * DG_NP_N1;
-      int op_ind = DG_MAT_IND(i, fmaskR_corrected[j], DG_NP_N1, DG_NP_N1);
+      int op_ind = DG_MAT_IND(i, fmaskR_ind, DG_NP_N1, DG_NP_N1);
       for(int k = 0; k < DG_NP_N1; k++) {
+        const int fmaskL_ind = fmaskL[j];
         // int a_ind = i * DG_NP_N1 + k;
         int a_ind = DG_MAT_IND(k, i, DG_NP_N1, DG_NP_N1);
         // int b_ind = fmaskL[j] * DG_NP_N1 + k;
-        int b_ind = DG_MAT_IND(k, fmaskL[j], DG_NP_N1, DG_NP_N1);
+        int b_ind = DG_MAT_IND(k, fmaskL_ind, DG_NP_N1, DG_NP_N1);
         op2L[op_ind] += DL[a_ind] * mmFL[b_ind];
       }
     }
@@ -135,23 +144,28 @@ inline void poisson_coarse_matrix_3d_op2(const int *faceNum, const int *fmaskL_c
 
   for(int i = 0; i < DG_NP_N1; i++) {
     for(int j = 0; j < DG_NPF_N1; j++) {
+      const int fmaskL_ind = fmaskL_corrected[j];
+      const int fmaskR_ind = fmaskR[j];
       // int op_ind = i + fmaskL_corrected[j] * DG_NP_N1;
-      int op_ind = DG_MAT_IND(i, fmaskL_corrected[j], DG_NP_N1, DG_NP_N1);
+      int op_ind = DG_MAT_IND(i, fmaskL_ind, DG_NP_N1, DG_NP_N1);
       // int find = i + fmaskR[j] * DG_NP_N1;
-      int find = DG_MAT_IND(i, fmaskR[j], DG_NP_N1, DG_NP_N1);
+      int find = DG_MAT_IND(i, fmaskR_ind, DG_NP_N1, DG_NP_N1);
       op2R[op_ind] -= gtau * mmFR[find];
     }
   }
 
   for(int i = 0; i < DG_NPF_N1; i++) {
     for(int j = 0; j < DG_NP_N1; j++) {
+      const int fmaskR_ind_i = fmaskR[i];
       // int op_ind = fmaskR[i] + j * DG_NP_N1;
-      int op_ind = DG_MAT_IND(fmaskR[i], j, DG_NP_N1, DG_NP_N1);
+      int op_ind = DG_MAT_IND(fmaskR_ind_i, j, DG_NP_N1, DG_NP_N1);
       for(int k = 0; k < DG_NPF_N1; k++) {
+        const int fmaskR_ind_k = fmaskR[k];
+        const int fmaskL_ind = fmaskL_corrected[k];
         // int a_ind = fmaskR[i] + fmaskR[k] * DG_NP_N1;
-        int a_ind = DG_MAT_IND(fmaskR[i], fmaskR[k], DG_NP_N1, DG_NP_N1);
+        int a_ind = DG_MAT_IND(fmaskR_ind_i, fmaskR_ind_k, DG_NP_N1, DG_NP_N1);
         // int b_ind = j * DG_NP_N1 + fmaskL_corrected[k];
-        int b_ind = DG_MAT_IND(fmaskL_corrected[k], j, DG_NP_N1, DG_NP_N1);
+        int b_ind = DG_MAT_IND(fmaskL_ind, j, DG_NP_N1, DG_NP_N1);
         op2R[op_ind] += mmFR[a_ind] * DL[b_ind];
       }
     }
@@ -159,13 +173,15 @@ inline void poisson_coarse_matrix_3d_op2(const int *faceNum, const int *fmaskL_c
 
   for(int i = 0; i < DG_NP_N1; i++) {
     for(int j = 0; j < DG_NPF_N1; j++) {
+      const int fmaskL_ind = fmaskL_corrected[j];
       // int op_ind = i + fmaskL_corrected[j] * DG_NP_N1;
-      int op_ind = DG_MAT_IND(i, fmaskL_corrected[j], DG_NP_N1, DG_NP_N1);
+      int op_ind = DG_MAT_IND(i, fmaskL_ind, DG_NP_N1, DG_NP_N1);
       for(int k = 0; k < DG_NP_N1; k++) {
+        const int fmaskR_ind = fmaskR[j];
         // int a_ind = i * DG_NP_N1 + k;
         int a_ind = DG_MAT_IND(k, i, DG_NP_N1, DG_NP_N1);
         // int b_ind = fmaskR[j] * DG_NP_N1 + k;
-        int b_ind = DG_MAT_IND(k, fmaskR[j], DG_NP_N1, DG_NP_N1);
+        int b_ind = DG_MAT_IND(k, fmaskR_ind, DG_NP_N1, DG_NP_N1);
         op2R[op_ind] += DR[a_ind] * mmFR[b_ind];
       }
     }

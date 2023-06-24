@@ -70,11 +70,15 @@ bool PETScInvMassSolver::solve(op_dat rhs, op_dat ans) {
     matrix->apply_bc(rhs, bc);
 
   Vec b, x;
-  PETScUtils::create_vec_p_adapt(&b, matrix->getUnknowns());
-  PETScUtils::create_vec_p_adapt(&x, matrix->getUnknowns());
+  // PETScUtils::create_vec_p_adapt(&b, matrix->getUnknowns());
+  // PETScUtils::create_vec_p_adapt(&x, matrix->getUnknowns());
+  PETScUtils::create_vec(&b, mesh->cells);
+  PETScUtils::create_vec(&x, mesh->cells);
 
-  PETScUtils::load_vec_p_adapt(&b, rhs, mesh);
-  PETScUtils::load_vec_p_adapt(&x, ans, mesh);
+  // PETScUtils::load_vec_p_adapt(&b, rhs, mesh);
+  // PETScUtils::load_vec_p_adapt(&x, ans, mesh);
+  PETScUtils::load_vec(&b, rhs);
+  PETScUtils::load_vec(&x, ans);
 
   timer->startTimer("PETScInvMassSolver - KSPSolve");
   KSPSolve(ksp, b, x);
@@ -96,7 +100,8 @@ bool PETScInvMassSolver::solve(op_dat rhs, op_dat ans) {
 
   Vec solution;
   KSPGetSolution(ksp, &solution);
-  PETScUtils::store_vec_p_adapt(&solution, ans, mesh);
+  // PETScUtils::store_vec_p_adapt(&solution, ans, mesh);
+  PETScUtils::store_vec(&solution, ans);
 
   PETScUtils::destroy_vec(&b);
   PETScUtils::destroy_vec(&x);
@@ -111,11 +116,13 @@ void PETScInvMassSolver::calc_rhs(const DG_FP *in_d, DG_FP *out_d) {
   // Copy u to OP2 dat
   DGTempDat tmp_in  = dg_dat_pool->requestTempDatCells(DG_NP);
   DGTempDat tmp_out = dg_dat_pool->requestTempDatCells(DG_NP);
-  PETScUtils::copy_vec_to_dat_p_adapt(tmp_in.dat, in_d, mesh);
+  // PETScUtils::copy_vec_to_dat_p_adapt(tmp_in.dat, in_d, mesh);
+  PETScUtils::copy_vec_to_dat(tmp_in.dat, in_d);
 
   matrix->mult(tmp_in.dat, tmp_out.dat);
 
-  PETScUtils::copy_dat_to_vec_p_adapt(tmp_out.dat, out_d, mesh);
+  // PETScUtils::copy_dat_to_vec_p_adapt(tmp_out.dat, out_d, mesh);
+  PETScUtils::copy_dat_to_vec(tmp_out.dat, out_d);
   dg_dat_pool->releaseTempDatCells(tmp_in);
   dg_dat_pool->releaseTempDatCells(tmp_out);
   timer->endTimer("PETScInvMassSolver - calc_rhs");
@@ -126,7 +133,8 @@ void PETScInvMassSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
   timer->startTimer("PETScInvMassSolver - precond");
   DGTempDat tmp_in  = dg_dat_pool->requestTempDatCells(DG_NP);
   DGTempDat tmp_out = dg_dat_pool->requestTempDatCells(DG_NP);
-  PETScUtils::copy_vec_to_dat_p_adapt(tmp_in.dat, in_d, mesh);
+  // PETScUtils::copy_vec_to_dat_p_adapt(tmp_in.dat, in_d, mesh);
+  PETScUtils::copy_vec_to_dat(tmp_in.dat, in_d);
 
   #if DG_DIM == 3
   if(dat_factor) {
@@ -151,7 +159,8 @@ void PETScInvMassSolver::precond(const DG_FP *in_d, DG_FP *out_d) {
               op_arg_dat(tmp_out.dat,     -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   #endif
 
-  PETScUtils::copy_dat_to_vec_p_adapt(tmp_out.dat, out_d, mesh);
+  // PETScUtils::copy_dat_to_vec_p_adapt(tmp_out.dat, out_d, mesh);
+  PETScUtils::copy_dat_to_vec(tmp_out.dat, out_d);
   dg_dat_pool->releaseTempDatCells(tmp_in);
   dg_dat_pool->releaseTempDatCells(tmp_out);
   timer->endTimer("PETScInvMassSolver - precond");

@@ -18,6 +18,7 @@ protected:
   op_dat mat_free_factor, mat_free_factor_copy, mat_free_gtau, mat_free_gtau_bflux;
 
   void check_current_order();
+  void calc_tau();
 
 private:
   int factor_order, current_order;
