@@ -67,7 +67,8 @@ void PoissonMatrixFreeMult3D::mat_free_mult(op_dat in, op_dat out) {
   DGTempDat tmp_grad1 = dg_dat_pool->requestTempDatCells(DG_NP);
   DGTempDat tmp_grad2 = dg_dat_pool->requestTempDatCells(DG_NP);
   timer->startTimer("PoissonMatrixFreeMult3D - mult grad");
-  mesh->grad(in, tmp_grad0.dat, tmp_grad1.dat, tmp_grad2.dat);
+  // mesh->grad(in, tmp_grad0.dat, tmp_grad1.dat, tmp_grad2.dat);
+  mesh->grad_halo_exchange(in, tmp_grad0.dat, tmp_grad1.dat, tmp_grad2.dat);
   timer->endTimer("PoissonMatrixFreeMult3D - mult grad");
 
   DGTempDat tmp_npf0 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
