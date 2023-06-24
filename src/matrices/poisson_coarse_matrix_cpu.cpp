@@ -168,25 +168,17 @@ void PoissonCoarseMatrix::setHYPREMatrix() {
   // Exchange halos
   DGMesh3D *mesh = dynamic_cast<DGMesh3D*>(_mesh);
   op_arg args[] = {
-    op_arg_dat(op2[0], 0, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[0], 1, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[0], 2, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[0], 3, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 0, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 1, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 2, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 3, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(glb_indL, 0, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indL, 1, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indL, 2, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indL, 3, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 0, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 1, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 2, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 3, mesh->flux2faces, glb_indR->dim, "int", OP_RW)
+    op_arg_dat(op2[0], 0, mesh->face2cells, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[0], 1, mesh->face2cells, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 0, mesh->face2cells, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 1, mesh->face2cells, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(glb_indL, 0, mesh->face2cells, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indL, 1, mesh->face2cells, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 0, mesh->face2cells, glb_indR->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 1, mesh->face2cells, glb_indR->dim, "int", OP_RW)
   };
-  op_mpi_halo_exchanges(mesh->fluxes, 16, args);
-  op_mpi_wait_all(16, args);
+  op_mpi_halo_exchanges(mesh->faces, 8, args);
+  op_mpi_wait_all(8, args);
 
   // Get data from OP2
   DG_FP *op1_data = getOP2PtrHost(op1, OP_READ);

@@ -156,7 +156,7 @@ PMultigridPoissonSolver::PMultigridPoissonSolver(DGMesh *m) {
       coarseSolver = new PETScAMGCoarseSolver(mesh);
       break;
     case AMGX:
-      #ifdef INS_BUILD_WITH_AMGX
+      #if defined(INS_BUILD_WITH_AMGX) && defined(INS_CUDA)
       coarseSolver = new AmgXAMGSolver(mesh);
       #else
       throw std::runtime_error("Not built with AmgX");
