@@ -13,6 +13,7 @@ extern DGConstants *constants;
 #include "linear_solvers/petsc_amg.h"
 #include "linear_solvers/petsc_block_jacobi.h"
 #include "linear_solvers/petsc_pmultigrid.h"
+#include "linear_solvers/initial_guess_extrapolation.h"
 #include "dg_dat_pool.h"
 
 #include <string>
@@ -103,6 +104,9 @@ void INSSolver3D::setup_common() {
   config->getInt("solver-options", "sub_cycle", sub_cycles);
   config->getInt("solver-options", "num_iter_before_sub_cycle", it_pre_sub_cycle);
   it_pre_sub_cycle = it_pre_sub_cycle > 1 ? it_pre_sub_cycle : 1;
+  int tmp_eig = 1;
+  config->getInt("solver-options", "extrapolate_initial_guess", tmp_eig);
+  extrapolate_initial_guess = tmp_eig == 1;
 
   std::string name;
   for(int i = 0; i < 3; i++) {
@@ -732,9 +736,16 @@ void INSSolver3D::pressure() {
   pressureCoarseMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->set_bc_types(pr_bc_types);
   pressureSolver->set_bcs(pr_bc);
+
+  if(extrapolate_initial_guess)
+    initial_guess_extrapolation(mesh, pr_history, pr, time + dt);
+
   bool converged = pressureSolver->solve(divVelT.dat, pr);
   if(!converged)
     throw std::runtime_error("\nPressure solve failed to converge\n");
+
+  if(extrapolate_initial_guess)
+    add_to_pr_history();
   timer->endTimer("INSSolver3D - Pressure Linear Solve");
 
   dg_dat_pool->releaseTempDatCells(divVelT);
@@ -1004,4 +1015,20 @@ void INSSolver3D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(dPdN[0], filename.c_str());
   op_fetch_data_hdf5_file(dPdN[1], filename.c_str());
   timer->endTimer("INSSolver3D - Dump Data");
+}
+
+void INSSolver3D::add_to_pr_history() {
+  const DG_FP t_n1 = time + dt;
+  DGTempDat pr_copy = dg_dat_pool->requestTempDatCells(DG_NP);
+
+  op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
+              op_arg_dat(pr, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(pr_copy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  pr_history.push_back({t_n1, pr_copy});
+
+  while(pr_history.size() > EXTRAPOLATE_HISTORY_SIZE) {
+    dg_dat_pool->releaseTempDatCells(pr_history[0].second);
+    pr_history.erase(pr_history.begin());
+  }
 }
