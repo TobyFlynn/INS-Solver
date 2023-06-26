@@ -32,8 +32,8 @@ void PETScUtils::copy_vec_to_dat(op_dat dat, const DG_FP *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE)
   };
-  op_mpi_halo_exchanges_grouped(dat->set, 1, copy_args, 2);
-  op_mpi_wait_all_grouped(1, copy_args, 2);
+  op_mpi_halo_exchanges_grouped(dat->set, 1, copy_args, 2, 0);
+  op_mpi_wait_all_grouped(1, copy_args, 2, 0);
 
   #ifdef DG_OP2_SOA
   const int nthread = 512;
@@ -63,8 +63,8 @@ void PETScUtils::copy_dat_to_vec(op_dat dat, DG_FP *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ)
   };
-  op_mpi_halo_exchanges_grouped(dat->set, 1, copy_args, 2);
-  op_mpi_wait_all_grouped(1, copy_args, 2);
+  op_mpi_halo_exchanges_grouped(dat->set, 1, copy_args, 2, 0);
+  op_mpi_wait_all_grouped(1, copy_args, 2, 0);
 
   #ifdef DG_OP2_SOA
   const int nthread = 512;
@@ -127,8 +127,8 @@ void PETScUtils::copy_vec_to_dat_p_adapt(op_dat dat, const DG_FP *dat_d, DGMesh 
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
 
-  op_mpi_halo_exchanges_grouped(dat->set, 2, copy_args, 2);
-  op_mpi_wait_all_grouped(2, copy_args, 2);
+  op_mpi_halo_exchanges_grouped(dat->set, 2, copy_args, 2, 0);
+  op_mpi_wait_all_grouped(2, copy_args, 2, 0);
 
   #ifdef DG_OP2_SOA
   throw std::runtime_error("copy_vec_to_dat_p_adapt not implemented for SoA");
@@ -187,8 +187,8 @@ void PETScUtils::copy_dat_to_vec_p_adapt(op_dat dat, DG_FP *dat_d, DGMesh *mesh)
     op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
     op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges_grouped(dat->set, 2, copy_args, 2);
-  op_mpi_wait_all_grouped(2, copy_args, 2);
+  op_mpi_halo_exchanges_grouped(dat->set, 2, copy_args, 2, 0);
+  op_mpi_wait_all_grouped(2, copy_args, 2, 0);
 
   #ifdef DG_OP2_SOA
   throw std::runtime_error("copy_dat_to_vec_p_adapt not implemented for SoA");
@@ -297,8 +297,8 @@ void PETScUtils::copy_vec_to_dat_coarse(op_dat dat, const DG_FP *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE)
   };
-  op_mpi_halo_exchanges_grouped(dat->set, 1, copy_args, 2);
-  op_mpi_wait_all_grouped(1, copy_args, 2);
+  op_mpi_halo_exchanges_grouped(dat->set, 1, copy_args, 2, 0);
+  op_mpi_wait_all_grouped(1, copy_args, 2, 0);
 
   #ifdef DG_OP2_SOA
   const int nthread = 512;
@@ -328,8 +328,8 @@ void PETScUtils::copy_dat_to_vec_coarse(op_dat dat, DG_FP *dat_d) {
   op_arg copy_args[] = {
     op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ)
   };
-  op_mpi_halo_exchanges_grouped(dat->set, 1, copy_args, 2);
-  op_mpi_wait_all_grouped(1, copy_args, 2);
+  op_mpi_halo_exchanges_grouped(dat->set, 1, copy_args, 2, 0);
+  op_mpi_wait_all_grouped(1, copy_args, 2, 0);
 
   #ifdef DG_OP2_SOA
   const int nthread = 512;

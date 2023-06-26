@@ -292,7 +292,7 @@ void custom_kernel_pmf_3d_mult_cells_merged(const int order, char const *name, o
     printf(" kernel routine w/o indirection:  pmf_3d_mult_cells_merged");
   }
 
-  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2, 0);
   cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_pmf_3d_mult_cells_merged_shared_mat<1,(CELLS_MERGED_NUM_THREADS / 4) + 1>, cudaFuncCachePreferShared));
   cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_pmf_3d_mult_cells_merged_shared_mat<2,(CELLS_MERGED_NUM_THREADS / 10) + 1>, cudaFuncCachePreferShared));
   cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_pmf_3d_mult_cells_merged_shared_mat<3,(CELLS_MERGED_NUM_THREADS / 20) + 1>, cudaFuncCachePreferShared));

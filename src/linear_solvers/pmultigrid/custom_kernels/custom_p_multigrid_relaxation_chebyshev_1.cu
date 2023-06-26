@@ -45,7 +45,7 @@ void custom_kernel_p_multigrid_relaxation_chebyshev_1(const int order, char cons
     printf(" kernel routine w/o indirection:  p_multigrid_relaxation_chebyshev_1");
   }
 
-  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2, 0);
   if (set_size > 0) {
 
     //set CUDA execution parameters
