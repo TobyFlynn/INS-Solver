@@ -126,20 +126,12 @@ void FactorPoissonMatrixFreeMult3D::mat_free_mult(op_dat in, op_dat out) {
                        op_arg_dat(tmp_grad1.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                        op_arg_dat(tmp_grad2.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   #else
-  op2_gemv(mesh, false, 1.0, DGConstants::DR, in, 0.0, tmp_grad0.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::DS, in, 0.0, tmp_grad1.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::DT, in, 0.0, tmp_grad2.dat);
-  op_par_loop(fpmf_3d_grad_2, "fpmf_3d_grad_2", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->rx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->sx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->tx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->ry, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->sy, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->ty, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->rz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->sz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->tz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+  op2_gemv_halo_exchange(mesh, false, 1.0, DGConstants::DR, in, 0.0, tmp_grad0.dat);
+  op2_gemv_halo_exchange(mesh, false, 1.0, DGConstants::DS, in, 0.0, tmp_grad1.dat);
+  op2_gemv_halo_exchange(mesh, false, 1.0, DGConstants::DT, in, 0.0, tmp_grad2.dat);
+  op_par_loop(fpmf_3d_grad_2, "fpmf_3d_grad_2:force_halo_exchange", mesh->cells,
+              op_arg_gbl(&mesh->order_int, 1, "int", OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
               op_arg_dat(mat_free_factor_copy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(tmp_grad0.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(tmp_grad1.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
