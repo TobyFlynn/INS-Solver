@@ -98,7 +98,7 @@ bool PETScPMultigrid::solve(op_dat rhs, op_dat ans) {
   int numIt;
   KSPGetIterationNumber(ksp, &numIt);
   iter_counts.push_back(numIt);
-  op_printf("%d\n", numIt);
+  // op_printf("%d\n", numIt);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp, &reason);
   // Check that the solver converged

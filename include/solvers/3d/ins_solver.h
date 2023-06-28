@@ -27,6 +27,7 @@ public:
   DG_FP get_time();
   DG_FP get_dt();
   void dump_data(const std::string &filename);
+  void save_enstropy_history(const std::string &filename);
 
   op_dat vel[2][3], velT[3], velTT[3], pr;
 private:
@@ -44,6 +45,8 @@ private:
   void advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_dat v, op_dat w);
   DG_FP max_vel();
   void add_to_pr_history();
+  DG_FP calc_enstrophy();
+  void record_enstrophy();
   // void shock_capturing();
 
   DGMesh3D *mesh;
@@ -71,6 +74,7 @@ private:
   op_dat proj_h;
 
   std::vector<std::pair<DG_FP,DGTempDat>> pr_history;
+  std::vector<std::pair<DG_FP,DG_FP>> enstropy_history;
 };
 
 #endif

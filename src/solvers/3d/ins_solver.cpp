@@ -163,7 +163,7 @@ INSSolver3D::~INSSolver3D() {
   delete pressureCoarseMatrix;
   delete pressureMatrix;
   delete viscosityMatrix;
-  delete pressureSolver;
+  delete (PETScPMultigrid *)pressureSolver;
   delete viscositySolver;
 }
 
@@ -225,6 +225,8 @@ void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
   pressureSolver->init();
   viscositySolver->init();
 
+  record_enstrophy();
+
   timer->endTimer("INSSolver3D - Init");
 }
 
@@ -259,6 +261,8 @@ void INSSolver3D::step() {
     dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
     it_pre_sub_cycle = 0;
   }
+
+  record_enstrophy();
 }
 
 DG_FP INSSolver3D::max_vel() {
@@ -1031,4 +1035,53 @@ void INSSolver3D::add_to_pr_history() {
     dg_dat_pool->releaseTempDatCells(pr_history[0].second);
     pr_history.erase(pr_history.begin());
   }
+}
+
+DG_FP INSSolver3D::calc_enstrophy() {
+  DGTempDat curl[3];
+  curl[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  curl[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  curl[2] = dg_dat_pool->requestTempDatCells(DG_NP);
+
+  mesh->curl(vel[currentInd][0], vel[currentInd][1], vel[currentInd][2],
+             curl[0].dat, curl[1].dat, curl[2].dat);
+
+  op_par_loop(ins_3d_enstrophy_0, "ins_3d_enstrophy_0", mesh->cells,
+              op_arg_dat(curl[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(curl[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(curl[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  mesh->mass(curl[2].dat);
+
+  DG_FP enstropy = 0.0;
+
+  op_par_loop(ins_3d_enstrophy_1, "ins_3d_enstrophy_1", mesh->cells,
+              op_arg_gbl(&enstropy, 1, DG_FP_STR, OP_INC),
+              op_arg_dat(curl[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+
+  dg_dat_pool->releaseTempDatCells(curl[0]);
+  dg_dat_pool->releaseTempDatCells(curl[1]);
+  dg_dat_pool->releaseTempDatCells(curl[2]);
+
+  return enstropy;
+}
+
+void INSSolver3D::record_enstrophy() {
+  enstropy_history.push_back({time, calc_enstrophy()});
+}
+
+#include <fstream>
+#include <iostream>
+
+void INSSolver3D::save_enstropy_history(const std::string &filename) {
+  std::ofstream file(filename);
+
+  file << "time,enstropy" << std::endl;
+
+  for(int i = 0; i < enstropy_history.size(); i++) {
+    file << std::to_string(enstropy_history[i].first) << ",";
+    file << std::to_string(enstropy_history[i].second) << std::endl;
+  }
+
+  file.close();
 }
