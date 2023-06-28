@@ -1,8 +1,8 @@
-inline void fpmf_3d_calc_tau_faces(const int **order, const int *faceNum,
+inline void fpmf_3d_calc_tau_faces(const int *order, const int *faceNum,
                                    const int *fmaskR_corrected,
                                    const DG_FP *fscale, const DG_FP **factor,
                                    DG_FP **tau) {
-  const int p = order[0][0];
+  const int p = *order;
   const int dg_npf = DG_CONSTANTS[(p - 1) * DG_NUM_CONSTANTS + 1];
   DG_FP gtau = 0.0;
   const int faceNumL = faceNum[0];
