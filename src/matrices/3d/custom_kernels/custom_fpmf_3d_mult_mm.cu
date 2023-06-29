@@ -78,7 +78,7 @@ void custom_kernel_fpmf_3d_mult_mm(const int order, char const *name, op_set set
     printf(" kernel routine w/o indirection:  fpmf_3d_mult_mm");
   }
 
-  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2, 0);
   if (set_size > 0) {
     //set CUDA execution parameters
     const int nthread = 256;

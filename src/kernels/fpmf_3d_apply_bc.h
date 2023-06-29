@@ -1,8 +1,6 @@
 inline void fpmf_3d_apply_bc(const int *p, const int *faceNum, const int *bc_type,
                              const DG_FP *nx, const DG_FP *ny, const DG_FP *nz, const DG_FP *fscale,
-                             const DG_FP *sJ, const DG_FP *rx, const DG_FP *sx, const DG_FP *tx,
-                             const DG_FP *ry, const DG_FP *sy, const DG_FP *ty, const DG_FP *rz,
-                             const DG_FP *sz, const DG_FP *tz, const DG_FP *fact, const DG_FP *bc,
+                             const DG_FP *sJ, const DG_FP *geof, const DG_FP *fact, const DG_FP *bc,
                              DG_FP *rhs) {
   const DG_FP *dr_mat = &dg_Dr_kernel[(*p - 1) * DG_NP * DG_NP];
   const DG_FP *ds_mat = &dg_Ds_kernel[(*p - 1) * DG_NP * DG_NP];
@@ -38,9 +36,9 @@ inline void fpmf_3d_apply_bc(const int *p, const int *faceNum, const int *bc_typ
         // int ind = i + j * dg_np;
         int ind = DG_MAT_IND(i, j, dg_np, dg_np);
 
-        D[ind] = *nx * (rx[0] * dr_mat[ind] + sx[0] * ds_mat[ind] + tx[0] * dt_mat[ind]);
-        D[ind] += *ny * (ry[0] * dr_mat[ind] + sy[0] * ds_mat[ind] + ty[0] * dt_mat[ind]);
-        D[ind] += *nz * (rz[0] * dr_mat[ind] + sz[0] * ds_mat[ind] + tz[0] * dt_mat[ind]);
+        D[ind] = *nx * (geof[RX_IND] * dr_mat[ind] + geof[SX_IND] * ds_mat[ind] + geof[TX_IND] * dt_mat[ind]);
+        D[ind] += *ny * (geof[RY_IND] * dr_mat[ind] + geof[SY_IND] * ds_mat[ind] + geof[TY_IND] * dt_mat[ind]);
+        D[ind] += *nz * (geof[RZ_IND] * dr_mat[ind] + geof[SZ_IND] * ds_mat[ind] + geof[TZ_IND] * dt_mat[ind]);
         D[ind] *= fact[i];
       }
     }

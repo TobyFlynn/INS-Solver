@@ -11,7 +11,7 @@
 #include "dg_mesh/dg_mesh.h"
 #include "poisson_matrix.h"
 
-#ifdef INS_BUILD_WITH_AMGX
+#if defined(INS_BUILD_WITH_AMGX) && defined(INS_CUDA)
 #include <amgx_c.h>
 #endif
 #ifdef INS_BUILD_WITH_HYPRE
@@ -26,7 +26,7 @@ public:
   virtual void multJacobi(op_dat in, op_dat out) override;
   virtual int getUnknowns() override;
 
-  #ifdef INS_BUILD_WITH_AMGX
+  #if defined(INS_BUILD_WITH_AMGX) && defined(INS_CUDA)
   bool getAmgXMat(AMGX_matrix_handle** mat);
   #endif
   #ifdef INS_BUILD_WITH_HYPRE
@@ -38,7 +38,7 @@ protected:
   virtual void set_glb_ind() override;
   virtual void setPETScMatrix() override;
 
-  #ifdef INS_BUILD_WITH_AMGX
+  #if defined(INS_BUILD_WITH_AMGX) && defined(INS_CUDA)
   virtual void setAmgXMatrix();
 
   AMGX_matrix_handle amgx_mat;

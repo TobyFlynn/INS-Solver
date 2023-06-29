@@ -23,6 +23,7 @@ mkdir -p linear_solvers/petsc_jacobi/custom_kernels
 mkdir -p linear_solvers/pmultigrid/custom_kernels
 mkdir -p linear_solvers/petsc_pmultigrid
 mkdir -p linear_solvers/petsc_inv_mass
+mkdir -p linear_solvers/initial_guess_extrapolation
 
 cd ..
 
@@ -43,6 +44,7 @@ mkdir -p linear_solvers/petsc_jacobi/custom_kernels
 mkdir -p linear_solvers/pmultigrid/custom_kernels
 mkdir -p linear_solvers/petsc_pmultigrid
 mkdir -p linear_solvers/petsc_inv_mass
+mkdir -p linear_solvers/initial_guess_extrapolation
 
 cd ..
 
@@ -100,6 +102,7 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         linear_solvers/pmultigrid/pmultigrid.cpp \
         linear_solvers/petsc_inv_mass/petsc_inv_mass.cpp \
         linear_solvers/petsc_jacobi/petsc_jacobi.cpp \
+        linear_solvers/initial_guess_extrapolation/initial_guess_extrapolation.cpp \
         kernels/
 
 sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins2d_kernels.cu
@@ -148,6 +151,7 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         linear_solvers/pmultigrid/pmultigrid.cpp \
         linear_solvers/petsc_inv_mass/petsc_inv_mass.cpp \
         linear_solvers/petsc_jacobi/petsc_jacobi.cpp \
+        linear_solvers/initial_guess_extrapolation/initial_guess_extrapolation.cpp \
         kernels/
 
 sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins3d_kernels.cu
@@ -164,6 +168,8 @@ sed -i "7i #include \"cblas.h\"" seq/ins3d_seqkernels.cpp
 if [ $SOA = 0 ]; then
   sed -i "73i #include \"../matrices/3d/custom_kernels/custom_fpmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
   sed -i "73i #include \"../matrices/3d/custom_kernels/custom_pmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
+else
+  sed -i "73i #include \"../matrices/3d/custom_kernels/custom_soa_pmf_3d_mult_faces.cu\"" cuda/ins3d_kernels.cu
 fi
 
 cd ..

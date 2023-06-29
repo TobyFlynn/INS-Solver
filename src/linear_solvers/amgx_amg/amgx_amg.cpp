@@ -8,6 +8,7 @@
 #include <iostream>
 #include <type_traits>
 #include <stdexcept>
+#include <cuda_runtime_api.h>
 
 extern Timing *timer;
 extern Config *config;
@@ -38,7 +39,9 @@ AmgXAMGSolver::AmgXAMGSolver(DGMesh *m) {
 
   #ifdef INS_MPI
   amgx_comm = MPI_COMM_WORLD;
-  int devices[] = {0};
+  int gpu_num;
+  cudaGetDevice(&gpu_num);
+  int devices[] = {gpu_num};
   AMGX_resources_create(&amgx_res_handle, amgx_config_handle, &amgx_comm, 1, devices);
   #else
   AMGX_resources_create_simple(&amgx_res_handle, amgx_config_handle);
@@ -55,6 +58,8 @@ AmgXAMGSolver::~AmgXAMGSolver() {
   AMGX_solver_destroy(solver_amgx);
   AMGX_vector_destroy(rhs_amgx);
   AMGX_vector_destroy(soln_amgx);
+  AMGX_config_destroy(amgx_config_handle);
+  AMGX_resources_destroy(amgx_res_handle);
   AMGX_finalize_plugins();
   AMGX_finalize();
 }

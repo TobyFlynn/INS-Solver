@@ -49,7 +49,7 @@ void custom_kernel_petsc_pre_jacobi(const int order, char const *name, op_set se
     printf(" kernel routine w/o indirection:  petsc_pre_jacobi");
   }
 
-  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2, 0);
   if (set_size > 0) {
 
     //set CUDA execution parameters

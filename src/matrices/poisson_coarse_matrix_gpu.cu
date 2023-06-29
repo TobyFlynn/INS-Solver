@@ -30,8 +30,8 @@ void PoissonCoarseMatrix::set_glb_ind() {
   op_arg args[] = {
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_WRITE)
   };
-  op_mpi_halo_exchanges_grouped(_mesh->cells, 1, args, 2);
-  op_mpi_wait_all_grouped(1, args, 2);
+  op_mpi_halo_exchanges_grouped(_mesh->cells, 1, args, 2, 0);
+  op_mpi_wait_all_grouped(1, args, 2, 0);
 
   const int setSize = _mesh->cells->size;
   int *data_ptr = (int *)malloc(setSize * sizeof(int));
@@ -83,8 +83,8 @@ void PoissonCoarseMatrix::setPETScMatrix() {
     op_arg_dat(op1, -1, OP_ID, DG_NP_N1 * DG_NP_N1, DG_FP_STR, OP_READ),
     op_arg_dat(glb_ind, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges_grouped(_mesh->cells, 2, args, 2);
-  op_mpi_wait_all_grouped(2, args, 2);
+  op_mpi_halo_exchanges_grouped(_mesh->cells, 2, args, 2, 0);
+  op_mpi_wait_all_grouped(2, args, 2, 0);
   timer->endTimer("setPETScMatrix - OP2 op1");
 
   timer->startTimer("setPETScMatrix - Copy op1 to host");
@@ -138,8 +138,8 @@ void PoissonCoarseMatrix::setPETScMatrix() {
     op_arg_dat(glb_indL, -1, OP_ID, 1, "int", OP_READ),
     op_arg_dat(glb_indR, -1, OP_ID, 1, "int", OP_READ)
   };
-  op_mpi_halo_exchanges_grouped(_mesh->faces, 4, edge_args, 2);
-  op_mpi_wait_all_grouped(4, edge_args, 2);
+  op_mpi_halo_exchanges_grouped(_mesh->faces, 4, edge_args, 2, 0);
+  op_mpi_wait_all_grouped(4, edge_args, 2, 0);
   timer->endTimer("setPETScMatrix - OP2 op2");
 
   timer->startTimer("setPETScMatrix - Copy op2 to host");
@@ -237,25 +237,17 @@ void PoissonCoarseMatrix::setAmgXMatrix() {
   // Exchange halos
   DGMesh3D *mesh = dynamic_cast<DGMesh3D*>(_mesh);
   op_arg args[] = {
-    op_arg_dat(op2[0], 0, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[0], 1, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[0], 2, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[0], 3, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 0, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 1, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 2, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 3, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(glb_indL, 0, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indL, 1, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indL, 2, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indL, 3, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 0, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 1, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 2, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 3, mesh->flux2faces, glb_indR->dim, "int", OP_RW)
+    op_arg_dat(op2[0], 0, mesh->face2cells, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[0], 1, mesh->face2cells, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 0, mesh->face2cells, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 1, mesh->face2cells, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(glb_indL, 0, mesh->face2cells, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indL, 1, mesh->face2cells, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 0, mesh->face2cells, glb_indR->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 1, mesh->face2cells, glb_indR->dim, "int", OP_RW)
   };
-  op_mpi_halo_exchanges_grouped(mesh->fluxes, 16, args, 2);
-  op_mpi_wait_all_grouped(16, args, 2);
+  op_mpi_halo_exchanges_grouped(mesh->faces, 8, args, 2, 0);
+  op_mpi_wait_all_grouped(8, args, 2, 0);
   cudaDeviceSynchronize();
 
   // Get data from OP2
@@ -419,25 +411,17 @@ void PoissonCoarseMatrix::setHYPREMatrix() {
   // Exchange halos
   DGMesh3D *mesh = dynamic_cast<DGMesh3D*>(_mesh);
   op_arg args[] = {
-    op_arg_dat(op2[0], 0, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[0], 1, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[0], 2, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[0], 3, mesh->flux2faces, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 0, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 1, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 2, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 3, mesh->flux2faces, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(glb_indL, 0, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indL, 1, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indL, 2, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indL, 3, mesh->flux2faces, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 0, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 1, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 2, mesh->flux2faces, glb_indR->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 3, mesh->flux2faces, glb_indR->dim, "int", OP_RW)
+    op_arg_dat(op2[0], 0, mesh->face2cells, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[0], 1, mesh->face2cells, op2[0]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 0, mesh->face2cells, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(op2[1], 1, mesh->face2cells, op2[1]->dim, DG_FP_STR, OP_RW),
+    op_arg_dat(glb_indL, 0, mesh->face2cells, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indL, 1, mesh->face2cells, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 0, mesh->face2cells, glb_indR->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, 1, mesh->face2cells, glb_indR->dim, "int", OP_RW)
   };
-  op_mpi_halo_exchanges_grouped(mesh->fluxes, 16, args, 2);
-  op_mpi_wait_all_grouped(16, args, 2);
+  op_mpi_halo_exchanges_grouped(mesh->faces, 8, args, 2, 0);
+  op_mpi_wait_all_grouped(8, args, 2, 0);
   cudaDeviceSynchronize();
 
   // Get data from OP2

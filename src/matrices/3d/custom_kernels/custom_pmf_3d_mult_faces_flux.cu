@@ -203,7 +203,7 @@ void custom_kernel_pmf_3d_mult_faces_flux(const int order, char const *name, op_
   if (OP_diags>2) {
     printf(" kernel routine with indirection: pmf_3d_mult_faces_flux\n");
   }
-  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2);
+  int set_size = op_mpi_halo_exchanges_grouped(set, nargs, args, 2, 0);
   cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_pmf_3d_mult_faces_flux<1>, cudaFuncCachePreferL1));
   cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_pmf_3d_mult_faces_flux<2>, cudaFuncCachePreferL1));
   cutilSafeCall(cudaFuncSetCacheConfig(_op_cuda_pmf_3d_mult_faces_flux<3>, cudaFuncCachePreferL1));
@@ -215,7 +215,7 @@ void custom_kernel_pmf_3d_mult_faces_flux(const int order, char const *name, op_
 
     for ( int round=0; round<2; round++ ){
       if (round==1) {
-        op_mpi_wait_all_grouped(nargs, args, 2);
+        op_mpi_wait_all_grouped(nargs, args, 2, 0);
       }
       int start = round==0 ? 0 : set->core_size;
       int end = round==0 ? set->core_size : set->size + set->exec_size;

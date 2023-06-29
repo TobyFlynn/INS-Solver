@@ -11,11 +11,12 @@ cblas_sgemv({row_col},{trans},{m},{n},{alpha},{A},{lda},{x}, 1,{beta},{y}, 1);
 #endif
 #else
 for(int i = 0; i < {outer}; i++) {{
-  {y_init}
+  DG_FP tmp_gemv = 0.0;
   for(int j = 0; j < {inner}; j++) {{
     int ind = DG_MAT_IND({ind_0},{ind_1},{m},{n});
-    {y}[i] += {alpha_mult} {A}[ind] * {x}[j];
+    tmp_gemv += {A}[ind] * {x}[j];
   }}
+  {y_update}
 }}
 #endif
 """
@@ -42,16 +43,13 @@ def replace_gemv_kernels(input_str):
             ind1 = "i"
             outer_l = args_str[2]
             inner_l = args_str[1]
-        y_init_str = "{y}[i] *= {beta};".format(y = args_str[8], beta = args_str[7])
+        y_update_str = "{y}[i] = ({beta}) * {y}[i] + ({alpha}) * tmp_gemv;".format(y = args_str[8], alpha = args_str[3], beta = args_str[7])
         if args_str[7].strip() == "0.0":
-            y_init_str = "{y}[i] = 0.0;".format(y = args_str[8])
-        alpha_mult_str = "({alpha}) * ".format(alpha = args_str[3])
-        if args_str[3].strip() == "1.0":
-            alpha_mult_str = ""
+            y_update_str = "{y}[i] = ({alpha}) * tmp_gemv;".format(y = args_str[8], alpha = args_str[3])
         blas_call = gemv_template.format(row_col = col_row_maj_str, trans = transpose_str, m = args_str[1], \
             n = args_str[2], alpha = args_str[3], A = args_str[4], lda = args_str[5], x = args_str[6], \
             beta = args_str[7], y = args_str[8], inner = inner_l, outer = outer_l, ind_0 = ind0, \
-            ind_1 = ind1, y_init = y_init_str, alpha_mult = alpha_mult_str)
+            ind_1 = ind1, y_update = y_update_str)
         out_str = out_str[0 : index] + blas_call + out_str[end_ind + 2 :]
         index = out_str.find("op2_in_kernel_gemv")
     return out_str
@@ -65,16 +63,16 @@ cblas_dgemm({row_col}, {transA}, {transB}, {m}, {n}, {k}, {alpha}, {A}, {lda}, {
 cblas_sgemm({row_col}, {transA}, {transB}, {m}, {n}, {k}, {alpha}, {A}, {lda}, {B}, {ldb}, {beta}, {C}, {ldc});
 #endif
 #else
-// Do left face
 for(int i = 0; i < {m}; i++) {{
   for(int j = 0; j < {n}; j++) {{
-    int c_ind = DG_MAT_IND(i, j, {m}, {n});
-    {beta_init}
+    DG_FP tmp_gemm = 0.0;
     for(int k = 0; k < {k}; k++) {{
       int a_ind = DG_MAT_IND({indA_0}, {indA_1}, {m}, {k});
       int b_ind = DG_MAT_IND({indB_0}, {indB_1}, {k}, {n});
-      {C}[c_ind] += {alpha_mult}{A}[a_ind] * {B}[b_ind];
+      tmp_gemm += {A}[a_ind] * {B}[b_ind];
     }}
+    int c_ind = DG_MAT_IND(i, j, {m}, {n});
+    {c_update}
   }}
 }}
 #endif
@@ -105,17 +103,14 @@ def replace_gemm_kernels(input_str):
             transpose_strB = " CblasTrans"
             indB0 = "j"
             indB1 = "k"
-        beta_init_str = "{C}[c_ind] *= {beta};".format(C = args_str[11], beta = args_str[10])
+        c_update_str = "{C}[c_ind] = ({beta}) * {C}[c_ind] + ({alpha}) * tmp_gemm;".format(C = args_str[11], beta = args_str[10], alpha = args_str[5])
         if args_str[10].strip() == "0.0":
-            beta_init_str = "{C}[c_ind] = 0.0;".format(C = args_str[11])
-        alpha_mult_str = "({alpha}) * ".format(alpha = args_str[5])
-        if args_str[5].strip() == "1.0":
-            alpha_mult_str = ""
+            c_update_str = "{C}[c_ind] = ({alpha}) * tmp_gemm;".format(C = args_str[11], alpha = args_str[5])
         blas_call = gemm_template.format(row_col = col_row_maj_str, transA = transpose_strA, transB = transpose_strB, \
                         m = args_str[2], n = args_str[3], k = args_str[4], alpha = args_str[5], A = args_str[6], \
                         lda = args_str[7], B = args_str[8], ldb = args_str[9], beta = args_str[10], C = args_str[11], \
                         ldc = args_str[12], indA_0 = indA0, indA_1 = indA1, indB_0 = indB0, indB_1 = indB1, \
-                        beta_init = beta_init_str, alpha_mult = alpha_mult_str)
+                        c_update = c_update_str)
         out_str = out_str[0 : index] + blas_call + out_str[end_ind + 2 :]
         index = out_str.find("op2_in_kernel_gemm")
     return out_str
