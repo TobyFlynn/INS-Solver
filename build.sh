@@ -55,6 +55,10 @@ python3 preprocessor.py 2 $ORDER
 
 python3 preprocessor.py 3 $ORDER
 
+if [ $SOA = 1 ]; then
+  export OP_AUTO_SOA=1
+fi
+
 cd gen2d
 
 # python3 $OP2_TRANSLATOR ins.cpp \
@@ -117,10 +121,6 @@ sed -i "5i #include \"cblas.h\"" seq/ins2d_seqkernels.cpp
 cd ..
 
 cd gen3d
-
-if [ $SOA = 1 ]; then
-  export OP_AUTO_SOA=1
-fi
 
 python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/advection_solver.cpp \

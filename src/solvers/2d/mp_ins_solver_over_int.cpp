@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <limits>
+#include <stdexcept>
 
 #include "dg_op2_blas.h"
 
@@ -88,6 +89,10 @@ MPINSSolverOverInt2D::MPINSSolverOverInt2D(DGMesh2D *m, const std::string &filen
 }
 
 void MPINSSolverOverInt2D::setup_common() {
+  #ifdef DG_OP2_SOA
+  throw std::runtime_error("2D over integrate not implemented for SoA");
+  #endif
+
   // pressureMatrix = new CubFactorPoissonMatrix2D(mesh);
   // viscosityMatrix = new CubFactorMMPoissonMatrix2D(mesh);
   coarsePressureMatrix = new FactorPoissonCoarseMatrixOverInt2D(mesh);
@@ -260,7 +265,7 @@ void MPINSSolverOverInt2D::advection() {
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, vel[currentInd][0], 0.0, gVel[0]);
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, vel[currentInd][1], 0.0, gVel[1]);
 
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+  op_par_loop(zero_g_np2, "zero_g_np", mesh->cells,
               op_arg_dat(gAdvecFlux[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(gAdvecFlux[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 
@@ -407,7 +412,7 @@ bool MPINSSolverOverInt2D::viscosity() {
   timer->startTimer("MPINSSolverOverInt2D - Viscosity RHS");
   DG_FP time_n1 = time + dt;
 
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+  op_par_loop(zero_g_np2, "zero_g_np", mesh->cells,
               op_arg_dat(visBC[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(visBC[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 

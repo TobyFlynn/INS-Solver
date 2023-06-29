@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <limits>
+#include <stdexcept>
 
 #include "dg_op2_blas.h"
 #include "dg_constants/dg_constants.h"
@@ -88,6 +89,9 @@ INSSolverOverInt2D::INSSolverOverInt2D(DGMesh2D *m, const std::string &filename,
 }
 
 void INSSolverOverInt2D::setup_common() {
+  #ifdef DG_OP2_SOA
+  throw std::runtime_error("2D over integrate not implemented for SoA");
+  #endif
   // pressureMatrix = new PoissonMatrixOverInt2D(mesh);
   pressureCoarseMatrix = new PoissonCoarseMatrixOverInt2D(mesh);
   pressureMatrix = new PoissonSemiMatrixFreeOverInt2D(mesh);
@@ -191,7 +195,7 @@ void INSSolverOverInt2D::init(const DG_FP re, const DG_FP refVel) {
                 op_arg_dat(vel[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(vel[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-    op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+    op_par_loop(zero_g_np2, "zero_g_np", mesh->cells,
                 op_arg_dat(dPdN[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(dPdN[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
   }
@@ -285,7 +289,7 @@ void INSSolverOverInt2D::advection() {
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, vel[currentInd][0], 0.0, gVel[0]);
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, vel[currentInd][1], 0.0, gVel[1]);
 
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+  op_par_loop(zero_g_np2, "zero_g_np", mesh->cells,
               op_arg_dat(gAdvecFlux[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(gAdvecFlux[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 
@@ -479,7 +483,7 @@ bool INSSolverOverInt2D::viscosity() {
   timer->startTimer("INSSolverOverInt2D - Viscosity RHS");
   DG_FP time_n1 = time + dt;
 
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+  op_par_loop(zero_g_np2, "zero_g_np", mesh->cells,
               op_arg_dat(visBC[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(visBC[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 

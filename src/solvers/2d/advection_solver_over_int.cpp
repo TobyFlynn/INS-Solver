@@ -3,6 +3,7 @@
 #include "op_seq.h"
 
 #include <limits>
+#include <stdexcept>
 
 #include "dg_op2_blas.h"
 
@@ -11,6 +12,9 @@
 extern Timing *timer;
 
 AdvectionSolverOverInt2D::AdvectionSolverOverInt2D(DGMesh2D *m) {
+  #ifdef DG_OP2_SOA
+  throw std::runtime_error("2D over integrate not implemented for SoA");
+  #endif
   mesh = m;
 
   f = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "advection_2d_f");

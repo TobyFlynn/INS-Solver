@@ -3,6 +3,7 @@
 #include "op_seq.h"
 
 #include <string>
+#include <stdexcept>
 #include "dg_op2_blas.h"
 
 #include "timing.h"
@@ -10,6 +11,9 @@
 extern Timing *timer;
 
 CompressibleEulerSolverOverInt2D::CompressibleEulerSolverOverInt2D(DGMesh2D *m) {
+  #ifdef DG_OP2_SOA
+  throw std::runtime_error("2D over integrate not implemented for SoA");
+  #endif
   mesh = m;
   std::string name;
   for(int i = 0; i < 4; i++) {
@@ -132,11 +136,11 @@ void CompressibleEulerSolverOverInt2D::rhs(op_dat *wQ, op_dat *RHSQ) {
     op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, wQ[i], 0.0, gQ[i]);
   }
 
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+  op_par_loop(zero_g_np2, "zero_g_np", mesh->cells,
               op_arg_dat(gRHSQ[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(gRHSQ[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 
-  op_par_loop(zero_g_np, "zero_g_np", mesh->cells,
+  op_par_loop(zero_g_np2, "zero_g_np", mesh->cells,
               op_arg_dat(gRHSQ[2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(gRHSQ[3], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
 

@@ -135,7 +135,7 @@ INSSolver2D::~INSSolver2D() {
   delete pressureCoarseMatrix;
   delete pressureMatrix;
   delete viscosityMatrix;
-  delete pressureSolver;
+  delete (PETScPMultigrid *)pressureSolver;
   delete viscositySolver;
 }
 
@@ -156,6 +156,21 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
     op_par_loop(zero_npf_2, "zero_npf_2", mesh->cells,
                 op_arg_dat(dPdN[0], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
                 op_arg_dat(dPdN[1], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+
+    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                op_arg_dat(n[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                op_arg_dat(n[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                op_arg_dat(n[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                op_arg_dat(n[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                op_arg_dat(pr, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   }
 
   h = 0.0;
