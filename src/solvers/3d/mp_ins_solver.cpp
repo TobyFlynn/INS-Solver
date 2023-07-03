@@ -1098,7 +1098,7 @@ void MPINSSolver3D::shock_capturing() {
               op_arg_gbl(&e0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&s0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&k,  1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->J, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
               op_arg_dat(shock_u.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(shock_u_hat.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(art_vis, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
