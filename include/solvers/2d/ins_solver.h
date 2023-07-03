@@ -4,6 +4,7 @@
 #include "dg_compiler_defs.h"
 
 #include <string>
+#include <vector>
 
 #include "matrices/2d/poisson_coarse_matrix_2d.h"
 #include "matrices/2d/poisson_matrix_free_diag_2d.h"
@@ -25,6 +26,7 @@ public:
   DG_FP get_time();
   DG_FP get_dt();
   void dump_data(const std::string &filename);
+  void save_l2_err_history(const std::string &filename);
 
   DGMesh2D *mesh;
 private:
@@ -33,8 +35,11 @@ private:
   bool pressure();
   void project_velocity();
   bool viscosity();
+  void no_viscosity();
 
   DG_FP max_vel();
+  DG_FP l2_vortex_error(DG_FP time);
+  void record_l2_err();
 
   void advec_current_non_linear();
   void advec_standard();
@@ -50,6 +55,7 @@ private:
 
   bool resuming;
   bool div_div_proj;
+  bool vis_solve;
   int currentInd, sub_cycles, it_pre_sub_cycle;
   DG_FP a0, a1, b0, b1, g0, dt, time, sub_cycle_dt, h;
   DG_FP reynolds;
@@ -57,6 +63,8 @@ private:
   op_dat vel[2][2], n[2][2], velT[2], velTT[2], pr, dPdN[2];
   op_dat bc_types, pr_bc_types, vis_bc_types;
   op_dat proj_h;
+
+  std::vector<std::pair<DG_FP,DG_FP>> l2_err_history;
 };
 
 #endif

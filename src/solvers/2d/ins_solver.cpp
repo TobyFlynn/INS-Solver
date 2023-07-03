@@ -96,6 +96,9 @@ void INSSolver2D::setup_common() {
   config->getInt("solver-options", "sub_cycle", sub_cycles);
   config->getInt("solver-options", "num_iter_before_sub_cycle", it_pre_sub_cycle);
   it_pre_sub_cycle = it_pre_sub_cycle > 1 ? it_pre_sub_cycle : 1;
+  int tmp_vis = 1;
+  config->getInt("solver-options", "viscosity", tmp_vis);
+  vis_solve = tmp_vis != 0;
 
   pressureMatrix = new PoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new PoissonCoarseMatrix2D(mesh);
@@ -178,6 +181,7 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
   h = 1.0 / h;
+  op_printf("h: %g\n", h);
   sub_cycle_dt = h / (DG_ORDER * DG_ORDER * max_vel());
   dt = sub_cycle_dt;
   if(resuming)
@@ -233,11 +237,18 @@ void INSSolver2D::step() {
   // timer->endTimer("Shock Capturing");
 
   timer->startTimer("INSSolver2D - Viscosity");
-  viscosity();
+  if(vis_solve) {
+    viscosity();
+  } else {
+    no_viscosity();
+  }
   timer->endTimer("INSSolver2D - Viscosity");
 
   currentInd = (currentInd + 1) % 2;
   time += dt;
+
+  record_l2_err();
+
   g0 = 1.5;
   a0 = 2.0;
   a1 = -0.5;
@@ -785,6 +796,15 @@ bool INSSolver2D::viscosity() {
   return convergedX && convergedY;
 }
 
+void INSSolver2D::no_viscosity() {
+  op_par_loop(ins_no_vis_2d, "ins_vis_rhs_2d", mesh->cells,
+              op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+}
+
 DG_FP INSSolver2D::get_time() {
   return time;
 }
@@ -814,4 +834,45 @@ void INSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(pr, filename.c_str());
   op_fetch_data_hdf5_file(mesh->order, filename.c_str());
   timer->endTimer("INSSolver2D - Dump Data");
+}
+
+DG_FP INSSolver2D::l2_vortex_error(DG_FP time) {
+  DGTempDat err_tmp = dg_dat_pool->requestTempDatCells(DG_NP);
+  op_par_loop(ins_2d_l2_vortex_error_0, "ins_2d_l2_vortex_error_0", mesh->cells,
+              op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(err_tmp.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  mesh->mass(err_tmp.dat);
+
+  DG_FP residual = 0.0;
+  op_par_loop(ins_2d_l2_vortex_error_1, "ins_2d_l2_vortex_error_1", mesh->cells,
+              op_arg_gbl(&residual, 1, DG_FP_STR, OP_INC),
+              op_arg_dat(err_tmp.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+
+  dg_dat_pool->releaseTempDatCells(err_tmp);
+
+  return residual;
+}
+
+void INSSolver2D::record_l2_err() {
+  l2_err_history.push_back({time, l2_vortex_error(time)});
+}
+
+#include <fstream>
+#include <iostream>
+
+void INSSolver2D::save_l2_err_history(const std::string &filename) {
+  std::ofstream file(filename);
+
+  file << "time,l2_err_vel_x" << std::endl;
+
+  for(int i = 0; i < l2_err_history.size(); i++) {
+    file << std::to_string(l2_err_history[i].first) << ",";
+    file << std::to_string(l2_err_history[i].second) << std::endl;
+  }
+
+  file.close();
 }

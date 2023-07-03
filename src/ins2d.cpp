@@ -170,6 +170,8 @@ int main(int argc, char **argv) {
     mpins2d->dump_data(out_file_end);
   }
 
+  mpins2d->save_l2_err_history(outputDir + "l2_err_vel_x.txt");
+
   timer->exportTimings(outputDir + "timings.txt", iter, mpins2d->get_time());
 
   delete mpins2d;
