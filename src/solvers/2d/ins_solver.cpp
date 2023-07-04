@@ -617,8 +617,8 @@ bool INSSolver2D::pressure() {
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(dPdN[currentInd], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(dPdN[currentInd], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
+              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
               op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   mesh->mass(divVelT.dat);
