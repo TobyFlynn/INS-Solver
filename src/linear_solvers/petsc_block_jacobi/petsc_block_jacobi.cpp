@@ -143,10 +143,6 @@ void PETScBlockJacobiSolver::calc_precond_mat() {
   const DG_FP *op1_ptr = getOP2PtrHost(matrix->op1, OP_READ);
   DG_FP *pre_ptr = getOP2PtrHost(pre, OP_WRITE);
 
-  #ifdef DG_OP2_SOA
-  throw std::runtime_error("calc_precond_mat not implemented for SoA");
-  #endif
-
   #pragma omp parallel for
   for(int i = 0; i < mesh->cells->size; i++) {
     const DG_FP *in_c = op1_ptr + i * matrix->op1->dim;

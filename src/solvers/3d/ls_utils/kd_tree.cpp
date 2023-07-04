@@ -49,7 +49,7 @@ void KDTree3D::build_tree() {
     return;
   }
   empty = false;
-  
+
   timer->startTimer("K-D Tree - Construct Tree");
   construct_tree(points.begin(), points.end(), false, 0);
   timer->endTimer("K-D Tree - Construct Tree");
@@ -344,10 +344,10 @@ void KDTree3D::construct_polys(vector<KDCoord> &points, op_dat s) {
 
   map<int,set<int>> stencils = PolyApprox3D::get_stencils(cellInds, mesh->face2cells);
 
-  const DG_FP *x_ptr = getOP2PtrHostMap(mesh->x, mesh->face2cells, OP_READ);
-  const DG_FP *y_ptr = getOP2PtrHostMap(mesh->y, mesh->face2cells, OP_READ);
-  const DG_FP *z_ptr = getOP2PtrHostMap(mesh->z, mesh->face2cells, OP_READ);
-  const DG_FP *s_ptr = getOP2PtrHostMap(s, mesh->face2cells, OP_READ);
+  const DG_FP *x_ptr = getOP2PtrHostHE(mesh->x, OP_READ);
+  const DG_FP *y_ptr = getOP2PtrHostHE(mesh->y, OP_READ);
+  const DG_FP *z_ptr = getOP2PtrHostHE(mesh->z, OP_READ);
+  const DG_FP *s_ptr = getOP2PtrHostHE(s, OP_READ);
 
   // Populate map
   int i = 0;
@@ -359,10 +359,10 @@ void KDTree3D::construct_polys(vector<KDCoord> &points, op_dat s) {
     i++;
   }
 
-  releaseOP2PtrHostMap(mesh->x, mesh->face2cells, OP_READ, x_ptr);
-  releaseOP2PtrHostMap(mesh->y, mesh->face2cells, OP_READ, y_ptr);
-  releaseOP2PtrHostMap(mesh->z, mesh->face2cells, OP_READ, z_ptr);
-  releaseOP2PtrHostMap(s, mesh->face2cells, OP_READ, s_ptr);
+  releaseOP2PtrHostHE(mesh->x, OP_READ, x_ptr);
+  releaseOP2PtrHostHE(mesh->y, OP_READ, y_ptr);
+  releaseOP2PtrHostHE(mesh->z, OP_READ, z_ptr);
+  releaseOP2PtrHostHE(s, OP_READ, s_ptr);
 
   timer->endTimer("LS - Construct Poly Approx");
 }

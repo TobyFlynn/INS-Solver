@@ -261,11 +261,6 @@ void PoissonCoarseMatrix::setAmgXMatrix() {
   cudaMemcpy(glb_l, glb_indL->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
   cudaMemcpy(glb_r, glb_indR->data_d, faces_set_size * sizeof(int), cudaMemcpyDeviceToHost);
 
-  // TODO SoA
-  #ifdef DG_OP2_SOA
-  throw std::runtime_error("setAmgXMatrix not implmented for SoA yet");
-  #endif
-
   std::map<int,std::vector<std::pair<int,DG_FP>>> mat_buffer;
   for(int c = 0; c < cell_set_size; c++) {
     // Add diagonal block to buffer
@@ -444,11 +439,6 @@ void PoissonCoarseMatrix::setHYPREMatrix() {
     HYPRE_IJMatrixInitialize(hypre_mat);
     hypre_mat_init = true;
   }
-
-
-  #ifdef DG_OP2_SOA
-  throw std::runtime_error("setHYPREMatrix not implmented for SoA yet");
-  #endif
 
   std::map<int,std::vector<std::pair<int,DG_FP>>> mat_buffer;
 
