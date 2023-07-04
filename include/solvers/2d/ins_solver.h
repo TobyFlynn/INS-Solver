@@ -56,6 +56,7 @@ private:
   bool resuming;
   bool div_div_proj;
   bool vis_solve;
+  bool dt_forced;
   int currentInd, sub_cycles, it_pre_sub_cycle;
   DG_FP a0, a1, b0, b1, g0, dt, time, sub_cycle_dt, h;
   DG_FP reynolds;

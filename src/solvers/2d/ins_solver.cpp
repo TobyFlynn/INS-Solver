@@ -99,6 +99,10 @@ void INSSolver2D::setup_common() {
   int tmp_vis = 1;
   config->getInt("solver-options", "viscosity", tmp_vis);
   vis_solve = tmp_vis != 0;
+  double tmp_dt = -1.0;
+  config->getDouble("solver-options", "force_dt", tmp_dt);
+  dt_forced = tmp_dt > 0.0;
+  if(dt_forced) dt = tmp_dt;
 
   pressureMatrix = new PoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new PoissonCoarseMatrix2D(mesh);
@@ -183,9 +187,11 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   h = 1.0 / h;
   op_printf("h: %g\n", h);
   sub_cycle_dt = h / (DG_ORDER * DG_ORDER * max_vel());
-  dt = sub_cycle_dt;
-  if(resuming)
-    dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+  if(!dt_forced) {
+    dt = sub_cycle_dt;
+    if(resuming)
+      dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+  }
   op_printf("dt: %g\n", dt);
 
   time = dt * currentInd;
@@ -255,12 +261,14 @@ void INSSolver2D::step() {
   b0 = 2.0;
   b1 = -1.0;
 
-  if(it_pre_sub_cycle > 1) {
-    it_pre_sub_cycle--;
-  } else {
-    sub_cycle_dt = h / (DG_ORDER * DG_ORDER * max_vel());
-    dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
-    it_pre_sub_cycle = 0;
+  if(!dt_forced) {
+    if(it_pre_sub_cycle > 1) {
+      it_pre_sub_cycle--;
+    } else {
+      sub_cycle_dt = h / (DG_ORDER * DG_ORDER * max_vel());
+      dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+      it_pre_sub_cycle = 0;
+    }
   }
 }
 
