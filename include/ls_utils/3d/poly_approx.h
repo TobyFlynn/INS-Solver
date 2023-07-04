@@ -27,7 +27,7 @@ public:
   DG_FP get_coeff(int ind);
   void get_offsets(DG_FP &x, DG_FP &y, DG_FP &z);
 
-  static const int N = 3;
+  static const int N = DG_ORDER;
   static int num_coeff();
   static int num_elem_stencil();
   static std::map<int,std::set<int>> get_stencils(const std::set<int> &central_inds, op_map edge_map);
