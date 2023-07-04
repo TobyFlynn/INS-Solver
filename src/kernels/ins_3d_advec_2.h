@@ -29,10 +29,16 @@ inline void ins_3d_advec_2(const DG_FP *t, const int *bc_type, const int *faceNu
   } else if(*bc_type == LW_SLIP_WALL_BC) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmaskB[i];
+      const DG_FP mag = sqrt(u[fmask_ind] * u[fmask_ind] + v[fmask_ind] * v[fmask_ind] + w[fmask_ind] * w[fmask_ind]);
       const DG_FP dot = nx[0] * u[fmask_ind] + ny[0] * v[fmask_ind] + nz[0] * w[fmask_ind];
       uR[i] = u[fmask_ind] - dot * nx[0];
       vR[i] = v[fmask_ind] - dot * ny[0];
       wR[i] = w[fmask_ind] - dot * nz[0];
+      const DG_FP mag2 = sqrt(uR[i] * uR[i] + vR[i] * vR[i] + wR[i] * wR[i]);
+      const DG_FP mag_factor = fabs(mag) < 1e-8 || fabs(mag2) < 1e-8 ? 1.0 : mag / mag2;
+      uR[i] *= mag_factor;
+      vR[i] *= mag_factor;
+      wR[i] *= mag_factor;
     }
   } else if(*bc_type == LW_NO_SLIP_WALL_BC) {
     for(int i = 0; i < DG_NPF; i++) {

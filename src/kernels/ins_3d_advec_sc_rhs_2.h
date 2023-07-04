@@ -37,14 +37,26 @@ inline void ins_3d_advec_sc_rhs_2(const int *bc_type, const int *faceNum,
   } else if(*bc_type == LW_SLIP_WALL_BC) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmaskB[i];
+      const DG_FP mags = sqrt(us[fmask_ind] * us[fmask_ind] + vs[fmask_ind] * vs[fmask_ind] + ws[fmask_ind] * ws[fmask_ind]);
       const DG_FP dots = nx[0] * us[fmask_ind] + ny[0] * vs[fmask_ind] + nz[0] * ws[fmask_ind];
       usR[i] = us[fmask_ind] - dots * nx[0];
       vsR[i] = vs[fmask_ind] - dots * ny[0];
       wsR[i] = ws[fmask_ind] - dots * nz[0];
+      const DG_FP mag2s = sqrt(usR[i] * usR[i] + vsR[i] * vsR[i] + wsR[i] * wsR[i]);
+      const DG_FP mag_factors = fabs(mags) < 1e-8 || fabs(mag2s) < 1e-8 ? 1.0 : mags / mag2s;
+      usR[i] *= mag_factors;
+      vsR[i] *= mag_factors;
+      wsR[i] *= mag_factors;
+      const DG_FP magb = sqrt(ub[fmask_ind] * ub[fmask_ind] + vb[fmask_ind] * vb[fmask_ind] + wb[fmask_ind] * wb[fmask_ind]);
       const DG_FP dotb = nx[0] * ub[fmask_ind] + ny[0] * vb[fmask_ind] + nz[0] * wb[fmask_ind];
       ubR[i] = ub[fmask_ind] - dotb * nx[0];
       vbR[i] = vb[fmask_ind] - dotb * ny[0];
       wbR[i] = wb[fmask_ind] - dotb * nz[0];
+      const DG_FP mag2b = sqrt(ubR[i] * ubR[i] + vbR[i] * vbR[i] + wbR[i] * wbR[i]);
+      const DG_FP mag_factorb = fabs(magb) < 1e-8 || fabs(mag2b) < 1e-8 ? 1.0 : magb / mag2b;
+      ubR[i] *= mag_factorb;
+      vbR[i] *= mag_factorb;
+      wbR[i] *= mag_factorb;
     }
   } else if(*bc_type == LW_NO_SLIP_WALL_BC) {
     for(int i = 0; i < DG_NPF; i++) {
