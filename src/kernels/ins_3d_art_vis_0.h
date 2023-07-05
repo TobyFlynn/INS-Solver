@@ -7,7 +7,7 @@ inline void ins_3d_art_vis_0(const DG_FP *fact0, const DG_FP *fact1,
     rhs0[i] = u[i] * *fact0;
     rhs1[i] = v[i] * *fact0;
     rhs2[i] = w[i] * *fact0;
-    mu[i] = *art_vis;
+    mu[i] = 1.0 + *art_vis;
     mm_factor[i] = *fact1;
   }
 }
