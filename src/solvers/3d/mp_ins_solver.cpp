@@ -129,6 +129,10 @@ void MPINSSolver3D::setup_common() {
   config->getInt("solver-options", "extrapolate_initial_guess", tmp_eig);
   extrapolate_initial_guess = tmp_eig == 1;
 
+  int tmp_shock = 1;
+  config->getInt("solver-options", "shock_capturing", tmp_shock);
+  shock_cap = tmp_shock == 1;
+
   rho = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_rho");
   mu  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_mu");
 
@@ -265,6 +269,14 @@ void MPINSSolver3D::step() {
   timer->startTimer("MPINSSolver3D - Advection");
   advection();
   timer->endTimer("MPINSSolver3D - Advection");
+
+  timer->startTimer("MPINSSolver3D - Shock Capturing");
+  if(shock_cap) {
+    shock_capture_filter_dat(velT[0]);
+    shock_capture_filter_dat(velT[1]);
+    shock_capture_filter_dat(velT[2]);
+  }
+  timer->endTimer("MPINSSolver3D - Shock Capturing");
 
   timer->startTimer("MPINSSolver3D - Pressure");
   pressure();
@@ -1062,57 +1074,6 @@ void MPINSSolver3D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
 }
 
-void MPINSSolver3D::shock_capturing() {
-  DGTempDat shock_u_modal = dg_dat_pool->requestTempDatCells(DG_NP);
-  DGTempDat shock_u = dg_dat_pool->requestTempDatCells(DG_NP);
-  DGTempDat shock_u_hat = dg_dat_pool->requestTempDatCells(DG_NP);
-
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, pr, 0.0, shock_u_modal.dat);
-
-  const DG_FP *u_modal_ptr = getOP2PtrHost(shock_u_modal.dat, OP_READ);
-  const DG_FP *in_ptr = getOP2PtrHost(pr, OP_READ);
-  DG_FP *u_ptr = getOP2PtrHost(shock_u.dat, OP_WRITE);
-  DG_FP *u_hat_ptr = getOP2PtrHost(shock_u_hat.dat, OP_WRITE);
-
-  // Get u_hat
-  const DG_FP *r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * constants->Np_max;
-  const DG_FP *s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * constants->Np_max;
-  const DG_FP *t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * constants->Np_max;
-  #pragma omp parallel for
-  for(int i = 0; i < mesh->cells->size; i++) {
-    const DG_FP *modal = u_modal_ptr + i * DG_NP;
-    for(int j = 0; j < DG_NP; j++) {
-      u_ptr[i * DG_NP + j] = in_ptr[i * DG_NP + j];
-      u_hat_ptr[i * DG_NP + j] = DGUtils::val_at_pt_N_1_3d(r_ptr[j], s_ptr[j], t_ptr[j], modal, DG_ORDER);
-      u_hat_ptr[i * DG_NP + j] = u_ptr[i * DG_NP + j] - u_hat_ptr[i * DG_NP + j];
-    }
-  }
-
-  releaseOP2PtrHost(shock_u_modal.dat, OP_READ, u_modal_ptr);
-  releaseOP2PtrHost(pr, OP_READ, in_ptr);
-  releaseOP2PtrHost(shock_u.dat, OP_WRITE, u_ptr);
-  releaseOP2PtrHost(shock_u_hat.dat, OP_WRITE, u_hat_ptr);
-
-  dg_dat_pool->releaseTempDatCells(shock_u_modal);
-
-  // DG_FP e0 = h / (DG_FP)DG_ORDER;
-  DG_FP e0 = h;
-  DG_FP s0 = 1.0 / (DG_FP)(DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER);
-  DG_FP k  = 5.0;
-  // DG_FP k = 1.0;
-  op_par_loop(discont_sensor, "discont_sensor", mesh->cells,
-              op_arg_gbl(&e0, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&s0, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&k,  1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
-              op_arg_dat(shock_u.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(shock_u_hat.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(art_vis, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
-
-  dg_dat_pool->releaseTempDatCells(shock_u);
-  dg_dat_pool->releaseTempDatCells(shock_u_hat);
-}
-
 void MPINSSolver3D::add_to_pr_history() {
   const DG_FP t_n1 = time + dt;
   DGTempDat pr_copy = dg_dat_pool->requestTempDatCells(DG_NP);
@@ -1127,4 +1088,49 @@ void MPINSSolver3D::add_to_pr_history() {
     dg_dat_pool->releaseTempDatCells(pr_history[0].second);
     pr_history.erase(pr_history.begin());
   }
+}
+
+void MPINSSolver3D::shock_capture_filter_dat(op_dat in) {
+  DGTempDat u_hat = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat u_modal = dg_dat_pool->requestTempDatCells(DG_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, in, 0.0, u_modal.dat);
+
+  const double *r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
+  const double *s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
+  const double *t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * DG_NP;
+
+  std::vector<DG_FP> r_vec, s_vec, t_vec;
+  for(int i = 0; i < DG_NP; i++) {
+    r_vec.push_back(r_ptr[i]);
+    s_vec.push_back(s_ptr[i]);
+    t_vec.push_back(t_ptr[i]);
+  }
+
+  std::vector<DG_FP> simplex_vals = DGUtils::val_at_pt_N_1_3d_get_simplexes(r_vec, s_vec, t_vec, DG_ORDER);
+
+  op_par_loop(discont_sensor_0, "discont_sensor_0", mesh->cells,
+              op_arg_gbl(simplex_vals.data(), DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_WRITE));
+
+  double max_alpha = 18;
+  // double e0 = h;
+  // double s0 = 1.0 / (double)(DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER);
+  double s0 = -2.0;
+  // double k  = 5.0;
+  double k = 1.0;
+  op_par_loop(discont_sensor_filter, "discont_sensor_filter", mesh->cells,
+              op_arg_gbl(&max_alpha, 1, "double", OP_READ),
+              op_arg_gbl(&s0, 1, "double", OP_READ),
+              op_arg_gbl(&k,  1, "double", OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 10, "double", OP_READ),
+              op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::V, u_modal.dat, 0.0, in);
+
+  dg_dat_pool->releaseTempDatCells(u_hat);
+  dg_dat_pool->releaseTempDatCells(u_modal);
 }

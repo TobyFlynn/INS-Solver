@@ -41,7 +41,7 @@ private:
   void pressure();
   void viscosity();
   void surface();
-  void shock_capturing();
+  void shock_capture_filter_dat(op_dat in);
   void project_velocity();
   void advec_current_non_linear();
   void advec_standard();
@@ -71,6 +71,7 @@ private:
   bool resuming;
   bool div_div_proj;
   bool extrapolate_initial_guess;
+  bool shock_cap;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat n[2][3];

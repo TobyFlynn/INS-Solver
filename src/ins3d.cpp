@@ -119,11 +119,11 @@ int main(int argc, char **argv) {
   op_printf("Reynolds number: %g\n", r_ynolds);
 
   DGMesh3D *mesh = new DGMesh3D(filename);
-  INSSolver3D *ins3d;
+  MPINSSolver3D *ins3d;
   if(resumeIter == 0)
-    ins3d = new INSSolver3D(mesh);
+    ins3d = new MPINSSolver3D(mesh);
   else
-    ins3d = new INSSolver3D(mesh, checkpointFile, resumeIter);
+    ins3d = new MPINSSolver3D(mesh, checkpointFile, resumeIter);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 2, "int", DG_CONSTANTS);
@@ -165,8 +165,6 @@ int main(int argc, char **argv) {
     }
   }
   timer->endTimer("Main loop");
-
-  ins3d->save_enstropy_history(outputDir + "enstropy.txt");
 
   int save_end = 1;
   config->getInt("simulation-constants", "save_end", save_end);
