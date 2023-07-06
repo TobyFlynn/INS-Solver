@@ -1087,7 +1087,16 @@ std::string doubleToText(const double &d) {
     return ss.str();
 }
 
+#ifdef INS_MPI
+#include "mpi.h"
+#endif
+
 void INSSolver3D::save_enstropy_history(const std::string &filename) {
+  #ifdef INS_MPI
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if(rank == 0) {
+  #endif
   std::ofstream file(filename);
 
   file << "time,enstropy" << std::endl;
@@ -1098,6 +1107,9 @@ void INSSolver3D::save_enstropy_history(const std::string &filename) {
   }
 
   file.close();
+  #ifdef INS_MPI
+  }
+  #endif
 }
 
 void INSSolver3D::shock_capture_filter_dat(op_dat in) {
