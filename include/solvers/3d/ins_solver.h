@@ -12,10 +12,7 @@
 #include "matrices/3d/poisson_matrix_free_diag_3d.h"
 #include "matrices/3d/mm_poisson_matrix_3d.h"
 #include "matrices/3d/mm_poisson_matrix_free_3d.h"
-#include "matrices/3d/factor_mm_poisson_matrix_free_diag_3d.h"
-#include "linear_solvers/linear_solver.h"
 #include "linear_solvers/petsc_inv_mass.h"
-#include "linear_solvers/petsc_jacobi.h"
 
 class INSSolver3D {
 public:
@@ -49,8 +46,7 @@ private:
   void add_to_pr_history();
   DG_FP calc_enstrophy();
   void record_enstrophy();
-  void discontinuity_sensor(op_dat in, op_dat out);
-  // void shock_capturing();
+  void shock_capture_filter_dat(op_dat in);
 
   DGMesh3D *mesh;
   // PoissonMatrix3D *pressureMatrix;
@@ -59,23 +55,21 @@ private:
   PoissonMatrixFreeDiag3D *pressureMatrix;
   // MMPoissonMatrix3D *viscosityMatrix;
   MMPoissonMatrixFree3D *viscosityMatrix;
-  FactorMMPoissonMatrixFreeDiag3D *factorViscosityMatrix;
   LinearSolver *pressureSolver;
-  LinearSolver *viscositySolver;
-  // PETScInvMassSolver *viscositySolver;
+  PETScInvMassSolver *viscositySolver;
   DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, h;
   DG_FP reynolds;
-  int currentInd, sub_cycles, it_pre_sub_cycle;
+  int currentInd, sub_cycles, it_pre_sub_cycle, enstropy_counter;
   bool resuming;
   bool div_div_proj;
   bool extrapolate_initial_guess;
   bool shock_cap;
+  bool forced_dt;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat n[2][3];
   op_dat dPdN[2], pr_bc, pr_bc_types;
   op_dat vis_bc_types, vis_bc, bc_types;
-  // op_dat art_vis, vis_coeff, vis_mm;
   op_dat proj_h;
 
   std::vector<std::pair<DG_FP,DGTempDat>> pr_history;

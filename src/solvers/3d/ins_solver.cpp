@@ -9,7 +9,6 @@ extern DGConstants *constants;
 
 #include "timing.h"
 #include "config.h"
-// #include "shocks.h"
 #include "linear_solvers/petsc_amg.h"
 #include "linear_solvers/petsc_block_jacobi.h"
 #include "linear_solvers/petsc_pmultigrid.h"
@@ -24,6 +23,8 @@ extern DGConstants *constants;
 extern Timing *timer;
 extern Config *config;
 extern DGDatPool3D *dg_dat_pool;
+
+#define ENSTROPY_FREQUENCY 10
 
 INSSolver3D::INSSolver3D(DGMesh3D *m) {
   mesh = m;
@@ -125,41 +126,21 @@ void INSSolver3D::setup_common() {
   tmp_bc_1 = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_tmp_bc_1");
   bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_bc_types");
 
-  // art_vis  = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_art_vis");
   if(div_div_proj) {
     proj_h   = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_proj_h");
   }
-
-  // vis_coeff = tmp_np[0];
-  // vis_mm = tmp_np[1];
 
   pr_bc_types  = tmp_bc_1;
   vis_bc_types = tmp_bc_1;
   pr_bc  = tmp_npf_bc;
   vis_bc = tmp_npf_bc;
 
-  // pressureMatrix = new PoissonMatrix3D(mesh);
   pressureCoarseMatrix = new PoissonCoarseMatrix3D(mesh);
-  // pressureMatrix = new PoissonSemiMatrixFree3D(mesh);
   pressureMatrix = new PoissonMatrixFreeDiag3D(mesh);
-  // viscosityMatrix = new MMPoissonMatrix3D(mesh);
-  if(shock_cap) {
-    factorViscosityMatrix = new FactorMMPoissonMatrixFreeDiag3D(mesh);
-    viscosityMatrix = nullptr;
-    viscositySolver = new PETScJacobiSolver(mesh);
-    viscositySolver->set_matrix(factorViscosityMatrix);
-  } else {
-    viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
-    factorViscosityMatrix = nullptr;
-    viscositySolver = new PETScInvMassSolver(mesh);
-    viscositySolver->set_matrix(viscosityMatrix);
-  }
+  viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
 
-  // pressureSolver = new PETScAMGSolver(mesh);
   PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
-  // pressureSolver = new PMultigridPoissonSolver(mesh);
-  // viscositySolver = new PETScBlockJacobiSolver(mesh);
-  // viscositySolver = new PETScAMGSolver(mesh);
+  viscositySolver = new PETScInvMassSolver(mesh);
 
   int pr_tmp = 0;
   int vis_tmp = 0;
@@ -169,6 +150,7 @@ void INSSolver3D::setup_common() {
   pressureSolver = tmp_pressureSolver;
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_nullspace(pr_tmp == 1);
+  viscositySolver->set_matrix(viscosityMatrix);
   viscositySolver->set_nullspace(vis_tmp == 1);
 }
 
@@ -203,10 +185,19 @@ void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
   h = 1.0 / h;
-  sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
-  dt = sub_cycle_dt;
-  if(resuming)
-    dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+  op_printf("h: %g\n", h);
+
+  double tmp_dt = -1.0;
+  config->getDouble("solver-options", "dt", tmp_dt);
+  forced_dt = tmp_dt > 0.0;
+  if(forced_dt) {
+    dt = tmp_dt;
+  } else {
+    sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
+    dt = sub_cycle_dt;
+    if(resuming)
+      dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+  }
   // dt *= 1e-2;
   op_printf("INS dt is %g\n", dt);
   time = dt * currentInd;
@@ -238,6 +229,7 @@ void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
   pressureSolver->init();
   viscositySolver->init();
 
+  enstropy_counter = ENSTROPY_FREQUENCY;
   record_enstrophy();
 
   timer->endTimer("INSSolver3D - Init");
@@ -248,13 +240,17 @@ void INSSolver3D::step() {
   advection();
   timer->endTimer("INSSolver3D - Advection");
 
+  timer->startTimer("INSSolver3D - Shock Capturing");
+  if(shock_cap) {
+    shock_capture_filter_dat(velT[0]);
+    shock_capture_filter_dat(velT[1]);
+    shock_capture_filter_dat(velT[2]);
+  }
+  timer->endTimer("INSSolver3D - Shock Capturing");
+
   timer->startTimer("INSSolver3D - Pressure");
   pressure();
   timer->endTimer("INSSolver3D - Pressure");
-
-  // timer->startTimer("Shock Capturing");
-  // shock_capturing();
-  // timer->endTimer("Shock Capturing");
 
   timer->startTimer("INSSolver3D - Viscosity");
   viscosity();
@@ -267,12 +263,15 @@ void INSSolver3D::step() {
   a1 = -0.5;
   b0 = 2.0;
   b1 = -1.0;
-  if(it_pre_sub_cycle > 1) {
-    it_pre_sub_cycle--;
-  } else {
-    sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
-    dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
-    it_pre_sub_cycle = 0;
+
+  if(!forced_dt) {
+    if(it_pre_sub_cycle > 1) {
+      it_pre_sub_cycle--;
+    } else {
+      sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
+      dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+      it_pre_sub_cycle = 0;
+    }
   }
 
   record_enstrophy();
@@ -883,39 +882,15 @@ void INSSolver3D::viscosity() {
   visRHS[1] = dg_dat_pool->requestTempDatCells(DG_NP);
   visRHS[2] = dg_dat_pool->requestTempDatCells(DG_NP);
 
-  DGTempDat art_vis, mu, mm_factor;
-
-  if(shock_cap) {
-    art_vis = dg_dat_pool->requestTempDatCells(1);
-    mu = dg_dat_pool->requestTempDatCells(DG_NP);
-    mm_factor = dg_dat_pool->requestTempDatCells(DG_NP);
-    discontinuity_sensor(pr, art_vis.dat);
-
-    DG_FP factor  = reynolds / dt;
-    DG_FP factor2 = g0 * reynolds / dt;
-    op_par_loop(ins_3d_art_vis_0, "ins_3d_art_vis_0", mesh->cells,
-                op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
-                op_arg_gbl(&factor2, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(art_vis.dat, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(visRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(visRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(visRHS[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(mu.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(mm_factor.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-  } else {
-    DG_FP factor = reynolds / dt;
-    op_par_loop(ins_3d_vis_0, "ins_3d_vis_0", mesh->cells,
-                op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(visRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(visRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(visRHS[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-  }
+  DG_FP factor = reynolds / dt;
+  op_par_loop(ins_3d_vis_0, "ins_3d_vis_0", mesh->cells,
+              op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(visRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(visRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(visRHS[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
   mesh->mass(visRHS[0].dat);
   mesh->mass(visRHS[1].dat);
@@ -943,27 +918,13 @@ void INSSolver3D::viscosity() {
   }
 
   timer->startTimer("INSSolver3D - Viscosity Linear Solve");
-
-  if(shock_cap) {
-    factorViscosityMatrix->set_factor(mu.dat);
-    factorViscosityMatrix->set_mm_factor(mm_factor.dat);
-    factorViscosityMatrix->set_bc_types(vis_bc_types);
-    factorViscosityMatrix->calc_mat_partial();
-  } else {
-    DG_FP factor = g0 * reynolds / dt;
-    if(factor != viscosityMatrix->get_factor()) {
-      viscosityMatrix->set_factor(factor);
-      viscosityMatrix->set_bc_types(vis_bc_types);
-      // viscosityMatrix->calc_mat();
-      if(dynamic_cast<PETScInvMassSolver*>(viscositySolver)) {
-        PETScInvMassSolver *tmp_inv_mass_solver = dynamic_cast<PETScInvMassSolver*>(viscositySolver);
-        tmp_inv_mass_solver->setFactor(1.0 / factor);
-      } else {
-        throw std::runtime_error("Incompatible linear solver");
-      }
-    }
+  factor = g0 * reynolds / dt;
+  if(factor != viscosityMatrix->get_factor()) {
+    viscosityMatrix->set_factor(factor);
+    viscosityMatrix->set_bc_types(vis_bc_types);
+    // viscosityMatrix->calc_mat();
+    viscositySolver->setFactor(1.0 / factor);
   }
-
   viscositySolver->set_bcs(vis_bc);
   bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
@@ -1017,85 +978,11 @@ void INSSolver3D::viscosity() {
   if(!convergedZ)
     throw std::runtime_error("\nViscosity Z solve failed to converge\n");
 
-  if(shock_cap) {
-    dg_dat_pool->releaseTempDatCells(art_vis);
-    dg_dat_pool->releaseTempDatCells(mu);
-    dg_dat_pool->releaseTempDatCells(mm_factor);
-  }
-
   dg_dat_pool->releaseTempDatCells(visRHS[0]);
   dg_dat_pool->releaseTempDatCells(visRHS[1]);
   dg_dat_pool->releaseTempDatCells(visRHS[2]);
   timer->endTimer("INSSolver3D - Viscosity Linear Solve");
 }
-
-void INSSolver3D::discontinuity_sensor(op_dat in, op_dat out) {
-  DGTempDat u_hat = dg_dat_pool->requestTempDatCells(DG_NP);
-  DGTempDat u_modal = dg_dat_pool->requestTempDatCells(DG_NP);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, in, 0.0, u_modal.dat);
-
-  const double *r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
-  const double *s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
-  const double *t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * DG_NP;
-
-  std::vector<DG_FP> r_vec, s_vec, t_vec;
-  for(int i = 0; i < DG_NP; i++) {
-    r_vec.push_back(r_ptr[i]);
-    s_vec.push_back(s_ptr[i]);
-    t_vec.push_back(t_ptr[i]);
-  }
-
-  std::vector<DG_FP> simplex_vals = DGUtils::val_at_pt_N_1_3d_get_simplexes(r_vec, s_vec, t_vec, DG_ORDER);
-
-  op_par_loop(discont_sensor_0, "discont_sensor_0", mesh->cells,
-              op_arg_gbl(simplex_vals.data(), DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-
-  double e0 = h / (double)DG_ORDER;
-  // double e0 = h;
-  // double s0 = 1.0 / (double)(DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER);
-  double s0 = -2.0;
-  // double k  = 5.0;
-  double k = 1.0;
-  op_par_loop(discont_sensor, "discont_sensor", mesh->cells,
-              op_arg_gbl(&e0, 1, "double", OP_READ),
-              op_arg_gbl(&s0, 1, "double", OP_READ),
-              op_arg_gbl(&k,  1, "double", OP_READ),
-              op_arg_dat(mesh->geof, -1, OP_ID, 10, "double", OP_READ),
-              op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(out, -1, OP_ID, 1, "double", OP_WRITE));
-
-  dg_dat_pool->releaseTempDatCells(u_hat);
-  dg_dat_pool->releaseTempDatCells(u_modal);
-}
-
-/*
-void INSSolver3D::shock_capturing(op_dat art_vis, op_dat vis_coeff) {
-  // TODO maybe should be doing detector on something that isn't pressure?
-  DGTempDat art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
-  discontinuity_sensor(pr, art_vis.dat);
-
-  DG_FP factor = g0 * reynolds / dt;
-  op_par_loop(ins_set_art_vis, "ins_set_art_vis", mesh->cells,
-              op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(art_vis.dat,   -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(vis_coeff, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(vis_mm,    -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-  dg_dat_pool->releaseTempDatCells(art_vis);
-
-  // const DG_FP *art_vis_ptr = (DG_FP *)art_vis->data;
-  // std::cout << "Artificial Vis:" << std::endl;
-  // for(int i = 0; i < mesh->cells->size; i++) {
-  //   if(art_vis_ptr[i] > 0.0)
-  //     std::cout << art_vis_ptr[i] << std::endl;
-  // }
-}
-*/
 
 DG_FP INSSolver3D::get_time() {
   return time;
@@ -1176,15 +1063,29 @@ DG_FP INSSolver3D::calc_enstrophy() {
   dg_dat_pool->releaseTempDatCells(curl[1]);
   dg_dat_pool->releaseTempDatCells(curl[2]);
 
-  return enstropy;
+  // Multiply by mu and divide by volume
+  return 0.000625 * enstropy / 31.006276680299820175476315;
 }
 
 void INSSolver3D::record_enstrophy() {
-  enstropy_history.push_back({time, calc_enstrophy()});
+  if(enstropy_counter % ENSTROPY_FREQUENCY == 0) {
+    enstropy_history.push_back({time, calc_enstrophy()});
+  }
+  enstropy_counter++;
 }
 
 #include <fstream>
 #include <iostream>
+
+#include <iomanip>
+#include <sstream>
+
+std::string doubleToText(const double &d) {
+    std::stringstream ss;
+    ss << std::setprecision(15);
+    ss << d;
+    return ss.str();
+}
 
 void INSSolver3D::save_enstropy_history(const std::string &filename) {
   std::ofstream file(filename);
@@ -1192,9 +1093,54 @@ void INSSolver3D::save_enstropy_history(const std::string &filename) {
   file << "time,enstropy" << std::endl;
 
   for(int i = 0; i < enstropy_history.size(); i++) {
-    file << std::to_string(enstropy_history[i].first) << ",";
-    file << std::to_string(enstropy_history[i].second) << std::endl;
+    file << doubleToText(enstropy_history[i].first) << ",";
+    file << doubleToText(enstropy_history[i].second) << std::endl;
   }
 
   file.close();
+}
+
+void INSSolver3D::shock_capture_filter_dat(op_dat in) {
+  DGTempDat u_hat = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat u_modal = dg_dat_pool->requestTempDatCells(DG_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, in, 0.0, u_modal.dat);
+
+  const double *r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
+  const double *s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
+  const double *t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * DG_NP;
+
+  std::vector<DG_FP> r_vec, s_vec, t_vec;
+  for(int i = 0; i < DG_NP; i++) {
+    r_vec.push_back(r_ptr[i]);
+    s_vec.push_back(s_ptr[i]);
+    t_vec.push_back(t_ptr[i]);
+  }
+
+  std::vector<DG_FP> simplex_vals = DGUtils::val_at_pt_N_1_3d_get_simplexes(r_vec, s_vec, t_vec, DG_ORDER);
+
+  op_par_loop(discont_sensor_0, "discont_sensor_0", mesh->cells,
+              op_arg_gbl(simplex_vals.data(), DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_WRITE));
+
+  double max_alpha = 18;
+  // double e0 = h;
+  // double s0 = 1.0 / (double)(DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER);
+  double s0 = -2.0;
+  // double k  = 5.0;
+  double k = 1.0;
+  op_par_loop(discont_sensor_filter, "discont_sensor_filter", mesh->cells,
+              op_arg_gbl(&max_alpha, 1, "double", OP_READ),
+              op_arg_gbl(&s0, 1, "double", OP_READ),
+              op_arg_gbl(&k,  1, "double", OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 10, "double", OP_READ),
+              op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::V, u_modal.dat, 0.0, in);
+
+  dg_dat_pool->releaseTempDatCells(u_hat);
+  dg_dat_pool->releaseTempDatCells(u_modal);
 }
