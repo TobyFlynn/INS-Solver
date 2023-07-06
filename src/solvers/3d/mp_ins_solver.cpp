@@ -847,9 +847,15 @@ void MPINSSolver3D::project_velocity() {
     // op_printf("Cr: %g\n", Cr);
     op_par_loop(ins_3d_proj_pen, "ins_3d_proj_pen", mesh->cells,
                 op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
                 op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(proj_pen.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
@@ -1098,7 +1104,7 @@ void MPINSSolver3D::shock_capturing() {
               op_arg_gbl(&e0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&s0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&k,  1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->J, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
               op_arg_dat(shock_u.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(shock_u_hat.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(art_vis, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));

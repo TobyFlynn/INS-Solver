@@ -1,12 +1,23 @@
-inline void ins_3d_proj_pen(const DG_FP *factor, const DG_FP *u, const DG_FP *v,
-                            const DG_FP *w, const DG_FP *h, DG_FP *pen) {
-  DG_FP max_vel = 0.0;
+inline void ins_3d_proj_pen(const DG_FP *factor, const DG_FP *a0,
+                            const DG_FP *a1, const DG_FP *geof,
+                            const DG_FP *u0, const DG_FP *v0, const DG_FP *w0,
+                            const DG_FP *u1, const DG_FP *v1, const DG_FP *w1,
+                            const DG_FP *h, DG_FP *pen) {
+  const DG_FP *mass_mat = &dg_Mass_kernel[(DG_ORDER - 1) * DG_NP * DG_NP];
+  const DG_FP J = geof[J_IND];
+  DG_FP tmp0[DG_NP], tmp1[DG_NP];
   for(int i = 0; i < DG_NP; i++) {
-    DG_FP vel = u[i] * u[i] + v[i] * v[i] + w[i] * w[i];
-    if(vel > max_vel)
-      max_vel = vel;
+    const DG_FP _u = *a0 * u0[i] + *a1 * u1[i];
+    const DG_FP _v = *a0 * v0[i] + *a1 * v1[i];
+    const DG_FP _w = *a0 * w0[i] + *a1 * w1[i];
+    tmp0[i] = sqrt(_u * _u + _v * _v + _w * _w);
   }
-  max_vel = sqrt(max_vel);
+  op2_in_kernel_gemv(false, DG_NP, DG_NP, J, mass_mat, DG_NP, tmp0, 0.0, tmp1);
+  DG_FP vel = 0.0;
+  for(int i = 0; i < DG_NP; i++) {
+    vel += tmp1[i];
+  }
+  vel /= (*h) * (*h) * (*h);
 
-  *pen = *factor * (*h) * max_vel;
+  *pen = *factor * (*h) * vel;
 }
