@@ -30,7 +30,7 @@ inline void discont_sensor_filter(const DG_FP *_max_alpha, const DG_FP *s0,
   // DG_FP se = log10(u_hat_ip / u_ip);
   const DG_FP c = 1.0;
   DG_FP se = log10(fmin(c * DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER * (u_hat_ip / u_ip), 1.0));
-  const DG_FP min_alpha = 2.718281828459045235360287;
+  const DG_FP min_alpha = 0.0;
   const DG_FP max_alpha = *_max_alpha;
   const int cutoff_order = DG_ORDER;
   const int filter_strength = 32;

@@ -1039,6 +1039,11 @@ void MPINSSolver3D::surface() {
   lsSolver->setBCTypes(bc_types);
   const int num_advec_steps = it_pre_sub_cycle != 0 ? 1 : std::max(sub_cycles, 1);
   lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2], sub_cycle_dt, num_advec_steps);
+  timer->startTimer("MPINSSolver3D - Shock Capturing");
+  if(shock_cap) {
+    shock_capture_filter_dat(lsSolver->s);
+  }
+  timer->endTimer("MPINSSolver3D - Shock Capturing");
   lsSolver->getRhoMu(rho, mu);
 }
 
