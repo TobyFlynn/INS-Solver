@@ -116,6 +116,7 @@ fi
 
 python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/advection_solver.cpp \
+        solvers/3d/ins_solver_base.cpp \
         solvers/3d/ins_solver.cpp \
         solvers/3d/ls_solver.cpp \
         solvers/3d/mp_ins_solver.cpp \
