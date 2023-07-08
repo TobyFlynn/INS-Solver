@@ -166,6 +166,13 @@ void INSSolver2D::step() {
   advection();
   timer->endTimer("INSSolver2D - Advection");
 
+  timer->startTimer("INSSolver2D - Shock Capturing");
+  if(shock_cap) {
+    shock_capture_filter_dat(velT[0]);
+    shock_capture_filter_dat(velT[1]);
+  }
+  timer->endTimer("INSSolver2D - Shock Capturing");
+
   timer->startTimer("INSSolver2D - Pressure");
   pressure();
   timer->endTimer("INSSolver2D - Pressure");

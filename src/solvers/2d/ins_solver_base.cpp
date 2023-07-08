@@ -9,6 +9,7 @@
 #include "dg_op2_blas.h"
 #include "dg_constants/dg_constants.h"
 #include "dg_dat_pool.h"
+#include "dg_utils.h"
 
 #include "timing.h"
 #include "config.h"
@@ -536,4 +537,49 @@ DG_FP INSSolverBase2D::get_time() {
 
 DG_FP INSSolverBase2D::get_dt() {
   return dt;
+}
+
+void INSSolverBase2D::shock_capture_filter_dat(op_dat in) {
+  DGTempDat u_hat = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat u_modal = dg_dat_pool->requestTempDatCells(DG_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, in, 0.0, u_modal.dat);
+
+  const double *r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
+  const double *s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
+
+  std::vector<DG_FP> r_vec, s_vec;
+  for(int i = 0; i < DG_NP; i++) {
+    r_vec.push_back(r_ptr[i]);
+    s_vec.push_back(s_ptr[i]);
+  }
+
+  std::vector<DG_FP> simplex_vals = DGUtils::val_at_pt_N_1_2d_get_simplexes(r_vec, s_vec, DG_ORDER);
+
+  op_par_loop(discont_sensor_0, "discont_sensor_0", mesh->cells,
+              op_arg_gbl(simplex_vals.data(), DG_NP * DG_NP, "double", OP_READ),
+              op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_WRITE));
+
+  double max_alpha = filter_max_alpha;
+  // double e0 = h;
+  // double s0 = 1.0 / (double)(DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER);
+  double s0 = filter_s0;
+  // double k  = 5.0;
+  double k = filter_k;
+  double c = filter_c;
+  op_par_loop(discont_sensor_filter, "discont_sensor_filter", mesh->cells,
+              op_arg_gbl(&max_alpha, 1, "double", OP_READ),
+              op_arg_gbl(&s0, 1, "double", OP_READ),
+              op_arg_gbl(&k,  1, "double", OP_READ),
+              op_arg_gbl(&c,  1, "double", OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 10, "double", OP_READ),
+              op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_READ),
+              op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::V, u_modal.dat, 0.0, in);
+
+  dg_dat_pool->releaseTempDatCells(u_hat);
+  dg_dat_pool->releaseTempDatCells(u_modal);
 }
