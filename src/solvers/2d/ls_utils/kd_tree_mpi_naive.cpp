@@ -366,9 +366,9 @@ void KDTreeMPINaive::construct_polys(vector<KDCoord> &points, DGMesh2D *mesh, op
 
   map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->face2cells);
 
-  const DG_FP *x_ptr = getOP2PtrHostMap(mesh->x, mesh->face2cells, OP_READ);
-  const DG_FP *y_ptr = getOP2PtrHostMap(mesh->y, mesh->face2cells, OP_READ);
-  const DG_FP *s_ptr = getOP2PtrHostMap(s, mesh->face2cells, OP_READ);
+  const DG_FP *x_ptr = getOP2PtrHostHE(mesh->x, OP_READ);
+  const DG_FP *y_ptr = getOP2PtrHostHE(mesh->y, OP_READ);
+  const DG_FP *s_ptr = getOP2PtrHostHE(s, OP_READ);
 
   // Populate map
   int i = 0;
@@ -380,9 +380,9 @@ void KDTreeMPINaive::construct_polys(vector<KDCoord> &points, DGMesh2D *mesh, op
     i++;
   }
 
-  releaseOP2PtrHostMap(mesh->x, mesh->face2cells, OP_READ, x_ptr);
-  releaseOP2PtrHostMap(mesh->y, mesh->face2cells, OP_READ, y_ptr);
-  releaseOP2PtrHostMap(s, mesh->face2cells, OP_READ, s_ptr);
+  releaseOP2PtrHostHE(mesh->x, OP_READ, x_ptr);
+  releaseOP2PtrHostHE(mesh->y, OP_READ, y_ptr);
+  releaseOP2PtrHostHE(s, OP_READ, s_ptr);
 
   timer->endTimer("LS - Construct Poly Approx");
 }
