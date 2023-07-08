@@ -39,6 +39,9 @@ protected:
   int it_pre_sub_cycle;
   std::vector<std::pair<DG_FP,DGTempDat>> pr_history;
 
+  // Filter params
+  DG_FP filter_max_alpha, filter_s0, filter_k, filter_c;
+
 private:
   void read_options();
   void init_dats();

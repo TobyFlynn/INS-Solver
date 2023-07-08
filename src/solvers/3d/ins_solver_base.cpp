@@ -83,6 +83,15 @@ void INSSolverBase3D::read_options() {
   int tmp_shock = 1;
   config->getInt("solver-options", "shock_capturing", tmp_shock);
   shock_cap = tmp_shock == 1;
+
+  filter_max_alpha = 18.0;
+  config->getDouble("filter", "max_alpha", filter_max_alpha);
+  filter_s0 = -2.0;
+  config->getDouble("filter", "s0", filter_s0);
+  filter_k = 1.0;
+  config->getDouble("filter", "k", filter_k);
+  filter_c = 1.0;
+  config->getDouble("filter", "c", filter_c);
 }
 
 void INSSolverBase3D::init_dats() {
@@ -652,16 +661,18 @@ void INSSolverBase3D::shock_capture_filter_dat(op_dat in) {
               op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  double max_alpha = 18;
+  double max_alpha = filter_max_alpha;
   // double e0 = h;
   // double s0 = 1.0 / (double)(DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER);
-  double s0 = -2.0;
+  double s0 = filter_s0;
   // double k  = 5.0;
-  double k = 1.0;
+  double k = filter_k;
+  double c = filter_c;
   op_par_loop(discont_sensor_filter, "discont_sensor_filter", mesh->cells,
               op_arg_gbl(&max_alpha, 1, "double", OP_READ),
               op_arg_gbl(&s0, 1, "double", OP_READ),
               op_arg_gbl(&k,  1, "double", OP_READ),
+              op_arg_gbl(&c,  1, "double", OP_READ),
               op_arg_dat(mesh->geof, -1, OP_ID, 10, "double", OP_READ),
               op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_READ),
