@@ -423,18 +423,13 @@ void INSSolverBase2D::advec_sub_cycle() {
   advec_current_non_linear();
 }
 
-void INSSolverBase2D::project_velocity() {
-  DGTempDat dpdx = dg_dat_pool->requestTempDatCells(DG_NP);
-  DGTempDat dpdy = dg_dat_pool->requestTempDatCells(DG_NP);
-  // Calculate gradient of pressure
-  mesh->grad_with_central_flux(pr, dpdx.dat, dpdy.dat);
-
+void INSSolverBase2D::project_velocity(op_dat dpdx, op_dat dpdy) {
   if(!div_div_proj) {
     // Calculate new velocity intermediate values
     op_par_loop(ins_pressure_update_2d, "ins_pressure_update_2d", mesh->cells,
                 op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
@@ -446,8 +441,8 @@ void INSSolverBase2D::project_velocity() {
     // Calculate new velocity intermediate values
     op_par_loop(ins_proj_rhs_2d, "ins_proj_rhs_2d", mesh->cells,
                 op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
@@ -499,9 +494,6 @@ void INSSolverBase2D::project_velocity() {
     dg_dat_pool->releaseTempDatCells(projRHS[0]);
     dg_dat_pool->releaseTempDatCells(projRHS[1]);
   }
-
-  dg_dat_pool->releaseTempDatCells(dpdx);
-  dg_dat_pool->releaseTempDatCells(dpdy);
 }
 
 DG_FP INSSolverBase2D::max_vel() {

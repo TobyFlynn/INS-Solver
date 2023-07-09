@@ -285,7 +285,15 @@ bool INSSolver2D::pressure() {
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
   timer->startTimer("INSSolver2D - Pressure Projection");
-  project_velocity();
+  DGTempDat dpdx = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat dpdy = dg_dat_pool->requestTempDatCells(DG_NP);
+  // Calculate gradient of pressure
+  mesh->grad_with_central_flux(pr, dpdx.dat, dpdy.dat);
+
+  project_velocity(dpdx.dat, dpdy.dat);
+
+  dg_dat_pool->releaseTempDatCells(dpdx);
+  dg_dat_pool->releaseTempDatCells(dpdy);
   timer->endTimer("INSSolver2D - Pressure Projection");
 
   return converged;

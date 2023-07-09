@@ -300,7 +300,21 @@ bool MPINSSolver2D::pressure() {
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
   timer->startTimer("MPINSSolver2D - Pressure Projection");
-  project_velocity();
+  DGTempDat dpdx = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat dpdy = dg_dat_pool->requestTempDatCells(DG_NP);
+
+  // Calculate gradient of pressure
+  mesh->grad_with_central_flux(pr, dpdx.dat, dpdy.dat);
+
+  op_par_loop(mp_ins_2d_pr_2, "mp_ins_2d_pr_2", mesh->cells,
+              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  project_velocity(dpdx.dat, dpdy.dat);
+
+  dg_dat_pool->releaseTempDatCells(dpdx);
+  dg_dat_pool->releaseTempDatCells(dpdy);
   timer->endTimer("MPINSSolver2D - Pressure Projection");
 
   return converged;
