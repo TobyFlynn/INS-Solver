@@ -536,12 +536,7 @@ void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
   dg_dat_pool->releaseTempDatCells(tmp_advec_flux2);
 }
 
-void INSSolverBase3D::project_velocity() {
-  DGTempDat dpdx = dg_dat_pool->requestTempDatCells(DG_NP);
-  DGTempDat dpdy = dg_dat_pool->requestTempDatCells(DG_NP);
-  DGTempDat dpdz = dg_dat_pool->requestTempDatCells(DG_NP);
-  mesh->grad_with_central_flux(pr, dpdx.dat, dpdy.dat, dpdz.dat);
-
+void INSSolverBase3D::project_velocity(op_dat dpdx, op_dat dpdy, op_dat dpdz) {
   if(div_div_proj) {
     DGTempDat projRHS[3];
     projRHS[0] = dg_dat_pool->requestTempDatCells(DG_NP);
@@ -550,9 +545,9 @@ void INSSolverBase3D::project_velocity() {
 
     op_par_loop(ins_3d_proj_rhs, "ins_3d_proj_rhs", mesh->cells,
                 op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdz.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -621,9 +616,9 @@ void INSSolverBase3D::project_velocity() {
   } else {
     op_par_loop(ins_3d_pr_3, "ins_3d_pr_3", mesh->cells,
                 op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdz.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -631,10 +626,6 @@ void INSSolverBase3D::project_velocity() {
                 op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   }
-
-  dg_dat_pool->releaseTempDatCells(dpdx);
-  dg_dat_pool->releaseTempDatCells(dpdy);
-  dg_dat_pool->releaseTempDatCells(dpdz);
 }
 
 void INSSolverBase3D::shock_capture_filter_dat(op_dat in) {
