@@ -71,11 +71,13 @@ cd gen2d
 # sed -i '10i extern double reynolds;' openmp/ins_kernels.cpp
 
 python3 $OP2_TRANSLATOR ins2d.cpp \
+        solvers/2d/advection_solver.cpp \
         solvers/2d/advection_solver_over_int.cpp \
         solvers/2d/ls_solver.cpp \
         solvers/2d/mp_ins_solver_over_int.cpp \
         solvers/2d/ins_solver_base.cpp \
         solvers/2d/ins_solver.cpp \
+        solvers/2d/mp_ins_solver.cpp \
         solvers/2d/ins_solver_over_int.cpp \
         solvers/2d/ce_solver_over_int.cpp \
         matrices/poisson_matrix.cpp \
