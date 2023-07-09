@@ -185,6 +185,10 @@ void MPINSSolver2D::step() {
   viscosity();
   timer->endTimer("MPINSSolver2D - Viscosity");
 
+  timer->startTimer("MPINSSolver2D - Surface");
+  surface();
+  timer->endTimer("MPINSSolver2D - Surface");
+
   currentInd = (currentInd + 1) % 2;
   time += dt;
 
@@ -398,4 +402,15 @@ void MPINSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(rho, filename.c_str());
   op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
   timer->endTimer("MPINSSolver2D - Dump Data");
+}
+
+void MPINSSolver2D::surface() {
+  lsSolver->setVelField(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1]);
+  lsSolver->step(dt);
+  timer->startTimer("MPINSSolver2D - Shock Capturing");
+  if(shock_cap) {
+    shock_capture_filter_dat(lsSolver->s);
+  }
+  timer->endTimer("MPINSSolver2D - Shock Capturing");
+  lsSolver->getRhoMu(rho, mu);
 }

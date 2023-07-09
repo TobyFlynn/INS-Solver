@@ -573,7 +573,7 @@ void INSSolverBase2D::shock_capture_filter_dat(op_dat in) {
               op_arg_gbl(&s0, 1, "double", OP_READ),
               op_arg_gbl(&k,  1, "double", OP_READ),
               op_arg_gbl(&c,  1, "double", OP_READ),
-              op_arg_dat(mesh->geof, -1, OP_ID, 10, "double", OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 5, "double", OP_READ),
               op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_READ),
               op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_RW));

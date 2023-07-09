@@ -85,7 +85,7 @@ void LevelSetSolver2D::init() {
 
   mesh->update_order(data->new_order, dats_to_update);
 */
-  // reinitLS();
+  reinitLS();
 }
 
 void LevelSetSolver2D::setVelField(op_dat u1, op_dat v1) {
@@ -99,9 +99,9 @@ void LevelSetSolver2D::step(DG_FP dt) {
   advecSolver->step(s, u, v);
 
   counter++;
-  if(counter > 49) {
+  if(counter > 0) {
     timer->startTimer("LevelSetSolver2D - reinitLS");
-    // reinitLS();
+    reinitLS();
     timer->endTimer("LevelSetSolver2D - reinitLS");
     counter = 0;
   }

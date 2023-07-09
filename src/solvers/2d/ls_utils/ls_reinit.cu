@@ -12,6 +12,8 @@
 #include "ls_utils/2d/ls_reinit_poly.h"
 #include "ls_utils/2d/ls_reinit_poly_eval_cuda.h"
 
+/*
+
 #define THREADS_PER_BLOCK 256
 
 extern Timing *timer;
@@ -61,13 +63,20 @@ __device__ bool newtoncp_gepp(DG_FP A[][3], DG_FP *b) {
 __global__ void newton_kernel(const int numPts, const int *poly_ind, DG_FP *s,
                               const DG_FP *x, const DG_FP *y,
                               DG_FP *closest_x, DG_FP *closest_y,
-                              PolyEval *pe, const DG_FP h) {
+                              PolyEval *pe, const DG_FP h, const int stride) {
   // Assume only have threads in x dim
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   if(tid >= numPts) return;
 
-  const DG_FP x_l         = x[tid];
-  const DG_FP y_l         = y[tid];
+  #ifdef DG_OP2_SOA
+  const int dat_ind = tid;
+  #else
+  const int set_size = numPts / DG_NP;
+  const int dat_ind = tid % set_size + stride * (tid / set_size);
+  #endif
+
+  const DG_FP x_l         = x[dat_ind];
+  const DG_FP y_l         = y[dat_ind];
   const DG_FP closest_x_l = closest_x[tid];
   const DG_FP closest_y_l = closest_y[tid];
 
@@ -154,10 +163,10 @@ __global__ void newton_kernel(const int numPts, const int *poly_ind, DG_FP *s,
       break;
   }
 
-  bool negative = s[tid] < 0.0;
-  s[tid] = (pt_x - x_l) * (pt_x - x_l) + (pt_y - y_l) * (pt_y - y_l);
-  s[tid] = sqrt(s[tid]);
-  if(negative) s[tid] *= -1.0;
+  bool negative = s[dat_ind] < 0.0;
+  s[dat_ind] = (pt_x - x_l) * (pt_x - x_l) + (pt_y - y_l) * (pt_y - y_l);
+  s[dat_ind] = sqrt(s[dat_ind]);
+  if(negative) s[dat_ind] *= -1.0;
 }
 
 void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
@@ -184,9 +193,6 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
 }
 
 void LevelSetSolver2D::reinitLS() {
-  #ifdef DG_OP2_SOA
-  throw std::runtime_error("2D LS Reinit not implemented for SoA");
-  #endif
   timer->startTimer("LS - Reinit");
 
   sampleInterface();
@@ -285,13 +291,22 @@ void LevelSetSolver2D::reinitLS() {
   PolyEval pe(polys);
   timer->endTimer("LS - Construct Poly Eval");
 
+  #ifdef DG_OP2_SOA
+  throw std::runtime_error("2D LS Reinit not implemented for SoA");
+  #endif
+
   timer->startTimer("LS - Newton Method");
   const DG_FP *x_ptr_d = getOP2PtrDevice(mesh->x, OP_READ);
   const DG_FP *y_ptr_d = getOP2PtrDevice(mesh->y, OP_READ);
   DG_FP *s_ptr_d = getOP2PtrDevice(s, OP_RW);
 
+  op_arg args[] = {
+    op_arg_dat(mesh->x, -1, OP_ID, dat->dim, DG_FP_STR, acc)
+  };
+  const int stride_size = getSetSizeFromOpArg(&args[0]);
+
   // newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr_d,
-  //               y_ptr_d, poly_ind, &pe, s_ptr_d, h);
+  //               y_ptr_d, poly_ind, &pe, s_ptr_d, h, stride_size);
 
   releaseOP2PtrDevice(s, OP_RW, s_ptr_d);
   releaseOP2PtrDevice(mesh->x, OP_READ, x_ptr_d);
@@ -303,3 +318,6 @@ void LevelSetSolver2D::reinitLS() {
   timer->endTimer("LS - Newton Method");
   timer->endTimer("LS - Reinit");
 }
+*/
+
+#include "ls_reinit.cpp"
