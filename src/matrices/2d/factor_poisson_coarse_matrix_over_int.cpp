@@ -22,7 +22,7 @@ void FactorPoissonCoarseMatrixOverInt2D::set_factor(op_dat f) {
 
 void FactorPoissonCoarseMatrixOverInt2D::calc_op1() {
   timer->startTimer("FactorPoissonCoarseMatrixOverInt2D - calc_op1");
-  op_par_loop(factor_poisson_coarse_matrix_2d_op1, "factor_poisson_coarse_matrix_2d_op1", mesh->cells,
+  op_par_loop(factor_poisson_coarse_matrix_2d_op1_over_int, "factor_poisson_coarse_matrix_2d_op1_over_int", mesh->cells,
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DR), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::DS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::MASS), DG_ORDER * DG_NP * DG_NP, DG_FP_STR, OP_READ),
@@ -40,7 +40,7 @@ void FactorPoissonCoarseMatrixOverInt2D::calc_op2() {
   timer->startTimer("FactorPoissonCoarseMatrixOverInt2D - calc_op2");
   op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, factor, 0.0, gFactor);
 
-  op_par_loop(factor_poisson_coarse_matrix_2d_op2, "factor_poisson_coarse_matrix_2d_op2", mesh->faces,
+  op_par_loop(factor_poisson_coarse_matrix_2d_op2_over_int, "factor_poisson_coarse_matrix_2d_op2_over_int", mesh->faces,
               op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F0DR), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F0DS), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F1DR), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
@@ -69,7 +69,7 @@ void FactorPoissonCoarseMatrixOverInt2D::calc_op2() {
 void FactorPoissonCoarseMatrixOverInt2D::calc_opbc() {
   timer->startTimer("FactorPoissonCoarseMatrixOverInt2D - calc_opbc");
   if(mesh->bface2cells) {
-    op_par_loop(factor_poisson_coarse_matrix_2d_bop, "factor_poisson_coarse_matrix_2d_bop", mesh->bfaces,
+    op_par_loop(factor_poisson_coarse_matrix_2d_bop_over_int, "factor_poisson_coarse_matrix_2d_bop_over_int", mesh->bfaces,
                 op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F0DR), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F0DS), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
                 op_arg_gbl(constants->get_mat_ptr(DGConstants::GAUSS_F1DR), DG_ORDER * DG_GF_NP * DG_NP, DG_FP_STR, OP_READ),
