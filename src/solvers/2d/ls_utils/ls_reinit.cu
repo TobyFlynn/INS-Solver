@@ -184,6 +184,9 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
 }
 
 void LevelSetSolver2D::reinitLS() {
+  #ifdef DG_OP2_SOA
+  throw std::runtime_error("2D LS Reinit not implemented for SoA");
+  #endif
   timer->startTimer("LS - Reinit");
 
   sampleInterface();

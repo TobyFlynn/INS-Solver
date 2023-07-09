@@ -7,10 +7,9 @@
 
 #include "dg_mesh/dg_mesh_2d.h"
 #include "solvers/2d/ls_solver.h"
-#include "matrices/2d/factor_poisson_matrix_3d.h"
-#include "matrices/2d/factor_poisson_coarse_matrix_3d.h"
-#include "matrices/2d/factor_poisson_matrix_free_diag_3d.h"
-#include "matrices/2d/factor_mm_poisson_matrix_free_diag_3d.h"
+#include "matrices/2d/factor_poisson_coarse_matrix_2d.h"
+#include "matrices/2d/factor_poisson_matrix_free_diag_2d.h"
+#include "matrices/2d/factor_mm_poisson_matrix_free_diag_2d.h"
 #include "linear_solvers/petsc_pmultigrid.h"
 #include "linear_solvers/petsc_jacobi.h"
 
@@ -31,11 +30,11 @@ public:
 private:
   void setup_common();
   void advection();
-  void pressure();
-  void viscosity();
+  bool pressure();
+  bool viscosity();
   void surface();
 
-  FactorPoissonCoarseMatrix2D *coarsePressureMatrix;
+  FactorPoissonCoarseMatrix2D *pressureCoarseMatrix;
   FactorPoissonMatrixFreeDiag2D *pressureMatrix;
   FactorMMPoissonMatrixFreeDiag2D *viscosityMatrix;
   PETScPMultigrid *pressureSolver;
@@ -43,6 +42,7 @@ private:
   LevelSetSolver2D *lsSolver;
   DG_FP reynolds;
   bool resuming;
+  bool dt_forced;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;

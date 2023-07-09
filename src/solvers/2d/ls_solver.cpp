@@ -21,7 +21,7 @@ LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m) {
   s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_x");
   s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_y");
 
-  advecSolver = new AdvectionSolverOverInt2D(mesh);
+  advecSolver = new AdvectionSolver2D(mesh);
 }
 
 LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m, const std::string &filename) {
@@ -35,7 +35,7 @@ LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m, const std::string &filename) {
   s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_x");
   s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_y");
 
-  advecSolver = new AdvectionSolverOverInt2D(mesh);
+  advecSolver = new AdvectionSolver2D(mesh);
 }
 
 LevelSetSolver2D::~LevelSetSolver2D() {
@@ -101,7 +101,7 @@ void LevelSetSolver2D::step(DG_FP dt) {
   counter++;
   if(counter > 49) {
     timer->startTimer("LevelSetSolver2D - reinitLS");
-    reinitLS();
+    // reinitLS();
     timer->endTimer("LevelSetSolver2D - reinitLS");
     counter = 0;
   }

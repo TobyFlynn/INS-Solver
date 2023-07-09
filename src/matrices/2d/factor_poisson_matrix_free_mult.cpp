@@ -85,11 +85,11 @@ void FactorPoissonMatrixFreeMult2D::mat_free_mult(op_dat in, op_dat out) {
   DGTempDat tmp_grad0 = dg_dat_pool->requestTempDatCells(DG_NP);
   DGTempDat tmp_grad1 = dg_dat_pool->requestTempDatCells(DG_NP);
   timer->startTimer("FactorPoissonMatrixFreeMult2D - mult grad");
-  op2_gemv_halo_exchange(mesh, false, 1.0, DGConstants::DR, in, 0.0, tmp_grad0.dat);
-  op2_gemv_halo_exchange(mesh, false, 1.0, DGConstants::DS, in, 0.0, tmp_grad1.dat);
-  op_par_loop(fpmf_2d_grad, "fpmf_2d_grad:force_halo_exchange", mesh->cells,
+  op2_gemv(mesh, false, 1.0, DGConstants::DR, in, 0.0, tmp_grad0.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::DS, in, 0.0, tmp_grad1.dat);
+  op_par_loop(fpmf_2d_grad, "fpmf_2d_grad", mesh->cells,
               op_arg_gbl(&mesh->order_int, 1, "int", OP_READ),
-              op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
               op_arg_dat(mat_free_factor_copy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(tmp_grad0.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(tmp_grad1.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
@@ -128,9 +128,9 @@ void FactorPoissonMatrixFreeMult2D::mat_free_mult(op_dat in, op_dat out) {
   timer->startTimer("FactorPoissonMatrixFreeMult2D - finish flux");
     op_par_loop(fpmf_2d_mult_flux, "fpmf_2d_mult_flux", mesh->cells,
                 op_arg_gbl(&mesh->order_int, 1, "int", OP_READ),
-                op_arg_dat(mesh->nx_c, -1, OP_ID, 3, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->ny_c, -1, OP_ID, 3, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->sJ_c, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->nx_c_new, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->ny_c_new, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->sJ_c_new, -1, OP_ID, 3, DG_FP_STR, OP_READ),
                 op_arg_dat(mat_free_gtau, -1, OP_ID, 3, DG_FP_STR, OP_READ),
                 op_arg_dat(mat_free_factor_copy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(tmp_npf0.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),

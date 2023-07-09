@@ -5,7 +5,7 @@
 
 #include "op_seq.h"
 
-#include "solvers/2d/advection_solver_over_int.h"
+#include "solvers/2d/advection_solver.h"
 
 #include "dg_mesh/dg_mesh_2d.h"
 
@@ -36,7 +36,7 @@ private:
   int numSteps;
   bool resuming;
 
-  AdvectionSolverOverInt2D *advecSolver;
+  AdvectionSolver2D *advecSolver;
 };
 
 #endif

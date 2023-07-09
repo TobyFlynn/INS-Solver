@@ -15,6 +15,7 @@
 #include "solvers/2d/mp_ins_solver_over_int.h"
 #include "solvers/2d/ins_solver_over_int.h"
 #include "solvers/2d/ins_solver.h"
+#include "solvers/2d/mp_ins_solver.h"
 
 Timing *timer;
 Config *config;
@@ -116,11 +117,11 @@ int main(int argc, char **argv) {
   gamma_e = 1.4;
 
   DGMesh2D *mesh = new DGMesh2D(filename, false);
-  INSSolver2D *mpins2d;
+  MPINSSolver2D *mpins2d;
   if(resumeIter == 0)
-    mpins2d = new INSSolver2D(mesh);
+    mpins2d = new MPINSSolver2D(mesh);
   else
-    mpins2d = new INSSolver2D(mesh, checkpointFile, resumeIter);
+    mpins2d = new MPINSSolver2D(mesh, checkpointFile, resumeIter);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
@@ -167,8 +168,6 @@ int main(int argc, char **argv) {
     string out_file_end = outputDir + "end.h5";
     mpins2d->dump_data(out_file_end);
   }
-
-  mpins2d->save_l2_err_history(outputDir + "l2_err_vel_x.txt");
 
   timer->exportTimings(outputDir + "timings.txt", iter, mpins2d->get_time());
 

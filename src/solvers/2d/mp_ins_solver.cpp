@@ -41,7 +41,7 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m, const std::string &filename, const int
 
   setup_common();
 
-  lsSolver = new LevelSetSolver3D(mesh, filename);
+  lsSolver = new LevelSetSolver2D(mesh, filename);
 
   currentInd = iter;
 
@@ -68,7 +68,7 @@ void MPINSSolver2D::setup_common() {
 
   pressureMatrix = new FactorPoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new FactorPoissonCoarseMatrix2D(mesh);
-  viscosityMatrix = new FactorMMPoissonMatrixFree2D(mesh);
+  viscosityMatrix = new FactorMMPoissonMatrixFreeDiag2D(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
   pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
   viscositySolver = new PETScJacobiSolver(mesh);
@@ -279,10 +279,10 @@ bool MPINSSolver2D::pressure() {
   // Call PETSc linear solver
   timer->startTimer("MPINSSolver2D - Pressure Linear Solve");
   pressureMatrix->set_factor(pr_factor.dat);
-  coarsePressureMatrix->set_factor(pr_factor.dat);
+  pressureCoarseMatrix->set_factor(pr_factor.dat);
   pressureMatrix->set_bc_types(pr_bc_types);
-  coarsePressureMatrix->set_bc_types(pr_bc_types);
-  pressureSolver->set_coarse_matrix(coarsePressureMatrix);
+  pressureCoarseMatrix->set_bc_types(pr_bc_types);
+  pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
   pressureSolver->set_matrix(pressureMatrix);
   pressureSolver->set_bcs(prBC.dat);
   bool converged = pressureSolver->solve(divVelT.dat, pr);
