@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
     ins3d->dump_data(out_file_end);
   }
 
-  timer->exportTimings(outputDir + "timings.txt", iter, ins3d->get_time());
+  timer->exportTimings(outputDir + "timings", iter, ins3d->get_time());
 
   dg_dat_pool->report();
 

@@ -12,7 +12,7 @@ using namespace std;
 
 #ifndef INS_MPI
 void Timing::exportTimings(std::string filename, int iter, double time) {
-  ofstream file(filename);
+  ofstream file(filename + ".txt");
 
   file << std::left << std::setw(col_width) << "Iterations:" << iter << std::endl;
   file << std::left << std::setw(col_width) << "Final time:" << time << std::endl;
@@ -22,6 +22,16 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   }
 
   file.close();
+
+  ofstream file2(filename + ".csv");
+
+  file2 << "section,time,num_calls" << std::endl;
+  for (auto it = totalTime.begin(); it != totalTime.end(); it++) {
+    file2 << it->first << ",";
+    file2 << it->second << "," << numCalls[it->first] << std::endl;
+  }
+
+  file2.close();
 }
 #else
 #include "mpi.h"
@@ -93,7 +103,7 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
     avg[j] /= (double)comm_size;
   }
 
-  ofstream file(filename);
+  ofstream file(filename + ".txt");
 
   file << std::left << std::setw(col_width) << "Iterations:" << iter << std::endl;
   file << std::left << std::setw(col_width) << "Final time:" << time << std::endl;
@@ -106,6 +116,19 @@ void Timing::exportTimings(std::string filename, int iter, double time) {
   }
 
   file.close();
+
+  ofstream file2(filename + ".csv");
+
+  file2 << "section,time_rank_0,time_avg,time_min,time_max,num_calls" << std::endl;
+  i = 0;
+  for (auto it = totalTime.begin(); it != totalTime.end(); it++) {
+    file2 << it->first << "," << it->second;
+    file2 << "," << avg[i] << "," << min[i] << "," << max[i] << ",";
+    file2 << numCalls[it->first] << std::endl;
+    i++;
+  }
+
+  file2.close();
 }
 #endif
 
