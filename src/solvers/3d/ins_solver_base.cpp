@@ -92,6 +92,9 @@ void INSSolverBase3D::read_options() {
   config->getDouble("filter", "k", filter_k);
   filter_c = 1.0;
   config->getDouble("filter", "c", filter_c);
+  int tmp_cutoff = 1;
+  config->getInt("filter", "use_cutoff", tmp_cutoff);
+  shock_cutoff_filter = tmp_cutoff == 1;
 }
 
 void INSSolverBase3D::init_dats() {
@@ -668,15 +671,29 @@ void INSSolverBase3D::shock_capture_filter_dat(op_dat in) {
   // double k  = 5.0;
   double k = filter_k;
   double c = filter_c;
-  op_par_loop(discont_sensor_filter, "discont_sensor_filter", mesh->cells,
-              op_arg_gbl(&max_alpha, 1, "double", OP_READ),
-              op_arg_gbl(&s0, 1, "double", OP_READ),
-              op_arg_gbl(&k,  1, "double", OP_READ),
-              op_arg_gbl(&c,  1, "double", OP_READ),
-              op_arg_dat(mesh->geof, -1, OP_ID, 10, "double", OP_READ),
-              op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_RW));
+
+  if(shock_cutoff_filter) {
+    op_par_loop(discont_sensor_cutoff_filter, "discont_sensor_cutoff_filter", mesh->cells,
+                op_arg_gbl(&max_alpha, 1, "double", OP_READ),
+                op_arg_gbl(&s0, 1, "double", OP_READ),
+                op_arg_gbl(&k,  1, "double", OP_READ),
+                op_arg_gbl(&c,  1, "double", OP_READ),
+                op_arg_dat(mesh->geof, -1, OP_ID, 10, "double", OP_READ),
+                op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_RW));
+  } else {
+    op_par_loop(discont_sensor_filter, "discont_sensor_filter", mesh->cells,
+                op_arg_gbl(&max_alpha, 1, "double", OP_READ),
+                op_arg_gbl(&s0, 1, "double", OP_READ),
+                op_arg_gbl(&k,  1, "double", OP_READ),
+                op_arg_gbl(&c,  1, "double", OP_READ),
+                op_arg_gbl(&dt,  1, "double", OP_READ),
+                op_arg_dat(mesh->geof, -1, OP_ID, 10, "double", OP_READ),
+                op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_READ),
+                op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_RW));
+  }
 
   op2_gemv(mesh, false, 1.0, DGConstants::V, u_modal.dat, 0.0, in);
 

@@ -47,7 +47,7 @@ private:
   DG_FP reynolds;
   int enstropy_counter;
   bool resuming;
-  bool forced_dt;
+  bool forced_dt, pressure_shock_cap;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;

@@ -92,6 +92,10 @@ void INSSolver3D::setup_common() {
   pressureSolver->set_nullspace(pr_tmp == 1);
   viscositySolver->set_matrix(viscosityMatrix);
   viscositySolver->set_nullspace(vis_tmp == 1);
+
+  int tmp_pr_shock = 0;
+  config->getInt("solver-options", "pressure_shock_cap", tmp_pr_shock);
+  pressure_shock_cap = tmp_pr_shock == 1;
 }
 
 INSSolver3D::~INSSolver3D() {
@@ -181,7 +185,7 @@ void INSSolver3D::step() {
   timer->endTimer("INSSolver3D - Advection");
 
   timer->startTimer("INSSolver3D - Shock Capturing");
-  if(shock_cap) {
+  if(shock_cap && !pressure_shock_cap) {
     shock_capture_filter_dat(velT[0]);
     shock_capture_filter_dat(velT[1]);
     shock_capture_filter_dat(velT[2]);
@@ -311,6 +315,12 @@ void INSSolver3D::pressure() {
 
   op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+
+  timer->startTimer("INSSolver3D - Shock Capturing");
+  if(shock_cap && pressure_shock_cap) {
+    shock_capture_filter_dat(pr);
+  }
+  timer->endTimer("INSSolver3D - Shock Capturing");
 
   timer->startTimer("INSSolver3D - Pressure Projection");
   project_velocity();
