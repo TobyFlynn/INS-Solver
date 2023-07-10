@@ -560,7 +560,7 @@ void INSSolverBase2D::shock_capture_filter_dat(op_dat in) {
   // double k  = 5.0;
   double k = filter_k;
   double c = filter_c;
-  op_par_loop(discont_sensor_filter, "discont_sensor_filter", mesh->cells,
+  op_par_loop(discont_sensor_cutoff_filter, "discont_sensor_cutoff_filter", mesh->cells,
               op_arg_gbl(&max_alpha, 1, "double", OP_READ),
               op_arg_gbl(&s0, 1, "double", OP_READ),
               op_arg_gbl(&k,  1, "double", OP_READ),

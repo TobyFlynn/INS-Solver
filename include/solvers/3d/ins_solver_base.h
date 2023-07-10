@@ -35,7 +35,7 @@ protected:
   op_dat vel[2][3], velT[3], velTT[3], pr, n[2][3], dPdN[2], bc_types, proj_h;
 
   DGMesh3D *mesh;
-  bool div_div_proj, extrapolate_initial_guess, shock_cap;
+  bool div_div_proj, extrapolate_initial_guess, shock_cap, shock_cutoff_filter;
   int it_pre_sub_cycle;
   std::vector<std::pair<DG_FP,DGTempDat>> pr_history;
 
