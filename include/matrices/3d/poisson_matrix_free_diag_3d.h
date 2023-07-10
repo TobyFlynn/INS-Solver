@@ -14,12 +14,15 @@ public:
   virtual void set_bc_types(op_dat bc_ty) override;
   virtual void apply_bc(op_dat rhs, op_dat bc) override;
   virtual void mult(op_dat in, op_dat out) override;
+  virtual void mult_sp(op_dat in, op_dat out) override;
   virtual void calc_mat_partial() override;
 
 protected:
   virtual void calc_op1() override;
   virtual void calc_op2() override;
   virtual void calc_opbc() override;
+
+  bool use_sp;
 };
 
 #endif

@@ -6,14 +6,20 @@
 #include "dg_op2_blas.h"
 
 #include "timing.h"
+#include "config.h"
 
 extern DGConstants *constants;
 extern Timing *timer;
+extern Config *config;
 
 PoissonMatrixFreeDiag3D::PoissonMatrixFreeDiag3D(DGMesh3D *m) : PoissonMatrixFreeMult3D(m) {
   _mesh = m;
 
   diag = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "poisson_matrix_free_diag");
+
+  int tmp_sp = 0;
+  config->getInt("matrix", "use_sp", tmp_sp);
+  use_sp = tmp_sp == 1;
 }
 
 void PoissonMatrixFreeDiag3D::set_bc_types(op_dat bc_ty) {
@@ -38,6 +44,15 @@ void PoissonMatrixFreeDiag3D::mult(op_dat in, op_dat out) {
   timer->startTimer("PoissonMatrixFreeDiag3D - mult");
   mat_free_mult(in, out);
   timer->endTimer("PoissonMatrixFreeDiag3D - mult");
+}
+
+void PoissonMatrixFreeDiag3D::mult_sp(op_dat in, op_dat out) {
+  timer->startTimer("PoissonMatrixFreeDiag3D - mult sp");
+  if(use_sp)
+    mat_free_mult_sp(in, out);
+  else
+    mat_free_mult(in, out);
+  timer->endTimer("PoissonMatrixFreeDiag3D - mult sp");
 }
 
 void PoissonMatrixFreeDiag3D::calc_op1() {

@@ -47,6 +47,10 @@ void PoissonMatrix::mult(op_dat in, op_dat out) {
   timer->endTimer("PoissonMatrix - mult");
 }
 
+void PoissonMatrix::mult_sp(op_dat in, op_dat out) {
+  mult(in, out);
+}
+
 void PoissonMatrix::multJacobi(op_dat in, op_dat out) {
   timer->startTimer("PoissonMatrix - multJacobi");
   mult(in, out);

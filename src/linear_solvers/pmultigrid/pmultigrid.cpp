@@ -292,7 +292,7 @@ void PMultigridPoissonSolver::cycle(int order, const int level) {
   int order_new = orders[level + 1];
   // F = I^T (F - Au)
   DGTempDat tmp_dat = dg_dat_pool->requestTempDatCells(DG_NP);
-  matrix->mult(u_dat[level], tmp_dat.dat);
+  matrix->mult_sp(u_dat[level], tmp_dat.dat);
   op_par_loop(p_multigrid_restriction, "p_multigrid_restriction", mesh->cells,
               op_arg_dat(mesh->order,        -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(tmp_dat.dat,   -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -494,7 +494,7 @@ void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
   op_dat d   = tmp2.dat;
 
   timer->startTimer("PMultigridPoissonSolver - Relaxation - Mult");
-  matrix->mult(u_dat[level], RES);
+  matrix->mult_sp(u_dat[level], RES);
   timer->endTimer("PMultigridPoissonSolver - Relaxation - Mult");
   #if defined(OP2_DG_CUDA) && !defined(USE_OP2_KERNELS)
   custom_kernel_p_multigrid_relaxation_chebyshev_0(orders[level], "p_multigrid_relaxation_chebyshev_0", mesh->cells,
@@ -528,7 +528,7 @@ void PMultigridPoissonSolver::chebyshev_smoother(const int level) {
     #endif
 
     timer->startTimer("PMultigridPoissonSolver - Relaxation - Mult");
-    matrix->mult(d, Ad);
+    matrix->mult_sp(d, Ad);
     timer->endTimer("PMultigridPoissonSolver - Relaxation - Mult");
     #if defined(OP2_DG_CUDA) && !defined(USE_OP2_KERNELS)
     custom_kernel_p_multigrid_relaxation_chebyshev_2(orders[level], "p_multigrid_relaxation_chebyshev_2", mesh->cells,

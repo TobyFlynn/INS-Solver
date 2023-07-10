@@ -17,6 +17,7 @@ public:
   virtual void set_bc_types(op_dat bc_ty);
   virtual void apply_bc(op_dat rhs, op_dat bc) = 0;
   virtual void mult(op_dat in, op_dat out);
+  virtual void mult_sp(op_dat in, op_dat out);
   virtual void multJacobi(op_dat in, op_dat out);
   virtual bool getPETScMat(Mat** mat);
   virtual int getUnknowns();
