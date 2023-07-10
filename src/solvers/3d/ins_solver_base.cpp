@@ -155,6 +155,7 @@ void INSSolverBase3D::init(const DG_FP re, const DG_FP refVel) {
 }
 
 void INSSolverBase3D::advec_current_non_linear() {
+  timer->startTimer("INSSolverBase3D - advec_current_non_linear");
   DGTempDat f[3][3];
   f[0][0] = dg_dat_pool->requestTempDatCells(DG_NP);
   f[0][1] = dg_dat_pool->requestTempDatCells(DG_NP);
@@ -246,6 +247,7 @@ void INSSolverBase3D::advec_current_non_linear() {
   dg_dat_pool->releaseTempDatCells(tmp_advec_flux0);
   dg_dat_pool->releaseTempDatCells(tmp_advec_flux1);
   dg_dat_pool->releaseTempDatCells(tmp_advec_flux2);
+  timer->endTimer("INSSolverBase3D - advec_current_non_linear");
 }
 
 void INSSolverBase3D::advec_standard() {
@@ -276,6 +278,7 @@ void INSSolverBase3D::advec_standard() {
 }
 
 void INSSolverBase3D::advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_dat v, op_dat w) {
+  timer->startTimer("INSSolverBase3D - RK");
   // Request temporary dats
   DGTempDat advec_sc_rk[3][3];
   advec_sc_rk[0][0] = dg_dat_pool->requestTempDatCells(DG_NP);
@@ -301,9 +304,11 @@ void INSSolverBase3D::advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_
     if(rk_step == 1) rk_time += sub_cycle_dt;
     if(rk_step == 2) rk_time += 0.5 * sub_cycle_dt;
     const int rk_ind = rk_step == 2 ? 2 : rk_step + 1;
+    timer->startTimer("INSSolverBase3D - RK RHS");
     advec_sub_cycle_rhs(advec_sc_rk[0][0].dat, advec_sc_rk[0][1].dat, advec_sc_rk[0][2].dat,
                         advec_sc_rk[rk_ind][0].dat, advec_sc_rk[rk_ind][1].dat,
                         advec_sc_rk[rk_ind][2].dat, rk_time);
+    timer->endTimer("INSSolverBase3D - RK RHS");
     // Set up next step
     if(rk_step == 0) {
       op_par_loop(ins_3d_advec_sc_rk_0, "ins_3d_advec_sc_rk_0", mesh->cells,
@@ -356,6 +361,7 @@ void INSSolverBase3D::advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_
   dg_dat_pool->releaseTempDatCells(advec_sc_rk[2][0]);
   dg_dat_pool->releaseTempDatCells(advec_sc_rk[2][1]);
   dg_dat_pool->releaseTempDatCells(advec_sc_rk[2][2]);
+  timer->endTimer("INSSolverBase3D - RK");
 }
 
 void INSSolverBase3D::advec_sub_cycle() {
@@ -421,6 +427,7 @@ void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
   advec_sc[1] = dg_dat_pool->requestTempDatCells(DG_NP);
   advec_sc[2] = dg_dat_pool->requestTempDatCells(DG_NP);
 
+  timer->startTimer("INSSolverBase3D - RK RHS Interp");
   op_par_loop(ins_3d_advec_sc_interp, "ins_3d_advec_sc_interp", mesh->cells,
               op_arg_gbl(&t0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&t1, 1, DG_FP_STR, OP_READ),
@@ -434,7 +441,7 @@ void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
               op_arg_dat(advec_sc[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(advec_sc[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(advec_sc[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
+  timer->endTimer("INSSolverBase3D - RK RHS Interp");
   DGTempDat f[3][3];
   f[0][0] = dg_dat_pool->requestTempDatCells(DG_NP);
   f[0][1] = dg_dat_pool->requestTempDatCells(DG_NP);
@@ -445,6 +452,8 @@ void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
   f[2][0] = dg_dat_pool->requestTempDatCells(DG_NP);
   f[2][1] = dg_dat_pool->requestTempDatCells(DG_NP);
   f[2][2] = dg_dat_pool->requestTempDatCells(DG_NP);
+
+  timer->startTimer("INSSolverBase3D - RK RHS 0");
 
   op_par_loop(ins_3d_advec_sc_rhs_0, "ins_3d_advec_sc_rhs_0", mesh->cells,
               op_arg_dat(u_in, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -462,10 +471,13 @@ void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
               op_arg_dat(f[2][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(f[2][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(f[2][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  timer->endTimer("INSSolverBase3D - RK RHS 0");
 
+  timer->startTimer("INSSolverBase3D - RK RHS div");
   mesh->div(f[0][0].dat, f[0][1].dat, f[0][2].dat, u_out);
   mesh->div(f[1][0].dat, f[1][1].dat, f[1][2].dat, v_out);
   mesh->div(f[2][0].dat, f[2][1].dat, f[2][2].dat, w_out);
+  timer->endTimer("INSSolverBase3D - RK RHS div");
 
   dg_dat_pool->releaseTempDatCells(f[0][0]);
   dg_dat_pool->releaseTempDatCells(f[0][1]);
@@ -481,10 +493,12 @@ void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
   DGTempDat tmp_advec_flux1 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
   DGTempDat tmp_advec_flux2 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
 
+  timer->startTimer("INSSolverBase3D - RK RHS zero");
   op_par_loop(zero_npf_3, "zero_npf_3", mesh->cells,
               op_arg_dat(tmp_advec_flux0.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(tmp_advec_flux1.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(tmp_advec_flux2.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+  timer->endTimer("INSSolverBase3D - RK RHS zero");
 
   op_par_loop(ins_3d_advec_sc_rhs_1, "ins_3d_advec_sc_rhs_1", mesh->faces,
               op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
@@ -500,9 +514,9 @@ void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
               op_arg_dat(advec_sc[0].dat, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(advec_sc[1].dat, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(advec_sc[2].dat, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_advec_flux0.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
-              op_arg_dat(tmp_advec_flux1.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
-              op_arg_dat(tmp_advec_flux2.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
+              op_arg_dat(tmp_advec_flux0.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_advec_flux1.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_advec_flux2.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_advec_sc_rhs_2, "ins_3d_advec_sc_rhs_2", mesh->bfaces,
@@ -525,14 +539,17 @@ void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
                 op_arg_dat(tmp_advec_flux1.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC),
                 op_arg_dat(tmp_advec_flux2.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
   }
+  timer->endTimer("INSSolverBase3D - RK RHS 2");
 
   dg_dat_pool->releaseTempDatCells(advec_sc[0]);
   dg_dat_pool->releaseTempDatCells(advec_sc[1]);
   dg_dat_pool->releaseTempDatCells(advec_sc[2]);
 
+  timer->startTimer("INSSolverBase3D - RK RHS LIFT");
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_advec_flux0.dat, 1.0, u_out);
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_advec_flux1.dat, 1.0, v_out);
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_advec_flux2.dat, 1.0, w_out);
+  timer->endTimer("INSSolverBase3D - RK RHS LIFT");
 
   dg_dat_pool->releaseTempDatCells(tmp_advec_flux0);
   dg_dat_pool->releaseTempDatCells(tmp_advec_flux1);
