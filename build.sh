@@ -79,6 +79,7 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/ins_solver.cpp \
         solvers/2d/mp_ins_solver.cpp \
         solvers/2d/ins_solver_over_int.cpp \
+        solvers/2d/ce_solver.cpp \
         solvers/2d/ce_solver_over_int.cpp \
         matrices/poisson_matrix.cpp \
         matrices/poisson_coarse_matrix.cpp \

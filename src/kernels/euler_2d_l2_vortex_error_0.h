@@ -11,12 +11,12 @@ inline void euler_2d_l2_vortex_error_0(const DG_FP *time, const DG_FP *x,
   for(int i = 0; i < DG_NP; i++) {
     DG_FP rel_x = x[i] - centre_x;
     DG_FP rel_y = y[i] - centre_y;
-    if(centre_y > 18.0 && y[i] < -18.0) {
-      rel_y = y[i] - (centre_y - 40.0);
-    }
-    if(centre_y < -18.0 && y[i] > 18.0) {
-      rel_y = y[i] - (centre_y + 40.0);
-    }
+    DG_FP rel_y_1 = y[i] - (centre_y - 40.0);
+    DG_FP rel_y_2 = y[i] - (centre_y + 40.0);
+    if(fabs(rel_y_1) < fabs(rel_y))
+      rel_y = rel_y_1;
+    if(fabs(rel_y_2) < fabs(rel_y))
+      rel_y = rel_y_2;
 
     DG_FP f = (1.0 - rel_x * rel_x - rel_y * rel_y) / (2.0 * R * R);
     DG_FP rho_tmp = 1.0 - ((S * S * M * M * (gamma_e - 1.0) * exp(2.0 * f)) / (8.0 * PI * PI));

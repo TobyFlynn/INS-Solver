@@ -16,6 +16,7 @@
 #include "solvers/2d/ins_solver_over_int.h"
 #include "solvers/2d/ins_solver.h"
 #include "solvers/2d/mp_ins_solver.h"
+#include "solvers/2d/compressible_euler_solver.h"
 
 Timing *timer;
 Config *config;
@@ -117,11 +118,12 @@ int main(int argc, char **argv) {
   gamma_e = 1.4;
 
   DGMesh2D *mesh = new DGMesh2D(filename, false);
-  MPINSSolver2D *mpins2d;
-  if(resumeIter == 0)
-    mpins2d = new MPINSSolver2D(mesh);
-  else
-    mpins2d = new MPINSSolver2D(mesh, checkpointFile, resumeIter);
+  // MPINSSolver2D *mpins2d;
+  // if(resumeIter == 0)
+  //   mpins2d = new MPINSSolver2D(mesh);
+  // else
+  //   mpins2d = new MPINSSolver2D(mesh, checkpointFile, resumeIter);
+  CompressibleEulerSolver2D *es2d = new CompressibleEulerSolver2D(mesh);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
@@ -142,36 +144,38 @@ int main(int argc, char **argv) {
   timer->endTimer("OP2 Partitioning");
 
   mesh->init();
-  mpins2d->init(r_ynolds, refVel);
+  es2d->init();
 
   int save_ic = 1;
   config->getInt("simulation-constants", "save_ic", save_ic);
   if(save_ic) {
     string out_file_ic = outputDir + "ic.h5";
-    mpins2d->dump_data(out_file_ic);
+    es2d->dump_data(out_file_ic);
   }
 
   timer->startTimer("Main loop");
   for(int i = resumeIter; i < iter; i++) {
-    mpins2d->step();
+    es2d->step();
 
     if(save > 0 && (i + 1) % save == 0) {
       string out_file_tmp = outputDir + "iter-" + to_string(i + 1) + ".h5";
-      mpins2d->dump_data(out_file_tmp);
+      es2d->dump_data(out_file_tmp);
     }
   }
   timer->endTimer("Main loop");
+
+  es2d->save_l2_err_history("l2_err_pr.txt");
 
   int save_end = 1;
   config->getInt("simulation-constants", "save_end", save_end);
   if(save_end) {
     string out_file_end = outputDir + "end.h5";
-    mpins2d->dump_data(out_file_end);
+    es2d->dump_data(out_file_end);
   }
 
-  timer->exportTimings(outputDir + "timings.txt", iter, mpins2d->get_time());
+  timer->exportTimings(outputDir + "timings", iter, es2d->time);
 
-  delete mpins2d;
+  delete es2d;
 
   ierr = PetscFinalize();
 

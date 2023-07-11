@@ -1,19 +1,20 @@
-#include "solvers/2d/compressible_euler_solver_over_int.h"
+#include "solvers/2d/compressible_euler_solver.h"
 
 #include "op_seq.h"
 
 #include <string>
 #include <stdexcept>
 #include "dg_op2_blas.h"
+#include "dg_dat_pool.h"
 
 #include "timing.h"
 
-extern Timing *timer;
+#define L2_FREQUENCY 10
 
-CompressibleEulerSolverOverInt2D::CompressibleEulerSolverOverInt2D(DGMesh2D *m) {
-  #ifdef DG_OP2_SOA
-  throw std::runtime_error("2D over integrate not implemented for SoA");
-  #endif
+extern Timing *timer;
+extern DGDatPool *dg_dat_pool;
+
+CompressibleEulerSolver2D::CompressibleEulerSolver2D(DGMesh2D *m) {
   mesh = m;
   std::string name;
   for(int i = 0; i < 4; i++) {
@@ -32,13 +33,13 @@ CompressibleEulerSolverOverInt2D::CompressibleEulerSolverOverInt2D(DGMesh2D *m) 
     name = "rk_RHSQ2" + std::to_string(i);
     rk_RHSQ[2][i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
     name = "gQ" + std::to_string(i);
-    gQ[i] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
-    name = "gRHSQ" + std::to_string(i);
-    gRHSQ[i] = op_decl_dat(mesh->cells, DG_G_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
   }
+
+  l2_counter = 0;
+  time = 0.0;
 }
 
-void CompressibleEulerSolverOverInt2D::init() {
+void CompressibleEulerSolver2D::init() {
   op_par_loop(euler_2d_ic, "euler_2d_ic", mesh->cells,
               op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -51,8 +52,8 @@ void CompressibleEulerSolverOverInt2D::init() {
   dt = 0.00125;
 }
 
-void CompressibleEulerSolverOverInt2D::step() {
-  timer->startTimer("CompressibleEulerSolverOverInt2D - step");
+void CompressibleEulerSolver2D::step() {
+  timer->startTimer("CompressibleEulerSolver2D - step");
   rhs(Q, rk_RHSQ[0]);
 
   op_par_loop(euler_2d_wQ_0, "euler_2d_wQ_0", mesh->cells,
@@ -111,10 +112,13 @@ void CompressibleEulerSolverOverInt2D::step() {
               op_arg_dat(rk_RHSQ[2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rk_RHSQ[2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rk_RHSQ[2][3], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
-  timer->endTimer("CompressibleEulerSolverOverInt2D - step");
+  timer->endTimer("CompressibleEulerSolver2D - step");
+
+  time += dt;
+  record_l2_err();
 }
 
-void CompressibleEulerSolverOverInt2D::rhs(op_dat *wQ, op_dat *RHSQ) {
+void CompressibleEulerSolver2D::rhs(op_dat *wQ, op_dat *RHSQ) {
   op_par_loop(euler_2d_flux, "euler_2d_flux", mesh->cells,
               op_arg_dat(wQ[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(wQ[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -130,44 +134,51 @@ void CompressibleEulerSolverOverInt2D::rhs(op_dat *wQ, op_dat *RHSQ) {
               op_arg_dat(G[3], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
   for(int i = 0; i < 4; i++) {
-    timer->startTimer("CompressibleEulerSolverOverInt2D - div");
+    timer->startTimer("CompressibleEulerSolver2D - div");
     mesh->div_weak(F[i], G[i], RHSQ[i]);
-    timer->endTimer("CompressibleEulerSolverOverInt2D - div");
-    op2_gemv(mesh, false, 1.0, DGConstants::GAUSS_INTERP, wQ[i], 0.0, gQ[i]);
+    timer->endTimer("CompressibleEulerSolver2D - div");
   }
 
-  op_par_loop(zero_g_np2, "zero_g_np", mesh->cells,
-              op_arg_dat(gRHSQ[0], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(gRHSQ[1], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
+  DGTempDat flux[4];
+  flux[0] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  flux[1] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  flux[2] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  flux[3] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
 
-  op_par_loop(zero_g_np2, "zero_g_np", mesh->cells,
-              op_arg_dat(gRHSQ[2], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(gRHSQ[3], -1, OP_ID, DG_G_NP, DG_FP_STR, OP_WRITE));
+  op_par_loop(zero_npf_2, "zero_npf_2", mesh->cells,
+              op_arg_dat(flux[0].dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(flux[1].dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
-  op_par_loop(euler_2d_faces_over_int, "euler_2d_faces_over_int", mesh->faces,
-              op_arg_dat(mesh->order,     -2, mesh->face2cells, 1, "int", OP_READ),
+  op_par_loop(zero_npf_2, "zero_npf_2", mesh->cells,
+              op_arg_dat(flux[2].dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(flux[3].dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+
+  op_par_loop(euler_2d_faces, "euler_2d_faces", mesh->faces,
               op_arg_dat(mesh->edgeNum,   -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse,   -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(mesh->gauss->nx, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->gauss->ny, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->gauss->sJ, -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(gQ[0],    -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(gQ[1],    -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(gQ[2],    -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(gQ[3],    -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(gRHSQ[0], -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_INC),
-              op_arg_dat(gRHSQ[1], -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_INC),
-              op_arg_dat(gRHSQ[2], -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_INC),
-              op_arg_dat(gRHSQ[3], -2, mesh->face2cells, DG_G_NP, DG_FP_STR, OP_INC));
+              op_arg_dat(mesh->nx, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ny, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(wQ[0], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(wQ[1], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(wQ[2], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(wQ[3], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(flux[0].dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(flux[1].dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(flux[2].dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(flux[3].dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
   for(int i = 0; i < 4; i++) {
-    op2_gemv(mesh, false, -1.0, DGConstants::INV_MASS_GAUSS_INTERP_T, gRHSQ[i], 1.0, RHSQ[i]);
-    // op2_gemv(mesh, true, -1.0, DGConstants::GAUSS_INTERP, gRHSQ[i], 1.0, RHSQ[i]);
-    // inv_mass(mesh, RHSQ[i]);
+    op2_gemv(mesh, false, -1.0, DGConstants::LIFT, flux[i].dat, 1.0, RHSQ[i]);
   }
+
+  dg_dat_pool->releaseTempDatCells(flux[0]);
+  dg_dat_pool->releaseTempDatCells(flux[1]);
+  dg_dat_pool->releaseTempDatCells(flux[2]);
+  dg_dat_pool->releaseTempDatCells(flux[3]);
 }
 
-void CompressibleEulerSolverOverInt2D::dump_data(const std::string &filename) {
+void CompressibleEulerSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(mesh->x, filename.c_str());
   op_fetch_data_hdf5_file(mesh->y, filename.c_str());
   op_fetch_data_hdf5_file(Q[0], filename.c_str());
@@ -176,7 +187,7 @@ void CompressibleEulerSolverOverInt2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(Q[3], filename.c_str());
 }
 
-DG_FP CompressibleEulerSolverOverInt2D::l2_vortex_error(DG_FP time) {
+DG_FP CompressibleEulerSolver2D::l2_vortex_error() {
   op_par_loop(euler_2d_l2_vortex_error_0, "euler_2d_l2_vortex_error_0", mesh->cells,
               op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -192,4 +203,48 @@ DG_FP CompressibleEulerSolverOverInt2D::l2_vortex_error(DG_FP time) {
               op_arg_dat(rk_wQ[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
 
   return residual;
+}
+void CompressibleEulerSolver2D::record_l2_err() {
+  if(l2_counter % L2_FREQUENCY == 0) {
+    l2_err_history.push_back({time, l2_vortex_error()});
+  }
+  l2_counter++;
+}
+
+#include <fstream>
+#include <iostream>
+
+#include <iomanip>
+#include <sstream>
+
+std::string doubleToTextE(const double &d) {
+    std::stringstream ss;
+    ss << std::setprecision(15);
+    ss << d;
+    return ss.str();
+}
+
+#ifdef INS_MPI
+#include "mpi.h"
+#endif
+
+void CompressibleEulerSolver2D::save_l2_err_history(const std::string &filename) {
+  #ifdef INS_MPI
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if(rank == 0) {
+  #endif
+  std::ofstream file(filename);
+
+  file << "time,l2_err_pr" << std::endl;
+
+  for(int i = 0; i < l2_err_history.size(); i++) {
+    file << doubleToTextE(l2_err_history[i].first) << ",";
+    file << doubleToTextE(l2_err_history[i].second) << std::endl;
+  }
+
+  file.close();
+  #ifdef INS_MPI
+  }
+  #endif
 }
