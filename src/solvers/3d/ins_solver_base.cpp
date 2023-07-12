@@ -591,17 +591,8 @@ void INSSolverBase3D::project_velocity() {
     int num_cells = 0;
     int num_converge = 0;
     DG_FP num_iter = 0.0;
-    op_par_loop(ins_3d_proj_cg, "ins_3d_proj_cg", mesh->cells,
-                op_arg_dat(mesh->rx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->sx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->tx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->ry, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->sy, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->ty, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->rz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->sz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->tz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->J,  -1, OP_ID, 1, DG_FP_STR, OP_READ),
+    op_par_loop(ins_3d_proj_cg_precon, "ins_3d_proj_cg_precon", mesh->cells,
+                op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
                 op_arg_dat(proj_pen.dat, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(projRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(projRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
