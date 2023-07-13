@@ -404,25 +404,18 @@ void PoissonCoarseMatrix::setHYPREMatrix() {
   int *num_col_ptr_h = (int *)malloc(local_size * sizeof(int));
 
   // Exchange halos
-  DGMesh3D *mesh = dynamic_cast<DGMesh3D*>(_mesh);
   op_arg args[] = {
-    op_arg_dat(op2[0], 0, mesh->face2cells, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[0], 1, mesh->face2cells, op2[0]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 0, mesh->face2cells, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(op2[1], 1, mesh->face2cells, op2[1]->dim, DG_FP_STR, OP_RW),
-    op_arg_dat(glb_indL, 0, mesh->face2cells, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indL, 1, mesh->face2cells, glb_indL->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 0, mesh->face2cells, glb_indR->dim, "int", OP_RW),
-    op_arg_dat(glb_indR, 1, mesh->face2cells, glb_indR->dim, "int", OP_RW)
+    op_arg_dat(glb_indL, -1, OP_ID, glb_indL->dim, "int", OP_RW),
+    op_arg_dat(glb_indR, -1, OP_ID, glb_indR->dim, "int", OP_RW)
   };
-  op_mpi_halo_exchanges_grouped(mesh->faces, 8, args, 2, 0);
-  op_mpi_wait_all_grouped(8, args, 2, 0);
+  op_mpi_halo_exchanges_grouped(_mesh->faces, 2, args, 2, 1);
+  op_mpi_wait_all_grouped(2, args, 2, 1);
   cudaDeviceSynchronize();
 
   // Get data from OP2
-  DG_FP *op1_data = getOP2PtrHost(op1, OP_READ);
-  DG_FP *op2L_data = getOP2PtrHost(op2[0], OP_READ);
-  DG_FP *op2R_data = getOP2PtrHost(op2[1], OP_READ);
+  DG_FP *op1_data = getOP2PtrHostHE(op1, OP_READ);
+  DG_FP *op2L_data = getOP2PtrHostHE(op2[0], OP_READ);
+  DG_FP *op2R_data = getOP2PtrHostHE(op2[1], OP_READ);
   int *glb   = (int *)malloc(cell_set_size * sizeof(int));
   cudaMemcpy(glb, glb_ind->data_d, cell_set_size * sizeof(int), cudaMemcpyDeviceToHost);
   int *glb_l = (int *)malloc(faces_set_size * sizeof(int));
@@ -528,9 +521,9 @@ void PoissonCoarseMatrix::setHYPREMatrix() {
   free(row_num_ptr_h);
   free(num_col_ptr_h);
 
-  releaseOP2PtrHost(op1, OP_READ, op1_data);
-  releaseOP2PtrHost(op2[0], OP_READ, op2L_data);
-  releaseOP2PtrHost(op2[1], OP_READ, op2R_data);
+  releaseOP2PtrHostHE(op1, OP_READ, op1_data);
+  releaseOP2PtrHostHE(op2[0], OP_READ, op2L_data);
+  releaseOP2PtrHostHE(op2[1], OP_READ, op2R_data);
   free(glb);
   free(glb_l);
   free(glb_r);
