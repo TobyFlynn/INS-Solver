@@ -429,9 +429,11 @@ void PoissonCoarseMatrix::setHYPREMatrix() {
     // printf("ilower: %d iupper: %d\n", ilower, iupper);
     HYPRE_IJMatrixCreate(MPI_COMM_WORLD, ilower, iupper, ilower, iupper, &hypre_mat);
     HYPRE_IJMatrixSetObjectType(hypre_mat, HYPRE_PARCSR);
-    HYPRE_IJMatrixInitialize(hypre_mat);
+    // HYPRE_IJMatrixInitialize(hypre_mat);
     hypre_mat_init = true;
   }
+
+  HYPRE_IJMatrixInitialize(hypre_mat);
 
   std::map<int,std::vector<std::pair<int,DG_FP>>> mat_buffer;
 
@@ -485,12 +487,12 @@ void PoissonCoarseMatrix::setHYPREMatrix() {
     row_num_ptr_h[current_row] = it->first;
     int num_this_col = 0;
     for(int i = 0; i < it->second.size(); i++) {
-      if(fabs(it->second[i].second) > 1e-8) {
+      // if(fabs(it->second[i].second) > 1e-8) {
         col_buf_ptr_h[current_nnz] = it->second[i].first;
         data_buf_ptr_h[current_nnz] = it->second[i].second;
         num_this_col++;
         current_nnz++;
-      }
+      // }
     }
     num_col_ptr_h[current_row] = num_this_col;
     current_row++;
