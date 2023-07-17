@@ -80,40 +80,6 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/mp_ins_solver.cpp \
         solvers/2d/ins_solver_over_int.cpp \
         solvers/2d/ce_solver_over_int.cpp \
-        matrices/poisson_matrix.cpp \
-        matrices/poisson_coarse_matrix.cpp \
-        matrices/poisson_semi_matrix_free.cpp \
-        matrices/poisson_matrix_free_diag.cpp \
-        matrices/poisson_matrix_free.cpp \
-        matrices/2d/poisson_matrix_over_int.cpp \
-        matrices/2d/poisson_coarse_matrix.cpp \
-        matrices/2d/poisson_coarse_matrix_over_int.cpp \
-        matrices/2d/poisson_matrix_free_mult.cpp \
-        matrices/2d/poisson_matrix_free_diag.cpp \
-        matrices/2d/poisson_semi_matrix_free_over_int.cpp \
-        matrices/2d/poisson_matrix_free_over_int.cpp \
-        matrices/2d/mm_poisson_matrix_over_int.cpp \
-        matrices/2d/mm_poisson_matrix_free.cpp \
-        matrices/2d/mm_poisson_matrix_free_over_int.cpp \
-        matrices/2d/factor_poisson_matrix_free_mult.cpp \
-        matrices/2d/factor_poisson_matrix_free_diag.cpp \
-        matrices/2d/factor_mm_poisson_matrix_free_diag.cpp \
-        matrices/2d/factor_poisson_coarse_matrix.cpp \
-        matrices/2d/factor_poisson_matrix_over_int.cpp \
-        matrices/2d/factor_poisson_coarse_matrix_over_int.cpp \
-        matrices/2d/factor_poisson_semi_matrix_free_over_int.cpp \
-        matrices/2d/factor_poisson_matrix_free_over_int.cpp \
-        matrices/2d/factor_mm_poisson_matrix_over_int.cpp \
-        matrices/2d/factor_mm_poisson_matrix_free_over_int.cpp \
-        matrices/2d/cub_poisson_matrix.cpp \
-        matrices/2d/cub_factor_poisson_matrix.cpp \
-        matrices/2d/cub_mm_poisson_matrix.cpp \
-        matrices/2d/cub_factor_mm_poisson_matrix.cpp \
-        linear_solvers/petsc_block_jacobi/petsc_block_jacobi.cpp \
-        linear_solvers/pmultigrid/pmultigrid.cpp \
-        linear_solvers/petsc_inv_mass/petsc_inv_mass.cpp \
-        linear_solvers/petsc_jacobi/petsc_jacobi.cpp \
-        linear_solvers/initial_guess_extrapolation/initial_guess_extrapolation.cpp \
         kernels/
 
 sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins2d_kernels.cu
@@ -135,31 +101,6 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/ins_solver.cpp \
         solvers/3d/ls_solver.cpp \
         solvers/3d/mp_ins_solver.cpp \
-        matrices/poisson_matrix.cpp \
-        matrices/poisson_coarse_matrix.cpp \
-        matrices/poisson_semi_matrix_free.cpp \
-        matrices/poisson_matrix_free_diag.cpp \
-        matrices/3d/poisson_matrix.cpp \
-        matrices/3d/poisson_coarse_matrix.cpp \
-        matrices/3d/poisson_semi_matrix_free.cpp \
-        matrices/3d/poisson_matrix_free_mult.cpp \
-        matrices/3d/poisson_matrix_free_diag.cpp \
-        matrices/3d/mm_poisson_matrix.cpp \
-        matrices/3d/mm_poisson_matrix_free.cpp \
-        matrices/3d/factor_poisson_matrix.cpp \
-        matrices/3d/factor_poisson_coarse_matrix.cpp \
-        matrices/3d/factor_poisson_semi_matrix_free.cpp \
-        matrices/3d/factor_poisson_matrix_free_diag.cpp \
-        matrices/3d/factor_poisson_matrix_free_mult.cpp \
-        matrices/3d/factor_mm_poisson_matrix.cpp \
-        matrices/3d/factor_mm_poisson_semi_matrix_free.cpp \
-        matrices/3d/factor_mm_poisson_matrix_free.cpp \
-        matrices/3d/factor_mm_poisson_matrix_free_diag.cpp \
-        linear_solvers/petsc_block_jacobi/petsc_block_jacobi.cpp \
-        linear_solvers/pmultigrid/pmultigrid.cpp \
-        linear_solvers/petsc_inv_mass/petsc_inv_mass.cpp \
-        linear_solvers/petsc_jacobi/petsc_jacobi.cpp \
-        linear_solvers/initial_guess_extrapolation/initial_guess_extrapolation.cpp \
         kernels/
 
 sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins3d_kernels.cu
@@ -173,12 +114,6 @@ sed -i "6i #include \"dg_global_constants/dg_mat_constants_3d.h\"" openmp/ins3d_
 sed -i "6i #include \"dg_global_constants/dg_mat_constants_3d.h\"" seq/ins3d_seqkernels.cpp
 sed -i "7i #include \"cblas.h\"" openmp/ins3d_kernels.cpp
 sed -i "7i #include \"cblas.h\"" seq/ins3d_seqkernels.cpp
-if [ $SOA = 0 ]; then
-  sed -i "73i #include \"../matrices/3d/custom_kernels/custom_fpmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
-  sed -i "73i #include \"../matrices/3d/custom_kernels/custom_pmf_3d_mult_faces_flux.cu\"" cuda/ins3d_kernels.cu
-else
-  sed -i "73i #include \"../matrices/3d/custom_kernels/custom_soa_pmf_3d_mult_faces.cu\"" cuda/ins3d_kernels.cu
-fi
 
 cd ..
 

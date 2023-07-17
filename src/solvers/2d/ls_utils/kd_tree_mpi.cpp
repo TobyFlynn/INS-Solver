@@ -6,7 +6,7 @@
 #include <cstddef>
 
 #include "timing.h"
-#include "utils.h"
+#include "op2_utils.h"
 
 extern Timing *timer;
 

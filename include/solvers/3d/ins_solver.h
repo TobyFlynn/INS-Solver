@@ -7,13 +7,13 @@
 
 #include "dg_mesh/dg_mesh_3d.h"
 
-#include "matrices/3d/poisson_matrix_3d.h"
-#include "matrices/3d/poisson_coarse_matrix_3d.h"
-#include "matrices/3d/poisson_semi_matrix_free_3d.h"
-#include "matrices/3d/poisson_matrix_free_diag_3d.h"
-#include "matrices/3d/mm_poisson_matrix_3d.h"
-#include "matrices/3d/mm_poisson_matrix_free_3d.h"
-#include "linear_solvers/petsc_inv_mass.h"
+#include "dg_matrices/3d/poisson_matrix_3d.h"
+#include "dg_matrices/3d/poisson_coarse_matrix_3d.h"
+#include "dg_matrices/3d/poisson_semi_matrix_free_3d.h"
+#include "dg_matrices/3d/poisson_matrix_free_diag_3d.h"
+#include "dg_matrices/3d/mm_poisson_matrix_3d.h"
+#include "dg_matrices/3d/mm_poisson_matrix_free_3d.h"
+#include "dg_linear_solvers/petsc_inv_mass.h"
 
 class INSSolver3D : public INSSolverBase3D {
 public:

@@ -11,8 +11,8 @@
 
 #include "timing.h"
 #include "config.h"
-#include "linear_solvers/petsc_amg.h"
-#include "linear_solvers/petsc_block_jacobi.h"
+#include "dg_linear_solvers/petsc_amg.h"
+#include "dg_linear_solvers/petsc_block_jacobi.h"
 
 extern Timing *timer;
 extern Config *config;

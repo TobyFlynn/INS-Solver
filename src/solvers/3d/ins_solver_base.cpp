@@ -9,10 +9,10 @@ extern DGConstants *constants;
 
 #include "timing.h"
 #include "config.h"
-#include "linear_solvers/petsc_amg.h"
-#include "linear_solvers/petsc_block_jacobi.h"
-#include "linear_solvers/petsc_pmultigrid.h"
-#include "linear_solvers/initial_guess_extrapolation.h"
+#include "dg_linear_solvers/petsc_amg.h"
+#include "dg_linear_solvers/petsc_block_jacobi.h"
+#include "dg_linear_solvers/petsc_pmultigrid.h"
+#include "dg_linear_solvers/initial_guess_extrapolation.h"
 #include "dg_dat_pool.h"
 #include "dg_utils.h"
 

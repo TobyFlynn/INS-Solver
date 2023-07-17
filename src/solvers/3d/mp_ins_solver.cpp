@@ -8,10 +8,10 @@
 
 #include "timing.h"
 #include "config.h"
-#include "utils.h"
-#include "linear_solvers/petsc_amg.h"
-#include "linear_solvers/petsc_block_jacobi.h"
-#include "linear_solvers/initial_guess_extrapolation.h"
+#include "op2_utils.h"
+#include "dg_linear_solvers/petsc_amg.h"
+#include "dg_linear_solvers/petsc_block_jacobi.h"
+#include "dg_linear_solvers/initial_guess_extrapolation.h"
 
 #include <string>
 

@@ -5,7 +5,7 @@
 #include <map>
 #include <iostream>
 
-#include "utils.h"
+#include "op2_utils.h"
 #include "timing.h"
 
 using namespace std;

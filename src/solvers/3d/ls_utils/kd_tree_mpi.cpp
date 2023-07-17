@@ -1,7 +1,7 @@
 #include "ls_utils/3d/kd_tree_mpi.h"
 
 #include "timing.h"
-#include "utils.h"
+#include "op2_utils.h"
 
 #include "mpi.h"
 #include "op_lib_mpi.h"

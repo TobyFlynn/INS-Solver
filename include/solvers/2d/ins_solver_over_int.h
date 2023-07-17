@@ -5,16 +5,16 @@
 
 #include <string>
 
-#include "matrices/2d/poisson_matrix_over_int_2d.h"
-#include "matrices/2d/poisson_coarse_matrix_over_int_2d.h"
-#include "matrices/2d/poisson_semi_matrix_free_over_int_2d.h"
-#include "matrices/2d/mm_poisson_matrix_over_int_2d.h"
-#include "matrices/2d/mm_poisson_matrix_free_over_int_2d.h"
-#include "matrices/2d/cub_poisson_matrix_2d.h"
-#include "matrices/2d/cub_mm_poisson_matrix_2d.h"
-#include "linear_solvers/linear_solver.h"
+#include "dg_matrices/2d/poisson_matrix_over_int_2d.h"
+#include "dg_matrices/2d/poisson_coarse_matrix_over_int_2d.h"
+#include "dg_matrices/2d/poisson_semi_matrix_free_over_int_2d.h"
+#include "dg_matrices/2d/mm_poisson_matrix_over_int_2d.h"
+#include "dg_matrices/2d/mm_poisson_matrix_free_over_int_2d.h"
+#include "dg_matrices/2d/cub_poisson_matrix_2d.h"
+#include "dg_matrices/2d/cub_mm_poisson_matrix_2d.h"
+#include "dg_linear_solvers/linear_solver.h"
 #include "solvers/2d/ls_solver.h"
-#include "linear_solvers/petsc_inv_mass.h"
+#include "dg_linear_solvers/petsc_inv_mass.h"
 
 #include "dg_mesh/dg_mesh_2d.h"
 

@@ -7,7 +7,7 @@
 #else
 #include "ls_utils/2d/kd_tree.h"
 #endif
-#include "utils.h"
+#include "op2_utils.h"
 #include "timing.h"
 #include "ls_utils/2d/ls_reinit_poly.h"
 #include "ls_utils/2d/ls_reinit_poly_eval_cuda.h"

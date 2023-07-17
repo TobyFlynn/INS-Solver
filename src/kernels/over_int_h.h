@@ -1,4 +1,4 @@
-inline void poisson_h(const DG_FP *x, const DG_FP *y, DG_FP *h) {
+inline void over_int_h(const DG_FP *x, const DG_FP *y, DG_FP *h) {
   DG_FP len0 = sqrt((x[0] - x[1]) * (x[0] - x[1]) + (y[0] - y[1]) * (y[0] - y[1]));
   DG_FP len1 = sqrt((x[1] - x[2]) * (x[1] - x[2]) + (y[1] - y[2]) * (y[1] - y[2]));
   DG_FP len2 = sqrt((x[2] - x[0]) * (x[2] - x[0]) + (y[2] - y[0]) * (y[2] - y[0]));

@@ -12,9 +12,9 @@
 
 #include "timing.h"
 #include "config.h"
-#include "linear_solvers/petsc_amg.h"
-#include "linear_solvers/petsc_block_jacobi.h"
-#include "linear_solvers/petsc_pmultigrid.h"
+#include "dg_linear_solvers/petsc_amg.h"
+#include "dg_linear_solvers/petsc_block_jacobi.h"
+#include "dg_linear_solvers/petsc_pmultigrid.h"
 
 extern Timing *timer;
 extern Config *config;
@@ -238,7 +238,7 @@ void INSSolverOverInt2D::init(const DG_FP re, const DG_FP refVel) {
               op_arg_dat(proj_op_yx, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(proj_op_xy, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_WRITE));
 
-  op_par_loop(poisson_h, "poisson_h", mesh->cells,
+  op_par_loop(over_int_h, "over_int_h", mesh->cells,
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
               op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));

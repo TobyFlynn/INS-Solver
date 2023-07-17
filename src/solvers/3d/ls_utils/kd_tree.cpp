@@ -1,7 +1,7 @@
 #include "ls_utils/3d/kd_tree.h"
 
 #include "timing.h"
-#include "utils.h"
+#include "op2_utils.h"
 
 extern Timing *timer;
 

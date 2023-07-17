@@ -6,7 +6,7 @@
 #ifdef INS_MPI
 #include "ls_utils/3d/kd_tree_mpi.h"
 #endif
-#include "utils.h"
+#include "op2_utils.h"
 #include "dg_op2_blas.h"
 #include "dg_utils.h"
 #include "dg_dat_pool.h"

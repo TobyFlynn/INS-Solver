@@ -4,7 +4,7 @@
 
 #include "dg_op2_blas.h"
 #include "dg_utils.h"
-#include "utils.h"
+#include "op2_utils.h"
 #include "ls_utils/3d/poly_approx.h"
 #include "dg_dat_pool.h"
 

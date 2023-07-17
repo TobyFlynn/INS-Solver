@@ -13,7 +13,7 @@
 
 #include "timing.h"
 #include "config.h"
-#include "utils.h"
+#include "op2_utils.h"
 
 #include "solvers/3d/advection_solver.h"
 #include "solvers/3d/ins_solver.h"

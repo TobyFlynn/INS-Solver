@@ -8,11 +8,11 @@
 #include <string>
 #include <vector>
 
-#include "matrices/2d/poisson_coarse_matrix_2d.h"
-#include "matrices/2d/poisson_matrix_free_diag_2d.h"
-#include "matrices/2d/mm_poisson_matrix_free_2d.h"
-#include "linear_solvers/linear_solver.h"
-#include "linear_solvers/petsc_inv_mass.h"
+#include "dg_matrices/2d/poisson_coarse_matrix_2d.h"
+#include "dg_matrices/2d/poisson_matrix_free_diag_2d.h"
+#include "dg_matrices/2d/mm_poisson_matrix_free_2d.h"
+#include "dg_linear_solvers/linear_solver.h"
+#include "dg_linear_solvers/petsc_inv_mass.h"
 
 #include "dg_mesh/dg_mesh_2d.h"
 

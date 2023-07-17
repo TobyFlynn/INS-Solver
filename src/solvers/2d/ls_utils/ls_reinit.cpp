@@ -10,7 +10,7 @@
 #endif
 #include "timing.h"
 #include "ls_utils/2d/ls_reinit_poly.h"
-#include "utils.h"
+#include "op2_utils.h"
 
 extern Timing *timer;
 
