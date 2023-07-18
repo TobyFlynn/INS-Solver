@@ -15,7 +15,7 @@
 
 extern Timing *timer;
 extern Config *config;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 PETScBlockJacobiSolver::PETScBlockJacobiSolver(DGMesh *m) {
   bc = nullptr;

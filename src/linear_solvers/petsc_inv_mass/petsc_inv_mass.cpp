@@ -19,7 +19,7 @@
 extern DGConstants *constants;
 extern Config *config;
 extern Timing *timer;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 PETScInvMassSolver::PETScInvMassSolver(DGMesh *m) {
   bc = nullptr;

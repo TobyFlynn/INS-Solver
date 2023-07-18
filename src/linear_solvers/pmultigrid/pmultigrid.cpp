@@ -21,7 +21,7 @@
 
 extern Timing *timer;
 extern Config *config;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 #define RAND_VEC_SIZE 25
 #define MAX_ITER_EIG_APPROX 10

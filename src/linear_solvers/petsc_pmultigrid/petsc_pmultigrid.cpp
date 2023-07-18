@@ -12,7 +12,7 @@
 
 extern Timing *timer;
 extern Config *config;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 PETScPMultigrid::PETScPMultigrid(DGMesh *m) {
   bc = nullptr;

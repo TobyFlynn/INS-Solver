@@ -10,7 +10,7 @@
 
 extern DGConstants *constants;
 extern Timing *timer;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 PoissonMatrixFreeMult3D::PoissonMatrixFreeMult3D(DGMesh3D *m) {
   mesh = m;

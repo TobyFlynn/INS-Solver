@@ -8,7 +8,7 @@
 #include "timing.h"
 
 extern Timing *timer;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 AdvectionSolver3D::AdvectionSolver3D(DGMesh3D *m) {
   mesh = m;

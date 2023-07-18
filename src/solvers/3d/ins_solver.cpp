@@ -22,7 +22,7 @@ extern DGConstants *constants;
 
 extern Timing *timer;
 extern Config *config;
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 #define ENSTROPY_FREQUENCY 10
 
@@ -185,7 +185,7 @@ void INSSolver3D::step() {
   timer->endTimer("INSSolver3D - Advection");
 
   timer->startTimer("INSSolver3D - Shock Capturing");
-  if(shock_cap && !pressure_shock_cap) {
+  if(shock_cap) {
     shock_capture_filter_dat(velT[0]);
     shock_capture_filter_dat(velT[1]);
     shock_capture_filter_dat(velT[2]);
@@ -315,12 +315,6 @@ void INSSolver3D::pressure() {
 
   op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
-
-  timer->startTimer("INSSolver3D - Shock Capturing");
-  if(shock_cap && pressure_shock_cap) {
-    shock_capture_filter_dat(pr);
-  }
-  timer->endTimer("INSSolver3D - Shock Capturing");
 
   timer->startTimer("INSSolver3D - Pressure Projection");
   project_velocity();

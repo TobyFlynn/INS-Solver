@@ -8,7 +8,7 @@
 #include "ls_utils/3d/poly_approx.h"
 #include "dg_dat_pool.h"
 
-extern DGDatPool3D *dg_dat_pool;
+extern DGDatPool *dg_dat_pool;
 
 void rst2xyz(DG_FP &sampleX, DG_FP &sampleY, DG_FP &sampleZ,
              const DG_FP *nodeX, const DG_FP *nodeY,
