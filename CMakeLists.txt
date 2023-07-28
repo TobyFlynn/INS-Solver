@@ -113,7 +113,7 @@ endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-set(DIM 2)
-add_subdirectory(gen2d)
+#set(DIM 2)
+#add_subdirectory(gen2d)
 set(DIM 3)
 add_subdirectory(gen3d)
