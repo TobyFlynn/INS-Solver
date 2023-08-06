@@ -19,8 +19,20 @@ bool compareZ(KDCoord a, KDCoord b) {
   return a.z_rot < b.z_rot;
 }
 
-KDTree3D::KDTree3D(const DG_FP *x, const DG_FP *y, const DG_FP *z,
-                   const int num, DGMesh3D *m, op_dat s) {
+KDTree3D::KDTree3D(DGMesh3D *m) {
+  mesh = m;
+}
+
+void KDTree3D::reset() {
+  points.clear();
+  nodes.clear();
+  cell2polyMap.clear();
+  polys.clear();
+  n = 0;
+}
+
+void KDTree3D::pre_build_setup(const DG_FP *x, const DG_FP *y, const DG_FP *z,
+                               const int num, DGMesh3D *m, op_dat s) {
   n = 0;
   mesh = m;
   for(int i = 0; i < num; i++) {
@@ -43,7 +55,10 @@ KDTree3D::KDTree3D(const DG_FP *x, const DG_FP *y, const DG_FP *z,
   update_poly_inds(points);
 }
 
-void KDTree3D::build_tree() {
+void KDTree3D::build_tree(const DG_FP *x, const DG_FP *y, const DG_FP *z,
+                          const int num, op_dat s) {
+  pre_build_setup(x, y, z, num, s);
+
   if(points.size() == 0) {
     empty = true;
     return;
