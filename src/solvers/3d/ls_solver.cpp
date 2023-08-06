@@ -43,6 +43,7 @@ LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m, const std::string &filename) {
 
 LevelSetSolver3D::~LevelSetSolver3D() {
   delete advectionSolver;
+  delete kdtree;
 }
 
 void LevelSetSolver3D::setBCTypes(op_dat bc) {
@@ -72,6 +73,12 @@ void LevelSetSolver3D::init() {
   // reinit_width = 10.0 * h;
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
+
+  #ifdef INS_MPI
+  kdtree = new KDTree3DMPI(mesh, alpha);
+  #else
+  kdtree = new KDTree3D(mesh);
+  #endif
 
   reinitLS();
 }
@@ -312,13 +319,8 @@ void LevelSetSolver3D::reinitLS() {
   const DG_FP *sample_pts_y = getOP2PtrHost(tmp_sampleY.dat, OP_READ);
   const DG_FP *sample_pts_z = getOP2PtrHost(tmp_sampleZ.dat, OP_READ);
 
-  #ifdef INS_MPI
-  KDTree3DMPI kdtree(sample_pts_x, sample_pts_y, sample_pts_z, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
-  kdtree.build_tree();
-  #else
-  KDTree3D kdtree(sample_pts_x, sample_pts_y, sample_pts_z, LS_SAMPLE_NP * mesh->cells->size, mesh, s);
-  kdtree.build_tree();
-  #endif
+  kdtree->reset();
+  kdtree->build_tree(sample_pts_x, sample_pts_y, sample_pts_z, LS_SAMPLE_NP * mesh->cells->size, s);
 
   releaseOP2PtrHost(tmp_sampleX.dat, OP_READ, sample_pts_x);
   releaseOP2PtrHost(tmp_sampleY.dat, OP_READ, sample_pts_y);
@@ -340,18 +342,18 @@ void LevelSetSolver3D::reinitLS() {
   int *poly_ind     = (int *)calloc(DG_NP * mesh->cells->size, sizeof(int));
   std::vector<PolyApprox3D> polys;
 
-  if(!kdtree.empty) {
+  if(!kdtree->empty) {
     #pragma omp parallel for
     for(int i = 0; i < DG_NP * mesh->cells->size; i++) {
       // Get closest sample point
-      KDCoord tmp = kdtree.closest_point(x_ptr[i], y_ptr[i], z_ptr[i]);
+      KDCoord tmp = kdtree->closest_point(x_ptr[i], y_ptr[i], z_ptr[i]);
       closest_x[i] = tmp.x;
       closest_y[i] = tmp.y;
       closest_z[i] = tmp.z;
       poly_ind[i]  = tmp.poly;
     }
 
-    polys = kdtree.get_polys();
+    polys = kdtree->get_polys();
   }
   timer->endTimer("LevelSetSolver3D - query KD-Tree");
 
@@ -365,7 +367,7 @@ void LevelSetSolver3D::reinitLS() {
   timer->startTimer("LevelSetSolver3D - newton method");
   DG_FP *surface_ptr = getOP2PtrHost(s, OP_RW);
   // Newton method
-  if(!kdtree.empty) {
+  if(!kdtree->empty) {
     newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, closest_z,
                   x_ptr, y_ptr, z_ptr, poly_ind, polys, surface_ptr, h);
   }

@@ -32,9 +32,8 @@ void KDTree3D::reset() {
 }
 
 void KDTree3D::pre_build_setup(const DG_FP *x, const DG_FP *y, const DG_FP *z,
-                               const int num, DGMesh3D *m, op_dat s) {
+                               const int num, op_dat s) {
   n = 0;
-  mesh = m;
   for(int i = 0; i < num; i++) {
     if(!isnan(x[i]) && !isnan(y[i]) && !isnan(z[i])) {
       n++;

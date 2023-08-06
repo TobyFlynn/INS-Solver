@@ -58,6 +58,8 @@ protected:
   std::set<int> cell_inds(std::vector<KDCoord> &points);
   void construct_polys(std::vector<KDCoord> &points, op_dat s);
   void update_poly_inds(std::vector<KDCoord> &points);
+  void pre_build_setup(const DG_FP *x, const DG_FP *y, const DG_FP *z,
+                       const int num, op_dat s);
 
   std::vector<KDNode> nodes;
 

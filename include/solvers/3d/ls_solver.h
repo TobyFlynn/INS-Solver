@@ -9,6 +9,8 @@
 
 #include "dg_mesh/dg_mesh_3d.h"
 
+#include "ls_utils/3d/kd_tree.h"
+
 class LevelSetSolver3D {
 public:
   LevelSetSolver3D(DGMesh3D *m);
@@ -37,6 +39,7 @@ private:
   bool resuming;
 
   AdvectionSolver3D *advectionSolver;
+  KDTree3D *kdtree;
 };
 
 #endif
