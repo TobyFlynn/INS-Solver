@@ -466,17 +466,26 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
     // End
 
     if(edge_count == 3) {
-      intersect_3pts(s_c, nodeX_c, nodeY_c, nodeZ_c, sampleX_c, sampleY_c, sampleZ_c);
+      DG_FP node_r[] = {-1,1,-1,-1};
+      DG_FP node_s[] = {-1,-1,1,-1};
+      DG_FP node_t[] = {-1,-1,-1,1};
+      // intersect_3pts(s_c, nodeX_c, nodeY_c, nodeZ_c, sampleX_c, sampleY_c, sampleZ_c);
+      intersect_3pts(s_c, node_r, node_s, node_t, sampleX_c, sampleY_c, sampleZ_c);
     } else if(edge_count == 4) {
-      intersect_4pts(s_c, nodeX_c, nodeY_c, nodeZ_c, sampleX_c, sampleY_c, sampleZ_c);
+      DG_FP node_r[] = {-1,1,-1,-1};
+      DG_FP node_s[] = {-1,-1,1,-1};
+      DG_FP node_t[] = {-1,-1,-1,1};
+      // intersect_4pts(s_c, nodeX_c, nodeY_c, nodeZ_c, sampleX_c, sampleY_c, sampleZ_c);
+      intersect_4pts(s_c, node_r, node_s, node_t, sampleX_c, sampleY_c, sampleZ_c);
     } else {
-      // Revert back to simplified Newton sampling
-      bool smpPt = false;
       for(int i = 0; i < LS_SAMPLE_NP; i++) {
         sampleX_c[i] = ref_r_ptr[i];
         sampleY_c[i] = ref_s_ptr[i];
         sampleZ_c[i] = ref_t_ptr[i];
       }
+    }
+
+      bool smpPt = false;
 
       for(int p = 0; p < LS_SAMPLE_NP; p++) {
         bool converged = false;
@@ -497,7 +506,7 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
           sampleZ_c[p] -= dsdz;
 
           // Check convergence
-          if(dsdx * dsdx + dsdy * dsdy + dsdz * dsdz < 1e-5) {
+          if(dsdx * dsdx + dsdy * dsdy + dsdz * dsdz < 1e-8) {
             converged = true;
             break;
           }
@@ -536,7 +545,6 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
         sampleY_c[0] = y_c[id];
         sampleZ_c[0] = z_c[id];
       }
-    }
   }
 
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
