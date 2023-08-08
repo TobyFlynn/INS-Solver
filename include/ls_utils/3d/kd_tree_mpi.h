@@ -17,6 +17,8 @@ private:
   DG_FP min_dist_bb(const DG_FP *min_0, const DG_FP *max_0, const DG_FP *min_1,
                     const DG_FP *max_1);
   std::vector<int> ranks;
+
+  MPI_Datatype packed_type;
 };
 
 #endif
