@@ -15,7 +15,7 @@ struct kdtree_mpi_pack {
   int poly_ind;
 };
 
-KDTree3DMPI::KDTree3DMPI(DGMesh3D *m, const int alpha) : KDTree3D(m) {
+KDTree3DMPI::KDTree3DMPI(DGMesh3D *m, const DG_FP alpha) : KDTree3D(m) {
   timer->startTimer("KDTree3DMPI - init");
 
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -46,13 +46,13 @@ KDTree3DMPI::KDTree3DMPI(DGMesh3D *m, const int alpha) : KDTree3D(m) {
   min_z = z_ptr[0];
   max_z = z_ptr[0];
 
-  for(int i = 1; i < mesh->cells->size; i++) {
+  for(int i = 1; i < mesh->cells->size * DG_NP; i++) {
     if(x_ptr[i] < min_x) min_x = x_ptr[i];
-    if(x_ptr[i] > min_x) max_x = x_ptr[i];
+    if(x_ptr[i] > max_x) max_x = x_ptr[i];
     if(y_ptr[i] < min_x) min_y = y_ptr[i];
-    if(y_ptr[i] > min_x) max_y = y_ptr[i];
+    if(y_ptr[i] > max_y) max_y = y_ptr[i];
     if(z_ptr[i] < min_x) min_z = z_ptr[i];
-    if(z_ptr[i] > min_x) max_z = z_ptr[i];
+    if(z_ptr[i] > max_z) max_z = z_ptr[i];
   }
 
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
@@ -60,9 +60,6 @@ KDTree3DMPI::KDTree3DMPI(DGMesh3D *m, const int alpha) : KDTree3D(m) {
   releaseOP2PtrHost(mesh->z, OP_READ, z_ptr);
 
   // Get bounding boxes of all ranks
-  int rank, comm_size;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
   DG_FP *bb_buf = (DG_FP *)calloc(comm_size * 6, sizeof(DG_FP));
   DG_FP snd_buf[] = {min_x, max_x, min_y, max_y, min_z, max_z};
   MPI_Allgather(snd_buf, 6, DG_MPI_FP, bb_buf, 6, DG_MPI_FP, MPI_COMM_WORLD);
@@ -80,12 +77,12 @@ KDTree3DMPI::KDTree3DMPI(DGMesh3D *m, const int alpha) : KDTree3D(m) {
     const DG_FP i_min_z = bb_buf[i * 6 + 4];
     const DG_FP i_max_z = bb_buf[i * 6 + 5];
 
-    const DG_FP min_i[] = {bb_buf[i * 6], bb_buf[i * 6 + 2], bb_buf[i * 6 + 4]};
-    const DG_FP max_i[] = {bb_buf[i * 6 + 1], bb_buf[i * 6 + 3], bb_buf[i * 6 + 5]};
+    const DG_FP min_i[] = {i_min_x, i_min_y, i_min_z};
+    const DG_FP max_i[] = {i_max_x, i_max_y, i_max_z};
 
     const DG_FP min_dist = min_dist_bb(min_l, max_l, min_i, max_i);
 
-    if(alpha <= min_dist) {
+    if(min_dist <= alpha) {
       ranks.push_back(i);
     }
   }
@@ -96,22 +93,40 @@ KDTree3DMPI::KDTree3DMPI(DGMesh3D *m, const int alpha) : KDTree3D(m) {
 }
 
 DG_FP KDTree3DMPI::min_dist_bb(const DG_FP *min_0, const DG_FP *max_0,
-                                    const DG_FP *min_1, const DG_FP *max_1) {
-  DG_FP dists[] = {0.0, 0.0, 0.0};
+                               const DG_FP *min_1, const DG_FP *max_1) {
+/*
+  DG_FP a[] = {
+                fmax(0.0, min_0[0] - max_1[0]),
+                fmax(0.0, min_0[1] - max_1[1]),
+                fmax(0.0, min_0[2] - max_1[2])
+              };
+  DG_FP b[] = {
+                fmax(0.0, min_1[0] - max_0[0]),
+                fmax(0.0, min_1[1] - max_0[1]),
+                fmax(0.0, min_1[2] - max_0[2])
+              };
 
-  for(int d = 0; d < 3; d++) {
-    if(!((min_1[d] >= min_0[d] && min_1[d] <= max_0[d]) || (max_1[d] >= min_0[d] && max_1[d] <= max_0[d]) || (min_1[d] <= min_0[d] && max_1[d] >= max_0[d]))) {
-      if(min_1[d] > max_0[d]) {
-        dists[d] = min_1[d] - max_0[d];
-      } else if(max_1[d] < min_0[d]) {
-        dists[d] = min_0[d] - max_1[d];
-      } else {
-        throw std::runtime_error("Logic error in KDTree min_dist_bb");
-      }
-    }
+  return sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2] + b[0] * b[0] + b[1] * b[1] + b[2] * b[2]);
+*/
+
+  DG_FP min_i[] = {
+    fmax(min_0[0], min_1[0]),
+    fmax(min_0[1], min_1[1]),
+    fmax(min_0[2], min_1[2])
+  };
+
+  DG_FP max_i[] = {
+    fmin(max_0[0], max_1[0]),
+    fmin(max_0[1], max_1[1]),
+    fmin(max_0[2], max_1[2])
+  };
+
+  DG_FP dist = 0.0;
+  for(int i = 0; i < 3; i++) {
+    if(min_i[i] > max_i[i])
+      dist += (min_i[i] - max_i[i]) * (min_i[i] - max_i[i]);
   }
-
-  return sqrt(dists[0] * dists[0] + dists[1] * dists[1] + dists[2] * dists[2]);
+  return sqrt(dist);
 }
 
 void KDTree3DMPI::build_tree(const DG_FP *x, const DG_FP *y,

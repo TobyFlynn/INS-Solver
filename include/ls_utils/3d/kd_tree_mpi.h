@@ -9,7 +9,7 @@
 
 class KDTree3DMPI : public KDTree3D {
 public:
-  KDTree3DMPI(DGMesh3D *m, const int alpha);
+  KDTree3DMPI(DGMesh3D *m, const DG_FP alpha);
 
   void build_tree(const DG_FP *x, const DG_FP *y, const DG_FP *z, const int num,
                   op_dat s) override;
