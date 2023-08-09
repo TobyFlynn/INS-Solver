@@ -241,13 +241,13 @@ void KDTree3DMPI::build_tree(const DG_FP *x, const DG_FP *y,
     // So saving timer info at end for MPI doesn't break
     timer->startTimer("K-D Tree - Construct Tree");
     timer->endTimer("K-D Tree - Construct Tree");
-    return;
-  }
-  empty = false;
+  } else {
+    empty = false;
 
-  timer->startTimer("K-D Tree - Construct Tree");
-  construct_tree(points.begin(), points.end(), false, 0);
-  timer->endTimer("K-D Tree - Construct Tree");
+    timer->startTimer("K-D Tree - Construct Tree");
+    construct_tree(points.begin(), points.end(), false, 0);
+    timer->endTimer("K-D Tree - Construct Tree");
+  }
 
   timer->startTimer("KDTree3DMPI - comm - wait snd");
   MPI_Waitall(ranks.size(), mpi_req_snd.data(), MPI_STATUS_IGNORE);
