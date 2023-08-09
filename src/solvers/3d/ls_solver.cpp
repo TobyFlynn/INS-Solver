@@ -348,7 +348,7 @@ void LevelSetSolver3D::reinitLS() {
     for(int i = 0; i < mesh->cells->size; i++) {
       bool reinit = false;
       for(int j = 0; j < DG_NP; j++) {
-        if(fabs(surface_ptr[i * DG_NP + j]) < 1.5 * alpha) {
+        if(fabs(surface_ptr[i * DG_NP + j]) < 1.25 * alpha) {
           reinit = true;
         }
       }
@@ -379,7 +379,7 @@ void LevelSetSolver3D::reinitLS() {
   // Newton method
   if(!kdtree->empty) {
     newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, closest_z,
-                  x_ptr, y_ptr, z_ptr, poly_ind, polys, surface_ptr, h, 1.5 * alpha);
+                  x_ptr, y_ptr, z_ptr, poly_ind, polys, surface_ptr, h, 1.25 * alpha);
   }
   releaseOP2PtrHost(s, OP_RW, surface_ptr);
   timer->endTimer("LevelSetSolver3D - newton method");

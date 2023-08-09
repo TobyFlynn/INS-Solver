@@ -11,21 +11,22 @@ extern Timing *timer;
 using namespace std;
 
 struct kdtree_mpi_pack {
-  DG_FP x;
-  DG_FP y;
-  DG_FP z;
+  DG_FP pos[3];
   int poly_ind;
 };
 
 KDTree3DMPI::KDTree3DMPI(DGMesh3D *m, const int alpha) : KDTree3D(m) {
   timer->startTimer("KDTree3DMPI - init");
 
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+
   const int block_lengths[] = {3,1};
   MPI_Aint displacements[2];
   MPI_Aint base_address;
   struct kdtree_mpi_pack dummy_packed;
   MPI_Get_address(&dummy_packed, &base_address);
-  MPI_Get_address(&dummy_packed.x, &displacements[0]);
+  MPI_Get_address(&dummy_packed.pos[0], &displacements[0]);
   MPI_Get_address(&dummy_packed.poly_ind, &displacements[1]);
   displacements[0] = MPI_Aint_diff(displacements[0], base_address);
   displacements[1] = MPI_Aint_diff(displacements[1], base_address);
@@ -115,13 +116,11 @@ DG_FP KDTree3DMPI::min_dist_bb(const DG_FP *min_0, const DG_FP *max_0,
 
 void KDTree3DMPI::build_tree(const DG_FP *x, const DG_FP *y,
                                   const DG_FP *z, const int num, op_dat s) {
+  timer->startTimer("KDTree3DMPI - pre_build_setup");
   pre_build_setup(x, y, z, num, s);
+  timer->endTimer("KDTree3DMPI - pre_build_setup");
 
   timer->startTimer("KDTree3DMPI - comm - 0");
-  int rank, comm_size;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
-
   // Get number of points and polynimials per rank
   vector<int> num_pts_per_rank(ranks.size());
   vector<int> num_polys_per_rank(ranks.size());
@@ -138,7 +137,6 @@ void KDTree3DMPI::build_tree(const DG_FP *x, const DG_FP *y,
     MPI_Isend(num_pts_polys, 2, MPI_INT, ranks[i], 0, MPI_COMM_WORLD, &mpi_req_snd[i]);
   }
   MPI_Waitall(ranks.size(), mpi_req_rcv.data(), MPI_STATUS_IGNORE);
-  MPI_Waitall(ranks.size(), mpi_req_snd.data(), MPI_STATUS_IGNORE);
 
   timer->endTimer("KDTree3DMPI - comm - 0");
   timer->startTimer("KDTree3DMPI - packing");
@@ -157,9 +155,9 @@ void KDTree3DMPI::build_tree(const DG_FP *x, const DG_FP *y,
   // Prepare data to send
   vector<kdtree_mpi_pack> packed_data(n);
   for(int i = 0; i < n; i++) {
-    packed_data[i].x = points[i].x;
-    packed_data[i].y = points[i].y;
-    packed_data[i].z = points[i].z;
+    packed_data[i].pos[0] = points[i].x;
+    packed_data[i].pos[1] = points[i].y;
+    packed_data[i].pos[2] = points[i].z;
     packed_data[i].poly_ind = points[i].poly;
   }
   vector<DG_FP> poly_coeff_snd(polys.size() * PolyApprox3D::num_coeff());
@@ -192,8 +190,6 @@ void KDTree3DMPI::build_tree(const DG_FP *x, const DG_FP *y,
 
   MPI_Waitall(ranks.size(), pts_mpi_req_rcv.data(), MPI_STATUS_IGNORE);
   MPI_Waitall(ranks.size(), polys_coeff_mpi_req_rcv.data(), MPI_STATUS_IGNORE);
-  MPI_Waitall(ranks.size(), pts_mpi_req_snd.data(), MPI_STATUS_IGNORE);
-  MPI_Waitall(ranks.size(), polys_coeff_mpi_req_snd.data(), MPI_STATUS_IGNORE);
 
   timer->endTimer("KDTree3DMPI - comm - 1");
 
@@ -205,12 +201,12 @@ void KDTree3DMPI::build_tree(const DG_FP *x, const DG_FP *y,
     while(curr_rank < ranks.size() - 1 && i >= num_pts_per_rank_disp[curr_rank + 1])
       curr_rank++;
     KDCoord kc;
-    kc.x = pts_rcv[i].x;
-    kc.y = pts_rcv[i].y;
-    kc.z = pts_rcv[i].z;
-    kc.x_rot = pts_rcv[i].x;
-    kc.y_rot = pts_rcv[i].y;
-    kc.z_rot = pts_rcv[i].z;
+    kc.x = pts_rcv[i].pos[0];
+    kc.y = pts_rcv[i].pos[1];
+    kc.z = pts_rcv[i].pos[2];
+    kc.x_rot = pts_rcv[i].pos[0];
+    kc.y_rot = pts_rcv[i].pos[1];
+    kc.z_rot = pts_rcv[i].pos[2];
     kc.poly = num_polys_l + num_polys_per_rank_disp[curr_rank] + pts_rcv[i].poly_ind;
     points.push_back(kc);
   }
@@ -237,4 +233,24 @@ void KDTree3DMPI::build_tree(const DG_FP *x, const DG_FP *y,
   timer->startTimer("K-D Tree - Construct Tree");
   construct_tree(points.begin(), points.end(), false, 0);
   timer->endTimer("K-D Tree - Construct Tree");
+
+  timer->startTimer("KDTree3DMPI - comm - wait snd");
+  MPI_Waitall(ranks.size(), mpi_req_snd.data(), MPI_STATUS_IGNORE);
+  MPI_Waitall(ranks.size(), pts_mpi_req_snd.data(), MPI_STATUS_IGNORE);
+  MPI_Waitall(ranks.size(), polys_coeff_mpi_req_snd.data(), MPI_STATUS_IGNORE);
+  timer->endTimer("KDTree3DMPI - comm - wait snd");
+
+  int min_n, max_n, min_ranks;
+  int min_pol, max_pol, max_ranks;
+  int num_ranks = ranks.size();
+  MPI_Reduce(&num_pts_polys[0], &min_n, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&num_pts_polys[0], &max_n, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&num_pts_polys[1], &min_pol, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&num_pts_polys[1], &max_pol, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&num_ranks, &min_ranks, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&num_ranks, &max_ranks, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
+
+  op_printf("min n: %d max n: %d\n", min_n, max_n);
+  op_printf("min pol: %d max pol: %d\n", min_pol, max_pol);
+  op_printf("min ranks: %d max ranks: %d\n", min_ranks, max_ranks);
 }

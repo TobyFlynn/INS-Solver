@@ -19,6 +19,8 @@ private:
   std::vector<int> ranks;
 
   MPI_Datatype packed_type;
+
+  int rank, comm_size;
 };
 
 #endif
