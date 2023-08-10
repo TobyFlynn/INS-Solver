@@ -74,6 +74,8 @@ void LevelSetSolver3D::init() {
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
 
+  op_printf("LS h: %g\nLS alpha: %g\n", h, alpha);
+
   #ifdef INS_MPI
   kdtree = new KDTree3DMPI(mesh, 1.5 * alpha);
   #else
@@ -307,11 +309,53 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
 
 void LevelSetSolver3D::reinitLS() {
   timer->startTimer("LevelSetSolver3D - reinitLS");
+  timer->startTimer("LevelSetSolver3D - get cells containing interface");
+  const DG_FP *s_ptr = getOP2PtrHostHE(s, OP_READ);
+  std::set<int> cellInds;
+  for(int i = 0; i < mesh->cells->size; i++) {
+    bool reinit = false;
+    bool pos = s_ptr[i * DG_NP] >= 0.0;
+    for(int j = 1; j < DG_NP; j++) {
+      if((s_ptr[i * DG_NP + j] >= 0.0) != pos) {
+        reinit = true;
+      }
+    }
+    if(reinit) {
+      cellInds.insert(i);
+    }
+  }
+  timer->endTimer("LevelSetSolver3D - get cells containing interface");
+
+  timer->startTimer("LevelSetSolver3D - create polynomials");
+  std::map<int,int> _cell2polyMap;
+  std::vector<PolyApprox3D> _polys;
+  std::map<int,std::set<int>> stencils = PolyApprox3D::get_stencils(cellInds, mesh->face2cells);
+
+  const DG_FP *_x_ptr = getOP2PtrHostHE(mesh->x, OP_READ);
+  const DG_FP *_y_ptr = getOP2PtrHostHE(mesh->y, OP_READ);
+  const DG_FP *_z_ptr = getOP2PtrHostHE(mesh->z, OP_READ);
+
+  // Populate map
+  int i = 0;
+  for(auto it = cellInds.begin(); it != cellInds.end(); it++) {
+    std::set<int> stencil = stencils.at(*it);
+    PolyApprox3D p(*it, stencil, _x_ptr, _y_ptr, _z_ptr, s_ptr);
+    _polys.push_back(p);
+    _cell2polyMap.insert({*it, i});
+    i++;
+  }
+
+  releaseOP2PtrHostHE(mesh->x, OP_READ, _x_ptr);
+  releaseOP2PtrHostHE(mesh->y, OP_READ, _y_ptr);
+  releaseOP2PtrHostHE(mesh->z, OP_READ, _z_ptr);
+  releaseOP2PtrHostHE(s, OP_READ, s_ptr);
+  timer->endTimer("LevelSetSolver3D - create polynomials");
+
   DGTempDat tmp_sampleX = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);
   DGTempDat tmp_sampleY = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);
   DGTempDat tmp_sampleZ = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);
   timer->startTimer("LevelSetSolver3D - sample interface");
-  sampleInterface(tmp_sampleX.dat, tmp_sampleY.dat, tmp_sampleZ.dat);
+  sampleInterface(tmp_sampleX.dat, tmp_sampleY.dat, tmp_sampleZ.dat, _polys, _cell2polyMap, cellInds);
   timer->endTimer("LevelSetSolver3D - sample interface");
 
   timer->startTimer("LevelSetSolver3D - build KD-Tree");
@@ -320,6 +364,7 @@ void LevelSetSolver3D::reinitLS() {
   const DG_FP *sample_pts_z = getOP2PtrHost(tmp_sampleZ.dat, OP_READ);
 
   kdtree->reset();
+  kdtree->set_poly_data(_polys, _cell2polyMap);
   kdtree->build_tree(sample_pts_x, sample_pts_y, sample_pts_z, LS_SAMPLE_NP * mesh->cells->size, s);
 
   releaseOP2PtrHost(tmp_sampleX.dat, OP_READ, sample_pts_x);

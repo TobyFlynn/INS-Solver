@@ -30,7 +30,9 @@ public:
 
   DG_FP alpha, order_width;
 private:
-  void sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sampleZ);
+  void sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sampleZ,
+                       std::vector<PolyApprox3D> &polys, std::map<int,int> &cell2polyMap,
+                       std::set<int> &cellInds);
   void reinitLS();
   // bool reinitNeeded();
 

@@ -50,7 +50,6 @@ void KDTree3D::pre_build_setup(const DG_FP *x, const DG_FP *y, const DG_FP *z,
   }
 
   // Construct cell to poly map for all these points
-  construct_polys(points, s);
   update_poly_inds(points);
 }
 
@@ -343,42 +342,10 @@ void KDTree3D::nearest_neighbour(DG_FP x, DG_FP y, DG_FP z, int current_ind, vec
   }
 }
 
-std::set<int> KDTree3D::cell_inds(vector<KDCoord> &points) {
-  std::set<int> result;
-  for(int i = 0; i < points.size(); i++) {
-    result.insert(points[i].poly);
-  }
-  return result;
-}
-
-void KDTree3D::construct_polys(vector<KDCoord> &points, op_dat s) {
-  timer->startTimer("LS - Construct Poly Approx");
-  // Get cell inds that require polynomial approximations
-  std::set<int> cellInds = cell_inds(points);
-
-  map<int,set<int>> stencils = PolyApprox3D::get_stencils(cellInds, mesh->face2cells);
-
-  const DG_FP *x_ptr = getOP2PtrHostHE(mesh->x, OP_READ);
-  const DG_FP *y_ptr = getOP2PtrHostHE(mesh->y, OP_READ);
-  const DG_FP *z_ptr = getOP2PtrHostHE(mesh->z, OP_READ);
-  const DG_FP *s_ptr = getOP2PtrHostHE(s, OP_READ);
-
-  // Populate map
-  int i = 0;
-  for(auto it = cellInds.begin(); it != cellInds.end(); it++) {
-    set<int> stencil = stencils.at(*it);
-    PolyApprox3D p(*it, stencil, x_ptr, y_ptr, z_ptr, s_ptr);
-    polys.push_back(p);
-    cell2polyMap.insert({*it, i});
-    i++;
-  }
-
-  releaseOP2PtrHostHE(mesh->x, OP_READ, x_ptr);
-  releaseOP2PtrHostHE(mesh->y, OP_READ, y_ptr);
-  releaseOP2PtrHostHE(mesh->z, OP_READ, z_ptr);
-  releaseOP2PtrHostHE(s, OP_READ, s_ptr);
-
-  timer->endTimer("LS - Construct Poly Approx");
+void KDTree3D::set_poly_data(std::vector<PolyApprox3D> &_polys,
+                             std::map<int,int> &_cell2polyMap) {
+  polys = _polys;
+  cell2polyMap = _cell2polyMap;
 }
 
 vector<PolyApprox3D> KDTree3D::get_polys() {

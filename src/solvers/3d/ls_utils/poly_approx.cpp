@@ -148,7 +148,7 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
     x.push_back(p.second.coord.x);
     y.push_back(p.second.coord.y);
     z.push_back(p.second.coord.z);
-    s.push_back(p.second.val / (DG_FP)p.second.count);
+    s.push_back(p.second.val);
   }
 }
 
@@ -639,7 +639,7 @@ int PolyApprox3D::num_elem_stencil() {
   if(N == 2) {
     return 12;
   } else if(N == 3) {
-    return 8;
+    return 0;
   } else if(N == 4) {
     return 8;
   } else {
@@ -678,54 +678,56 @@ map<int,set<int>> PolyApprox3D::get_stencils(const set<int> &central_inds, op_ma
     queryInds.insert({ind, sq});
   }
 
-  const int numEdges = edge_map->from->size;
-  while(queryInds.size() > 0) {
-    map<int,stencil_query> newQueryInds;
+  if(num_elements > 0) {
+    const int numEdges = edge_map->from->size;
+    while(queryInds.size() > 0) {
+      map<int,stencil_query> newQueryInds;
 
-    // Iterate over each edge pair
-    for(int i = 0; i < numEdges * 2; i++) {
-      // Find if this cell ind is in the query inds
-      auto it = queryInds.find(edge_map->map[i]);
-      if(it != queryInds.end()) {
-        if(i % 2 == 0) {
-          // For each central ind associated with this query ind
-          for(const auto &ind : it->second.central_inds) {
-            auto stencil_it = stencils.find(ind);
-            // Check if the other cell in this edge is already in the stencil for this central ind
-            if(stencil_it->second.find(edge_map->map[i + 1]) == stencil_it->second.end()
-               && stencil_it->second.size() < num_elements) {
-              stencil_it->second.insert(edge_map->map[i + 1]);
-              // If stencil is not full then add to next rounds query inds
-              if(stencil_it->second.size() < num_elements) {
-                stencil_query sq;
-                sq.ind = edge_map->map[i + 1];
-                auto res = newQueryInds.insert({edge_map->map[i + 1], sq});
-                res.first->second.central_inds.insert(ind);
+      // Iterate over each edge pair
+      for(int i = 0; i < numEdges * 2; i++) {
+        // Find if this cell ind is in the query inds
+        auto it = queryInds.find(edge_map->map[i]);
+        if(it != queryInds.end()) {
+          if(i % 2 == 0) {
+            // For each central ind associated with this query ind
+            for(const auto &ind : it->second.central_inds) {
+              auto stencil_it = stencils.find(ind);
+              // Check if the other cell in this edge is already in the stencil for this central ind
+              if(stencil_it->second.find(edge_map->map[i + 1]) == stencil_it->second.end()
+                 && stencil_it->second.size() < num_elements) {
+                stencil_it->second.insert(edge_map->map[i + 1]);
+                // If stencil is not full then add to next rounds query inds
+                if(stencil_it->second.size() < num_elements) {
+                  stencil_query sq;
+                  sq.ind = edge_map->map[i + 1];
+                  auto res = newQueryInds.insert({edge_map->map[i + 1], sq});
+                  res.first->second.central_inds.insert(ind);
+                }
               }
             }
-          }
-        } else {
-          // For each central ind associated with this query ind
-          for(const auto &ind : it->second.central_inds) {
-            auto stencil_it = stencils.find(ind);
-            // Check if the other cell in this edge is already in the stencil for this central ind
-            if(stencil_it->second.find(edge_map->map[i - 1]) == stencil_it->second.end()
-               && stencil_it->second.size() < num_elements) {
-              stencil_it->second.insert(edge_map->map[i - 1]);
-              // If stencil is not full then add to next rounds query inds
-              if(stencil_it->second.size() < num_elements) {
-                stencil_query sq;
-                sq.ind = edge_map->map[i - 1];
-                auto res = newQueryInds.insert({edge_map->map[i - 1], sq});
-                res.first->second.central_inds.insert(ind);
+          } else {
+            // For each central ind associated with this query ind
+            for(const auto &ind : it->second.central_inds) {
+              auto stencil_it = stencils.find(ind);
+              // Check if the other cell in this edge is already in the stencil for this central ind
+              if(stencil_it->second.find(edge_map->map[i - 1]) == stencil_it->second.end()
+                 && stencil_it->second.size() < num_elements) {
+                stencil_it->second.insert(edge_map->map[i - 1]);
+                // If stencil is not full then add to next rounds query inds
+                if(stencil_it->second.size() < num_elements) {
+                  stencil_query sq;
+                  sq.ind = edge_map->map[i - 1];
+                  auto res = newQueryInds.insert({edge_map->map[i - 1], sq});
+                  res.first->second.central_inds.insert(ind);
+                }
               }
             }
           }
         }
       }
-    }
 
-    queryInds = newQueryInds;
+      queryInds = newQueryInds;
+    }
   }
   timer->endTimer("PolyApprox3D - get_stencils");
   return stencils;

@@ -389,17 +389,16 @@ void intersect_4pts(const DG_FP *s, const DG_FP *nodeX, const DG_FP *nodeY,
 }
 
 
-void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sampleZ) {
+void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sampleZ,
+              std::vector<PolyApprox3D> &polys, std::map<int,int> &cell2polyMap,
+              std::set<int> &cellInds) {
   DG_FP ref_r[LS_SAMPLE_NP], ref_s[LS_SAMPLE_NP], ref_t[LS_SAMPLE_NP];
   set_sample_start_coords(ref_r, ref_s, ref_t);
-  DGTempDat tmp_s_modal = dg_dat_pool->requestTempDatCells(DG_NP);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, tmp_s_modal.dat);
 
   const DG_FP *ref_r_ptr = ref_r;
   const DG_FP *ref_s_ptr = ref_s;
   const DG_FP *ref_t_ptr = ref_t;
   const DG_FP *s_ptr = getOP2PtrHost(s, OP_READ);
-  const DG_FP *s_modal_ptr = getOP2PtrHost(tmp_s_modal.dat, OP_READ);
   const DG_FP *nodeX_ptr = getOP2PtrHost(mesh->nodeX, OP_READ);
   const DG_FP *nodeY_ptr = getOP2PtrHost(mesh->nodeY, OP_READ);
   const DG_FP *nodeZ_ptr = getOP2PtrHost(mesh->nodeZ, OP_READ);
@@ -412,8 +411,23 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
 
   #pragma omp parallel for
   for(int cell = 0; cell < mesh->cells->size; cell++) {
+    DG_FP *sampleX_c = sampleX_ptr + cell * LS_SAMPLE_NP;
+    DG_FP *sampleY_c = sampleY_ptr + cell * LS_SAMPLE_NP;
+    DG_FP *sampleZ_c = sampleZ_ptr + cell * LS_SAMPLE_NP;
+    for(int i = 0; i < LS_SAMPLE_NP; i++) {
+      sampleX_c[i] = NAN;
+      sampleY_c[i] = NAN;
+      sampleZ_c[i] = NAN;
+    }
+  }
+
+  std::vector<int> cell_inds_vec(cellInds.begin(), cellInds.end());
+  const DG_FP tol = fmax(1e-18,1e-4 * h * h);
+
+  #pragma omp parallel for
+  for(int i = 0; i < cell_inds_vec.size(); i++) {
+    int cell = cell_inds_vec[i];
     const DG_FP *s_c = s_ptr + cell * DG_NP;
-    const DG_FP *s_modal_c = s_modal_ptr + cell * DG_NP;
     const DG_FP *nodeX_c = nodeX_ptr + cell * 4;
     const DG_FP *nodeY_c = nodeY_ptr + cell * 4;
     const DG_FP *nodeZ_c = nodeZ_ptr + cell * 4;
@@ -423,21 +437,6 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
     DG_FP *sampleX_c = sampleX_ptr + cell * LS_SAMPLE_NP;
     DG_FP *sampleY_c = sampleY_ptr + cell * LS_SAMPLE_NP;
     DG_FP *sampleZ_c = sampleZ_ptr + cell * LS_SAMPLE_NP;
-
-    bool positive0 = s_c[0] > 0.0;
-    bool interface = false;
-    for(int i = 1; i < DG_NP; i++) {
-      if(positive0 != s_c[i] > 0.0)
-        interface = true;
-    }
-    if(!interface) {
-      for(int i = 0; i < LS_SAMPLE_NP; i++) {
-        sampleX_c[i] = NAN;
-        sampleY_c[i] = NAN;
-        sampleZ_c[i] = NAN;
-      }
-      continue;
-    }
 
     // Edge intersect test
     int edge_count = 0;
@@ -470,72 +469,75 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
     } else if(edge_count == 4) {
       intersect_4pts(s_c, nodeX_c, nodeY_c, nodeZ_c, sampleX_c, sampleY_c, sampleZ_c);
     } else {
-      // Revert back to simplified Newton sampling
-      bool smpPt = false;
       for(int i = 0; i < LS_SAMPLE_NP; i++) {
         sampleX_c[i] = ref_r_ptr[i];
         sampleY_c[i] = ref_s_ptr[i];
         sampleZ_c[i] = ref_t_ptr[i];
+        rst2xyz(sampleX_c[i], sampleY_c[i], sampleZ_c[i], nodeX_c, nodeY_c, nodeZ_c);
       }
+    }
 
-      for(int p = 0; p < LS_SAMPLE_NP; p++) {
-        bool converged = false;
-        for(int step = 0; step < 10; step++) {
-          DG_FP surf = DGUtils::val_at_pt_3d(sampleX_c[p], sampleY_c[p], sampleZ_c[p], s_modal_c, DG_ORDER);
-          DG_FP dsdx, dsdy, dsdz;
-          DGUtils::grad_at_pt_3d(sampleX_c[p], sampleY_c[p], sampleZ_c[p], s_modal_c, DG_ORDER, dsdx, dsdy, dsdz);
+    // Simplified Newton sampling
+    int poly_ind = cell2polyMap.at(cell);
+    PolyApprox3D pol = polys[poly_ind];
+    bool smpPt = false;
 
-          DG_FP sqrnorm = dsdx * dsdx + dsdy * dsdy + dsdz * dsdz;
-          if(sqrnorm > 0.0) {
-            dsdx *= surf / sqrnorm;
-            dsdy *= surf / sqrnorm;
-            dsdz *= surf / sqrnorm;
-          }
+    for(int p = 0; p < LS_SAMPLE_NP; p++) {
+      bool converged = false;
+      for(int step = 0; step < 10; step++) {
+        DG_FP surf = pol.val_at(sampleX_c[p], sampleY_c[p], sampleZ_c[p]);
+        DG_FP dsdx, dsdy, dsdz;
+        pol.grad_at(sampleX_c[p], sampleY_c[p], sampleZ_c[p], dsdx, dsdy, dsdz);
 
-          sampleX_c[p] -= dsdx;
-          sampleY_c[p] -= dsdy;
-          sampleZ_c[p] -= dsdz;
-
-          // Check convergence
-          if(dsdx * dsdx + dsdy * dsdy + dsdz * dsdz < 1e-5) {
-            converged = true;
-            break;
-          }
+        DG_FP sqrnorm = dsdx * dsdx + dsdy * dsdy + dsdz * dsdz;
+        if(sqrnorm > 0.0) {
+          dsdx *= surf / sqrnorm;
+          dsdy *= surf / sqrnorm;
+          dsdz *= surf / sqrnorm;
         }
 
-        // Convert back to xyz coords
-        if(converged) {
-          rst2xyz(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c);
+        sampleX_c[p] -= dsdx;
+        sampleY_c[p] -= dsdy;
+        sampleZ_c[p] -= dsdz;
 
-          // Check if point is in cell
-          if(!pt_in_tetra(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c)) {
-            sampleX_c[p] = NAN;
-            sampleY_c[p] = NAN;
-            sampleZ_c[p] = NAN;
-          } else {
-            smpPt = true;
-          }
-        } else {
+        // Check convergence
+        if(dsdx * dsdx + dsdy * dsdy + dsdz * dsdz < tol) {
+          converged = true;
+          break;
+        }
+      }
+
+      // Convert back to xyz coords
+      // if(converged) {
+        // rst2xyz(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c);
+        // Check if point is in cell
+        if(!pt_in_tetra(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c)) {
           sampleX_c[p] = NAN;
           sampleY_c[p] = NAN;
           sampleZ_c[p] = NAN;
+        } else {
+          smpPt = true;
+        }
+      // } else {
+      //   sampleX_c[p] = NAN;
+      //   sampleY_c[p] = NAN;
+      //   sampleZ_c[p] = NAN;
+      // }
+    }
+
+    if(!smpPt) {
+      int id = 0;
+      DG_FP val = fabs(s_c[0]);
+      for(int i = 1; i < DG_NP; i++) {
+        if(fabs(s_c[i]) < val) {
+          val = fabs(s_c[i]);
+          id = i;
         }
       }
 
-      if(!smpPt) {
-        int id = 0;
-        DG_FP val = fabs(s_c[0]);
-        for(int i = 1; i < DG_NP; i++) {
-          if(fabs(s_c[i]) < val) {
-            val = fabs(s_c[i]);
-            id = i;
-          }
-        }
-
-        sampleX_c[0] = x_c[id];
-        sampleY_c[0] = y_c[id];
-        sampleZ_c[0] = z_c[id];
-      }
+      sampleX_c[0] = x_c[id];
+      sampleY_c[0] = y_c[id];
+      sampleZ_c[0] = z_c[id];
     }
   }
 
@@ -544,13 +546,10 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
   releaseOP2PtrHost(mesh->z, OP_READ, z_ptr);
 
   releaseOP2PtrHost(s, OP_READ, s_ptr);
-  releaseOP2PtrHost(tmp_s_modal.dat, OP_READ, s_modal_ptr);
   releaseOP2PtrHost(mesh->nodeX, OP_READ, nodeX_ptr);
   releaseOP2PtrHost(mesh->nodeY, OP_READ, nodeY_ptr);
   releaseOP2PtrHost(mesh->nodeZ, OP_READ, nodeZ_ptr);
   releaseOP2PtrHost(sampleX, OP_WRITE, sampleX_ptr);
   releaseOP2PtrHost(sampleY, OP_WRITE, sampleY_ptr);
   releaseOP2PtrHost(sampleZ, OP_WRITE, sampleZ_ptr);
-
-  dg_dat_pool->releaseTempDatCells(tmp_s_modal);
 }
