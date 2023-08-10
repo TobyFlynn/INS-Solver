@@ -17,7 +17,7 @@ inline void ins_3d_proj_cg_precon(const DG_FP *geof, const DG_FP *pen,
   DG_FP tmp0[DG_NP], tmp1[DG_NP], tmp2[DG_NP];
   DG_FP tmpDiv[DG_NP], tmpMass[DG_NP];
   const DG_FP max_iter = 100;
-  const DG_FP tol = 1e-24;
+  const DG_FP tol = 1e-8;
   DG_FP iter = 0;
   DG_FP residual;
 
@@ -53,6 +53,7 @@ inline void ins_3d_proj_cg_precon(const DG_FP *geof, const DG_FP *pen,
 
     residual += r0[i] * r0[i] + r1[i] * r1[i] + r2[i] * r2[i];
   }
+  residual = sqrt(residual);
 
   const DG_FP tmp_inv_J = 1.0 / geof[J_IND];
   op2_in_kernel_gemv(false, DG_NP, DG_NP, tmp_inv_J, inv_mass_mat, DG_NP, r0, 0.0, z0);
@@ -113,6 +114,7 @@ inline void ins_3d_proj_cg_precon(const DG_FP *geof, const DG_FP *pen,
       r2[i] = r2[i] - alpha * tmp2[i];
       residual += r0[i] * r0[i] + r1[i] * r1[i] + r2[i] * r2[i];
     }
+    residual = sqrt(residual);
 
     if(residual < tol)
       break;

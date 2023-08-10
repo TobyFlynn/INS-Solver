@@ -25,6 +25,8 @@ protected:
                            op_dat u_out, op_dat v_out, op_dat w_out,
                            const double t);
   void advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_dat v, op_dat w);
+  void project_velocity_mat_mult(op_dat u, op_dat v, op_dat w, op_dat u_out,
+                          op_dat v_out, op_dat w_out, op_dat pen, op_dat pen_f);
   void project_velocity(op_dat dpdx, op_dat dpdy, op_dat dpdz);
   DG_FP max_vel();
   void add_to_pr_history();
