@@ -129,6 +129,7 @@ ls_sample_np = ""
 dg_num_faces = ""
 dg_order     = order
 dg_num_constants = ""
+dg_cub_3d_np = ""
 fp_type = "d"
 
 # Get DG order from command line args
@@ -169,6 +170,7 @@ elif dim == "3":
     dg_num_faces = "4"
     dg_num_constants = "2"
     ls_sample_np = "13"
+    dg_cub_3d_np = "23"
 
 inputfiles = []
 
@@ -208,6 +210,7 @@ for f in inputfiles:
         newdata = newdata.replace("DG_NUM_FACES", dg_num_faces)
         newdata = newdata.replace("DG_NUM_CONSTANTS", dg_num_constants)
         newdata = newdata.replace("DG_ORDER", dg_order)
+        newdata = newdata.replace("DG_CUB_3D_NP", dg_cub_3d_np)
 
     if dim == "2":
         with open("gen2d/" + f, "w") as file:
