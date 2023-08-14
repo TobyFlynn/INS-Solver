@@ -2,10 +2,11 @@ inline void ins_3d_advec_oi_3(const DG_FP *nx, const DG_FP *ny, const DG_FP *nz,
                               const DG_FP *geof, const DG_FP *mU, const DG_FP *mV, const DG_FP *mW, 
                               DG_FP *pU, DG_FP *pV, DG_FP *pW) {
   for(int i = 0; i < DG_NUM_FACES * DG_CUB_SURF_3D_NP; i++) {
-    const DG_FP _nx = nx[i/DG_CUB_SURF_3D_NP];
-    const DG_FP _ny = ny[i/DG_CUB_SURF_3D_NP];
-    const DG_FP _nz = nz[i/DG_CUB_SURF_3D_NP];
-    const DG_FP _fscale = sJ[i/DG_CUB_SURF_3D_NP] / geof[J_IND];
+    const int face_ind = i/DG_CUB_SURF_3D_NP;
+    const DG_FP _nx = nx[face_ind];
+    const DG_FP _ny = ny[face_ind];
+    const DG_FP _nz = nz[face_ind];
+    const DG_FP _fscale = sJ[face_ind] / geof[J_IND];
 
     const DG_FP _mU = mU[i];
     const DG_FP _mV = mV[i];
