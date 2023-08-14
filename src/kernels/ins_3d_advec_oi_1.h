@@ -1,9 +1,8 @@
 inline void ins_3d_advec_oi_1(const int *faceNum, const int *fmaskL_corrected,
-                           const int *fmaskR_corrected, const DG_FP *nx,
-                           const DG_FP *ny, const DG_FP *nz,
-                           const DG_FP *fscale, const DG_FP **u,
-                           const DG_FP **v, const DG_FP **w, DG_FP **f0,
-                           DG_FP **f1, DG_FP **f2) {
+                           const int *fmaskR_corrected, const DG_FP **u,
+                           const DG_FP **v, const DG_FP **w, DG_FP **mU,
+                           DG_FP **mV, DG_FP **mW, DG_FP **pU,
+                           DG_FP **pV, DG_FP **pW) {
   const int *fmask  = &FMASK[(DG_ORDER - 1) * 4 * DG_NPF];
   const int *fmaskL = &fmask[faceNum[0] * DG_NPF];
   const int *fmaskR = &fmask[faceNum[1] * DG_NPF];
@@ -13,78 +12,27 @@ inline void ins_3d_advec_oi_1(const int *faceNum, const int *fmaskL_corrected,
   // Left numerical flux calculation
   for(int i = 0; i < DG_NPF; i++) {
     const int fmaskL_ind = fmaskL[i];
-    DG_FP f00L = u[0][fmaskL_ind] * u[0][fmaskL_ind];
-    DG_FP f01L = u[0][fmaskL_ind] * v[0][fmaskL_ind];
-    DG_FP f02L = u[0][fmaskL_ind] * w[0][fmaskL_ind];
-    DG_FP f10L = v[0][fmaskL_ind] * u[0][fmaskL_ind];
-    DG_FP f11L = v[0][fmaskL_ind] * v[0][fmaskL_ind];
-    DG_FP f12L = v[0][fmaskL_ind] * w[0][fmaskL_ind];
-    DG_FP f20L = w[0][fmaskL_ind] * u[0][fmaskL_ind];
-    DG_FP f21L = w[0][fmaskL_ind] * v[0][fmaskL_ind];
-    DG_FP f22L = w[0][fmaskL_ind] * w[0][fmaskL_ind];
-
     const int fmaskR_ind = fmaskR_corrected[i];
-    DG_FP f00R = u[1][fmaskR_ind] * u[1][fmaskR_ind];
-    DG_FP f01R = u[1][fmaskR_ind] * v[1][fmaskR_ind];
-    DG_FP f02R = u[1][fmaskR_ind] * w[1][fmaskR_ind];
-    DG_FP f10R = v[1][fmaskR_ind] * u[1][fmaskR_ind];
-    DG_FP f11R = v[1][fmaskR_ind] * v[1][fmaskR_ind];
-    DG_FP f12R = v[1][fmaskR_ind] * w[1][fmaskR_ind];
-    DG_FP f20R = w[1][fmaskR_ind] * u[1][fmaskR_ind];
-    DG_FP f21R = w[1][fmaskR_ind] * v[1][fmaskR_ind];
-    DG_FP f22R = w[1][fmaskR_ind] * w[1][fmaskR_ind];
-
-    DG_FP lVel = nx[0] * u[0][fmaskL_ind] + ny[0] * v[0][fmaskL_ind] + nz[0] * w[0][fmaskL_ind];
-    DG_FP rVel = nx[1] * u[1][fmaskR_ind] + ny[1] * v[1][fmaskR_ind] + nz[1] * w[1][fmaskR_ind];
-    DG_FP maxVel = fmax(fabs(lVel), fabs(rVel));
-
-    f0[0][fIndL + i] += 0.5 * fscale[0] * (nx[0] * (f00L + f00R)
-                        + ny[0] * (f01L + f01R) + nz[0] * (f02L + f02R)
-                        + maxVel * (u[0][fmaskL_ind] - u[1][fmaskR_ind]));
-    f1[0][fIndL + i] += 0.5 * fscale[0] * (nx[0] * (f10L + f10R)
-                        + ny[0] * (f11L + f11R) + nz[0] * (f12L + f12R)
-                        + maxVel * (v[0][fmaskL_ind] - v[1][fmaskR_ind]));
-    f2[0][fIndL + i] += 0.5 * fscale[0] * (nx[0] * (f20L + f20R)
-                        + ny[0] * (f21L + f21R) + nz[0] * (f22L + f22R)
-                        + maxVel * (w[0][fmaskL_ind] - w[1][fmaskR_ind]));
+    mU[0][fIndL + i] = u[0][fmaskL_ind];
+    mV[0][fIndL + i] = v[0][fmaskL_ind];
+    mW[0][fIndL + i] = w[0][fmaskL_ind];
+    
+    pU[0][fIndL + i] = u[1][fmaskR_ind];
+    pV[0][fIndL + i] = v[1][fmaskR_ind];
+    pW[0][fIndL + i] = w[1][fmaskR_ind];
   }
 
   // Right numerical flux calculation
   for(int i = 0; i < DG_NPF; i++) {
     const int fmaskR_ind = fmaskR[i];
-    DG_FP f00R = u[1][fmaskR_ind] * u[1][fmaskR_ind];
-    DG_FP f01R = u[1][fmaskR_ind] * v[1][fmaskR_ind];
-    DG_FP f02R = u[1][fmaskR_ind] * w[1][fmaskR_ind];
-    DG_FP f10R = v[1][fmaskR_ind] * u[1][fmaskR_ind];
-    DG_FP f11R = v[1][fmaskR_ind] * v[1][fmaskR_ind];
-    DG_FP f12R = v[1][fmaskR_ind] * w[1][fmaskR_ind];
-    DG_FP f20R = w[1][fmaskR_ind] * u[1][fmaskR_ind];
-    DG_FP f21R = w[1][fmaskR_ind] * v[1][fmaskR_ind];
-    DG_FP f22R = w[1][fmaskR_ind] * w[1][fmaskR_ind];
-
     const int fmaskL_ind = fmaskL_corrected[i];
-    DG_FP f00L = u[0][fmaskL_ind] * u[0][fmaskL_ind];
-    DG_FP f01L = u[0][fmaskL_ind] * v[0][fmaskL_ind];
-    DG_FP f02L = u[0][fmaskL_ind] * w[0][fmaskL_ind];
-    DG_FP f10L = v[0][fmaskL_ind] * u[0][fmaskL_ind];
-    DG_FP f11L = v[0][fmaskL_ind] * v[0][fmaskL_ind];
-    DG_FP f12L = v[0][fmaskL_ind] * w[0][fmaskL_ind];
-    DG_FP f20L = w[0][fmaskL_ind] * u[0][fmaskL_ind];
-    DG_FP f21L = w[0][fmaskL_ind] * v[0][fmaskL_ind];
-    DG_FP f22L = w[0][fmaskL_ind] * w[0][fmaskL_ind];
-
-    DG_FP lVel = nx[0] * u[0][fmaskL_ind] + ny[0] * v[0][fmaskL_ind] + nz[0] * w[0][fmaskL_ind];
-    DG_FP rVel = nx[1] * u[1][fmaskR_ind] + ny[1] * v[1][fmaskR_ind] + nz[1] * w[1][fmaskR_ind];
-    DG_FP maxVel = fmax(fabs(lVel), fabs(rVel));
-
-    f0[1][fIndR + i] += 0.5 * fscale[1] * (nx[1] * (f00R + f00L)
-                        + ny[1] * (f01R + f01L) + nz[1] * (f02R + f02L)
-                        + maxVel * (u[1][fmaskR_ind] - u[0][fmaskL_ind]));
-    f1[1][fIndR + i] += 0.5 * fscale[1] * (nx[1] * (f10R + f10L)
-                        + ny[1] * (f11R + f11L) + nz[1] * (f12R + f12L)
-                        + maxVel * (v[1][fmaskR_ind] - v[0][fmaskL_ind]));
-    f2[1][fIndR + i] += 0.5 * fscale[1] * (nx[1] * (f20R + f20L)
-                        + ny[1] * (f21R + f21L) + nz[1] * (f22R + f22L)
-                        + maxVel * (w[1][fmaskR_ind] - w[0][fmaskL_ind]));
+    
+    mU[1][fIndR + i] = u[1][fmaskR_ind];
+    mV[1][fIndR + i] = v[1][fmaskR_ind];
+    mW[1][fIndR + i] = w[1][fmaskR_ind];
+    
+    pU[1][fIndR + i] = u[0][fmaskL_ind];
+    pV[1][fIndR + i] = v[0][fmaskL_ind];
+    pW[1][fIndR + i] = w[0][fmaskL_ind];
   }
 }
