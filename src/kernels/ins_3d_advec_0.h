@@ -3,8 +3,11 @@ inline void ins_3d_advec_0(const DG_FP *u, const DG_FP *v, const DG_FP *w,
                            DG_FP *f11, DG_FP *f12, DG_FP *f20, DG_FP *f21,
                            DG_FP *f22) {
   for(int i = 0; i < DG_NP; i++) {
-    f00[i] = u[i] * u[i]; f01[i] = u[i] * v[i]; f02[i] = u[i] * w[i];
-    f10[i] = v[i] * u[i]; f11[i] = v[i] * v[i]; f12[i] = v[i] * w[i];
-    f20[i] = w[i] * u[i]; f21[i] = w[i] * v[i]; f22[i] = w[i] * w[i];
+    const DG_FP _u = u[i];
+    const DG_FP _v = v[i];
+    const DG_FP _w = w[i];
+    f00[i] = _u * _u; f01[i] = _u * _v; f02[i] = _u * _w;
+    f10[i] = _v * _u; f11[i] = _v * _v; f12[i] = _v * _w;
+    f20[i] = _w * _u; f21[i] = _w * _v; f22[i] = _w * _w;
   }
 }
