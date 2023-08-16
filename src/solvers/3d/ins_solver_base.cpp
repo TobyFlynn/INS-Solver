@@ -1097,6 +1097,7 @@ void INSSolverBase3D::project_velocity(op_dat dpdx, op_dat dpdy, op_dat dpdz) {
 // TODO replace with precalculated matrix
 void INSSolverBase3D::filter(op_dat in) {
   DGTempDat u_modal = dg_dat_pool->requestTempDatCells(DG_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, in, 0.0, u_modal.dat);
   op_par_loop(filter_3d, "filter_3d", mesh->cells,
               op_arg_gbl(&filter_alpha, 1, "double", OP_READ),
               op_arg_gbl(&filter_Nc, 1, "int", OP_READ),
