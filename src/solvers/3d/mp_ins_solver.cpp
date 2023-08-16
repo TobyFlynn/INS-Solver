@@ -178,13 +178,13 @@ void MPINSSolver3D::step() {
   advection();
   timer->endTimer("MPINSSolver3D - Advection");
 
-  timer->startTimer("MPINSSolver3D - Shock Capturing");
-  if(shock_cap) {
-    shock_capture_filter_dat(velT[0]);
-    shock_capture_filter_dat(velT[1]);
-    shock_capture_filter_dat(velT[2]);
+  timer->startTimer("MPINSSolver3D - Filtering");
+  if(filter_advec) {
+    filter(velT[0]);
+    filter(velT[1]);
+    filter(velT[2]);
   }
-  timer->endTimer("MPINSSolver3D - Shock Capturing");
+  timer->endTimer("MPINSSolver3D - Filtering");
 
   timer->startTimer("MPINSSolver3D - Pressure");
   pressure();
@@ -461,11 +461,11 @@ void MPINSSolver3D::surface() {
   lsSolver->setBCTypes(bc_types);
   const int num_advec_steps = it_pre_sub_cycle != 0 ? 1 : std::max(sub_cycles, 1);
   lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2], sub_cycle_dt, num_advec_steps);
-  timer->startTimer("MPINSSolver3D - Shock Capturing");
-  if(shock_cap) {
-    shock_capture_filter_dat(lsSolver->s);
+  timer->startTimer("MPINSSolver3D - Filtering");
+  if(filter_advec) {
+    filter(lsSolver->s);
   }
-  timer->endTimer("MPINSSolver3D - Shock Capturing");
+  timer->endTimer("MPINSSolver3D - Filtering");
   lsSolver->getRhoMu(rho, mu);
 }
 

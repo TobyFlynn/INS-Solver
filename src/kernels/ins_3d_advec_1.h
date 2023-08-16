@@ -10,84 +10,63 @@ inline void ins_3d_advec_1(const int *faceNum, const int *fmaskL_corrected,
   const int fIndL = faceNum[0] * DG_NPF;
   const int fIndR = faceNum[1] * DG_NPF;
 
-  // Get max vel across the face
-  int maxVel = 0.0;
-  for(int i = 0; i < DG_NPF; i++) {
-    const int fmaskL_ind = fmaskL[i];
-    const int fmaskR_ind = fmaskR_corrected[i];
-    DG_FP lVel = nx[0] * u[0][fmaskL_ind] + ny[0] * v[0][fmaskL_ind] + nz[0] * w[0][fmaskL_ind];
-    DG_FP rVel = nx[1] * u[1][fmaskR_ind] + ny[1] * v[1][fmaskR_ind] + nz[1] * w[1][fmaskR_ind];
-    DG_FP vel = fmax(fabs(lVel), fabs(rVel));
-    if(vel > maxVel) maxVel = vel;
-  }
-
   // Left numerical flux calculation
+  const DG_FP int_factL = 0.5 * fscale[0];
+  const DG_FP nxL = nx[0];
+  const DG_FP nyL = ny[0];
+  const DG_FP nzL = nz[0];
+  const DG_FP nxR = nx[1];
+  const DG_FP nyR = ny[1];
+  const DG_FP nzR = nz[1];
   for(int i = 0; i < DG_NPF; i++) {
     const int fmaskL_ind = fmaskL[i];
-    DG_FP f00L = u[0][fmaskL_ind] * u[0][fmaskL_ind];
-    DG_FP f01L = u[0][fmaskL_ind] * v[0][fmaskL_ind];
-    DG_FP f02L = u[0][fmaskL_ind] * w[0][fmaskL_ind];
-    DG_FP f10L = v[0][fmaskL_ind] * u[0][fmaskL_ind];
-    DG_FP f11L = v[0][fmaskL_ind] * v[0][fmaskL_ind];
-    DG_FP f12L = v[0][fmaskL_ind] * w[0][fmaskL_ind];
-    DG_FP f20L = w[0][fmaskL_ind] * u[0][fmaskL_ind];
-    DG_FP f21L = w[0][fmaskL_ind] * v[0][fmaskL_ind];
-    DG_FP f22L = w[0][fmaskL_ind] * w[0][fmaskL_ind];
-
     const int fmaskR_ind = fmaskR_corrected[i];
-    DG_FP f00R = u[1][fmaskR_ind] * u[1][fmaskR_ind];
-    DG_FP f01R = u[1][fmaskR_ind] * v[1][fmaskR_ind];
-    DG_FP f02R = u[1][fmaskR_ind] * w[1][fmaskR_ind];
-    DG_FP f10R = v[1][fmaskR_ind] * u[1][fmaskR_ind];
-    DG_FP f11R = v[1][fmaskR_ind] * v[1][fmaskR_ind];
-    DG_FP f12R = v[1][fmaskR_ind] * w[1][fmaskR_ind];
-    DG_FP f20R = w[1][fmaskR_ind] * u[1][fmaskR_ind];
-    DG_FP f21R = w[1][fmaskR_ind] * v[1][fmaskR_ind];
-    DG_FP f22R = w[1][fmaskR_ind] * w[1][fmaskR_ind];
+    const DG_FP uM = u[0][fmaskL_ind];
+    const DG_FP vM = v[0][fmaskL_ind];
+    const DG_FP wM = w[0][fmaskL_ind];
+    const DG_FP uP = u[1][fmaskR_ind];
+    const DG_FP vP = v[1][fmaskR_ind];
+    const DG_FP wP = w[1][fmaskR_ind];
 
-    f0[0][fIndL + i] += 0.5 * fscale[0] * (-nx[0] * (f00L - f00R)
-                        - ny[0] * (f01L - f01R) - nz[0] * (f02L - f02R)
-                        - maxVel * (u[1][fmaskR_ind] - u[0][fmaskL_ind]));
-    f1[0][fIndL + i] += 0.5 * fscale[0] * (-nx[0] * (f10L - f10R)
-                        - ny[0] * (f11L - f11R) - nz[0] * (f12L - f12R)
-                        - maxVel * (v[1][fmaskR_ind] - v[0][fmaskL_ind]));
-    f2[0][fIndL + i] += 0.5 * fscale[0] * (-nx[0] * (f20L - f20R)
-                        - ny[0] * (f21L - f21R) - nz[0] * (f22L - f22R)
-                        - maxVel * (w[1][fmaskR_ind] - w[0][fmaskL_ind]));
+    const DG_FP lVel = nxL * uM + nyL * vM + nzL * wM;
+    const DG_FP rVel = nxR * uP + nyR * vP + nzR * wP;
+    const DG_FP maxVel = fmax(fabs(lVel), fabs(rVel));
+
+    f0[0][fIndL + i] = int_factL * (-nxL * (uM * uM - uP * uP)
+                        - nyL * (uM * vM - uP * vP) - nzL * (uM * wM - uP * wP)
+                        - maxVel * (uP - uM));
+    f1[0][fIndL + i] = int_factL * (-nxL * (vM * uM - vP * uP)
+                        - nyL * (vM * vM - vP * vP) - nzL * (vM * wM - vP * wP)
+                        - maxVel * (vP - vM));
+    f2[0][fIndL + i] = int_factL * (-nxL * (wM * uM - wP * uP)
+                        - nyL * (wM * vM - wP * vP) - nzL * (wM * wM - wP * wP)
+                        - maxVel * (wP - wM));
   }
 
   // Right numerical flux calculation
+  const DG_FP int_factR = 0.5 * fscale[1];
   for(int i = 0; i < DG_NPF; i++) {
     const int fmaskR_ind = fmaskR[i];
-    DG_FP f00R = u[1][fmaskR_ind] * u[1][fmaskR_ind];
-    DG_FP f01R = u[1][fmaskR_ind] * v[1][fmaskR_ind];
-    DG_FP f02R = u[1][fmaskR_ind] * w[1][fmaskR_ind];
-    DG_FP f10R = v[1][fmaskR_ind] * u[1][fmaskR_ind];
-    DG_FP f11R = v[1][fmaskR_ind] * v[1][fmaskR_ind];
-    DG_FP f12R = v[1][fmaskR_ind] * w[1][fmaskR_ind];
-    DG_FP f20R = w[1][fmaskR_ind] * u[1][fmaskR_ind];
-    DG_FP f21R = w[1][fmaskR_ind] * v[1][fmaskR_ind];
-    DG_FP f22R = w[1][fmaskR_ind] * w[1][fmaskR_ind];
-
     const int fmaskL_ind = fmaskL_corrected[i];
-    DG_FP f00L = u[0][fmaskL_ind] * u[0][fmaskL_ind];
-    DG_FP f01L = u[0][fmaskL_ind] * v[0][fmaskL_ind];
-    DG_FP f02L = u[0][fmaskL_ind] * w[0][fmaskL_ind];
-    DG_FP f10L = v[0][fmaskL_ind] * u[0][fmaskL_ind];
-    DG_FP f11L = v[0][fmaskL_ind] * v[0][fmaskL_ind];
-    DG_FP f12L = v[0][fmaskL_ind] * w[0][fmaskL_ind];
-    DG_FP f20L = w[0][fmaskL_ind] * u[0][fmaskL_ind];
-    DG_FP f21L = w[0][fmaskL_ind] * v[0][fmaskL_ind];
-    DG_FP f22L = w[0][fmaskL_ind] * w[0][fmaskL_ind];
+    const DG_FP uM = u[1][fmaskR_ind];
+    const DG_FP vM = v[1][fmaskR_ind];
+    const DG_FP wM = w[1][fmaskR_ind];
+    const DG_FP uP = u[0][fmaskL_ind];
+    const DG_FP vP = v[0][fmaskL_ind];
+    const DG_FP wP = w[0][fmaskL_ind];
 
-    f0[1][fIndR + i] += 0.5 * fscale[1] * (-nx[1] * (f00R - f00L)
-                        - ny[1] * (f01R - f01L) - nz[1] * (f02R - f02L)
-                        - maxVel * (u[0][fmaskL_ind] - u[1][fmaskR_ind]));
-    f1[1][fIndR + i] += 0.5 * fscale[1] * (-nx[1] * (f10R - f10L)
-                        - ny[1] * (f11R - f11L) - nz[1] * (f12R - f12L)
-                        - maxVel * (v[0][fmaskL_ind] - v[1][fmaskR_ind]));
-    f2[1][fIndR + i] += 0.5 * fscale[1] * (-nx[1] * (f20R - f20L)
-                        - ny[1] * (f21R - f21L) - nz[1] * (f22R - f22L)
-                        - maxVel * (w[0][fmaskL_ind] - w[1][fmaskR_ind]));
+    const DG_FP lVel = nxL * uP + nyL * vP + nzL * wP;
+    const DG_FP rVel = nxR * uM + nyR * vM + nzR * wM;
+    const DG_FP maxVel = fmax(fabs(lVel), fabs(rVel));
+
+    f0[1][fIndR + i] = int_factR * (-nxR * (uM * uM - uP * uP)
+                        - nyR * (uM * vM - uP * vP) - nzR * (uM * wM - uP * wP)
+                        - maxVel * (uP - uM));
+    f1[1][fIndR + i] = int_factR * (-nxR * (vM * uM - vP * uP)
+                        - nyR * (vM * vM - vP * vP) - nzR * (vM * wM - vP * wP)
+                        - maxVel * (vP - vM));
+    f2[1][fIndR + i] = int_factR * (-nxR * (wM * uM - wP * uP)
+                        - nyR * (wM * vM - wP * vP) - nzR * (wM * wM - wP * wP)
+                        - maxVel * (wP - wM));
   }
 }
