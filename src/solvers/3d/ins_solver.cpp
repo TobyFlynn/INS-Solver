@@ -180,13 +180,13 @@ void INSSolver3D::step() {
   advection();
   timer->endTimer("INSSolver3D - Advection");
 
-  timer->startTimer("INSSolver3D - Shock Capturing");
-  if(shock_cap) {
-    shock_capture_filter_dat(velT[0]);
-    shock_capture_filter_dat(velT[1]);
-    shock_capture_filter_dat(velT[2]);
+  timer->startTimer("INSSolver3D - Filtering");
+  if(filter_advec) {
+    filter(velT[0]);
+    filter(velT[1]);
+    filter(velT[2]);
   }
-  timer->endTimer("INSSolver3D - Shock Capturing");
+  timer->endTimer("INSSolver3D - Filtering");
 
   timer->startTimer("INSSolver3D - Pressure");
   pressure();
