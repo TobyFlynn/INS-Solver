@@ -25,6 +25,9 @@ protected:
   void advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
                            op_dat u_out, op_dat v_out, op_dat w_out,
                            const double t);
+  void advec_sub_cycle_rhs_over_int(op_dat u_in, op_dat v_in, op_dat w_in,
+                           op_dat u_out, op_dat v_out, op_dat w_out,
+                           const double t);
   void advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_dat v, op_dat w);
   void project_velocity(op_dat dpdx, op_dat dpdy, op_dat dpdz);
   DG_FP max_vel();
@@ -37,6 +40,7 @@ protected:
 
   DGMesh3D *mesh;
   bool div_div_proj, extrapolate_initial_guess, shock_cap, shock_cutoff_filter;
+  bool over_int_advec;
   int it_pre_sub_cycle;
   std::vector<std::pair<DG_FP,DGTempDat>> pr_history;
 
