@@ -2,10 +2,9 @@
 #define __INS_KD_TREE_MPI_3D_H
 
 #include "dg_compiler_defs.h"
-
 #include "kd_tree.h"
-
 #include <vector>
+#include "mpi.h"
 
 class KDTree3DMPI : public KDTree3D {
 public:

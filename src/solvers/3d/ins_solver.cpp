@@ -180,13 +180,13 @@ void INSSolver3D::step() {
   advection();
   timer->endTimer("INSSolver3D - Advection");
 
-  timer->startTimer("INSSolver3D - Shock Capturing");
-  if(shock_cap) {
-    shock_capture_filter_dat(velT[0]);
-    shock_capture_filter_dat(velT[1]);
-    shock_capture_filter_dat(velT[2]);
+  timer->startTimer("INSSolver3D - Filtering");
+  if(filter_advec) {
+    filter(velT[0]);
+    filter(velT[1]);
+    filter(velT[2]);
   }
-  timer->endTimer("INSSolver3D - Shock Capturing");
+  timer->endTimer("INSSolver3D - Filtering");
 
   timer->startTimer("INSSolver3D - Pressure");
   pressure();
@@ -491,7 +491,7 @@ DG_FP INSSolver3D::calc_enstrophy() {
   dg_dat_pool->releaseTempDatCells(curl[2]);
 
   // Multiply by mu and divide by volume
-  return 0.000625 * enstropy / 31.006276680299820175476315;
+  return 0.000625 * enstropy / 248.0502134423985614038105205;
 }
 
 void INSSolver3D::record_enstrophy() {

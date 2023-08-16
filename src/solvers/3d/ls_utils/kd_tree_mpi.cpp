@@ -144,7 +144,7 @@ void KDTree3DMPI::build_tree(const DG_FP *x, const DG_FP *y,
   vector<MPI_Request> mpi_req_snd(ranks.size());
   vector<MPI_Request> mpi_req_rcv(ranks.size());
   vector<int> recv_buffer(2 * ranks.size());
-  int num_pts_polys[2] = {n, polys.size()};
+  int num_pts_polys[2] = {n, static_cast<int>(polys.size())};
   for(int i = 0; i < ranks.size(); i++) {
     MPI_Irecv(&recv_buffer[i * 2], 2, MPI_INT, ranks[i], 0, MPI_COMM_WORLD, &mpi_req_rcv[i]);
   }
