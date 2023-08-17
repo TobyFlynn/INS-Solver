@@ -77,7 +77,7 @@ endif()
 if(BUILD_MPI AND BUILD_GPU)
   add_executable(ins${DIM_POSTFIX}_mpi_cuda ${COMMON_SRC} ${GPU_SRC} ${MPI_SRC} ${MPI_GPU_SRC} cuda/ins${DIM_POSTFIX}_kernels.cu)
   target_include_directories(ins${DIM_POSTFIX}_mpi_cuda PRIVATE ${MPI_CXX_INCLUDE_PATH})
-  target_link_libraries(ins${DIM_POSTFIX}_mpi_cuda -L${OP2_DIR}/lib -lop2_mpi_cuda ${COMMON_LIBS} ${AMGX_LIB} ${INS_CUDA_LIBS} -L${OP2DGTOOLKIT_DIR}/lib -lop2dgtoolkit_${DIM_POSTFIX}_mpi_cuda -ldgtoolkit ${PART_LIB} ${EXTRA_LIBS} ${MPI_CXX_LIBRARIES})
+  target_link_libraries(ins${DIM_POSTFIX}_mpi_cuda -L${OP2_DIR}/lib -lop2_mpi_cuda ${AMGX_LIB} ${INS_CUDA_LIBS} -L${OP2DGTOOLKIT_DIR}/lib -lop2dgtoolkit_${DIM_POSTFIX}_mpi_cuda -ldgtoolkit ${PART_LIB} ${EXTRA_LIBS} ${COMMON_LIBS} ${MPI_CXX_LIBRARIES})
   target_compile_definitions(ins${DIM_POSTFIX}_mpi_cuda PRIVATE ${DG_COMPILER_DEFS} OP2_DG_CUDA INS_CUDA INS_MPI DG_DIM=${DIM} ${COMMON_COMPILER_DEFS})
 
   set_property(TARGET ins${DIM_POSTFIX}_mpi_cuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
