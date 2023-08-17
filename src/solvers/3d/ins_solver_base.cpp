@@ -73,7 +73,7 @@ INSSolverBase3D::INSSolverBase3D(DGMesh3D *m, const std::string &filename) {
 void INSSolverBase3D::read_options() {
   int tmp_div = 1;
   config->getInt("solver-options", "div_div", tmp_div);
-  div_div_proj = tmp_div != 0;
+  pr_projection_method = tmp_div;
   config->getInt("solver-options", "sub_cycle", sub_cycles);
   config->getInt("solver-options", "num_iter_before_sub_cycle", it_pre_sub_cycle);
   it_pre_sub_cycle = it_pre_sub_cycle > 1 ? it_pre_sub_cycle : 1;
@@ -106,7 +106,7 @@ void INSSolverBase3D::init_dats() {
 
   bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_bc_types");
 
-  if(div_div_proj) {
+  if(pr_projection_method == 1 || pr_projection_method == 2) {
     proj_h = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_proj_h");
   }
 }
@@ -125,7 +125,7 @@ void INSSolverBase3D::init(const DG_FP re, const DG_FP refVel) {
   op_printf("h: %g\n", h);
 
   // Set up pressure projection
-  if(div_div_proj) {
+  if(pr_projection_method == 1 || pr_projection_method == 2) {
     DGTempDat tmp_npf = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
     op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
                 op_arg_dat(tmp_npf.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
@@ -1076,7 +1076,7 @@ void INSSolverBase3D::project_velocity_mat_mult(op_dat u, op_dat v, op_dat w,
 }
 
 void INSSolverBase3D::project_velocity(op_dat dpdx, op_dat dpdy, op_dat dpdz) {
-  if(div_div_proj) {
+  if(pr_projection_method == 1) {
     DGTempDat projRHS[3];
     projRHS[0] = dg_dat_pool->requestTempDatCells(DG_NP);
     projRHS[1] = dg_dat_pool->requestTempDatCells(DG_NP);
@@ -1120,7 +1120,7 @@ void INSSolverBase3D::project_velocity(op_dat dpdx, op_dat dpdy, op_dat dpdz) {
                 op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(proj_pen.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
                 op_arg_dat(proj_pen_f.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
-/*
+
     int num_cells = 0;
     int num_converge = 0;
     DG_FP num_iter = 0.0;
@@ -1136,7 +1136,63 @@ void INSSolverBase3D::project_velocity(op_dat dpdx, op_dat dpdy, op_dat dpdz) {
                 op_arg_gbl(&num_cells, 1, "int", OP_INC),
                 op_arg_gbl(&num_converge, 1, "int", OP_INC),
                 op_arg_gbl(&num_iter, 1, DG_FP_STR, OP_INC));
+
+    dg_dat_pool->releaseTempDatCells(proj_pen_f);
+    dg_dat_pool->releaseTempDatCells(proj_pen);
+    dg_dat_pool->releaseTempDatCells(projRHS[0]);
+    dg_dat_pool->releaseTempDatCells(projRHS[1]);
+    dg_dat_pool->releaseTempDatCells(projRHS[2]);
+/*
+    if(num_cells != num_converge) {
+      op_printf("%d out of %d cells converged on projection step\n", num_converge, num_cells);
+      exit(-1);
+    }
 */
+  } else if(pr_projection_method == 2) {
+    DGTempDat projRHS[3];
+    projRHS[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+    projRHS[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+    projRHS[2] = dg_dat_pool->requestTempDatCells(DG_NP);
+
+    op_par_loop(ins_3d_proj_rhs, "ins_3d_proj_rhs", mesh->cells,
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(projRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(projRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(projRHS[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    mesh->mass(projRHS[0].dat);
+    mesh->mass(projRHS[1].dat);
+    mesh->mass(projRHS[2].dat);
+
+    DGTempDat proj_pen = dg_dat_pool->requestTempDatCells(1);
+    DGTempDat proj_pen_f = dg_dat_pool->requestTempDatCells(1);
+    DG_FP factor = dt * 1.0;
+    // DG_FP factor = dt / Cr;
+    // op_printf("Cr: %g\n", Cr);
+    op_par_loop(ins_3d_proj_pen, "ins_3d_proj_pen", mesh->cells,
+                op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_pen.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
+                op_arg_dat(proj_pen_f.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+
     DGTempDat cg_tmp[3];
     cg_tmp[0] = dg_dat_pool->requestTempDatCells(DG_NP);
     cg_tmp[1] = dg_dat_pool->requestTempDatCells(DG_NP);
@@ -1291,12 +1347,6 @@ void INSSolverBase3D::project_velocity(op_dat dpdx, op_dat dpdy, op_dat dpdz) {
     dg_dat_pool->releaseTempDatCells(projRHS[0]);
     dg_dat_pool->releaseTempDatCells(projRHS[1]);
     dg_dat_pool->releaseTempDatCells(projRHS[2]);
-/*
-    if(num_cells != num_converge) {
-      op_printf("%d out of %d cells converged on projection step\n", num_converge, num_cells);
-      exit(-1);
-    }
-*/
   } else {
     op_par_loop(ins_3d_pr_3, "ins_3d_pr_3", mesh->cells,
                 op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),

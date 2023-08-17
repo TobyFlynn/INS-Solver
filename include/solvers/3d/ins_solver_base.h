@@ -41,9 +41,9 @@ protected:
   op_dat vel[2][3], velT[3], velTT[3], pr, n[2][3], dPdN[2], bc_types, proj_h;
 
   DGMesh3D *mesh;
-  bool div_div_proj, extrapolate_initial_guess;
+  bool extrapolate_initial_guess;
   bool over_int_advec, filter_advec;
-  int it_pre_sub_cycle;
+  int it_pre_sub_cycle, pr_projection_method;
   std::vector<std::pair<DG_FP,DGTempDat>> pr_history;
 
   // Filter params
