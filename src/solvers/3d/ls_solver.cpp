@@ -82,7 +82,7 @@ void LevelSetSolver3D::init() {
   kdtree = new KDTree3D(mesh);
   #endif
 
-  reinitLS();
+  // reinitLS();
 }
 
 void LevelSetSolver3D::getRhoMu(op_dat rho, op_dat mu) {
@@ -113,7 +113,7 @@ void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const DG_FP dt, const 
               op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 */
-  if(reinit_count > 49) {
+  if(reinit_count > 9) {
     reinitLS();
     reinit_count = 0;
     op_par_loop(ls_post_reinit, "ls_post_reinit", mesh->cells,
@@ -303,8 +303,8 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
     }
   }
 
-  if(numNonConv != 0)
-    std::cout << numNonConv << " non-converged points out of " << numReinit << " points reinitialised" << std::endl;
+  // if(numNonConv != 0)
+  //   std::cout << numNonConv << " non-converged points out of " << numReinit << " points reinitialised" << std::endl;
 }
 
 void LevelSetSolver3D::reinitLS() {
