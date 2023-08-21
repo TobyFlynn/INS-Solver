@@ -24,7 +24,7 @@ extern Timing *timer;
 extern Config *config;
 extern DGDatPool *dg_dat_pool;
 
-#define ENSTROPY_FREQUENCY 10
+#define ENSTROPY_FREQUENCY 5
 
 INSSolver3D::INSSolver3D(DGMesh3D *m) : INSSolverBase3D(m) {
   resuming = false;
@@ -169,8 +169,11 @@ void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
   pressureSolver->init();
   viscositySolver->init();
 
-  enstropy_counter = ENSTROPY_FREQUENCY;
-  record_enstrophy();
+  // enstropy_counter = ENSTROPY_FREQUENCY;
+  // record_enstrophy();
+
+  prev_kinetic_energy = calc_kinetic_energy();
+  prev_kinetic_energy_time = time;
 
   timer->endTimer("INSSolver3D - Init");
 }
@@ -494,9 +497,38 @@ DG_FP INSSolver3D::calc_enstrophy() {
   return 0.000625 * enstropy / 248.0502134423985614038105205;
 }
 
+DG_FP INSSolver3D::calc_kinetic_energy() {
+  DGTempDat ke_tmp = dg_dat_pool->requestTempDatCells(DG_NP);
+
+  op_par_loop(ins_3d_ke_0, "ins_3d_ke_0", mesh->cells,
+              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(ke_tmp.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  mesh->mass(ke_tmp.dat);
+
+  DG_FP kinetic_energy = 0.0;
+  op_par_loop(ins_3d_enstrophy_1, "ins_3d_enstrophy_1", mesh->cells,
+              op_arg_gbl(&kinetic_energy, 1, DG_FP_STR, OP_INC),
+              op_arg_dat(ke_tmp.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+
+  dg_dat_pool->releaseTempDatCells(ke_tmp);
+
+  // Multiply by mu and divide by volume
+  return 0.5 * kinetic_energy / 248.0502134423985614038105205;
+}
+
 void INSSolver3D::record_enstrophy() {
   if(enstropy_counter % ENSTROPY_FREQUENCY == 0) {
-    enstropy_history.push_back({time, calc_enstrophy()});
+    std::vector<DG_FP> data;
+    data.push_back(time);
+    data.push_back(calc_enstrophy());
+    data.push_back(calc_kinetic_energy());
+    data.push_back((data[2] - prev_kinetic_energy) / (time - prev_kinetic_energy_time));
+    enstropy_history.push_back(data);
+    prev_kinetic_energy = data[2];
+    prev_kinetic_energy_time = time;
   }
   enstropy_counter++;
 }
@@ -526,11 +558,13 @@ void INSSolver3D::save_enstropy_history(const std::string &filename) {
   #endif
   std::ofstream file(filename);
 
-  file << "time,enstropy" << std::endl;
+  file << "time,enstropy,ke,kedt" << std::endl;
 
   for(int i = 0; i < enstropy_history.size(); i++) {
-    file << doubleToText(enstropy_history[i].first) << ",";
-    file << doubleToText(enstropy_history[i].second) << std::endl;
+    file << doubleToText(enstropy_history[i][0]) << ",";
+    file << doubleToText(enstropy_history[i][1]) << ",";
+    file << doubleToText(enstropy_history[i][2]) << ",";
+    file << doubleToText(enstropy_history[i][3]) << std::endl;
   }
 
   file.close();

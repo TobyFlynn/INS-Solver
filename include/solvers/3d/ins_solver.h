@@ -33,6 +33,7 @@ private:
   void pressure();
   void viscosity();
   DG_FP calc_enstrophy();
+  DG_FP calc_kinetic_energy();
   void record_enstrophy();
 
   // DGMesh3D *mesh;
@@ -53,7 +54,9 @@ private:
   op_dat pr_bc, pr_bc_types;
   op_dat vis_bc_types, vis_bc;
 
-  std::vector<std::pair<DG_FP,DG_FP>> enstropy_history;
+  DG_FP prev_kinetic_energy;
+  DG_FP prev_kinetic_energy_time;
+  std::vector<std::vector<DG_FP>> enstropy_history;
 };
 
 #endif
