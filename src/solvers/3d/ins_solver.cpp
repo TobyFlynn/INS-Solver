@@ -488,6 +488,7 @@ DG_FP INSSolver3D::calc_enstrophy() {
   DG_FP *cub_w_ptr = constants->get_mat_ptr(DGConstants::CUB3D_W);
   op_par_loop(ins_3d_enstrophy_0, "ins_3d_enstrophy_0", mesh->cells,
               op_arg_gbl(cub_w_ptr, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
               op_arg_dat(cub_curl[0].dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
               op_arg_dat(cub_curl[1].dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
               op_arg_dat(cub_curl[2].dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
@@ -513,15 +514,35 @@ DG_FP INSSolver3D::calc_enstrophy() {
 }
 
 DG_FP INSSolver3D::calc_kinetic_energy() {
+  DGTempDat cub_ke_tmp = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+
+  DGTempDat cub_vel[3];
+  cub_vel[0] = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  cub_vel[1] = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  cub_vel[2] = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, vel[currentInd][0], 0.0, cub_vel[0].dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, vel[currentInd][1], 0.0, cub_vel[1].dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, vel[currentInd][2], 0.0, cub_vel[2].dat);
+
+  DG_FP *cub_w_ptr = constants->get_mat_ptr(DGConstants::CUB3D_W);
+  op_par_loop(ins_3d_ke_0, "ins_3d_ke_0", mesh->cells,
+              op_arg_gbl(cub_w_ptr, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
+              op_arg_dat(cub_vel[0].dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(cub_vel[1].dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(cub_vel[2].dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(cub_ke_tmp.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_WRITE));
+
+  dg_dat_pool->releaseTempDatCells(cub_vel[0]);
+  dg_dat_pool->releaseTempDatCells(cub_vel[1]);
+  dg_dat_pool->releaseTempDatCells(cub_vel[2]);
+
   DGTempDat ke_tmp = dg_dat_pool->requestTempDatCells(DG_NP);
 
-  op_par_loop(ins_3d_ke_0, "ins_3d_ke_0", mesh->cells,
-              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(ke_tmp.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  op2_gemv(mesh, true, 1.0, DGConstants::CUB3D_INTERP, cub_ke_tmp.dat, 0.0, ke_tmp.dat);
 
-  mesh->mass(ke_tmp.dat);
+  dg_dat_pool->releaseTempDatCells(cub_ke_tmp);
 
   DG_FP kinetic_energy = 0.0;
   op_par_loop(ins_3d_enstrophy_1, "ins_3d_enstrophy_1", mesh->cells,
@@ -535,7 +556,7 @@ DG_FP INSSolver3D::calc_kinetic_energy() {
 }
 
 void INSSolver3D::record_enstrophy() {
-  if(enstropy_counter % ENSTROPY_FREQUENCY == 0) {
+  // if(enstropy_counter % ENSTROPY_FREQUENCY == 0) {
     std::vector<DG_FP> data;
     data.push_back(time);
     data.push_back(calc_enstrophy());
@@ -544,8 +565,8 @@ void INSSolver3D::record_enstrophy() {
     enstropy_history.push_back(data);
     prev_kinetic_energy = data[2];
     prev_kinetic_energy_time = time;
-  }
-  enstropy_counter++;
+  // }
+  // enstropy_counter++;
 }
 
 #include <fstream>
