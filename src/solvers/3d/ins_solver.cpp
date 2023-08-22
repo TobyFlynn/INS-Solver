@@ -476,12 +476,27 @@ DG_FP INSSolver3D::calc_enstrophy() {
   mesh->curl(vel[currentInd][0], vel[currentInd][1], vel[currentInd][2],
              curl[0].dat, curl[1].dat, curl[2].dat);
 
-  op_par_loop(ins_3d_enstrophy_0, "ins_3d_enstrophy_0", mesh->cells,
-              op_arg_dat(curl[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(curl[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(curl[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  DGTempDat cub_curl[3];
+  cub_curl[0] = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  cub_curl[1] = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  cub_curl[2] = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
 
-  mesh->mass(curl[2].dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, curl[0].dat, 0.0, cub_curl[0].dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, curl[1].dat, 0.0, cub_curl[1].dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, curl[2].dat, 0.0, cub_curl[2].dat);
+
+  DG_FP *cub_w_ptr = constants->get_mat_ptr(DGConstants::CUB3D_W);
+  op_par_loop(ins_3d_enstrophy_0, "ins_3d_enstrophy_0", mesh->cells,
+              op_arg_gbl(cub_w_ptr, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(cub_curl[0].dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(cub_curl[1].dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(cub_curl[2].dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, true, 1.0, DGConstants::CUB3D_INTERP, cub_curl[2].dat, 0.0, curl[2].dat);
+
+  dg_dat_pool->releaseTempDatCells(cub_curl[0]);
+  dg_dat_pool->releaseTempDatCells(cub_curl[1]);
+  dg_dat_pool->releaseTempDatCells(cub_curl[2]);
 
   DG_FP enstropy = 0.0;
 
