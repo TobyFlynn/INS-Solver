@@ -61,25 +61,12 @@ fi
 
 cd gen2d
 
-# python3 $OP2_TRANSLATOR ins.cpp \
-#         ins_data.cpp solver.cpp poisson/petsc/poisson.cpp \
-#         ls/ls.cpp utils.cpp utils.cu ls/ls_reinit.cpp ls/ls_reinit.cu \
-#         ls/ls_reinit_mpi.cpp ls/ls_reinit_mpi.cu ls/ls_reinit_mpi_naive.cpp \
-#         ls/ls_reinit_mpi_naive.cu poisson/matrix/poisson_mat.cpp \
-#         poisson/p_multigrid/p_multigrid.cpp kernels/
-
-# sed -i '10i extern double reynolds;' openmp/ins_kernels.cpp
-
 python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/advection_solver.cpp \
-        solvers/2d/advection_solver_over_int.cpp \
         solvers/2d/ls_solver.cpp \
-        solvers/2d/mp_ins_solver_over_int.cpp \
         solvers/2d/ins_solver_base.cpp \
         solvers/2d/ins_solver.cpp \
         solvers/2d/mp_ins_solver.cpp \
-        solvers/2d/ins_solver_over_int.cpp \
-        solvers/2d/ce_solver_over_int.cpp \
         kernels/
 
 sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins2d_kernels.cu

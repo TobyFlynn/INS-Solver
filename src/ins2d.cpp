@@ -12,8 +12,6 @@
 
 #include "timing.h"
 #include "config.h"
-#include "solvers/2d/mp_ins_solver_over_int.h"
-#include "solvers/2d/ins_solver_over_int.h"
 #include "solvers/2d/ins_solver.h"
 #include "solvers/2d/mp_ins_solver.h"
 

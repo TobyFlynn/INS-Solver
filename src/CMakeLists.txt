@@ -1,14 +1,11 @@
 if(DIM EQUAL 2)
-  set(COMMON_SRC ins2d_op.cpp solvers_op/2d/advection_solver_over_int_op.cpp)
+  set(COMMON_SRC ins2d_op.cpp)
   list(APPEND COMMON_SRC solvers_op/2d/advection_solver_op.cpp)
   list(APPEND COMMON_SRC solvers_op/2d/ls_solver_op.cpp)
   list(APPEND COMMON_SRC solvers/2d/ls_utils/ls_reinit_poly.cpp)
-  list(APPEND COMMON_SRC solvers_op/2d/mp_ins_solver_over_int_op.cpp)
   list(APPEND COMMON_SRC solvers_op/2d/ins_solver_base_op.cpp)
   list(APPEND COMMON_SRC solvers_op/2d/ins_solver_op.cpp)
   list(APPEND COMMON_SRC solvers_op/2d/mp_ins_solver_op.cpp)
-  list(APPEND COMMON_SRC solvers_op/2d/ins_solver_over_int_op.cpp)
-  list(APPEND COMMON_SRC solvers_op/2d/ce_solver_over_int_op.cpp)
 
   set(CPU_SRC solvers/2d/ls_utils/ls_reinit.cpp)
 
