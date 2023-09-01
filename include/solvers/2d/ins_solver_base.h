@@ -19,6 +19,7 @@ public:
 
 protected:
   void advec_current_non_linear();
+  void advec_current_non_linear_over_int();
   void advec_standard();
   void advec_sub_cycle();
   void advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat u_out, op_dat v_out,
@@ -34,7 +35,7 @@ protected:
   op_dat vel[2][2], velT[2], velTT[2], pr, n[2][2], dPdN[2], bc_types, proj_h;
 
   DGMesh2D *mesh;
-  bool div_div_proj, extrapolate_initial_guess, shock_cap;
+  bool div_div_proj, extrapolate_initial_guess, shock_cap, over_int_advec;
   int it_pre_sub_cycle;
   std::vector<std::pair<DG_FP,DGTempDat>> pr_history;
 

@@ -170,13 +170,6 @@ void MPINSSolver2D::step() {
   advection();
   timer->endTimer("MPINSSolver2D - Advection");
 
-  timer->startTimer("MPINSSolver2D - Shock Capturing");
-  if(shock_cap) {
-    shock_capture_filter_dat(velT[0]);
-    shock_capture_filter_dat(velT[1]);
-  }
-  timer->endTimer("MPINSSolver2D - Shock Capturing");
-
   timer->startTimer("MPINSSolver2D - Pressure");
   pressure();
   timer->endTimer("MPINSSolver2D - Pressure");

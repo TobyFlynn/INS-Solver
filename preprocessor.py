@@ -130,6 +130,9 @@ dg_num_faces = ""
 dg_order     = order
 dg_num_constants = ""
 dg_cub_3d_np = ""
+dg_cub_surf_3d_np = ""
+dg_cub_2d_np = ""
+dg_cub_surf_2d_np = ""
 fp_type = "d"
 
 # Get DG order from command line args
@@ -142,6 +145,9 @@ if dim == "2":
     ls_sample_np = "10"
     dg_num_faces = "3"
     dg_num_constants = "5"
+    # TODO update
+    dg_cub_2d_np = "12"
+    dg_cub_surf_2d_np = "7"
     if order == "1":
         dg_cub_np    = "12"
         dg_g_np      = "9"
@@ -170,7 +176,9 @@ elif dim == "3":
     dg_num_faces = "4"
     dg_num_constants = "2"
     ls_sample_np = "13"
+    # TODO update
     dg_cub_3d_np = "23"
+    dg_cub_surf_3d_np = "12"
 
 inputfiles = []
 
@@ -211,6 +219,9 @@ for f in inputfiles:
         newdata = newdata.replace("DG_NUM_CONSTANTS", dg_num_constants)
         newdata = newdata.replace("DG_ORDER", dg_order)
         newdata = newdata.replace("DG_CUB_3D_NP", dg_cub_3d_np)
+        newdata = newdata.replace("DG_CUB_SURF_3D_NP", dg_cub_surf_3d_np)
+        newdata = newdata.replace("DG_CUB_2D_NP", dg_cub_2d_np)
+        newdata = newdata.replace("DG_CUB_SURF_2D_NP", dg_cub_surf_2d_np)
 
     if dim == "2":
         with open("gen2d/" + f, "w") as file:

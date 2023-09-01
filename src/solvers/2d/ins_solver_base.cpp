@@ -75,7 +75,7 @@ void INSSolverBase2D::read_options() {
   int tmp_eig = 1;
   config->getInt("solver-options", "extrapolate_initial_guess", tmp_eig);
   extrapolate_initial_guess = tmp_eig == 1;
-  int tmp_shock = 1;
+  int tmp_shock = 0;
   config->getInt("solver-options", "shock_capturing", tmp_shock);
   shock_cap = tmp_shock == 1;
 
@@ -87,6 +87,10 @@ void INSSolverBase2D::read_options() {
   config->getDouble("filter", "k", filter_k);
   filter_c = 1.0;
   config->getDouble("filter", "c", filter_c);
+
+  int tmp_oia = 0;
+  config->getInt("solver-options", "over_int_advec", tmp_oia);
+  over_int_advec = tmp_oia == 1;
 }
 
 void INSSolverBase2D::init_dats() {
@@ -200,8 +204,110 @@ void INSSolverBase2D::advec_current_non_linear() {
   dg_dat_pool->releaseTempDatCells(tmp_advec_flux1);
 }
 
+void INSSolverBase2D::advec_current_non_linear_over_int() {
+  timer->startTimer("INSSolverBase2D - advec_current_non_linear_over_int");
+  DGTempDat f[2][2];
+  f[0][0] = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+  f[0][1] = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+  f[1][0] = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+  f[1][1] = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+
+  timer->startTimer("INSSolverBase2D - advec_current_non_linear_over_int - Interp");
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, vel[currentInd][0], 0.0, f[0][0].dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, vel[currentInd][1], 0.0, f[0][1].dat);
+  timer->endTimer("INSSolverBase2D - advec_current_non_linear_over_int - Interp");
+
+  timer->startTimer("INSSolverBase2D - advec_current_non_linear_over_int - 0");
+  op_par_loop(ins_2d_advec_oi_0, "ins_2d_advec_oi_0", mesh->cells,
+              op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
+              op_arg_dat(f[0][0].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(f[0][1].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(f[1][0].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(f[1][1].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE));
+  timer->endTimer("INSSolverBase2D - advec_current_non_linear_over_int - 0");
+
+  timer->startTimer("INSSolverBase2D - advec_current_non_linear_over_int - div");
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PDR, f[0][0].dat, 0.0, n[currentInd][0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PDS, f[0][1].dat, 1.0, n[currentInd][0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PDR, f[1][0].dat, 0.0, n[currentInd][1]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PDS, f[1][1].dat, 1.0, n[currentInd][1]);
+  timer->endTimer("INSSolverBase2D - advec_current_non_linear_over_int - div");
+
+  dg_dat_pool->releaseTempDatCells(f[0][0]);
+  dg_dat_pool->releaseTempDatCells(f[0][1]);
+  dg_dat_pool->releaseTempDatCells(f[1][0]);
+  dg_dat_pool->releaseTempDatCells(f[1][1]);
+
+  DGTempDat uM = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  DGTempDat vM = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  DGTempDat uP = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  DGTempDat vP = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+
+  op_par_loop(ins_2d_advec_oi_1, "ins_2d_advec_oi_1", mesh->faces,
+              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(vel[currentInd][0], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][1], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(uM.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vM.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(uP.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vP.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  
+  if(mesh->bface2cells) {
+    op_par_loop(ins_2d_advec_oi_2, "ins_2d_advec_oi_2", mesh->bfaces,
+                op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(vel[currentInd][0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(uM.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
+                op_arg_dat(vM.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
+                op_arg_dat(uP.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
+                op_arg_dat(vP.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));
+  }
+
+  DGTempDat uM_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
+  DGTempDat vM_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
+  DGTempDat uP_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
+  DGTempDat vP_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
+
+  timer->startTimer("INSSolverBase2D - advec_current_non_linear_over_int - Interp Surf");
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_INTERP, uM.dat, 0.0, uM_cub.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_INTERP, vM.dat, 0.0, vM_cub.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_INTERP, uP.dat, 0.0, uP_cub.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_INTERP, vP.dat, 0.0, vP_cub.dat);
+
+  dg_dat_pool->releaseTempDatCells(uM);
+  dg_dat_pool->releaseTempDatCells(vM);
+  dg_dat_pool->releaseTempDatCells(uP);
+  dg_dat_pool->releaseTempDatCells(vP);
+  timer->endTimer("INSSolverBase2D - advec_current_non_linear_over_int - Interp Surf");
+
+  op_par_loop(ins_2d_advec_oi_3, "ins_2d_advec_oi_3", mesh->cells,
+              op_arg_dat(mesh->nx_c_new, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ny_c_new, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sJ_c_new, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
+              op_arg_dat(uM_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vM_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(uP_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(vP_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_LIFT, uP_cub.dat, -1.0, n[currentInd][0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_LIFT, vP_cub.dat, -1.0, n[currentInd][1]);
+
+  dg_dat_pool->releaseTempDatCells(uM_cub);
+  dg_dat_pool->releaseTempDatCells(vM_cub);
+  dg_dat_pool->releaseTempDatCells(uP_cub);
+  dg_dat_pool->releaseTempDatCells(vP_cub);
+  timer->endTimer("INSSolverBase2D - advec_current_non_linear_over_int");
+}
+
 void INSSolverBase2D::advec_standard() {
-  advec_current_non_linear();
+  if(over_int_advec) {
+    advec_current_non_linear_over_int();
+  } else {
+    advec_current_non_linear();
+  }
 
   // Calculate the intermediate velocity values
   op_par_loop(ins_advec_intermediate_vel_2d, "ins_advec_intermediate_vel_2d", mesh->cells,

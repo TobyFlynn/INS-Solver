@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
   // For 2D compressible Euler
   gamma_e = 1.4;
 
-  DGMesh2D *mesh = new DGMesh2D(filename, false);
+  DGMesh2D *mesh = new DGMesh2D(filename);
   MPINSSolver2D *mpins2d;
   if(resumeIter == 0)
     mpins2d = new MPINSSolver2D(mesh);
@@ -124,8 +124,8 @@ int main(int argc, char **argv) {
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
   op_decl_const(DG_ORDER * 3 * DG_NPF, "int", FMASK);
-  op_decl_const(DG_ORDER * DG_CUB_NP, DG_FP_STR, cubW_g);
-  op_decl_const(DG_ORDER * DG_GF_NP, DG_FP_STR, gaussW_g);
+  // op_decl_const(DG_ORDER * DG_CUB_NP, DG_FP_STR, cubW_g);
+  // op_decl_const(DG_ORDER * DG_GF_NP, DG_FP_STR, gaussW_g);
 
   // Application constants
   op_decl_const(1, DG_FP_STR, &r_ynolds);

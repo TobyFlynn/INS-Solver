@@ -35,14 +35,24 @@ inline void ins_advec_faces_2d(const int *faceNum, const bool *reverse,
     const int fIndL = faceNum[0] * DG_NPF + i;
     const int fIndR = rev ? faceNum[1] * DG_NPF + DG_NPF - i - 1 : faceNum[1] * DG_NPF + i;
 
-    f0[0][fIndL] = 0.5 * fscale[0] * (-nx[0] * (f00L - f00R)
-                   - ny[0] * (f01L - f01R) - maxVel * (u[1][fmaskR_ind] - u[0][fmaskL_ind]));
-    f1[0][fIndL] = 0.5 * fscale[0] * (-nx[0] * (f10L - f10R)
-                   - ny[0] * (f11L - f11R) - maxVel * (v[1][fmaskR_ind] - v[0][fmaskL_ind]));
+    // f0[0][fIndL] = 0.5 * fscale[0] * (-nx[0] * (f00L - f00R)
+    //                - ny[0] * (f01L - f01R) - maxVel * (u[1][fmaskR_ind] - u[0][fmaskL_ind]));
+    // f1[0][fIndL] = 0.5 * fscale[0] * (-nx[0] * (f10L - f10R)
+    //                - ny[0] * (f11L - f11R) - maxVel * (v[1][fmaskR_ind] - v[0][fmaskL_ind]));
 
-    f0[1][fIndR] = 0.5 * fscale[1] * (-nx[1] * (f00R - f00L)
-                   - ny[1] * (f01R - f01L) - maxVel * (u[0][fmaskL_ind] - u[1][fmaskR_ind]));
-    f1[1][fIndR] = 0.5 * fscale[1] * (-nx[1] * (f10R - f10L)
-                   - ny[1] * (f11R - f11L) - maxVel * (v[0][fmaskL_ind] - v[1][fmaskR_ind]));
+    // f0[1][fIndR] = 0.5 * fscale[1] * (-nx[1] * (f00R - f00L)
+    //                - ny[1] * (f01R - f01L) - maxVel * (u[0][fmaskL_ind] - u[1][fmaskR_ind]));
+    // f1[1][fIndR] = 0.5 * fscale[1] * (-nx[1] * (f10R - f10L)
+    //                - ny[1] * (f11R - f11L) - maxVel * (v[0][fmaskL_ind] - v[1][fmaskR_ind]));
+
+    f0[0][fIndL] = 0.5 * fscale[0] * (nx[0] * (f00L + f00R)
+                   + ny[0] * (f01L + f01R) + maxVel * (u[0][fmaskL_ind] - u[1][fmaskR_ind]));
+    f1[0][fIndL] = 0.5 * fscale[0] * (nx[0] * (f10L + f10R)
+                   + ny[0] * (f11L + f11R) + maxVel * (v[0][fmaskL_ind] - v[1][fmaskR_ind]));
+
+    f0[1][fIndR] = 0.5 * fscale[1] * (nx[1] * (f00R + f00L)
+                   + ny[1] * (f01R + f01L) + maxVel * (u[1][fmaskR_ind] - u[0][fmaskL_ind]));
+    f1[1][fIndR] = 0.5 * fscale[1] * (nx[1] * (f10R + f10L)
+                   + ny[1] * (f11R + f11L) + maxVel * (v[1][fmaskR_ind] - v[0][fmaskL_ind]));
   }
 }
