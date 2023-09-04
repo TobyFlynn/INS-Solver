@@ -328,6 +328,36 @@ void INSSolverBase2D::advec_standard() {
               op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 }
 
+void INSSolverBase2D::advec_standard(op_dat fx, op_dat fy, op_dat fx_old, op_dat fy_old) {
+  if(over_int_advec) {
+    advec_current_non_linear_over_int();
+  } else {
+    advec_current_non_linear();
+  }
+
+  // Calculate the intermediate velocity values
+  op_par_loop(ins_advec_intermediate_vel_force_2d, "ins_advec_intermediate_vel_force_2d", mesh->cells,
+              op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fx_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fy_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+}
+
 void INSSolverBase2D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat u_out,
                                       op_dat v_out, const double t) {
   double t0 = time - dt;

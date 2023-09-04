@@ -154,7 +154,7 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, const D
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
     for(int j = 0; j < DG_NP; j++) {
-      if(fabs(s[start_ind + j]) < 0.05) {
+      if(fabs(s[start_ind + j]) < 2.0) {
         reinit = true;
       }
     }
@@ -216,7 +216,7 @@ void LevelSetSolver2D::reinitLS() {
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
     for(int j = 0; j < DG_NP; j++) {
-      if(fabs(s_ptr[start_ind + j]) < 0.05) {
+      if(fabs(s_ptr[start_ind + j]) < 2.0) {
         reinit = true;
       }
     }

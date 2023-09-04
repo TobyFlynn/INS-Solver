@@ -26,7 +26,7 @@ public:
   void init(const DG_FP re, const DG_FP refVel) override;
   void dump_data(const std::string &filename);
 
-  op_dat rho, mu;
+  op_dat rho, mu, st[2][2];
 private:
   void setup_common();
   void advection();
