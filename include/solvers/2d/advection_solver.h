@@ -15,10 +15,11 @@ public:
   void set_dt(const DG_FP t);
 private:
   void rhs(op_dat val, op_dat u, op_dat v, op_dat val_out);
+  void rhs_over_int(op_dat val, op_dat u, op_dat v, op_dat val_out);
 
   DGMesh2D *mesh;
   DG_FP dt;
-  op_dat f, g, flux, rk[3], rkQ;
+  bool over_int_advec;
 };
 
 #endif

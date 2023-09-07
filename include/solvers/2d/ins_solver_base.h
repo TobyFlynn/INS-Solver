@@ -26,22 +26,24 @@ protected:
   void advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat u_out, op_dat v_out,
                            const double t);
   void advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_dat v);
+  void project_velocity_mat_mult(op_dat u, op_dat v, op_dat u_out, op_dat v_out, op_dat pen, op_dat pen_f);
   void project_velocity(op_dat dpdx, op_dat dpdy);
   DG_FP max_vel();
   void add_to_pr_history();
-  void shock_capture_filter_dat(op_dat in);
+  void filter(op_dat in);
 
   DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, h;
   int currentInd, sub_cycles;
   op_dat vel[2][2], velT[2], velTT[2], pr, n[2][2], dPdN[2], bc_types, proj_h;
 
   DGMesh2D *mesh;
-  bool div_div_proj, extrapolate_initial_guess, shock_cap, over_int_advec;
-  int it_pre_sub_cycle;
+  bool extrapolate_initial_guess, shock_cap, over_int_advec;
+  int it_pre_sub_cycle, pr_projection_method;
   std::vector<std::pair<DG_FP,DGTempDat>> pr_history;
 
   // Filter params
-  DG_FP filter_max_alpha, filter_s0, filter_k, filter_c;
+  DG_FP filter_alpha;
+  int filter_Nc, filter_sp;
 
 private:
   void read_options();

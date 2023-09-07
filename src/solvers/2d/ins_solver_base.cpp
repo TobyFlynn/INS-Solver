@@ -66,9 +66,9 @@ INSSolverBase2D::INSSolverBase2D(DGMesh2D *m, const std::string &filename) {
 }
 
 void INSSolverBase2D::read_options() {
-  int tmp_div = 1;
+  int tmp_div = 0;
   config->getInt("solver-options", "div_div", tmp_div);
-  div_div_proj = tmp_div != 0;
+  pr_projection_method = tmp_div;
   config->getInt("solver-options", "sub_cycle", sub_cycles);
   config->getInt("solver-options", "num_iter_before_sub_cycle", it_pre_sub_cycle);
   it_pre_sub_cycle = it_pre_sub_cycle > 1 ? it_pre_sub_cycle : 1;
@@ -79,14 +79,12 @@ void INSSolverBase2D::read_options() {
   config->getInt("solver-options", "shock_capturing", tmp_shock);
   shock_cap = tmp_shock == 1;
 
-  filter_max_alpha = 18.0;
-  config->getDouble("filter", "max_alpha", filter_max_alpha);
-  filter_s0 = -2.0;
-  config->getDouble("filter", "s0", filter_s0);
-  filter_k = 1.0;
-  config->getDouble("filter", "k", filter_k);
-  filter_c = 1.0;
-  config->getDouble("filter", "c", filter_c);
+  filter_alpha = 18.0;
+  config->getDouble("filter", "alpha", filter_alpha);
+  filter_sp = 32;
+  config->getInt("filter", "sp", filter_sp);
+  filter_Nc = 0;
+  config->getInt("filter", "Nc", filter_Nc);
 
   int tmp_oia = 0;
   config->getInt("solver-options", "over_int_advec", tmp_oia);
@@ -104,7 +102,7 @@ void INSSolverBase2D::init_dats() {
 
   bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_bc_types");
 
-  if(div_div_proj) {
+  if(pr_projection_method == 1 || pr_projection_method == 2) {
     proj_h = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_proj_h");
   }
 }
@@ -121,7 +119,7 @@ void INSSolverBase2D::init(const DG_FP re, const DG_FP refVel) {
   h = 1.0 / h;
   op_printf("h: %g\n", h);
 
-  if(div_div_proj) {
+  if(pr_projection_method == 1 || pr_projection_method == 2) {
     DGTempDat tmp_npf = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
     op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
                 op_arg_dat(tmp_npf.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
@@ -559,23 +557,72 @@ void INSSolverBase2D::advec_sub_cycle() {
   advec_current_non_linear();
 }
 
+void INSSolverBase2D::project_velocity_mat_mult(op_dat u, op_dat v,
+          op_dat u_out, op_dat v_out, op_dat pen, op_dat pen_f) {
+  timer->startTimer("pr_proj - mult");
+  DGTempDat div_tmp = dg_dat_pool->requestTempDatCells(DG_NP);
+
+  timer->startTimer("pr_proj - mult - div");
+  mesh->div(u, v, div_tmp.dat);
+  timer->endTimer("pr_proj - mult - div");
+
+  timer->startTimer("pr_proj - mult - mass");
+  mesh->mass(div_tmp.dat);
+  timer->endTimer("pr_proj - mult - mass");
+
+  timer->startTimer("pr_proj - mult - drst");
+  op2_gemv(mesh, true, 1.0, DGConstants::DR, div_tmp.dat, 0.0, u_out);
+  op2_gemv(mesh, true, 1.0, DGConstants::DS, div_tmp.dat, 0.0, v_out);
+  timer->endTimer("pr_proj - mult - drst");
+
+  dg_dat_pool->releaseTempDatCells(div_tmp);
+
+  timer->startTimer("pr_proj - mult - dir");
+  op_par_loop(ins_2d_proj_5, "ins_2d_proj_5", mesh->cells,
+              op_arg_dat(pen, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
+              op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u_out, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(v_out, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  timer->endTimer("pr_proj - mult - dir");
+
+  DGTempDat u_jump = dg_dat_pool->requestTempDatCells(DG_NPF * DG_NUM_FACES);
+  DGTempDat v_jump = dg_dat_pool->requestTempDatCells(DG_NPF * DG_NUM_FACES);
+
+  op_par_loop(zero_npf_2, "zero_npf_2", mesh->cells,
+              op_arg_dat(u_jump.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(v_jump.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+
+  timer->startTimer("pr_proj - mult - indir");
+  op_par_loop(ins_2d_proj_6, "ins_2d_proj_6", mesh->faces,
+              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(mesh->sJ, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(pen_f, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(u, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(v, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u_jump.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(v_jump.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  timer->endTimer("pr_proj - mult - indir");
+
+  timer->startTimer("pr_proj - mult - emat");
+  op2_gemv(mesh, false, 1.0, DGConstants::EMAT, u_jump.dat, 1.0, u_out);
+  op2_gemv(mesh, false, 1.0, DGConstants::EMAT, v_jump.dat, 1.0, v_out);
+  timer->endTimer("pr_proj - mult - emat");
+
+  dg_dat_pool->releaseTempDatCells(u_jump);
+  dg_dat_pool->releaseTempDatCells(v_jump);
+  timer->endTimer("pr_proj - mult");
+}
+
 void INSSolverBase2D::project_velocity(op_dat dpdx, op_dat dpdy) {
-  if(!div_div_proj) {
-    // Calculate new velocity intermediate values
-    op_par_loop(ins_pressure_update_2d, "ins_pressure_update_2d", mesh->cells,
-                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-  } else {
+  if(pr_projection_method == 1) {
     DGTempDat projRHS[2];
     projRHS[0] = dg_dat_pool->requestTempDatCells(DG_NP);
     projRHS[1] = dg_dat_pool->requestTempDatCells(DG_NP);
     // Calculate new velocity intermediate values
-    op_par_loop(ins_proj_rhs_2d, "ins_proj_rhs_2d", mesh->cells,
+    op_par_loop(ins_2d_proj_rhs, "ins_2d_proj_rhs", mesh->cells,
                 op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -590,10 +637,11 @@ void INSSolverBase2D::project_velocity(op_dat dpdx, op_dat dpdy) {
     mesh->mass(projRHS[1].dat);
 
     DGTempDat proj_pen = dg_dat_pool->requestTempDatCells(1);
-    DG_FP factor = dt * 1.0;
+    DGTempDat proj_pen_f = dg_dat_pool->requestTempDatCells(1);
+    DG_FP factor = dt * 1.0 * 1e3;
     // DG_FP factor = dt / Cr;
     // op_printf("Cr: %g\n", Cr);
-    op_par_loop(project_2d_pen, "project_2d_pen", mesh->cells,
+    op_par_loop(ins_2d_proj_pen, "ins_2d_proj_pen", mesh->cells,
                 op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
                 op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
                 op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
@@ -603,7 +651,8 @@ void INSSolverBase2D::project_velocity(op_dat dpdx, op_dat dpdy) {
                 op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(proj_pen.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+                op_arg_dat(proj_pen.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
+                op_arg_dat(proj_pen_f.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
     // Do the 2 vector linear solve with project_mat as the matrix
     int num_cells = 0;
@@ -627,8 +676,180 @@ void INSSolverBase2D::project_velocity(op_dat dpdx, op_dat dpdy) {
     }
 
     dg_dat_pool->releaseTempDatCells(proj_pen);
+    dg_dat_pool->releaseTempDatCells(proj_pen_f);
     dg_dat_pool->releaseTempDatCells(projRHS[0]);
     dg_dat_pool->releaseTempDatCells(projRHS[1]);
+  } else if(pr_projection_method == 2) {
+    DGTempDat projRHS[2];
+    projRHS[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+    projRHS[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+
+    op_par_loop(ins_2d_proj_rhs, "ins_2d_proj_rhs", mesh->cells,
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(projRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(projRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    mesh->mass(projRHS[0].dat);
+    mesh->mass(projRHS[1].dat);
+
+    DGTempDat proj_pen = dg_dat_pool->requestTempDatCells(1);
+    DGTempDat proj_pen_f = dg_dat_pool->requestTempDatCells(1);
+    DG_FP factor = dt * 1.0;
+    // DG_FP factor = dt / Cr;
+    // op_printf("Cr: %g\n", Cr);
+    op_par_loop(ins_2d_proj_pen, "ins_2d_proj_pen", mesh->cells,
+                op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(proj_pen.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
+                op_arg_dat(proj_pen_f.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+
+    DGTempDat cg_tmp[2];
+    cg_tmp[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+    cg_tmp[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+    DGTempDat cg_r[2];
+    cg_r[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+    cg_r[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+    DGTempDat cg_z[2];
+    cg_z[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+    cg_z[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+    DGTempDat cg_p[2];
+    cg_p[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+    cg_p[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+
+    int iter = 0;
+    const int max_iter = 250;
+    DG_FP residual = 0.0;
+    const DG_FP tol = 1e-10;
+
+    // Calculate first residual
+    project_velocity_mat_mult(velTT[0], velTT[1], cg_tmp[0].dat,
+            cg_tmp[1].dat, proj_pen.dat, proj_pen_f.dat);
+    
+    op_par_loop(ins_2d_proj_0, "ins_2d_proj_0", mesh->cells,
+                op_arg_gbl(&residual, 1, DG_FP_STR, OP_INC),
+                op_arg_dat(projRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(projRHS[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(cg_tmp[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(cg_tmp[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(cg_r[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(cg_r[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(cg_z[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(cg_z[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    residual = sqrt(residual);
+    // op_printf("residual: %g\n", residual);
+    mesh->inv_mass(cg_z[0].dat);
+    mesh->inv_mass(cg_z[1].dat);
+    op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
+                op_arg_dat(cg_z[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(cg_p[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
+                op_arg_dat(cg_z[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(cg_p[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    while(residual > tol && iter < max_iter) {
+      project_velocity_mat_mult(cg_p[0].dat, cg_p[1].dat,
+        cg_tmp[0].dat, cg_tmp[1].dat, proj_pen.dat, proj_pen_f.dat);
+
+      DG_FP tmp_alpha_0 = 0.0;
+      DG_FP tmp_alpha_1 = 0.0;
+      op_par_loop(ins_2d_proj_1, "ins_2d_proj_1", mesh->cells,
+                  op_arg_gbl(&tmp_alpha_0, 1, DG_FP_STR, OP_INC),
+                  op_arg_gbl(&tmp_alpha_1, 1, DG_FP_STR, OP_INC),
+                  op_arg_dat(cg_r[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_r[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_z[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_z[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_p[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_p[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_tmp[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_tmp[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+
+      DG_FP alpha = tmp_alpha_0 / tmp_alpha_1;
+      residual = 0.0;
+      DG_FP tmp_beta_1 = 0.0;
+      op_par_loop(ins_2d_proj_2, "ins_2d_proj_2", mesh->cells,
+                  op_arg_gbl(&alpha, 1, DG_FP_STR, OP_READ),
+                  op_arg_gbl(&residual, 1, DG_FP_STR, OP_INC),
+                  op_arg_gbl(&tmp_beta_1, 1, DG_FP_STR, OP_INC),
+                  op_arg_dat(cg_p[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_p[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_tmp[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_tmp[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_z[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_dat(cg_z[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_dat(cg_r[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_dat(cg_r[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+      residual = sqrt(residual);
+      // op_printf("residual: %g\n", residual);
+
+      if(residual < tol) break;
+
+      mesh->inv_mass(cg_z[0].dat);
+      mesh->inv_mass(cg_z[1].dat);
+
+      DG_FP tmp_beta_0 = 0.0;
+      op_par_loop(ins_2d_proj_3, "ins_2d_proj_3", mesh->cells,
+                  op_arg_gbl(&tmp_beta_0, 1, DG_FP_STR, OP_INC),
+                  op_arg_dat(cg_r[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_r[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_z[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_z[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+
+      DG_FP beta = tmp_beta_0 / tmp_beta_1;
+
+      op_par_loop(ins_2d_proj_4, "ins_2d_proj_4", mesh->cells,
+                  op_arg_gbl(&beta, 1, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_z[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_z[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(cg_p[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_dat(cg_p[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+      iter++;
+    }
+
+    // if(iter == max_iter)
+    op_printf("residual: %g\n", residual);
+    op_printf("iter: %d\n", iter);
+
+    dg_dat_pool->releaseTempDatCells(cg_p[0]);
+    dg_dat_pool->releaseTempDatCells(cg_p[1]);
+    dg_dat_pool->releaseTempDatCells(cg_z[0]);
+    dg_dat_pool->releaseTempDatCells(cg_z[1]);
+    dg_dat_pool->releaseTempDatCells(cg_r[0]);
+    dg_dat_pool->releaseTempDatCells(cg_r[1]);
+    dg_dat_pool->releaseTempDatCells(cg_tmp[0]);
+    dg_dat_pool->releaseTempDatCells(cg_tmp[1]);
+
+    dg_dat_pool->releaseTempDatCells(proj_pen_f);
+    dg_dat_pool->releaseTempDatCells(proj_pen);
+    dg_dat_pool->releaseTempDatCells(projRHS[0]);
+    dg_dat_pool->releaseTempDatCells(projRHS[1]);
+  } else {
+    // Calculate new velocity intermediate values
+    op_par_loop(ins_pressure_update_2d, "ins_pressure_update_2d", mesh->cells,
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   }
 }
 
@@ -667,47 +888,14 @@ DG_FP INSSolverBase2D::get_dt() {
   return dt;
 }
 
-void INSSolverBase2D::shock_capture_filter_dat(op_dat in) {
-  DGTempDat u_hat = dg_dat_pool->requestTempDatCells(DG_NP);
+void INSSolverBase2D::filter(op_dat in) {
   DGTempDat u_modal = dg_dat_pool->requestTempDatCells(DG_NP);
   op2_gemv(mesh, false, 1.0, DGConstants::INV_V, in, 0.0, u_modal.dat);
-
-  const double *r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
-  const double *s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
-
-  std::vector<DG_FP> r_vec, s_vec;
-  for(int i = 0; i < DG_NP; i++) {
-    r_vec.push_back(r_ptr[i]);
-    s_vec.push_back(s_ptr[i]);
-  }
-
-  std::vector<DG_FP> simplex_vals = DGUtils::val_at_pt_N_1_2d_get_simplexes(r_vec, s_vec, DG_ORDER);
-
-  op_par_loop(discont_sensor_0, "discont_sensor_0", mesh->cells,
-              op_arg_gbl(simplex_vals.data(), DG_NP * DG_NP, "double", OP_READ),
-              op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_WRITE));
-
-  double max_alpha = filter_max_alpha;
-  // double e0 = h;
-  // double s0 = 1.0 / (double)(DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER);
-  double s0 = filter_s0;
-  // double k  = 5.0;
-  double k = filter_k;
-  double c = filter_c;
-  op_par_loop(discont_sensor_cutoff_filter, "discont_sensor_cutoff_filter", mesh->cells,
-              op_arg_gbl(&max_alpha, 1, "double", OP_READ),
-              op_arg_gbl(&s0, 1, "double", OP_READ),
-              op_arg_gbl(&k,  1, "double", OP_READ),
-              op_arg_gbl(&c,  1, "double", OP_READ),
-              op_arg_dat(mesh->geof, -1, OP_ID, 5, "double", OP_READ),
-              op_arg_dat(in, -1, OP_ID, DG_NP, "double", OP_READ),
-              op_arg_dat(u_hat.dat, -1, OP_ID, DG_NP, "double", OP_READ),
+  op_par_loop(filter_2d, "filter_3d", mesh->cells,
+              op_arg_gbl(&filter_alpha, 1, "double", OP_READ),
+              op_arg_gbl(&filter_Nc, 1, "int", OP_READ),
+              op_arg_gbl(&filter_sp,  1, "int", OP_READ),
               op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, "double", OP_RW));
-
   op2_gemv(mesh, false, 1.0, DGConstants::V, u_modal.dat, 0.0, in);
-
-  dg_dat_pool->releaseTempDatCells(u_hat);
   dg_dat_pool->releaseTempDatCells(u_modal);
 }

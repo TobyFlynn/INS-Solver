@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
     mpins2d->dump_data(out_file_end);
   }
 
-  timer->exportTimings(outputDir + "timings.txt", iter, mpins2d->get_time());
+  timer->exportTimings(outputDir + "timings", iter, mpins2d->get_time());
 
   delete mpins2d;
 

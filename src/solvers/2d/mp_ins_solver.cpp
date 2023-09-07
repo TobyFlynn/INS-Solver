@@ -300,6 +300,7 @@ void MPINSSolver2D::advection() {
 
   // Apply curvature and weber number (placeholder currently)
   op_par_loop(ins_2d_st_6, "ins_2d_st_6", mesh->cells,
+              op_arg_gbl(constants->decrease_order_ptr, DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
@@ -373,8 +374,8 @@ bool MPINSSolver2D::pressure() {
               op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(pr_factor.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-  mesh->mass(divVelT.dat);
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT.dat);
+  mesh->mass(divVelT.dat);
   timer->endTimer("MPINSSolver2D - Pressure RHS");
 
   // Call PETSc linear solver
@@ -401,7 +402,7 @@ bool MPINSSolver2D::pressure() {
   DGTempDat dpdy = dg_dat_pool->requestTempDatCells(DG_NP);
 
   // Calculate gradient of pressure
-  mesh->grad_with_central_flux(pr, dpdx.dat, dpdy.dat);
+  mesh->grad_over_int_with_central_flux(pr, dpdx.dat, dpdy.dat);
 
   op_par_loop(mp_ins_2d_pr_2, "mp_ins_2d_pr_2", mesh->cells,
               op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -409,6 +410,9 @@ bool MPINSSolver2D::pressure() {
               op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   project_velocity(dpdx.dat, dpdy.dat);
+
+  filter(velTT[0]);
+  filter(velTT[1]);
 
   dg_dat_pool->releaseTempDatCells(dpdx);
   dg_dat_pool->releaseTempDatCells(dpdy);
@@ -510,6 +514,7 @@ void MPINSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(dPdN[1], filename.c_str());
   op_fetch_data_hdf5_file(velT[0], filename.c_str());
   op_fetch_data_hdf5_file(velT[1], filename.c_str());
+  // mesh->grad_over_int_with_central_flux(pr, velTT[0], velTT[1]);
   op_fetch_data_hdf5_file(velTT[0], filename.c_str());
   op_fetch_data_hdf5_file(velTT[1], filename.c_str());
   op_fetch_data_hdf5_file(pr, filename.c_str());
@@ -522,10 +527,5 @@ void MPINSSolver2D::dump_data(const std::string &filename) {
 void MPINSSolver2D::surface() {
   lsSolver->setVelField(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1]);
   lsSolver->step(dt);
-  timer->startTimer("MPINSSolver2D - Shock Capturing");
-  if(shock_cap) {
-    shock_capture_filter_dat(lsSolver->s);
-  }
-  timer->endTimer("MPINSSolver2D - Shock Capturing");
   lsSolver->getRhoMu(rho, mu);
 }
