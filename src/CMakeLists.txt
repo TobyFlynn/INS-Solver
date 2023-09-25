@@ -12,7 +12,11 @@ if(DIM EQUAL 2)
 
   set(CPU_SRC solvers/2d/ls_utils/ls_reinit.cpp)
 
-  set(GPU_SRC solvers/2d/ls_utils/ls_reinit_poly_eval_cuda.cu solvers/2d/ls_utils/ls_reinit.cu)
+  #set(GPU_SRC solvers/2d/ls_utils/ls_reinit_poly_eval_cuda.cu solvers/2d/ls_utils/ls_reinit.cu)
+  #set(HIP_SRC solvers/2d/ls_utils/ls_reinit_poly_eval_hip.cpp solvers/2d/ls_utils/ls_reinit_hip.cpp)
+
+  set(GPU_SRC solvers/2d/ls_utils/ls_reinit.cu)
+  set(HIP_SRC solvers/2d/ls_utils/ls_reinit_hip.cpp)
 
   set(SN_SRC solvers/2d/ls_utils/kd_tree.cpp)
   set(MPI_SRC solvers/2d/ls_utils/kd_tree_mpi.cpp)
@@ -33,6 +37,7 @@ elseif(DIM EQUAL 3)
 
   set(CPU_SRC solvers/3d/ls_solver_cpu.cpp)
   set(GPU_SRC solvers/3d/ls_solver_gpu.cu)
+  set(HIP_SRC solvers/3d/ls_solver_hip.cpp)
   list(APPEND MPI_SRC solvers/3d/ls_utils/kd_tree_mpi.cpp)
 
   set(DIM_POSTFIX 3d)
@@ -60,6 +65,13 @@ if(BUILD_SN AND BUILD_GPU)
   target_compile_definitions(ins${DIM_POSTFIX}_cuda PRIVATE ${DG_COMPILER_DEFS} OP2_DG_CUDA INS_CUDA DG_DIM=${DIM} ${COMMON_COMPILER_DEFS})
 
   set_property(TARGET ins${DIM_POSTFIX}_cuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+endif()
+
+if(BUILD_SN AND BUILD_HIP)
+  
+  add_executable(ins${DIM_POSTFIX}_hip ${COMMON_SRC} ${HIP_SRC} ${SN_SRC} ${SN_GPU_SRC} hip/ins${DIM_POSTFIX}_kernels.cpp)
+  target_link_libraries(ins${DIM_POSTFIX}_hip -L${OP2_DIR}/lib -lop2_cuda -lop2_hdf5 ${COMMON_LIBS} ${AMGX_LIB} ${INS_CUDA_LIBS} -L${OP2DGTOOLKIT_DIR}/lib -lop2dgtoolkit_${DIM_POSTFIX}_cuda -ldgtoolkit ${EXTRA_LIBS})
+  target_compile_definitions(ins${DIM_POSTFIX}_hip PRIVATE ${DG_COMPILER_DEFS} OP2_DG_CUDA INS_CUDA DG_DIM=${DIM} ${COMMON_COMPILER_DEFS})
 endif()
 
 if(BUILD_MPI AND BUILD_CPU)

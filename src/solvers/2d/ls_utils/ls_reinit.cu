@@ -1,3 +1,5 @@
+/*
+
 #include "solvers/2d/ls_solver.h"
 
 #include <vector>
@@ -10,9 +12,7 @@
 #include "op2_utils.h"
 #include "timing.h"
 #include "ls_utils/2d/ls_reinit_poly.h"
-#include "ls_utils/2d/ls_reinit_poly_eval_cuda.h"
-
-/*
+#include "ls_utils/2d/ls_reinit_poly_eval_device.h"
 
 #define THREADS_PER_BLOCK 256
 

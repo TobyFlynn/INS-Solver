@@ -1,5 +1,7 @@
 build
-gen2d
-gen3d
+gen_2d
+gen_3d
 results
 grids
+bin
+obj
