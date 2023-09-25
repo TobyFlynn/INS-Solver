@@ -296,7 +296,7 @@ $(3D_MPI_HIP_OBJ_DIR)/%.o: gen_3d/%.cu | $(3D_MPI_HIP_OBJ_DIR)
 	$(SN_2D_OBJ) \
 	openmp/ins2d_kernels.o)
 $(BIN)/ins2d_openmp: $(2D_OMP_OBJ) | $(BIN)
-	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_openmp -ldgtoolkit $(OP2_OPENMP_LIBS) $(OPENMP_FLAG) $(COMMON_LIBS) -o $@
+	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_openmp -ldgtoolkit $(OP2_OPENMP_LIBS) $(OPENMP_FLAG) $(COMMON_LIBS) $(EXTRA_LIBS_CPU) -o $@
 
 # 2D CUDA Binary
 2D_CUDA_OBJ := $(addprefix $(2D_CUDA_OBJ_DIR)/,\
@@ -305,7 +305,7 @@ $(BIN)/ins2d_openmp: $(2D_OMP_OBJ) | $(BIN)
 	$(SN_2D_OBJ) \
 	cuda/ins2d_kernels.o)
 $(BIN)/ins2d_cuda: $(2D_CUDA_OBJ) | $(BIN)
-	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB) -o $@
+	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB) $(EXTRA_LIBS_CUDA) -o $@
 
 # 2D HIP Binary
 2D_HIP_OBJ := $(addprefix $(2D_HIP_OBJ_DIR)/,\
@@ -314,7 +314,7 @@ $(BIN)/ins2d_cuda: $(2D_CUDA_OBJ) | $(BIN)
 	$(SN_2D_OBJ) \
 	hip/ins2d_kernels.o)
 $(BIN)/ins2d_hip: $(2D_HIP_OBJ) | $(BIN)
-	$(HIPCC) $(HIP_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_hip -ldgtoolkit $(OP2_HIP_LIBS) $(COMMON_LIBS) $(MPI_LIB) $(HIPBLAS_LIB) -o $@
+	$(HIPCC) $(HIP_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_hip -ldgtoolkit $(OP2_HIP_LIBS) $(COMMON_LIBS) $(MPI_LIB) $(HIPBLAS_LIB) $(EXTRA_LIBS_HIP) -o $@
 
 # 2D MPI Binary
 2D_MPI_SEQ_OBJ := $(addprefix $(2D_MPI_SEQ_OBJ_DIR)/,\
@@ -323,7 +323,7 @@ $(BIN)/ins2d_hip: $(2D_HIP_OBJ) | $(BIN)
 	$(MPI_2D_OBJ) \
 	seq/ins2d_seqkernels.o)
 $(BIN)/ins2d_mpi: $(2D_MPI_SEQ_OBJ) | $(BIN)
-	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_mpi -ldgtoolkit $(OP2_MPI_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) -o $@
+	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_mpi -ldgtoolkit $(OP2_MPI_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(EXTRA_LIBS_CPU) -o $@
 
 # 2D MPI + OpenMP Binary
 2D_MPI_OMP_OBJ := $(addprefix $(2D_MPI_OMP_OBJ_DIR)/,\
@@ -332,7 +332,7 @@ $(BIN)/ins2d_mpi: $(2D_MPI_SEQ_OBJ) | $(BIN)
 	$(MPI_2D_OBJ) \
 	openmp/ins2d_kernels.o)
 $(BIN)/ins2d_mpi_openmp: $(2D_MPI_OMP_OBJ) | $(BIN)
-	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_mpi_openmp -ldgtoolkit $(OP2_MPI_LIBS) $(PARTITION_LIB) $(OPENMP_FLAG) $(COMMON_LIBS) -o $@
+	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_mpi_openmp -ldgtoolkit $(OP2_MPI_LIBS) $(PARTITION_LIB) $(OPENMP_FLAG) $(COMMON_LIBS) $(EXTRA_LIBS_CPU) -o $@
 
 # 2D MPI + CUDA Binary
 2D_MPI_CUDA_OBJ := $(addprefix $(2D_MPI_CUDA_OBJ_DIR)/,\
@@ -341,7 +341,7 @@ $(BIN)/ins2d_mpi_openmp: $(2D_MPI_OMP_OBJ) | $(BIN)
 	$(MPI_2D_OBJ) \
 	cuda/ins2d_kernels.o)
 $(BIN)/ins2d_mpi_cuda: $(2D_MPI_CUDA_OBJ) | $(BIN)
-	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_mpi_cuda -ldgtoolkit $(OP2_MPI_CUDA_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB) -o $@
+	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_mpi_cuda -ldgtoolkit $(OP2_MPI_CUDA_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB) $(EXTRA_LIBS_CUDA) -o $@
 
 # 2D MPI + HIP Binary
 2D_MPI_HIP_OBJ := $(addprefix $(2D_MPI_HIP_OBJ_DIR)/,\
@@ -350,7 +350,7 @@ $(BIN)/ins2d_mpi_cuda: $(2D_MPI_CUDA_OBJ) | $(BIN)
 	$(MPI_2D_OBJ) \
 	hip/ins2d_kernels.o)
 $(BIN)/ins2d_mpi_hip: $(2D_MPI_HIP_OBJ) | $(BIN)
-	$(HIPCC) $(HIP_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_mpi_hip -ldgtoolkit $(OP2_MPI_HIP_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) $(HIPBLAS_LIB) -o $@
+	$(HIPCC) $(HIP_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_mpi_hip -ldgtoolkit $(OP2_MPI_HIP_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) $(HIPBLAS_LIB) $(EXTRA_LIBS_HIP) -o $@
 
 # 3D OpenMP Binary
 3D_OMP_OBJ := $(addprefix $(3D_OMP_OBJ_DIR)/,\
@@ -358,7 +358,7 @@ $(BIN)/ins2d_mpi_hip: $(2D_MPI_HIP_OBJ) | $(BIN)
 	$(CPU_3D_OBJ) \
 	openmp/ins3d_kernels.o)
 $(BIN)/ins3d_openmp: $(3D_OMP_OBJ) | $(BIN)
-	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_openmp -ldgtoolkit $(OP2_OPENMP_LIBS) $(OPENMP_FLAG) $(COMMON_LIBS) -o $@
+	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_openmp -ldgtoolkit $(OP2_OPENMP_LIBS) $(OPENMP_FLAG) $(COMMON_LIBS) $(EXTRA_LIBS_CPU) -o $@
 
 # 3D CUDA Binary
 3D_CUDA_OBJ := $(addprefix $(3D_CUDA_OBJ_DIR)/,\
@@ -366,7 +366,7 @@ $(BIN)/ins3d_openmp: $(3D_OMP_OBJ) | $(BIN)
 	$(CUDA_3D_OBJ) \
 	cuda/ins3d_kernels.o)
 $(BIN)/ins3d_cuda: $(3D_CUDA_OBJ) | $(BIN)
-	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB) -o $@
+	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB) $(EXTRA_LIBS_CUDA) -o $@
 
 # 3D HIP Binary
 3D_HIP_OBJ := $(addprefix $(3D_HIP_OBJ_DIR)/,\
@@ -374,7 +374,7 @@ $(BIN)/ins3d_cuda: $(3D_CUDA_OBJ) | $(BIN)
 	$(HIP_3D_OBJ) \
 	hip/ins3d_kernels.o)
 $(BIN)/ins3d_hip: $(3D_HIP_OBJ) | $(BIN)
-	$(HIPCC) $(HIP_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_hip -ldgtoolkit $(OP2_HIP_LIBS) $(COMMON_LIBS) $(MPI_LIB) $(HIPBLAS_LIB) -o $@
+	$(HIPCC) $(HIP_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_hip -ldgtoolkit $(OP2_HIP_LIBS) $(COMMON_LIBS) $(MPI_LIB) $(HIPBLAS_LIB) $(EXTRA_LIBS_HIP) -o $@
 
 # 3D MPI Binary
 3D_MPI_SEQ_OBJ := $(addprefix $(3D_MPI_SEQ_OBJ_DIR)/,\
@@ -383,7 +383,7 @@ $(BIN)/ins3d_hip: $(3D_HIP_OBJ) | $(BIN)
 	$(MPI_3D_OBJ) \
 	seq/ins3d_seqkernels.o)
 $(BIN)/ins3d_mpi: $(3D_MPI_SEQ_OBJ) | $(BIN)
-	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_mpi -ldgtoolkit $(OP2_MPI_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) -o $@
+	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_mpi -ldgtoolkit $(OP2_MPI_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(EXTRA_LIBS_CPU) -o $@
 
 # 3D MPI + OpenMP Binary
 3D_MPI_OMP_OBJ := $(addprefix $(3D_MPI_OMP_OBJ_DIR)/,\
@@ -392,7 +392,7 @@ $(BIN)/ins3d_mpi: $(3D_MPI_SEQ_OBJ) | $(BIN)
 	$(MPI_3D_OBJ) \
 	openmp/ins3d_kernels.o)
 $(BIN)/ins3d_mpi_openmp: $(3D_MPI_OMP_OBJ) | $(BIN)
-	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_mpi_openmp -ldgtoolkit $(OP2_MPI_LIBS) $(PARTITION_LIB) $(OPENMP_FLAG) $(COMMON_LIBS) -o $@
+	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_mpi_openmp -ldgtoolkit $(OP2_MPI_LIBS) $(PARTITION_LIB) $(OPENMP_FLAG) $(COMMON_LIBS) $(EXTRA_LIBS_CPU) -o $@
 
 # 3D MPI + CUDA Binary
 3D_MPI_CUDA_OBJ := $(addprefix $(3D_MPI_CUDA_OBJ_DIR)/,\
@@ -401,7 +401,7 @@ $(BIN)/ins3d_mpi_openmp: $(3D_MPI_OMP_OBJ) | $(BIN)
 	$(MPI_3D_OBJ) \
 	cuda/ins3d_kernels.o)
 $(BIN)/ins3d_mpi_cuda: $(3D_MPI_CUDA_OBJ) | $(BIN)
-	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_mpi_cuda -ldgtoolkit $(OP2_MPI_CUDA_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB)  -o $@
+	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_mpi_cuda -ldgtoolkit $(OP2_MPI_CUDA_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB) $(EXTRA_LIBS_CUDA) -o $@
 
 # 3D MPI + HIP Binary
 3D_MPI_HIP_OBJ := $(addprefix $(3D_MPI_HIP_OBJ_DIR)/,\
@@ -410,4 +410,4 @@ $(BIN)/ins3d_mpi_cuda: $(3D_MPI_CUDA_OBJ) | $(BIN)
 	$(MPI_3D_OBJ) \
 	hip/ins3d_kernels.o)
 $(BIN)/ins3d_mpi_hip: $(3D_MPI_HIP_OBJ) | $(BIN)
-	$(HIPCC) $(HIP_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_mpi_hip -ldgtoolkit $(OP2_MPI_HIP_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) $(HIPBLAS_LIB) -o $@
+	$(HIPCC) $(HIP_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_mpi_hip -ldgtoolkit $(OP2_MPI_HIP_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) $(HIPBLAS_LIB) $(EXTRA_LIBS_HIP) -o $@

@@ -29,5 +29,9 @@ PARTITION_LIB = -L$(PARMETIS_DIR)/lib -lparmetis -lmetis -lGKlib
 CUBLAS_LIB = -lcublas
 HIPBLAS_LIB = -lhipblas
 
+EXTRA_LIBS_CPU = 
+EXTRA_LIBS_CUDA = 
+EXTRA_LIBS_HIP = 
+
 ORDER = 3
 SOA = true
