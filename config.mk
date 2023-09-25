@@ -27,6 +27,7 @@ PARTITION_LIB = -L$(PARMETIS_DIR)/lib -lparmetis -lmetis -lGKlib
 #PARTITION_LIB = -L$(PARMETIS_DIR)/lib -lparmetis -lmetis -lGKlib -L${PTSCOTCH_DIR}/lib -lptscotch -lscotch -lptscotcherr -lscotcherr -lptscotcherrexit -lscotcherrexit
 
 CUBLAS_LIB = -lcublas
+HIPBLAS_LIB = -lhipblas
 
 ORDER = 3
 SOA = true
