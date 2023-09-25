@@ -38,8 +38,6 @@ ARMA_LIB = -L$(ARMA_DIR)/lib64 -larmadillo
 HDF5_LIB = -L$(HDF5_DIR)/lib -lhdf5
 COMMON_LIBS = $(OPENBLAS_LIB) $(PETSC_LIB) $(ARMA_LIB) $(HDF5_LIB)
 
-PARTITION_LIB = -L$(PARMETIS_DIR)/lib -lparmetis -lmetis -lGKlib
-
 OP2_OPENMP_LIBS = -L$(OP2_DIR)/lib -lop2_openmp -lop2_hdf5
 OP2_CUDA_LIBS = -L$(OP2_DIR)/lib -lop2_cuda -lop2_hdf5
 OP2_MPI_LIBS = -L$(OP2_DIR)/lib -lop2_mpi
@@ -260,7 +258,7 @@ $(BIN)/ins2d_openmp: $(2D_OMP_OBJ) | $(BIN)
 	$(SN_2D_OBJ) \
 	cuda/ins2d_kernels.o)
 $(BIN)/ins2d_cuda: $(2D_CUDA_OBJ) | $(BIN)
-	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(COMMON_LIBS) $(MPI_LIB) -lcublas -o $@
+	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB) -o $@
 
 # 2D MPI Binary
 2D_MPI_SEQ_OBJ := $(addprefix $(2D_MPI_SEQ_OBJ_DIR)/,\
@@ -287,7 +285,7 @@ $(BIN)/ins2d_mpi_openmp: $(2D_MPI_OMP_OBJ) | $(BIN)
 	$(MPI_2D_OBJ) \
 	cuda/ins2d_kernels.o)
 $(BIN)/ins2d_mpi_cuda: $(2D_MPI_CUDA_OBJ) | $(BIN)
-	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_mpi_cuda -ldgtoolkit $(OP2_MPI_CUDA_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) -lcublas -o $@
+	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_mpi_cuda -ldgtoolkit $(OP2_MPI_CUDA_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB) -o $@
 
 # 3D OpenMP Binary
 3D_OMP_OBJ := $(addprefix $(3D_OMP_OBJ_DIR)/,\
@@ -303,7 +301,7 @@ $(BIN)/ins3d_openmp: $(3D_OMP_OBJ) | $(BIN)
 	$(CUDA_3D_OBJ) \
 	cuda/ins3d_kernels.o)
 $(BIN)/ins3d_cuda: $(3D_CUDA_OBJ) | $(BIN)
-	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(COMMON_LIBS) $(MPI_LIB) -lcublas -o $@
+	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB) -o $@
 
 # 3D MPI Binary
 3D_MPI_SEQ_OBJ := $(addprefix $(3D_MPI_SEQ_OBJ_DIR)/,\
@@ -330,4 +328,4 @@ $(BIN)/ins3d_mpi_openmp: $(3D_MPI_OMP_OBJ) | $(BIN)
 	$(MPI_3D_OBJ) \
 	cuda/ins3d_kernels.o)
 $(BIN)/ins3d_mpi_cuda: $(3D_MPI_CUDA_OBJ) | $(BIN)
-	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_mpi_cuda -ldgtoolkit $(OP2_MPI_CUDA_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) -lcublas  -o $@
+	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_mpi_cuda -ldgtoolkit $(OP2_MPI_CUDA_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB)  -o $@
