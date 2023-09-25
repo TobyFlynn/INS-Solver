@@ -260,7 +260,7 @@ $(BIN)/ins2d_openmp: $(2D_OMP_OBJ) | $(BIN)
 	$(SN_2D_OBJ) \
 	cuda/ins2d_kernels.o)
 $(BIN)/ins2d_cuda: $(2D_CUDA_OBJ) | $(BIN)
-	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(OPENMP_FLAG) $(COMMON_LIBS) $(MPI_LIB) -o $@
+	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(COMMON_LIBS) $(MPI_LIB) -lcublas -o $@
 
 # 2D MPI Binary
 2D_MPI_SEQ_OBJ := $(addprefix $(2D_MPI_SEQ_OBJ_DIR)/,\
@@ -287,7 +287,7 @@ $(BIN)/ins2d_mpi_openmp: $(2D_MPI_OMP_OBJ) | $(BIN)
 	$(MPI_2D_OBJ) \
 	cuda/ins2d_kernels.o)
 $(BIN)/ins2d_mpi_cuda: $(2D_MPI_CUDA_OBJ) | $(BIN)
-	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_mpi_cuda -ldgtoolkit $(OP2_MPI_CUDA_LIBS) $(OPENMP_FLAG) $(COMMON_LIBS) $(MPI_LIB) -o $@
+	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_mpi_cuda -ldgtoolkit $(OP2_MPI_CUDA_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) -lcublas -o $@
 
 # 3D OpenMP Binary
 3D_OMP_OBJ := $(addprefix $(3D_OMP_OBJ_DIR)/,\
@@ -303,7 +303,7 @@ $(BIN)/ins3d_openmp: $(3D_OMP_OBJ) | $(BIN)
 	$(CUDA_3D_OBJ) \
 	cuda/ins3d_kernels.o)
 $(BIN)/ins3d_cuda: $(3D_CUDA_OBJ) | $(BIN)
-	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(OPENMP_FLAG) $(COMMON_LIBS) $(MPI_LIB) -o $@
+	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(COMMON_LIBS) $(MPI_LIB) -lcublas -o $@
 
 # 3D MPI Binary
 3D_MPI_SEQ_OBJ := $(addprefix $(3D_MPI_SEQ_OBJ_DIR)/,\
@@ -330,4 +330,4 @@ $(BIN)/ins3d_mpi_openmp: $(3D_MPI_OMP_OBJ) | $(BIN)
 	$(MPI_3D_OBJ) \
 	cuda/ins3d_kernels.o)
 $(BIN)/ins3d_mpi_cuda: $(3D_MPI_CUDA_OBJ) | $(BIN)
-	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_mpi_cuda -ldgtoolkit $(OP2_MPI_CUDA_LIBS) $(OPENMP_FLAG) $(COMMON_LIBS) $(MPI_LIB) -o $@
+	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_3d_mpi_cuda -ldgtoolkit $(OP2_MPI_CUDA_LIBS) $(PARTITION_LIB) $(COMMON_LIBS) $(MPI_LIB) -lcublas  -o $@
