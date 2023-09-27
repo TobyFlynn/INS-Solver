@@ -3,7 +3,7 @@ import sys
 
 gemv_template = \
 """
-#ifndef OP2_DG_CUDA
+#if !defined(OP2_DG_CUDA) && !defined(OP2_DG_HIP)
 #if DG_DOUBLE == 1
 cblas_dgemv({row_col},{trans},{m},{n},{alpha},{A},{lda},{x}, 1,{beta},{y}, 1);
 #else
@@ -56,7 +56,7 @@ def replace_gemv_kernels(input_str):
 
 gemm_template = \
 """
-#ifndef OP2_DG_CUDA
+#if !defined(OP2_DG_CUDA) && !defined(OP2_DG_HIP)
 #if DG_DOUBLE == 1
 cblas_dgemm({row_col}, {transA}, {transB}, {m}, {n}, {k}, {alpha}, {A}, {lda}, {B}, {ldb}, {beta}, {C}, {ldc});
 #else
@@ -224,8 +224,8 @@ for f in inputfiles:
         newdata = newdata.replace("DG_CUB_SURF_2D_NP", dg_cub_surf_2d_np)
 
     if dim == "2":
-        with open("gen2d/" + f, "w") as file:
+        with open("gen_2d/" + f, "w") as file:
             file.write(newdata)
     elif dim == "3":
-        with open("gen3d/" + f, "w") as file:
+        with open("gen_3d/" + f, "w") as file:
             file.write(newdata)
