@@ -61,6 +61,9 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m, const std::string &filename, const int
 }
 
 void MPINSSolver2D::setup_common() {
+  int tmp_st = 0;
+  config->getInt("solver-options", "surface_tension", tmp_st);
+  surface_tension = tmp_st == 1;
   double tmp_dt = -1.0;
   config->getDouble("solver-options", "force_dt", tmp_dt);
   dt_forced = tmp_dt > 0.0;
@@ -86,10 +89,12 @@ void MPINSSolver2D::setup_common() {
   rho = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_rho");
   mu  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_mu");
 
-  st[0][0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st00");
-  st[0][1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st01");
-  st[1][0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st10");
-  st[1][1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st11");
+  if(surface_tension) {
+    st[0][0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st00");
+    st[0][1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st01");
+    st[1][0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st10");
+    st[1][1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st11");
+  }
 
   pr_bc_types  = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_pr_bc_types");
   vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_vis_bc_types");
@@ -127,27 +132,23 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
 
     op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
                 op_arg_dat(n[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
     op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
                 op_arg_dat(n[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
     op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
                 op_arg_dat(n[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
     op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
                 op_arg_dat(n[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
-                op_arg_dat(st[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
-                op_arg_dat(st[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
-                op_arg_dat(st[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
-                op_arg_dat(st[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    if(surface_tension) {
+      op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                  op_arg_dat(st[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+      op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                  op_arg_dat(st[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+      op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                  op_arg_dat(st[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+      op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                  op_arg_dat(st[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    }
 
     op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
                 op_arg_dat(pr, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
@@ -221,96 +222,101 @@ void MPINSSolver2D::step() {
 
 // Calculate Nonlinear Terms
 void MPINSSolver2D::advection() {
-  // Calculate surface tension
-  // grad heaviside
-  DGTempDat st_tmp_0 = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, lsSolver->s, 0.0, st_tmp_0.dat);
+  if(surface_tension) {
+    // Calculate surface tension
+    // grad heaviside
+    DGTempDat st_tmp_0 = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, lsSolver->s, 0.0, st_tmp_0.dat);
 
-  op_par_loop(ins_2d_st_0, "ins_2d_st_0", mesh->cells,
-              op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(st_tmp_0.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
-  
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PDR, st_tmp_0.dat, 0.0, st[currentInd][0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PDS, st_tmp_0.dat, 0.0, st[currentInd][1]);
+    op_par_loop(ins_2d_st_0, "ins_2d_st_0", mesh->cells,
+                op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(st_tmp_0.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
+    
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PDR, st_tmp_0.dat, 0.0, st[currentInd][0]);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PDS, st_tmp_0.dat, 0.0, st[currentInd][1]);
 
-  dg_dat_pool->releaseTempDatCells(st_tmp_0);
+    dg_dat_pool->releaseTempDatCells(st_tmp_0);
 
-  op_par_loop(ins_2d_st_1, "ins_2d_st_1", mesh->cells,
-              op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
-              op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    op_par_loop(ins_2d_st_1, "ins_2d_st_1", mesh->cells,
+                op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
+                op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
-  DGTempDat sM = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-  DGTempDat sP = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+    DGTempDat sM = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+    DGTempDat sP = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
 
-  op_par_loop(ins_2d_st_2, "ins_2d_st_2", mesh->faces,
-              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(lsSolver->s, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(sM.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(sP.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  
-  if(mesh->bface2cells) {
-    op_par_loop(ins_2d_st_3, "ins_2d_st_3", mesh->bfaces,
-                op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(lsSolver->s, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(sM.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-                op_arg_dat(sP.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));
+    op_par_loop(ins_2d_st_2, "ins_2d_st_2", mesh->faces,
+                op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+                op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+                op_arg_dat(lsSolver->s, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(sM.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+                op_arg_dat(sP.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+    
+    if(mesh->bface2cells) {
+      op_par_loop(ins_2d_st_3, "ins_2d_st_3", mesh->bfaces,
+                  op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+                  op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                  op_arg_dat(lsSolver->s, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(sM.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
+                  op_arg_dat(sP.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));
+    }
+
+    DGTempDat sM_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
+    DGTempDat sP_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
+
+    timer->startTimer("INSSolverBase2D - advec_current_non_linear_over_int - Interp Surf");
+    op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_INTERP, sM.dat, 0.0, sM_cub.dat);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_INTERP, sP.dat, 0.0, sP_cub.dat);
+
+    dg_dat_pool->releaseTempDatCells(sM);
+    dg_dat_pool->releaseTempDatCells(sP);
+    timer->endTimer("INSSolverBase2D - advec_current_non_linear_over_int - Interp Surf");
+
+    op_par_loop(ins_2d_st_4, "ins_2d_st_4", mesh->cells,
+                op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->nx_c_new, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->ny_c_new, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->sJ_c_new, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
+                op_arg_dat(sM_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(sP_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_RW));
+
+    op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_LIFT, sM_cub.dat, -1.0, st[currentInd][0]);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_LIFT, sP_cub.dat, -1.0, st[currentInd][1]);
+
+    dg_dat_pool->releaseTempDatCells(sM_cub);
+    dg_dat_pool->releaseTempDatCells(sP_cub);
+
+    // Calculate curvature
+    DGTempDat tmp_normal_x  = dg_dat_pool->requestTempDatCells(DG_NP);
+    DGTempDat tmp_normal_y  = dg_dat_pool->requestTempDatCells(DG_NP);
+    DGTempDat tmp_curvature = dg_dat_pool->requestTempDatCells(DG_NP);
+    mesh->grad_with_central_flux(lsSolver->s, tmp_normal_x.dat, tmp_normal_y.dat);
+
+    // Unit normals
+    op_par_loop(ins_2d_st_5, "ins_2d_st_5", mesh->cells,
+                op_arg_dat(tmp_normal_x.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(tmp_normal_y.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    mesh->div_with_central_flux(tmp_normal_x.dat, tmp_normal_y.dat, tmp_curvature.dat);
+
+    // Apply curvature and weber number (placeholder currently)
+    op_par_loop(ins_2d_st_6, "ins_2d_st_6", mesh->cells,
+                op_arg_gbl(constants->decrease_order_ptr, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    
+    dg_dat_pool->releaseTempDatCells(tmp_normal_x);
+    dg_dat_pool->releaseTempDatCells(tmp_normal_y);
+    dg_dat_pool->releaseTempDatCells(tmp_curvature);
   }
 
-  DGTempDat sM_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
-  DGTempDat sP_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
-
-  timer->startTimer("INSSolverBase2D - advec_current_non_linear_over_int - Interp Surf");
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_INTERP, sM.dat, 0.0, sM_cub.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_INTERP, sP.dat, 0.0, sP_cub.dat);
-
-  dg_dat_pool->releaseTempDatCells(sM);
-  dg_dat_pool->releaseTempDatCells(sP);
-  timer->endTimer("INSSolverBase2D - advec_current_non_linear_over_int - Interp Surf");
-
-  op_par_loop(ins_2d_st_4, "ins_2d_st_4", mesh->cells,
-              op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->nx_c_new, -1, OP_ID, 3, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->ny_c_new, -1, OP_ID, 3, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->sJ_c_new, -1, OP_ID, 3, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
-              op_arg_dat(sM_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(sP_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_RW));
-
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_LIFT, sM_cub.dat, -1.0, st[currentInd][0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_LIFT, sP_cub.dat, -1.0, st[currentInd][1]);
-
-  dg_dat_pool->releaseTempDatCells(sM_cub);
-  dg_dat_pool->releaseTempDatCells(sP_cub);
-
-  // Calculate curvature
-  DGTempDat tmp_normal_x  = dg_dat_pool->requestTempDatCells(DG_NP);
-  DGTempDat tmp_normal_y  = dg_dat_pool->requestTempDatCells(DG_NP);
-  DGTempDat tmp_curvature = dg_dat_pool->requestTempDatCells(DG_NP);
-  mesh->grad_with_central_flux(lsSolver->s, tmp_normal_x.dat, tmp_normal_y.dat);
-
-  // Unit normals
-  op_par_loop(ins_2d_st_5, "ins_2d_st_5", mesh->cells,
-              op_arg_dat(tmp_normal_x.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(tmp_normal_y.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-
-  mesh->div_with_central_flux(tmp_normal_x.dat, tmp_normal_y.dat, tmp_curvature.dat);
-
-  // Apply curvature and weber number (placeholder currently)
-  op_par_loop(ins_2d_st_6, "ins_2d_st_6", mesh->cells,
-              op_arg_gbl(constants->decrease_order_ptr, DG_NP * DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-  
-  dg_dat_pool->releaseTempDatCells(tmp_normal_x);
-  dg_dat_pool->releaseTempDatCells(tmp_normal_y);
-  dg_dat_pool->releaseTempDatCells(tmp_curvature);
-
   if(time == 0.0 || sub_cycles < 1 || it_pre_sub_cycle != 0) {
-    advec_standard(st[currentInd][0], st[currentInd][1], st[(currentInd + 1) % 2][0], st[(currentInd + 1) % 2][1]);
+    if(surface_tension)
+      advec_standard(st[currentInd][0], st[currentInd][1], st[(currentInd + 1) % 2][0], st[(currentInd + 1) % 2][1]);
+    else
+      advec_standard();
   } else {
     advec_sub_cycle();
   }
@@ -411,8 +417,10 @@ bool MPINSSolver2D::pressure() {
 
   project_velocity(dpdx.dat, dpdy.dat);
 
-  filter(velTT[0]);
-  filter(velTT[1]);
+  if(surface_tension) {
+    filter(velTT[0]);
+    filter(velTT[1]);
+  }
 
   dg_dat_pool->releaseTempDatCells(dpdx);
   dg_dat_pool->releaseTempDatCells(dpdy);
@@ -506,10 +514,13 @@ void MPINSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(n[0][1], filename.c_str());
   op_fetch_data_hdf5_file(n[1][0], filename.c_str());
   op_fetch_data_hdf5_file(n[1][1], filename.c_str());
-  op_fetch_data_hdf5_file(st[0][0], filename.c_str());
-  op_fetch_data_hdf5_file(st[0][1], filename.c_str());
-  op_fetch_data_hdf5_file(st[1][0], filename.c_str());
-  op_fetch_data_hdf5_file(st[1][1], filename.c_str());
+  
+  if(surface_tension) {
+    op_fetch_data_hdf5_file(st[0][0], filename.c_str());
+    op_fetch_data_hdf5_file(st[0][1], filename.c_str());
+    op_fetch_data_hdf5_file(st[1][0], filename.c_str());
+    op_fetch_data_hdf5_file(st[1][1], filename.c_str());
+  }
   op_fetch_data_hdf5_file(dPdN[0], filename.c_str());
   op_fetch_data_hdf5_file(dPdN[1], filename.c_str());
   op_fetch_data_hdf5_file(velT[0], filename.c_str());

@@ -41,8 +41,7 @@ private:
   PETScJacobiSolver *viscositySolver;
   LevelSetSolver2D *lsSolver;
   DG_FP reynolds;
-  bool resuming;
-  bool dt_forced;
+  bool resuming, dt_forced, surface_tension;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;
