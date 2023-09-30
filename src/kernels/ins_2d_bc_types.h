@@ -1,5 +1,5 @@
-inline void ins_bc_types(const DG_FP **nodes, int *type, int *pr_type,
-                         int *vis_type) {
+inline void ins_2d_bc_types(const DG_FP *nodeX, const DG_FP *nodeY, int *type, int *pr_type,
+                            int *vis_type) {
   // 0 is inflow
   // 1 is outflow
   // 2 is wall

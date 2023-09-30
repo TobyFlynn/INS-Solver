@@ -145,9 +145,10 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   time = dt * currentInd;
   currentInd = currentInd % 2;
 
-  if(mesh->bface2nodes) {
-    op_par_loop(ins_bc_types, "ins_bc_types", mesh->bfaces,
-                op_arg_dat(mesh->node_coords, -3, mesh->bface2nodes, 3, DG_FP_STR, OP_READ),
+  if(mesh->bface2cells) {
+    op_par_loop(ins_2d_bc_types, "ins_2d_bc_types", mesh->bfaces,
+                op_arg_dat(mesh->nodeX, 0, mesh->bface2cells, 3, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->nodeY, 0, mesh->bface2cells, 3, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(pr_bc_types,  -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
