@@ -24,6 +24,7 @@ PARMETIS_DIR = /dcs/pg20/u1717021/PhD/apps
 #PTSCOTCH_DIR = /dcs/pg20/u1717021/PhD/apps
 PARTITION_LIB = -L$(PARMETIS_DIR)/lib -lparmetis -lmetis -lGKlib
 #PARTITION_LIB = -L${PTSCOTCH_DIR}/lib -lptscotch -lscotch -lptscotcherr -lscotcherr -lptscotcherrexit -lscotcherrexit
+#HYPRE_DIR =
 #PARTITION_LIB = -L$(PARMETIS_DIR)/lib -lparmetis -lmetis -lGKlib -L${PTSCOTCH_DIR}/lib -lptscotch -lscotch -lptscotcherr -lscotcherr -lptscotcherrexit -lscotcherrexit
 
 CUBLAS_LIB = -lcublas
@@ -35,6 +36,7 @@ EXTRA_LIBS_HIP =
 
 ORDER = 3
 SOA = 1
+BUILD_WITH_HYPRE = 0
 
 # Probably do not need to change derived variables below this comment unless
 # dependencies were installed in unusual locations
@@ -46,11 +48,13 @@ PETSC_INC = -I$(PETSC_DIR)/include
 INIPP_INC = -I$(INIPP_DIR)
 MPI_INC = -I$(MPI_DIR)/include
 OP2_DG_TOOLKIT_INC = -I$(OP2_DG_TOOLKIT_DIR)/include
+HYPRE_INC = -I$(HYPRE_DIR)/include
 
 OPENBLAS_LIB = -L$(OPENBLAS_DIR)/lib -lopenblas
 PETSC_LIB = -L$(PETSC_DIR)/lib -lpetsc
 ARMA_LIB = -L$(ARMA_DIR)/lib -larmadillo
 HDF5_LIB = -L$(HDF5_DIR)/lib -lhdf5
+HYPRE_LIB = -L$(HYPRE_DIR)/lib -lHYPRE
 
 OP2_OPENMP_LIBS = -L$(OP2_DIR)/lib -lop2_openmp -lop2_hdf5
 OP2_CUDA_LIBS = -L$(OP2_DIR)/lib -lop2_cuda -lop2_hdf5
