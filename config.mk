@@ -64,3 +64,5 @@ OP2_MPI_CUDA_LIBS = -L$(OP2_DIR)/lib -lop2_mpi_cuda
 OP2_MPI_HIP_LIBS = -L$(OP2_DIR)/lib -lop2_mpi_hip
 
 MPI_LIB = -L$(MPI_DIR)/lib -lmpi
+
+OP2_TRANSLATOR = $(OP2_DIR)/../translator/c/op2.py
