@@ -4,11 +4,8 @@ set -e
 
 dir_list=$(find src -maxdepth 3 -mindepth 1 | grep -v "\." | sed "s+src/++g")
 
-rm -rf gen_2d
-rm -rf gen_3d
-
-mkdir gen_2d
-cd gen_2d
+mkdir -p code_gen/gen_2d
+cd code_gen/gen_2d
 
 for i in $dir_list
 do
@@ -25,10 +22,7 @@ do
   mkdir -p $i
 done
 
-cd ..
-
-ORDER=3
-SOA=1
+cd ../..
 
 python3 preprocessor.py 2 $ORDER
 
@@ -38,7 +32,7 @@ if [ $SOA = 1 ]; then
   export OP_AUTO_SOA=1
 fi
 
-cd gen_2d
+cd code_gen/gen_2d
 
 python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/advection_solver.cpp \
@@ -48,16 +42,16 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/mp_ins_solver.cpp \
         kernels/
 
-sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins2d_kernels.cu
-sed -i "4i #include \"dg_compiler_defs.h\"" hip/ins2d_kernels.cpp
-sed -i "4i #include \"dg_compiler_defs.h\"" openmp/ins2d_kernels.cpp
-sed -i "4i #include \"dg_compiler_defs.h\"" seq/ins2d_seqkernels.cpp
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_2d.h\"" cuda/ins2d_kernels.cu
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_2d.h\"" hip/ins2d_kernels.cpp
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_2d.h\"" openmp/ins2d_kernels.cpp
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_2d.h\"" seq/ins2d_seqkernels.cpp
-sed -i "5i #include \"cblas.h\"" openmp/ins2d_kernels.cpp
-sed -i "5i #include \"cblas.h\"" seq/ins2d_seqkernels.cpp
+sed -i "1i #include \"dg_compiler_defs.h\"" cuda/ins2d_kernels.cu
+sed -i "1i #include \"dg_compiler_defs.h\"" hip/ins2d_kernels.cpp
+sed -i "1i #include \"dg_compiler_defs.h\"" openmp/ins2d_kernels.cpp
+sed -i "1i #include \"dg_compiler_defs.h\"" seq/ins2d_seqkernels.cpp
+sed -i "2i #include \"dg_global_constants/dg_mat_constants_2d.h\"" cuda/ins2d_kernels.cu
+sed -i "2i #include \"dg_global_constants/dg_mat_constants_2d.h\"" hip/ins2d_kernels.cpp
+sed -i "2i #include \"dg_global_constants/dg_mat_constants_2d.h\"" openmp/ins2d_kernels.cpp
+sed -i "2i #include \"dg_global_constants/dg_mat_constants_2d.h\"" seq/ins2d_seqkernels.cpp
+sed -i "3i #include \"cblas.h\"" openmp/ins2d_kernels.cpp
+sed -i "3i #include \"cblas.h\"" seq/ins2d_seqkernels.cpp
 
 cd ..
 
@@ -71,19 +65,19 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/mp_ins_solver.cpp \
         kernels/
 
-sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins3d_kernels.cu
-sed -i "4i #include \"dg_compiler_defs.h\"" hip/ins3d_kernels.cpp
-sed -i "4i #include \"dg_compiler_defs.h\"" openmp/ins3d_kernels.cpp
-sed -i "4i #include \"dg_compiler_defs.h\"" seq/ins3d_seqkernels.cpp
-sed -i "5i #include \"liquid_whistle_consts.h\"" cuda/ins3d_kernels.cu
-sed -i "5i #include \"liquid_whistle_consts.h\"" hip/ins3d_kernels.cpp
-sed -i "5i #include \"liquid_whistle_consts.h\"" openmp/ins3d_kernels.cpp
-sed -i "5i #include \"liquid_whistle_consts.h\"" seq/ins3d_seqkernels.cpp
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_3d.h\"" cuda/ins3d_kernels.cu
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_3d.h\"" hip/ins3d_kernels.cpp
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_3d.h\"" openmp/ins3d_kernels.cpp
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_3d.h\"" seq/ins3d_seqkernels.cpp
-sed -i "7i #include \"cblas.h\"" openmp/ins3d_kernels.cpp
-sed -i "7i #include \"cblas.h\"" seq/ins3d_seqkernels.cpp
+sed -i "1i #include \"dg_compiler_defs.h\"" cuda/ins3d_kernels.cu
+sed -i "1i #include \"dg_compiler_defs.h\"" hip/ins3d_kernels.cpp
+sed -i "1i #include \"dg_compiler_defs.h\"" openmp/ins3d_kernels.cpp
+sed -i "1i #include \"dg_compiler_defs.h\"" seq/ins3d_seqkernels.cpp
+sed -i "2i #include \"liquid_whistle_consts.h\"" cuda/ins3d_kernels.cu
+sed -i "2i #include \"liquid_whistle_consts.h\"" hip/ins3d_kernels.cpp
+sed -i "2i #include \"liquid_whistle_consts.h\"" openmp/ins3d_kernels.cpp
+sed -i "2i #include \"liquid_whistle_consts.h\"" seq/ins3d_seqkernels.cpp
+sed -i "3i #include \"dg_global_constants/dg_mat_constants_3d.h\"" cuda/ins3d_kernels.cu
+sed -i "3i #include \"dg_global_constants/dg_mat_constants_3d.h\"" hip/ins3d_kernels.cpp
+sed -i "3i #include \"dg_global_constants/dg_mat_constants_3d.h\"" openmp/ins3d_kernels.cpp
+sed -i "3i #include \"dg_global_constants/dg_mat_constants_3d.h\"" seq/ins3d_seqkernels.cpp
+sed -i "4i #include \"cblas.h\"" openmp/ins3d_kernels.cpp
+sed -i "4i #include \"cblas.h\"" seq/ins3d_seqkernels.cpp
 
-cd ..
+cd ../..
