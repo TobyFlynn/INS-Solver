@@ -1,6 +1,5 @@
 build
-gen_2d
-gen_3d
+code_gen
 results
 grids
 bin

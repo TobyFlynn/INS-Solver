@@ -224,8 +224,8 @@ for f in inputfiles:
         newdata = newdata.replace("DG_CUB_SURF_2D_NP", dg_cub_surf_2d_np)
 
     if dim == "2":
-        with open("gen_2d/" + f, "w") as file:
+        with open("code_gen/gen_2d/" + f, "w") as file:
             file.write(newdata)
     elif dim == "3":
-        with open("gen_3d/" + f, "w") as file:
+        with open("code_gen/gen_3d/" + f, "w") as file:
             file.write(newdata)
