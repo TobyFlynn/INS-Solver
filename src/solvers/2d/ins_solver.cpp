@@ -392,7 +392,6 @@ void INSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(velTT[0], filename.c_str());
   op_fetch_data_hdf5_file(velTT[1], filename.c_str());
   op_fetch_data_hdf5_file(pr, filename.c_str());
-  op_fetch_data_hdf5_file(mesh->order, filename.c_str());
   timer->endTimer("INSSolver2D - Dump Data");
 }
 

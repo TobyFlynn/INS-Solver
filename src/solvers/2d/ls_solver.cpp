@@ -131,7 +131,6 @@ bool LevelSetSolver2D::reinitNeeded() {
   int count = 0;
   mesh->grad(s, dsdx, dsdy);
   op_par_loop(ls_reinit_check, "ls_reinit_check", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_gbl(&alpha, 1, DG_FP_STR, OP_READ),
               op_arg_dat(s,     -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(dsdx,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -165,7 +164,6 @@ void LevelSetSolver2D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv) {
 void LevelSetSolver2D::sampleInterface() {
   timer->startTimer("LevelSetSolver2D - sampleInterface");
   op_par_loop(sample_interface, "sample_interface", mesh->cells,
-              op_arg_dat(mesh->order, -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
               op_arg_dat(s,           -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),

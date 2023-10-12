@@ -1,13 +1,13 @@
-inline void sample_interface(const int *p, const DG_FP *x, const DG_FP *y,
-                             const DG_FP *surface, DG_FP *sample_x, DG_FP *sample_y) {
-  const int dg_npf = DG_CONSTANTS[(*p - 1) * DG_NUM_CONSTANTS + 1];
-  const int *fmask = &FMASK[(*p - 1) * 3 * DG_NPF];
+inline void sample_interface(const DG_FP *x, const DG_FP *y,
+                             const DG_FP *surface, DG_FP *sample_x, 
+                             DG_FP *sample_y) {
+  const int *fmask = &FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];
 
   int fmask_ind_tmp = fmask[0];
   const DG_FP node0s = surface[fmask_ind_tmp];
-  fmask_ind_tmp = fmask[dg_npf - 1];
+  fmask_ind_tmp = fmask[DG_NPF - 1];
   const DG_FP node1s = surface[fmask_ind_tmp];
-  fmask_ind_tmp = fmask[2 * dg_npf - 1];
+  fmask_ind_tmp = fmask[2 * DG_NPF - 1];
   const DG_FP node2s = surface[fmask_ind_tmp];
 
   DG_FP end0x = NAN;
