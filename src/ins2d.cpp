@@ -14,7 +14,6 @@
 #include "config.h"
 #include "solvers/2d/ins_solver.h"
 #include "solvers/2d/mp_ins_solver.h"
-#include "solvers/2d/diffusion_solver.h"
 
 Timing *timer;
 Config *config;
@@ -120,14 +119,11 @@ int main(int argc, char **argv) {
   gamma_e = 1.4;
 
   DGMesh2D *mesh = new DGMesh2D(filename);
-/*
   MPINSSolver2D *mpins2d;
   if(resumeIter == 0)
     mpins2d = new MPINSSolver2D(mesh);
   else
     mpins2d = new MPINSSolver2D(mesh, checkpointFile, resumeIter);
-*/
-  DiffusionSolver2D *diffSolver = new DiffusionSolver2D(mesh);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
@@ -144,27 +140,11 @@ int main(int argc, char **argv) {
   op_decl_const(1, DG_FP_STR, &gamma_e);
   op_decl_const(1, DG_FP_STR, &weber);
 
-  op_dat val = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "val");
-  op_dat vis = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "vis");
-
   timer->startTimer("OP2 Partitioning");
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
   timer->endTimer("OP2 Partitioning");
 
   mesh->init();
-
-  op_par_loop(diff_ex, "diff_ex", mesh->cells,
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(val, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(vis, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-  op_fetch_data_hdf5_file(mesh->x, "ic.h5");
-  op_fetch_data_hdf5_file(mesh->y, "ic.h5");
-  op_fetch_data_hdf5_file(val, "ic.h5");
-  op_fetch_data_hdf5_file(vis, "ic.h5");
-
-/*
   mpins2d->init(r_ynolds, refVel);
 
   int save_ic = 1;
@@ -195,18 +175,6 @@ int main(int argc, char **argv) {
   timer->exportTimings(outputDir + "timings", iter, mpins2d->get_time());
 
   delete mpins2d;
-*/
-
-  for(int i = resumeIter; i < iter; i++) {
-    diffSolver->step(val, vis);
-  }
-
-  op_fetch_data_hdf5_file(mesh->x, "end.h5");
-  op_fetch_data_hdf5_file(mesh->y, "end.h5");
-  op_fetch_data_hdf5_file(val, "end.h5");
-  op_fetch_data_hdf5_file(vis, "end.h5");
-
-  delete diffSolver;
 
   ierr = PetscFinalize();
 

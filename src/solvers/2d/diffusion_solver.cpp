@@ -45,9 +45,9 @@ void DiffusionSolver2D::step(op_dat val, op_dat vis) {
               op_arg_dat(rkQ.dat,   -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   for(int j = 0; j < 3; j++) {
-    if(over_int_diff)
-      rhs_over_int(rkQ.dat, vis, rk[j].dat);
-    else
+    // if(over_int_diff)
+    //   rhs_over_int(rkQ.dat, vis, rk[j].dat);
+    // else
       rhs(rkQ.dat, vis, rk[j].dat);
 
     if(j != 2) {
@@ -94,13 +94,24 @@ void DiffusionSolver2D::rhs(op_dat val, op_dat vis, op_dat val_out) {
               op_arg_dat(val_flux_x.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(val_flux_y.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
   
+  if(mesh->bface2cells) {
+    op_par_loop(diff_2d_1, "diff_2d_1", mesh->bfaces,
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(val_flux_x.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+                op_arg_dat(val_flux_y.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  }
+
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, val_flux_x.dat, -1.0, val_x.dat);
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, val_flux_y.dat, -1.0, val_y.dat);
 
   dg_dat_pool->releaseTempDatCells(val_flux_x);
   dg_dat_pool->releaseTempDatCells(val_flux_y);
 
-  op_par_loop(diff_2d_1, "diff_2d_1", mesh->cells,
+  op_par_loop(diff_2d_2, "diff_2d_2", mesh->cells,
               op_arg_dat(vis, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(val_x.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(val_y.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
@@ -109,7 +120,7 @@ void DiffusionSolver2D::rhs(op_dat val, op_dat vis, op_dat val_out) {
 
   DGTempDat val_out_flux = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
 
-  op_par_loop(diff_2d_2, "diff_2d_2", mesh->faces,
+  op_par_loop(diff_2d_3, "diff_2d_3", mesh->faces,
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
               op_arg_dat(mesh->nx, -1, OP_ID, 2, DG_FP_STR, OP_READ),
@@ -121,6 +132,19 @@ void DiffusionSolver2D::rhs(op_dat val, op_dat vis, op_dat val_out) {
               op_arg_dat(vis, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(val_out_flux.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
   
+  if(mesh->bface2cells) {
+    op_par_loop(diff_2d_4, "diff_2d_4", mesh->bfaces,
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(val_x.dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(val_y.dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vis, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(val_out_flux.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  }
+
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, val_out_flux.dat, -1.0, val_out);
 
   dg_dat_pool->releaseTempDatCells(val_out_flux);

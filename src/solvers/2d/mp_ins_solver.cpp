@@ -94,6 +94,8 @@ void MPINSSolver2D::setup_common() {
     st[0][1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st01");
     st[1][0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st10");
     st[1][1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st11");
+
+    diffSolver = new DiffusionSolver2D(mesh);
   }
 
   pr_bc_types  = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_pr_bc_types");
@@ -106,6 +108,9 @@ MPINSSolver2D::~MPINSSolver2D() {
   delete viscosityMatrix;
   delete pressureSolver;
   delete viscositySolver;
+  if(surface_tension) {
+    delete diffSolver;
+  }
 }
 
 void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
@@ -418,8 +423,18 @@ bool MPINSSolver2D::pressure() {
   project_velocity(dpdx.dat, dpdy.dat);
 
   if(surface_tension) {
-    filter(velTT[0]);
-    filter(velTT[1]);
+    DGTempDat surf_ten_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
+    op_par_loop(ins_2d_st_art_vis, "ins_2d_st_art_vis", mesh->cells,
+                op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(surf_ten_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    for(int i = 0; i < 1000; i++) {
+      diffSolver->step(velTT[0], surf_ten_art_vis.dat);
+      diffSolver->step(velTT[1], surf_ten_art_vis.dat);
+    }
+
+    dg_dat_pool->releaseTempDatCells(surf_ten_art_vis);
   }
 
   dg_dat_pool->releaseTempDatCells(dpdx);
