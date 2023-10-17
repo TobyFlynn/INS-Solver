@@ -143,6 +143,7 @@ $(3D_MPI_HIP_OBJ_DIR): $(OBJ)
 # 2D Common object files
 COMMON_2D_OBJ := ins2d_op.o \
   solvers_op/2d/advection_solver_op.o \
+	solvers_op/2d/diffusion_solver_op.o \
   solvers_op/2d/ls_solver_op.o \
   solvers/2d/ls_utils/ls_reinit_poly.o \
   solvers_op/2d/ins_solver_base_op.o \
