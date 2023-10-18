@@ -69,6 +69,13 @@ void MPINSSolver2D::setup_common() {
   dt_forced = tmp_dt > 0.0;
   if(dt_forced) dt = tmp_dt;
 
+  double tmp_max_diff = 1.0;
+  config->getDouble("solver-options", "surface_tension_max_art_diff", tmp_max_diff);
+  st_max_diff = tmp_max_diff;
+  double tmp_diff_width_fact = 2.0;
+  config->getDouble("solver-options", "surface_tension_diff_width_fact", tmp_diff_width_fact);
+  st_diff_width_fact = tmp_diff_width_fact;
+
   pressureMatrix = new FactorPoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new FactorPoissonCoarseMatrix2D(mesh);
   viscosityMatrix = new FactorMMPoissonMatrixFreeDiag2D(mesh);
@@ -425,6 +432,8 @@ bool MPINSSolver2D::pressure() {
   if(surface_tension) {
     DGTempDat surf_ten_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
     op_par_loop(ins_2d_st_art_vis, "ins_2d_st_art_vis", mesh->cells,
+                op_arg_gbl(&st_max_diff, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&st_diff_width_fact, 1, DG_FP_STR, OP_READ),
                 op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(surf_ten_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
@@ -547,6 +556,12 @@ void MPINSSolver2D::dump_data(const std::string &filename) {
   // mesh->grad_over_int_with_central_flux(pr, velTT[0], velTT[1]);
   op_fetch_data_hdf5_file(velTT[0], filename.c_str());
   op_fetch_data_hdf5_file(velTT[1], filename.c_str());
+  op_par_loop(ins_2d_st_art_vis, "ins_2d_st_art_vis", mesh->cells,
+                op_arg_gbl(&st_max_diff, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&st_diff_width_fact, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(pr, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   op_fetch_data_hdf5_file(pr, filename.c_str());
   op_fetch_data_hdf5_file(mu, filename.c_str());
   op_fetch_data_hdf5_file(rho, filename.c_str());
