@@ -13,6 +13,8 @@ public:
   void step(op_dat val, op_dat vis);
   void set_dt();
   void set_dt(const DG_FP t);
+  void set_dt(op_dat vis);
+  DG_FP get_dt();
 private:
   void rhs(op_dat val, op_dat vis, op_dat val_out);
   void rhs_over_int(op_dat val, op_dat vis, op_dat val_out);

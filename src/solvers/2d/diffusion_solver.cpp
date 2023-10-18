@@ -67,7 +67,7 @@ void DiffusionSolver2D::step(op_dat val, op_dat vis) {
               op_arg_dat(rk[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rk[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rk[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
-  
+
   dg_dat_pool->releaseTempDatCells(rkQ);
   dg_dat_pool->releaseTempDatCells(rk[0]);
   dg_dat_pool->releaseTempDatCells(rk[1]);
@@ -93,7 +93,7 @@ void DiffusionSolver2D::rhs(op_dat val, op_dat vis, op_dat val_out) {
               op_arg_dat(val, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(val_flux_x.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(val_flux_y.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  
+
   if(mesh->bface2cells) {
     op_par_loop(diff_2d_1, "diff_2d_1", mesh->bfaces,
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
@@ -115,7 +115,7 @@ void DiffusionSolver2D::rhs(op_dat val, op_dat vis, op_dat val_out) {
               op_arg_dat(vis, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(val_x.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(val_y.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-  
+
   mesh->div_weak(val_x.dat, val_y.dat, val_out);
 
   DGTempDat val_out_flux = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
@@ -131,7 +131,7 @@ void DiffusionSolver2D::rhs(op_dat val, op_dat vis, op_dat val_out) {
               op_arg_dat(val, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(vis, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(val_out_flux.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  
+
   if(mesh->bface2cells) {
     op_par_loop(diff_2d_4, "diff_2d_4", mesh->bfaces,
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
@@ -156,6 +156,24 @@ void DiffusionSolver2D::rhs_over_int(op_dat val, op_dat vis, op_dat val_out) {
   throw std::runtime_error("rhs_over_int not implemented for DiffusionSolver2D");
 }
 
+void DiffusionSolver2D::set_dt(op_dat vis) {
+  DG_FP h = 0.0;
+  op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,
+              op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
+  h = 1.0 / h;
+  // op_printf("h: %g\n", h);
+
+  DG_FP max_vis = 0.0;
+  op_par_loop(max_np, "max_np", mesh->cells,
+              op_arg_dat(vis, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_gbl(&max_vis, 1, DG_FP_STR, OP_MAX));
+
+  dt = 1.0 / ((max_vis * DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER / (h * h)));
+
+  // op_printf("dt: %g\n", h);
+}
+
 void DiffusionSolver2D::set_dt() {
   DG_FP h = 0.0;
   op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,
@@ -165,10 +183,14 @@ void DiffusionSolver2D::set_dt() {
   op_printf("h: %g\n", h);
 
   dt = 1.0 / ((1.0 * DG_ORDER * DG_ORDER / h) + (1.0 * DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER / (h * h)));
-  
+
   op_printf("dt: %g\n", h);
 }
 
 void DiffusionSolver2D::set_dt(const DG_FP t) {
   dt = t;
+}
+
+DG_FP DiffusionSolver2D::get_dt() {
+  return dt;
 }

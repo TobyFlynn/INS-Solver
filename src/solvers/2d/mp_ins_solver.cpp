@@ -429,7 +429,11 @@ bool MPINSSolver2D::pressure() {
                 op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(surf_ten_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-    for(int i = 0; i < 1000; i++) {
+    diffSolver->set_dt(surf_ten_art_vis.dat);
+    int num_steps_diff = dt / diffSolver->get_dt() + 1;
+    // op_printf("Num diff steps: %d\n", num_steps_diff);
+
+    for(int i = 0; i < num_steps_diff; i++) {
       diffSolver->step(velTT[0], surf_ten_art_vis.dat);
       diffSolver->step(velTT[1], surf_ten_art_vis.dat);
     }
