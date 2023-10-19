@@ -1,5 +1,5 @@
 inline void advec_2d_oi_0(const DG_FP *geof, const DG_FP *q, DG_FP *f, DG_FP *g) {
-  for(int i = 0; i < DG_NP; i++) {
+  for(int i = 0; i < DG_CUB_2D_NP; i++) {
     const DG_FP u = f[i];
     const DG_FP v = g[i];
     const DG_FP _f = u * q[i];

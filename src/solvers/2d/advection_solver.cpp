@@ -67,7 +67,7 @@ void AdvectionSolver2D::step(op_dat val, op_dat u, op_dat v) {
               op_arg_dat(rk[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rk[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rk[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
-  
+
   dg_dat_pool->releaseTempDatCells(rkQ);
   dg_dat_pool->releaseTempDatCells(rk[0]);
   dg_dat_pool->releaseTempDatCells(rk[1]);
@@ -159,7 +159,7 @@ void AdvectionSolver2D::rhs_over_int(op_dat val, op_dat u, op_dat v, op_dat val_
               op_arg_dat(vM.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(valM.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(valP.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  
+
   if(mesh->bface2cells) {
     op_par_loop(advec_2d_oi_2, "advec_2d_oi_2", mesh->bfaces,
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
@@ -197,7 +197,7 @@ void AdvectionSolver2D::rhs_over_int(op_dat val, op_dat u, op_dat v, op_dat val_
               op_arg_dat(valM_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_READ),
               op_arg_dat(valP_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_RW));
 
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_LIFT, valP_cub.dat, -1.0, val_out);
+  op2_gemv(mesh, false, -1.0, DGConstants::CUBSURF2D_LIFT, valP_cub.dat, 1.0, val_out);
 
   dg_dat_pool->releaseTempDatCells(uM_cub);
   dg_dat_pool->releaseTempDatCells(vM_cub);

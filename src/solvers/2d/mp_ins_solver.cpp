@@ -561,12 +561,6 @@ void MPINSSolver2D::dump_data(const std::string &filename) {
   // mesh->grad_over_int_with_central_flux(pr, velTT[0], velTT[1]);
   op_fetch_data_hdf5_file(velTT[0], filename.c_str());
   op_fetch_data_hdf5_file(velTT[1], filename.c_str());
-  op_par_loop(ins_2d_st_art_vis, "ins_2d_st_art_vis", mesh->cells,
-                op_arg_gbl(&st_max_diff, 1, DG_FP_STR, OP_READ),
-                op_arg_gbl(&st_diff_width_fact, 1, DG_FP_STR, OP_READ),
-                op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(pr, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   op_fetch_data_hdf5_file(pr, filename.c_str());
   op_fetch_data_hdf5_file(mu, filename.c_str());
   op_fetch_data_hdf5_file(rho, filename.c_str());
