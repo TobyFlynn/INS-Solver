@@ -44,7 +44,7 @@ private:
   DiffusionSolver2D *diffSolver;
   DG_FP reynolds;
   bool resuming, dt_forced, surface_tension;
-  DG_FP st_max_diff, st_diff_width_fact;
+  DG_FP st_max_diff, st_diff_width_fact, st_trans_width_fact;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;
