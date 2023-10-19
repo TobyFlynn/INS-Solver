@@ -34,7 +34,7 @@ protected:
 
   DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, h;
   int currentInd, sub_cycles;
-  op_dat vel[2][2], velT[2], velTT[2], pr, n[2][2], dPdN[2], bc_types, proj_h;
+  op_dat vel[2][2], velT[2], velTT[2], pr, n[2][2], dPdN[2], bc_types, proj_h, bc_data;
 
   DGMesh2D *mesh;
   bool extrapolate_initial_guess, shock_cap, over_int_advec;

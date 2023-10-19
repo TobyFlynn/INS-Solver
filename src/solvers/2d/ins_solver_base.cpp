@@ -105,6 +105,8 @@ void INSSolverBase2D::init_dats() {
   if(pr_projection_method == 1 || pr_projection_method == 2) {
     proj_h = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_proj_h");
   }
+
+  bc_data = op_decl_dat(mesh->bfaces, DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_bc_data");
 }
 
 INSSolverBase2D::~INSSolverBase2D() {
@@ -250,7 +252,7 @@ void INSSolverBase2D::advec_current_non_linear_over_int() {
               op_arg_dat(vM.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(uP.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(vP.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  
+
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_advec_oi_2, "ins_2d_advec_oi_2", mesh->bfaces,
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
@@ -737,7 +739,7 @@ void INSSolverBase2D::project_velocity(op_dat dpdx, op_dat dpdy) {
     // Calculate first residual
     project_velocity_mat_mult(velTT[0], velTT[1], cg_tmp[0].dat,
             cg_tmp[1].dat, proj_pen.dat, proj_pen_f.dat);
-    
+
     op_par_loop(ins_2d_proj_0, "ins_2d_proj_0", mesh->cells,
                 op_arg_gbl(&residual, 1, DG_FP_STR, OP_INC),
                 op_arg_dat(projRHS[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),

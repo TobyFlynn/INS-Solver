@@ -179,7 +179,7 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
 
   if(mesh->bface2nodes) {
     op_par_loop(ins_bc_types, "ins_bc_types", mesh->bfaces,
-                op_arg_dat(mesh->node_coords, -3, mesh->bface2nodes, 3, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->node_coords, -2, mesh->bface2nodes, 2, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(pr_bc_types,  -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
@@ -243,7 +243,7 @@ void MPINSSolver2D::advection() {
     op_par_loop(ins_2d_st_0, "ins_2d_st_0", mesh->cells,
                 op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(st_tmp_0.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
-    
+
     op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PDR, st_tmp_0.dat, 0.0, st[currentInd][0]);
     op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PDS, st_tmp_0.dat, 0.0, st[currentInd][1]);
 
@@ -263,7 +263,7 @@ void MPINSSolver2D::advection() {
                 op_arg_dat(lsSolver->s, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(sM.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
                 op_arg_dat(sP.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-    
+
     if(mesh->bface2cells) {
       op_par_loop(ins_2d_st_3, "ins_2d_st_3", mesh->bfaces,
                   op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
@@ -318,7 +318,7 @@ void MPINSSolver2D::advection() {
                 op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
                 op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-    
+
     dg_dat_pool->releaseTempDatCells(tmp_normal_x);
     dg_dat_pool->releaseTempDatCells(tmp_normal_y);
     dg_dat_pool->releaseTempDatCells(tmp_curvature);
@@ -374,10 +374,13 @@ bool MPINSSolver2D::pressure() {
   dg_dat_pool->releaseTempDatCells(gradCurlVel[0]);
   dg_dat_pool->releaseTempDatCells(gradCurlVel[1]);
 
-  DGTempDat prBC = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
   // Apply Dirichlet BCs
-  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-              op_arg_dat(prBC.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  if(mesh->bface2cells) {
+    op_par_loop(ins_2d_pr_bc, "ins_2d_pr_bc", mesh->bfaces,
+                op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(pr_bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
+  }
 
   // Calculate RHS of pressure solve
   DGTempDat pr_factor = dg_dat_pool->requestTempDatCells(DG_NP);
@@ -404,12 +407,11 @@ bool MPINSSolver2D::pressure() {
   pressureCoarseMatrix->set_bc_types(pr_bc_types);
   pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
   pressureSolver->set_matrix(pressureMatrix);
-  pressureSolver->set_bcs(prBC.dat);
+  pressureSolver->set_bcs(bc_data);
   bool converged = pressureSolver->solve(divVelT.dat, pr);
 
   dg_dat_pool->releaseTempDatCells(pr_factor);
   dg_dat_pool->releaseTempDatCells(divVelT);
-  dg_dat_pool->releaseTempDatCells(prBC);
   timer->endTimer("MPINSSolver2D - Pressure Linear Solve");
 
   op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
@@ -461,28 +463,6 @@ bool MPINSSolver2D::viscosity() {
   timer->startTimer("MPINSSolver2D - Viscosity RHS");
   DG_FP time_n1 = time + dt;
 
-  DGTempDat visBC[2];
-  visBC[0] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-  visBC[1] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-
-  op_par_loop(zero_npf_2, "zero_npf_2", mesh->cells,
-              op_arg_dat(visBC[0].dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(visBC[1].dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-
-  // Get BCs for viscosity solve
-  if(mesh->bface2cells) {
-    op_par_loop(ins_vis_bc_2d, "ins_vis_bc_2d", mesh->bfaces,
-                op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(visBC[0].dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
-                op_arg_dat(visBC[1].dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
-  }
-
   // Set up RHS for viscosity solve
   DGTempDat visRHS[2];
   visRHS[0] = dg_dat_pool->requestTempDatCells(DG_NP);
@@ -514,18 +494,39 @@ bool MPINSSolver2D::viscosity() {
   viscosityMatrix->set_mm_factor(vis_mm_factor.dat);
   viscosityMatrix->set_bc_types(vis_bc_types);
   viscosityMatrix->calc_mat_partial();
-  viscositySolver->set_bcs(visBC[0].dat);
+
+  if(mesh->bface2cells) {
+    op_par_loop(ins_2d_vis_bc_x, "ins_2d_vis_bc_x", mesh->bfaces,
+                op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
+  }
+  viscositySolver->set_bcs(bc_data);
   bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
 
-  viscositySolver->set_bcs(visBC[1].dat);
+  if(mesh->bface2cells) {
+    op_par_loop(ins_2d_vis_bc_y, "ins_2d_vis_bc_x", mesh->bfaces,
+                op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
+  }
+  viscositySolver->set_bcs(bc_data);
   bool convergedY = viscositySolver->solve(visRHS[1].dat, vel[(currentInd + 1) % 2][1]);
   timer->endTimer("MPINSSolver2D - Viscosity Linear Solve");
 
   dg_dat_pool->releaseTempDatCells(vis_mm_factor);
   dg_dat_pool->releaseTempDatCells(visRHS[0]);
   dg_dat_pool->releaseTempDatCells(visRHS[1]);
-  dg_dat_pool->releaseTempDatCells(visBC[0]);
-  dg_dat_pool->releaseTempDatCells(visBC[1]);
 
   return convergedX && convergedY;
 }
@@ -542,7 +543,7 @@ void MPINSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(n[0][1], filename.c_str());
   op_fetch_data_hdf5_file(n[1][0], filename.c_str());
   op_fetch_data_hdf5_file(n[1][1], filename.c_str());
-  
+
   if(surface_tension) {
     op_fetch_data_hdf5_file(st[0][0], filename.c_str());
     op_fetch_data_hdf5_file(st[0][1], filename.c_str());
