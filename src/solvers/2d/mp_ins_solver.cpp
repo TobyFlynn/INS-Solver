@@ -110,6 +110,9 @@ void MPINSSolver2D::setup_common() {
 
   pr_bc_types  = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_pr_bc_types");
   vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_vis_bc_types");
+
+  nodes_data  = op_decl_dat(mesh->nodes, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_nodes_data");
+  nodes_count = op_decl_dat(mesh->nodes, 1, "int", (int *)NULL, "ins_solver_nodes_count");
 }
 
 MPINSSolver2D::~MPINSSolver2D() {
@@ -436,6 +439,8 @@ bool MPINSSolver2D::pressure() {
 
   if(surface_tension) {
     DGTempDat surf_ten_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
+
+/*
     op_par_loop(ins_2d_st_art_vis, "ins_2d_st_art_vis", mesh->cells,
                 op_arg_gbl(&st_max_diff, 1, DG_FP_STR, OP_READ),
                 op_arg_gbl(&st_diff_width_fact, 1, DG_FP_STR, OP_READ),
@@ -443,11 +448,12 @@ bool MPINSSolver2D::pressure() {
                 op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(surf_ten_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+*/
+
+    calc_art_vis(velTT[0], velTT[1], surf_ten_art_vis.dat);
 
     diffSolver->set_dt(surf_ten_art_vis.dat);
     int num_steps_diff = dt / diffSolver->get_dt() + 1;
-    // op_printf("Num diff steps: %d\n", num_steps_diff);
-
     for(int i = 0; i < num_steps_diff; i++) {
       diffSolver->step(velTT[0], surf_ten_art_vis.dat);
       diffSolver->step(velTT[1], surf_ten_art_vis.dat);
@@ -533,6 +539,36 @@ bool MPINSSolver2D::viscosity() {
   dg_dat_pool->releaseTempDatCells(visRHS[1]);
 
   return convergedX && convergedY;
+}
+
+void MPINSSolver2D::calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
+  op_par_loop(reset_tmp_node_dats, "reset_tmp_node_dats", mesh->nodes,
+              op_arg_dat(nodes_data, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
+              op_arg_dat(nodes_count, -1, OP_ID, 1, "int", OP_WRITE));
+
+  op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  op_par_loop(ins_2d_st_art_vis_0, "ins_2d_st_art_vis_0", mesh->faces,
+              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(mesh->nx,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ny,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sJ,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(in0, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(in1, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(nodes_data, -2, mesh->face2nodes, 1, DG_FP_STR, OP_INC),
+              op_arg_dat(nodes_count, -2, mesh->face2nodes, 1, "int", OP_INC));
+
+  DG_FP smooth_tol = 1e-2;
+  DG_FP discon_tol = 0.1;
+  op_par_loop(ins_2d_st_art_vis_1, "ins_2d_st_art_vis_1", mesh->cells,
+              op_arg_gbl(&st_max_diff, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&smooth_tol, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&discon_tol, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(nodes_data, -3, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(nodes_count, -3, mesh->cell2nodes, 1, "int", OP_READ),
+              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 }
 
 void MPINSSolver2D::dump_data(const std::string &filename) {

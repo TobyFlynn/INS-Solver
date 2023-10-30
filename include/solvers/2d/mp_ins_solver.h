@@ -35,6 +35,8 @@ private:
   bool viscosity();
   void surface();
 
+  void calc_art_vis(op_dat in0, op_dat in1, op_dat out);
+
   FactorPoissonCoarseMatrix2D *pressureCoarseMatrix;
   FactorPoissonMatrixFreeDiag2D *pressureMatrix;
   FactorMMPoissonMatrixFreeDiag2D *viscosityMatrix;
@@ -49,6 +51,7 @@ private:
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;
   op_dat vis_bc_types, vis_bc;
+  op_dat nodes_data, nodes_count;
 };
 
 #endif

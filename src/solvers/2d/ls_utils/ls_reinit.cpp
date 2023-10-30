@@ -144,8 +144,10 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y,
   return converged;
 }
 
-void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, const DG_FP *x, const DG_FP *y,
-                   int *poly_ind, std::vector<PolyApprox> &polys, DG_FP *s, const DG_FP h) {
+void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
+                   const DG_FP *x, const DG_FP *y, int *poly_ind,
+                   std::vector<PolyApprox> &polys, DG_FP *s, const DG_FP h,
+                   const DG_FP reinit_width) {
   int numNonConv = 0;
   int numReinit = 0;
 
@@ -154,7 +156,7 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, const D
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
     for(int j = 0; j < DG_NP; j++) {
-      if(fabs(s[start_ind + j]) < 2.0) {
+      if(fabs(s[start_ind + j]) < reinit_width) {
         reinit = true;
       }
     }
@@ -216,7 +218,7 @@ void LevelSetSolver2D::reinitLS() {
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
     for(int j = 0; j < DG_NP; j++) {
-      if(fabs(s_ptr[start_ind + j]) < 2.0) {
+      if(fabs(s_ptr[start_ind + j]) < reinit_width) {
         reinit = true;
       }
     }
@@ -236,7 +238,7 @@ void LevelSetSolver2D::reinitLS() {
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
     for(int j = 0; j < DG_NP; j++) {
-      if(fabs(s_ptr[start_ind + j]) < 0.05) {
+      if(fabs(s_ptr[start_ind + j]) < reinit_width) {
         reinit = true;
       }
     }
@@ -271,7 +273,7 @@ void LevelSetSolver2D::reinitLS() {
   DG_FP *surface_ptr = getOP2PtrHost(s, OP_RW);
 
   newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr, y_ptr,
-                poly_ind, polys, surface_ptr, h);
+                poly_ind, polys, surface_ptr, h, reinit_width);
 
   releaseOP2PtrHost(s, OP_RW, surface_ptr);
 

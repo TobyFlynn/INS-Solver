@@ -65,9 +65,12 @@ void LevelSetSolver2D::init() {
   alpha = 12.0 * h;
   order_width = 12.0 * h;
   epsilon = h;
-  reinit_width = 10.0 * h;
+  // reinit_width = 20.0 * h;
+  reinit_width = 50.0;
   reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
+
+  op_printf("Alpha: %g\t\tReinit Width: %g\n", alpha, reinit_width);
 /*
   op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
               op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
@@ -85,7 +88,7 @@ void LevelSetSolver2D::init() {
 
   mesh->update_order(data->new_order, dats_to_update);
 */
-  reinitLS();
+  // reinitLS();
 }
 
 void LevelSetSolver2D::setVelField(op_dat u1, op_dat v1) {
@@ -99,7 +102,7 @@ void LevelSetSolver2D::step(DG_FP dt) {
   advecSolver->step(s, u, v);
 
   counter++;
-  if(counter > 0) {
+  if(counter > 15) {
     timer->startTimer("LevelSetSolver2D - reinitLS");
     reinitLS();
     timer->endTimer("LevelSetSolver2D - reinitLS");
