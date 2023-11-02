@@ -36,6 +36,8 @@ private:
   void surface();
 
   void calc_art_vis(op_dat in0, op_dat in1, op_dat out);
+  void surface_tension_grad(op_dat dx, op_dat dy);
+  void surface_tension_curvature(op_dat curv);
 
   FactorPoissonCoarseMatrix2D *pressureCoarseMatrix;
   FactorPoissonMatrixFreeDiag2D *pressureMatrix;
