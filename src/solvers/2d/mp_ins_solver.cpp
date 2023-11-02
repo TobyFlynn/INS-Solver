@@ -576,6 +576,10 @@ void MPINSSolver2D::calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
               op_arg_gbl(&st_max_diff, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&smooth_tol, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&discon_tol, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&st_diff_width_fact, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&st_trans_width_fact, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(nodes_data, -3, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
               op_arg_dat(nodes_count, -3, mesh->cell2nodes, 1, "int", OP_READ),
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
