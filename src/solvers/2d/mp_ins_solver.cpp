@@ -64,10 +64,16 @@ void MPINSSolver2D::setup_common() {
   int tmp_st = 0;
   config->getInt("solver-options", "surface_tension", tmp_st);
   surface_tension = tmp_st == 1;
+  int tmp_grav = 0;
+  config->getInt("solver-options", "gravity", tmp_grav);
+  gravity = tmp_grav == 1;
   double tmp_dt = -1.0;
   config->getDouble("solver-options", "force_dt", tmp_dt);
   dt_forced = tmp_dt > 0.0;
   if(dt_forced) dt = tmp_dt;
+
+  if(gravity && !surface_tension)
+    throw std::runtime_error("Gravity is only supported with surface_tension enabled currently");
 
   double tmp_max_diff = 1.0;
   config->getDouble("solver-options", "surface_tension_max_art_diff", tmp_max_diff);
@@ -246,7 +252,7 @@ void MPINSSolver2D::surface_tension_grad(op_dat dx, op_dat dy) {
   op_par_loop(ins_2d_st_0, "ins_2d_st_0", mesh->cells,
               op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
               op_arg_dat(st_tmp_0.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
-    
+
   op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PDR, st_tmp_0.dat, 0.0, dx);
   op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PDS, st_tmp_0.dat, 0.0, dy);
 
@@ -266,7 +272,7 @@ void MPINSSolver2D::surface_tension_grad(op_dat dx, op_dat dy) {
               op_arg_dat(lsSolver->s, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(sM.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(sP.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-    
+
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_st_3, "ins_2d_st_3", mesh->bfaces,
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
@@ -331,11 +337,17 @@ void MPINSSolver2D::advection() {
     surface_tension_curvature(tmp_curvature.dat);
 
     // Apply curvature and weber number (placeholder currently)
-    op_par_loop(ins_2d_st_6, "ins_2d_st_6", mesh->cells,
-                op_arg_gbl(constants->decrease_order_ptr, DG_NP * DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    if(gravity) {
+      op_par_loop(ins_2d_st_6_grav, "ins_2d_st_6_grav", mesh->cells,
+                  op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    } else {
+      op_par_loop(ins_2d_st_6, "ins_2d_st_6", mesh->cells,
+                  op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                  op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    }
 
     dg_dat_pool->releaseTempDatCells(tmp_curvature);
   }

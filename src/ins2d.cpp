@@ -21,7 +21,7 @@ Config *config;
 using namespace std;
 
 // Global constants
-DG_FP r_ynolds, mu0, mu1, rho0, rho1, gamma_e, weber;
+DG_FP r_ynolds, mu0, mu1, rho0, rho1, gamma_e, weber, froude;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 1);
@@ -99,21 +99,25 @@ int main(int argc, char **argv) {
   DG_FP refLen = 0.005;
   DG_FP refMu  = 1.0e-5;
   DG_FP refSurfTen = 70.0 * 1e-3;
+  DG_FP refGrav = 9.8;
   config->getDouble("fluid-constants", "refRho", refRho);
   config->getDouble("fluid-constants", "refVel", refVel);
   config->getDouble("fluid-constants", "refLen", refLen);
   config->getDouble("fluid-constants", "refMu", refMu);
   config->getDouble("fluid-constants", "refSurfTen", refSurfTen);
+  config->getDouble("fluid-constants", "refGrav", refGrav);
   r_ynolds = refRho * refVel * refLen / refMu;
   weber = refRho * refVel * refLen / refSurfTen;
+  froude = refVel / sqrt(refGrav * refLen);
 
   int re = -1;
   PetscOptionsGetInt(NULL, NULL, "-re", &re, &found);
   if(re > 0) {
     r_ynolds = (DG_FP)re;
   }
-  op_printf("Re: %g\n", r_ynolds);
+  op_printf("\n\nRe: %g\n", r_ynolds);
   op_printf("Weber: %g\n", weber);
+  op_printf("Froude: %g\n\n", froude);
 
   // For 2D compressible Euler
   gamma_e = 1.4;
@@ -139,6 +143,7 @@ int main(int argc, char **argv) {
   op_decl_const(1, DG_FP_STR, &rho1);
   op_decl_const(1, DG_FP_STR, &gamma_e);
   op_decl_const(1, DG_FP_STR, &weber);
+  op_decl_const(1, DG_FP_STR, &froude);
 
   timer->startTimer("OP2 Partitioning");
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);
