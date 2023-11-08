@@ -119,11 +119,17 @@ int main(int argc, char **argv) {
   op_printf("Reynolds number: %g\n", r_ynolds);
 
   DGMesh3D *mesh = new DGMesh3D(filename);
-  MPINSSolver3D *ins3d;
-  if(resumeIter == 0)
+
+  std::string type_of_solver = "single-phase";
+  config->getStr("simulation-constants", "type_of_solver", type_of_solver);
+  INSSolverBase3D *ins3d;
+  if(type_of_solver == "single-phase") {
+    ins3d = new INSSolver3D(mesh);
+  } else if(type_of_solver == "multi-phase") {
     ins3d = new MPINSSolver3D(mesh);
-  else
-    ins3d = new MPINSSolver3D(mesh, checkpointFile, resumeIter);
+  } else {
+    throw std::runtime_error("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\'");
+  }
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 2, "int", DG_CONSTANTS);

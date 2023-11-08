@@ -588,14 +588,7 @@ void MPINSSolver2D::calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
 }
 
 void MPINSSolver2D::dump_checkpoint_data(const std::string &filename) {
-  op_fetch_data_hdf5_file(vel[0][0], filename.c_str());
-  op_fetch_data_hdf5_file(vel[0][1], filename.c_str());
-  op_fetch_data_hdf5_file(vel[1][0], filename.c_str());
-  op_fetch_data_hdf5_file(vel[1][1], filename.c_str());
-  op_fetch_data_hdf5_file(n[0][0], filename.c_str());
-  op_fetch_data_hdf5_file(n[0][1], filename.c_str());
-  op_fetch_data_hdf5_file(n[1][0], filename.c_str());
-  op_fetch_data_hdf5_file(n[1][1], filename.c_str());
+  INSSolverBase2D::dump_checkpoint_data(filename);
 
   if(surface_tension) {
     op_fetch_data_hdf5_file(st[0][0], filename.c_str());
@@ -603,40 +596,13 @@ void MPINSSolver2D::dump_checkpoint_data(const std::string &filename) {
     op_fetch_data_hdf5_file(st[1][0], filename.c_str());
     op_fetch_data_hdf5_file(st[1][1], filename.c_str());
   }
-  
-  op_fetch_data_hdf5_file(dPdN[0], filename.c_str());
-  op_fetch_data_hdf5_file(dPdN[1], filename.c_str());
-  op_fetch_data_hdf5_file(pr, filename.c_str());
   op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
 
   // TODO save constants in same HDF5 file
 }
 
 void MPINSSolver2D::dump_visualisation_data(const std::string &filename) {
-  timer->startTimer("MPINSSolver2D - Dump Data");
-  op_fetch_data_hdf5_file(mesh->x, filename.c_str());
-  op_fetch_data_hdf5_file(mesh->y, filename.c_str());
-
-  if(values_to_save.count("velocity") != 0) {
-    op_fetch_data_hdf5_file(vel[currentInd][0], filename.c_str());
-    op_fetch_data_hdf5_file(vel[currentInd][1], filename.c_str());
-  }
-
-  if(values_to_save.count("non_linear") != 0) {
-    op_fetch_data_hdf5_file(n[currentInd][0], filename.c_str());
-    op_fetch_data_hdf5_file(n[currentInd][1], filename.c_str());
-  }
-
-  if(values_to_save.count("intermediate_velocities") != 0) {
-    op_fetch_data_hdf5_file(velT[0], filename.c_str());
-    op_fetch_data_hdf5_file(velT[1], filename.c_str());
-    op_fetch_data_hdf5_file(velTT[0], filename.c_str());
-    op_fetch_data_hdf5_file(velTT[1], filename.c_str());
-  }
-
-  if(values_to_save.count("pressure") != 0) {
-    op_fetch_data_hdf5_file(pr, filename.c_str());
-  }
+  INSSolverBase2D::dump_visualisation_data(filename);
 
   if(values_to_save.count("surface_tension") != 0 && surface_tension) {
     op_fetch_data_hdf5_file(st[currentInd][0], filename.c_str());
@@ -654,7 +620,6 @@ void MPINSSolver2D::dump_visualisation_data(const std::string &filename) {
   if(values_to_save.count("level_set") != 0) {
     op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
   }
-  timer->endTimer("MPINSSolver2D - Dump Data");
 }
 
 void MPINSSolver2D::surface() {

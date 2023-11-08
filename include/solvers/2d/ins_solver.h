@@ -25,9 +25,6 @@ public:
   void init(const DG_FP re, const DG_FP refVel) override;
   void step() override;
 
-  void dump_visualisation_data(const std::string &filename) override;
-  void dump_checkpoint_data(const std::string &filename) override;
-
   void save_l2_err_history(const std::string &filename);
 
 private:

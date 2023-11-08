@@ -137,11 +137,19 @@ int main(int argc, char **argv) {
   gamma_e = 1.4;
 
   DGMesh2D *mesh = new DGMesh2D(filename);
-  INSTemperatureSolver2D *mpins2d;
-  if(resumeIter == 0)
-    mpins2d = new INSTemperatureSolver2D(mesh);
-  else
-    mpins2d = new INSTemperatureSolver2D(mesh, checkpointFile, resumeIter);
+  
+  std::string type_of_solver = "single-phase";
+  config->getStr("simulation-constants", "type_of_solver", type_of_solver);
+  INSSolverBase2D *ins2d;
+  if(type_of_solver == "single-phase") {
+    ins2d = new INSSolver2D(mesh);
+  } else if(type_of_solver == "multi-phase") {
+    ins2d = new MPINSSolver2D(mesh);
+  } else if(type_of_solver == "single-phase-with-temperature") {
+    ins2d = new INSTemperatureSolver2D(mesh);
+  } else {
+    throw std::runtime_error("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\', \'single-phase-with-temperature\'");
+  }
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
@@ -166,22 +174,22 @@ int main(int argc, char **argv) {
   timer->endTimer("OP2 Partitioning");
 
   mesh->init();
-  mpins2d->init(r_ynolds, refVel);
+  ins2d->init(r_ynolds, refVel);
 
   int save_ic = 1;
   config->getInt("io", "save_ic", save_ic);
   if(save_ic) {
     string out_file_ic = outputDir + "ic.h5";
-    mpins2d->dump_visualisation_data(out_file_ic);
+    ins2d->dump_visualisation_data(out_file_ic);
   }
 
   timer->startTimer("Main loop");
   for(int i = resumeIter; i < iter; i++) {
-    mpins2d->step();
+    ins2d->step();
 
     if(save > 0 && (i + 1) % save == 0) {
       string out_file_tmp = outputDir + "iter-" + to_string(i + 1) + ".h5";
-      mpins2d->dump_visualisation_data(out_file_tmp);
+      ins2d->dump_visualisation_data(out_file_tmp);
     }
   }
   timer->endTimer("Main loop");
@@ -190,12 +198,12 @@ int main(int argc, char **argv) {
   config->getInt("io", "save_end", save_end);
   if(save_end) {
     string out_file_end = outputDir + "end.h5";
-    mpins2d->dump_visualisation_data(out_file_end);
+    ins2d->dump_visualisation_data(out_file_end);
   }
 
-  timer->exportTimings(outputDir + "timings", iter, mpins2d->get_time());
+  timer->exportTimings(outputDir + "timings", iter, ins2d->get_time());
 
-  delete mpins2d;
+  delete ins2d;
 
   ierr = PetscFinalize();
 

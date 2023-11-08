@@ -21,8 +21,8 @@ public:
   DG_FP get_dt();
 
   // IO
-  virtual void dump_visualisation_data(const std::string &filename) = 0;
-  virtual void dump_checkpoint_data(const std::string &filename) = 0;
+  virtual void dump_visualisation_data(const std::string &filename);
+  virtual void dump_checkpoint_data(const std::string &filename);
 
 protected:
   void advec_current_non_linear();
