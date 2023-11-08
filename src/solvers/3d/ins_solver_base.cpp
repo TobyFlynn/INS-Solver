@@ -71,6 +71,18 @@ INSSolverBase3D::INSSolverBase3D(DGMesh3D *m, const std::string &filename) {
 }
 
 void INSSolverBase3D::read_options() {
+  // Get vector of values that should be saved in output HDF5 file
+  // std::string save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set,dPdN";
+  std::string save_tmp = "all";
+  config->getStr("io", "values_to_save", save_tmp);
+  if(save_tmp == "all")
+    save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set";
+  std::stringstream tmp_ss(save_tmp);
+  std::string val_str;
+  while(std::getline(tmp_ss, val_str, ',')) {
+    values_to_save.insert(val_str);
+  }
+
   int tmp_div = 1;
   config->getInt("solver-options", "div_div", tmp_div);
   pr_projection_method = tmp_div;
