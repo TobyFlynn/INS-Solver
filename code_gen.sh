@@ -43,16 +43,23 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/mp_ins_solver.cpp \
         kernels/
 
-sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins2d_kernels.cu
-sed -i "4i #include \"dg_compiler_defs.h\"" hip/ins2d_kernels.cpp
-sed -i "4i #include \"dg_compiler_defs.h\"" openmp/ins2d_kernels.cpp
-sed -i "4i #include \"dg_compiler_defs.h\"" seq/ins2d_seqkernels.cpp
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_2d.h\"" cuda/ins2d_kernels.cu
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_2d.h\"" hip/ins2d_kernels.cpp
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_2d.h\"" openmp/ins2d_kernels.cpp
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_2d.h\"" seq/ins2d_seqkernels.cpp
-sed -i "5i #include \"cblas.h\"" openmp/ins2d_kernels.cpp
-sed -i "5i #include \"cblas.h\"" seq/ins2d_seqkernels.cpp
+cuda_line_no_2d=$(grep -n op_cuda_reduction cuda/ins2d_kernels.cu | cut -d : -f 1)
+hip_line_no_2d=$(grep -n op_hip_reduction hip/ins2d_kernels.cpp | cut -d : -f 1)
+openmp_line_no_2d=$(grep -n op_lib_cpp openmp/ins2d_kernels.cpp | cut -d : -f 1)
+seq_line_no_2d=$(grep -n op_lib_cpp seq/ins2d_seqkernels.cpp | cut -d : -f 1)
+
+cuda_line_no_2d=$((cuda_line_no_2d+1))
+hip_line_no_2d=$((hip_line_no_2d+1))
+openmp_line_no_2d=$((openmp_line_no_2d+1))
+seq_line_no_2d=$((seq_line_no_2d+1))
+
+text_gpu_2d="#include \"dg_compiler_defs.h\"\n#include \"problem_specific_2d.h\"\n#include \"dg_global_constants/dg_mat_constants_2d.h\""
+text_cpu_2d="#include \"dg_compiler_defs.h\"\n#include \"problem_specific_2d.h\"\n#include \"dg_global_constants/dg_mat_constants_2d.h\"\n#include \"cblas.h\""
+
+sed -i "${cuda_line_no_2d}i $text_gpu_2d" cuda/ins2d_kernels.cu
+sed -i "${hip_line_no_2d}i $text_gpu_2d" hip/ins2d_kernels.cpp
+sed -i "${openmp_line_no_2d}i $text_cpu_2d" openmp/ins2d_kernels.cpp
+sed -i "${seq_line_no_2d}i $text_cpu_2d" seq/ins2d_seqkernels.cpp
 
 cd ..
 
@@ -66,19 +73,22 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/mp_ins_solver.cpp \
         kernels/
 
-sed -i "4i #include \"dg_compiler_defs.h\"" cuda/ins3d_kernels.cu
-sed -i "4i #include \"dg_compiler_defs.h\"" hip/ins3d_kernels.cpp
-sed -i "4i #include \"dg_compiler_defs.h\"" openmp/ins3d_kernels.cpp
-sed -i "4i #include \"dg_compiler_defs.h\"" seq/ins3d_seqkernels.cpp
-sed -i "5i #include \"liquid_whistle_consts.h\"" cuda/ins3d_kernels.cu
-sed -i "5i #include \"liquid_whistle_consts.h\"" hip/ins3d_kernels.cpp
-sed -i "5i #include \"liquid_whistle_consts.h\"" openmp/ins3d_kernels.cpp
-sed -i "5i #include \"liquid_whistle_consts.h\"" seq/ins3d_seqkernels.cpp
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_3d.h\"" cuda/ins3d_kernels.cu
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_3d.h\"" hip/ins3d_kernels.cpp
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_3d.h\"" openmp/ins3d_kernels.cpp
-sed -i "6i #include \"dg_global_constants/dg_mat_constants_3d.h\"" seq/ins3d_seqkernels.cpp
-sed -i "7i #include \"cblas.h\"" openmp/ins3d_kernels.cpp
-sed -i "7i #include \"cblas.h\"" seq/ins3d_seqkernels.cpp
+cuda_line_no_3d=$(grep -n op_cuda_reduction cuda/ins3d_kernels.cu | cut -d : -f 1)
+hip_line_no_3d=$(grep -n op_hip_reduction hip/ins3d_kernels.cpp | cut -d : -f 1)
+openmp_line_no_3d=$(grep -n op_lib_cpp openmp/ins3d_kernels.cpp | cut -d : -f 1)
+seq_line_no_3d=$(grep -n op_lib_cpp seq/ins3d_seqkernels.cpp | cut -d : -f 1)
+
+cuda_line_no_3d=$((cuda_line_no_3d+1))
+hip_line_no_3d=$((hip_line_no_3d+1))
+openmp_line_no_3d=$((openmp_line_no_3d+1))
+seq_line_no_3d=$((seq_line_no_3d+1))
+
+text_gpu_3d="#include \"dg_compiler_defs.h\"\n#include \"problem_specific_3d.h\"\n#include \"dg_global_constants/dg_mat_constants_3d.h\""
+text_cpu_3d="#include \"dg_compiler_defs.h\"\n#include \"problem_specific_3d.h\"\n#include \"dg_global_constants/dg_mat_constants_3d.h\"\n#include \"cblas.h\""
+
+sed -i "${cuda_line_no_3d}i $text_gpu_3d" cuda/ins3d_kernels.cu
+sed -i "${hip_line_no_3d}i $text_gpu_3d" hip/ins3d_kernels.cpp
+sed -i "${openmp_line_no_3d}i $text_cpu_3d" openmp/ins3d_kernels.cpp
+sed -i "${seq_line_no_3d}i $text_cpu_3d" seq/ins3d_seqkernels.cpp
 
 cd ../..
