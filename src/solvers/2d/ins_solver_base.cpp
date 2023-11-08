@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <limits>
+#include <sstream>
 
 #include "dg_op2_blas.h"
 #include "dg_constants/dg_constants.h"
@@ -66,6 +67,17 @@ INSSolverBase2D::INSSolverBase2D(DGMesh2D *m, const std::string &filename) {
 }
 
 void INSSolverBase2D::read_options() {
+  // Get vector of values that should be saved in output HDF5 file
+  std::string save_tmp = "all";
+  config->getStr("io", "values_to_save", save_tmp);
+  if(save_tmp == "all")
+    save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set";
+  std::stringstream tmp_ss(save_tmp);
+  std::string val_str;
+  while(std::getline(tmp_ss, val_str, ',')) {
+    values_to_save.insert(val_str);
+  }
+  
   int tmp_div = 0;
   config->getInt("solver-options", "div_div", tmp_div);
   pr_projection_method = tmp_div;

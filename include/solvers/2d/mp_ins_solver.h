@@ -25,7 +25,9 @@ public:
 
   void step() override;
   void init(const DG_FP re, const DG_FP refVel) override;
-  void dump_data(const std::string &filename);
+  
+  void dump_visualisation_data(const std::string &filename) override;
+  void dump_checkpoint_data(const std::string &filename) override;
 
   op_dat rho, mu, st[2][2];
 private:

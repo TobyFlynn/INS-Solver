@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
   config->getInt("simulation-constants", "iter", iter);
 
   int save = -1;
-  config->getInt("simulation-constants", "save", save);
+  config->getInt("io", "save", save);
 
   mu0  = 1.0;
   mu1  = 1.0;
@@ -149,10 +149,10 @@ int main(int argc, char **argv) {
   ins3d->init(r_ynolds, refVel);
 
   int save_ic = 1;
-  config->getInt("simulation-constants", "save_ic", save_ic);
+  config->getInt("io", "save_ic", save_ic);
   if(save_ic) {
     string out_file_ic = outputDir + "ic.h5";
-    ins3d->dump_data(out_file_ic);
+    ins3d->dump_visualisation_data(out_file_ic);
   }
 
   timer->startTimer("Main loop");
@@ -161,16 +161,16 @@ int main(int argc, char **argv) {
 
     if(save > 0 && (i + 1) % save == 0) {
       string out_file_tmp = outputDir + "iter-" + to_string(i + 1) + ".h5";
-      ins3d->dump_data(out_file_tmp);
+      ins3d->dump_visualisation_data(out_file_tmp);
     }
   }
   timer->endTimer("Main loop");
 
   int save_end = 1;
-  config->getInt("simulation-constants", "save_end", save_end);
+  config->getInt("io", "save_end", save_end);
   if(save_end) {
     string out_file_end = outputDir + "end.h5";
-    ins3d->dump_data(out_file_end);
+    ins3d->dump_visualisation_data(out_file_end);
   }
 
   timer->exportTimings(outputDir + "timings", iter, ins3d->get_time());

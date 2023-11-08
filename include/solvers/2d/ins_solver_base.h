@@ -6,6 +6,9 @@
 #include "dg_mesh/dg_mesh_2d.h"
 #include "dg_dat_pool.h"
 
+#include <string>
+#include <set>
+
 class INSSolverBase2D {
 public:
   INSSolverBase2D(DGMesh2D *m);
@@ -16,6 +19,10 @@ public:
   virtual void step() = 0;
   DG_FP get_time();
   DG_FP get_dt();
+
+  // IO
+  virtual void dump_visualisation_data(const std::string &filename) = 0;
+  virtual void dump_checkpoint_data(const std::string &filename) = 0;
 
 protected:
   void advec_current_non_linear();
@@ -40,6 +47,7 @@ protected:
   bool extrapolate_initial_guess, shock_cap, over_int_advec;
   int it_pre_sub_cycle, pr_projection_method;
   std::vector<std::pair<DG_FP,DGTempDat>> pr_history;
+  std::set<std::string> values_to_save;
 
   // Filter params
   DG_FP filter_alpha;

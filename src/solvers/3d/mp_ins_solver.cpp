@@ -469,10 +469,7 @@ void MPINSSolver3D::surface() {
   lsSolver->getRhoMu(rho, mu);
 }
 
-void MPINSSolver3D::dump_data(const std::string &filename) {
-  op_fetch_data_hdf5_file(mesh->x, filename.c_str());
-  op_fetch_data_hdf5_file(mesh->y, filename.c_str());
-  op_fetch_data_hdf5_file(mesh->z, filename.c_str());
+void MPINSSolver3D::dump_checkpoint_data(const std::string &filename) {
   op_fetch_data_hdf5_file(vel[0][0], filename.c_str());
   op_fetch_data_hdf5_file(vel[0][1], filename.c_str());
   op_fetch_data_hdf5_file(vel[0][2], filename.c_str());
@@ -486,9 +483,57 @@ void MPINSSolver3D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(n[1][1], filename.c_str());
   op_fetch_data_hdf5_file(n[1][2], filename.c_str());
   op_fetch_data_hdf5_file(pr, filename.c_str());
-  op_fetch_data_hdf5_file(rho, filename.c_str());
-  op_fetch_data_hdf5_file(mu, filename.c_str());
   op_fetch_data_hdf5_file(dPdN[0], filename.c_str());
   op_fetch_data_hdf5_file(dPdN[1], filename.c_str());
   op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
+  
+  // TODO save constants in same HDF5 file
+}
+
+void MPINSSolver3D::dump_visualisation_data(const std::string &filename) {
+  op_fetch_data_hdf5_file(mesh->x, filename.c_str());
+  op_fetch_data_hdf5_file(mesh->y, filename.c_str());
+  op_fetch_data_hdf5_file(mesh->z, filename.c_str());
+
+  if(values_to_save.count("velocity") != 0) {
+    op_fetch_data_hdf5_file(vel[currentInd][0], filename.c_str());
+    op_fetch_data_hdf5_file(vel[currentInd][1], filename.c_str());
+    op_fetch_data_hdf5_file(vel[currentInd][2], filename.c_str());
+  }
+
+  if(values_to_save.count("non_linear") != 0) {
+    op_fetch_data_hdf5_file(n[currentInd][0], filename.c_str());
+    op_fetch_data_hdf5_file(n[currentInd][1], filename.c_str());
+    op_fetch_data_hdf5_file(n[currentInd][2], filename.c_str());
+  }
+  
+  if(values_to_save.count("dPdN") != 0) {
+    op_fetch_data_hdf5_file(dPdN[0], filename.c_str());
+    op_fetch_data_hdf5_file(dPdN[1], filename.c_str());
+  }
+
+  if(values_to_save.count("intermediate_velocities") != 0) {
+    op_fetch_data_hdf5_file(velT[0], filename.c_str());
+    op_fetch_data_hdf5_file(velT[1], filename.c_str());
+    op_fetch_data_hdf5_file(velT[2], filename.c_str());
+    op_fetch_data_hdf5_file(velTT[0], filename.c_str());
+    op_fetch_data_hdf5_file(velTT[1], filename.c_str());
+    op_fetch_data_hdf5_file(velTT[2], filename.c_str());
+  }
+
+  if(values_to_save.count("pressure") != 0) {
+    op_fetch_data_hdf5_file(pr, filename.c_str());
+  }
+
+  if(values_to_save.count("mu") != 0) {
+    op_fetch_data_hdf5_file(mu, filename.c_str());
+  }
+
+  if(values_to_save.count("rho") != 0) {
+    op_fetch_data_hdf5_file(rho, filename.c_str());
+  }
+
+  if(values_to_save.count("level_set") != 0) {
+    op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
+  }
 }

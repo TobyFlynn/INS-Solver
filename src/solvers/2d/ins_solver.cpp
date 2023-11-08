@@ -378,10 +378,7 @@ void INSSolver2D::no_viscosity() {
               op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 }
 
-void INSSolver2D::dump_data(const std::string &filename) {
-  timer->startTimer("INSSolver2D - Dump Data");
-  op_fetch_data_hdf5_file(mesh->x, filename.c_str());
-  op_fetch_data_hdf5_file(mesh->y, filename.c_str());
+void INSSolver2D::dump_checkpoint_data(const std::string &filename) {
   op_fetch_data_hdf5_file(vel[0][0], filename.c_str());
   op_fetch_data_hdf5_file(vel[0][1], filename.c_str());
   op_fetch_data_hdf5_file(vel[1][0], filename.c_str());
@@ -392,11 +389,36 @@ void INSSolver2D::dump_data(const std::string &filename) {
   op_fetch_data_hdf5_file(n[1][1], filename.c_str());
   op_fetch_data_hdf5_file(dPdN[0], filename.c_str());
   op_fetch_data_hdf5_file(dPdN[1], filename.c_str());
-  op_fetch_data_hdf5_file(velT[0], filename.c_str());
-  op_fetch_data_hdf5_file(velT[1], filename.c_str());
-  op_fetch_data_hdf5_file(velTT[0], filename.c_str());
-  op_fetch_data_hdf5_file(velTT[1], filename.c_str());
   op_fetch_data_hdf5_file(pr, filename.c_str());
+
+  // TODO save constants in same HDF5 file
+}
+
+void INSSolver2D::dump_visualisation_data(const std::string &filename) {
+  timer->startTimer("INSSolver2D - Dump Data");
+  op_fetch_data_hdf5_file(mesh->x, filename.c_str());
+  op_fetch_data_hdf5_file(mesh->y, filename.c_str());
+
+  if(values_to_save.count("velocity") != 0) {
+    op_fetch_data_hdf5_file(vel[currentInd][0], filename.c_str());
+    op_fetch_data_hdf5_file(vel[currentInd][1], filename.c_str());
+  }
+
+  if(values_to_save.count("non_linear") != 0) {
+    op_fetch_data_hdf5_file(n[currentInd][0], filename.c_str());
+    op_fetch_data_hdf5_file(n[currentInd][1], filename.c_str());
+  }
+
+  if(values_to_save.count("intermediate_velocities") != 0) {
+    op_fetch_data_hdf5_file(velT[0], filename.c_str());
+    op_fetch_data_hdf5_file(velT[1], filename.c_str());
+    op_fetch_data_hdf5_file(velTT[0], filename.c_str());
+    op_fetch_data_hdf5_file(velTT[1], filename.c_str());
+  }
+
+  if(values_to_save.count("pressure") != 0) {
+    op_fetch_data_hdf5_file(pr, filename.c_str());
+  }
   timer->endTimer("INSSolver2D - Dump Data");
 }
 
