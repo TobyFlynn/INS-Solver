@@ -23,7 +23,7 @@ inline void ins_bc_types(const DG_FP **nodes, int *type, int *pr_type,
     *type = 2;
   }*/
 
-  *type = 1;
+  *type = 2;
 
   if(*type == 0) {
     *pr_type = 1;

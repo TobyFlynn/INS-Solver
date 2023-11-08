@@ -10,7 +10,7 @@ inline void mp_ins_2d_pr_0(const DG_FP *t, const int *bedge_type,
 
   if(*bedge_type == 0 || *bedge_type == 2) {
     // Inflow or Wall
-    for(int i = 0; i < DG_GF_NP; i++) {
+    for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
       const int find = *faceNum * DG_NPF + i;
       DG_FP res1 = -N0[fmask_ind] - gradCurlVel1[fmask_ind] / (r_ynolds * rho[fmask_ind]);

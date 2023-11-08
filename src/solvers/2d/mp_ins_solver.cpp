@@ -64,16 +64,13 @@ void MPINSSolver2D::setup_common() {
   int tmp_st = 0;
   config->getInt("solver-options", "surface_tension", tmp_st);
   surface_tension = tmp_st == 1;
-  int tmp_grav = 0;
-  config->getInt("solver-options", "gravity", tmp_grav);
-  gravity = tmp_grav == 1;
   double tmp_dt = -1.0;
   config->getDouble("solver-options", "force_dt", tmp_dt);
   dt_forced = tmp_dt > 0.0;
   if(dt_forced) dt = tmp_dt;
 
-  if(gravity && !surface_tension)
-    throw std::runtime_error("Gravity is only supported with surface_tension enabled currently");
+  if(surface_tension && sub_cycles > 0)
+    throw std::runtime_error("Surface tension not supported with subcycling currently");
 
   double tmp_max_diff = 1.0;
   config->getDouble("solver-options", "surface_tension_max_art_diff", tmp_max_diff);
@@ -337,17 +334,10 @@ void MPINSSolver2D::advection() {
     surface_tension_curvature(tmp_curvature.dat);
 
     // Apply curvature and weber number (placeholder currently)
-    if(gravity) {
-      op_par_loop(ins_2d_st_6_grav, "ins_2d_st_6_grav", mesh->cells,
-                  op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                  op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                  op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-    } else {
-      op_par_loop(ins_2d_st_6, "ins_2d_st_6", mesh->cells,
-                  op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                  op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-                  op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-    }
+    op_par_loop(ins_2d_st_6, "ins_2d_st_6", mesh->cells,
+                op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
     dg_dat_pool->releaseTempDatCells(tmp_curvature);
   }

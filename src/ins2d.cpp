@@ -13,6 +13,7 @@
 #include "timing.h"
 #include "config.h"
 #include "solvers/2d/ins_solver.h"
+#include "solvers/2d/ins_temperature_solver.h"
 #include "solvers/2d/mp_ins_solver.h"
 
 Timing *timer;
@@ -21,7 +22,7 @@ Config *config;
 using namespace std;
 
 // Global constants
-DG_FP r_ynolds, mu0, mu1, rho0, rho1, gamma_e, weber, froude;
+DG_FP r_ynolds, mu0, mu1, rho0, rho1, gamma_e, weber, froude, coeff_thermal_expan, peclet;
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 1);
@@ -110,6 +111,18 @@ int main(int argc, char **argv) {
   weber = refRho * refVel * refLen / refSurfTen;
   froude = refVel / sqrt(refGrav * refLen);
 
+  // Temperature stuff
+  coeff_thermal_expan = 3.43e-3;
+  config->getDouble("fluid-constants", "coeff_thermal_expan", coeff_thermal_expan);
+  DG_FP thermal_conductivity = 0.026; // W / mK
+  config->getDouble("fluid-constants", "thermal_conductivity", thermal_conductivity);
+  DG_FP heat_capacity = 0.000280 * 3.6e6; // J/kgK
+  config->getDouble("fluid-constants", "heat_capacity", heat_capacity);
+  
+  // TODO: Check if this should include refRho
+  // peclet = (heat_capacity * refVel * refLen) / thermal_conductivity;
+  peclet = (heat_capacity * refVel * refLen * refRho) / thermal_conductivity;
+
   int re = -1;
   PetscOptionsGetInt(NULL, NULL, "-re", &re, &found);
   if(re > 0) {
@@ -117,17 +130,18 @@ int main(int argc, char **argv) {
   }
   op_printf("\n\nRe: %g\n", r_ynolds);
   op_printf("Weber: %g\n", weber);
-  op_printf("Froude: %g\n\n", froude);
+  op_printf("Froude: %g\n", froude);
+  op_printf("Peclet: %g\n\n", peclet);
 
   // For 2D compressible Euler
   gamma_e = 1.4;
 
   DGMesh2D *mesh = new DGMesh2D(filename);
-  MPINSSolver2D *mpins2d;
+  INSTemperatureSolver2D *mpins2d;
   if(resumeIter == 0)
-    mpins2d = new MPINSSolver2D(mesh);
+    mpins2d = new INSTemperatureSolver2D(mesh);
   else
-    mpins2d = new MPINSSolver2D(mesh, checkpointFile, resumeIter);
+    mpins2d = new INSTemperatureSolver2D(mesh, checkpointFile, resumeIter);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
@@ -144,6 +158,8 @@ int main(int argc, char **argv) {
   op_decl_const(1, DG_FP_STR, &gamma_e);
   op_decl_const(1, DG_FP_STR, &weber);
   op_decl_const(1, DG_FP_STR, &froude);
+  op_decl_const(1, DG_FP_STR, &coeff_thermal_expan);
+  op_decl_const(1, DG_FP_STR, &peclet);
 
   timer->startTimer("OP2 Partitioning");
   op_partition("" STRINGIFY(OP2_PARTITIONER), "KWAY", mesh->cells, mesh->face2cells, NULL);

@@ -51,14 +51,23 @@ endif
 
 all: cpu
 
-cpu: $(BIN)/ins2d_openmp $(BIN)/ins2d_mpi $(BIN)/ins2d_mpi_openmp \
-	$(BIN)/ins3d_openmp $(BIN)/ins3d_mpi $(BIN)/ins3d_mpi_openmp
+cpu: cpu_2d cpu_3d
 
-cuda: $(BIN)/ins2d_cuda $(BIN)/ins2d_mpi_cuda \
-	$(BIN)/ins3d_cuda $(BIN)/ins3d_mpi_cuda
+cpu_2d: $(BIN)/ins2d_openmp $(BIN)/ins2d_mpi $(BIN)/ins2d_mpi_openmp
 
-hip: $(BIN)/ins2d_hip $(BIN)/ins2d_mpi_hip \
-	$(BIN)/ins3d_hip $(BIN)/ins3d_mpi_hip
+cpu_3d: $(BIN)/ins3d_openmp $(BIN)/ins3d_mpi $(BIN)/ins3d_mpi_openmp
+
+cuda: cuda_2d cuda_3d
+
+cuda_2d: $(BIN)/ins2d_cuda $(BIN)/ins2d_mpi_cuda
+
+cuda_3d: $(BIN)/ins3d_cuda $(BIN)/ins3d_mpi_cuda
+
+hip: hip_2d hip_3d
+
+hip_2d: $(BIN)/ins2d_hip $(BIN)/ins2d_mpi_hip
+
+hip_3d: $(BIN)/ins3d_hip $(BIN)/ins3d_mpi_hip
 
 codegen: $(CODE_GEN_DIR)
 
@@ -144,10 +153,12 @@ $(3D_MPI_HIP_OBJ_DIR): $(OBJ)
 COMMON_2D_OBJ := ins2d_op.o \
   solvers_op/2d/advection_solver_op.o \
 	solvers_op/2d/diffusion_solver_op.o \
+	solvers_op/2d/advec_diff_solver_op.o \
   solvers_op/2d/ls_solver_op.o \
   solvers/2d/ls_utils/ls_reinit_poly.o \
   solvers_op/2d/ins_solver_base_op.o \
   solvers_op/2d/ins_solver_op.o \
+	solvers_op/2d/ins_temperature_solver_op.o \
   solvers_op/2d/mp_ins_solver_op.o 
 
 # 2D CPU only object files

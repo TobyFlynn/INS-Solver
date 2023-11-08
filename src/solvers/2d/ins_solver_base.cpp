@@ -78,6 +78,15 @@ void INSSolverBase2D::read_options() {
   int tmp_shock = 0;
   config->getInt("solver-options", "shock_capturing", tmp_shock);
   shock_cap = tmp_shock == 1;
+  int tmp_oia = 0;
+  config->getInt("solver-options", "over_int_advec", tmp_oia);
+  over_int_advec = tmp_oia == 1;
+  int tmp_grav = 0;
+  config->getInt("solver-options", "gravity", tmp_grav);
+  gravity = tmp_grav == 1;
+
+  if(gravity && sub_cycles > 0)
+    throw std::runtime_error("Gravity not supported with subcycling currently");
 
   filter_alpha = 18.0;
   config->getDouble("filter", "alpha", filter_alpha);
@@ -85,10 +94,6 @@ void INSSolverBase2D::read_options() {
   config->getInt("filter", "sp", filter_sp);
   filter_Nc = 0;
   config->getInt("filter", "Nc", filter_Nc);
-
-  int tmp_oia = 0;
-  config->getInt("solver-options", "over_int_advec", tmp_oia);
-  over_int_advec = tmp_oia == 1;
 }
 
 void INSSolverBase2D::init_dats() {
@@ -310,7 +315,8 @@ void INSSolverBase2D::advec_standard() {
   }
 
   // Calculate the intermediate velocity values
-  op_par_loop(ins_advec_intermediate_vel_2d, "ins_advec_intermediate_vel_2d", mesh->cells,
+  if(gravity) {
+    op_par_loop(ins_advec_intermediate_vel_grav_2d, "ins_advec_intermediate_vel_grav_2d", mesh->cells,
               op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
@@ -326,6 +332,24 @@ void INSSolverBase2D::advec_standard() {
               op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  } else {
+    op_par_loop(ins_advec_intermediate_vel_2d, "ins_advec_intermediate_vel_2d", mesh->cells,
+              op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  }
 }
 
 void INSSolverBase2D::advec_standard(op_dat fx, op_dat fy, op_dat fx_old, op_dat fy_old) {
@@ -336,7 +360,8 @@ void INSSolverBase2D::advec_standard(op_dat fx, op_dat fy, op_dat fx_old, op_dat
   }
 
   // Calculate the intermediate velocity values
-  op_par_loop(ins_advec_intermediate_vel_force_2d, "ins_advec_intermediate_vel_force_2d", mesh->cells,
+  if(gravity) {
+    op_par_loop(ins_advec_intermediate_vel_force_grav_2d, "ins_advec_intermediate_vel_force_grav_2d", mesh->cells,
               op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
@@ -356,6 +381,28 @@ void INSSolverBase2D::advec_standard(op_dat fx, op_dat fy, op_dat fx_old, op_dat
               op_arg_dat(fy_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  } else {
+    op_par_loop(ins_advec_intermediate_vel_force_2d, "ins_advec_intermediate_vel_force_2d", mesh->cells,
+              op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fx_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fy_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  }
 }
 
 void INSSolverBase2D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat u_out,

@@ -37,7 +37,7 @@ protected:
   op_dat vel[2][2], velT[2], velTT[2], pr, n[2][2], dPdN[2], bc_types, proj_h, bc_data;
 
   DGMesh2D *mesh;
-  bool extrapolate_initial_guess, shock_cap, over_int_advec;
+  bool extrapolate_initial_guess, shock_cap, over_int_advec, gravity;
   int it_pre_sub_cycle, pr_projection_method;
   std::vector<std::pair<DG_FP,DGTempDat>> pr_history;
 

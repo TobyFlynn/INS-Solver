@@ -37,9 +37,11 @@ cd code_gen/gen_2d
 python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/advection_solver.cpp \
         solvers/2d/diffusion_solver.cpp \
+        solvers/2d/advec_diff_solver.cpp \
         solvers/2d/ls_solver.cpp \
         solvers/2d/ins_solver_base.cpp \
         solvers/2d/ins_solver.cpp \
+        solvers/2d/ins_temperature_solver.cpp \
         solvers/2d/mp_ins_solver.cpp \
         kernels/
 
