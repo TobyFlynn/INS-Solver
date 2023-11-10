@@ -218,6 +218,7 @@ void INSTemperatureSolver2D::init(const DG_FP re, const DG_FP refVel) {
                 op_arg_dat(pr_bc_types,  -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
   }
+  advecDiffSolver->set_bc_types(pr_bc_types);
 
   pressureCoarseMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->set_bc_types(pr_bc_types);
