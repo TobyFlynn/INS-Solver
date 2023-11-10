@@ -17,6 +17,19 @@
 
 #include "dg_mesh/dg_mesh_2d.h"
 
+class TemperatureAdvecDiffSolver2D : public AdvecDiffSolver2D {
+public:
+  TemperatureAdvecDiffSolver2D(DGMesh2D *m);
+  void set_bc_types(op_dat bc);
+
+protected:
+  virtual void bc_kernel_advec(op_dat val, op_dat u, op_dat v, op_dat out) override;
+  virtual void bc_kernel_diff_0(op_dat val, op_dat out_x, op_dat out_y) override;
+  virtual void bc_kernel_diff_1(op_dat val, op_dat val_x, op_dat val_y, op_dat vis, op_dat out) override;
+
+  op_dat bc_types;
+};
+
 class INSTemperatureSolver2D : public INSSolverBase2D {
 public:
   INSTemperatureSolver2D(DGMesh2D *m);
@@ -44,7 +57,7 @@ private:
   MMPoissonMatrixFree2D *viscosityMatrix;
   PETScPMultigrid *pressureSolver;
   PETScInvMassSolver *viscositySolver;
-  AdvecDiffSolver2D *advecDiffSolver;
+  TemperatureAdvecDiffSolver2D *advecDiffSolver;
 
   bool resuming;
   bool dt_forced;

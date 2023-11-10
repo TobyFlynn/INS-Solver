@@ -23,6 +23,63 @@ extern DGDatPool *dg_dat_pool;
 
 using namespace std;
 
+/*********************************************************************************************
+ * Temperature Advection Diffusion Solver class that extends the base AdvecDiff Solver class *
+ *********************************************************************************************/
+TemperatureAdvecDiffSolver2D::TemperatureAdvecDiffSolver2D(DGMesh2D *m) : AdvecDiffSolver2D(m) {}
+
+void TemperatureAdvecDiffSolver2D::set_bc_types(op_dat bc) {
+  bc_types = bc;
+}
+
+void TemperatureAdvecDiffSolver2D::bc_kernel_advec(op_dat val, op_dat u, op_dat v, op_dat out) {
+  op_par_loop(temperature_advec_2d_bc, "temperature_advec_2d_bc", mesh->bfaces,
+              op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(v,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(out, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
+}
+
+void TemperatureAdvecDiffSolver2D::bc_kernel_diff_0(op_dat val, op_dat out_x, op_dat out_y) {
+  op_par_loop(temperature_diff_2d_bc_0, "temperature_diff_2d_bc_0", mesh->bfaces,
+              op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(out_x, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(out_y, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+}
+
+void TemperatureAdvecDiffSolver2D::bc_kernel_diff_1(op_dat val, op_dat val_x, op_dat val_y, op_dat vis, op_dat out) {
+  op_par_loop(temperature_diff_2d_bc_1, "temperature_diff_2d_bc_1", mesh->bfaces,
+              op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(val_x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(val_y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vis, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(out, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+}
+
+/************************
+ * Main INS Temperature Solver class *
+ ************************/
 INSTemperatureSolver2D::INSTemperatureSolver2D(DGMesh2D *m) : INSSolverBase2D(m) {
   resuming = false;
 
@@ -72,7 +129,7 @@ void INSTemperatureSolver2D::setup_common() {
   pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
   viscositySolver = new PETScInvMassSolver(mesh);
 
-  advecDiffSolver = new AdvecDiffSolver2D(mesh);
+  advecDiffSolver = new TemperatureAdvecDiffSolver2D(mesh);
 
   int pr_tmp = 0;
   int vis_tmp = 0;
@@ -86,7 +143,7 @@ void INSTemperatureSolver2D::setup_common() {
 
   pr_bc_types  = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_pr_bc_types");
   vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_vis_bc_types");
-  
+
   temperature = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_temperature");
   rho = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_rho");
 }
@@ -115,7 +172,7 @@ void INSTemperatureSolver2D::init(const DG_FP re, const DG_FP refVel) {
                 op_arg_dat(vel[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(vel[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
                 op_arg_dat(vel[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-    
+
     op_par_loop(ins_2d_set_ic_temperature, "ins_2d_set_ic", mesh->cells,
                 op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -254,8 +311,12 @@ bool INSTemperatureSolver2D::pressure() {
   // Apply Dirichlet BCs
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_pr_bc, "ins_2d_pr_bc", mesh->bfaces,
+                op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(pr_bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
 
@@ -353,12 +414,15 @@ bool INSTemperatureSolver2D::viscosity() {
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_vis_bc_x, "ins_2d_vis_bc_x", mesh->bfaces,
                 op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
 
@@ -369,12 +433,15 @@ bool INSTemperatureSolver2D::viscosity() {
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_vis_bc_y, "ins_2d_vis_bc_x", mesh->bfaces,
                 op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
 

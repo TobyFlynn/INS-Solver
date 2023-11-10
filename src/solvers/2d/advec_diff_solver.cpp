@@ -133,17 +133,8 @@ void AdvecDiffSolver2D::advec(op_dat val, op_dat u, op_dat v, op_dat val_out) {
               op_arg_dat(v,   -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(flux.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
 
-  if(mesh->bface2cells) {
-    op_par_loop(advec_2d_bflux, "advec_2d_bflux", mesh->bfaces,
-              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(u,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(v,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(flux.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
-  }
+  if(mesh->bface2cells)
+    bc_kernel_advec(val, u, v, flux.dat);
 
   op2_gemv(mesh, false, -1.0, DGConstants::LIFT, flux.dat, 1.0, val_out);
 
@@ -169,16 +160,8 @@ void AdvecDiffSolver2D::diff(op_dat val, op_dat vis, op_dat val_out) {
               op_arg_dat(val_flux_x.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(val_flux_y.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
-  if(mesh->bface2cells) {
-    op_par_loop(diff_2d_1, "diff_2d_1", mesh->bfaces,
-                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(val_flux_x.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-                op_arg_dat(val_flux_y.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  }
+  if(mesh->bface2cells)
+    bc_kernel_diff_0(val, val_flux_x.dat, val_flux_y.dat);
 
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, val_flux_x.dat, -1.0, val_x.dat);
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, val_flux_y.dat, -1.0, val_y.dat);
@@ -207,18 +190,8 @@ void AdvecDiffSolver2D::diff(op_dat val, op_dat vis, op_dat val_out) {
               op_arg_dat(vis, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(val_out_flux.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
-  if(mesh->bface2cells) {
-    op_par_loop(diff_2d_4, "diff_2d_4", mesh->bfaces,
-                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(val_x.dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(val_y.dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(vis, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(val_out_flux.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  }
+  if(mesh->bface2cells)
+    bc_kernel_diff_1(val, val_x.dat, val_y.dat, vis, val_out_flux.dat);
 
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, val_out_flux.dat, -1.0, val_out);
 
@@ -250,7 +223,7 @@ void AdvecDiffSolver2D::set_dt(op_dat u, op_dat v, op_dat vis) {
               op_arg_gbl(&max_vel_tmp, 1, DG_FP_STR, OP_MAX)
               op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
-  
+
   DG_FP max_vel = fmax(1.0, sqrt(max_vel_tmp));
 
   dt = 1.0 / ((max_vel * DG_ORDER * DG_ORDER / h) + (max_vis * DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER / (h * h)));

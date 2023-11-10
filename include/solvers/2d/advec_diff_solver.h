@@ -16,13 +16,19 @@ public:
   void set_dt(const DG_FP t);
   void set_dt(op_dat u, op_dat v, op_dat vis);
   DG_FP get_dt();
+
+protected:
+  virtual void bc_kernel_advec(op_dat val, op_dat u, op_dat v, op_dat out) = 0;
+  virtual void bc_kernel_diff_0(op_dat val, op_dat out_x, op_dat out_y) = 0;
+  virtual void bc_kernel_diff_1(op_dat val, op_dat val_x, op_dat val_y, op_dat vis, op_dat out) = 0;
+
+  DGMesh2D *mesh;
 private:
   void rhs(op_dat val, op_dat u, op_dat v, op_dat vis, op_dat val_out);
   void advec(op_dat val, op_dat u, op_dat v, op_dat val_out);
   void diff(op_dat val, op_dat vis, op_dat val_out);
   void rhs_over_int(op_dat val, op_dat vis, op_dat val_out);
 
-  DGMesh2D *mesh;
   DG_FP dt;
   bool over_int_diff;
 };

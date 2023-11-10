@@ -42,7 +42,7 @@ DEVICE_PREFIX void ps2d_set_ic(const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v)
 DEVICE_PREFIX void ps2d_set_boundary_type(const DG_FP x0, const DG_FP y0,
                                           const DG_FP x1, const DG_FP y1,
                                           int &bc_type) {
-  bc_type = BC_TYPE_NATURAL_OUTFLOW;
+  bc_type = BC_TYPE_NO_SLIP;
 }
 
 // Custom BC pressure and viscosity linear solves BC conditions
@@ -120,6 +120,24 @@ DEVICE_PREFIX DG_FP ps2d_custom_bc_get_pr_neumann_multiphase(const int bc_type, 
   }
 
   return 0.0;
+}
+
+// Set the initial temperature of the problem
+DEVICE_PREFIX DG_FP ps2d_set_temperature(const DG_FP x, const DG_FP y) {
+  return x / 10.0;
+}
+
+// Set temperature value on custom BCs (return tM otherwise)
+DEVICE_PREFIX DG_FP ps2d_custom_bc_get_temperature(const int bc_type, const DG_FP x, const DG_FP y, const DG_FP tM) {
+  return tM;
+}
+
+// Set temperature gradient on custom BCs (return tMx and tMy otherwise)
+DEVICE_PREFIX DG_FP ps2d_custom_bc_get_temperature_grad(const int bc_type, const DG_FP x,
+                                        const DG_FP y, const DG_FP tMx, const DG_FP tMy,
+                                        DG_FP &tPx, DG_FP &tPy) {
+  tPx = tMx;
+  tPy = tMy;
 }
 
 #endif
