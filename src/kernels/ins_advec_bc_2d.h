@@ -4,27 +4,37 @@ inline void ins_advec_bc_2d(const DG_FP *t, const int *bedge_type, const int *be
                             const DG_FP *v, DG_FP *flux0, DG_FP *flux1) {
   DG_FP pU[DG_NPF], pV[DG_NPF];
   const DG_FP PI = 3.141592653589793238463;
-  const int *fmask = &FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + bedgeNum[0] * DG_NPF];
+  const int edgeNum = bedgeNum[0];
+  const int *fmask = &FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + edgeNum * DG_NPF];
 
   // Set boundary velocities
-  if(*bedge_type == 0) {
-    // Inflow - BC function dependant on time
+  if(*bedge_type == BC_TYPE_NO_SLIP) {
     for(int i = 0; i < DG_NPF; i++) {
-      pU[i] = 1.0;
+      pU[i] = 0.0;
       pV[i] = 0.0;
     }
-  } else if(*bedge_type == 1) {
-    // Outflow - Natural boundary condition
+  } else if(*bedge_type == BC_TYPE_SLIP) {
+    for(int i = 0; i < DG_NPF; i++) {
+      const int fmask_ind = fmask[i];
+      const DG_FP mag = sqrt(u[fmask_ind] * u[fmask_ind] + v[fmask_ind] * v[fmask_ind]);
+      const DG_FP dot = nx[0] * u[fmask_ind] + ny[0] * v[fmask_ind];
+      pU[i] = u[fmask_ind] - dot * nx[0];
+      pV[i] = v[fmask_ind] - dot * ny[0];
+      const DG_FP mag2 = sqrt(pU[i] * pU[i] + pV[i] * pV[i]);
+      const DG_FP mag_factor = fabs(mag) < 1e-8 || fabs(mag2) < 1e-8 ? 1.0 : mag / mag2;
+      pU[i] *= mag_factor;
+      pV[i] *= mag_factor;
+    }
+  } else if(*bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
       pU[i] = u[fmask_ind];
       pV[i] = v[fmask_ind];
     }
   } else {
-    // Wall - No slip
     for(int i = 0; i < DG_NPF; i++) {
-      pU[i] = 0.0;
-      pV[i] = 0.0;
+      const int fmask_ind = fmask[i];
+      ps2d_custom_bc_get_vel(*bedge_type, *t, x[fmask_ind], y[fmask_ind], nx[0], ny[0], u[fmask_ind], v[fmask_ind], pU[i], pV[i]);
     }
   }
 
@@ -54,7 +64,7 @@ inline void ins_advec_bc_2d(const DG_FP *t, const int *bedge_type, const int *be
     DG_FP pF2 = pU[i] * pV[i];
     DG_FP pF3 = pV[i] * pV[i];
     // Numerical flux
-    const int flux_ind = bedgeNum[0] * DG_NPF + i;
+    const int flux_ind = edgeNum * DG_NPF + i;
     flux0[flux_ind] = 0.5 * fscale[0] * (-nx[0] * (mF0 - pF0) - ny[0] * (mF1 - pF1) - maxVel * (pU[i] - u[fmask_ind]));
     flux1[flux_ind] = 0.5 * fscale[0] * (-nx[0] * (mF2 - pF2) - ny[0] * (mF3 - pF3) - maxVel * (pV[i] - v[fmask_ind]));
   }

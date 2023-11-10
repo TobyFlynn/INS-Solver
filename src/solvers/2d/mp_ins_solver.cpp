@@ -405,8 +405,12 @@ bool MPINSSolver2D::pressure() {
   // Apply Dirichlet BCs
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_pr_bc, "ins_2d_pr_bc", mesh->bfaces,
+                op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(pr_bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
 
@@ -530,12 +534,15 @@ bool MPINSSolver2D::viscosity() {
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_vis_bc_x, "ins_2d_vis_bc_x", mesh->bfaces,
                 op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
   viscositySolver->set_bcs(bc_data);
@@ -544,12 +551,15 @@ bool MPINSSolver2D::viscosity() {
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_vis_bc_y, "ins_2d_vis_bc_x", mesh->bfaces,
                 op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
   viscositySolver->set_bcs(bc_data);
