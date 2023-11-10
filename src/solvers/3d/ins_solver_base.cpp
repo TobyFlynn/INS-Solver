@@ -737,6 +737,7 @@ void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
   timer->startTimer("INSSolverBase3D - RK RHS 2");
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_advec_sc_rhs_2, "ins_3d_advec_sc_rhs_2", mesh->bfaces,
+                op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
@@ -908,6 +909,7 @@ void INSSolverBase3D::advec_sub_cycle_rhs_over_int(op_dat u_in, op_dat v_in, op_
   timer->startTimer("INSSolverBase3D - RK RHS over_int 2");
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_advec_sc_rhs_oi_2, "ins_3d_advec_sc_rhs_oi_2", mesh->bfaces,
+                op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),

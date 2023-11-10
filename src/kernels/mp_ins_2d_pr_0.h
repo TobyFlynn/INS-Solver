@@ -8,14 +8,25 @@ inline void mp_ins_2d_pr_0(const DG_FP *t, const int *bedge_type,
   const int *fmask = &FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + *faceNum * DG_NPF];
   const DG_FP PI = 3.141592653589793238463;
 
-  if(*bedge_type == 0 || *bedge_type == 2) {
-    // Inflow or Wall
+  if(*bedge_type == BC_TYPE_NO_SLIP || *bedge_type == BC_TYPE_SLIP) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
       const int find = *faceNum * DG_NPF + i;
       DG_FP res1 = -N0[fmask_ind] - gradCurlVel1[fmask_ind] / (r_ynolds * rho[fmask_ind]);
       DG_FP res2 = -N1[fmask_ind] + gradCurlVel0[fmask_ind] / (r_ynolds * rho[fmask_ind]);
       dPdN[find] += *fscale * (*nx * res1 + *ny * res2);
+    }
+  } else {
+    int tmp_bc_type = -1;
+    ps2d_custom_bc_get_pr_type(*bedge_type, tmp_bc_type);
+    if(tmp_bc_type == BC_NEUMANN) {
+      for(int i = 0; i < DG_NPF; i++) {
+        const int fmask_ind = fmask[i];
+        DG_FP bc_neumann = ps2d_custom_bc_get_pr_neumann_multiphase(*bedge_type, *t, x[fmask_ind], y[fmask_ind], *nx, *ny,
+                              N0[fmask_ind], N1[fmask_ind], gradCurlVel0[fmask_ind], gradCurlVel1[fmask_ind], r_ynolds, rho[fmask_ind]);
+        const int find = *faceNum * DG_NPF + i;
+        dPdN[find] += *fscale * bc_neumann;
+      }
     }
   }
 }

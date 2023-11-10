@@ -9,6 +9,19 @@
 
 #include "dg_mesh/dg_mesh_2d.h"
 
+class LevelSetAdvectionSolver2D : public AdvectionSolver2D {
+public:
+  LevelSetAdvectionSolver2D(DGMesh2D *m);
+  void set_bc_types(op_dat bc);
+
+protected:
+  virtual void bc_kernel(op_dat val, op_dat u, op_dat v, op_dat out) override;
+  virtual void bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat uM, op_dat vM, 
+                            op_dat valM, op_dat valP) override;
+  
+  op_dat bc_types;
+};
+
 class LevelSetSolver2D {
 public:
   LevelSetSolver2D(DGMesh2D *m);
@@ -16,6 +29,7 @@ public:
   ~LevelSetSolver2D();
 
   void init();
+  void set_bc_types(op_dat bc);
 
   void setVelField(op_dat u1, op_dat v1);
   void step(DG_FP dt);
@@ -36,7 +50,7 @@ private:
   int numSteps;
   bool resuming;
 
-  AdvectionSolver2D *advecSolver;
+  LevelSetAdvectionSolver2D *advecSolver;
 };
 
 #endif

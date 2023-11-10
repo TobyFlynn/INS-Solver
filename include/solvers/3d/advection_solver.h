@@ -14,10 +14,18 @@ public:
   void set_dt();
   void set_dt(const DG_FP t);
   void set_bc_types(op_dat bc);
+
+protected:
+  virtual void bc_kernel(op_dat val, op_dat u, op_dat v, op_dat w,
+                         op_dat out) = 0;
+  // virtual void bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat w, op_dat uM,
+  //                           op_dat vM, op_dat wM, op_dat valM, op_dat valP) = 0;
+
+  DGMesh3D *mesh;
+
 private:
   void rhs(op_dat val, op_dat u, op_dat v, op_dat w, op_dat val_out);
 
-  DGMesh3D *mesh;
   DG_FP dt;
   op_dat f, g, h, flux, rk[3], rkQ, bc_types;
 };

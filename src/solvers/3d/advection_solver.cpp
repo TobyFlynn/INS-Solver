@@ -103,23 +103,8 @@ void AdvectionSolver3D::rhs(op_dat val, op_dat u, op_dat v, op_dat w, op_dat val
               op_arg_dat(w,    -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(tmp_flux.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
 
-  if(mesh->bface2cells) {
-    op_par_loop(advec_3d_bflux, "advec_3d_bflux", mesh->bfaces,
-                op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->z, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bnz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(val,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(u,    0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(v,    0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(w,    0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(tmp_flux.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
-  }
+  if(mesh->bface2cells)
+    bc_kernel(val, u, v, w, tmp_flux.dat);
 
   op2_gemv(mesh, false, -1.0, DGConstants::LIFT, tmp_flux.dat, 1.0, val_out);
   // op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_flux.dat, -1.0, val_out);

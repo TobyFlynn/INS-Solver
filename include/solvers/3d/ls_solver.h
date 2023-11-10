@@ -11,6 +11,19 @@
 
 #include "ls_utils/3d/kd_tree.h"
 
+class LevelSetAdvectionSolver3D : public AdvectionSolver3D {
+public:
+  LevelSetAdvectionSolver3D(DGMesh3D *m);
+  void set_bc_types(op_dat bc);
+
+protected:
+  virtual void bc_kernel(op_dat val, op_dat u, op_dat v, op_dat w, op_dat out) override;
+  // virtual void bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat w, op_dat uM,
+  //                           op_dat vM, op_dat wM, op_dat valM, op_dat valP) override;
+
+  op_dat bc_types;
+};
+
 class LevelSetSolver3D {
 public:
   LevelSetSolver3D(DGMesh3D *m);
@@ -19,7 +32,7 @@ public:
 
   void init();
 
-  void setBCTypes(op_dat bc);
+  void set_bc_types(op_dat bc);
   void step(op_dat u, op_dat v, op_dat w, const DG_FP dt, const int num_steps);
   void getRhoMu(op_dat rho, op_dat mu);
   void getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_dat curv);
@@ -40,7 +53,7 @@ private:
   int reinit_count;
   bool resuming;
 
-  AdvectionSolver3D *advectionSolver;
+  LevelSetAdvectionSolver3D *advectionSolver;
   KDTree3D *kdtree;
 };
 

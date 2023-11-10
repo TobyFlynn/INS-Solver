@@ -107,15 +107,8 @@ void AdvectionSolver2D::rhs(op_dat val, op_dat u, op_dat v, op_dat val_out) {
               op_arg_dat(v,   -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(flux.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
 
-  op_par_loop(advec_2d_bflux, "advec_2d_bflux", mesh->bfaces,
-              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(u,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(v,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(flux.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
+  if(mesh->bface2cells)
+    bc_kernel(val, u, v, flux.dat);
 
   op2_gemv(mesh, false, -1.0, DGConstants::LIFT, flux.dat, 1.0, val_out);
 
@@ -160,17 +153,8 @@ void AdvectionSolver2D::rhs_over_int(op_dat val, op_dat u, op_dat v, op_dat val_
               op_arg_dat(valM.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(valP.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
 
-  if(mesh->bface2cells) {
-    op_par_loop(advec_2d_oi_2, "advec_2d_oi_2", mesh->bfaces,
-                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(u, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(v, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(uM.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-                op_arg_dat(vM.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-                op_arg_dat(valM.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-                op_arg_dat(valP.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));
-  }
+  if(mesh->bface2cells)
+    bc_kernel_oi(val, u, v, uM.dat, vM.dat, valM.dat, valP.dat);
 
   DGTempDat uM_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
   DGTempDat vM_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);

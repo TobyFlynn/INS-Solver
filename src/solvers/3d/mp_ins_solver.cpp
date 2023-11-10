@@ -294,7 +294,12 @@ void MPINSSolver3D::pressure() {
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_pr_2, "ins_3d_pr_2", mesh->bfaces,
+                op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->z, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(pr_bc_types, -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(pr_bc, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
@@ -458,7 +463,7 @@ void MPINSSolver3D::viscosity() {
 }
 
 void MPINSSolver3D::surface() {
-  lsSolver->setBCTypes(bc_types);
+  lsSolver->set_bc_types(bc_types);
   const int num_advec_steps = it_pre_sub_cycle != 0 ? 1 : std::max(sub_cycles, 1);
   lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2], sub_cycle_dt, num_advec_steps);
   timer->startTimer("MPINSSolver3D - Filtering");
@@ -472,7 +477,7 @@ void MPINSSolver3D::surface() {
 void MPINSSolver3D::dump_checkpoint_data(const std::string &filename) {
   INSSolverBase3D::dump_checkpoint_data(filename);
   op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
-  
+
   // TODO save constants in same HDF5 file
 }
 
