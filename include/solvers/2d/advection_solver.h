@@ -13,11 +13,18 @@ public:
   void step(op_dat val, op_dat u, op_dat v);
   void set_dt();
   void set_dt(const DG_FP t);
+
+protected:
+  virtual void bc_kernel(op_dat val, op_dat u, op_dat v, op_dat out) = 0;
+  virtual void bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat uM, op_dat vM, 
+                            op_dat valM, op_dat valP) = 0;
+
+  DGMesh2D *mesh;
+
 private:
   void rhs(op_dat val, op_dat u, op_dat v, op_dat val_out);
   void rhs_over_int(op_dat val, op_dat u, op_dat v, op_dat val_out);
 
-  DGMesh2D *mesh;
   DG_FP dt;
   bool over_int_advec;
 };

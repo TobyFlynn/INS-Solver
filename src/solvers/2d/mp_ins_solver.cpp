@@ -138,8 +138,6 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
 
   reynolds = re;
 
-  lsSolver->init();
-
   // Set initial conditions
   if(!resuming) {
     op_par_loop(ins_2d_set_ic, "ins_2d_set_ic", mesh->cells,
@@ -202,6 +200,8 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   pressureSolver->init();
   viscositySolver->init();
 
+  lsSolver->init();
+  lsSolver->set_bc_types(bc_types);
   lsSolver->getRhoMu(rho, mu);
 
   timer->endTimer("MPINSSolver2D - Init");
@@ -277,6 +277,8 @@ void MPINSSolver2D::surface_tension_grad(op_dat dx, op_dat dy) {
     op_par_loop(ins_2d_st_3, "ins_2d_st_3", mesh->bfaces,
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(lsSolver->s, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(sM.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
                 op_arg_dat(sP.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));

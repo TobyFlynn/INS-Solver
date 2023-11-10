@@ -70,7 +70,7 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vel(const int bc_type, const DG_FP time,
   }
 }
 
-// Custom BC pressure Neumann boundary condition (return 0.0 if not Neumann)
+// Custom BC pressure Neumann boundary condition (return 0.0 if not Neumann) [SINGLE-PHASE]
 DEVICE_PREFIX DG_FP ps2d_custom_bc_get_pr_neumann(const int bc_type, const DG_FP time,
                           const DG_FP x, const DG_FP y, const DG_FP nx, const DG_FP ny, 
                           const DG_FP N0, const DG_FP N1, const DG_FP gradCurlVel0, 
@@ -101,6 +101,25 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 // Set the initial interface between phases for multiphase simulations
 DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
   s = sqrt(x * x + y * y) - 7.5;
+}
+
+// Set level set value on custom BCs (return sM otherwise)
+DEVICE_PREFIX DG_FP ps2d_custom_bc_get_ls(const int bc_type, const DG_FP x, const DG_FP y, const DG_FP sM) {
+  return sM;
+}
+
+// Custom BC pressure Neumann boundary condition (return 0.0 if not Neumann) [MULTI-PHASE]
+DEVICE_PREFIX DG_FP ps2d_custom_bc_get_pr_neumann_multiphase(const int bc_type, const DG_FP time,
+                          const DG_FP x, const DG_FP y, const DG_FP nx, const DG_FP ny, 
+                          const DG_FP N0, const DG_FP N1, const DG_FP gradCurlVel0, 
+                          const DG_FP gradCurlVel1, const DG_FP rho) {
+  if(bc_type == BC_TYPE_INFLOW) {
+    DG_FP res1 = -N0 - gradCurlVel1 / (r_ynolds * rho);
+    DG_FP res2 = -N1 + gradCurlVel0 / (r_ynolds * rho);
+    return nx * res1 + ny * res2;
+  }
+
+  return 0.0;
 }
 
 #endif

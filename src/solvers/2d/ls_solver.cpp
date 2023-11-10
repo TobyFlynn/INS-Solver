@@ -11,6 +11,49 @@ extern Timing *timer;
 
 int counter;
 
+/**************************************************************************
+ * LS Advection Solver class that extends the base Advection Solver class *
+ **************************************************************************/
+LevelSetAdvectionSolver2D::LevelSetAdvectionSolver2D(DGMesh2D *m) : AdvectionSolver2D(m) {}
+
+void LevelSetAdvectionSolver2D::set_bc_types(op_dat bc) {
+  bc_types = bc;
+}
+
+void LevelSetAdvectionSolver2D::bc_kernel(op_dat val, op_dat u, op_dat v, op_dat out) {
+  op_par_loop(ls_advec_2d_bc, "ls_advec_2d_bc", mesh->bfaces,
+              op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(v,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(out, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
+}
+
+void LevelSetAdvectionSolver2D::bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat uM, op_dat vM, 
+                                             op_dat valM, op_dat valP) {
+  op_par_loop(ls_advec_2d_oi_bc, "ls_advec_2d_oi_bc", mesh->bfaces,
+              op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(v, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(uM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
+              op_arg_dat(vM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
+              op_arg_dat(valM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
+              op_arg_dat(valP, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));
+}
+
+/************************
+ * Main LS Solver class *
+ ************************/
 LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m) {
   mesh = m;
   resuming = false;
@@ -21,7 +64,7 @@ LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m) {
   s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_x");
   s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_y");
 
-  advecSolver = new AdvectionSolver2D(mesh);
+  advecSolver = new LevelSetAdvectionSolver2D(mesh);
 }
 
 LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m, const std::string &filename) {
@@ -35,7 +78,7 @@ LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m, const std::string &filename) {
   s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_x");
   s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_y");
 
-  advecSolver = new AdvectionSolver2D(mesh);
+  advecSolver = new LevelSetAdvectionSolver2D(mesh);
 }
 
 LevelSetSolver2D::~LevelSetSolver2D() {
@@ -91,6 +134,10 @@ void LevelSetSolver2D::init() {
   // reinitLS();
 }
 
+void LevelSetSolver2D::set_bc_types(op_dat bc) {
+  advecSolver->set_bc_types(bc);
+}
+
 void LevelSetSolver2D::setVelField(op_dat u1, op_dat v1) {
   u = u1;
   v = v1;
@@ -108,24 +155,6 @@ void LevelSetSolver2D::step(DG_FP dt) {
     timer->endTimer("LevelSetSolver2D - reinitLS");
     counter = 0;
   }
-
-  /*
-  op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
-              op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&order_width,     1, DG_FP_STR, OP_READ),
-              op_arg_dat(s,               -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
-
-  std::vector<op_dat> dats_to_update;
-  dats_to_update.push_back(data->Q[0][0]);
-  dats_to_update.push_back(data->Q[0][1]);
-  dats_to_update.push_back(data->Q[1][0]);
-  dats_to_update.push_back(data->Q[1][1]);
-  dats_to_update.push_back(data->p);
-  dats_to_update.push_back(s);
-
-  mesh->update_order(data->new_order, dats_to_update);
-  */
   timer->endTimer("LevelSetSolver2D - step");
 }
 
