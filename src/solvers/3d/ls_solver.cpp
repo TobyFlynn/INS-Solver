@@ -19,10 +19,47 @@
 extern Timing *timer;
 extern DGDatPool *dg_dat_pool;
 
+/**************************************************************************
+ * LS Advection Solver class that extends the base Advection Solver class *
+ **************************************************************************/
+LevelSetAdvectionSolver3D::LevelSetAdvectionSolver3D(DGMesh3D *m) : AdvectionSolver3D(m) {}
+
+void LevelSetAdvectionSolver3D::set_bc_types(op_dat bc) {
+  bc_types = bc;
+}
+
+void LevelSetAdvectionSolver3D::bc_kernel(op_dat val, op_dat u, op_dat v,
+                                          op_dat w, op_dat out) {
+  op_par_loop(ls_advec_3d_bc, "ls_advec_3d_bc", mesh->bfaces,
+              op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->z, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bnz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(v,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(w,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(out, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
+}
+/*
+void LevelSetAdvectionSolver3D::bc_kernel_oi(op_dat val, op_dat u, op_dat v,
+                                    op_dat w, op_dat uM, op_dat vM, op_dat wM,
+                                    op_dat valM, op_dat valP) {
+
+}
+*/
+/************************
+ * Main LS Solver class *
+ ************************/
 LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m) {
   mesh = m;
   resuming = false;
-  advectionSolver = new AdvectionSolver3D(m);
+  advectionSolver = new LevelSetAdvectionSolver3D(m);
 
   s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_solver_s");
 
@@ -33,7 +70,7 @@ LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m) {
 LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m, const std::string &filename) {
   mesh = m;
   resuming = true;
-  advectionSolver = new AdvectionSolver3D(m);
+  advectionSolver = new LevelSetAdvectionSolver3D(m);
 
   s = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ls_solver_s");
 
@@ -46,7 +83,7 @@ LevelSetSolver3D::~LevelSetSolver3D() {
   delete kdtree;
 }
 
-void LevelSetSolver3D::setBCTypes(op_dat bc) {
+void LevelSetSolver3D::set_bc_types(op_dat bc) {
   advectionSolver->set_bc_types(bc);
 }
 

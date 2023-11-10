@@ -20,11 +20,6 @@
 // Add custom BC types below (number must be greater than 0), for example:
 #define BC_TYPE_INFLOW 3
 
-#define LW_INFLOW_BC 0
-#define LW_OUTFLOW_BC 1
-#define LW_SLIP_WALL_BC 2
-#define LW_NO_SLIP_WALL_BC 3
-
 #define LW_LENGTH 50.0
 #define LW_LENGTH_SHORT 10.0
 #define LW_INLET_RADIUS 0.5
@@ -150,6 +145,32 @@ DEVICE_PREFIX void ps3d_set_surface(const DG_FP x, const DG_FP y, const DG_FP z,
 
   s = sqrt((x + 3.0) * (x + 3.0) + y * y + z * z) - 2.99;
   s = fmax(fmin(1.0, s), -1.0);
+}
+
+// Set level set value on custom BCs (return sM otherwise)
+DEVICE_PREFIX DG_FP ps3d_custom_bc_get_ls(const int bc_type, const DG_FP x,
+                                const DG_FP y, const DG_FP z, const DG_FP sM) {
+  if(bc_type == BC_TYPE_INFLOW) {
+    return -1.0;
+  }
+
+  return sM;
+}
+
+// Custom BC pressure Neumann boundary condition (return 0.0 if not Neumann) [MULTI-PHASE]
+DEVICE_PREFIX DG_FP ps3d_custom_bc_get_pr_neumann_multiphase(const int bc_type, const DG_FP time,
+                          const DG_FP x, const DG_FP y, const DG_FP z, const DG_FP nx,
+                          const DG_FP ny, const DG_FP nz, const DG_FP N0, const DG_FP N1,
+                          const DG_FP N2, const DG_FP curl20, const DG_FP curl21,
+                          const DG_FP curl22, const DG_FP reynolds, const DG_FP rho) {
+  if(bc_type == BC_TYPE_INFLOW) {
+    DG_FP res0 = -N0 - curl20 / (reynolds * rho);
+    DG_FP res1 = -N1 - curl21 / (reynolds * rho);
+    DG_FP res2 = -N2 - curl22 / (reynolds * rho);
+    return nx * res0 + ny * res1 + nz * res2;
+  }
+
+  return 0.0;
 }
 
 #endif
