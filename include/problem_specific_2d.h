@@ -62,7 +62,7 @@ DEVICE_PREFIX int ps2d_custom_bc_get_vis_type(const int bc_type, int &vis_bc) {
 DEVICE_PREFIX void ps2d_custom_bc_get_vel(const int bc_type, const DG_FP time,
                                           const DG_FP x, const DG_FP y,
                                           const DG_FP nx, const DG_FP ny,
-                                          const DG_FP pU, const DG_FP pV,
+                                          const DG_FP mU, const DG_FP mV,
                                           DG_FP &u, DG_FP &v) {
   if(bc_type == BC_TYPE_INFLOW) {
     u = 1.0;

@@ -285,7 +285,12 @@ void INSSolver3D::pressure() {
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_pr_2, "ins_3d_pr_2", mesh->bfaces,
+                op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->z, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(pr_bc_types, -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(pr_bc, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }

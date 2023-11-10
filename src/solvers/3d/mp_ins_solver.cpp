@@ -294,7 +294,12 @@ void MPINSSolver3D::pressure() {
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_pr_2, "ins_3d_pr_2", mesh->bfaces,
+                op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->z, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(pr_bc_types, -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(pr_bc, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
@@ -486,7 +491,7 @@ void MPINSSolver3D::dump_checkpoint_data(const std::string &filename) {
   op_fetch_data_hdf5_file(dPdN[0], filename.c_str());
   op_fetch_data_hdf5_file(dPdN[1], filename.c_str());
   op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
-  
+
   // TODO save constants in same HDF5 file
 }
 
@@ -506,7 +511,7 @@ void MPINSSolver3D::dump_visualisation_data(const std::string &filename) {
     op_fetch_data_hdf5_file(n[currentInd][1], filename.c_str());
     op_fetch_data_hdf5_file(n[currentInd][2], filename.c_str());
   }
-  
+
   if(values_to_save.count("dPdN") != 0) {
     op_fetch_data_hdf5_file(dPdN[0], filename.c_str());
     op_fetch_data_hdf5_file(dPdN[1], filename.c_str());

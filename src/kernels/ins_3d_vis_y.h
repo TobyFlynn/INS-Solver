@@ -3,37 +3,67 @@ inline void ins_3d_vis_y(const DG_FP *t, const DG_FP *g0, const int *bc_type, co
                          const DG_FP *x, const DG_FP *y, const DG_FP *z,
                          const DG_FP *u, const DG_FP *v, const DG_FP *w,
                          int *type, DG_FP *bcs) {
-  if(*bc_type == LW_OUTFLOW_BC)
-    *type = 1;
-  else
-    *type = 0;
+  if(*bc_type == BC_TYPE_NO_SLIP || *bc_type == BC_TYPE_SLIP) {
+    *type = BC_DIRICHLET;
+  } else if(*bc_type == BC_TYPE_NATURAL_OUTFLOW) {
+    *type = BC_NEUMANN;
+  } else {
+    ps3d_custom_bc_get_vis_type(*bc_type, *type);
+  }
 
-  const int *fmask  = &FMASK[(DG_ORDER - 1) * 4 * DG_NPF];
-  const int *fmaskB = &fmask[*faceNum * DG_NPF];
-  const DG_FP PI = 3.141592653589793238463;
-  if(*bc_type == LW_INFLOW_BC) {
+  const int *fmask = &FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + *faceNum * DG_NPF];
+  if(*bc_type == BC_TYPE_NO_SLIP) {
     for(int i = 0; i < DG_NPF; i++) {
       bcs[i] = 0.0;
     }
-  } else if(*bc_type == LW_NO_SLIP_WALL_BC) {
+  } else if(*bc_type == BC_TYPE_SLIP) {
     for(int i = 0; i < DG_NPF; i++) {
-      bcs[i] = 0.0;
-    }
-  } else if(*bc_type == LW_SLIP_WALL_BC) {
-    for(int i = 0; i < DG_NPF; i++) {
-      const int fmask_ind = fmaskB[i];
-      const DG_FP mag = sqrt(u[fmask_ind] * u[fmask_ind] + v[fmask_ind] * v[fmask_ind] + w[fmask_ind] * w[fmask_ind]);
-      const DG_FP dot = nx[0] * u[fmask_ind] + ny[0] * v[fmask_ind] + nz[0] * w[fmask_ind];
-      const DG_FP uR = u[fmask_ind] - dot * nx[0];
-      const DG_FP vR = v[fmask_ind] - dot * ny[0];
-      const DG_FP wR = w[fmask_ind] - dot * nz[0];
-      const DG_FP mag2 = sqrt(uR * uR + vR * vR + wR * wR);
+      const int fmask_ind = fmask[i];
+      const DG_FP u_scaled = u[fmask_ind] / *g0;
+      const DG_FP v_scaled = v[fmask_ind] / *g0;
+      const DG_FP w_scaled = w[fmask_ind] / *g0;
+      const DG_FP mag = sqrt(u_scaled * u_scaled + v_scaled * v_scaled + w_scaled * w_scaled);
+      const DG_FP dot = *nx * u_scaled + *ny * v_scaled + *nz * w_scaled;
+      DG_FP u_new = u_scaled - dot * *nx;
+      DG_FP v_new = v_scaled - dot * *ny;
+      DG_FP w_new = w_scaled - dot * *nz;
+      const DG_FP mag2 = sqrt(u_new * u_new + v_new * v_new + w_new * w_new);
       const DG_FP mag_factor = fabs(mag) < 1e-8 || fabs(mag2) < 1e-8 ? 1.0 : mag / mag2;
-      bcs[i] = (mag_factor * vR) / *g0;
+      bcs[i] = v_new * mag_factor;
     }
-  } else if(*bc_type == LW_OUTFLOW_BC) {
+  } else if(*bc_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
       bcs[i] = 0.0;
+    }
+  } else {
+    if(*type == BC_DIRICHLET) {
+      for(int i = 0; i < DG_NPF; i++) {
+        const int fmask_ind = fmask[i];
+        const DG_FP u_scaled = u[fmask_ind] / *g0;
+        const DG_FP v_scaled = v[fmask_ind] / *g0;
+        const DG_FP w_scaled = w[fmask_ind] / *g0;
+        DG_FP u_new = 0.0;
+        DG_FP v_new = 0.0;
+        DG_FP w_new = 0.0;
+        ps3d_custom_bc_get_vel(*bc_type, *t, x[fmask_ind], y[fmask_ind], z[fmask_ind],
+                               *nx, *ny, *nz, u_scaled, v_scaled, w_scaled,
+                               u_new, v_new, w_new);
+        bcs[i] = v_new;
+      }
+    } else {
+      for(int i = 0; i < DG_NPF; i++) {
+        const int fmask_ind = fmask[i];
+        const DG_FP u_scaled = u[fmask_ind] / *g0;
+        const DG_FP v_scaled = v[fmask_ind] / *g0;
+        const DG_FP w_scaled = w[fmask_ind] / *g0;
+        DG_FP u_new = 0.0;
+        DG_FP v_new = 0.0;
+        DG_FP w_new = 0.0;
+        ps3d_custom_bc_get_vis_neumann(*bc_type, *t, x[fmask_ind], y[fmask_ind], z[fmask_ind],
+                               *nx, *ny, *nz, u_scaled, v_scaled, w_scaled,
+                               u_new, v_new, w_new);
+        bcs[i] = v_new;
+      }
     }
   }
 }
