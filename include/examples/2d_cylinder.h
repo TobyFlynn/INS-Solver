@@ -64,7 +64,7 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vel(const int bc_type, const DG_FP time,
                                           DG_FP &u, DG_FP &v) {
   const DG_FP PI = 3.141592653589793238463;
   if(bc_type == BC_TYPE_INFLOW) {
-    u = sin(PI * time / 8.0) * y * (y - 1.0);
+    u = -sin(PI * time / 8.0) * y * (y - 1.0);
     v = 0.0;
   }
 }
@@ -79,7 +79,7 @@ DEVICE_PREFIX DG_FP ps2d_custom_bc_get_pr_neumann(const int bc_type, const DG_FP
     DG_FP res1 = -N0 - gradCurlVel1 / reynolds;
     DG_FP res2 = -N1 + gradCurlVel0 / reynolds;
     DG_FP neumann = nx * res1 + ny * res2;
-    DG_FP vel_grad = nx * (PI / 8.0) * cos(PI * time / 8.0) * y * (y - 1.0);
+    DG_FP vel_grad = -(PI / 8.0) * cos(PI * time / 8.0) * y * (y - 1.0);
     return neumann + vel_grad;
   }
 
