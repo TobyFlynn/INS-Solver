@@ -79,8 +79,7 @@ DEVICE_PREFIX DG_FP ps2d_custom_bc_get_pr_neumann(const int bc_type, const DG_FP
     DG_FP res1 = -N0 - gradCurlVel1 / reynolds;
     DG_FP res2 = -N1 + gradCurlVel0 / reynolds;
     DG_FP neumann = nx * res1 + ny * res2;
-    // Don't need to worry about normals as vertical inflow
-    DG_FP vel_grad = (PI / 8.0) * cos(PI * time / 8.0) * y * (y - 1.0);
+    DG_FP vel_grad = nx * (PI / 8.0) * cos(PI * time / 8.0) * y * (y - 1.0);
     return neumann + vel_grad;
   }
 
