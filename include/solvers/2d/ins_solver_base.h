@@ -44,6 +44,7 @@ protected:
   DG_FP max_vel();
   void add_to_pr_history();
   void filter(op_dat in);
+  void zero_dat(op_dat dat);
 
   DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, h;
   int currentInd, sub_cycles;

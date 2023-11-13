@@ -140,8 +140,7 @@ void INSSolverBase2D::init(const DG_FP re, const DG_FP refVel) {
 
   if(pr_projection_method == 1 || pr_projection_method == 2) {
     DGTempDat tmp_npf = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-                op_arg_dat(tmp_npf.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+    zero_dat(tmp_npf.dat);
 
     op_par_loop(ins_proj_setup_0, "ins_proj_setup_0", mesh->faces,
                 op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
@@ -181,10 +180,8 @@ void INSSolverBase2D::advec_current_non_linear() {
 
   DGTempDat tmp_advec_flux0 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
   DGTempDat tmp_advec_flux1 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-
-  op_par_loop(zero_npf_2, "zero_npf_2", mesh->cells,
-              op_arg_dat(tmp_advec_flux0.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_advec_flux1.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  zero_dat(tmp_advec_flux0.dat);
+  zero_dat(tmp_advec_flux1.dat);
 
   op_par_loop(ins_advec_faces_2d, "ins_advec_faces_2d", mesh->faces,
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
@@ -468,10 +465,8 @@ void INSSolverBase2D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat u_out
 
   DGTempDat tmp_advec_flux0 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
   DGTempDat tmp_advec_flux1 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-
-  op_par_loop(zero_npf_2, "zero_npf_2", mesh->cells,
-              op_arg_dat(tmp_advec_flux0.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_advec_flux1.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  zero_dat(tmp_advec_flux0.dat);
+  zero_dat(tmp_advec_flux1.dat);
 
   op_par_loop(ins_advec_sc_rhs_1_2d, "ins_advec_sc_rhs_1_2d", mesh->faces,
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
@@ -1009,6 +1004,18 @@ void INSSolverBase2D::dump_visualisation_data(const std::string &filename) {
 
   if(values_to_save.count("pressure") != 0) {
     op_fetch_data_hdf5_file(pr, filename.c_str());
+  }
+}
+
+void INSSolverBase2D::zero_dat(op_dat dat) {
+  if(dat->dim == DG_NP) {
+    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  } else if(dat->dim == DG_NUM_FACES * DG_NPF) {
+    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+                op_arg_dat(dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  } else {
+    throw std::runtime_error("Trying to zero dat with incompatible dimension");
   }
 }
 

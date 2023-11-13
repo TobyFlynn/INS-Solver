@@ -139,8 +139,7 @@ void INSSolverBase3D::init(const DG_FP re, const DG_FP refVel) {
   // Set up pressure projection
   if(pr_projection_method == 1 || pr_projection_method == 2) {
     DGTempDat tmp_npf = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-                op_arg_dat(tmp_npf.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+    zero_dat(tmp_npf.dat);
 
     op_par_loop(ins_proj_setup_0, "ins_3d_proj_setup_0", mesh->faces,
                 op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
@@ -153,15 +152,12 @@ void INSSolverBase3D::init(const DG_FP re, const DG_FP refVel) {
     dg_dat_pool->releaseTempDatCells(tmp_npf);
   }
 
-  op_par_loop(zero_np_3, "zero_np_3", mesh->cells,
-              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-  op_par_loop(zero_np_3, "zero_np_3", mesh->cells,
-              op_arg_dat(velTT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(velTT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(velTT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  zero_dat(velT[0]);
+  zero_dat(velT[1]);
+  zero_dat(velT[2]);
+  zero_dat(velTT[0]);
+  zero_dat(velTT[1]);
+  zero_dat(velTT[2]);
 }
 
 void INSSolverBase3D::advec_current_non_linear() {
@@ -213,10 +209,9 @@ void INSSolverBase3D::advec_current_non_linear() {
   DGTempDat tmp_advec_flux2 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
 
   timer->startTimer("INSSolverBase3D - advec_current_non_linear - zero");
-  op_par_loop(zero_npf_3, "zero_npf_3", mesh->cells,
-              op_arg_dat(tmp_advec_flux0.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_advec_flux1.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_advec_flux2.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+  zero_dat(tmp_advec_flux0.dat);
+  zero_dat(tmp_advec_flux1.dat);
+  zero_dat(tmp_advec_flux2.dat);
   timer->endTimer("INSSolverBase3D - advec_current_non_linear - zero");
 
   timer->startTimer("INSSolverBase3D - advec_current_non_linear - 1");
@@ -335,19 +330,6 @@ void INSSolverBase3D::advec_current_non_linear_over_int() {
   DGTempDat tmp_pU = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
   DGTempDat tmp_pV = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
   DGTempDat tmp_pW = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-
-/*
-  timer->startTimer("INSSolverBase3D - advec_current_non_linear_over_int - zero");
-  op_par_loop(zero_npf_3, "zero_npf_3", mesh->cells,
-              op_arg_dat(tmp_mU.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_mV.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_mW.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
-  op_par_loop(zero_npf_3, "zero_npf_3", mesh->cells,
-              op_arg_dat(tmp_pU.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_pV.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_pW.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
-  timer->endTimer("INSSolverBase3D - advec_current_non_linear_over_int - zero");
-*/
 
   timer->startTimer("INSSolverBase3D - advec_current_non_linear_over_int - 1");
   // Flux across faces
@@ -708,10 +690,9 @@ void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
   DGTempDat tmp_advec_flux2 = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
 
   timer->startTimer("INSSolverBase3D - RK RHS zero");
-  op_par_loop(zero_npf_3, "zero_npf_3", mesh->cells,
-              op_arg_dat(tmp_advec_flux0.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_advec_flux1.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_advec_flux2.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+  zero_dat(tmp_advec_flux0.dat);
+  zero_dat(tmp_advec_flux1.dat);
+  zero_dat(tmp_advec_flux2.dat);
   timer->endTimer("INSSolverBase3D - RK RHS zero");
 
   timer->startTimer("INSSolverBase3D - RK RHS 1");
@@ -871,15 +852,6 @@ void INSSolverBase3D::advec_sub_cycle_rhs_over_int(op_dat u_in, op_dat v_in, op_
   DGTempDat tmp_pUb = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
   DGTempDat tmp_pVb = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
   DGTempDat tmp_pWb = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-
-/*
-  timer->startTimer("INSSolverBase3D - RK RHS zero");
-  op_par_loop(zero_npf_3, "zero_npf_3", mesh->cells,
-              op_arg_dat(tmp_advec_flux0.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_advec_flux1.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_advec_flux2.dat, -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
-  timer->endTimer("INSSolverBase3D - RK RHS zero");
-*/
 
   timer->startTimer("INSSolverBase3D - RK RHS over_int 1");
   op_par_loop(ins_3d_advec_sc_rhs_oi_1, "ins_3d_advec_sc_rhs_oi_1", mesh->faces,
@@ -1473,5 +1445,17 @@ void INSSolverBase3D::dump_visualisation_data(const std::string &filename) {
 
   if(values_to_save.count("pressure") != 0) {
     op_fetch_data_hdf5_file(pr, filename.c_str());
+  }
+}
+
+void INSSolverBase3D::zero_dat(op_dat dat) {
+  if(dat->dim == DG_NP) {
+    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                op_arg_dat(dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  } else if(dat->dim == DG_NUM_FACES * DG_NPF) {
+    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+                op_arg_dat(dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  } else {
+    throw std::runtime_error("Trying to zero dat with incompatible dimension");
   }
 }
