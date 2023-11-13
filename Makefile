@@ -188,7 +188,9 @@ COMMON_3D_OBJ := ins3d_op.o \
   solvers_op/3d/ls_solver_op.o \
   solvers/3d/ls_utils/poly_approx.o \
   solvers/3d/ls_utils/kd_tree.o \
-  solvers_op/3d/mp_ins_solver_op.o
+  solvers_op/3d/mp_ins_solver_op.o \
+	measurements/3d/measurement.o \
+	measurements_op/3d/enstropy_op.o
 
 # 3D CPU only object files
 CPU_3D_OBJ := solvers/3d/ls_solver_cpu.o

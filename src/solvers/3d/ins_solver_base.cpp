@@ -1459,3 +1459,24 @@ void INSSolverBase3D::zero_dat(op_dat dat) {
     throw std::runtime_error("Trying to zero dat with incompatible dimension");
   }
 }
+
+// Getters (used for measurements)
+DGMesh3D* INSSolverBase3D::get_mesh() {
+  return mesh;
+}
+
+op_dat INSSolverBase3D::get_vel_x() {
+  return vel[currentInd][0];
+}
+
+op_dat INSSolverBase3D::get_vel_y() {
+  return vel[currentInd][1];
+}
+
+op_dat INSSolverBase3D::get_vel_z() {
+  return vel[currentInd][2];
+}
+
+op_dat INSSolverBase3D::get_pr() {
+  return pr;
+}

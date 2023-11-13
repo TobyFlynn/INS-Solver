@@ -76,6 +76,7 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/ins_solver.cpp \
         solvers/3d/ls_solver.cpp \
         solvers/3d/mp_ins_solver.cpp \
+        measurements/3d/enstropy.cpp \
         kernels/
 
 cuda_line_no_3d=$(grep -n op_cuda_reduction cuda/ins3d_kernels.cu | cut -d : -f 1)
