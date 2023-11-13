@@ -24,6 +24,12 @@ public:
   virtual void dump_visualisation_data(const std::string &filename);
   virtual void dump_checkpoint_data(const std::string &filename);
 
+  // Getters (used for measurements)
+  DGMesh2D* get_mesh();
+  op_dat get_vel_x();
+  op_dat get_vel_y();
+  op_dat get_pr();
+
 protected:
   void advec_current_non_linear();
   void advec_current_non_linear_over_int();

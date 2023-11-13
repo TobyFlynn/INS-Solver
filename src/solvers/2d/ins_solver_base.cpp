@@ -1011,3 +1011,20 @@ void INSSolverBase2D::dump_visualisation_data(const std::string &filename) {
     op_fetch_data_hdf5_file(pr, filename.c_str());
   }
 }
+
+// Getters
+DGMesh2D* INSSolverBase2D::get_mesh() {
+  return mesh;
+}
+
+op_dat INSSolverBase2D::get_vel_x() {
+  return vel[currentInd][0];
+}
+
+op_dat INSSolverBase2D::get_vel_y() {
+  return vel[currentInd][1];
+}
+
+op_dat INSSolverBase2D::get_pr() {
+  return pr;
+}

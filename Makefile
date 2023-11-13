@@ -159,7 +159,8 @@ COMMON_2D_OBJ := ins2d_op.o \
   solvers_op/2d/ins_solver_base_op.o \
   solvers_op/2d/ins_solver_op.o \
 	solvers_op/2d/ins_temperature_solver_op.o \
-  solvers_op/2d/mp_ins_solver_op.o 
+  solvers_op/2d/mp_ins_solver_op.o \
+	measurements_op/2d/lift_drag_cylinder_op.o
 
 # 2D CPU only object files
 CPU_2D_OBJ := solvers/2d/ls_utils/ls_reinit.o

@@ -4,6 +4,8 @@
 #include "op_seq.h"
 // Include C++ stuff
 #include <string>
+#include <set>
+#include <sstream>
 
 #include "petscvec.h"
 #include "petscksp.h"
@@ -15,6 +17,7 @@
 #include "solvers/2d/ins_solver.h"
 #include "solvers/2d/ins_temperature_solver.h"
 #include "solvers/2d/mp_ins_solver.h"
+#include "measurements/2d/lift_drag_cylinder.h"
 
 Timing *timer;
 Config *config;
@@ -176,6 +179,30 @@ int main(int argc, char **argv) {
   mesh->init();
   ins2d->init(r_ynolds, refVel);
 
+  // Set up measurements
+  vector<Measurement2D*> measurements;
+  // Get list of measurements to take
+  // Options are: lift_drag
+  string mes_tmp = "none";
+  config->getStr("io", "measurements", mes_tmp);
+  if(mes_tmp != "none") {
+    set<string> measurements_to_take;
+    stringstream tmp_ss(mes_tmp);
+    string val_str;
+    while(getline(tmp_ss, val_str, ',')) {
+      measurements_to_take.insert(val_str);
+    }
+
+    for(auto &measurement : measurements_to_take) {
+      if(measurement == "lift_drag") {
+        LiftDragCylinder2D *lift_drag = new LiftDragCylinder2D(ins2d, refMu, 0.3, 0.3, 0.7, 0.7);
+        measurements.push_back(lift_drag);
+      } else {
+        throw runtime_error("Unrecognised measurement: " + measurement);
+      }
+    }
+  }
+
   int save_ic = 1;
   config->getInt("io", "save_ic", save_ic);
   if(save_ic) {
@@ -191,6 +218,10 @@ int main(int argc, char **argv) {
       string out_file_tmp = outputDir + "iter-" + to_string(i + 1) + ".h5";
       ins2d->dump_visualisation_data(out_file_tmp);
     }
+
+    for(auto &measurement : measurements) {
+      measurement->measure();
+    }
   }
   timer->endTimer("Main loop");
 
@@ -201,7 +232,15 @@ int main(int argc, char **argv) {
     ins2d->dump_visualisation_data(out_file_end);
   }
 
+  for(auto &measurement : measurements) {
+    measurement->output(outputDir);
+  }
+
   timer->exportTimings(outputDir + "timings", iter, ins2d->get_time());
+
+  for(auto &measurement : measurements) {
+    delete measurement;
+  }
 
   delete ins2d;
 
