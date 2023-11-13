@@ -25,17 +25,12 @@ public:
   void init(const DG_FP re, const DG_FP refVel) override;
   void step() override;
 
-  void save_l2_err_history(const std::string &filename);
-
 private:
   void setup_common();
   void advection();
   bool pressure();
   bool viscosity();
   void no_viscosity();
-
-  DG_FP l2_vortex_error(DG_FP time);
-  void record_l2_err();
 
   PoissonCoarseMatrix2D *pressureCoarseMatrix;
   PoissonMatrixFreeDiag2D *pressureMatrix;

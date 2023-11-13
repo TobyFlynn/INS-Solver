@@ -18,6 +18,7 @@
 #include "solvers/2d/ins_temperature_solver.h"
 #include "solvers/2d/mp_ins_solver.h"
 #include "measurements/2d/lift_drag_cylinder.h"
+#include "measurements/2d/l2_error_vortex.h"
 
 Timing *timer;
 Config *config;
@@ -182,7 +183,7 @@ int main(int argc, char **argv) {
   // Set up measurements
   vector<Measurement2D*> measurements;
   // Get list of measurements to take
-  // Options are: lift_drag
+  // Options are: lift_drag, l2_vortex
   string mes_tmp = "none";
   config->getStr("io", "measurements", mes_tmp);
   if(mes_tmp != "none") {
@@ -197,6 +198,9 @@ int main(int argc, char **argv) {
       if(measurement == "lift_drag") {
         LiftDragCylinder2D *lift_drag = new LiftDragCylinder2D(ins2d, refMu, 0.3, 0.3, 0.7, 0.7);
         measurements.push_back(lift_drag);
+      } else if(measurement == "l2_vortex") {
+        L2ErrorVortex2D *l2_error = new L2ErrorVortex2D(ins2d);
+        measurements.push_back(l2_error);
       } else {
         throw runtime_error("Unrecognised measurement: " + measurement);
       }

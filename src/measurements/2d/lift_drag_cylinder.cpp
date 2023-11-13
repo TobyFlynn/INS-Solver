@@ -11,11 +11,8 @@ extern DGDatPool *dg_dat_pool;
 
 LiftDragCylinder2D::LiftDragCylinder2D(INSSolverBase2D *i, const DG_FP refMu, const DG_FP x0, 
                                        const DG_FP y0, const DG_FP x1, const DG_FP y1, 
-                                       const int sample_iter) {
-  ins = i;
+                                       const int sample_iter) : Measurement2D(i, sample_iter) {
   mu = refMu;
-  sample_rate = sample_iter;
-  count = 0;
   box[0] = x0;
   box[1] = y0;
   box[2] = x1;
@@ -23,10 +20,8 @@ LiftDragCylinder2D::LiftDragCylinder2D(INSSolverBase2D *i, const DG_FP refMu, co
 }
 
 void LiftDragCylinder2D::measure() {
-  if(count != sample_rate) {
-    count++;
+  if(!sample_this_iter())
     return;
-  }
 
   DGMesh2D *mesh = ins->get_mesh();
   op_dat u = ins->get_vel_x();
@@ -72,18 +67,6 @@ void LiftDragCylinder2D::measure() {
   tmp.lift = lift_coeff;
   tmp.drag = drag_coeff;
   history.push_back(tmp);
-
-  count = 0;
-}
-
-#include <iomanip>
-#include <sstream>
-
-std::string doubleToText(const double &d) {
-    std::stringstream ss;
-    ss << std::setprecision(15);
-    ss << d;
-    return ss.str();
 }
 
 void LiftDragCylinder2D::output(std::string &path) {
@@ -91,8 +74,8 @@ void LiftDragCylinder2D::output(std::string &path) {
 
   file << "time,lift_coefficient,drag_coefficient" << std::endl;
   for(auto &sample : history) {
-    file << doubleToText(sample.time) << "," << doubleToText(sample.lift);
-    file << "," << doubleToText(sample.drag) << std::endl;
+    file << double_to_text(sample.time) << "," << double_to_text(sample.lift);
+    file << "," << double_to_text(sample.drag) << std::endl;
   }
 
   file.close();

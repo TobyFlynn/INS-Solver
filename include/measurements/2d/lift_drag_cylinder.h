@@ -22,11 +22,7 @@ private:
     DG_FP drag;
   };
   std::vector<LiftDragHistory> history;
-
-  INSSolverBase2D *ins;
   DG_FP mu;
-  int sample_rate;
-  int count;
   DG_FP box[4];
 };
 

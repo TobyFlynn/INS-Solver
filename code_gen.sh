@@ -44,6 +44,7 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/ins_temperature_solver.cpp \
         solvers/2d/mp_ins_solver.cpp \
         measurements/2d/lift_drag_cylinder.cpp \
+        measurements/2d/l2_error_vortex.cpp \
         kernels/
 
 cuda_line_no_2d=$(grep -n op_cuda_reduction cuda/ins2d_kernels.cu | cut -d : -f 1)

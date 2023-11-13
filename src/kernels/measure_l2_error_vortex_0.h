@@ -1,6 +1,6 @@
-inline void ins_2d_l2_vortex_error_0(const DG_FP *time, const DG_FP *x,
-                                       const DG_FP *y, const DG_FP *vel_x,
-                                       DG_FP *vel_x_res) {
+inline void measure_l2_error_vortex_0(const DG_FP *time, const DG_FP *x,
+                                      const DG_FP *y, const DG_FP *vel_x,
+                                      DG_FP *vel_x_res) {
   const DG_FP centre_x = 0.0;
   const DG_FP centre_y = fmod(*time, (DG_FP)40.0) > 20.0 ? fmod(*time, (DG_FP)40.0) - 40.0 : fmod(*time, (DG_FP)40.0);
   const DG_FP PI = 3.141592653589793238463;
