@@ -19,6 +19,7 @@
 #include "solvers/2d/mp_ins_solver.h"
 #include "measurements/2d/lift_drag_cylinder.h"
 #include "measurements/2d/l2_error_vortex.h"
+#include "measurements/2d/min_max_interface.h"
 
 Timing *timer;
 Config *config;
@@ -183,7 +184,7 @@ int main(int argc, char **argv) {
   // Set up measurements
   vector<Measurement2D*> measurements;
   // Get list of measurements to take
-  // Options are: lift_drag, l2_vortex
+  // Options are: lift_drag, l2_vortex, min_max_interface
   string mes_tmp = "none";
   config->getStr("io", "measurements", mes_tmp);
   if(mes_tmp != "none") {
@@ -201,6 +202,9 @@ int main(int argc, char **argv) {
       } else if(measurement == "l2_vortex") {
         L2ErrorVortex2D *l2_error = new L2ErrorVortex2D(ins2d);
         measurements.push_back(l2_error);
+      } else if(measurement == "min_max_interface") {
+        MinMaxInterface2D *min_max = new MinMaxInterface2D(ins2d);
+        measurements.push_back(min_max);
       } else {
         throw runtime_error("Unrecognised measurement: " + measurement);
       }

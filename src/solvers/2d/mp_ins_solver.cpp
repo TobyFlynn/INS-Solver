@@ -626,3 +626,7 @@ void MPINSSolver2D::surface() {
   lsSolver->step(dt);
   lsSolver->getRhoMu(rho, mu);
 }
+
+op_dat MPINSSolver2D::get_ls() {
+  return lsSolver->s;
+}
