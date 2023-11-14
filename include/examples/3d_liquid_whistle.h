@@ -1,13 +1,5 @@
-#ifndef __INS_PROBLEM_SPECIFIC_3D_H
-#define __INS_PROBLEM_SPECIFIC_3D_H
-
-#define EXAMPLE_3D_TGV
-
-#if defined(EXAMPLE_3D_TGV)
-#include "examples/3d_tgv.h"
-#elif defined(EXAMPLE_3D_LIQUID_WHISTLE)
-#include "examples/3d_liquid_whistle.h"
-#else
+#ifndef __INS_3D_LIQUID_WHISTLE_H
+#define __INS_3D_LIQUID_WHISTLE_H
 
 #if defined(INS_CUDA)
 #define DEVICE_PREFIX __device__
@@ -44,16 +36,11 @@
 DEVICE_PREFIX void ps3d_set_ic(const DG_FP x, const DG_FP y, const DG_FP z,
                                DG_FP &u, DG_FP &v, DG_FP &w) {
   // Liquid Whistle Initial Conditions
-  // DG_FP tmp = y * y + z * z - LW_INLET_RADIUS * LW_INLET_RADIUS;
-  // tmp = fabs(tmp);
-  // tmp = fmin(1.0, tmp / 0.1);
-  // u = tmp * fmax(0.0, 0.0 - (x + 1.0));
-  // v = 0.0;
-  // w = 0.0;
-
-  // TGV Initial Conditions
-  u = sin(x) * cos(y) * cos(z);
-  v = -cos(x) * sin(y) * cos(z);
+  DG_FP tmp = y * y + z * z - LW_INLET_RADIUS * LW_INLET_RADIUS;
+  tmp = fabs(tmp);
+  tmp = fmin(1.0, tmp / 0.1);
+  u = tmp * fmax(0.0, 0.0 - (x + 1.0));
+  v = 0.0;
   w = 0.0;
 }
 
@@ -142,15 +129,6 @@ DEVICE_PREFIX void ps3d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 // Set the initial interface between phases for multiphase simulations
 DEVICE_PREFIX void ps3d_set_surface(const DG_FP x, const DG_FP y, const DG_FP z,
                                     DG_FP &s) {
-  // s[i] = sqrt((x[i] - 3.0) * (x[i] - 3.0) + (y[i] - 3.0) * (y[i] - 3.0) + (z[i] - 3.0) * (z[i] - 3.0)) - 1.5;
-  // s[i] = x[i] - 1.0;
-  // s[i] = sqrt((x[i] - 1.0) * (x[i] - 1.0) + (y[i] - 0.5) * (y[i] - 0.5) + (z[i] - 0.5) * (z[i] - 0.5)) - 0.25;
-  // s[i] = sqrt((x[i] - 0.1) * (x[i] - 0.1) + y[i] * y[i] + z[i] * z[i]) - 0.05;
-  // if(x[i] >= -1e-5)
-  //   s[i] = fmax(fmax(fabs(x[i] + 1e-3), fabs(y[i])), fabs(z[i]));
-  // else
-  //   s[i] = x[i] + 1e-3;
-
   s = sqrt((x + 3.0) * (x + 3.0) + y * y + z * z) - 2.99;
   s = fmax(fmin(1.0, s), -1.0);
 }
@@ -181,5 +159,4 @@ DEVICE_PREFIX DG_FP ps3d_custom_bc_get_pr_neumann_multiphase(const int bc_type, 
   return 0.0;
 }
 
-#endif
 #endif
