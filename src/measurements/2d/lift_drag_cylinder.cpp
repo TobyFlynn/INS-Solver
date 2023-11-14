@@ -2,9 +2,6 @@
 
 #include "op_seq.h"
 
-#include <fstream>
-#include <iostream>
-
 #include "dg_dat_pool.h"
 
 extern DGDatPool *dg_dat_pool;
@@ -69,14 +66,22 @@ void LiftDragCylinder2D::measure() {
   history.push_back(tmp);
 }
 
-void LiftDragCylinder2D::output(std::string &path) {
-  std::ofstream file(path + "lift_drag_coefficients.txt");
+std::string LiftDragCylinder2D::get_filename() {
+  return "lift_drag_coefficients";
+}
 
-  file << "time,lift_coefficient,drag_coefficient" << std::endl;
-  for(auto &sample : history) {
-    file << double_to_text(sample.time) << "," << double_to_text(sample.lift);
-    file << "," << double_to_text(sample.drag) << std::endl;
+std::string LiftDragCylinder2D::get_csv_header() {
+  return "time,lift_coefficient,drag_coefficient";
+}
+
+std::string LiftDragCylinder2D::get_next_csv_line() {
+  if(io_count < history.size()) {
+    std::string result = double_to_text(history[io_count].time) + ",";
+    result = result + double_to_text(history[io_count].lift) + ",";
+    result = result + double_to_text(history[io_count].drag);
+    io_count++;
+    return result;
+  } else {
+    return "";
   }
-
-  file.close();
 }

@@ -2,9 +2,6 @@
 
 #include "op_seq.h"
 
-#include <fstream>
-#include <iostream>
-
 #include "dg_dat_pool.h"
 
 extern DGDatPool *dg_dat_pool;
@@ -47,15 +44,24 @@ void MinMaxInterface2D::measure() {
   history.push_back(tmp);
 }
 
-void MinMaxInterface2D::output(std::string &path) {
-  std::ofstream file(path + "min_max_interface.txt");
+std::string MinMaxInterface2D::get_filename() {
+  return "min_max_interface";
+}
 
-  file << "time,min_x,min_y,max_x,max_y" << std::endl;
-  for(auto &sample : history) {
-    file << double_to_text(sample.time) << "," << double_to_text(sample.min_x) << ","; 
-    file << double_to_text(sample.min_y) << "," << double_to_text(sample.max_x) << ",";
-    file << double_to_text(sample.max_y) << std::endl;
+std::string MinMaxInterface2D::get_csv_header() {
+  return "time,min_x,min_y,max_x,max_y";
+}
+
+std::string MinMaxInterface2D::get_next_csv_line() {
+  if(io_count < history.size()) {
+    std::string result = double_to_text(history[io_count].time) + ",";
+    result = result + double_to_text(history[io_count].min_x) + ",";
+    result = result + double_to_text(history[io_count].min_y) + ",";
+    result = result + double_to_text(history[io_count].max_x) + ",";
+    result = result + double_to_text(history[io_count].max_y);
+    io_count++;
+    return result;
+  } else {
+    return "";
   }
-
-  file.close();
 }

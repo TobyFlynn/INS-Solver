@@ -10,7 +10,11 @@ public:
   Enstropy3D(INSSolverBase3D *i, const DG_FP refMu, const DG_FP volume, const int sample_iter = 20);
 
   virtual void measure() override;
-  virtual void output(std::string &path) override;
+
+protected:
+  virtual std::string get_filename() override;
+  virtual std::string get_csv_header() override;
+  virtual std::string get_next_csv_line() override;
 
 private:
   DG_FP calc_enstropy();

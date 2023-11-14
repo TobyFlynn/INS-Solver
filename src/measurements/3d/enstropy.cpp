@@ -2,9 +2,6 @@
 
 #include "op_seq.h"
 
-#include <fstream>
-#include <iostream>
-
 #include "dg_op2_blas.h"
 #include "dg_constants/dg_constants.h"
 #include "dg_dat_pool.h"
@@ -125,13 +122,22 @@ DG_FP Enstropy3D::calc_ke() {
   return 0.5 * kinetic_energy / vol;
 }
 
-void Enstropy3D::output(std::string &path) {
-  std::ofstream file(path + "enstropy.txt");
+std::string Enstropy3D::get_filename() {
+  return "enstropy";
+}
 
-  file << "time,enstropy,kinetic_energy" << std::endl;
-  for(auto &sample : history) {
-    file << double_to_text(sample.time) << "," << double_to_text(sample.enstropy) << "," << double_to_text(sample.ke) << std::endl;
+std::string Enstropy3D::get_csv_header() {
+  return "time,enstropy,kinetic_energy";
+}
+
+std::string Enstropy3D::get_next_csv_line() {
+  if(io_count < history.size()) {
+    std::string result = double_to_text(history[io_count].time) + ",";
+    result = result + double_to_text(history[io_count].enstropy) + ",";
+    result = result + double_to_text(history[io_count].ke);
+    io_count++;
+    return result;
+  } else {
+    return "";
   }
-
-  file.close();
 }

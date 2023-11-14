@@ -2,9 +2,6 @@
 
 #include "op_seq.h"
 
-#include <fstream>
-#include <iostream>
-
 #include "dg_dat_pool.h"
 
 extern DGDatPool *dg_dat_pool;
@@ -44,13 +41,21 @@ void L2ErrorVortex2D::measure() {
   history.push_back(tmp);
 }
 
-void L2ErrorVortex2D::output(std::string &path) {
-  std::ofstream file(path + "l2_error_vortex.txt");
+std::string L2ErrorVortex2D::get_filename() {
+  return "l2_error_vortex";
+}
 
-  file << "time,l2_error" << std::endl;
-  for(auto &sample : history) {
-    file << double_to_text(sample.time) << "," << double_to_text(sample.err) << std::endl;
+std::string L2ErrorVortex2D::get_csv_header() {
+  return "time,l2_error";
+}
+
+std::string L2ErrorVortex2D::get_next_csv_line() {
+  if(io_count < history.size()) {
+    std::string result = double_to_text(history[io_count].time) + ",";
+    result = result + double_to_text(history[io_count].err);
+    io_count++;
+    return result;
+  } else {
+    return "";
   }
-
-  file.close();
 }

@@ -13,7 +13,11 @@ public:
                      const int sample_iter = 20);
 
   virtual void measure() override;
-  virtual void output(std::string &path) override;
+
+protected:
+  virtual std::string get_filename() override;
+  virtual std::string get_csv_header() override;
+  virtual std::string get_next_csv_line() override;
 
 private:
   struct LiftDragHistory {
