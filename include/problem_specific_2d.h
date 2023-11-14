@@ -8,7 +8,7 @@
 #elif defined(EXAMPLE_2D_VORTEX)
 #include "examples/2d_vortex.h"
 #elif defined(EXAMPLE_2D_OSCILLATING_DROPLET)
-#include "examples/2d_vortex.h"
+#include "examples/2d_oscillating_droplet.h"
 #else
 
 #if defined(INS_CUDA)

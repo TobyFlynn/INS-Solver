@@ -250,6 +250,24 @@ int main(int argc, char **argv) {
     delete measurement;
   }
 
+  // Print closing summary
+  op_printf("\n\n Summary of simulation:\n");
+  op_printf("%d iterations\n", iter);
+  op_printf("%g time (non-dimensionalised)\n", ins2d->get_time());
+  op_printf("%g time (s)\n", ins2d->get_time() * refLen / refVel);
+  op_printf("Reference density: %g kg m^-3\n", refRho);
+  op_printf("Reference velocity: %g m s^-1\n", refVel);
+  op_printf("Reference length: %g m\n", refLen);
+  op_printf("Reference viscosity: %g m^2 s^-1\n", refMu);
+  op_printf("Reference gravity: %g m s^-2\n", refMu);
+  op_printf("Reference surface tension: %g N m^-1\n", refSurfTen);
+  op_printf("Density ratio of %g : %g\n", rho0, rho1);
+  op_printf("Viscosity ratio of %g : %g\n", mu0, mu1);
+  op_printf("Re: %g\n", r_ynolds);
+  op_printf("Weber: %g\n", weber);
+  op_printf("Froude: %g\n", froude);
+  op_printf("Peclet: %g\n\n", peclet);
+
   delete ins2d;
 
   ierr = PetscFinalize();
