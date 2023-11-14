@@ -29,6 +29,9 @@ public:
   void dump_visualisation_data(const std::string &filename) override;
   void dump_checkpoint_data(const std::string &filename) override;
 
+  // Getters (used for measurements)
+  op_dat get_ls();
+
   op_dat rho, mu, st[2][2];
 private:
   void setup_common();

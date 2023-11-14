@@ -4,6 +4,8 @@
 #include "op_seq.h"
 // Include C++ stuff
 #include <string>
+#include <set>
+#include <sstream>
 
 #include "petscvec.h"
 #include "petscksp.h"
@@ -15,6 +17,9 @@
 #include "solvers/2d/ins_solver.h"
 #include "solvers/2d/ins_temperature_solver.h"
 #include "solvers/2d/mp_ins_solver.h"
+#include "measurements/2d/lift_drag_cylinder.h"
+#include "measurements/2d/l2_error_vortex.h"
+#include "measurements/2d/min_max_interface.h"
 
 Timing *timer;
 Config *config;
@@ -176,6 +181,36 @@ int main(int argc, char **argv) {
   mesh->init();
   ins2d->init(r_ynolds, refVel);
 
+  // Set up measurements
+  vector<Measurement2D*> measurements;
+  // Get list of measurements to take
+  // Options are: lift_drag, l2_vortex, min_max_interface
+  string mes_tmp = "none";
+  config->getStr("io", "measurements", mes_tmp);
+  if(mes_tmp != "none") {
+    set<string> measurements_to_take;
+    stringstream tmp_ss(mes_tmp);
+    string val_str;
+    while(getline(tmp_ss, val_str, ',')) {
+      measurements_to_take.insert(val_str);
+    }
+
+    for(auto &measurement : measurements_to_take) {
+      if(measurement == "lift_drag") {
+        LiftDragCylinder2D *lift_drag = new LiftDragCylinder2D(ins2d, refMu, 0.3, 0.3, 0.7, 0.7);
+        measurements.push_back(lift_drag);
+      } else if(measurement == "l2_vortex") {
+        L2ErrorVortex2D *l2_error = new L2ErrorVortex2D(ins2d);
+        measurements.push_back(l2_error);
+      } else if(measurement == "min_max_interface") {
+        MinMaxInterface2D *min_max = new MinMaxInterface2D(ins2d);
+        measurements.push_back(min_max);
+      } else {
+        throw runtime_error("Unrecognised measurement: " + measurement);
+      }
+    }
+  }
+
   int save_ic = 1;
   config->getInt("io", "save_ic", save_ic);
   if(save_ic) {
@@ -191,6 +226,10 @@ int main(int argc, char **argv) {
       string out_file_tmp = outputDir + "iter-" + to_string(i + 1) + ".h5";
       ins2d->dump_visualisation_data(out_file_tmp);
     }
+
+    for(auto &measurement : measurements) {
+      measurement->measure();
+    }
   }
   timer->endTimer("Main loop");
 
@@ -201,7 +240,33 @@ int main(int argc, char **argv) {
     ins2d->dump_visualisation_data(out_file_end);
   }
 
+  for(auto &measurement : measurements) {
+    measurement->output(outputDir);
+  }
+
   timer->exportTimings(outputDir + "timings", iter, ins2d->get_time());
+
+  for(auto &measurement : measurements) {
+    delete measurement;
+  }
+
+  // Print closing summary
+  op_printf("\n\n Summary of simulation:\n");
+  op_printf("%d iterations\n", iter);
+  op_printf("%g time (non-dimensionalised)\n", ins2d->get_time());
+  op_printf("%g time (s)\n", ins2d->get_time() * refLen / refVel);
+  op_printf("Reference density: %g kg m^-3\n", refRho);
+  op_printf("Reference velocity: %g m s^-1\n", refVel);
+  op_printf("Reference length: %g m\n", refLen);
+  op_printf("Reference viscosity: %g m^2 s^-1\n", refMu);
+  op_printf("Reference gravity: %g m s^-2\n", refMu);
+  op_printf("Reference surface tension: %g N m^-1\n", refSurfTen);
+  op_printf("Density ratio of %g : %g\n", rho0, rho1);
+  op_printf("Viscosity ratio of %g : %g\n", mu0, mu1);
+  op_printf("Re: %g\n", r_ynolds);
+  op_printf("Weber: %g\n", weber);
+  op_printf("Froude: %g\n", froude);
+  op_printf("Peclet: %g\n\n", peclet);
 
   delete ins2d;
 

@@ -24,6 +24,13 @@ public:
   virtual void dump_visualisation_data(const std::string &filename);
   virtual void dump_checkpoint_data(const std::string &filename);
 
+  // Getters (used for measurements)
+  DGMesh3D* get_mesh();
+  op_dat get_vel_x();
+  op_dat get_vel_y();
+  op_dat get_vel_z();
+  op_dat get_pr();
+
 protected:
   void advec_current_non_linear();
   void advec_current_non_linear_over_int();
@@ -42,6 +49,7 @@ protected:
   DG_FP max_vel();
   void add_to_pr_history();
   void filter(op_dat in);
+  void zero_dat(op_dat dat);
 
   DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, h;
   int currentInd, sub_cycles;

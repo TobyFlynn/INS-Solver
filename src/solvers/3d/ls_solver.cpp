@@ -163,11 +163,7 @@ void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const DG_FP dt, const 
   advectionSolver->set_dt(dt);
   for(int i = 0; i < num_steps; i++)
     advectionSolver->step(s, u, v, w);
-/*
-  op_par_loop(ls_post_advec, "ls_post_advec", mesh->cells,
-              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-*/
+
   if(reinit_count > 9) {
     reinitLS();
     reinit_count = 0;

@@ -180,24 +180,13 @@ void INSTemperatureSolver2D::init(const DG_FP re, const DG_FP refVel) {
 
     update_rho();
 
-    op_par_loop(zero_npf_2, "zero_npf_2", mesh->cells,
-                op_arg_dat(dPdN[0], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-                op_arg_dat(dPdN[1], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-
-    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
-                op_arg_dat(n[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
-                op_arg_dat(n[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
-                op_arg_dat(n[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
-                op_arg_dat(n[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
-                op_arg_dat(pr, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    zero_dat(dPdN[0]);
+    zero_dat(dPdN[1]);
+    zero_dat(n[0][0]);
+    zero_dat(n[0][1]);
+    zero_dat(n[1][0]);
+    zero_dat(n[1][1]);
+    zero_dat(pr);
   }
 
   sub_cycle_dt = h / (DG_ORDER * DG_ORDER * max_vel());
@@ -353,8 +342,7 @@ bool INSTemperatureSolver2D::pressure() {
   dg_dat_pool->releaseTempDatCells(divVelT);
   timer->endTimer("INSTemperatureSolver2D - Pressure Linear Solve");
 
-  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  zero_dat(dPdN[(currentInd + 1) % 2]);
 
   timer->startTimer("INSTemperatureSolver2D - Pressure Projection");
   DGTempDat dpdx = dg_dat_pool->requestTempDatCells(DG_NP);

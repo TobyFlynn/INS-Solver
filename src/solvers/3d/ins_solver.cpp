@@ -24,8 +24,6 @@ extern Timing *timer;
 extern Config *config;
 extern DGDatPool *dg_dat_pool;
 
-#define ENSTROPY_FREQUENCY 10
-
 INSSolver3D::INSSolver3D(DGMesh3D *m) : INSSolverBase3D(m) {
   resuming = false;
 
@@ -146,31 +144,19 @@ void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
   }
 
   if(!resuming) {
-    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-                op_arg_dat(dPdN[0], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
-
-    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-                op_arg_dat(dPdN[1], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
-
-    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
-                op_arg_dat(pr, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-    op_par_loop(zero_np_3, "zero_np_3", mesh->cells,
-                op_arg_dat(n[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(n[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(n[0][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-    op_par_loop(zero_np_3, "zero_np_3", mesh->cells,
-                op_arg_dat(n[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(n[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(n[1][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    zero_dat(dPdN[0]);
+    zero_dat(dPdN[1]);
+    zero_dat(pr);
+    zero_dat(n[0][0]);
+    zero_dat(n[0][1]);
+    zero_dat(n[0][2]);
+    zero_dat(n[1][0]);
+    zero_dat(n[1][1]);
+    zero_dat(n[1][2]);
   }
 
   pressureSolver->init();
   viscositySolver->init();
-
-  enstropy_counter = ENSTROPY_FREQUENCY;
-  record_enstrophy();
 
   timer->endTimer("INSSolver3D - Init");
 }
@@ -213,8 +199,6 @@ void INSSolver3D::step() {
       it_pre_sub_cycle = 0;
     }
   }
-
-  record_enstrophy();
 }
 
 void INSSolver3D::advection() {
@@ -314,8 +298,7 @@ void INSSolver3D::pressure() {
 
   dg_dat_pool->releaseTempDatCells(divVelT);
 
-  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+  zero_dat(dPdN[(currentInd + 1) % 2]);
 
   timer->startTimer("INSSolver3D - Pressure Projection");
   DGTempDat dpdx = dg_dat_pool->requestTempDatCells(DG_NP);
@@ -438,79 +421,4 @@ void INSSolver3D::viscosity() {
   dg_dat_pool->releaseTempDatCells(visRHS[1]);
   dg_dat_pool->releaseTempDatCells(visRHS[2]);
   timer->endTimer("INSSolver3D - Viscosity Linear Solve");
-}
-
-DG_FP INSSolver3D::calc_enstrophy() {
-  DGTempDat curl[3];
-  curl[0] = dg_dat_pool->requestTempDatCells(DG_NP);
-  curl[1] = dg_dat_pool->requestTempDatCells(DG_NP);
-  curl[2] = dg_dat_pool->requestTempDatCells(DG_NP);
-
-  mesh->curl(vel[currentInd][0], vel[currentInd][1], vel[currentInd][2],
-             curl[0].dat, curl[1].dat, curl[2].dat);
-
-  op_par_loop(ins_3d_enstrophy_0, "ins_3d_enstrophy_0", mesh->cells,
-              op_arg_dat(curl[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(curl[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(curl[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-
-  mesh->mass(curl[2].dat);
-
-  DG_FP enstropy = 0.0;
-
-  op_par_loop(ins_3d_enstrophy_1, "ins_3d_enstrophy_1", mesh->cells,
-              op_arg_gbl(&enstropy, 1, DG_FP_STR, OP_INC),
-              op_arg_dat(curl[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
-
-  dg_dat_pool->releaseTempDatCells(curl[0]);
-  dg_dat_pool->releaseTempDatCells(curl[1]);
-  dg_dat_pool->releaseTempDatCells(curl[2]);
-
-  // Multiply by mu and divide by volume
-  return 0.000625 * enstropy / 248.0502134423985614038105205;
-}
-
-void INSSolver3D::record_enstrophy() {
-  if(enstropy_counter % ENSTROPY_FREQUENCY == 0) {
-    enstropy_history.push_back({time, calc_enstrophy()});
-  }
-  enstropy_counter++;
-}
-
-#include <fstream>
-#include <iostream>
-
-#include <iomanip>
-#include <sstream>
-
-std::string doubleToText(const double &d) {
-    std::stringstream ss;
-    ss << std::setprecision(15);
-    ss << d;
-    return ss.str();
-}
-
-#ifdef INS_MPI
-#include "mpi.h"
-#endif
-
-void INSSolver3D::save_enstropy_history(const std::string &filename) {
-  #ifdef INS_MPI
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  if(rank == 0) {
-  #endif
-  std::ofstream file(filename);
-
-  file << "time,enstropy" << std::endl;
-
-  for(int i = 0; i < enstropy_history.size(); i++) {
-    file << doubleToText(enstropy_history[i].first) << ",";
-    file << doubleToText(enstropy_history[i].second) << std::endl;
-  }
-
-  file.close();
-  #ifdef INS_MPI
-  }
-  #endif
 }

@@ -1,15 +1,5 @@
-#ifndef __INS_PROBLEM_SPECIFIC_2D_H
-#define __INS_PROBLEM_SPECIFIC_2D_H
-
-#define EXAMPLE_2D_OSCILLATING_DROPLET
-
-#if defined(EXAMPLE_2D_CYLINDER)
-#include "examples/2d_cylinder.h"
-#elif defined(EXAMPLE_2D_VORTEX)
-#include "examples/2d_vortex.h"
-#elif defined(EXAMPLE_2D_OSCILLATING_DROPLET)
-#include "examples/2d_oscillating_droplet.h"
-#else
+#ifndef __INS_2D_CYLINDER_H
+#define __INS_2D_CYLINDER_H
 
 #if defined(INS_CUDA)
 #define DEVICE_PREFIX __device__
@@ -36,14 +26,6 @@
 
 // Set the initial conditions of the problem
 DEVICE_PREFIX void ps2d_set_ic(const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v) {
-  // Euler vortex initial conditions
-  // const DG_FP PI = 3.141592653589793238463;
-  // const DG_FP R = 1.5;
-  // const DG_FP S = 13.5;
-  // DG_FP f = (1.0 - x * x - y * y) / (2.0 * R * R);
-  // u = (S * y * exp(f)) / (2.0 * PI * R);
-  // v = (1.0 - ((S * x * exp(f)) / (2.0 * PI * R)));
-
   u = 0.0;
   v = 0.0;
 }
@@ -52,7 +34,13 @@ DEVICE_PREFIX void ps2d_set_ic(const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v)
 DEVICE_PREFIX void ps2d_set_boundary_type(const DG_FP x0, const DG_FP y0,
                                           const DG_FP x1, const DG_FP y1,
                                           int &bc_type) {
-  bc_type = BC_TYPE_NO_SLIP;
+  if(fp_equal(x0, x1) && x0 < 1e-4) {
+    bc_type = BC_TYPE_INFLOW;
+  } else if(fp_equal(x0, x1) && x0 > 5.0) {
+    bc_type = BC_TYPE_NATURAL_OUTFLOW;
+  } else {
+    bc_type = BC_TYPE_NO_SLIP;
+  }
 }
 
 // Custom BC pressure and viscosity linear solves BC conditions
@@ -74,8 +62,9 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vel(const int bc_type, const DG_FP time,
                                           const DG_FP nx, const DG_FP ny,
                                           const DG_FP mU, const DG_FP mV,
                                           DG_FP &u, DG_FP &v) {
+  const DG_FP PI = 3.141592653589793238463;
   if(bc_type == BC_TYPE_INFLOW) {
-    u = 1.0;
+    u = 4.0 * sin(PI * time / 8.0) * y * (1.0 - y);
     v = 0.0;
   }
 }
@@ -85,10 +74,13 @@ DEVICE_PREFIX DG_FP ps2d_custom_bc_get_pr_neumann(const int bc_type, const DG_FP
                           const DG_FP x, const DG_FP y, const DG_FP nx, const DG_FP ny,
                           const DG_FP N0, const DG_FP N1, const DG_FP gradCurlVel0,
                           const DG_FP gradCurlVel1, const DG_FP reynolds) {
+  const DG_FP PI = 3.141592653589793238463;
   if(bc_type == BC_TYPE_INFLOW) {
     DG_FP res1 = -N0 - gradCurlVel1 / reynolds;
     DG_FP res2 = -N1 + gradCurlVel0 / reynolds;
-    return nx * res1 + ny * res2;
+    DG_FP neumann = nx * res1 + ny * res2;
+    DG_FP vel_grad = nx * 4.0 * (PI / 8.0) * cos(PI * time / 8.0) * y * (1.0 - y);
+    return neumann + vel_grad;
   }
 
   return 0.0;
@@ -150,5 +142,4 @@ DEVICE_PREFIX DG_FP ps2d_custom_bc_get_temperature_grad(const int bc_type, const
   tPy = tMy;
 }
 
-#endif
 #endif

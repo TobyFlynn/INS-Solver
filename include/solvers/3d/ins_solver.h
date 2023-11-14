@@ -24,15 +24,11 @@ public:
   void init(const DG_FP re, const DG_FP refVel) override;
   void step() override;
 
-  void save_enstropy_history(const std::string &filename);
-
 private:
   void setup_common();
   void advection();
   void pressure();
   void viscosity();
-  DG_FP calc_enstrophy();
-  void record_enstrophy();
 
   // DGMesh3D *mesh;
   // PoissonMatrix3D *pressureMatrix;
@@ -44,15 +40,12 @@ private:
   LinearSolver *pressureSolver;
   PETScInvMassSolver *viscositySolver;
   DG_FP reynolds;
-  int enstropy_counter;
   bool resuming;
   bool forced_dt;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;
   op_dat vis_bc_types, vis_bc;
-
-  std::vector<std::pair<DG_FP,DG_FP>> enstropy_history;
 };
 
 #endif
