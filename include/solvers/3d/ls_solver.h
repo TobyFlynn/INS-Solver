@@ -18,8 +18,8 @@ public:
 
 protected:
   virtual void bc_kernel(op_dat val, op_dat u, op_dat v, op_dat w, op_dat out) override;
-  // virtual void bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat w, op_dat uM,
-  //                           op_dat vM, op_dat wM, op_dat valM, op_dat valP) override;
+  virtual void bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat w, op_dat uM,
+                            op_dat vM, op_dat wM, op_dat valM, op_dat valP) override;
 
   op_dat bc_types;
 };

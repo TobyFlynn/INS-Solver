@@ -5,8 +5,10 @@
 #include "dg_op2_blas.h"
 #include "dg_dat_pool.h"
 
+#include "config.h"
 #include "timing.h"
 
+extern Config *config;
 extern Timing *timer;
 extern DGDatPool *dg_dat_pool;
 
@@ -14,6 +16,9 @@ AdvectionSolver3D::AdvectionSolver3D(DGMesh3D *m) {
   mesh = m;
 
   dt = -1.0;
+  int tmp_oia = 0;
+  config->getInt("solver-options", "over_int_advec", tmp_oia);
+  over_int_advec = tmp_oia == 1;
 }
 
 void AdvectionSolver3D::step(op_dat val, op_dat u, op_dat v, op_dat w) {
@@ -37,7 +42,10 @@ void AdvectionSolver3D::step(op_dat val, op_dat u, op_dat v, op_dat w) {
               op_arg_dat(tmp_rkQ.dat,   -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   for(int j = 0; j < 3; j++) {
-    rhs(tmp_rkQ.dat, u, v, w, tmp_rk[j].dat);
+    if(over_int_advec)
+      rhs_over_int(tmp_rkQ.dat, u, v, w, tmp_rk[j].dat);
+    else
+      rhs(tmp_rkQ.dat, u, v, w, tmp_rk[j].dat);
 
     if(j != 2) {
       op_par_loop(runge_kutta_0, "runge_kutta_0", mesh->cells,
@@ -110,6 +118,95 @@ void AdvectionSolver3D::rhs(op_dat val, op_dat u, op_dat v, op_dat w, op_dat val
   // op2_gemv(mesh, false, 1.0, DGConstants::LIFT, tmp_flux.dat, -1.0, val_out);
 
   dg_dat_pool->releaseTempDatCells(tmp_flux);
+}
+
+void AdvectionSolver3D::rhs_over_int(op_dat val, op_dat u, op_dat v, op_dat w, op_dat val_out) {
+  DGTempDat tmp_f = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  DGTempDat tmp_g = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  DGTempDat tmp_h = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  DGTempDat val_interp = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, u, 0.0, tmp_f.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, v, 0.0, tmp_g.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, w, 0.0, tmp_h.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, val, 0.0, val_interp.dat);
+
+  op_par_loop(advec_3d_oi_0, "advec_3d_oi_0", mesh->cells,
+              op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
+              op_arg_dat(val_interp.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_f.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(tmp_g.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(tmp_h.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PDR, tmp_f.dat, 0.0, val_out);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PDS, tmp_g.dat, 1.0, val_out);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PDT, tmp_h.dat, 1.0, val_out);
+
+  dg_dat_pool->releaseTempDatCells(tmp_f);
+  dg_dat_pool->releaseTempDatCells(tmp_g);
+  dg_dat_pool->releaseTempDatCells(tmp_h);
+  dg_dat_pool->releaseTempDatCells(val_interp);
+
+  DGTempDat tmp_mU = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  DGTempDat tmp_mV = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  DGTempDat tmp_mW = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  DGTempDat tmp_mVal = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  DGTempDat tmp_pVal = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+
+  op_par_loop(advec_3d_oi_1, "advec_3d_oi_1", mesh->faces,
+              op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->fmaskR,  -1, OP_ID, DG_NPF, "int", OP_READ),
+              op_arg_dat(u,   -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(v,   -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(w,   -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(val, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_mU.dat,   -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_mV.dat,   -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_mW.dat,   -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_mVal.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(tmp_pVal.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+
+  if(mesh->bface2cells)
+    bc_kernel_oi(val, u, v, w, tmp_mU.dat, tmp_mV.dat, tmp_mW.dat, tmp_mVal.dat, tmp_pVal.dat);
+
+  DGTempDat tmp_mU_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
+  DGTempDat tmp_mV_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
+  DGTempDat tmp_mW_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
+  DGTempDat tmp_mVal_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
+  DGTempDat tmp_pVal_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_mU.dat, 0.0, tmp_mU_cub.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_mV.dat, 0.0, tmp_mV_cub.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_mW.dat, 0.0, tmp_mW_cub.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_mVal.dat, 0.0, tmp_mVal_cub.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_pVal.dat, 0.0, tmp_pVal_cub.dat);
+
+  dg_dat_pool->releaseTempDatCells(tmp_mU);
+  dg_dat_pool->releaseTempDatCells(tmp_mV);
+  dg_dat_pool->releaseTempDatCells(tmp_mW);
+  dg_dat_pool->releaseTempDatCells(tmp_mVal);
+  dg_dat_pool->releaseTempDatCells(tmp_pVal);
+
+  op_par_loop(advec_3d_oi_3, "advec_3d_oi_3", mesh->cells,
+              op_arg_dat(mesh->nx_c, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ny_c, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nz_c, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sJ_c, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_mU_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_mV_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_mW_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_mVal_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_pVal_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, false, -1.0, DGConstants::CUBSURF3D_LIFT, tmp_pVal.dat, 1.0, val_out);
+
+  dg_dat_pool->releaseTempDatCells(tmp_mU_cub);
+  dg_dat_pool->releaseTempDatCells(tmp_mV_cub);
+  dg_dat_pool->releaseTempDatCells(tmp_mW_cub);
+  dg_dat_pool->releaseTempDatCells(tmp_mVal_cub);
+  dg_dat_pool->releaseTempDatCells(tmp_pVal_cub);
 }
 
 void AdvectionSolver3D::set_dt() {

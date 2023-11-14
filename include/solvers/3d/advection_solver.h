@@ -18,16 +18,18 @@ public:
 protected:
   virtual void bc_kernel(op_dat val, op_dat u, op_dat v, op_dat w,
                          op_dat out) = 0;
-  // virtual void bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat w, op_dat uM,
-  //                           op_dat vM, op_dat wM, op_dat valM, op_dat valP) = 0;
+  virtual void bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat w, op_dat uM,
+                            op_dat vM, op_dat wM, op_dat valM, op_dat valP) = 0;
 
   DGMesh3D *mesh;
 
 private:
   void rhs(op_dat val, op_dat u, op_dat v, op_dat w, op_dat val_out);
+  void rhs_over_int(op_dat val, op_dat u, op_dat v, op_dat w, op_dat val_out);
 
+  bool over_int_advec;
   DG_FP dt;
-  op_dat f, g, h, flux, rk[3], rkQ, bc_types;
+  op_dat bc_types;
 };
 
 #endif
