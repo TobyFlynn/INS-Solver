@@ -82,7 +82,8 @@ void MPINSSolver2D::setup_common() {
   config->getDouble("solver-options", "surface_tension_trans_width_fact", tmp_trans_width_fact);
   st_trans_width_fact = tmp_trans_width_fact;
 
-  pressureMatrix = new FactorPoissonMatrixFreeDiag2D(mesh);
+  pressureMatrix = new FactorPoissonMatrixFreeDiagOI2D(mesh);
+  // pressureMatrix = new FactorPoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new FactorPoissonCoarseMatrix2D(mesh);
   viscosityMatrix = new FactorMMPoissonMatrixFreeDiag2D(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
@@ -188,6 +189,8 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   lsSolver->init();
   lsSolver->set_bc_types(bc_types);
   lsSolver->getRhoMu(rho, mu);
+
+  st_max_diff *= h;
 
   timer->endTimer("MPINSSolver2D - Init");
 }
@@ -411,8 +414,15 @@ bool MPINSSolver2D::pressure() {
   mesh->mass(divVelT.dat);
   timer->endTimer("MPINSSolver2D - Pressure RHS");
 
+  DGTempDat pr_factor_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, lsSolver->s, 0.0, pr_factor_oi.dat);
+  op_par_loop(mp_ins_2d_pr_oi, "mp_ins_2d_pr_oi", mesh->cells,
+              op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(pr_factor_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
+
   // Call PETSc linear solver
   timer->startTimer("MPINSSolver2D - Pressure Linear Solve");
+  pressureMatrix->mat_free_set_factor_oi(pr_factor_oi.dat);
   pressureMatrix->set_factor(pr_factor.dat);
   pressureCoarseMatrix->set_factor(pr_factor.dat);
   pressureMatrix->set_bc_types(pr_bc_types);
@@ -434,26 +444,34 @@ bool MPINSSolver2D::pressure() {
 
   // Calculate gradient of pressure
   mesh->grad_over_int_with_central_flux(pr, dpdx.dat, dpdy.dat);
-
+/*
   op_par_loop(mp_ins_2d_pr_2, "mp_ins_2d_pr_2", mesh->cells,
               op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+*/
+
+  DGTempDat dpdx_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+  DGTempDat dpdy_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, dpdx.dat, 0.0, dpdx_oi.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, dpdy.dat, 0.0, dpdy_oi.dat);
+
+  op_par_loop(mp_ins_2d_pr_2_oi, "mp_ins_2d_pr_2_oi", mesh->cells,
+              op_arg_dat(pr_factor_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dpdx_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(dpdy_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, dpdx_oi.dat, 0.0, dpdx.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, dpdy_oi.dat, 0.0, dpdy.dat);
+
+  dg_dat_pool->releaseTempDatCells(pr_factor_oi);
+  dg_dat_pool->releaseTempDatCells(dpdx_oi);
+  dg_dat_pool->releaseTempDatCells(dpdy_oi);
 
   project_velocity(dpdx.dat, dpdy.dat);
 
-  if(surface_tension) {
+  if(surface_tension && st_max_diff > 0.0) {
     DGTempDat surf_ten_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
-
-/*
-    op_par_loop(ins_2d_st_art_vis, "ins_2d_st_art_vis", mesh->cells,
-                op_arg_gbl(&st_max_diff, 1, DG_FP_STR, OP_READ),
-                op_arg_gbl(&st_diff_width_fact, 1, DG_FP_STR, OP_READ),
-                op_arg_gbl(&st_trans_width_fact, 1, DG_FP_STR, OP_READ),
-                op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(surf_ten_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-*/
 
     calc_art_vis(velTT[0], velTT[1], surf_ten_art_vis.dat);
 
@@ -604,8 +622,8 @@ void MPINSSolver2D::dump_visualisation_data(const std::string &filename) {
   INSSolverBase2D::dump_visualisation_data(filename);
 
   if(values_to_save.count("surface_tension") != 0 && surface_tension) {
-    op_fetch_data_hdf5_file(st[currentInd][0], filename.c_str());
-    op_fetch_data_hdf5_file(st[currentInd][1], filename.c_str());
+    op_fetch_data_hdf5_file(st[(currentInd + 1) % 2][0], filename.c_str());
+    op_fetch_data_hdf5_file(st[(currentInd + 1) % 2][1], filename.c_str());
   }
 
   if(values_to_save.count("mu") != 0) {
