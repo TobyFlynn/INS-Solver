@@ -9,9 +9,12 @@
 extern DGConstants *constants;
 extern DGDatPool *dg_dat_pool;
 
-Enstropy3D::Enstropy3D(INSSolverBase3D *i, const DG_FP refMu, const DG_FP volume, 
+Enstropy3D::Enstropy3D(INSSolverBase3D *i, const DG_FP refMu, const DG_FP refRho, 
+                       const DG_FP refVel, const DG_FP volume, 
                        const int sample_iter) : Measurement3D(i, sample_iter) {
   mu = refMu;
+  rho = refRho;
+  vel = refVel;
   vol = volume;
 }
 
@@ -71,8 +74,9 @@ DG_FP Enstropy3D::calc_enstropy() {
   dg_dat_pool->releaseTempDatCells(curl[1]);
   dg_dat_pool->releaseTempDatCells(curl[2]);
 
-  // Multiply by mu and divide by volume
-  return mu * enstropy / vol;
+  // Multiply by mu and divide by volume. 
+  // Rho is constant so just single division by refRho needed.
+  return mu * enstropy / (vol * rho * vel * vel);
 }
 
 DG_FP Enstropy3D::calc_ke() {
@@ -118,8 +122,9 @@ DG_FP Enstropy3D::calc_ke() {
 
   dg_dat_pool->releaseTempDatCells(ke_tmp);
 
-  // Multiply by 0.5 and divide by volume
-  return 0.5 * kinetic_energy / vol;
+  // Multiply by 0.5 and divide by volume. Rho is constant in single phase case,
+  // so cancels through in equation
+  return 0.5 * kinetic_energy / (vol * vel * vel);
 }
 
 std::string Enstropy3D::get_filename() {
