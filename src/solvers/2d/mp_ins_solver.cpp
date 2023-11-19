@@ -302,14 +302,14 @@ void MPINSSolver2D::surface_tension_grad(op_dat dx, op_dat dy) {
 void MPINSSolver2D::surface_tension_curvature(op_dat curv) {
   DGTempDat tmp_normal_x  = dg_dat_pool->requestTempDatCells(DG_NP);
   DGTempDat tmp_normal_y  = dg_dat_pool->requestTempDatCells(DG_NP);
-  mesh->grad_with_central_flux(lsSolver->s, tmp_normal_x.dat, tmp_normal_y.dat);
+  mesh->grad_over_int_with_central_flux(lsSolver->s, tmp_normal_x.dat, tmp_normal_y.dat);
 
   // Unit normals
   op_par_loop(ins_2d_st_5, "ins_2d_st_5", mesh->cells,
               op_arg_dat(tmp_normal_x.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(tmp_normal_y.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
-  mesh->div_with_central_flux(tmp_normal_x.dat, tmp_normal_y.dat, curv);
+  mesh->div_over_int_with_central_flux(tmp_normal_x.dat, tmp_normal_y.dat, curv);
 
   dg_dat_pool->releaseTempDatCells(tmp_normal_x);
   dg_dat_pool->releaseTempDatCells(tmp_normal_y);
@@ -372,7 +372,7 @@ bool MPINSSolver2D::pressure() {
   DGTempDat gradCurlVel[2];
   gradCurlVel[0] = dg_dat_pool->requestTempDatCells(DG_NP);
   gradCurlVel[1] = dg_dat_pool->requestTempDatCells(DG_NP);
-  mesh->div_with_central_flux(velT[0], velT[1], divVelT.dat);
+  mesh->div_over_int_with_central_flux(velT[0], velT[1], divVelT.dat);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel.dat);
 
   op_par_loop(mp_ins_2d_pr_mu, "mp_ins_3d_pr_mu", mesh->cells,
