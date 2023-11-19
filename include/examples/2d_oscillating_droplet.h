@@ -86,11 +86,11 @@ DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
   if(x_2_plus_y_2 < 1e-6)
     s = 2;
   else
-    // s = 1.0 + eps * 0.5 * (3.0 * x * x / x_2_plus_y_2 - 1.0) - sqrt(x_2_plus_y_2);
-    s = 1.0 + eps * 0.5 * (3.0 * x * x / x_2_plus_y_2 - 1.0) * sin(w * PI * 0.5) - sqrt(x_2_plus_y_2);
+    s = 1.0 + eps * 0.5 * (3.0 * x * x / x_2_plus_y_2 - 1.0) - sqrt(x_2_plus_y_2);
+    // s = 1.0 + eps * 0.5 * (3.0 * x * x / x_2_plus_y_2 - 1.0) * sin(w * PI * 0.5) - sqrt(x_2_plus_y_2);
   s = -s;
   // s = sqrt(x * x / 4.0 + y * y) - 7.5;
-  s = sqrt(x * x / 2.0 + y * y) - 1.0;
+  // s = sqrt(x * x + y * y) - 1.0;
 }
 
 // Set level set value on custom BCs (return sM otherwise)

@@ -133,7 +133,7 @@ void LevelSetSolver2D::step(DG_FP dt) {
   advecSolver->step(s, u, v);
 
   counter++;
-  if(counter > 4) {
+  if(counter > 14) {
     timer->startTimer("LevelSetSolver2D - reinitLS");
     reinitLS();
     timer->endTimer("LevelSetSolver2D - reinitLS");
