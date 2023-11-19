@@ -1,7 +1,7 @@
 #ifndef __INS_PROBLEM_SPECIFIC_2D_H
 #define __INS_PROBLEM_SPECIFIC_2D_H
 
-#define EXAMPLE_2D_OSCILLATING_DROPLET
+#define EXAMPLE_2D_DAM_BREAK
 
 #if defined(EXAMPLE_2D_CYLINDER)
 #include "examples/2d_cylinder.h"
@@ -9,6 +9,8 @@
 #include "examples/2d_vortex.h"
 #elif defined(EXAMPLE_2D_OSCILLATING_DROPLET)
 #include "examples/2d_oscillating_droplet.h"
+#elif defined(EXAMPLE_2D_DAM_BREAK)
+#include "examples/2d_dam_break.h"
 #else
 
 #if defined(INS_CUDA)

@@ -7,7 +7,8 @@
 
 class Enstropy3D : public Measurement3D {
 public:
-  Enstropy3D(INSSolverBase3D *i, const DG_FP refMu, const DG_FP volume, const int sample_iter = 20);
+  Enstropy3D(INSSolverBase3D *i, const DG_FP refMu, const DG_FP refRho, 
+             const DG_FP refVel,const DG_FP volume, const int sample_iter = 20);
 
   virtual void measure() override;
 
@@ -26,7 +27,7 @@ private:
     DG_FP ke;
   };
   std::vector<EnstropyHistory> history;
-  DG_FP mu, vol;
+  DG_FP mu, vol, rho, vel;
 };
 
 #endif

@@ -171,7 +171,7 @@ int main(int argc, char **argv) {
 
     for(auto &measurement : measurements_to_take) {
       if(measurement == "enstropy") {
-        Enstropy3D *enstropy = new Enstropy3D(ins3d, refMu, 248.0502134423985614038105205);
+        Enstropy3D *enstropy = new Enstropy3D(ins3d, refMu, refRho, refVel, 248.0502134423985614038105205);
         measurements.push_back(enstropy);
       } else {
         throw runtime_error("Unrecognised measurement: " + measurement);
