@@ -5,8 +5,13 @@
 #include <limits>
 #include <cmath>
 
+#include "dg_op2_blas.h"
+#include "dg_constants/dg_constants.h"
+#include "dg_dat_pool.h"
 #include "timing.h"
 
+extern DGConstants *constants;
+extern DGDatPool *dg_dat_pool;
 extern Timing *timer;
 
 int counter;
@@ -167,6 +172,30 @@ void LevelSetSolver2D::getRhoMu(op_dat rho, op_dat mu) {
               op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(mu,  -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   timer->endTimer("LevelSetSolver2D - getRhoMu");
+}
+
+void LevelSetSolver2D::getRhoVolOI(op_dat rho) {
+  timer->startTimer("LevelSetSolver2D - getRhoVolOI");
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, s, 0.0, rho);
+  op_par_loop(ls_step_vol_oi, "ls_step", mesh->cells,
+              op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
+  timer->endTimer("LevelSetSolver2D - getRhoVolOI");
+}
+
+void LevelSetSolver2D::getRhoSurfOI(op_dat rho) {
+  timer->startTimer("LevelSetSolver2D - getRhoSurfOI");
+  DGTempDat rho_tmp = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  op_par_loop(ls_step_surf_oi_0, "ls_step_surf_oi_0", mesh->cells,
+              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rho_tmp.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_INTERP, rho_tmp.dat, 0.0, rho);
+  dg_dat_pool->releaseTempDatCells(rho_tmp);
+  op_par_loop(ls_step_surf_oi_1, "ls_step_surf_oi_1", mesh->cells,
+              op_arg_gbl(&alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_RW));
+  timer->endTimer("LevelSetSolver2D - getRhoSurfOI");
 }
 
 void LevelSetSolver2D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv) {
