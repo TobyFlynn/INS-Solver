@@ -14,9 +14,10 @@
 #define BC_NEUMANN 1
 
 // Hardcoded BC types, do not edit
-#define BC_TYPE_NO_SLIP 0
-#define BC_TYPE_SLIP 1
-#define BC_TYPE_NATURAL_OUTFLOW 2
+#define BC_TYPE_NATURAL_OUTFLOW 0
+#define BC_TYPE_NO_SLIP 1
+#define BC_TYPE_SLIP_X 2
+#define BC_TYPE_SLIP_Y 3
 
 /************************************************************************
  * You can edit the body of the functions below but not their signature *
