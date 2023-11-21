@@ -337,7 +337,7 @@ void MPINSSolver2D::advection() {
                 op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
                 op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-    
+
     dg_dat_pool->releaseTempDatCells(tmp_curvature);
 */
     DGTempDat rho_oi  = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
@@ -354,7 +354,7 @@ void MPINSSolver2D::advection() {
                 op_arg_dat(rho_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(stx_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW),
                 op_arg_dat(sty_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
-    
+
     op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, stx_oi.dat, 0.0, st[currentInd][0]);
     op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, sty_oi.dat, 0.0, st[currentInd][1]);
 
@@ -607,6 +607,12 @@ bool MPINSSolver2D::viscosity() {
 }
 
 void MPINSSolver2D::calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
+  DGTempDat h_tmp = dg_dat_pool->requestTempDatCells(1);
+  op_par_loop(calc_h_explicitly, "calc_h_explicitly", mesh->cells,
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(h_tmp.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+
   op_par_loop(reset_tmp_node_dats, "reset_tmp_node_dats", mesh->nodes,
               op_arg_dat(nodes_data, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
               op_arg_dat(nodes_count, -1, OP_ID, 1, "int", OP_WRITE));
@@ -620,13 +626,16 @@ void MPINSSolver2D::calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
               op_arg_dat(mesh->nx,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->ny,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sJ,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale,  -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(h_tmp.dat, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->node_coords, -2, mesh->face2nodes, 2, DG_FP_STR, OP_READ),
               op_arg_dat(in0, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in1, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(nodes_data, -2, mesh->face2nodes, 1, DG_FP_STR, OP_INC),
               op_arg_dat(nodes_count, -2, mesh->face2nodes, 1, "int", OP_INC));
 
-  DG_FP smooth_tol = 1e-2;
-  DG_FP discon_tol = 0.1;
+  DG_FP smooth_tol = 1.0;
+  DG_FP discon_tol = 100.0;
   op_par_loop(ins_2d_st_art_vis_1, "ins_2d_st_art_vis_1", mesh->cells,
               op_arg_gbl(&st_max_diff, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&smooth_tol, 1, DG_FP_STR, OP_READ),
@@ -638,6 +647,8 @@ void MPINSSolver2D::calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
               op_arg_dat(nodes_data, -3, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
               op_arg_dat(nodes_count, -3, mesh->cell2nodes, 1, "int", OP_READ),
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  dg_dat_pool->releaseTempDatCells(h_tmp);
 }
 
 void MPINSSolver2D::dump_checkpoint_data(const std::string &filename) {

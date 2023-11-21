@@ -6,9 +6,9 @@ inline void ins_2d_st_art_vis_1(const DG_FP *max_diff_, const DG_FP *smooth_tol,
   const DG_FP PI = 3.141592653589793238463;
   const DG_FP alpha = *alpha_ * *diff_width_;
   const DG_FP max_diff = *max_diff_;
-  // const DG_FP max_diff_interface = max_diff * 0.1;
-  const DG_FP max_diff_interface = max_diff;
-  const DG_FP trans_width = *alpha_ * *trans_width_;
+  // const DG_FP max_diff_interface = max_diff * 0.0;
+  // const DG_FP max_diff_interface = max_diff;
+  // const DG_FP trans_width = *alpha_ * *trans_width_;
   DG_FP vertex_values[3];
   for(int i = 0; i < 3; i++) {
     vertex_values[i] = node_count[i][0] > 0 ? vis_nodes[i][0] / (DG_FP)node_count[i][0] : 0.0;
@@ -29,8 +29,9 @@ inline void ins_2d_st_art_vis_1(const DG_FP *max_diff_, const DG_FP *smooth_tol,
     else
       out_vis[i] = max_diff * ((out_vis[i] - *smooth_tol) / (*discon_tol - *smooth_tol));
 
-    DG_FP tmp = fmax(1e-6, fmin(max_diff_interface, max_diff_interface * (trans_width - (fabs(s[i]) - alpha)) / trans_width));
-    out_vis[i] = fmax(tmp, out_vis[i]);
+    // DG_FP tmp = fmax(1e-6, fmin(max_diff_interface, max_diff_interface * (trans_width - (fabs(s[i]) - alpha)) / trans_width));
+    // out_vis[i] = fmax(tmp, out_vis[i]);
+
 /*
     if(out_vis[i] < *smooth_tol)
       out_vis[i] = 0.0;
