@@ -14,9 +14,10 @@
 #define BC_NEUMANN 1
 
 // Hardcoded BC types, do not edit
-#define BC_TYPE_NO_SLIP 0
-#define BC_TYPE_SLIP 1
-#define BC_TYPE_NATURAL_OUTFLOW 2
+#define BC_TYPE_NATURAL_OUTFLOW 0
+#define BC_TYPE_NO_SLIP 1
+#define BC_TYPE_SLIP_X 2
+#define BC_TYPE_SLIP_Y 3
 
 /************************************************************************
  * You can edit the body of the functions below but not their signature *
@@ -32,10 +33,12 @@ DEVICE_PREFIX void ps2d_set_ic(const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v)
 DEVICE_PREFIX void ps2d_set_boundary_type(const DG_FP x0, const DG_FP y0,
                                           const DG_FP x1, const DG_FP y1,
                                           int &bc_type) {
-  if(fp_equal(y0,y1) && y0 > 0.9) {
+  if(fp_equal(y0,y1) && y0 > 1.9) {
     bc_type = BC_TYPE_NATURAL_OUTFLOW;
+  } else if(fp_equal(y0,y1)) {
+    bc_type = BC_TYPE_SLIP_Y;
   } else {
-    bc_type = BC_TYPE_SLIP;
+    bc_type = BC_TYPE_SLIP_X;
   }
 }
 
@@ -83,16 +86,16 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 
 // Set the initial interface between phases for multiphase simulations
 DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
-  if(y >= 0.5) {
-    if(x <= 0.25) {
-      s = y - 0.5;
+  if(y >= 1.0) {
+    if(x <= 0.5) {
+      s = y - 1.0;
     } else {
-      s = sqrt((x - 0.25) * (x - 0.25) + (y - 0.5) * (y - 0.5));
+      s = sqrt((x - 0.5) * (x - 0.5) + (y - 1.0) * (y - 1.0));
     }
-  } else if(x >= 0.25) {
-    s = x - 0.25;
+  } else if(x >= 0.5) {
+    s = x - 0.5;
   } else {
-    s = -fmin(0.5 - y, 0.25 - x);
+    s = -fmin(1.0 - y, 0.5 - x);
   }
 }
 

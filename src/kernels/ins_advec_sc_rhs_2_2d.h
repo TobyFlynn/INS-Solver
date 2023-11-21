@@ -15,7 +15,7 @@ inline void ins_advec_sc_rhs_2_2d(const DG_FP *t, const int *bedge_type, const i
       pUb[i] = 0.0;
       pVb[i] = 0.0;
     }
-  } else if(*bedge_type == BC_TYPE_SLIP) {
+  } else if(*bedge_type == BC_TYPE_SLIP_X || *bedge_type == BC_TYPE_SLIP_Y) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
       // S

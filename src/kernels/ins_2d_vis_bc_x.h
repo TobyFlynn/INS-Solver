@@ -4,26 +4,8 @@ inline void ins_2d_vis_bc_x(const DG_FP *t, const DG_FP *g0, const int *bedge_ty
                             DG_FP *out) {
   const int edge = *bedgeNum;
   const int *fmask = &FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + edge * DG_NPF];
-  if(*bedge_type == BC_TYPE_NO_SLIP) {
+  if(*bedge_type == BC_TYPE_NO_SLIP || *bedge_type == BC_TYPE_SLIP_X || *bedge_type == BC_TYPE_SLIP_Y || *bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
-      out[i] = 0.0;
-    }
-  } else if(*bedge_type == BC_TYPE_SLIP) {
-    for(int i = 0; i < DG_NPF; i++) {
-      const int fmask_ind = fmask[i];
-      const DG_FP u_scaled = u[fmask_ind] / *g0;
-      const DG_FP v_scaled = v[fmask_ind] / *g0;
-      const DG_FP mag = sqrt(u_scaled * u_scaled + v_scaled * v_scaled);
-      const DG_FP dot = nx[0] * u_scaled + ny[0] * v_scaled;
-      const DG_FP u_new = u_scaled - dot * nx[0];
-      const DG_FP v_new = v_scaled - dot * ny[0];
-      const DG_FP mag2 = sqrt(u_new * u_new + v_new * v_new);
-      const DG_FP mag_factor = fabs(mag) < 1e-8 || fabs(mag2) < 1e-8 ? 1.0 : mag / mag2;
-      out[i] = u_new * mag_factor;
-    }
-  } else if(*bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
-    for(int i = 0; i < DG_NPF; i++) {
-      const int fmask_ind = fmask[i];
       out[i] = 0.0;
     }
   } else {

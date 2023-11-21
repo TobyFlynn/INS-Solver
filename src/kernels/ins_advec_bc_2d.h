@@ -13,7 +13,7 @@ inline void ins_advec_bc_2d(const DG_FP *t, const int *bedge_type, const int *be
       pU[i] = 0.0;
       pV[i] = 0.0;
     }
-  } else if(*bedge_type == BC_TYPE_SLIP) {
+  } else if(*bedge_type == BC_TYPE_SLIP_X || *bedge_type == BC_TYPE_SLIP_Y) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
       const DG_FP mag = sqrt(u[fmask_ind] * u[fmask_ind] + v[fmask_ind] * v[fmask_ind]);

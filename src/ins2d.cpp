@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
   config->getDouble("fluid-constants", "thermal_conductivity", thermal_conductivity);
   DG_FP heat_capacity = 0.000280 * 3.6e6; // J/kgK
   config->getDouble("fluid-constants", "heat_capacity", heat_capacity);
-  
+
   // TODO: Check if this should include refRho
   // peclet = (heat_capacity * refVel * refLen) / thermal_conductivity;
   peclet = (heat_capacity * refVel * refLen * refRho) / thermal_conductivity;
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
   gamma_e = 1.4;
 
   DGMesh2D *mesh = new DGMesh2D(filename);
-  
+
   std::string type_of_solver = "single-phase";
   config->getStr("simulation-constants", "type_of_solver", type_of_solver);
   INSSolverBase2D *ins2d;
@@ -268,7 +268,8 @@ int main(int argc, char **argv) {
   op_printf("Reference surface tension: %g N m^-1\n", refSurfTen);
   op_printf("Density ratio of %g : %g\n", rho0, rho1);
   op_printf("Viscosity ratio of %g : %g\n", mu0, mu1);
-  op_printf("Re: %g\n", r_ynolds);
+  op_printf("Re (fluid 0): %g\n", r_ynolds * (rho0 / mu0));
+  op_printf("Re (fluid 1): %g\n", r_ynolds * (rho1 / mu1));
   op_printf("Weber: %g\n", weber);
   op_printf("Froude: %g\n", froude);
   op_printf("Peclet: %g\n\n", peclet);

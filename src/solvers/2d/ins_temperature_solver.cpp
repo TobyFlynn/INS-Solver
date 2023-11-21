@@ -203,9 +203,11 @@ void INSTemperatureSolver2D::init(const DG_FP re, const DG_FP refVel) {
   if(mesh->bface2nodes) {
     op_par_loop(ins_bc_types, "ins_bc_types", mesh->bfaces,
                 op_arg_dat(mesh->node_coords, -2, mesh->bface2nodes, 2, DG_FP_STR, OP_READ),
-                op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_WRITE),
-                op_arg_dat(pr_bc_types,  -1, OP_ID, 1, "int", OP_WRITE),
-                op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
+                op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_WRITE));
+
+    op_par_loop(ins_2d_set_pr_bc_type, "ins_2d_set_pr_bc_type", mesh->bfaces,
+                op_arg_dat(bc_types,    -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(pr_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
   }
   advecDiffSolver->set_bc_types(pr_bc_types);
 
@@ -391,10 +393,14 @@ bool INSTemperatureSolver2D::viscosity() {
 
   // Call PETSc linear solver
   timer->startTimer("INSTemperatureSolver2D - Viscosity Linear Solve");
+  op_par_loop(ins_2d_set_vis_x_bc_type, "ins_2d_set_vis_x_bc_type", mesh->bfaces,
+              op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
+  viscosityMatrix->set_bc_types(vis_bc_types);
+
   factor = g0 * reynolds / dt;
   if(factor != viscosityMatrix->get_factor()) {
     viscosityMatrix->set_factor(factor);
-    viscosityMatrix->set_bc_types(vis_bc_types);
     // viscosityMatrix->calc_mat();
     viscositySolver->setFactor(1.0 / factor);
   }
@@ -417,6 +423,11 @@ bool INSTemperatureSolver2D::viscosity() {
 
   viscositySolver->set_bcs(bc_data);
   bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
+
+  op_par_loop(ins_2d_set_vis_y_bc_type, "ins_2d_set_vis_y_bc_type", mesh->bfaces,
+              op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
+  viscosityMatrix->set_bc_types(vis_bc_types);
 
   // Get BCs for viscosity solve
   if(mesh->bface2cells) {
