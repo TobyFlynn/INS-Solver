@@ -10,6 +10,7 @@
 #include "solvers/2d/diffusion_solver.h"
 #include "dg_matrices/2d/factor_poisson_coarse_matrix_2d.h"
 #include "dg_matrices/2d/factor_poisson_matrix_free_diag_2d.h"
+#include "dg_matrices/2d/factor_poisson_matrix_free_diag_oi_2d.h"
 #include "dg_matrices/2d/factor_mm_poisson_matrix_free_diag_2d.h"
 #include "dg_linear_solvers/petsc_pmultigrid.h"
 #include "dg_linear_solvers/petsc_jacobi.h"
@@ -25,7 +26,7 @@ public:
 
   void step() override;
   void init(const DG_FP re, const DG_FP refVel) override;
-  
+
   void dump_visualisation_data(const std::string &filename) override;
   void dump_checkpoint_data(const std::string &filename) override;
 
@@ -45,7 +46,8 @@ private:
   void surface_tension_curvature(op_dat curv);
 
   FactorPoissonCoarseMatrix2D *pressureCoarseMatrix;
-  FactorPoissonMatrixFreeDiag2D *pressureMatrix;
+  FactorPoissonMatrixFreeDiagOI2D *pressureMatrix;
+  // FactorPoissonMatrixFreeDiag2D *pressureMatrix;
   FactorMMPoissonMatrixFreeDiag2D *viscosityMatrix;
   PETScPMultigrid *pressureSolver;
   PETScJacobiSolver *viscositySolver;

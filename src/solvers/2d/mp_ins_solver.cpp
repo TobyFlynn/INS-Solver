@@ -82,7 +82,8 @@ void MPINSSolver2D::setup_common() {
   config->getDouble("solver-options", "surface_tension_trans_width_fact", tmp_trans_width_fact);
   st_trans_width_fact = tmp_trans_width_fact;
 
-  pressureMatrix = new FactorPoissonMatrixFreeDiag2D(mesh);
+  pressureMatrix = new FactorPoissonMatrixFreeDiagOI2D(mesh);
+  // pressureMatrix = new FactorPoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new FactorPoissonCoarseMatrix2D(mesh);
   viscosityMatrix = new FactorMMPoissonMatrixFreeDiag2D(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
@@ -190,6 +191,8 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   lsSolver->init();
   lsSolver->set_bc_types(bc_types);
   lsSolver->getRhoMu(rho, mu);
+
+  st_max_diff *= h;
 
   timer->endTimer("MPINSSolver2D - Init");
 }
@@ -301,14 +304,20 @@ void MPINSSolver2D::surface_tension_grad(op_dat dx, op_dat dy) {
 void MPINSSolver2D::surface_tension_curvature(op_dat curv) {
   DGTempDat tmp_normal_x  = dg_dat_pool->requestTempDatCells(DG_NP);
   DGTempDat tmp_normal_y  = dg_dat_pool->requestTempDatCells(DG_NP);
-  mesh->grad_with_central_flux(lsSolver->s, tmp_normal_x.dat, tmp_normal_y.dat);
+  mesh->grad_over_int_with_central_flux(lsSolver->s, tmp_normal_x.dat, tmp_normal_y.dat);
 
   // Unit normals
   op_par_loop(ins_2d_st_5, "ins_2d_st_5", mesh->cells,
               op_arg_dat(tmp_normal_x.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(tmp_normal_y.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
-  mesh->div_with_central_flux(tmp_normal_x.dat, tmp_normal_y.dat, curv);
+  mesh->div_over_int_with_central_flux(tmp_normal_x.dat, tmp_normal_y.dat, curv);
+
+  // Curvature correction
+  op_par_loop(ins_2d_st_8, "ins_2d_st_8", mesh->cells,
+              op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(curv, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   dg_dat_pool->releaseTempDatCells(tmp_normal_x);
   dg_dat_pool->releaseTempDatCells(tmp_normal_y);
@@ -324,7 +333,7 @@ void MPINSSolver2D::advection() {
     // Calculate curvature
     DGTempDat tmp_curvature = dg_dat_pool->requestTempDatCells(DG_NP);
     surface_tension_curvature(tmp_curvature.dat);
-
+/*
     // Apply curvature and weber number (placeholder currently)
     op_par_loop(ins_2d_st_6, "ins_2d_st_6", mesh->cells,
                 op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -332,6 +341,30 @@ void MPINSSolver2D::advection() {
                 op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
     dg_dat_pool->releaseTempDatCells(tmp_curvature);
+*/
+    DGTempDat rho_oi  = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+    lsSolver->getRhoVolOI(rho_oi.dat);
+    DGTempDat curv_oi  = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, tmp_curvature.dat, 0.0, curv_oi.dat);
+    dg_dat_pool->releaseTempDatCells(tmp_curvature);
+    DGTempDat stx_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+    DGTempDat sty_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, st[currentInd][0], 0.0, stx_oi.dat);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, st[currentInd][1], 0.0, sty_oi.dat);
+    op_par_loop(ins_2d_st_7, "ins_2d_st_7", mesh->cells,
+                op_arg_dat(curv_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(rho_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(stx_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(sty_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
+
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, stx_oi.dat, 0.0, st[currentInd][0]);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, sty_oi.dat, 0.0, st[currentInd][1]);
+
+    dg_dat_pool->releaseTempDatCells(curv_oi);
+    dg_dat_pool->releaseTempDatCells(rho_oi);
+    dg_dat_pool->releaseTempDatCells(stx_oi);
+    dg_dat_pool->releaseTempDatCells(sty_oi);
+
   }
 
   if(time == 0.0 || sub_cycles < 1 || it_pre_sub_cycle != 0) {
@@ -351,7 +384,7 @@ bool MPINSSolver2D::pressure() {
   DGTempDat gradCurlVel[2];
   gradCurlVel[0] = dg_dat_pool->requestTempDatCells(DG_NP);
   gradCurlVel[1] = dg_dat_pool->requestTempDatCells(DG_NP);
-  mesh->div_with_central_flux(velT[0], velT[1], divVelT.dat);
+  mesh->div_over_int_with_central_flux(velT[0], velT[1], divVelT.dat);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel.dat);
 
   op_par_loop(mp_ins_2d_pr_mu, "mp_ins_3d_pr_mu", mesh->cells,
@@ -413,8 +446,20 @@ bool MPINSSolver2D::pressure() {
   mesh->mass(divVelT.dat);
   timer->endTimer("MPINSSolver2D - Pressure RHS");
 
+  DGTempDat pr_factor_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+  lsSolver->getRhoVolOI(pr_factor_oi.dat);
+  op_par_loop(mp_ins_2d_pr_oi_0, "mp_ins_2d_pr_oi_0", mesh->cells,
+              op_arg_dat(pr_factor_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
+
+  DGTempDat pr_factor_surf_oi = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
+  lsSolver->getRhoSurfOI(pr_factor_surf_oi.dat);
+  op_par_loop(mp_ins_2d_pr_oi_1, "mp_ins_2d_pr_oi_1", mesh->cells,
+              op_arg_dat(pr_factor_surf_oi.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_RW));
+
   // Call PETSc linear solver
   timer->startTimer("MPINSSolver2D - Pressure Linear Solve");
+  pressureMatrix->mat_free_set_factor_oi(pr_factor_oi.dat);
+  pressureMatrix->mat_free_set_factor_surf_oi(pr_factor_surf_oi.dat);
   pressureMatrix->set_factor(pr_factor.dat);
   pressureCoarseMatrix->set_factor(pr_factor.dat);
   pressureMatrix->set_bc_types(pr_bc_types);
@@ -424,6 +469,7 @@ bool MPINSSolver2D::pressure() {
   pressureSolver->set_bcs(bc_data);
   bool converged = pressureSolver->solve(divVelT.dat, pr);
 
+  dg_dat_pool->releaseTempDatCells(pr_factor_surf_oi);
   dg_dat_pool->releaseTempDatCells(pr_factor);
   dg_dat_pool->releaseTempDatCells(divVelT);
   timer->endTimer("MPINSSolver2D - Pressure Linear Solve");
@@ -436,26 +482,34 @@ bool MPINSSolver2D::pressure() {
 
   // Calculate gradient of pressure
   mesh->grad_over_int_with_central_flux(pr, dpdx.dat, dpdy.dat);
-
+/*
   op_par_loop(mp_ins_2d_pr_2, "mp_ins_2d_pr_2", mesh->cells,
               op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+*/
+
+  DGTempDat dpdx_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+  DGTempDat dpdy_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, dpdx.dat, 0.0, dpdx_oi.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, dpdy.dat, 0.0, dpdy_oi.dat);
+
+  op_par_loop(mp_ins_2d_pr_2_oi, "mp_ins_2d_pr_2_oi", mesh->cells,
+              op_arg_dat(pr_factor_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dpdx_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(dpdy_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, dpdx_oi.dat, 0.0, dpdx.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, dpdy_oi.dat, 0.0, dpdy.dat);
+
+  dg_dat_pool->releaseTempDatCells(pr_factor_oi);
+  dg_dat_pool->releaseTempDatCells(dpdx_oi);
+  dg_dat_pool->releaseTempDatCells(dpdy_oi);
 
   project_velocity(dpdx.dat, dpdy.dat);
 
-  if(surface_tension) {
+  if(surface_tension && st_max_diff > 0.0) {
     DGTempDat surf_ten_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
-
-/*
-    op_par_loop(ins_2d_st_art_vis, "ins_2d_st_art_vis", mesh->cells,
-                op_arg_gbl(&st_max_diff, 1, DG_FP_STR, OP_READ),
-                op_arg_gbl(&st_diff_width_fact, 1, DG_FP_STR, OP_READ),
-                op_arg_gbl(&st_trans_width_fact, 1, DG_FP_STR, OP_READ),
-                op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(surf_ten_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-*/
 
     calc_art_vis(velTT[0], velTT[1], surf_ten_art_vis.dat);
 
@@ -566,6 +620,12 @@ bool MPINSSolver2D::viscosity() {
 }
 
 void MPINSSolver2D::calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
+  DGTempDat h_tmp = dg_dat_pool->requestTempDatCells(1);
+  op_par_loop(calc_h_explicitly, "calc_h_explicitly", mesh->cells,
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(h_tmp.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+
   op_par_loop(reset_tmp_node_dats, "reset_tmp_node_dats", mesh->nodes,
               op_arg_dat(nodes_data, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
               op_arg_dat(nodes_count, -1, OP_ID, 1, "int", OP_WRITE));
@@ -579,13 +639,16 @@ void MPINSSolver2D::calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
               op_arg_dat(mesh->nx,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->ny,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sJ,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale,  -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(h_tmp.dat, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->node_coords, -2, mesh->face2nodes, 2, DG_FP_STR, OP_READ),
               op_arg_dat(in0, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in1, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(nodes_data, -2, mesh->face2nodes, 1, DG_FP_STR, OP_INC),
               op_arg_dat(nodes_count, -2, mesh->face2nodes, 1, "int", OP_INC));
 
-  DG_FP smooth_tol = 1e-2;
-  DG_FP discon_tol = 0.1;
+  DG_FP smooth_tol = 1.0;
+  DG_FP discon_tol = 100.0;
   op_par_loop(ins_2d_st_art_vis_1, "ins_2d_st_art_vis_1", mesh->cells,
               op_arg_gbl(&st_max_diff, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&smooth_tol, 1, DG_FP_STR, OP_READ),
@@ -597,6 +660,8 @@ void MPINSSolver2D::calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
               op_arg_dat(nodes_data, -3, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
               op_arg_dat(nodes_count, -3, mesh->cell2nodes, 1, "int", OP_READ),
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  dg_dat_pool->releaseTempDatCells(h_tmp);
 }
 
 void MPINSSolver2D::dump_checkpoint_data(const std::string &filename) {
@@ -617,8 +682,8 @@ void MPINSSolver2D::dump_visualisation_data(const std::string &filename) {
   INSSolverBase2D::dump_visualisation_data(filename);
 
   if(values_to_save.count("surface_tension") != 0 && surface_tension) {
-    op_fetch_data_hdf5_file(st[currentInd][0], filename.c_str());
-    op_fetch_data_hdf5_file(st[currentInd][1], filename.c_str());
+    op_fetch_data_hdf5_file(st[(currentInd + 1) % 2][0], filename.c_str());
+    op_fetch_data_hdf5_file(st[(currentInd + 1) % 2][1], filename.c_str());
   }
 
   if(values_to_save.count("mu") != 0) {

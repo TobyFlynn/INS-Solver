@@ -34,6 +34,8 @@ public:
   void setVelField(op_dat u1, op_dat v1);
   void step(DG_FP dt);
   void getRhoMu(op_dat rho, op_dat mu);
+  void getRhoVolOI(op_dat rho);
+  void getRhoSurfOI(op_dat rho);
   void getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv);
 
   DGMesh2D *mesh;

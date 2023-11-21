@@ -1,7 +1,8 @@
 inline void ins_2d_st_art_vis_0(const int *faceNum, const bool *reverse,
-                               const DG_FP *nx, const DG_FP *ny,
-                               const DG_FP *sJ, const DG_FP **u,
-                               const DG_FP **v, DG_FP **out, int **out_count) {
+                                const DG_FP *nx, const DG_FP *ny,
+                                const DG_FP *sJ, const DG_FP *fscale,
+                                const DG_FP **h, const DG_FP **node_coords, const DG_FP **u,
+                                const DG_FP **v, DG_FP **out, int **out_count) {
   const int faceNumL = faceNum[0];
   const int faceNumR = faceNum[1];
   const int *fmask  = &FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];
@@ -11,16 +12,15 @@ inline void ins_2d_st_art_vis_0(const int *faceNum, const bool *reverse,
 
   const DG_FP *emat = &dg_Emat_kernel[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF * DG_NP];
 
-  DG_FP maxVelU = 0.0;
-  DG_FP maxVelV = 0.0;
-  for(int i = 0; i < DG_NPF; i++) {
-    const int fmaskL_ind = fmaskL[i];
-    const int fmaskR_ind = rev ? fmaskR[DG_NPF - i - 1] : fmaskR[i];
-
-    maxVelU = fmax(maxVelU, fabs(u[0][fmaskL_ind]));
-    maxVelU = fmax(maxVelU, fabs(u[1][fmaskR_ind]));
-    maxVelV = fmax(maxVelV, fabs(v[0][fmaskL_ind]));
-    maxVelV = fmax(maxVelV, fabs(v[1][fmaskR_ind]));
+  DG_FP maxVelU_L = 0.0;
+  DG_FP maxVelV_L = 0.0;
+  DG_FP maxVelU_R = 0.0;
+  DG_FP maxVelV_R = 0.0;
+  for(int i = 0; i < DG_NP; i++) {
+    maxVelU_L = fmax(maxVelU_L, fabs(u[0][i]));
+    maxVelU_R = fmax(maxVelU_R, fabs(u[1][i]));
+    maxVelV_L = fmax(maxVelV_L, fabs(v[0][i]));
+    maxVelV_R = fmax(maxVelV_R, fabs(v[1][i]));
   }
 
   DG_FP w_L[DG_NPF], w_R[DG_NPF];
@@ -62,20 +62,23 @@ inline void ins_2d_st_art_vis_0(const int *faceNum, const bool *reverse,
     disSenV_R += w_R[i] * (v[1][fmaskR_ind] - v[0][fmaskL_ind]);
   }
 
-  disSenU_L = fabs(disSenU_L * sJ[0] / (maxVelU));
-  disSenV_L = fabs(disSenV_L * sJ[0] / (maxVelV));
-  disSenU_R = fabs(disSenU_R * sJ[1] / (maxVelU));
-  disSenV_R = fabs(disSenV_R * sJ[1] / (maxVelV));
+  DG_FP x_diff = node_coords[0][0] - node_coords[1][0];
+  DG_FP y_diff = node_coords[0][1] - node_coords[1][1];
+  DG_FP edge_size = sqrt(x_diff * x_diff + y_diff * y_diff);
+  DG_FP pow_order = (DG_ORDER + 1.0) / 2.0;
+  disSenU_L = fabs(disSenU_L * sJ[0] / (edge_size * maxVelU_L * pow(h[0][0], pow_order)));
+  disSenV_L = fabs(disSenV_L * sJ[0] / (edge_size * maxVelV_L * pow(h[0][0], pow_order)));
+  disSenU_R = fabs(disSenU_R * sJ[1] / (edge_size * maxVelU_R * pow(h[1][0], pow_order)));
+  disSenV_R = fabs(disSenV_R * sJ[1] / (edge_size * maxVelV_R * pow(h[1][0], pow_order)));
+  // disSenU_L = fabs(disSenU_L * sJ[0] / (edge_size * maxVelU_L));
+  // disSenV_L = fabs(disSenV_L * sJ[0] / (edge_size * maxVelV_L));
+  // disSenU_R = fabs(disSenU_R * sJ[1] / (edge_size * maxVelU_R));
+  // disSenV_R = fabs(disSenV_R * sJ[1] / (edge_size * maxVelV_R));
 
-  if(maxVelU < 1e-8) {
-    disSenU_L = 0.0;
-    disSenU_R = 0.0;
-  }
-
-  if(maxVelV < 1e-8) {
-    disSenV_L = 0.0;
-    disSenV_R = 0.0;
-  }
+  if(maxVelU_L < 1e-8) disSenU_L = 0.0;
+  if(maxVelU_R < 1e-8) disSenU_R = 0.0;
+  if(maxVelV_L < 1e-8) disSenV_L = 0.0;
+  if(maxVelV_R < 1e-8) disSenV_R = 0.0;
 
   // Final discontinuity sensor is just maximum
   DG_FP finalDisSen = fmax(fmax(disSenU_L, disSenV_L), fmax(disSenU_R, disSenV_R));

@@ -77,7 +77,7 @@ void INSSolverBase2D::read_options() {
   while(std::getline(tmp_ss, val_str, ',')) {
     values_to_save.insert(val_str);
   }
-  
+
   int tmp_div = 0;
   config->getInt("solver-options", "div_div", tmp_div);
   pr_projection_method = tmp_div;
@@ -991,8 +991,8 @@ void INSSolverBase2D::dump_visualisation_data(const std::string &filename) {
   }
 
   if(values_to_save.count("non_linear") != 0) {
-    op_fetch_data_hdf5_file(n[currentInd][0], filename.c_str());
-    op_fetch_data_hdf5_file(n[currentInd][1], filename.c_str());
+    op_fetch_data_hdf5_file(n[(currentInd + 1) % 2][0], filename.c_str());
+    op_fetch_data_hdf5_file(n[(currentInd + 1) % 2][1], filename.c_str());
   }
 
   if(values_to_save.count("intermediate_velocities") != 0) {

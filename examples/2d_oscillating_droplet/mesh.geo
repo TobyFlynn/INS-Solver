@@ -1,13 +1,13 @@
 // Target element size
-lc = 1.0 / 3.0;
+lc = 0.05;
 
 // Bottom left coords
-xL = -20.0;
-yL = -20.0;
+xL = -3.0;
+yL = -3.0;
 
 // Top right coords
-xR = 20.0;
-yR = 20.0;
+xR = 3.0;
+yR = 3.0;
 
 // Points defining the square
 Point(1) = {xL, yL, 0.0, lc};

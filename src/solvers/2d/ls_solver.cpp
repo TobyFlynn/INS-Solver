@@ -5,8 +5,13 @@
 #include <limits>
 #include <cmath>
 
+#include "dg_op2_blas.h"
+#include "dg_constants/dg_constants.h"
+#include "dg_dat_pool.h"
 #include "timing.h"
 
+extern DGConstants *constants;
+extern DGDatPool *dg_dat_pool;
 extern Timing *timer;
 
 int counter;
@@ -35,7 +40,7 @@ void LevelSetAdvectionSolver2D::bc_kernel(op_dat val, op_dat u, op_dat v, op_dat
               op_arg_dat(out, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
 }
 
-void LevelSetAdvectionSolver2D::bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat uM, op_dat vM, 
+void LevelSetAdvectionSolver2D::bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat uM, op_dat vM,
                                              op_dat valM, op_dat valP) {
   op_par_loop(ls_advec_2d_oi_bc, "ls_advec_2d_oi_bc", mesh->bfaces,
               op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
@@ -114,24 +119,8 @@ void LevelSetSolver2D::init() {
   numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
 
   op_printf("Alpha: %g\t\tReinit Width: %g\n", alpha, reinit_width);
-/*
-  op_par_loop(ls_update_order, "ls_update_order", mesh->cells,
-              op_arg_dat(mesh->order,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_gbl(&order_width,     1, DG_FP_STR, OP_READ),
-              op_arg_dat(s,               -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(data->new_order, -1, OP_ID, 1, "int", OP_WRITE));
 
-  std::vector<op_dat> dats_to_update;
-  dats_to_update.push_back(data->Q[0][0]);
-  dats_to_update.push_back(data->Q[0][1]);
-  dats_to_update.push_back(data->Q[1][0]);
-  dats_to_update.push_back(data->Q[1][1]);
-  dats_to_update.push_back(data->p);
-  dats_to_update.push_back(s);
-
-  mesh->update_order(data->new_order, dats_to_update);
-*/
-  // reinitLS();
+  reinitLS();
 }
 
 void LevelSetSolver2D::set_bc_types(op_dat bc) {
@@ -149,7 +138,7 @@ void LevelSetSolver2D::step(DG_FP dt) {
   advecSolver->step(s, u, v);
 
   counter++;
-  if(counter > 15) {
+  if(counter > 14) {
     timer->startTimer("LevelSetSolver2D - reinitLS");
     reinitLS();
     timer->endTimer("LevelSetSolver2D - reinitLS");
@@ -183,6 +172,30 @@ void LevelSetSolver2D::getRhoMu(op_dat rho, op_dat mu) {
               op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(mu,  -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   timer->endTimer("LevelSetSolver2D - getRhoMu");
+}
+
+void LevelSetSolver2D::getRhoVolOI(op_dat rho) {
+  timer->startTimer("LevelSetSolver2D - getRhoVolOI");
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, s, 0.0, rho);
+  op_par_loop(ls_step_vol_oi, "ls_step", mesh->cells,
+              op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
+  timer->endTimer("LevelSetSolver2D - getRhoVolOI");
+}
+
+void LevelSetSolver2D::getRhoSurfOI(op_dat rho) {
+  timer->startTimer("LevelSetSolver2D - getRhoSurfOI");
+  DGTempDat rho_tmp = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  op_par_loop(ls_step_surf_oi_0, "ls_step_surf_oi_0", mesh->cells,
+              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rho_tmp.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_INTERP, rho_tmp.dat, 0.0, rho);
+  dg_dat_pool->releaseTempDatCells(rho_tmp);
+  op_par_loop(ls_step_surf_oi_1, "ls_step_surf_oi_1", mesh->cells,
+              op_arg_gbl(&alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_RW));
+  timer->endTimer("LevelSetSolver2D - getRhoSurfOI");
 }
 
 void LevelSetSolver2D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv) {
