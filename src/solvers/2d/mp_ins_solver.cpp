@@ -331,7 +331,7 @@ void MPINSSolver2D::advection() {
     // Calculate curvature
     DGTempDat tmp_curvature = dg_dat_pool->requestTempDatCells(DG_NP);
     surface_tension_curvature(tmp_curvature.dat);
-
+/*
     // Apply curvature and weber number (placeholder currently)
     op_par_loop(ins_2d_st_6, "ins_2d_st_6", mesh->cells,
                 op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -339,14 +339,18 @@ void MPINSSolver2D::advection() {
                 op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
     
     dg_dat_pool->releaseTempDatCells(tmp_curvature);
-
+*/
     DGTempDat rho_oi  = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
     lsSolver->getRhoVolOI(rho_oi.dat);
+    DGTempDat curv_oi  = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, tmp_curvature.dat, 0.0, curv_oi.dat);
+    dg_dat_pool->releaseTempDatCells(tmp_curvature);
     DGTempDat stx_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
     DGTempDat sty_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
     op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, st[currentInd][0], 0.0, stx_oi.dat);
     op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, st[currentInd][1], 0.0, sty_oi.dat);
     op_par_loop(ins_2d_st_7, "ins_2d_st_7", mesh->cells,
+                op_arg_dat(curv_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(rho_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(stx_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW),
                 op_arg_dat(sty_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
@@ -354,6 +358,7 @@ void MPINSSolver2D::advection() {
     op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, stx_oi.dat, 0.0, st[currentInd][0]);
     op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, sty_oi.dat, 0.0, st[currentInd][1]);
 
+    dg_dat_pool->releaseTempDatCells(curv_oi);
     dg_dat_pool->releaseTempDatCells(rho_oi);
     dg_dat_pool->releaseTempDatCells(stx_oi);
     dg_dat_pool->releaseTempDatCells(sty_oi);
