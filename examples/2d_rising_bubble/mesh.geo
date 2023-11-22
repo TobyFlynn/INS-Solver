@@ -1,26 +1,29 @@
 // Target element size
-top_mesh_size = 0.04;
-bottom_mesh_size = 0.006;
+lc = 0.05;
 
 // Bottom left coords
-xL = 0.0;
-yL = 0.0;
+xL = -4.0;
+yL = -1.5;
 
 // Top right coords
-xR = 2.0;
-yR = 2.0;
+xR = 4.0;
+yR = 10.0;
 
 // Points defining the square
-Point(1) = {xL, yL, 0.0, bottom_mesh_size};
-Point(2) = {xR, yL, 0.0, bottom_mesh_size};
-Point(3) = {xR, yR, 0.0, top_mesh_size};
-Point(4) = {xL, yR, 0.0, top_mesh_size};
+Point(1) = {xL, yL, 0.0, lc};
+Point(2) = {xR, yL, 0.0, lc};
+Point(3) = {xR, yR, 0.0, lc};
+Point(4) = {xL, yR, 0.0, lc};
 
 // Edges of the square
 Line(1) = {1, 2};
 Line(2) = {2, 3};
 Line(3) = {3, 4};
 Line(4) = {4, 1};
+
+// Periodic stuff
+Periodic Curve{1} = {3} Translate {0,-2*yR,0};
+Periodic Curve{2} = {4} Translate {-2*xR,0,0};
 
 // Surface of square
 Curve Loop(1) = {1, 2, 3, 4};
