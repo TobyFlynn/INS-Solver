@@ -1,4 +1,4 @@
-inline void ins_2d_shock_cap_art_vis_1(const DG_FP *max_diff_,
+inline void ins_2d_shock_cap_art_vis_1(DG_FP *max_vis, const DG_FP *max_diff_,
                               const DG_FP *smooth_tol, const DG_FP *discon_tol,
                               const DG_FP **vis_nodes, const int **node_count,
                               DG_FP *out_vis) {
@@ -22,5 +22,7 @@ inline void ins_2d_shock_cap_art_vis_1(const DG_FP *max_diff_,
       out_vis[i] = max_diff;
     else
       out_vis[i] = max_diff * ((out_vis[i] - *smooth_tol) / (*discon_tol - *smooth_tol));
+
+    *max_vis = fmax(*max_vis, out_vis[i]);
   }
 }

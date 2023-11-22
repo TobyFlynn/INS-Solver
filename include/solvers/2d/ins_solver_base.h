@@ -66,7 +66,7 @@ protected:
 private:
   void read_options();
   void init_dats();
-  void shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat out);
+  DG_FP shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat out);
 
   DG_FP shock_cap_max_diff, shock_cap_smooth_tol, shock_cap_discon_tol;
   op_dat nodes_data, nodes_count, shock_cap_art_vis;

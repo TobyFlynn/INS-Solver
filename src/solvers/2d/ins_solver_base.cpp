@@ -985,20 +985,22 @@ void INSSolverBase2D::shock_capture(op_dat in0, op_dat in1) {
   if(shock_capturing && shock_cap_max_diff > 0.0) {
     // DGTempDat art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
 
-    shock_cap_calc_art_vis(in0, in1, shock_cap_art_vis);
+    DG_FP max_vis = shock_cap_calc_art_vis(in0, in1, shock_cap_art_vis);
 
-    diffSolver->set_dt(shock_cap_art_vis);
-    int num_steps_diff = dt / diffSolver->get_dt() + 1;
-    for(int i = 0; i < num_steps_diff; i++) {
-      diffSolver->step(in0, shock_cap_art_vis);
-      diffSolver->step(in1, shock_cap_art_vis);
+    if(max_vis > 1e-8) {
+      diffSolver->set_dt(shock_cap_art_vis);
+      int num_steps_diff = dt / diffSolver->get_dt() + 1;
+      for(int i = 0; i < num_steps_diff; i++) {
+        diffSolver->step(in0, shock_cap_art_vis);
+        diffSolver->step(in1, shock_cap_art_vis);
+      }
     }
 
     // dg_dat_pool->releaseTempDatCells(art_vis);
   }
 }
 
-void INSSolverBase2D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
+DG_FP INSSolverBase2D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
   DGTempDat h_tmp = dg_dat_pool->requestTempDatCells(1);
   op_par_loop(calc_h_explicitly, "calc_h_explicitly", mesh->cells,
               op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
@@ -1026,7 +1028,9 @@ void INSSolverBase2D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat out)
               op_arg_dat(nodes_data, -2, mesh->face2nodes, 1, DG_FP_STR, OP_INC),
               op_arg_dat(nodes_count, -2, mesh->face2nodes, 1, "int", OP_INC));
 
+  DG_FP max_vis = -1.0;
   op_par_loop(ins_2d_shock_cap_art_vis_1, "ins_2d_shock_cap_art_vis_1", mesh->cells,
+              op_arg_gbl(&max_vis, 1, DG_FP_STR, OP_MAX),
               op_arg_gbl(&shock_cap_max_diff, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&shock_cap_smooth_tol, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&shock_cap_discon_tol, 1, DG_FP_STR, OP_READ),
@@ -1035,6 +1039,7 @@ void INSSolverBase2D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat out)
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
   dg_dat_pool->releaseTempDatCells(h_tmp);
+  return max_vis;
 }
 
 void INSSolverBase2D::dump_checkpoint_data(const std::string &filename) {
