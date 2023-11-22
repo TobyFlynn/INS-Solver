@@ -1,8 +1,8 @@
-inline void ins_2d_st_art_vis_0(const int *faceNum, const bool *reverse,
-                                const DG_FP *nx, const DG_FP *ny,
-                                const DG_FP *sJ, const DG_FP *fscale,
-                                const DG_FP **h, const DG_FP **node_coords, const DG_FP **u,
-                                const DG_FP **v, DG_FP **out, int **out_count) {
+inline void ins_2d_shock_cap_art_vis_0(const int *faceNum, const bool *reverse,
+                              const DG_FP *nx, const DG_FP *ny, const DG_FP *sJ,
+                              const DG_FP *fscale, const DG_FP **h,
+                              const DG_FP **node_coords, const DG_FP **u,
+                              const DG_FP **v, DG_FP **out, int **out_count) {
   const int faceNumL = faceNum[0];
   const int faceNumR = faceNum[1];
   const int *fmask  = &FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];

@@ -71,7 +71,7 @@ void INSSolverBase2D::read_options() {
   std::string save_tmp = "all";
   config->getStr("io", "values_to_save", save_tmp);
   if(save_tmp == "all")
-    save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set";
+    save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set,shock_cap_art_vis";
   std::stringstream tmp_ss(save_tmp);
   std::string val_str;
   while(std::getline(tmp_ss, val_str, ',')) {
@@ -89,7 +89,7 @@ void INSSolverBase2D::read_options() {
   extrapolate_initial_guess = tmp_eig == 1;
   int tmp_shock = 0;
   config->getInt("solver-options", "shock_capturing", tmp_shock);
-  shock_cap = tmp_shock == 1;
+  shock_capturing = tmp_shock == 1;
   int tmp_oia = 0;
   config->getInt("solver-options", "over_int_advec", tmp_oia);
   over_int_advec = tmp_oia == 1;
@@ -106,14 +106,21 @@ void INSSolverBase2D::read_options() {
   config->getInt("filter", "sp", filter_sp);
   filter_Nc = 0;
   config->getInt("filter", "Nc", filter_Nc);
+
+  shock_cap_max_diff = 0.0;
+  config->getDouble("shock-capturing", "max_art_diff", shock_cap_max_diff);
+  shock_cap_smooth_tol = 0.5;
+  config->getDouble("shock-capturing", "smooth_tol", shock_cap_smooth_tol);
+  shock_cap_discon_tol = 1.5;
+  config->getDouble("shock-capturing", "discont_tol", shock_cap_discon_tol);
 }
 
 void INSSolverBase2D::init_dats() {
   std::string name;
   for(int i = 0; i < 2; i++) {
-    name = "ins_solver_velT" + std::to_string(i);
-    velT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
-    name = "ins_solver_velTT" + std::to_string(i);
+    name     = "ins_solver_velT" + std::to_string(i);
+    velT[i]  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
+    name     = "ins_solver_velTT" + std::to_string(i);
     velTT[i] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, name.c_str());
   }
 
@@ -124,10 +131,18 @@ void INSSolverBase2D::init_dats() {
   }
 
   bc_data = op_decl_dat(mesh->bfaces, DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_bc_data");
+
+  if(shock_capturing) {
+    diffSolver        = new DiffusionSolver2D(mesh);
+    nodes_data        = op_decl_dat(mesh->nodes, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_nodes_data");
+    nodes_count       = op_decl_dat(mesh->nodes, 1, "int", (int *)NULL, "ins_solver_nodes_count");
+    shock_cap_art_vis = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_shock_cap_art_vis");
+  }
 }
 
 INSSolverBase2D::~INSSolverBase2D() {
-
+  if(shock_capturing)
+    delete diffSolver;
 }
 
 void INSSolverBase2D::init(const DG_FP re, const DG_FP refVel) {
@@ -136,6 +151,7 @@ void INSSolverBase2D::init(const DG_FP re, const DG_FP refVel) {
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
   h = 1.0 / h;
+  shock_cap_max_diff *= h;
   op_printf("h: %g\n", h);
 
   if(pr_projection_method == 1 || pr_projection_method == 2) {
@@ -965,6 +981,62 @@ void INSSolverBase2D::filter(op_dat in) {
   dg_dat_pool->releaseTempDatCells(u_modal);
 }
 
+void INSSolverBase2D::shock_capture(op_dat in0, op_dat in1) {
+  if(shock_capturing && shock_cap_max_diff > 0.0) {
+    // DGTempDat art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
+
+    shock_cap_calc_art_vis(in0, in1, shock_cap_art_vis);
+
+    diffSolver->set_dt(shock_cap_art_vis);
+    int num_steps_diff = dt / diffSolver->get_dt() + 1;
+    for(int i = 0; i < num_steps_diff; i++) {
+      diffSolver->step(in0, shock_cap_art_vis);
+      diffSolver->step(in1, shock_cap_art_vis);
+    }
+
+    // dg_dat_pool->releaseTempDatCells(art_vis);
+  }
+}
+
+void INSSolverBase2D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
+  DGTempDat h_tmp = dg_dat_pool->requestTempDatCells(1);
+  op_par_loop(calc_h_explicitly, "calc_h_explicitly", mesh->cells,
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+              op_arg_dat(h_tmp.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+
+  op_par_loop(reset_tmp_node_dats, "reset_tmp_node_dats", mesh->nodes,
+              op_arg_dat(nodes_data, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
+              op_arg_dat(nodes_count, -1, OP_ID, 1, "int", OP_WRITE));
+
+  op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  op_par_loop(ins_2d_shock_cap_art_vis_0, "ins_2d_shock_cap_art_vis_0", mesh->faces,
+              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(mesh->nx,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ny,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sJ,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale,  -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(h_tmp.dat, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->node_coords, -2, mesh->face2nodes, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(in0, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(in1, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(nodes_data, -2, mesh->face2nodes, 1, DG_FP_STR, OP_INC),
+              op_arg_dat(nodes_count, -2, mesh->face2nodes, 1, "int", OP_INC));
+
+  op_par_loop(ins_2d_shock_cap_art_vis_1, "ins_2d_shock_cap_art_vis_1", mesh->cells,
+              op_arg_gbl(&shock_cap_max_diff, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&shock_cap_smooth_tol, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&shock_cap_discon_tol, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(nodes_data, -3, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(nodes_count, -3, mesh->cell2nodes, 1, "int", OP_READ),
+              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  dg_dat_pool->releaseTempDatCells(h_tmp);
+}
+
 void INSSolverBase2D::dump_checkpoint_data(const std::string &filename) {
   op_fetch_data_hdf5_file(vel[0][0], filename.c_str());
   op_fetch_data_hdf5_file(vel[0][1], filename.c_str());
@@ -1004,6 +1076,10 @@ void INSSolverBase2D::dump_visualisation_data(const std::string &filename) {
 
   if(values_to_save.count("pressure") != 0) {
     op_fetch_data_hdf5_file(pr, filename.c_str());
+  }
+
+  if(values_to_save.count("shock_cap_art_vis") != 0 && shock_capturing) {
+    op_fetch_data_hdf5_file(shock_cap_art_vis, filename.c_str());
   }
 }
 

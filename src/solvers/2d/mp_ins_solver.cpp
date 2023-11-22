@@ -72,16 +72,6 @@ void MPINSSolver2D::setup_common() {
   if(surface_tension && sub_cycles > 0)
     throw std::runtime_error("Surface tension not supported with subcycling currently");
 
-  double tmp_max_diff = 1.0;
-  config->getDouble("solver-options", "surface_tension_max_art_diff", tmp_max_diff);
-  st_max_diff = tmp_max_diff;
-  double tmp_diff_width_fact = 2.0;
-  config->getDouble("solver-options", "surface_tension_diff_width_fact", tmp_diff_width_fact);
-  st_diff_width_fact = tmp_diff_width_fact;
-  double tmp_trans_width_fact = 2.5;
-  config->getDouble("solver-options", "surface_tension_trans_width_fact", tmp_trans_width_fact);
-  st_trans_width_fact = tmp_trans_width_fact;
-
   pressureMatrix = new FactorPoissonMatrixFreeDiagOI2D(mesh);
   // pressureMatrix = new FactorPoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new FactorPoissonCoarseMatrix2D(mesh);
@@ -108,15 +98,10 @@ void MPINSSolver2D::setup_common() {
     st[0][1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st01");
     st[1][0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st10");
     st[1][1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st11");
-
-    diffSolver = new DiffusionSolver2D(mesh);
   }
 
   pr_bc_types  = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_pr_bc_types");
   vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_vis_bc_types");
-
-  nodes_data  = op_decl_dat(mesh->nodes, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_nodes_data");
-  nodes_count = op_decl_dat(mesh->nodes, 1, "int", (int *)NULL, "ins_solver_nodes_count");
 }
 
 MPINSSolver2D::~MPINSSolver2D() {
@@ -125,9 +110,6 @@ MPINSSolver2D::~MPINSSolver2D() {
   delete viscosityMatrix;
   delete pressureSolver;
   delete viscositySolver;
-  if(surface_tension) {
-    delete diffSolver;
-  }
 }
 
 void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
@@ -191,8 +173,6 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   lsSolver->init();
   lsSolver->set_bc_types(bc_types);
   lsSolver->getRhoMu(rho, mu);
-
-  st_max_diff *= h;
 
   timer->endTimer("MPINSSolver2D - Init");
 }
@@ -508,20 +488,7 @@ bool MPINSSolver2D::pressure() {
 
   project_velocity(dpdx.dat, dpdy.dat);
 
-  if(surface_tension && st_max_diff > 0.0) {
-    DGTempDat surf_ten_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
-
-    calc_art_vis(velTT[0], velTT[1], surf_ten_art_vis.dat);
-
-    diffSolver->set_dt(surf_ten_art_vis.dat);
-    int num_steps_diff = dt / diffSolver->get_dt() + 1;
-    for(int i = 0; i < num_steps_diff; i++) {
-      diffSolver->step(velTT[0], surf_ten_art_vis.dat);
-      diffSolver->step(velTT[1], surf_ten_art_vis.dat);
-    }
-
-    dg_dat_pool->releaseTempDatCells(surf_ten_art_vis);
-  }
+  shock_capture(velTT[0], velTT[1]);
 
   dg_dat_pool->releaseTempDatCells(dpdx);
   dg_dat_pool->releaseTempDatCells(dpdy);
@@ -617,51 +584,6 @@ bool MPINSSolver2D::viscosity() {
   dg_dat_pool->releaseTempDatCells(visRHS[1]);
 
   return convergedX && convergedY;
-}
-
-void MPINSSolver2D::calc_art_vis(op_dat in0, op_dat in1, op_dat out) {
-  DGTempDat h_tmp = dg_dat_pool->requestTempDatCells(1);
-  op_par_loop(calc_h_explicitly, "calc_h_explicitly", mesh->cells,
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
-              op_arg_dat(h_tmp.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
-
-  op_par_loop(reset_tmp_node_dats, "reset_tmp_node_dats", mesh->nodes,
-              op_arg_dat(nodes_data, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
-              op_arg_dat(nodes_count, -1, OP_ID, 1, "int", OP_WRITE));
-
-  op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
-              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-  op_par_loop(ins_2d_st_art_vis_0, "ins_2d_st_art_vis_0", mesh->faces,
-              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(mesh->nx,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->ny,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->sJ,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->fscale,  -1, OP_ID, 2, DG_FP_STR, OP_READ),
-              op_arg_dat(h_tmp.dat, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->node_coords, -2, mesh->face2nodes, 2, DG_FP_STR, OP_READ),
-              op_arg_dat(in0, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(in1, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(nodes_data, -2, mesh->face2nodes, 1, DG_FP_STR, OP_INC),
-              op_arg_dat(nodes_count, -2, mesh->face2nodes, 1, "int", OP_INC));
-
-  DG_FP smooth_tol = 1.0;
-  DG_FP discon_tol = 100.0;
-  op_par_loop(ins_2d_st_art_vis_1, "ins_2d_st_art_vis_1", mesh->cells,
-              op_arg_gbl(&st_max_diff, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&smooth_tol, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&discon_tol, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&st_diff_width_fact, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&st_trans_width_fact, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(nodes_data, -3, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(nodes_count, -3, mesh->cell2nodes, 1, "int", OP_READ),
-              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-  dg_dat_pool->releaseTempDatCells(h_tmp);
 }
 
 void MPINSSolver2D::dump_checkpoint_data(const std::string &filename) {

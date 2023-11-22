@@ -89,11 +89,9 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 
 // Set the initial interface between phases for multiphase simulations
 DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
-  DG_FP s_bubble = sqrt(x * x + y * y) - sqrt(0.5);
+  DG_FP s_bubble = sqrt(x * x + y * y) - 1.0;
   s_bubble = -s_bubble;
-
   DG_FP s_liquid = y - WATER_Y;
-
   s = fabs(s_bubble) < fabs(s_liquid) ? s_bubble : s_liquid;
 }
 
