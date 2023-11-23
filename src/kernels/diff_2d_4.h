@@ -11,8 +11,9 @@ inline void diff_2d_4(const int *edgeNum, const DG_FP *nx, const DG_FP *ny,
     const int fmask_ind = fmask[i];
     const int out_ind = edge * DG_NPF + i;
 
-    const DG_FP avg_val_x = val_x[fmask_ind];
-    const DG_FP avg_val_y = val_y[fmask_ind];
+    // Zero gradient on boundary
+    const DG_FP avg_val_x = 0.5 * val_x[fmask_ind];
+    const DG_FP avg_val_y = 0.5 * val_y[fmask_ind];
     const DG_FP diff_val_0 = 0.0;
 
     flux[out_ind] = *fscale * (*nx * avg_val_x + *ny * avg_val_y - pen * vis[fmask_ind] * diff_val_0);

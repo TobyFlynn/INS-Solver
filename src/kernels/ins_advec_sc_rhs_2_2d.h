@@ -15,27 +15,21 @@ inline void ins_advec_sc_rhs_2_2d(const DG_FP *t, const int *bedge_type, const i
       pUb[i] = 0.0;
       pVb[i] = 0.0;
     }
-  } else if(*bedge_type == BC_TYPE_SLIP_X || *bedge_type == BC_TYPE_SLIP_Y) {
+  } else if(*bedge_type == BC_TYPE_SLIP_X) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
-      // S
-      const DG_FP mag_s = sqrt(us[fmask_ind] * us[fmask_ind] + vs[fmask_ind] * vs[fmask_ind]);
-      const DG_FP dot_s = nx[0] * us[fmask_ind] + ny[0] * vs[fmask_ind];
-      pUs[i] = us[fmask_ind] - dot_s * nx[0];
-      pVs[i] = vs[fmask_ind] - dot_s * ny[0];
-      const DG_FP mag2_s = sqrt(pUs[i] * pUs[i] + pVs[i] * pVs[i]);
-      const DG_FP mag_factor_s = fabs(mag_s) < 1e-8 || fabs(mag2_s) < 1e-8 ? 1.0 : mag_s / mag2_s;
-      pUs[i] *= mag_factor_s;
-      pVs[i] *= mag_factor_s;
-      // B
-      const DG_FP mag_b = sqrt(ub[fmask_ind] * ub[fmask_ind] + vb[fmask_ind] * vb[fmask_ind]);
-      const DG_FP dot_b = nx[0] * ub[fmask_ind] + ny[0] * vb[fmask_ind];
-      pUb[i] = ub[fmask_ind] - dot_b * nx[0];
-      pVb[i] = vb[fmask_ind] - dot_b * ny[0];
-      const DG_FP mag2_b = sqrt(pUb[i] * pUb[i] + pVb[i] * pVb[i]);
-      const DG_FP mag_factor_b = fabs(mag_b) < 1e-8 || fabs(mag2_b) < 1e-8 ? 1.0 : mag_b / mag2_b;
-      pUb[i] *= mag_factor_b;
-      pVb[i] *= mag_factor_b;
+      pUs[i] = 0.0;
+      pVs[i] = vs[fmask_ind];
+      pUb[i] = 0.0;
+      pVb[i] = vb[fmask_ind];
+    }
+  } else if(*bedge_type == BC_TYPE_SLIP_Y) {
+    for(int i = 0; i < DG_NPF; i++) {
+      const int fmask_ind = fmask[i];
+      pUs[i] = us[fmask_ind];
+      pVs[i] = 0.0;
+      pUb[i] = ub[fmask_ind];
+      pVb[i] = 0.0;
     }
   } else if(*bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {

@@ -138,7 +138,7 @@ DEVICE_PREFIX DG_FP ps2d_custom_bc_get_temperature(const int bc_type, const DG_F
 }
 
 // Set temperature gradient on custom BCs (return tMx and tMy otherwise)
-DEVICE_PREFIX DG_FP ps2d_custom_bc_get_temperature_grad(const int bc_type, const DG_FP x,
+DEVICE_PREFIX void ps2d_custom_bc_get_temperature_grad(const int bc_type, const DG_FP x,
                                         const DG_FP y, const DG_FP tMx, const DG_FP tMy,
                                         DG_FP &tPx, DG_FP &tPy) {
   tPx = tMx;

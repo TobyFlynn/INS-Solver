@@ -313,20 +313,21 @@ bool INSTemperatureSolver2D::pressure() {
   }
 
   // Calculate RHS of pressure solve
-  // This assumes that the boundaries will always be order DG_ORDER
-  DGTempDat pr_factor = dg_dat_pool->requestTempDatCells(DG_NP);
   op_par_loop(mp_ins_2d_pr_1, "mp_ins_2d_pr_1", mesh->cells,
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[currentInd], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-              op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(pr_factor.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+              op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT.dat);
   mesh->mass(divVelT.dat);
+
+  DGTempDat pr_factor = dg_dat_pool->requestTempDatCells(DG_NP);
+  op_par_loop(reciprocal, "reciprocal", mesh->cells,
+              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(pr_factor.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   timer->endTimer("INSTemperatureSolver2D - Pressure RHS");
 
   // Call PETSc linear solver

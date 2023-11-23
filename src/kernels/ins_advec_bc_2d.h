@@ -13,17 +13,17 @@ inline void ins_advec_bc_2d(const DG_FP *t, const int *bedge_type, const int *be
       pU[i] = 0.0;
       pV[i] = 0.0;
     }
-  } else if(*bedge_type == BC_TYPE_SLIP_X || *bedge_type == BC_TYPE_SLIP_Y) {
+  } else if(*bedge_type == BC_TYPE_SLIP_X) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
-      const DG_FP mag = sqrt(u[fmask_ind] * u[fmask_ind] + v[fmask_ind] * v[fmask_ind]);
-      const DG_FP dot = nx[0] * u[fmask_ind] + ny[0] * v[fmask_ind];
-      pU[i] = u[fmask_ind] - dot * nx[0];
-      pV[i] = v[fmask_ind] - dot * ny[0];
-      const DG_FP mag2 = sqrt(pU[i] * pU[i] + pV[i] * pV[i]);
-      const DG_FP mag_factor = fabs(mag) < 1e-8 || fabs(mag2) < 1e-8 ? 1.0 : mag / mag2;
-      pU[i] *= mag_factor;
-      pV[i] *= mag_factor;
+      pU[i] = 0.0;
+      pV[i] = v[fmask_ind];
+    }
+  } else if(*bedge_type == BC_TYPE_SLIP_Y) {
+    for(int i = 0; i < DG_NPF; i++) {
+      const int fmask_ind = fmask[i];
+      pU[i] = u[fmask_ind];
+      pV[i] = 0.0;
     }
   } else if(*bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
