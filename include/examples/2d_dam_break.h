@@ -86,6 +86,11 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 
 // Set the initial interface between phases for multiphase simulations
 DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
+  s = (x * x * x * x) / (0.5 * 0.5 * 0.5 * 0.5) + (y * y * y * y) - 1.0;
+  
+  if(s < 0) s = fmax(s, -2.0);
+  if(s > 0) s = fmin(s, 2.0);
+/*
   if(y >= 1.0) {
     if(x <= 0.5) {
       s = y - 1.0;
@@ -97,6 +102,7 @@ DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
   } else {
     s = -fmin(1.0 - y, 0.5 - x);
   }
+*/
 }
 
 // Set level set value on custom BCs (return sM otherwise)
