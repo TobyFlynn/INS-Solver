@@ -111,11 +111,11 @@ inline void ins_3d_advec_oi_1_new(const int *faceNum, const int *fmaskL_correcte
     const DG_FP velR = _nx * _pU + _ny * _pV + _nz * _pW;
     const DG_FP maxvel = fmax(fabs(velL), fabs(velR));
 
-    fU[1][fIndCubL + i] = 0.5 * _fscale * (_nx * (_mU * _mU + _pU * _pU) + _ny * (_mU * _mV + _pU * _pV)
+    fU[1][fIndCubR + i] = 0.5 * _fscale * (_nx * (_mU * _mU + _pU * _pU) + _ny * (_mU * _mV + _pU * _pV)
           + _nz * (_mU * _mW + _pU * _pW) + maxvel * (_mU - _pU));
-    fV[1][fIndCubL + i] = 0.5 * _fscale * (_nx * (_mV * _mU + _pV * _pU) + _ny * (_mV * _mV + _pV * _pV)
+    fV[1][fIndCubR + i] = 0.5 * _fscale * (_nx * (_mV * _mU + _pV * _pU) + _ny * (_mV * _mV + _pV * _pV)
           + _nz * (_mV * _mW + _pV * _pW) + maxvel * (_mV - _pV));
-    fW[1][fIndCubL + i] = 0.5 * _fscale * (_nx * (_mW * _mU + _pW * _pU) + _ny * (_mW * _mV + _pW * _pV)
+    fW[1][fIndCubR + i] = 0.5 * _fscale * (_nx * (_mW * _mU + _pW * _pU) + _ny * (_mW * _mV + _pW * _pV)
           + _nz * (_mW * _mW + _pW * _pW) + maxvel * (_mW - _pW));
   }
 }
