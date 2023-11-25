@@ -19,8 +19,8 @@ inline void ins_3d_advec_sc_rhs_oi_1_new_v2(const int *faceNum, const int *fmask
     DG_FP _pUb = 0.0; DG_FP _pVb = 0.0; DG_FP _pWb = 0.0;
 
     for(int j = 0; j < DG_NPF; j++) {
-      const int fmaskL_ind = fmaskL[i];
-      const int fmaskR_ind = fmaskR_corrected[i];
+      const int fmaskL_ind = fmaskL[j];
+      const int fmaskR_ind = fmaskR_corrected[j];
       const int ind = DG_MAT_IND(fIndCubL + i, fIndL + j, DG_CUB_SURF_3D_NP * DG_NUM_FACES, DG_NPF * DG_NUM_FACES);
       const DG_FP mat_val = dg_cubSurf3d_Interp_kernel[ind];
 
@@ -63,8 +63,8 @@ inline void ins_3d_advec_sc_rhs_oi_1_new_v2(const int *faceNum, const int *fmask
     DG_FP _pUb = 0.0; DG_FP _pVb = 0.0; DG_FP _pWb = 0.0;
 
     for(int j = 0; j < DG_NPF; j++) {
-      const int fmaskL_ind = fmaskL_corrected[i];
-      const int fmaskR_ind = fmaskR[i];
+      const int fmaskL_ind = fmaskL_corrected[j];
+      const int fmaskR_ind = fmaskR[j];
       const int ind = DG_MAT_IND(fIndCubR + i, fIndR + j, DG_CUB_SURF_3D_NP * DG_NUM_FACES, DG_NPF * DG_NUM_FACES);
       const DG_FP mat_val = dg_cubSurf3d_Interp_kernel[ind];
 
