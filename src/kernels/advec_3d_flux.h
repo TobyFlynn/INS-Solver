@@ -4,9 +4,9 @@ inline void advec_3d_flux(const int *faceNum, const int *fmaskL_corrected,
                           const DG_FP *fscale, const DG_FP **val,
                           const DG_FP **u, const DG_FP **v, const DG_FP **w,
                           DG_FP **flux) {
-  const int *fmask  = &FMASK[(DG_ORDER - 1) * 4 * DG_NPF];
+  const int *fmask  = &FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];
   const int faceNumL = faceNum[0];
-  const int faceNumR = faceNum[0];
+  const int faceNumR = faceNum[1];
   const int *fmaskL = &fmask[faceNumL * DG_NPF];
   const int *fmaskR = &fmask[faceNumR * DG_NPF];
 
