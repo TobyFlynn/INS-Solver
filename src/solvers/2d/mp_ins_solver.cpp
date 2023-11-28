@@ -69,8 +69,8 @@ void MPINSSolver2D::setup_common() {
   dt_forced = tmp_dt > 0.0;
   if(dt_forced) dt = tmp_dt;
 
-  if(surface_tension && sub_cycles > 0)
-    throw std::runtime_error("Surface tension not supported with subcycling currently");
+  // if(surface_tension && sub_cycles > 0)
+  //   throw std::runtime_error("Surface tension not supported with subcycling currently");
 
   pressureMatrix = new FactorPoissonMatrixFreeDiagOI2D(mesh);
   // pressureMatrix = new FactorPoissonMatrixFreeDiag2D(mesh);
@@ -353,7 +353,10 @@ void MPINSSolver2D::advection() {
     else
       advec_standard();
   } else {
-    advec_sub_cycle();
+    if(surface_tension)
+      advec_sub_cycle(st[currentInd][0], st[currentInd][1], st[(currentInd + 1) % 2][0], st[(currentInd + 1) % 2][1]);
+    else
+      advec_sub_cycle();
   }
 }
 

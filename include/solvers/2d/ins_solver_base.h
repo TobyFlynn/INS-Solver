@@ -38,8 +38,11 @@ protected:
   void advec_standard();
   void advec_standard(op_dat fx, op_dat fy, op_dat fx_old, op_dat fy_old);
   void advec_sub_cycle();
+  void advec_sub_cycle(op_dat fx, op_dat fy, op_dat fx_old, op_dat fy_old);
   void advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat u_out, op_dat v_out,
                            const double t);
+  void advec_sub_cycle_rhs_over_int(op_dat u_in, op_dat v_in, op_dat u_out,
+                                    op_dat v_out, const double t);
   void advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_dat v);
   void project_velocity_mat_mult(op_dat u, op_dat v, op_dat u_out, op_dat v_out, op_dat pen, op_dat pen_f);
   void project_velocity(op_dat dpdx, op_dat dpdy);
