@@ -324,15 +324,19 @@ void INSSolverBase3D::advec_current_non_linear_over_int() {
   dg_dat_pool->releaseTempDatCells(f[2][1]);
   dg_dat_pool->releaseTempDatCells(f[2][2]);
 
-  #ifdef NEW_SURF_OVER_INT
-  timer->startTimer("Surface over int");
   DGTempDat fU_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
   DGTempDat fV_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
   DGTempDat fW_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
 
+  timer->startTimer("INSSolverBase3D - advec_current_non_linear_over_int - zero");
+  zero_dat(fU_cub.dat);
+  zero_dat(fV_cub.dat);
+  zero_dat(fW_cub.dat);
+  timer->endTimer("INSSolverBase3D - advec_current_non_linear_over_int - zero");
+
   timer->startTimer("INSSolverBase3D - advec_current_non_linear_over_int - 1");
   // Flux across faces
-  op_par_loop(ins_3d_advec_oi_1_new, "ins_3d_advec_oi_1_new", mesh->faces,
+  op_par_loop(ins_3d_advec_oi_1, "ins_3d_advec_oi_1", mesh->faces,
               op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
               op_arg_dat(mesh->fmaskR,  -1, OP_ID, DG_NPF, "int", OP_READ),
@@ -351,51 +355,6 @@ void INSSolverBase3D::advec_current_non_linear_over_int() {
   timer->startTimer("INSSolverBase3D - advec_current_non_linear_over_int - 2");
   // Boundary flux
   if(mesh->bface2cells) {
-    throw std::runtime_error("TODO");
-  }
-  timer->endTimer("INSSolverBase3D - advec_current_non_linear_over_int - 2");
-
-  timer->startTimer("INSSolverBase3D - advec_current_non_linear_over_int - LIFT");
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, fU_cub.dat, -1.0, n[currentInd][0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, fV_cub.dat, -1.0, n[currentInd][1]);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, fW_cub.dat, -1.0, n[currentInd][2]);
-  timer->endTimer("INSSolverBase3D - advec_current_non_linear_over_int - LIFT");
-
-  dg_dat_pool->releaseTempDatCells(fU_cub);
-  dg_dat_pool->releaseTempDatCells(fV_cub);
-  dg_dat_pool->releaseTempDatCells(fW_cub);
-  timer->endTimer("Surface over int");
-  #else
-  timer->startTimer("Surface over int");
-
-  DGTempDat tmp_mU = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-  DGTempDat tmp_mV = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-  DGTempDat tmp_mW = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-  DGTempDat tmp_pU = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-  DGTempDat tmp_pV = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-  DGTempDat tmp_pW = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-
-  timer->startTimer("INSSolverBase3D - advec_current_non_linear_over_int - 1");
-  // Flux across faces
-  op_par_loop(ins_3d_advec_oi_1, "ins_3d_advec_oi_1", mesh->faces,
-              op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
-              op_arg_dat(mesh->fmaskR,  -1, OP_ID, DG_NPF, "int", OP_READ),
-              op_arg_dat(vel[currentInd][0], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[currentInd][1], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[currentInd][2], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_mU.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_mV.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_mW.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_pU.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_pV.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_pW.dat, -2, mesh->face2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
-  timer->endTimer("INSSolverBase3D - advec_current_non_linear_over_int - 1");
-
-  timer->startTimer("INSSolverBase3D - advec_current_non_linear_over_int - 2");
-  // Boundary flux
-  if(mesh->bface2cells) {
-    // Needs more testing
     op_par_loop(ins_3d_advec_oi_2, "ins_3d_advec_oi_2", mesh->bfaces,
                 op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
@@ -410,68 +369,21 @@ void INSSolverBase3D::advec_current_non_linear_over_int() {
                 op_arg_dat(vel[currentInd][0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vel[currentInd][1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vel[currentInd][2], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(tmp_mU.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-                op_arg_dat(tmp_mV.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-                op_arg_dat(tmp_mW.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-                op_arg_dat(tmp_pU.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-                op_arg_dat(tmp_pV.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE),
-                op_arg_dat(tmp_pW.dat, 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_WRITE));
+                op_arg_dat(fU_cub.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_INC),
+                op_arg_dat(fV_cub.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_INC),
+                op_arg_dat(fW_cub.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_INC));
   }
   timer->endTimer("INSSolverBase3D - advec_current_non_linear_over_int - 2");
 
-  timer->startTimer("INSSolverBase3D - advec_current_non_linear_over_int - Interp Surf");
-  DGTempDat tmp_mU_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
-  DGTempDat tmp_mV_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
-  DGTempDat tmp_mW_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
-  DGTempDat tmp_pU_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
-  DGTempDat tmp_pV_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
-  DGTempDat tmp_pW_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
-
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_mU.dat, 0.0, tmp_mU_cub.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_mV.dat, 0.0, tmp_mV_cub.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_mW.dat, 0.0, tmp_mW_cub.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_pU.dat, 0.0, tmp_pU_cub.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_pV.dat, 0.0, tmp_pV_cub.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_pW.dat, 0.0, tmp_pW_cub.dat);
-
-  dg_dat_pool->releaseTempDatCells(tmp_mU);
-  dg_dat_pool->releaseTempDatCells(tmp_mV);
-  dg_dat_pool->releaseTempDatCells(tmp_mW);
-  dg_dat_pool->releaseTempDatCells(tmp_pU);
-  dg_dat_pool->releaseTempDatCells(tmp_pV);
-  dg_dat_pool->releaseTempDatCells(tmp_pW);
-  timer->endTimer("INSSolverBase3D - advec_current_non_linear_over_int - Interp Surf");
-
-  timer->startTimer("INSSolverBase3D - advec_current_non_linear_over_int - 3");
-  op_par_loop(ins_3d_advec_oi_3, "ins_3d_advec_oi_3", mesh->cells,
-              op_arg_dat(mesh->nx_c, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->ny_c, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->nz_c, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->sJ_c, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_mU_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_mV_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_mW_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_pU_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(tmp_pV_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(tmp_pW_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_RW));
-  timer->endTimer("INSSolverBase3D - advec_current_non_linear_over_int - 3");
-
   timer->startTimer("INSSolverBase3D - advec_current_non_linear_over_int - LIFT");
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, tmp_pU_cub.dat, -1.0, n[currentInd][0]);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, tmp_pV_cub.dat, -1.0, n[currentInd][1]);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, tmp_pW_cub.dat, -1.0, n[currentInd][2]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, fU_cub.dat, -1.0, n[currentInd][0]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, fV_cub.dat, -1.0, n[currentInd][1]);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, fW_cub.dat, -1.0, n[currentInd][2]);
   timer->endTimer("INSSolverBase3D - advec_current_non_linear_over_int - LIFT");
 
-  dg_dat_pool->releaseTempDatCells(tmp_mU_cub);
-  dg_dat_pool->releaseTempDatCells(tmp_mV_cub);
-  dg_dat_pool->releaseTempDatCells(tmp_mW_cub);
-  dg_dat_pool->releaseTempDatCells(tmp_pU_cub);
-  dg_dat_pool->releaseTempDatCells(tmp_pV_cub);
-  dg_dat_pool->releaseTempDatCells(tmp_pW_cub);
-  timer->endTimer("Surface over int");
-  #endif
-
+  dg_dat_pool->releaseTempDatCells(fU_cub);
+  dg_dat_pool->releaseTempDatCells(fV_cub);
+  dg_dat_pool->releaseTempDatCells(fW_cub);
   timer->endTimer("INSSolverBase3D - advec_current_non_linear_over_int");
 }
 
@@ -885,11 +797,17 @@ void INSSolverBase3D::advec_sub_cycle_rhs_over_int(op_dat u_in, op_dat v_in, op_
   dg_dat_pool->releaseTempDatCells(f[2][1]);
   dg_dat_pool->releaseTempDatCells(f[2][2]);
 
-  timer->startTimer("Surface over int - SC");
   DGTempDat fU_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
   DGTempDat fV_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
   DGTempDat fW_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
 
+  timer->startTimer("INSSolverBase3D - RK RHS over_int zero");
+  zero_dat(fU_cub.dat);
+  zero_dat(fV_cub.dat);
+  zero_dat(fW_cub.dat);
+  timer->endTimer("INSSolverBase3D - RK RHS over_int zero");
+
+  timer->startTimer("INSSolverBase3D - RK RHS over_int 1");
   op_par_loop(ins_3d_advec_sc_rhs_oi_1, "ins_3d_advec_sc_rhs_oi_1", mesh->faces,
               op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
@@ -907,7 +825,9 @@ void INSSolverBase3D::advec_sub_cycle_rhs_over_int(op_dat u_in, op_dat v_in, op_
               op_arg_dat(fU_cub.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(fV_cub.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(fW_cub.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE));
+  timer->endTimer("INSSolverBase3D - RK RHS over_int 1");
 
+  timer->startTimer("INSSolverBase3D - RK RHS over_int 2");
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_advec_sc_rhs_oi_2, "ins_3d_advec_sc_rhs_oi_2", mesh->bfaces,
                 op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
@@ -926,24 +846,25 @@ void INSSolverBase3D::advec_sub_cycle_rhs_over_int(op_dat u_in, op_dat v_in, op_
                 op_arg_dat(advec_sc[0].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(advec_sc[1].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(advec_sc[2].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(fU_cub.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(fV_cub.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE),
-                op_arg_dat(fW_cub.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE));
+                op_arg_dat(fU_cub.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_INC),
+                op_arg_dat(fV_cub.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_INC),
+                op_arg_dat(fW_cub.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_INC));
   }
+  timer->endTimer("INSSolverBase3D - RK RHS over_int 2");
 
   dg_dat_pool->releaseTempDatCells(advec_sc[0]);
   dg_dat_pool->releaseTempDatCells(advec_sc[1]);
   dg_dat_pool->releaseTempDatCells(advec_sc[2]);
 
+  timer->startTimer("INSSolverBase3D - RK RHS over_int LIFT");
   op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, fU_cub.dat, -1.0, u_out);
   op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, fV_cub.dat, -1.0, v_out);
   op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, fW_cub.dat, -1.0, w_out);
+  timer->endTimer("INSSolverBase3D - RK RHS over_int LIFT");
 
   dg_dat_pool->releaseTempDatCells(fU_cub);
   dg_dat_pool->releaseTempDatCells(fV_cub);
   dg_dat_pool->releaseTempDatCells(fW_cub);
-
-  timer->endTimer("Surface over int - SC");
 }
 
 void INSSolverBase3D::project_velocity_mat_mult(op_dat u, op_dat v, op_dat w,
@@ -1404,6 +1325,9 @@ void INSSolverBase3D::zero_dat(op_dat dat) {
   } else if(dat->dim == DG_NUM_FACES * DG_NPF) {
     op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
                 op_arg_dat(dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  } else if(dat->dim == DG_NUM_FACES * DG_CUB_SURF_3D_NP) {
+    op_par_loop(zero_cub_surf_3d, "zero_cub_surf_3d", mesh->cells,
+                op_arg_dat(dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE));
   } else {
     throw std::runtime_error("Trying to zero dat with incompatible dimension");
   }
