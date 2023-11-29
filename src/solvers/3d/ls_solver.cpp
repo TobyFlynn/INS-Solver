@@ -64,11 +64,11 @@ void LevelSetAdvectionSolver3D::bc_kernel_oi(op_dat val, op_dat u, op_dat v,
               op_arg_dat(u,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(v,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(w,   0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(uM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-              op_arg_dat(vM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-              op_arg_dat(wM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-              op_arg_dat(valM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-              op_arg_dat(valP, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));
+              op_arg_dat(uM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+              op_arg_dat(vM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+              op_arg_dat(wM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+              op_arg_dat(valM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+              op_arg_dat(valP, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
 }
 
 /************************
@@ -137,7 +137,7 @@ void LevelSetSolver3D::init() {
   kdtree = new KDTree3D(mesh);
   #endif
 
-  // reinitLS();
+  reinitLS();
 }
 
 void LevelSetSolver3D::getRhoMu(op_dat rho, op_dat mu) {
