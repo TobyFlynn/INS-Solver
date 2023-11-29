@@ -92,6 +92,8 @@ void MPINSSolver2D::setup_common() {
 
   rho = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_rho");
   mu  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_mu");
+  dPdN_oi[0] = op_decl_dat(mesh->cells, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN_oi_0");
+  dPdN_oi[1] = op_decl_dat(mesh->cells, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN_oi_1");
 
   if(surface_tension) {
     st[0][0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st00");
@@ -130,6 +132,8 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
 
     zero_dat(dPdN[0]);
     zero_dat(dPdN[1]);
+    zero_dat(dPdN_oi[0]);
+    zero_dat(dPdN_oi[1]);
     zero_dat(n[0][0]);
     zero_dat(n[0][1]);
     zero_dat(n[1][0]);
@@ -372,9 +376,18 @@ bool MPINSSolver2D::pressure() {
   mesh->div_over_int_with_central_flux(velT[0], velT[1], divVelT.dat);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel.dat);
 
-  op_par_loop(mp_ins_2d_pr_mu, "mp_ins_3d_pr_mu", mesh->cells,
-              op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(curlVel.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  DGTempDat mu_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+  lsSolver->getMuVolOI(mu_oi.dat);
+  DGTempDat curlVel_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, curlVel.dat, 0.0, curlVel_oi.dat);
+
+  op_par_loop(mp_ins_2d_pr_mu_oi, "mp_ins_2d_pr_mu_oi", mesh->cells,
+              op_arg_dat(mu_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(curlVel_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, curlVel_oi.dat, 0.0, curlVel.dat);
+  dg_dat_pool->releaseTempDatCells(mu_oi);
+  dg_dat_pool->releaseTempDatCells(curlVel_oi);
 
   mesh->grad(curlVel.dat, gradCurlVel[0].dat, gradCurlVel[1].dat);
 
@@ -382,7 +395,9 @@ bool MPINSSolver2D::pressure() {
 
   // Apply Neumann pressure boundary conditions
   if(mesh->bface2cells) {
-    op_par_loop(mp_ins_2d_pr_0, "mp_ins_2d_pr_0", mesh->bfaces,
+    DGTempDat rho_oi = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
+    lsSolver->getRhoSurfOI(rho_oi.dat);
+    op_par_loop(mp_ins_2d_pr_bc_oi_0, "mp_ins_2d_pr_bc_oi_0", mesh->bfaces,
                 op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
@@ -395,8 +410,10 @@ bool MPINSSolver2D::pressure() {
                 op_arg_dat(n[currentInd][1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(gradCurlVel[0].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(gradCurlVel[1].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(rho, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dPdN[currentInd],   0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
+                op_arg_dat(rho_oi.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dPdN_oi[currentInd], 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_INC));
+
+    dg_dat_pool->releaseTempDatCells(rho_oi);
   }
 
   dg_dat_pool->releaseTempDatCells(gradCurlVel[0]);
@@ -415,15 +432,15 @@ bool MPINSSolver2D::pressure() {
   }
 
   // Calculate RHS of pressure solve
-  op_par_loop(mp_ins_2d_pr_1, "mp_ins_2d_pr_1", mesh->cells,
+  op_par_loop(mp_ins_2d_pr_bc_oi_1, "mp_ins_2d_pr_bc_oi_1", mesh->cells,
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(dPdN[currentInd], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
-              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
+              op_arg_dat(dPdN_oi[currentInd], -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dPdN_oi[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_RW),
               op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
-  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_LIFT, dPdN_oi[(currentInd + 1) % 2], 1.0, divVelT.dat);
   mesh->mass(divVelT.dat);
   timer->endTimer("MPINSSolver2D - Pressure RHS");
 
@@ -458,7 +475,7 @@ bool MPINSSolver2D::pressure() {
   dg_dat_pool->releaseTempDatCells(divVelT);
   timer->endTimer("MPINSSolver2D - Pressure Linear Solve");
 
-  zero_dat(dPdN[(currentInd + 1) % 2]);
+  zero_dat(dPdN_oi[(currentInd + 1) % 2]);
 
   timer->startTimer("MPINSSolver2D - Pressure Projection");
   DGTempDat dpdx = dg_dat_pool->requestTempDatCells(DG_NP);

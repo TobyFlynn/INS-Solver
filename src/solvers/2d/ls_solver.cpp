@@ -177,10 +177,19 @@ void LevelSetSolver2D::getRhoMu(op_dat rho, op_dat mu) {
 void LevelSetSolver2D::getRhoVolOI(op_dat rho) {
   timer->startTimer("LevelSetSolver2D - getRhoVolOI");
   op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, s, 0.0, rho);
-  op_par_loop(ls_step_vol_oi, "ls_step", mesh->cells,
+  op_par_loop(ls_step_rho_vol_oi, "ls_step_rho_vol_oi", mesh->cells,
               op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
               op_arg_dat(rho, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
   timer->endTimer("LevelSetSolver2D - getRhoVolOI");
+}
+
+void LevelSetSolver2D::getMuVolOI(op_dat mu) {
+  timer->startTimer("LevelSetSolver2D - getMuVolOI");
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, s, 0.0, mu);
+  op_par_loop(ls_step_mu_vol_oi, "ls_step_mu_vol_oi", mesh->cells,
+              op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
+              op_arg_dat(mu, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
+  timer->endTimer("LevelSetSolver2D - getMuVolOI");
 }
 
 void LevelSetSolver2D::getRhoSurfOI(op_dat rho) {

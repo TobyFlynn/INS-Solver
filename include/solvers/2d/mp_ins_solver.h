@@ -56,6 +56,7 @@ private:
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;
   op_dat vis_bc_types, vis_bc;
+  op_dat dPdN_oi[2];
 };
 
 #endif
