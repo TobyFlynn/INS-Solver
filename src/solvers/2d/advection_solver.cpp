@@ -138,6 +138,8 @@ void AdvectionSolver2D::rhs_over_int(op_dat val, op_dat u, op_dat v, op_dat val_
   dg_dat_pool->releaseTempDatCells(val_interp);
 
   DGTempDat flux_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
+  op_par_loop(zero_cub_surf_2d, "zero_cub_surf_2d", mesh->cells,
+              op_arg_dat(flux_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_WRITE));
 
   op_par_loop(advec_2d_oi_1, "advec_2d_oi_1", mesh->faces,
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
