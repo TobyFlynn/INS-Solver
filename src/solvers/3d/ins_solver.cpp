@@ -183,7 +183,7 @@ void INSSolver3D::step() {
   timer->endTimer("INSSolver3D - Viscosity");
 
   currentInd = (currentInd + 1) % 2;
-  time += dt;
+  update_time();
   g0 = 1.5;
   a0 = 2.0;
   a1 = -0.5;

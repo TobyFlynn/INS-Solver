@@ -132,10 +132,11 @@ void LevelSetSolver2D::setVelField(op_dat u1, op_dat v1) {
   v = v1;
 }
 
-void LevelSetSolver2D::step(DG_FP dt) {
+void LevelSetSolver2D::step(const DG_FP dt, const int num_steps) {
   timer->startTimer("LevelSetSolver2D - step");
   advecSolver->set_dt(dt);
-  advecSolver->step(s, u, v);
+  for(int i = 0; i < num_steps; i++)
+    advecSolver->step(s, u, v);
 
   counter++;
   if(counter > 14) {
@@ -189,7 +190,7 @@ void LevelSetSolver2D::getRhoSurfOI(op_dat rho) {
   op_par_loop(ls_step_surf_oi_0, "ls_step_surf_oi_0", mesh->cells,
               op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(rho_tmp.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  
+
   op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_INTERP, rho_tmp.dat, 0.0, rho);
   dg_dat_pool->releaseTempDatCells(rho_tmp);
   op_par_loop(ls_step_surf_oi_1, "ls_step_surf_oi_1", mesh->cells,

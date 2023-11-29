@@ -190,7 +190,7 @@ void MPINSSolver3D::step() {
   timer->endTimer("MPINSSolver3D - Surface");
 
   currentInd = (currentInd + 1) % 2;
-  time += dt;
+  update_time();
   g0 = 1.5;
   a0 = 2.0;
   a1 = -0.5;
@@ -455,7 +455,8 @@ void MPINSSolver3D::viscosity() {
 void MPINSSolver3D::surface() {
   lsSolver->set_bc_types(bc_types);
   const int num_advec_steps = it_pre_sub_cycle != 0 ? 1 : std::max(sub_cycles, 1);
-  lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2], sub_cycle_dt, num_advec_steps);
+  lsSolver->step(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1], vel[(currentInd + 1) % 2][2],
+                 num_advec_steps == 1 ? dt : sub_cycle_dt, num_advec_steps);
   timer->startTimer("MPINSSolver3D - Filtering");
   if(filter_advec) {
     filter(lsSolver->s);

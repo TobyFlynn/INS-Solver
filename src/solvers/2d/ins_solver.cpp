@@ -170,7 +170,7 @@ void INSSolver2D::step() {
   timer->endTimer("INSSolver2D - Viscosity");
 
   currentInd = (currentInd + 1) % 2;
-  time += dt;
+  update_time();
 
   g0 = 1.5;
   a0 = 2.0;

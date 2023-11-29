@@ -158,6 +158,9 @@ void INSSolverBase3D::init(const DG_FP re, const DG_FP refVel) {
   zero_dat(velTT[0]);
   zero_dat(velTT[1]);
   zero_dat(velTT[2]);
+
+  prev_time = 0.0;
+  time = 0.0;
 }
 
 void INSSolverBase3D::advec_current_non_linear() {
@@ -418,7 +421,7 @@ void INSSolverBase3D::advec_standard() {
               op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 }
 
-void INSSolverBase3D::advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_dat v, op_dat w) {
+void INSSolverBase3D::advec_sub_cycle_rk_step(const DG_FP time_sc, const DG_FP rk_dt, op_dat u, op_dat v, op_dat w) {
   timer->startTimer("INSSolverBase3D - RK");
   // Request temporary dats
   DGTempDat advec_sc_rk[3][3];
@@ -442,8 +445,8 @@ void INSSolverBase3D::advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_
 
   for(int rk_step = 0; rk_step < 3; rk_step++) {
     double rk_time = time_sc;
-    if(rk_step == 1) rk_time += sub_cycle_dt;
-    if(rk_step == 2) rk_time += 0.5 * sub_cycle_dt;
+    if(rk_step == 1) rk_time += rk_dt;
+    if(rk_step == 2) rk_time += 0.5 * rk_dt;
     const int rk_ind = rk_step == 2 ? 2 : rk_step + 1;
     timer->startTimer("INSSolverBase3D - RK RHS");
     if(over_int_advec) {
@@ -459,7 +462,7 @@ void INSSolverBase3D::advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_
     // Set up next step
     if(rk_step == 0) {
       op_par_loop(ins_3d_advec_sc_rk_0, "ins_3d_advec_sc_rk_0", mesh->cells,
-                  op_arg_gbl(&sub_cycle_dt, 1, DG_FP_STR, OP_READ),
+                  op_arg_gbl(&rk_dt, 1, DG_FP_STR, OP_READ),
                   op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                   op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                   op_arg_dat(w, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -471,7 +474,7 @@ void INSSolverBase3D::advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_
                   op_arg_dat(advec_sc_rk[0][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
     } else if(rk_step == 1) {
       op_par_loop(ins_3d_advec_sc_rk_1, "ins_3d_advec_sc_rk_1", mesh->cells,
-                  op_arg_gbl(&sub_cycle_dt, 1, DG_FP_STR, OP_READ),
+                  op_arg_gbl(&rk_dt, 1, DG_FP_STR, OP_READ),
                   op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                   op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                   op_arg_dat(w, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -488,7 +491,7 @@ void INSSolverBase3D::advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_
   }
   // Update velT
   op_par_loop(ins_3d_advec_sc_rk_2, "ins_3d_advec_sc_rk_2", mesh->cells,
-              op_arg_gbl(&sub_cycle_dt, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&rk_dt, 1, DG_FP_STR, OP_READ),
               op_arg_dat(advec_sc_rk[1][0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(advec_sc_rk[1][1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(advec_sc_rk[1][2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -522,8 +525,10 @@ void INSSolverBase3D::advec_sub_cycle() {
 
   timer->startTimer("INSSolverBase3D - Subcycle 0");
   // Advance 2 * number of subcycles
-  for(int i = 0; i < 2 * sub_cycles; i++) {
-    advec_sub_cycle_rk_step(time - dt + i * sub_cycle_dt, velT[0], velT[1], velT[2]);
+  const int num_steps = std::ceil((time + dt - prev_time) / sub_cycle_dt);
+  const DG_FP tmp_sub_cycle_dt = (time + dt - prev_time) / (DG_FP)num_steps;
+  for(int i = 0; i < num_steps; i++) {
+    advec_sub_cycle_rk_step(prev_time + i * tmp_sub_cycle_dt, tmp_sub_cycle_dt, velT[0], velT[1], velT[2]);
   }
   timer->endTimer("INSSolverBase3D - Subcycle 0");
 
@@ -544,7 +549,7 @@ void INSSolverBase3D::advec_sub_cycle() {
   timer->startTimer("INSSolverBase3D - Subcycle 1");
   // Advance number of subcycles
   for(int i = 0; i < sub_cycles; i++) {
-    advec_sub_cycle_rk_step(time + i * sub_cycle_dt, advec_sc_tmp[0].dat, advec_sc_tmp[1].dat, advec_sc_tmp[2].dat);
+    advec_sub_cycle_rk_step(time + i * sub_cycle_dt, sub_cycle_dt, advec_sc_tmp[0].dat, advec_sc_tmp[1].dat, advec_sc_tmp[2].dat);
   }
   timer->endTimer("INSSolverBase3D - Subcycle 1");
 
@@ -574,7 +579,7 @@ void INSSolverBase3D::advec_sub_cycle() {
 void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
                                       op_dat u_out, op_dat v_out, op_dat w_out,
                                       const double t) {
-  double t0 = time - dt;
+  double t0 = prev_time;
   double t1 = time;
   double tI = t;
   DGTempDat advec_sc[3];
@@ -716,7 +721,7 @@ void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
 void INSSolverBase3D::advec_sub_cycle_rhs_over_int(op_dat u_in, op_dat v_in, op_dat w_in,
                                       op_dat u_out, op_dat v_out, op_dat w_out,
                                       const double t) {
-  double t0 = time - dt;
+  double t0 = prev_time;
   double t1 = time;
   double tI = t;
   DGTempDat advec_sc[3];
@@ -1331,6 +1336,11 @@ void INSSolverBase3D::zero_dat(op_dat dat) {
   } else {
     throw std::runtime_error("Trying to zero dat with incompatible dimension");
   }
+}
+
+void INSSolverBase3D::update_time() {
+  prev_time = time;
+  time += dt;
 }
 
 // Getters (used for measurements)

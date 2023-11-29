@@ -149,6 +149,8 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
     dt = sub_cycle_dt;
     if(resuming)
       dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+  } else {
+    sub_cycle_dt = dt;
   }
   op_printf("dt: %g\n", dt);
 
@@ -195,7 +197,7 @@ void MPINSSolver2D::step() {
   timer->endTimer("MPINSSolver2D - Surface");
 
   currentInd = (currentInd + 1) % 2;
-  time += dt;
+  update_time();
 
   g0 = 1.5;
   a0 = 2.0;
@@ -625,7 +627,10 @@ void MPINSSolver2D::dump_visualisation_data(const std::string &filename) {
 
 void MPINSSolver2D::surface() {
   lsSolver->setVelField(vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1]);
-  lsSolver->step(dt);
+  if(it_pre_sub_cycle > 1 || sub_cycles < 1)
+    lsSolver->step(dt, 1);
+  else
+    lsSolver->step(sub_cycle_dt, sub_cycles);
   lsSolver->getRhoMu(rho, mu);
 }
 

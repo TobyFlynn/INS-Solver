@@ -237,7 +237,7 @@ void INSTemperatureSolver2D::step() {
   timer->endTimer("INSTemperatureSolver2D - Update T");
 
   currentInd = (currentInd + 1) % 2;
-  time += dt;
+  update_time();
 
   g0 = 1.5;
   a0 = 2.0;

@@ -16,9 +16,9 @@ public:
 
 protected:
   virtual void bc_kernel(op_dat val, op_dat u, op_dat v, op_dat out) override;
-  virtual void bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat uM, op_dat vM, 
+  virtual void bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat uM, op_dat vM,
                             op_dat valM, op_dat valP) override;
-  
+
   op_dat bc_types;
 };
 
@@ -32,7 +32,7 @@ public:
   void set_bc_types(op_dat bc);
 
   void setVelField(op_dat u1, op_dat v1);
-  void step(DG_FP dt);
+  void step(const DG_FP dt, const int num_steps);
   void getRhoMu(op_dat rho, op_dat mu);
   void getRhoVolOI(op_dat rho);
   void getRhoSurfOI(op_dat rho);

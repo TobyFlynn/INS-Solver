@@ -43,7 +43,7 @@ protected:
                            const double t);
   void advec_sub_cycle_rhs_over_int(op_dat u_in, op_dat v_in, op_dat u_out,
                                     op_dat v_out, const double t);
-  void advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_dat v);
+  void advec_sub_cycle_rk_step(const DG_FP time_sc, const DG_FP rk_dt, op_dat u, op_dat v);
   void project_velocity_mat_mult(op_dat u, op_dat v, op_dat u_out, op_dat v_out, op_dat pen, op_dat pen_f);
   void project_velocity(op_dat dpdx, op_dat dpdy);
   DG_FP max_vel();
@@ -51,8 +51,9 @@ protected:
   void shock_capture(op_dat in0, op_dat in1);
   void filter(op_dat in);
   void zero_dat(op_dat dat);
+  void update_time();
 
-  DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, h;
+  DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, prev_time, h;
   int currentInd, sub_cycles;
   op_dat vel[2][2], velT[2], velTT[2], pr, n[2][2], dPdN[2], bc_types, proj_h, bc_data;
 
