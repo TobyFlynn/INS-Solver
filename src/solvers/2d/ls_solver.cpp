@@ -40,20 +40,19 @@ void LevelSetAdvectionSolver2D::bc_kernel(op_dat val, op_dat u, op_dat v, op_dat
               op_arg_dat(out, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
 }
 
-void LevelSetAdvectionSolver2D::bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat uM, op_dat vM,
-                                             op_dat valM, op_dat valP) {
+void LevelSetAdvectionSolver2D::bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat flux) {
   op_par_loop(ls_advec_2d_oi_bc, "ls_advec_2d_oi_bc", mesh->bfaces,
               op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(u, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(v, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(uM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-              op_arg_dat(vM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-              op_arg_dat(valM, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-              op_arg_dat(valP, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));
+              op_arg_dat(flux, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_INC));
 }
 
 /************************

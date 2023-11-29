@@ -16,8 +16,7 @@ public:
 
 protected:
   virtual void bc_kernel(op_dat val, op_dat u, op_dat v, op_dat out) = 0;
-  virtual void bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat uM, op_dat vM, 
-                            op_dat valM, op_dat valP) = 0;
+  virtual void bc_kernel_oi(op_dat val, op_dat u, op_dat v, op_dat flux) = 0;
 
   DGMesh2D *mesh;
 

@@ -147,77 +147,29 @@ void AdvectionSolver3D::rhs_over_int(op_dat val, op_dat u, op_dat v, op_dat w, o
   dg_dat_pool->releaseTempDatCells(tmp_h);
   dg_dat_pool->releaseTempDatCells(val_interp);
 
-  DGTempDat tmp_mU = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-  DGTempDat tmp_mV = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-  DGTempDat tmp_mW = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-  DGTempDat tmp_mVal = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-  DGTempDat tmp_pVal = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-
-  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-              op_arg_dat(tmp_mU.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-              op_arg_dat(tmp_mV.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-              op_arg_dat(tmp_mW.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-              op_arg_dat(tmp_mVal.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-              op_arg_dat(tmp_pVal.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  DGTempDat tmp_flux_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
+  op_par_loop(zero_cub_surf_3d, "zero_cub_surf_3d", mesh->cells,
+              op_arg_dat(tmp_flux_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE));
 
   op_par_loop(advec_3d_oi_1, "advec_3d_oi_1", mesh->faces,
               op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
               op_arg_dat(mesh->fmaskR,  -1, OP_ID, DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->nx, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ny, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nz, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(u,   -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(v,   -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(w,   -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(val, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_mU.dat,   -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_mV.dat,   -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_mW.dat,   -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_mVal.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(tmp_pVal.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+              op_arg_dat(tmp_flux_cub.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE));
 
   if(mesh->bface2cells)
-    bc_kernel_oi(val, u, v, w, tmp_mU.dat, tmp_mV.dat, tmp_mW.dat, tmp_mVal.dat, tmp_pVal.dat);
+    bc_kernel_oi(val, u, v, w, tmp_flux_cub.dat);
 
-  DGTempDat tmp_mU_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
-  DGTempDat tmp_mV_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
-  DGTempDat tmp_mW_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
-  DGTempDat tmp_mVal_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
-  DGTempDat tmp_pVal_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
-
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_mU.dat, 0.0, tmp_mU_cub.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_mV.dat, 0.0, tmp_mV_cub.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_mW.dat, 0.0, tmp_mW_cub.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_mVal.dat, 0.0, tmp_mVal_cub.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, tmp_pVal.dat, 0.0, tmp_pVal_cub.dat);
-
-  dg_dat_pool->releaseTempDatCells(tmp_mU);
-  dg_dat_pool->releaseTempDatCells(tmp_mV);
-  dg_dat_pool->releaseTempDatCells(tmp_mW);
-  dg_dat_pool->releaseTempDatCells(tmp_mVal);
-  dg_dat_pool->releaseTempDatCells(tmp_pVal);
-
-  op_par_loop(advec_3d_oi_3, "advec_3d_oi_3", mesh->cells,
-              op_arg_dat(mesh->nx_c, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->ny_c, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->nz_c, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->sJ_c, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_mU_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_mV_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_mW_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_mVal_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_pVal_cub.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_RW));
-
-  op2_gemv(mesh, false, -1.0, DGConstants::CUBSURF3D_LIFT, tmp_pVal_cub.dat, 1.0, val_out);
-
-  dg_dat_pool->releaseTempDatCells(tmp_mU_cub);
-  dg_dat_pool->releaseTempDatCells(tmp_mV_cub);
-  dg_dat_pool->releaseTempDatCells(tmp_mW_cub);
-  dg_dat_pool->releaseTempDatCells(tmp_mVal_cub);
-  dg_dat_pool->releaseTempDatCells(tmp_pVal_cub);
+  op2_gemv(mesh, false, -1.0, DGConstants::CUBSURF3D_LIFT, tmp_flux_cub.dat, 1.0, val_out);
+  dg_dat_pool->releaseTempDatCells(tmp_flux_cub);
 }
 
 void AdvectionSolver3D::set_dt() {
