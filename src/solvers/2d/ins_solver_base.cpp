@@ -588,6 +588,8 @@ void INSSolverBase2D::advec_sub_cycle_rhs_over_int(op_dat u_in, op_dat v_in,
 
   dg_dat_pool->releaseTempDatCells(fU_cub);
   dg_dat_pool->releaseTempDatCells(fV_cub);
+  dg_dat_pool->releaseTempDatCells(advec_sc[0]);
+  dg_dat_pool->releaseTempDatCells(advec_sc[1]);
 }
 
 void INSSolverBase2D::advec_sub_cycle_rk_step(const DG_FP time_sc, op_dat u, op_dat v) {
