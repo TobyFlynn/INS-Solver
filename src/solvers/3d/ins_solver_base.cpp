@@ -1276,32 +1276,35 @@ void INSSolverBase3D::shock_capture(op_dat in0, op_dat in1, op_dat in2) {
 DG_FP INSSolverBase3D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat in2, op_dat out) {
  
   DGTempDat h_tmp = dg_dat_pool->requestTempDatCells(1);
-/*  
-  op_par_loop(calc_h_explicitly, "calc_h_explicitly", mesh->cells,
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
+
+  op_par_loop(calc_h_explicitly_3d, "calc_h_explicitly_3d", mesh->cells,
+              op_arg_dat(mesh->nodeX, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nodeY, -1, OP_ID, 4, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nodeZ, -1, OP_ID, 4, DG_FP_STR, OP_READ),
               op_arg_dat(h_tmp.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
-*/
+
   op_par_loop(reset_tmp_node_dats, "reset_tmp_node_dats", mesh->nodes,
               op_arg_dat(nodes_data, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
               op_arg_dat(nodes_count, -1, OP_ID, 1, "int", OP_WRITE));
 
   zero_dat(out);
-/*
-  op_par_loop(ins_2d_shock_cap_art_vis_0, "ins_2d_shock_cap_art_vis_0", mesh->faces,
-              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+
+  op_par_loop(ins_3d_shock_cap_art_vis_0, "ins_3d_shock_cap_art_vis_0", mesh->faces,
+              op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->fmaskR,  -1, OP_ID, DG_NPF, "int", OP_READ),
               op_arg_dat(mesh->nx,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->ny,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nz,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sJ,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->fscale,  -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(h_tmp.dat, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->node_coords, -2, mesh->face2nodes, 2, DG_FP_STR, OP_READ),
               op_arg_dat(in0, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in1, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(nodes_data, -2, mesh->face2nodes, 1, DG_FP_STR, OP_INC),
-              op_arg_dat(nodes_count, -2, mesh->face2nodes, 1, "int", OP_INC));
-*/
+              op_arg_dat(in2, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(nodes_data, -3, mesh->face2nodes, 1, DG_FP_STR, OP_INC),
+              op_arg_dat(nodes_count, -3, mesh->face2nodes, 1, "int", OP_INC));
+
   DG_FP max_vis = -1.0;
   op_par_loop(ins_3d_shock_cap_art_vis_1, "ins_3d_shock_cap_art_vis_1", mesh->cells,
               op_arg_gbl(&max_vis, 1, DG_FP_STR, OP_MAX),
