@@ -6,6 +6,8 @@
 #include "dg_mesh/dg_mesh_3d.h"
 #include "dg_dat_pool.h"
 
+#include "solvers/3d/diffusion_solver.h"
+
 #include <string>
 #include <set>
 
@@ -48,6 +50,7 @@ protected:
   void project_velocity(op_dat dpdx, op_dat dpdy, op_dat dpdz);
   DG_FP max_vel();
   void add_to_pr_history();
+  void shock_capture(op_dat in0, op_dat in1, op_dat in2);
   void filter(op_dat in);
   void zero_dat(op_dat dat);
   void update_time();
@@ -57,8 +60,7 @@ protected:
   op_dat vel[2][3], velT[3], velTT[3], pr, n[2][3], dPdN[2], bc_types, proj_h;
 
   DGMesh3D *mesh;
-  bool extrapolate_initial_guess;
-  bool over_int_advec, filter_advec;
+  bool extrapolate_initial_guess, over_int_advec, filter_advec, shock_capturing;
   int it_pre_sub_cycle, pr_projection_method;
   std::vector<std::pair<DG_FP,DGTempDat>> pr_history;
   std::set<std::string> values_to_save;
@@ -70,6 +72,11 @@ protected:
 private:
   void read_options();
   void init_dats();
+  DG_FP shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat in2, op_dat out);
+
+  DG_FP shock_cap_max_diff, shock_cap_smooth_tol, shock_cap_discon_tol;
+  op_dat nodes_data, nodes_count, shock_cap_art_vis;
+  DiffusionSolver3D *diffSolver;
 };
 
 #endif
