@@ -183,6 +183,7 @@ MPI_2D_OBJ := solvers/2d/ls_utils/kd_tree_mpi.o
 # 3D Common object files
 COMMON_3D_OBJ := ins3d_op.o \
 	solvers_op/3d/advection_solver_op.o \
+	solvers_op/3d/diffusion_solver_op.o \
   solvers_op/3d/ins_solver_base_op.o \
   solvers_op/3d/ins_solver_op.o \
   solvers_op/3d/ls_solver_op.o \
