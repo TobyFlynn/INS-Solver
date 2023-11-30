@@ -42,15 +42,36 @@ inline void ins_2d_shock_cap_art_vis_0(const int *faceNum, const bool *reverse,
     }
   }
 
+  DG_FP marker[DG_NPF];
+  DG_FP lengthL = 0.0;
+  for(int i = 0; i < DG_NPF; i++) {
+    const int fmask_ind = fmaskL[i];
+    const DG_FP tmp = nx[0] * u[0][fmask_ind] + ny[0] * v[0][fmask_ind];
+    marker[i] = tmp < 0.0 ? 1.0 : 0.0;
+    lengthL += marker[i] * w_L[i];
+  }
+  lengthL *= sJ[0];
+  
+
   DG_FP disSenU_L = 0.0;
   DG_FP disSenV_L = 0.0;
   for(int i = 0; i < DG_NPF; i++) {
     const int fmaskL_ind = fmaskL[i];
     const int fmaskR_ind = rev ? fmaskR[DG_NPF - i - 1] : fmaskR[i];
-
-    disSenU_L += w_L[i] * (u[0][fmaskL_ind] - u[1][fmaskR_ind]);
-    disSenV_L += w_L[i] * (v[0][fmaskL_ind] - v[1][fmaskR_ind]);
+    if(marker[i] == 1.0) {
+      disSenU_L += w_L[i] * (u[0][fmaskL_ind] - u[1][fmaskR_ind]);
+      disSenV_L += w_L[i] * (v[0][fmaskL_ind] - v[1][fmaskR_ind]);
+    }
   }
+
+  DG_FP lengthR = 0.0;
+  for(int i = 0; i < DG_NPF; i++) {
+    const int fmask_ind = fmaskR[i];
+    const DG_FP tmp = nx[1] * u[1][fmask_ind] + ny[1] * v[1][fmask_ind];
+    marker[i] = tmp < 0.0 ? 1.0 : 0.0;
+    lengthR += marker[i] * w_R[i];
+  }
+  lengthR *= sJ[1];
 
   DG_FP disSenU_R = 0.0;
   DG_FP disSenV_R = 0.0;
@@ -58,18 +79,20 @@ inline void ins_2d_shock_cap_art_vis_0(const int *faceNum, const bool *reverse,
     const int fmaskR_ind = fmaskR[i];
     const int fmaskL_ind = rev ? fmaskL[DG_NPF - i - 1] : fmaskL[i];
 
-    disSenU_R += w_R[i] * (u[1][fmaskR_ind] - u[0][fmaskL_ind]);
-    disSenV_R += w_R[i] * (v[1][fmaskR_ind] - v[0][fmaskL_ind]);
+    if(marker[i] == 1.0) {
+      disSenU_R += w_R[i] * (u[1][fmaskR_ind] - u[0][fmaskL_ind]);
+      disSenV_R += w_R[i] * (v[1][fmaskR_ind] - v[0][fmaskL_ind]);
+    }
   }
 
-  DG_FP x_diff = node_coords[0][0] - node_coords[1][0];
-  DG_FP y_diff = node_coords[0][1] - node_coords[1][1];
-  DG_FP edge_size = sqrt(x_diff * x_diff + y_diff * y_diff);
+  // DG_FP x_diff = node_coords[0][0] - node_coords[1][0];
+  // DG_FP y_diff = node_coords[0][1] - node_coords[1][1];
+  // DG_FP edge_size = sqrt(x_diff * x_diff + y_diff * y_diff);
   DG_FP pow_order = (DG_ORDER + 1.0) / 2.0;
-  disSenU_L = fabs(disSenU_L * sJ[0] / (edge_size * maxVelU_L * pow(h[0][0], pow_order)));
-  disSenV_L = fabs(disSenV_L * sJ[0] / (edge_size * maxVelV_L * pow(h[0][0], pow_order)));
-  disSenU_R = fabs(disSenU_R * sJ[1] / (edge_size * maxVelU_R * pow(h[1][0], pow_order)));
-  disSenV_R = fabs(disSenV_R * sJ[1] / (edge_size * maxVelV_R * pow(h[1][0], pow_order)));
+  disSenU_L = lengthL < 1e-10 ? 0.0 : fabs(disSenU_L * sJ[0] / (lengthL * maxVelU_L * pow(h[0][0], pow_order)));
+  disSenV_L = lengthL < 1e-10 ? 0.0 : fabs(disSenV_L * sJ[0] / (lengthL * maxVelV_L * pow(h[0][0], pow_order)));
+  disSenU_R = lengthR < 1e-10 ? 0.0 : fabs(disSenU_R * sJ[1] / (lengthR * maxVelU_R * pow(h[1][0], pow_order)));
+  disSenV_R = lengthR < 1e-10 ? 0.0 : fabs(disSenV_R * sJ[1] / (lengthR * maxVelV_R * pow(h[1][0], pow_order)));
   // disSenU_L = fabs(disSenU_L * sJ[0] / (edge_size * maxVelU_L));
   // disSenV_L = fabs(disSenV_L * sJ[0] / (edge_size * maxVelV_L));
   // disSenU_R = fabs(disSenU_R * sJ[1] / (edge_size * maxVelU_R));
