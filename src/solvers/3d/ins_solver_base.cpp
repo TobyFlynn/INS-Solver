@@ -76,7 +76,7 @@ void INSSolverBase3D::read_options() {
   std::string save_tmp = "all";
   config->getStr("io", "values_to_save", save_tmp);
   if(save_tmp == "all")
-    save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set";
+    save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set,shock_cap_art_vis";
   std::stringstream tmp_ss(save_tmp);
   std::string val_str;
   while(std::getline(tmp_ss, val_str, ',')) {
@@ -1404,6 +1404,10 @@ void INSSolverBase3D::dump_visualisation_data(const std::string &filename) {
 
   if(values_to_save.count("pressure") != 0) {
     op_fetch_data_hdf5_file(pr, filename.c_str());
+  }
+
+  if(values_to_save.count("shock_cap_art_vis") != 0 && shock_capturing) {
+    op_fetch_data_hdf5_file(shock_cap_art_vis, filename.c_str());
   }
 }
 
