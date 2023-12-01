@@ -439,6 +439,43 @@ void INSSolverBase3D::advec_standard() {
               op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 }
 
+void INSSolverBase3D::advec_standard(op_dat fx, op_dat fy, op_dat fz, op_dat fx_old, op_dat fy_old, op_dat fz_old) {
+  if(over_int_advec) {
+    advec_current_non_linear_over_int();
+  } else {
+    advec_current_non_linear();
+  }
+
+  // Calculate the intermediate velocity values
+  op_par_loop(ins_3d_advec_3_force, "ins_3d_advec_3_force", mesh->cells,
+              op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fx_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fy_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fz_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+}
+
 void INSSolverBase3D::advec_sub_cycle_rk_step(const DG_FP time_sc, const DG_FP rk_dt, op_dat u, op_dat v, op_dat w) {
   timer->startTimer("INSSolverBase3D - RK");
   // Request temporary dats
@@ -592,6 +629,24 @@ void INSSolverBase3D::advec_sub_cycle() {
   } else {
     advec_current_non_linear();
   }
+}
+
+void INSSolverBase3D::advec_sub_cycle(op_dat fx, op_dat fy, op_dat fz, op_dat fx_old, op_dat fy_old, op_dat fz_old) {
+  advec_sub_cycle();
+
+  op_par_loop(ins_3d_advec_sc_force, "ins_3d_advec_sc_force", mesh->cells,
+              op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(fx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fx_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fy_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fz_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 }
 
 void INSSolverBase3D::advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,

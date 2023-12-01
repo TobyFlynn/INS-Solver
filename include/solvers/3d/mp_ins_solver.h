@@ -43,6 +43,9 @@ private:
   void viscosity();
   void surface();
 
+  void surface_tension_grad(op_dat dx, op_dat dy, op_dat dz);
+  void surface_tension_curvature(op_dat curv);
+
   FactorPoissonCoarseMatrix3D *coarsePressureMatrix;
   // FactorPoissonSemiMatrixFree3D *pressureMatrix;
   // FactorPoissonMatrixFreeDiag3D *pressureMatrix;
@@ -56,12 +59,12 @@ private:
   PETScJacobiSolver *viscositySolver;
   LevelSetSolver3D *lsSolver;
   DG_FP reynolds;
-  bool resuming;
+  bool resuming, surface_tension;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;
   op_dat vis_bc_types, vis_bc;
-  op_dat art_vis;
+  op_dat art_vis, st[2][3];
 };
 
 #endif

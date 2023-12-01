@@ -37,7 +37,9 @@ protected:
   void advec_current_non_linear();
   void advec_current_non_linear_over_int();
   void advec_standard();
+  void advec_standard(op_dat fx, op_dat fy, op_dat fz, op_dat fx_old, op_dat fy_old, op_dat fz_old);
   void advec_sub_cycle();
+  void advec_sub_cycle(op_dat fx, op_dat fy, op_dat fz, op_dat fx_old, op_dat fy_old, op_dat fz_old);
   void advec_sub_cycle_rhs(op_dat u_in, op_dat v_in, op_dat w_in,
                            op_dat u_out, op_dat v_out, op_dat w_out,
                            const double t);

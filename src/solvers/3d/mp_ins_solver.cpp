@@ -64,6 +64,10 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int
 }
 
 void MPINSSolver3D::setup_common() {
+  int tmp_st = 0;
+  config->getInt("solver-options", "surface_tension", tmp_st);
+  surface_tension = tmp_st == 1;
+
   coarsePressureMatrix = new FactorPoissonCoarseMatrix3D(mesh);
   // pressureMatrix = new FactorPoissonSemiMatrixFree3D(mesh);
   // pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh);
@@ -91,6 +95,15 @@ void MPINSSolver3D::setup_common() {
   tmp_npf_bc = op_decl_dat(mesh->bfaces, DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_tmp_npf_bc");
   tmp_bc_1 = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_tmp_bc_1");
   art_vis  = op_decl_dat(mesh->cells, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_art_vis");
+
+  if(surface_tension) {
+    st[0][0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st00");
+    st[0][1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st01");
+    st[0][2] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st02");
+    st[1][0] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st10");
+    st[1][1] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st11");
+    st[1][2] = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_st12");
+  }
 
   pr_bc_types  = tmp_bc_1;
   vis_bc_types = tmp_bc_1;
@@ -157,6 +170,15 @@ void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
     zero_dat(n[1][0]);
     zero_dat(n[1][1]);
     zero_dat(n[1][2]);
+
+    if(surface_tension) {
+      zero_dat(st[0][0]);
+      zero_dat(st[0][1]);
+      zero_dat(st[0][2]);
+      zero_dat(st[1][0]);
+      zero_dat(st[1][1]);
+      zero_dat(st[1][2]);
+    }
   }
 
   pressureSolver->init();
@@ -207,11 +229,147 @@ void MPINSSolver3D::step() {
   }
 }
 
+void MPINSSolver3D::surface_tension_grad(op_dat dx, op_dat dy, op_dat dz) {
+  // grad heaviside
+  DGTempDat st_tmp_0 = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, lsSolver->s, 0.0, st_tmp_0.dat);
+
+  op_par_loop(ins_3d_st_0, "ins_3d_st_0", mesh->cells,
+              op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(st_tmp_0.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PDR, st_tmp_0.dat, 0.0, dx);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PDS, st_tmp_0.dat, 0.0, dy);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PDT, st_tmp_0.dat, 0.0, dz);
+
+  dg_dat_pool->releaseTempDatCells(st_tmp_0);
+
+  op_par_loop(ins_3d_st_1, "ins_3d_st_1", mesh->cells,
+              op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
+              op_arg_dat(dx, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(dy, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(dz, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  DGTempDat fX_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
+  DGTempDat fY_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
+  DGTempDat fZ_cub = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
+
+  zero_dat(fX_cub.dat);
+  zero_dat(fY_cub.dat);
+  zero_dat(fZ_cub.dat);
+
+  op_par_loop(ins_3d_st_2, "ins_3d_st_2", mesh->faces,
+              op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->fmaskR,  -1, OP_ID, DG_NPF, "int", OP_READ),
+              op_arg_dat(mesh->nx, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ny, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->nz, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(lsSolver->s, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(fX_cub.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(fY_cub.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(fZ_cub.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE));
+
+  if(mesh->bface2cells) {
+    op_par_loop(ins_3d_st_3, "ins_3d_st_3", mesh->bfaces,
+                op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bnz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(lsSolver->s, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fX_cub.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_INC),
+                op_arg_dat(fY_cub.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_INC),
+                op_arg_dat(fZ_cub.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_INC));
+  }
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, fX_cub.dat, -1.0, dx);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, fY_cub.dat, -1.0, dy);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_LIFT, fZ_cub.dat, -1.0, dz);
+
+  dg_dat_pool->releaseTempDatCells(fX_cub);
+  dg_dat_pool->releaseTempDatCells(fY_cub);
+  dg_dat_pool->releaseTempDatCells(fZ_cub);
+}
+
+void MPINSSolver3D::surface_tension_curvature(op_dat curv) {
+  DGTempDat tmp_normal_x  = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat tmp_normal_y  = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat tmp_normal_z  = dg_dat_pool->requestTempDatCells(DG_NP);
+  mesh->grad_with_central_flux(lsSolver->s, tmp_normal_x.dat, tmp_normal_y.dat, tmp_normal_z.dat);
+
+  // Unit normals
+  op_par_loop(ins_3d_st_4, "ins_3d_st_4", mesh->cells,
+              op_arg_dat(tmp_normal_x.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(tmp_normal_y.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(tmp_normal_z.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  mesh->div_with_central_flux(tmp_normal_x.dat, tmp_normal_y.dat, tmp_normal_z.dat, curv);
+
+  // TODO Curvature correction
+
+  dg_dat_pool->releaseTempDatCells(tmp_normal_x);
+  dg_dat_pool->releaseTempDatCells(tmp_normal_y);
+  dg_dat_pool->releaseTempDatCells(tmp_normal_z);
+}
+
 void MPINSSolver3D::advection() {
+  if(surface_tension) {
+    // Calculate surface tension
+    // grad heaviside
+    surface_tension_grad(st[currentInd][0], st[currentInd][1], st[currentInd][2]);
+
+    // Calculate curvature
+    DGTempDat tmp_curvature = dg_dat_pool->requestTempDatCells(DG_NP);
+    surface_tension_curvature(tmp_curvature.dat);
+    DGTempDat rho_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+    lsSolver->getRhoVolOI(rho_oi.dat);
+    DGTempDat curv_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, tmp_curvature.dat, 0.0, curv_oi.dat);
+    dg_dat_pool->releaseTempDatCells(tmp_curvature);
+    DGTempDat stx_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+    DGTempDat sty_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+    DGTempDat stz_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, st[currentInd][0], 0.0, stx_oi.dat);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, st[currentInd][1], 0.0, sty_oi.dat);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, st[currentInd][2], 0.0, stz_oi.dat);
+
+    op_par_loop(ins_3d_st_5, "ins_3d_st_5", mesh->cells,
+                op_arg_dat(curv_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(rho_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(stx_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(sty_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(stz_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
+
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, stx_oi.dat, 0.0, st[currentInd][0]);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, sty_oi.dat, 0.0, st[currentInd][1]);
+    op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, stz_oi.dat, 0.0, st[currentInd][2]);
+
+    dg_dat_pool->releaseTempDatCells(curv_oi);
+    dg_dat_pool->releaseTempDatCells(rho_oi);
+    dg_dat_pool->releaseTempDatCells(stx_oi);
+    dg_dat_pool->releaseTempDatCells(sty_oi);
+    dg_dat_pool->releaseTempDatCells(stz_oi);
+  }
+
   if(time == 0.0 || sub_cycles < 1 || it_pre_sub_cycle != 0) {
-    advec_standard();
+    if(surface_tension)
+      advec_standard(st[currentInd][0], st[currentInd][1], st[currentInd][2],
+                     st[(currentInd + 1) % 2][0], st[(currentInd + 1) % 2][1],
+                     st[(currentInd + 1) % 2][2]);
+    else
+      advec_standard();
   } else {
-    advec_sub_cycle();
+    if(surface_tension)
+      advec_sub_cycle(st[currentInd][0], st[currentInd][1], st[currentInd][2],
+                      st[(currentInd + 1) % 2][0], st[(currentInd + 1) % 2][1],
+                      st[(currentInd + 1) % 2][2]);
+    else
+      advec_sub_cycle();
   }
 }
 
@@ -339,12 +497,34 @@ void MPINSSolver3D::pressure() {
   DGTempDat dpdy = dg_dat_pool->requestTempDatCells(DG_NP);
   DGTempDat dpdz = dg_dat_pool->requestTempDatCells(DG_NP);
   mesh->grad_with_central_flux(pr, dpdx.dat, dpdy.dat, dpdz.dat);
-
+/*
   op_par_loop(mp_ins_3d_pr_2, "mp_ins_3d_pr_2", mesh->cells,
               op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(dpdz.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+*/
+
+  DGTempDat dpdx_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  DGTempDat dpdy_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  DGTempDat dpdz_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, dpdx.dat, 0.0, dpdx_oi.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, dpdy.dat, 0.0, dpdy_oi.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, dpdz.dat, 0.0, dpdz_oi.dat);
+
+  op_par_loop(mp_ins_3d_pr_2_oi, "mp_ins_3d_pr_2_oi", mesh->cells,
+              op_arg_dat(pr_factor_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dpdx_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(dpdy_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(dpdz_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, dpdx_oi.dat, 0.0, dpdx.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, dpdy_oi.dat, 0.0, dpdy.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, dpdz_oi.dat, 0.0, dpdz.dat);
+
+  dg_dat_pool->releaseTempDatCells(pr_factor_oi);
+  dg_dat_pool->releaseTempDatCells(dpdx_oi);
+  dg_dat_pool->releaseTempDatCells(dpdy_oi);
 
   dg_dat_pool->releaseTempDatCells(pr_factor_oi);
 
@@ -492,6 +672,12 @@ void MPINSSolver3D::dump_checkpoint_data(const std::string &filename) {
 
 void MPINSSolver3D::dump_visualisation_data(const std::string &filename) {
   INSSolverBase3D::dump_visualisation_data(filename);
+
+  if(values_to_save.count("surface_tension") != 0 && surface_tension) {
+    op_fetch_data_hdf5_file(st[(currentInd + 1) % 2][0], filename.c_str());
+    op_fetch_data_hdf5_file(st[(currentInd + 1) % 2][1], filename.c_str());
+    op_fetch_data_hdf5_file(st[(currentInd + 1) % 2][2], filename.c_str());
+  }
 
   if(values_to_save.count("mu") != 0) {
     op_fetch_data_hdf5_file(mu, filename.c_str());
