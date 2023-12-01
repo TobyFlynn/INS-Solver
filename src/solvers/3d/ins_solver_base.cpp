@@ -151,6 +151,7 @@ void INSSolverBase3D::init(const DG_FP re, const DG_FP refVel) {
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
   h = 1.0 / h;
+  shock_cap_max_diff *= h;
   op_printf("h: %g\n", h);
 
   // Set up pressure projection
@@ -1274,7 +1275,7 @@ void INSSolverBase3D::shock_capture(op_dat in0, op_dat in1, op_dat in2) {
 }
 
 DG_FP INSSolverBase3D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat in2, op_dat out) {
- 
+
   DGTempDat h_tmp = dg_dat_pool->requestTempDatCells(1);
 
   op_par_loop(calc_h_explicitly_3d, "calc_h_explicitly_3d", mesh->cells,
