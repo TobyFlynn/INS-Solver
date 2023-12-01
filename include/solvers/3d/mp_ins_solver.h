@@ -11,6 +11,7 @@
 #include "dg_matrices/3d/factor_poisson_coarse_matrix_3d.h"
 #include "dg_matrices/3d/factor_poisson_semi_matrix_free_3d.h"
 #include "dg_matrices/3d/factor_poisson_matrix_free_diag_3d.h"
+#include "dg_matrices/3d/factor_poisson_matrix_free_diag_oi_3d.h"
 #include "dg_matrices/3d/factor_mm_poisson_matrix_3d.h"
 #include "dg_matrices/3d/factor_mm_poisson_matrix_free_3d.h"
 #include "dg_matrices/3d/factor_mm_poisson_semi_matrix_free_3d.h"
@@ -44,7 +45,8 @@ private:
 
   FactorPoissonCoarseMatrix3D *coarsePressureMatrix;
   // FactorPoissonSemiMatrixFree3D *pressureMatrix;
-  FactorPoissonMatrixFreeDiag3D *pressureMatrix;
+  // FactorPoissonMatrixFreeDiag3D *pressureMatrix;
+  FactorPoissonMatrixFreeDiagOI3D *pressureMatrix;
   // FactorMMPoissonMatrix3D *viscosityMatrix;
   // FactorMMPoissonSemiMatrixFree3D *viscosityMatrix;
   FactorMMPoissonMatrixFreeDiag3D *viscosityMatrix;

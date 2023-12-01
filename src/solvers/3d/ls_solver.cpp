@@ -145,6 +145,39 @@ void LevelSetSolver3D::getRhoMu(op_dat rho, op_dat mu) {
   timer->endTimer("LevelSetSolver3D - getRhoMu");
 }
 
+void LevelSetSolver3D::getRhoVolOI(op_dat rho) {
+  timer->startTimer("LevelSetSolver3D - getRhoVolOI");
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, s, 0.0, rho);
+  op_par_loop(ls_3d_step_rho_vol_oi, "ls_3d_step_rho_vol_oi", mesh->cells,
+              op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
+  timer->endTimer("LevelSetSolver3D - getRhoVolOI");
+}
+
+void LevelSetSolver3D::getMuVolOI(op_dat mu) {
+  timer->startTimer("LevelSetSolver3D - getMuVolOI");
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, s, 0.0, mu);
+  op_par_loop(ls_3d_step_mu_vol_oi, "ls_3d_step_mu_vol_oi", mesh->cells,
+              op_arg_gbl(&alpha,  1, DG_FP_STR, OP_READ),
+              op_arg_dat(mu, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
+  timer->endTimer("LevelSetSolver3D - getMuVolOI");
+}
+
+void LevelSetSolver3D::getRhoSurfOI(op_dat rho) {
+  timer->startTimer("LevelSetSolver3D - getRhoSurfOI");
+  DGTempDat rho_tmp = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  op_par_loop(ls_step_surf_oi_0, "ls_step_surf_oi_0", mesh->cells,
+              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rho_tmp.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF3D_INTERP, rho_tmp.dat, 0.0, rho);
+  dg_dat_pool->releaseTempDatCells(rho_tmp);
+  op_par_loop(ls_3d_step_surf_oi_1, "ls_3d_step_surf_oi_1", mesh->cells,
+              op_arg_gbl(&alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_RW));
+  timer->endTimer("LevelSetSolver3D - getRhoSurfOI");
+}
+
 void LevelSetSolver3D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_dat curv) {
   // Assume | grad s | is approx 1 so this is sufficient for getting normals
   timer->startTimer("LevelSetSolver3D - getNormalsCurvature");

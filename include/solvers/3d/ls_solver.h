@@ -34,6 +34,9 @@ public:
   void set_bc_types(op_dat bc);
   void step(op_dat u, op_dat v, op_dat w, const DG_FP dt, const int num_steps);
   void getRhoMu(op_dat rho, op_dat mu);
+  void getRhoVolOI(op_dat rho);
+  void getMuVolOI(op_dat mu);
+  void getRhoSurfOI(op_dat rho);
   void getNormalsCurvature(op_dat nx, op_dat ny, op_dat nz, op_dat curv);
 
   DGMesh3D *mesh;

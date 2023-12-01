@@ -66,7 +66,8 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int
 void MPINSSolver3D::setup_common() {
   coarsePressureMatrix = new FactorPoissonCoarseMatrix3D(mesh);
   // pressureMatrix = new FactorPoissonSemiMatrixFree3D(mesh);
-  pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh);
+  // pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh);
+  pressureMatrix = new FactorPoissonMatrixFreeDiagOI3D(mesh);
   // viscosityMatrix = new FactorMMPoissonSemiMatrixFree3D(mesh);
   viscosityMatrix = new FactorMMPoissonMatrixFreeDiag3D(mesh);
   // pressureSolver = new PETScAMGSolver(mesh);
@@ -268,17 +269,13 @@ void MPINSSolver3D::pressure() {
   dg_dat_pool->releaseTempDatCells(curl2Vel[1]);
   dg_dat_pool->releaseTempDatCells(curl2Vel[2]);
 
-  DGTempDat pr_factor = dg_dat_pool->requestTempDatCells(DG_NP);
-
   op_par_loop(mp_ins_3d_pr_1, "mp_ins_3d_pr_1", mesh->cells,
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[currentInd], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_RW),
-              op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(pr_factor.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+              op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT.dat);
   mesh->mass(divVelT.dat);
@@ -295,7 +292,22 @@ void MPINSSolver3D::pressure() {
                 op_arg_dat(pr_bc, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
 
+  DGTempDat pr_factor_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  lsSolver->getRhoVolOI(pr_factor_oi.dat);
+  op_par_loop(mp_ins_3d_pr_fact_oi_0, "mp_ins_3d_pr_fact_oi_0", mesh->cells,
+              op_arg_dat(pr_factor_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
+
+  DGTempDat pr_factor_surf_oi = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
+  lsSolver->getRhoSurfOI(pr_factor_surf_oi.dat);
+  op_par_loop(mp_ins_3d_pr_fact_oi_1, "mp_ins_3d_pr_fact_oi_1", mesh->cells,
+              op_arg_dat(pr_factor_surf_oi.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_RW));
+
+  DGTempDat pr_factor = dg_dat_pool->requestTempDatCells(DG_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, pr_factor_oi.dat, 0.0, pr_factor.dat);
+
   timer->startTimer("MPINSSolver3D - Pressure Linear Solve");
+  pressureMatrix->mat_free_set_factor_oi(pr_factor_oi.dat);
+  pressureMatrix->mat_free_set_factor_surf_oi(pr_factor_surf_oi.dat);
   pressureMatrix->set_factor(pr_factor.dat);
   coarsePressureMatrix->set_factor(pr_factor.dat);
   pressureMatrix->set_bc_types(pr_bc_types);
@@ -310,6 +322,8 @@ void MPINSSolver3D::pressure() {
   bool converged = pressureSolver->solve(divVelT.dat, pr);
   if(!converged)
     throw std::runtime_error("\nPressure solve failed to converge\n");
+
+  dg_dat_pool->releaseTempDatCells(pr_factor_surf_oi);
 
   if(extrapolate_initial_guess)
     add_to_pr_history();
@@ -331,6 +345,8 @@ void MPINSSolver3D::pressure() {
               op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(dpdz.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  dg_dat_pool->releaseTempDatCells(pr_factor_oi);
 
   project_velocity(dpdx.dat, dpdy.dat, dpdz.dat);
 
