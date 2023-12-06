@@ -15,7 +15,7 @@ class INSSolverBase3D {
 public:
   INSSolverBase3D(DGMesh3D *m);
   INSSolverBase3D(DGMesh3D *m, const std::string &filename);
-  ~INSSolverBase3D();
+  virtual ~INSSolverBase3D();
 
   virtual void init(const DG_FP re, const DG_FP refVel);
   virtual void step() = 0;
