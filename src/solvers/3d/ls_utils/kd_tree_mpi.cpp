@@ -265,7 +265,7 @@ void KDTree3DMPI::build_tree(const DG_FP *x, const DG_FP *y,
   MPI_Reduce(&num_ranks, &min_ranks, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
   MPI_Reduce(&num_ranks, &max_ranks, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
 
-  op_printf("min n: %d max n: %d\n", min_n, max_n);
-  op_printf("min pol: %d max pol: %d\n", min_pol, max_pol);
-  op_printf("min ranks: %d max ranks: %d\n", min_ranks, max_ranks);
+  // op_printf("min n: %d max n: %d\n", min_n, max_n);
+  // op_printf("min pol: %d max pol: %d\n", min_pol, max_pol);
+  // op_printf("min ranks: %d max ranks: %d\n", min_ranks, max_ranks);
 }

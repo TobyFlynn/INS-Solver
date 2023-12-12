@@ -27,8 +27,7 @@ inline void mp_ins_3d_pr_0(const DG_FP *t, const int *bc_type, const int *faceNu
         DG_FP bc_neumann = ps3d_custom_bc_get_pr_neumann_multiphase(*bc_type, *t, x[fmask_ind], y[fmask_ind],
                               z[fmask_ind], *nx, *ny, *nz, n0[fmask_ind], n1[fmask_ind], n2[fmask_ind],
                               curl20[fmask_ind], curl21[fmask_ind], curl22[fmask_ind], r_ynolds, rho[fmask_ind]);
-        const int find = *faceNum * DG_NPF + i;
-        dPdN[find] += *fscale * bc_neumann;
+        dPdN[fInd + i] += *fscale * bc_neumann;
       }
     }
   }

@@ -82,6 +82,7 @@ void set_sample_start_coords(DG_FP *r, DG_FP *s, DG_FP *t) {
 }
 */
 
+template<int NUM_PER_LINE>
 void set_sample_start_coords(DG_FP *r, DG_FP *s, DG_FP *t) {
   DG_FP node0[] = {-1, -1, -1};
   DG_FP node1[] = {1, -1, -1};
@@ -97,49 +98,48 @@ void set_sample_start_coords(DG_FP *r, DG_FP *s, DG_FP *t) {
   t[0] = t_c;
 
   // Line from centre to node0
-  r[1] = (1.0 / 3.0) * (node0[0] - r_c) + r_c;
-  s[1] = (1.0 / 3.0) * (node0[1] - s_c) + s_c;
-  t[1] = (1.0 / 3.0) * (node0[2] - t_c) + t_c;
-  r[2] = (2.0 / 3.0) * (node0[0] - r_c) + r_c;
-  s[2] = (2.0 / 3.0) * (node0[1] - s_c) + s_c;
-  t[2] = (2.0 / 3.0) * (node0[2] - t_c) + t_c;
+  for(int i = 1; i < NUM_PER_LINE; i++) {
+    const DG_FP frac = (DG_FP)i / (DG_FP)NUM_PER_LINE;
+    r[i] = frac * (node0[0] - r_c) + r_c;
+    s[i] = frac * (node0[1] - s_c) + s_c;
+    t[i] = frac * (node0[2] - t_c) + t_c;
+  }
+  r[NUM_PER_LINE] = node0[0];
+  s[NUM_PER_LINE] = node0[1];
+  t[NUM_PER_LINE] = node0[2];
 
   // Line from centre to node1
-  r[3] = (1.0 / 3.0) * (node1[0] - r_c) + r_c;
-  s[3] = (1.0 / 3.0) * (node1[1] - s_c) + s_c;
-  t[3] = (1.0 / 3.0) * (node1[2] - t_c) + t_c;
-  r[4] = (2.0 / 3.0) * (node1[0] - r_c) + r_c;
-  s[4] = (2.0 / 3.0) * (node1[1] - s_c) + s_c;
-  t[4] = (2.0 / 3.0) * (node1[2] - t_c) + t_c;
+  for(int i = 1; i < NUM_PER_LINE; i++) {
+    const DG_FP frac = (DG_FP)i / (DG_FP)NUM_PER_LINE;
+    r[NUM_PER_LINE + i] = frac * (node1[0] - r_c) + r_c;
+    s[NUM_PER_LINE + i] = frac * (node1[1] - s_c) + s_c;
+    t[NUM_PER_LINE + i] = frac * (node1[2] - t_c) + t_c;
+  }
+  r[2 * NUM_PER_LINE] = node1[0];
+  s[2 * NUM_PER_LINE] = node1[1];
+  t[2 * NUM_PER_LINE] = node1[2];
 
   // Line from centre to node2
-  r[5] = (1.0 / 3.0) * (node2[0] - r_c) + r_c;
-  s[5] = (1.0 / 3.0) * (node2[1] - s_c) + s_c;
-  t[5] = (1.0 / 3.0) * (node2[2] - t_c) + t_c;
-  r[6] = (2.0 / 3.0) * (node2[0] - r_c) + r_c;
-  s[6] = (2.0 / 3.0) * (node2[1] - s_c) + s_c;
-  t[6] = (2.0 / 3.0) * (node2[2] - t_c) + t_c;
+  for(int i = 1; i < NUM_PER_LINE; i++) {
+    const DG_FP frac = (DG_FP)i / (DG_FP)NUM_PER_LINE;
+    r[2 * NUM_PER_LINE + i] = frac * (node2[0] - r_c) + r_c;
+    s[2 * NUM_PER_LINE + i] = frac * (node2[1] - s_c) + s_c;
+    t[2 * NUM_PER_LINE + i] = frac * (node2[2] - t_c) + t_c;
+  }
+  r[3 * NUM_PER_LINE] = node2[0];
+  s[3 * NUM_PER_LINE] = node2[1];
+  t[3 * NUM_PER_LINE] = node2[2];
 
   // Line from centre to node3
-  r[7] = (1.0 / 3.0) * (node3[0] - r_c) + r_c;
-  s[7] = (1.0 / 3.0) * (node3[1] - s_c) + s_c;
-  t[7] = (1.0 / 3.0) * (node3[2] - t_c) + t_c;
-  r[8] = (2.0 / 3.0) * (node3[0] - r_c) + r_c;
-  s[8] = (2.0 / 3.0) * (node3[1] - s_c) + s_c;
-  t[8] = (2.0 / 3.0) * (node3[2] - t_c) + t_c;
-
-  r[9] = node0[0];
-  s[9] = node0[1];
-  t[9] = node0[2];
-  r[10] = node1[0];
-  s[10] = node1[1];
-  t[10] = node1[2];
-  r[11] = node2[0];
-  s[11] = node2[1];
-  t[11] = node2[2];
-  r[12] = node3[0];
-  s[12] = node3[1];
-  t[12] = node3[2];
+  for(int i = 1; i < NUM_PER_LINE; i++) {
+    const DG_FP frac = (DG_FP)i / (DG_FP)NUM_PER_LINE;
+    r[3 * NUM_PER_LINE + i] = frac * (node3[0] - r_c) + r_c;
+    s[3 * NUM_PER_LINE + i] = frac * (node3[1] - s_c) + s_c;
+    t[3 * NUM_PER_LINE + i] = frac * (node3[2] - t_c) + t_c;
+  }
+  r[4 * NUM_PER_LINE] = node3[0];
+  s[4 * NUM_PER_LINE] = node3[1];
+  t[4 * NUM_PER_LINE] = node3[2];
 }
 
 void intersect_3pts(const DG_FP *s, const DG_FP *nodeX, const DG_FP *nodeY,
@@ -393,7 +393,7 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
               std::vector<PolyApprox3D> &polys, std::map<int,int> &cell2polyMap,
               std::set<int> &cellInds) {
   DG_FP ref_r[LS_SAMPLE_NP], ref_s[LS_SAMPLE_NP], ref_t[LS_SAMPLE_NP];
-  set_sample_start_coords(ref_r, ref_s, ref_t);
+  set_sample_start_coords<3>(ref_r, ref_s, ref_t);
 
   const DG_FP *ref_r_ptr = ref_r;
   const DG_FP *ref_s_ptr = ref_s;
@@ -437,7 +437,7 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
     DG_FP *sampleX_c = sampleX_ptr + cell * LS_SAMPLE_NP;
     DG_FP *sampleY_c = sampleY_ptr + cell * LS_SAMPLE_NP;
     DG_FP *sampleZ_c = sampleZ_ptr + cell * LS_SAMPLE_NP;
-
+/*
     // Edge intersect test
     int edge_count = 0;
     const DG_FP node0_s = s_c[0];
@@ -476,6 +476,14 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
         rst2xyz(sampleX_c[i], sampleY_c[i], sampleZ_c[i], nodeX_c, nodeY_c, nodeZ_c);
       }
     }
+*/
+
+    for(int i = 0; i < LS_SAMPLE_NP; i++) {
+      sampleX_c[i] = ref_r_ptr[i];
+      sampleY_c[i] = ref_s_ptr[i];
+      sampleZ_c[i] = ref_t_ptr[i];
+      rst2xyz(sampleX_c[i], sampleY_c[i], sampleZ_c[i], nodeX_c, nodeY_c, nodeZ_c);
+    }
 
     // Simplified Newton sampling
     int poly_ind = cell2polyMap.at(cell);
@@ -484,7 +492,7 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
 
     for(int p = 0; p < LS_SAMPLE_NP; p++) {
       bool converged = false;
-      for(int step = 0; step < 10; step++) {
+      for(int step = 0; step < 20; step++) {
         DG_FP surf = pol.val_at(sampleX_c[p], sampleY_c[p], sampleZ_c[p]);
         DG_FP dsdx, dsdy, dsdz;
         pol.grad_at(sampleX_c[p], sampleY_c[p], sampleZ_c[p], dsdx, dsdy, dsdz);
@@ -511,7 +519,7 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
       // if(converged) {
         // rst2xyz(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c);
         // Check if point is in cell
-        if(!pt_in_tetra(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c)) {
+        if(!converged || !pt_in_tetra(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c)) {
           sampleX_c[p] = NAN;
           sampleY_c[p] = NAN;
           sampleZ_c[p] = NAN;
@@ -535,9 +543,9 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
         }
       }
 
-      sampleX_c[0] = x_c[id];
-      sampleY_c[0] = y_c[id];
-      sampleZ_c[0] = z_c[id];
+      // sampleX_c[0] = x_c[id];
+      // sampleY_c[0] = y_c[id];
+      // sampleZ_c[0] = z_c[id];
     }
   }
 

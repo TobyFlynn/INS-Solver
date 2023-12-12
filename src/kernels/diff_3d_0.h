@@ -1,9 +1,9 @@
 inline void diff_3d_0(const int *faceNum, const int *fmaskL_corrected,
                       const int *fmaskR_corrected, const DG_FP *nx,
-                      const DG_FP *ny, const DG_FP *nz, const DG_FP *fscale, 
-                      const DG_FP **val, DG_FP **flux_x, DG_FP **flux_y, 
+                      const DG_FP *ny, const DG_FP *nz, const DG_FP *fscale,
+                      const DG_FP **val, DG_FP **flux_x, DG_FP **flux_y,
                       DG_FP **flux_z) {
-  const int *fmask  = &FMASK[(DG_ORDER - 1) * 4 * DG_NPF];
+  const int *fmask  = &FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];
   const int *fmaskL = &fmask[faceNum[0] * DG_NPF];
   const int *fmaskR = &fmask[faceNum[1] * DG_NPF];
   const int fIndL = faceNum[0] * DG_NPF;

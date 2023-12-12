@@ -120,14 +120,14 @@ void LevelSetSolver3D::init() {
   alpha = 6.0 * h;
   // order_width = 12.0 * h;
   // epsilon = h;
-  // reinit_width = 10.0 * h;
+  reinit_width = 2.0 * alpha;
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
 
   op_printf("LS h: %g\nLS alpha: %g\n", h, alpha);
 
   #ifdef INS_MPI
-  kdtree = new KDTree3DMPI(mesh, 1.5 * alpha);
+  kdtree = new KDTree3DMPI(mesh, 1.5 * reinit_width);
   #else
   kdtree = new KDTree3D(mesh);
   #endif
@@ -159,7 +159,7 @@ void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const DG_FP dt, const 
   for(int i = 0; i < num_steps; i++)
     advectionSolver->step(s, u, v, w);
 
-  if(reinit_count > 9) {
+  if(reinit_count > 24) {
     reinitLS();
     reinit_count = 0;
     op_par_loop(ls_post_reinit, "ls_post_reinit", mesh->cells,
@@ -217,7 +217,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
   DG_FP init_y = closest_pt_y;
   DG_FP init_z = closest_pt_z;
 
-  for(int step = 0; step < 100; step++) {
+  for(int step = 0; step < 20; step++) {
     DG_FP pt_x_old = pt_x;
     DG_FP pt_y_old = pt_y;
     DG_FP pt_z_old = pt_z;
@@ -303,7 +303,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
     // }
 
     // Converged, no more steps required
-    if(sqrt((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) + (pt_z_old - pt_z) * (pt_z_old - pt_z)) < 1e-12) {
+    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) + (pt_z_old - pt_z) * (pt_z_old - pt_z) < 1e-18) {
       converged = true;
       break;
     }
@@ -318,7 +318,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
 
 void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *closest_z,
                    const DG_FP *x, const DG_FP *y, const DG_FP *z, int *poly_ind,
-                   std::vector<PolyApprox3D> &polys, DG_FP *s, const DG_FP h, const DG_FP alpha) {
+                   std::vector<PolyApprox3D> &polys, DG_FP *s, const DG_FP h, const DG_FP reinit_width) {
   int numNonConv = 0;
   int numReinit = 0;
 
@@ -327,7 +327,7 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
     int start_ind = (i / DG_NP) * DG_NP;
     bool reinit = false;
     for(int j = 0; j < DG_NP; j++) {
-      if(fabs(s[start_ind + j]) < alpha) {
+      if(fabs(s[start_ind + j]) < reinit_width) {
         reinit = true;
       }
     }
@@ -349,8 +349,9 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
     }
   }
 
-  // if(numNonConv != 0)
-  //   std::cout << numNonConv << " non-converged points out of " << numReinit << " points reinitialised" << std::endl;
+  double percent_non_converge = numReinit == 0 ? 0.0 : (double)numNonConv / (double)numReinit;
+  if(percent_non_converge > 0.1)
+    std::cout << percent_non_converge * 100.0 << "\% reinitialisation points did not converge" << std::endl;
 }
 
 void LevelSetSolver3D::reinitLS() {
@@ -439,7 +440,7 @@ void LevelSetSolver3D::reinitLS() {
     for(int i = 0; i < mesh->cells->size; i++) {
       bool reinit = false;
       for(int j = 0; j < DG_NP; j++) {
-        if(fabs(surface_ptr[i * DG_NP + j]) < 1.25 * alpha) {
+        if(fabs(surface_ptr[i * DG_NP + j]) < reinit_width) {
           reinit = true;
         }
       }
@@ -470,7 +471,7 @@ void LevelSetSolver3D::reinitLS() {
   // Newton method
   if(!kdtree->empty) {
     newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, closest_z,
-                  x_ptr, y_ptr, z_ptr, poly_ind, polys, surface_ptr, h, 1.25 * alpha);
+                  x_ptr, y_ptr, z_ptr, poly_ind, polys, surface_ptr, h, reinit_width);
   }
   releaseOP2PtrHost(s, OP_RW, surface_ptr);
   timer->endTimer("LevelSetSolver3D - newton method");
