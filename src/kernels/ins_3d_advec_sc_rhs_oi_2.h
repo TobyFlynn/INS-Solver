@@ -24,12 +24,12 @@ inline void ins_3d_advec_sc_rhs_oi_2(const DG_FP *t, const int *bc_type,
   DG_FP bcUb[DG_NPF], bcVb[DG_NPF], bcWb[DG_NPF];
   if(*bc_type == BC_TYPE_NO_SLIP) {
     for(int i = 0; i < DG_NPF; i++) {
-      bcUs[fInd + i] = 0.0;
-      bcVs[fInd + i] = 0.0;
-      bcWs[fInd + i] = 0.0;
-      bcUb[fInd + i] = 0.0;
-      bcVb[fInd + i] = 0.0;
-      bcWb[fInd + i] = 0.0;
+      bcUs[i] = 0.0;
+      bcVs[i] = 0.0;
+      bcWs[i] = 0.0;
+      bcUb[i] = 0.0;
+      bcVb[i] = 0.0;
+      bcWb[i] = 0.0;
     }
   } else if(*bc_type == BC_TYPE_SLIP) {
     for(int i = 0; i < DG_NPF; i++) {
@@ -37,45 +37,45 @@ inline void ins_3d_advec_sc_rhs_oi_2(const DG_FP *t, const int *bc_type,
       // S
       const DG_FP mags = sqrt(us[fmask_ind] * us[fmask_ind] + vs[fmask_ind] * vs[fmask_ind] + ws[fmask_ind] * ws[fmask_ind]);
       const DG_FP dots = *nx * us[fmask_ind] + *ny * vs[fmask_ind] + *nz * ws[fmask_ind];
-      bcUs[fInd + i] = us[fmask_ind] - dots * *nx;
-      bcVs[fInd + i] = vs[fmask_ind] - dots * *ny;
-      bcWs[fInd + i] = ws[fmask_ind] - dots * *nz;
-      const DG_FP mag2s = sqrt(bcUs[fInd + i] * bcUs[fInd + i] + bcVs[fInd + i] * bcVs[fInd + i] + bcWs[fInd + i] * bcWs[fInd + i]);
+      bcUs[i] = us[fmask_ind] - dots * *nx;
+      bcVs[i] = vs[fmask_ind] - dots * *ny;
+      bcWs[i] = ws[fmask_ind] - dots * *nz;
+      const DG_FP mag2s = sqrt(bcUs[i] * bcUs[i] + bcVs[i] * bcVs[i] + bcWs[i] * bcWs[i]);
       const DG_FP mag_factors = fabs(mags) < 1e-8 || fabs(mag2s) < 1e-8 ? 1.0 : mags / mag2s;
-      bcUs[fInd + i] *= mag_factors;
-      bcVs[fInd + i] *= mag_factors;
-      bcWs[fInd + i] *= mag_factors;
+      bcUs[i] *= mag_factors;
+      bcVs[i] *= mag_factors;
+      bcWs[i] *= mag_factors;
       // B
       const DG_FP magb = sqrt(ub[fmask_ind] * ub[fmask_ind] + vb[fmask_ind] * vb[fmask_ind] + wb[fmask_ind] * wb[fmask_ind]);
       const DG_FP dotb = *nx * ub[fmask_ind] + *ny * vb[fmask_ind] + *nz * wb[fmask_ind];
-      bcUb[fInd + i] = ub[fmask_ind] - dotb * *nx;
-      bcVs[fInd + i] = vb[fmask_ind] - dotb * *ny;
-      bcWb[fInd + i] = wb[fmask_ind] - dotb * *nz;
-      const DG_FP mag2b = sqrt(bcUb[fInd + i] * bcUb[fInd + i] + bcVs[fInd + i] * bcVs[fInd + i] + bcWb[fInd + i] * bcWb[fInd + i]);
+      bcUb[i] = ub[fmask_ind] - dotb * *nx;
+      bcVs[i] = vb[fmask_ind] - dotb * *ny;
+      bcWb[i] = wb[fmask_ind] - dotb * *nz;
+      const DG_FP mag2b = sqrt(bcUb[i] * bcUb[i] + bcVs[i] * bcVs[i] + bcWb[i] * bcWb[i]);
       const DG_FP mag_factorb = fabs(magb) < 1e-8 || fabs(mag2b) < 1e-8 ? 1.0 : magb / mag2b;
-      bcUb[fInd + i] *= mag_factorb;
-      bcVs[fInd + i] *= mag_factorb;
-      bcWb[fInd + i] *= mag_factorb;
+      bcUb[i] *= mag_factorb;
+      bcVs[i] *= mag_factorb;
+      bcWb[i] *= mag_factorb;
     }
   } else if(*bc_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
-      bcUs[fInd + i] = us[fmask_ind];
-      bcVs[fInd + i] = vs[fmask_ind];
-      bcWs[fInd + i] = ws[fmask_ind];
-      bcUb[fInd + i] = ub[fmask_ind];
-      bcVb[fInd + i] = vb[fmask_ind];
-      bcWb[fInd + i] = wb[fmask_ind];
+      bcUs[i] = us[fmask_ind];
+      bcVs[i] = vs[fmask_ind];
+      bcWs[i] = ws[fmask_ind];
+      bcUb[i] = ub[fmask_ind];
+      bcVb[i] = vb[fmask_ind];
+      bcWb[i] = wb[fmask_ind];
     }
   } else {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
       ps3d_custom_bc_get_vel(*bc_type, *t, x[fmask_ind], y[fmask_ind], z[fmask_ind],
                              *nx, *ny, *nz, us[fmask_ind], vs[fmask_ind], ws[fmask_ind],
-                             bcUs[fInd + i], bcVs[fInd + i], bcWs[fInd + i]);
+                             bcUs[i], bcVs[i], bcWs[i]);
       ps3d_custom_bc_get_vel(*bc_type, *t, x[fmask_ind], y[fmask_ind], z[fmask_ind],
                              *nx, *ny, *nz, ub[fmask_ind], vb[fmask_ind], wb[fmask_ind],
-                             bcUb[fInd + i], bcVb[fInd + i], bcWb[fInd + i]);
+                             bcUb[i], bcVb[i], bcWb[i]);
     }
   }
 
