@@ -120,14 +120,14 @@ void LevelSetSolver3D::init() {
   alpha = 6.0 * h;
   // order_width = 12.0 * h;
   // epsilon = h;
-  reinit_width = 2.0 * alpha;
+  reinit_width = 4.0 * alpha;
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
 
   op_printf("LS h: %g\nLS alpha: %g\n", h, alpha);
 
   #ifdef INS_MPI
-  kdtree = new KDTree3DMPI(mesh, 1.5 * reinit_width);
+  kdtree = new KDTree3DMPI(mesh, 2.0 * reinit_width);
   #else
   kdtree = new KDTree3D(mesh);
   #endif

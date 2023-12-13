@@ -37,9 +37,6 @@ DEVICE_PREFIX void ps3d_set_ic(const DG_FP x, const DG_FP y, const DG_FP z,
                                DG_FP &u, DG_FP &v, DG_FP &w) {
   // Liquid Whistle Initial Conditions
   DG_FP tmp = LW_INLET_RADIUS - sqrt(y * y + z * z);
-  // const DG_FP tmp_width = LW_INLET_RADIUS - 2e-1;
-  // const DG_FP tmp_factor = 1.0 / 8e-3;
-  // DG_FP tmp = fabs(y) > tmp_width || fabs(z) > tmp_width ? 0.0 : tmp_factor * (y - tmp_width) * (y + tmp_width) * (z - tmp_width) * (z + tmp_width);
   tmp = fmax(0.0, tmp / (0.5 * LW_INLET_RADIUS));
   tmp = fmin(1.0, tmp);
   u = tmp * fmax(0.0, -x * 0.5);
@@ -88,13 +85,9 @@ DEVICE_PREFIX void ps3d_custom_bc_get_vel(const int bc_type, const DG_FP time,
                                           DG_FP &u, DG_FP &v, DG_FP &w) {
   if(bc_type == BC_TYPE_INFLOW) {
     DG_FP tmp = LW_INLET_RADIUS - sqrt(y * y + z * z);
-    // const DG_FP tmp_width = LW_INLET_RADIUS - 2e-1;
-    // const DG_FP tmp_factor = 1.0 / 8e-3;
-    // DG_FP tmp = fabs(y) > tmp_width || fabs(z) > tmp_width ? 0.0 : tmp_factor * (y - tmp_width) * (y + tmp_width) * (z - tmp_width) * (z + tmp_width);
-    // tmp = fmax(0.0, tmp);
     tmp = fmax(0.0, tmp / (0.5 * LW_INLET_RADIUS));
     tmp = fmin(1.0, tmp);
-    u = tmp;
+    u = tmp * fmax(0.0, -x * 0.5);
     v = 0.0;
     w = 0.0;
   }

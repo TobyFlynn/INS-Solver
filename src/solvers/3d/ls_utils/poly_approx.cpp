@@ -720,7 +720,7 @@ int PolyApprox3D::num_elem_stencil() {
   if(N == 2) {
     return 12;
   } else if(N == 3) {
-    return 0;
+    return 4;
   } else if(N == 4) {
     return 8;
   } else {
