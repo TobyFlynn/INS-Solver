@@ -778,10 +778,8 @@ void INSSolverBase2D::project_velocity_mat_mult(op_dat u, op_dat v,
 
   DGTempDat u_jump = dg_dat_pool->requestTempDatCells(DG_NPF * DG_NUM_FACES);
   DGTempDat v_jump = dg_dat_pool->requestTempDatCells(DG_NPF * DG_NUM_FACES);
-
-  op_par_loop(zero_npf_2, "zero_npf_2", mesh->cells,
-              op_arg_dat(u_jump.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
-              op_arg_dat(v_jump.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  zero_dat(u_jump.dat);
+  zero_dat(v_jump.dat);
 
   timer->startTimer("pr_proj - mult - indir");
   op_par_loop(ins_2d_proj_6, "ins_2d_proj_6", mesh->faces,
@@ -796,7 +794,21 @@ void INSSolverBase2D::project_velocity_mat_mult(op_dat u, op_dat v,
   timer->endTimer("pr_proj - mult - indir");
 
   if(mesh->bface2cells) {
-    throw std::runtime_error("BCs not implemented for div_div = 2 (project_velocity_mat_mult)");
+    op_par_loop(ins_2d_proj_7, "ins_2d_proj_7", mesh->bfaces,
+                op_arg_gbl(&g0,   1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bsJ, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(pen_f,   0, mesh->bface2cells, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(u, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(v, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(u_jump.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+                op_arg_dat(v_jump.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
   }
 
   timer->startTimer("pr_proj - mult - emat");
@@ -893,7 +905,7 @@ void INSSolverBase2D::project_velocity(op_dat dpdx, op_dat dpdy) {
 
     DGTempDat proj_pen = dg_dat_pool->requestTempDatCells(1);
     DGTempDat proj_pen_f = dg_dat_pool->requestTempDatCells(1);
-    DG_FP factor = dt * 1.0;
+    DG_FP factor = dt * 1.0 * 1e2;
     // DG_FP factor = dt / Cr;
     // op_printf("Cr: %g\n", Cr);
     op_par_loop(ins_2d_proj_pen, "ins_2d_proj_pen", mesh->cells,
@@ -923,9 +935,9 @@ void INSSolverBase2D::project_velocity(op_dat dpdx, op_dat dpdy) {
     cg_p[1] = dg_dat_pool->requestTempDatCells(DG_NP);
 
     int iter = 0;
-    const int max_iter = 250;
+    const int max_iter = 500;
     DG_FP residual = 0.0;
-    const DG_FP tol = 1e-10;
+    const DG_FP tol = 1e-12;
 
     // Calculate first residual
     project_velocity_mat_mult(velTT[0], velTT[1], cg_tmp[0].dat,
