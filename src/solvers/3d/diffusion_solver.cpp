@@ -163,7 +163,7 @@ void DiffusionSolver3D::rhs(op_dat val, op_dat vis, op_dat val_out) {
                 op_arg_dat(val_z.dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(val, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vis, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(val_out_flux.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+                op_arg_dat(val_out_flux.dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
   }
 
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, val_out_flux.dat, -1.0, val_out);
@@ -191,7 +191,8 @@ void DiffusionSolver3D::set_dt(op_dat vis) {
               op_arg_dat(vis, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_gbl(&max_vis, 1, DG_FP_STR, OP_MAX));
 
-  dt = 1.0 / ((max_vis * DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER / (h * h)));
+  dt = 1.0 / ((2.0 * DG_ORDER * DG_ORDER / h) + (max_vis * DG_ORDER * DG_ORDER * DG_ORDER * DG_ORDER / (h * h)));
+  dt *= 0.9;
 
   // op_printf("dt: %g\n", h);
 }
