@@ -511,7 +511,7 @@ bool MPINSSolver2D::pressure() {
 
   project_velocity(dpdx.dat, dpdy.dat);
 
-  shock_capture(velTT[0], velTT[1]);
+  // shock_capture(velTT[0], velTT[1]);
 
   dg_dat_pool->releaseTempDatCells(dpdx);
   dg_dat_pool->releaseTempDatCells(dpdy);
@@ -549,13 +549,26 @@ bool MPINSSolver2D::viscosity() {
   mesh->mass(visRHS[1].dat);
   timer->endTimer("MPINSSolver2D - Viscosity RHS");
 
+
   // Call PETSc linear solver
   timer->startTimer("MPINSSolver2D - Viscosity Linear Solve");
   op_par_loop(ins_2d_set_vis_x_bc_type, "ins_2d_set_vis_x_bc_type", mesh->bfaces,
               op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
   viscosityMatrix->set_bc_types(vis_bc_types);
-  viscosityMatrix->set_factor(mu);
+  DGTempDat tmp_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
+  if(shock_capturing) {
+    calc_art_vis(velTT[0], tmp_art_vis.dat);
+
+    op_par_loop(mp_ins_2d_add_mu, "mp_ins_2d_add_mu", mesh->cells,
+                op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    viscosityMatrix->set_factor(tmp_art_vis.dat);
+  } else {
+    viscosityMatrix->set_factor(mu);
+  }
   viscosityMatrix->set_mm_factor(vis_mm_factor.dat);
   viscosityMatrix->calc_mat_partial();
 
@@ -582,7 +595,18 @@ bool MPINSSolver2D::viscosity() {
               op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
               op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
   viscosityMatrix->set_bc_types(vis_bc_types);
-  viscosityMatrix->set_factor(mu);
+  if(shock_capturing) {
+    calc_art_vis(velTT[1], tmp_art_vis.dat);
+
+    op_par_loop(mp_ins_2d_add_mu, "mp_ins_2d_add_mu", mesh->cells,
+                op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    viscosityMatrix->set_factor(tmp_art_vis.dat);
+  } else {
+    viscosityMatrix->set_factor(mu);
+  }
   viscosityMatrix->set_mm_factor(vis_mm_factor.dat);
   viscosityMatrix->calc_mat_partial();
 
@@ -606,6 +630,7 @@ bool MPINSSolver2D::viscosity() {
     throw std::runtime_error("Viscosity Y solve did not converge");
   timer->endTimer("MPINSSolver2D - Viscosity Linear Solve");
 
+  dg_dat_pool->releaseTempDatCells(tmp_art_vis);
   dg_dat_pool->releaseTempDatCells(vis_mm_factor);
   dg_dat_pool->releaseTempDatCells(visRHS[0]);
   dg_dat_pool->releaseTempDatCells(visRHS[1]);
@@ -636,6 +661,21 @@ void MPINSSolver2D::dump_visualisation_data(const std::string &filename) {
   }
 
   if(values_to_save.count("mu") != 0) {
+    if(shock_capturing) {
+      DGTempDat tmp_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
+      calc_art_vis(velTT[0], tmp_art_vis.dat);
+
+      op_par_loop(mp_ins_2d_add_mu, "copy_dg_np", mesh->cells,
+                  op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+      op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
+                  op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+      dg_dat_pool->releaseTempDatCells(tmp_art_vis);
+    }
     op_fetch_data_hdf5_file(mu, filename.c_str());
   }
 

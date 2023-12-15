@@ -180,7 +180,7 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
 
   double percent_non_converge = numReinit == 0 ? 0.0 : (double)numNonConv / (double)numReinit;
   if(percent_non_converge > 0.1)
-    std::cout << percent_non_converge * 100.0 << "\% reinitialisation points did not converge" << std::endl;
+    std::cout << percent_non_converge * 100.0 << "% reinitialisation points did not converge" << std::endl;
 }
 
 void LevelSetSolver2D::reinitLS() {
