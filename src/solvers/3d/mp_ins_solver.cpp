@@ -334,7 +334,7 @@ void MPINSSolver3D::pressure() {
 
   project_velocity(dpdx.dat, dpdy.dat, dpdz.dat);
 
-  shock_capture(velTT[0], velTT[1], velTT[2]);
+  // shock_capture(velTT[0], velTT[1], velTT[2]);
 
   dg_dat_pool->releaseTempDatCells(dpdx);
   dg_dat_pool->releaseTempDatCells(dpdy);
@@ -390,7 +390,19 @@ void MPINSSolver3D::viscosity() {
   }
 
   timer->startTimer("Vis Linear Solve");
-  viscosityMatrix->set_factor(mu);
+  DGTempDat tmp_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
+  if(shock_capturing) {
+    calc_art_vis(velTT[0], tmp_art_vis.dat);
+
+    op_par_loop(mp_ins_3d_add_mu, "mp_ins_3d_add_mu", mesh->cells,
+                op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    viscosityMatrix->set_factor(tmp_art_vis.dat);
+  } else {
+    viscosityMatrix->set_factor(mu);
+  }
   viscosityMatrix->set_mm_factor(vis_mm_factor.dat);
   viscosityMatrix->set_bc_types(vis_bc_types);
   viscosityMatrix->calc_mat_partial();
@@ -419,6 +431,18 @@ void MPINSSolver3D::viscosity() {
     }
 
   viscositySolver->set_bcs(vis_bc);
+  if(shock_capturing) {
+    calc_art_vis(velTT[1], tmp_art_vis.dat);
+
+    op_par_loop(mp_ins_3d_add_mu, "mp_ins_3d_add_mu", mesh->cells,
+                op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    viscosityMatrix->set_factor(tmp_art_vis.dat);
+  } else {
+    viscosityMatrix->set_factor(mu);
+  }
   bool convergedY = viscositySolver->solve(visRHS[1].dat, vel[(currentInd + 1) % 2][1]);
   if(!convergedY)
     throw std::runtime_error("\nViscosity Y solve failed to converge\n");
@@ -443,10 +467,23 @@ void MPINSSolver3D::viscosity() {
   }
 
   viscositySolver->set_bcs(vis_bc);
+  if(shock_capturing) {
+    calc_art_vis(velTT[2], tmp_art_vis.dat);
+
+    op_par_loop(mp_ins_3d_add_mu, "mp_ins_3d_add_mu", mesh->cells,
+                op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    viscosityMatrix->set_factor(tmp_art_vis.dat);
+  } else {
+    viscosityMatrix->set_factor(mu);
+  }
   bool convergedZ = viscositySolver->solve(visRHS[2].dat, vel[(currentInd + 1) % 2][2]);
   if(!convergedZ)
     throw std::runtime_error("\nViscosity Z solve failed to converge\n");
 
+  dg_dat_pool->releaseTempDatCells(tmp_art_vis);
   dg_dat_pool->releaseTempDatCells(vis_mm_factor);
   dg_dat_pool->releaseTempDatCells(visRHS[0]);
   dg_dat_pool->releaseTempDatCells(visRHS[1]);
@@ -478,6 +515,21 @@ void MPINSSolver3D::dump_visualisation_data(const std::string &filename) {
   INSSolverBase3D::dump_visualisation_data(filename);
 
   if(values_to_save.count("mu") != 0) {
+    if(shock_capturing) {
+      DGTempDat tmp_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
+      calc_art_vis(velTT[0], tmp_art_vis.dat);
+
+      op_par_loop(mp_ins_3d_add_mu, "mp_ins_3d_add_mu", mesh->cells,
+                  op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+      op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
+                  op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+      dg_dat_pool->releaseTempDatCells(tmp_art_vis);
+    }
     op_fetch_data_hdf5_file(mu, filename.c_str());
   }
 

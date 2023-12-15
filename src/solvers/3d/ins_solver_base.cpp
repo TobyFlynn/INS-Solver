@@ -134,7 +134,7 @@ void INSSolverBase3D::init_dats() {
   if(shock_capturing) {
     diffSolver        = new DiffusionSolver3D(mesh);
     nodes_data        = op_decl_dat(mesh->nodes, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_nodes_data");
-    nodes_count       = op_decl_dat(mesh->nodes, 1, "int", (int *)NULL, "ins_solver_nodes_count");
+    nodes_count       = op_decl_dat(mesh->nodes, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_nodes_count");
     shock_cap_art_vis = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_shock_cap_art_vis");
   }
 }
@@ -1286,7 +1286,7 @@ DG_FP INSSolverBase3D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat in2
 
   op_par_loop(reset_tmp_node_dats, "reset_tmp_node_dats", mesh->nodes,
               op_arg_dat(nodes_data, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
-              op_arg_dat(nodes_count, -1, OP_ID, 1, "int", OP_WRITE));
+              op_arg_dat(nodes_count, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
   zero_dat(out);
 
@@ -1304,7 +1304,7 @@ DG_FP INSSolverBase3D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat in2
               op_arg_dat(in1, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in2, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(nodes_data, -3, mesh->face2nodes, 1, DG_FP_STR, OP_INC),
-              op_arg_dat(nodes_count, -3, mesh->face2nodes, 1, "int", OP_INC));
+              op_arg_dat(nodes_count, -3, mesh->face2nodes, 1, DG_FP_STR, OP_INC));
 
   DG_FP max_vis = -1.0;
   op_par_loop(ins_3d_shock_cap_art_vis_1, "ins_3d_shock_cap_art_vis_1", mesh->cells,
@@ -1313,11 +1313,33 @@ DG_FP INSSolverBase3D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat in2
               op_arg_gbl(&shock_cap_smooth_tol, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&shock_cap_discon_tol, 1, DG_FP_STR, OP_READ),
               op_arg_dat(nodes_data, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(nodes_count, -4, mesh->cell2nodes, 1, "int", OP_READ),
+              op_arg_dat(nodes_count, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
   dg_dat_pool->releaseTempDatCells(h_tmp);
   return max_vis;
+}
+
+void INSSolverBase3D::calc_art_vis(op_dat in, op_dat out) {
+  DGTempDat u_modal = dg_dat_pool->requestTempDatCells(DG_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, in, 0.0, u_modal.dat);
+
+  op_par_loop(reset_tmp_node_dats, "reset_tmp_node_dats", mesh->nodes,
+              op_arg_dat(nodes_data, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
+              op_arg_dat(nodes_count, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+
+  op_par_loop(modal_shock_detector_3d_0, "modal_shock_detector_3d_0", mesh->cells,
+              op_arg_gbl(&shock_cap_max_diff, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(nodes_data, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_INC),
+              op_arg_dat(nodes_count, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_INC));
+
+  dg_dat_pool->releaseTempDatCells(u_modal);
+
+  op_par_loop(modal_shock_detector_3d_1, "modal_shock_detector_3d_1", mesh->cells,
+              op_arg_dat(nodes_data, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(nodes_count, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 }
 
 void INSSolverBase3D::add_to_pr_history() {
