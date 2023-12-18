@@ -52,6 +52,7 @@ protected:
   void filter(op_dat in);
   void zero_dat(op_dat dat);
   void update_time();
+  void calc_art_vis(op_dat in, op_dat out);
 
   DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, prev_time, h;
   int currentInd, sub_cycles;

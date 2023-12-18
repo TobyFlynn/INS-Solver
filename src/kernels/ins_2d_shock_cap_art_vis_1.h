@@ -1,11 +1,11 @@
 inline void ins_2d_shock_cap_art_vis_1(DG_FP *max_vis, const DG_FP *max_diff_,
                               const DG_FP *smooth_tol, const DG_FP *discon_tol,
-                              const DG_FP **vis_nodes, const int **node_count,
+                              const DG_FP **vis_nodes, const DG_FP **node_count,
                               DG_FP *out_vis) {
   const DG_FP max_diff = *max_diff_;
   DG_FP vertex_values[3];
   for(int i = 0; i < 3; i++) {
-    vertex_values[i] = node_count[i][0] > 0 ? vis_nodes[i][0] / (DG_FP)node_count[i][0] : 0.0;
+    vertex_values[i] = node_count[i][0] > 0.0 ? vis_nodes[i][0] / node_count[i][0] : 0.0;
   }
 
   const DG_FP *r_ = &dg_r_kernel[(DG_ORDER - 1) * DG_NP];
