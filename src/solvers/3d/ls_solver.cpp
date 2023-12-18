@@ -325,18 +325,17 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
   #pragma omp parallel for
   for(int i = 0; i < numPts; i++) {
     int start_ind = (i / DG_NP) * DG_NP;
-    bool reinit = false;
-    for(int j = 0; j < DG_NP; j++) {
-      if(fabs(s[start_ind + j]) < reinit_width) {
-        reinit = true;
-      }
-    }
-
-    if(reinit) {
-      bool tmp = newton_kernel(closest_x[i], closest_y[i], closest_z[i], x[i], y[i], z[i], polys[poly_ind[i]], h);
+    DG_FP dist2 = (closest_x[start_ind] - x[start_ind]) * (closest_x[start_ind] - x[start_ind]) 
+                + (closest_y[start_ind] - y[start_ind]) * (closest_y[start_ind] - y[start_ind]) 
+                + (closest_z[start_ind] - z[start_ind]) * (closest_z[start_ind] - z[start_ind]);
+    if(dist2 < reinit_width * reinit_width) {
+      DG_FP _closest_x = closest_x[i];
+      DG_FP _closest_y = closest_y[i];
+      DG_FP _closest_z = closest_z[i];
+      bool tmp = newton_kernel(_closest_x, _closest_y, _closest_z, x[i], y[i], z[i], polys[poly_ind[i]], h);
       if(tmp) {
         bool negative = s[i] < 0.0;
-        s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]) + (closest_z[i] - z[i]) * (closest_z[i] - z[i]);
+        s[i] = (_closest_x - x[i]) * (_closest_x - x[i]) + (_closest_y - y[i]) * (_closest_y - y[i]) + (_closest_z - z[i]) * (_closest_z - z[i]);
         s[i] = sqrt(s[i]);
         if(negative) s[i] *= -1.0;
       }
@@ -438,14 +437,17 @@ void LevelSetSolver3D::reinitLS() {
   if(!kdtree->empty) {
     #pragma omp parallel for
     for(int i = 0; i < mesh->cells->size; i++) {
-      bool reinit = false;
-      for(int j = 0; j < DG_NP; j++) {
-        if(fabs(surface_ptr[i * DG_NP + j]) < reinit_width) {
-          reinit = true;
-        }
-      }
-      if(reinit) {
-        for(int j = 0; j < DG_NP; j++) {
+      // Get closest sample point
+      KDCoord tmp = kdtree->closest_point(x_ptr[i * DG_NP], y_ptr[i * DG_NP], z_ptr[i * DG_NP]);
+      const DG_FP dist2 = (tmp.x - x_ptr[i * DG_NP]) * (tmp.x - x_ptr[i * DG_NP]) 
+                        + (tmp.y - y_ptr[i * DG_NP]) * (tmp.y - y_ptr[i * DG_NP]) 
+                        + (tmp.z - z_ptr[i * DG_NP]) * (tmp.z - z_ptr[i * DG_NP]);
+      closest_x[i * DG_NP] = tmp.x;
+      closest_y[i * DG_NP] = tmp.y;
+      closest_z[i * DG_NP] = tmp.z;
+      poly_ind[i * DG_NP]  = tmp.poly;
+      if(dist2 < reinit_width * reinit_width) {
+        for(int j = 1; j < DG_NP; j++) {
           // Get closest sample point
           KDCoord tmp = kdtree->closest_point(x_ptr[i * DG_NP + j], y_ptr[i * DG_NP + j], z_ptr[i * DG_NP + j]);
           closest_x[i * DG_NP + j] = tmp.x;
