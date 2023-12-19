@@ -49,9 +49,9 @@ KDTree3DMPI::KDTree3DMPI(DGMesh3D *m, const DG_FP alpha) : KDTree3D(m) {
   for(int i = 1; i < mesh->cells->size * DG_NP; i++) {
     if(x_ptr[i] < min_x) min_x = x_ptr[i];
     if(x_ptr[i] > max_x) max_x = x_ptr[i];
-    if(y_ptr[i] < min_x) min_y = y_ptr[i];
+    if(y_ptr[i] < min_y) min_y = y_ptr[i];
     if(y_ptr[i] > max_y) max_y = y_ptr[i];
-    if(z_ptr[i] < min_x) min_z = z_ptr[i];
+    if(z_ptr[i] < min_z) min_z = z_ptr[i];
     if(z_ptr[i] > max_z) max_z = z_ptr[i];
   }
 
