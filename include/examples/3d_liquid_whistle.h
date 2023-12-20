@@ -20,6 +20,9 @@
 // Add custom BC types below (number must be greater than 0), for example:
 #define BC_TYPE_INFLOW 3
 
+// Required definitions
+#define LS_CAP 0.25
+// Problem specifc definitions
 #define LW_LENGTH 50.0
 #define LW_LENGTH_SHORT 10.0
 #define LW_INLET_RADIUS 0.5
@@ -130,14 +133,14 @@ DEVICE_PREFIX void ps3d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 DEVICE_PREFIX void ps3d_set_surface(const DG_FP x, const DG_FP y, const DG_FP z,
                                     DG_FP &s) {
   s = sqrt((x + 3.0) * (x + 3.0) + y * y + z * z) - 2.99;
-  s = fmax(fmin(1.0, s), -1.0);
+  s = fmax(fmin(LS_CAP, s), -LS_CAP);
 }
 
 // Set level set value on custom BCs (return sM otherwise)
 DEVICE_PREFIX DG_FP ps3d_custom_bc_get_ls(const int bc_type, const DG_FP x,
                                 const DG_FP y, const DG_FP z, const DG_FP sM) {
   if(bc_type == BC_TYPE_INFLOW) {
-    return -1.0;
+    return -LS_CAP;
   }
 
   return sM;

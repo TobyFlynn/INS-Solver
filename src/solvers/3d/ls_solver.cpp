@@ -16,6 +16,9 @@
 
 #include "timing.h"
 
+// For LS_CAP definition
+#include "problem_specific_3d.h"
+
 extern Timing *timer;
 extern DGDatPool *dg_dat_pool;
 
@@ -120,7 +123,8 @@ void LevelSetSolver3D::init() {
   alpha = 6.0 * h;
   // order_width = 12.0 * h;
   // epsilon = h;
-  reinit_width = 4.0 * alpha;
+  reinit_width = fmin(4.0 * alpha, LS_CAP);
+  // reinit_width = LS_CAP;
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
 
@@ -338,6 +342,11 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
         s[i] = (_closest_x - x[i]) * (_closest_x - x[i]) + (_closest_y - y[i]) * (_closest_y - y[i]) + (_closest_z - z[i]) * (_closest_z - z[i]);
         s[i] = sqrt(s[i]);
         if(negative) s[i] *= -1.0;
+      } else {
+        bool negative = s[i] < 0.0;
+        s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]) + (closest_z[i] - z[i]) * (closest_z[i] - z[i]);
+        s[i] = sqrt(s[i]);
+        if(negative) s[i] *= -1.0;
       }
       if(!tmp) {
         #pragma omp atomic
@@ -345,6 +354,9 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
       }
       #pragma omp atomic
       numReinit++;
+    } else {
+      bool negative = s[i] < 0.0;
+      s[i] = negative ? -LS_CAP : LS_CAP;
     }
   }
 
