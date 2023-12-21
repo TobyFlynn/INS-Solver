@@ -16,9 +16,6 @@
 
 #include "timing.h"
 
-// For LS_CAP definition
-#include "problem_specific_3d.h"
-
 extern Timing *timer;
 extern DGDatPool *dg_dat_pool;
 
@@ -123,7 +120,8 @@ void LevelSetSolver3D::init() {
   alpha = 6.0 * h;
   // order_width = 12.0 * h;
   // epsilon = h;
-  reinit_width = fmin(4.0 * alpha, LS_CAP);
+  ls_cap = 0.25;
+  reinit_width = fmin(4.0 * alpha, ls_cap);
   // reinit_width = LS_CAP;
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
@@ -322,7 +320,8 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
 
 void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *closest_z,
                    const DG_FP *x, const DG_FP *y, const DG_FP *z, int *poly_ind,
-                   std::vector<PolyApprox3D> &polys, DG_FP *s, const DG_FP h, const DG_FP reinit_width) {
+                   std::vector<PolyApprox3D> &polys, DG_FP *s, const DG_FP h, 
+                   const DG_FP reinit_width, const DG_FP ls_cap) {
   int numNonConv = 0;
   int numReinit = 0;
 
@@ -356,7 +355,7 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
       numReinit++;
     } else {
       bool negative = s[i] < 0.0;
-      s[i] = negative ? -LS_CAP : LS_CAP;
+      s[i] = negative ? -ls_cap : ls_cap;
     }
   }
 
@@ -485,7 +484,8 @@ void LevelSetSolver3D::reinitLS() {
   // Newton method
   if(!kdtree->empty) {
     newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, closest_z,
-                  x_ptr, y_ptr, z_ptr, poly_ind, polys, surface_ptr, h, reinit_width);
+                  x_ptr, y_ptr, z_ptr, poly_ind, polys, surface_ptr, h, reinit_width,
+                  ls_cap);
   }
   releaseOP2PtrHost(s, OP_RW, surface_ptr);
   timer->endTimer("LevelSetSolver3D - newton method");
