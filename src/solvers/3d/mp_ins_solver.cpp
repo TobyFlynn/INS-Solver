@@ -64,18 +64,26 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int
 }
 
 void MPINSSolver3D::setup_common() {
+  // Pressure matrix and solver
+  std::string pr_solver = "p-multigrid";
+  config->getStr("pressure-solve", "preconditioner", pr_solver);
+  if(pr_solver != "p-multigrid") 
+    throw std::runtime_error("Only \'p-multigrid\' preconditioner is supported for 3D multiphase flow.");
+  int pr_over_int = 0;
+  config->getInt("pressure-solve", "over_int", pr_over_int);
+  if(pr_over_int != 0)
+    throw std::runtime_error("Over integrating the pressure solve for 3D multiphase flow is not yet supported");
   coarsePressureMatrix = new FactorPoissonCoarseMatrix3D(mesh);
-  // pressureMatrix = new FactorPoissonSemiMatrixFree3D(mesh);
   pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh);
-  // viscosityMatrix = new FactorMMPoissonSemiMatrixFree3D(mesh);
-  viscosityMatrix = new FactorMMPoissonMatrixFreeDiag3D(mesh);
-  // pressureSolver = new PETScAMGSolver(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
-  // pressureSolver = new PMultigridPoissonSolver(mesh);
-  // viscositySolver = new PETScBlockJacobiSolver(mesh);
-  // viscositySolver = new PETScInvMassSolver(mesh);
+
+  // Viscous matrix and solver
+  std::string vis_solver = "jacobi";
+  config->getStr("viscous-solve", "preconditioner", vis_solver);
+  if(vis_solver != "jacobi") 
+    throw std::runtime_error("Only \'jacobi\' preconditioner is supported for 3D multiphase flow.");
+  viscosityMatrix = new FactorMMPoissonMatrixFreeDiag3D(mesh);
   viscositySolver = new PETScJacobiSolver(mesh);
-  // viscositySolver = new PETScAMGSolver(mesh);
   
   pressureSolver->set_matrix(pressureMatrix);
   viscositySolver->set_matrix(viscosityMatrix);

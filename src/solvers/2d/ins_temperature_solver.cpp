@@ -122,11 +122,22 @@ void INSTemperatureSolver2D::setup_common() {
   dt_forced = tmp_dt > 0.0;
   if(dt_forced) dt = tmp_dt;
 
+  // Pressure matrix and solver
+  std::string pr_solver = "p-multigrid";
+  config->getStr("pressure-solve", "preconditioner", pr_solver);
+  if(pr_solver != "p-multigrid") 
+    throw std::runtime_error("Only \'p-multigrid\' preconditioner is supported for 2D temperature + single phase flow.");
   pressureMatrix = new FactorPoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new FactorPoissonCoarseMatrix2D(mesh);
-  viscosityMatrix = new MMPoissonMatrixFree2D(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
   pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
+
+  // Viscous matrix and solver
+  std::string vis_solver = "inv-mass";
+  config->getStr("viscous-solve", "preconditioner", vis_solver);
+  if(vis_solver != "inv-mass") 
+    throw std::runtime_error("Only \'inv-mass\' preconditioner is supported for 2D temperature + single phase flow.");
+  viscosityMatrix = new MMPoissonMatrixFree2D(mesh);
   viscositySolver = new PETScInvMassSolver(mesh);
 
   advecDiffSolver = new TemperatureAdvecDiffSolver2D(mesh);
@@ -268,6 +279,13 @@ bool INSTemperatureSolver2D::pressure() {
   gradCurlVel[0] = dg_dat_pool->requestTempDatCells(DG_NP);
   gradCurlVel[1] = dg_dat_pool->requestTempDatCells(DG_NP);
   mesh->div_with_central_flux(velT[0], velT[1], divVelT.dat);
+
+  // Calculate RHS of pressure solve
+  const DG_FP div_factor = -1.0 / dt;
+  op_par_loop(mp_ins_2d_pr_div_factor, "mp_ins_2d_pr_div_factor", mesh->cells,
+              op_arg_gbl(&div_factor, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
   mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel.dat);
   mesh->grad(curlVel.dat, gradCurlVel[0].dat, gradCurlVel[1].dat);
 
@@ -308,13 +326,11 @@ bool INSTemperatureSolver2D::pressure() {
   }
 
   // Calculate RHS of pressure solve
-  op_par_loop(mp_ins_2d_pr_1, "mp_ins_2d_pr_1", mesh->cells,
+  op_par_loop(mp_ins_2d_pr_bc_1, "mp_ins_2d_pr_bc_1", mesh->cells,
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[currentInd], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
-              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-              op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));
 
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT.dat);
   mesh->mass(divVelT.dat);
@@ -338,7 +354,6 @@ bool INSTemperatureSolver2D::pressure() {
   if(!converged)
     throw std::runtime_error("Pressure solve did not converge");
 
-  dg_dat_pool->releaseTempDatCells(pr_factor);
   dg_dat_pool->releaseTempDatCells(divVelT);
   timer->endTimer("INSTemperatureSolver2D - Pressure Linear Solve");
 
@@ -351,9 +366,11 @@ bool INSTemperatureSolver2D::pressure() {
   mesh->grad_over_int_with_central_flux(pr, dpdx.dat, dpdy.dat);
 
   op_par_loop(mp_ins_2d_pr_2, "mp_ins_2d_pr_2", mesh->cells,
-              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(pr_factor.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+  dg_dat_pool->releaseTempDatCells(pr_factor);
 
   project_velocity(dpdx.dat, dpdy.dat);
 

@@ -6,6 +6,7 @@
 #include "dg_compiler_defs.h"
 
 #include "dg_mesh/dg_mesh_2d.h"
+#include "dg_dat_pool.h"
 #include "solvers/2d/ls_solver.h"
 #include "dg_matrices/2d/factor_poisson_coarse_matrix_2d.h"
 #include "dg_matrices/2d/factor_poisson_matrix_free_diag_2d.h"
@@ -43,15 +44,22 @@ private:
   void surface_tension_grad(op_dat dx, op_dat dy);
   void surface_tension_curvature(op_dat curv);
 
+  void apply_pressure_neumann_bc(op_dat divVelT);
+  void apply_pressure_neumann_bc_oi(op_dat divVelT);
+  void update_pressure_matrices(DGTempDat &pr_factor);
+  void update_pressure_matrices_oi(DGTempDat &pr_factor, 
+              DGTempDat &pr_factor_oi, DGTempDat &pr_factor_surf_oi);
+  void update_pressure_gradient(op_dat dpdx, op_dat dpdy, op_dat pr_factor);
+  void update_pressure_gradient_oi(op_dat dpdx, op_dat dpdy, op_dat pr_factor_oi);
+
   FactorPoissonCoarseMatrix2D *pressureCoarseMatrix;
-  FactorPoissonMatrixFreeDiagOI2D *pressureMatrix;
-  // FactorPoissonMatrixFreeDiag2D *pressureMatrix;
+  PoissonMatrixFreeDiag *pressureMatrix;
   FactorMMPoissonMatrixFreeDiag2D *viscosityMatrix;
   PETScPMultigrid *pressureSolver;
   PETScJacobiSolver *viscositySolver;
   LevelSetSolver2D *lsSolver;
   DG_FP reynolds;
-  bool resuming, dt_forced, surface_tension;
+  bool resuming, dt_forced, surface_tension, pr_over_int;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;

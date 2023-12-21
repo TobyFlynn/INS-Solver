@@ -73,13 +73,27 @@ void INSSolver3D::setup_common() {
   pr_bc  = tmp_npf_bc;
   vis_bc = tmp_npf_bc;
 
+  // Pressure matrix and solver
+  std::string pr_solver = "p-multigrid";
+  config->getStr("pressure-solve", "preconditioner", pr_solver);
+  if(pr_solver != "p-multigrid") 
+    throw std::runtime_error("Only \'p-multigrid\' preconditioner is supported for 3D single phase flow.");
+  int pr_over_int = 0;
+  config->getInt("pressure-solve", "over_int", pr_over_int);
+  if(pr_over_int != 0)
+    throw std::runtime_error("Cannot over integrate the pressure solve for 3D single phase flow");
   pressureCoarseMatrix = new PoissonCoarseMatrix3D(mesh);
   pressureMatrix = new PoissonMatrixFreeDiag3D(mesh);
-  viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
-
   PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
   tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
   pressureSolver = tmp_pressureSolver;
+
+  // Viscous matrix and solver
+  std::string vis_solver = "inv-mass";
+  config->getStr("viscous-solve", "preconditioner", vis_solver);
+  if(vis_solver != "inv-mass") 
+    throw std::runtime_error("Only \'inv-mass\' preconditioner is supported for 3D single phase flow.");
+  viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
   viscositySolver = new PETScInvMassSolver(mesh);
 
   pressureSolver->set_matrix(pressureMatrix);

@@ -68,12 +68,27 @@ void INSSolver2D::setup_common() {
   dt_forced = tmp_dt > 0.0;
   if(dt_forced) dt = tmp_dt;
 
+  // Pressure matrix and solver
+  std::string pr_solver = "p-multigrid";
+  config->getStr("pressure-solve", "preconditioner", pr_solver);
+  if(pr_solver != "p-multigrid") 
+    throw std::runtime_error("Only \'p-multigrid\' preconditioner is supported for 2D single phase flow.");
+  int pr_over_int = 0;
+  config->getInt("pressure-solve", "over_int", pr_over_int);
+  if(pr_over_int != 0)
+    throw std::runtime_error("Cannot over integrate the pressure solve for 2D single phase flow");
   pressureMatrix = new PoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new PoissonCoarseMatrix2D(mesh);
-  viscosityMatrix = new MMPoissonMatrixFree2D(mesh);
   PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
   tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
   pressureSolver = tmp_pressureSolver;
+  
+  // Viscous matrix and solver
+  std::string vis_solver = "inv-mass";
+  config->getStr("viscous-solve", "preconditioner", vis_solver);
+  if(vis_solver != "inv-mass") 
+    throw std::runtime_error("Only \'inv-mass\' preconditioner is supported for 2D single phase flow.");
+  viscosityMatrix = new MMPoissonMatrixFree2D(mesh);
   viscositySolver = new PETScInvMassSolver(mesh);
 
   pressureSolver->set_matrix(pressureMatrix);
