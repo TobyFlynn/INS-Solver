@@ -131,15 +131,10 @@ void INSTemperatureSolver2D::setup_common() {
 
   advecDiffSolver = new TemperatureAdvecDiffSolver2D(mesh);
 
-  int pr_tmp = 0;
-  int vis_tmp = 0;
-  config->getInt("solver-options", "pr_nullspace", pr_tmp);
-  config->getInt("solver-options", "vis_nullspace", vis_tmp);
-
   pressureSolver->set_matrix(pressureMatrix);
-  pressureSolver->set_nullspace(pr_tmp == 1);
   viscositySolver->set_matrix(viscosityMatrix);
-  viscositySolver->set_nullspace(vis_tmp == 1);
+
+  setup_pressure_viscous_solvers(pressureSolver, viscositySolver);
 
   pr_bc_types  = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_pr_bc_types");
   vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_vis_bc_types");

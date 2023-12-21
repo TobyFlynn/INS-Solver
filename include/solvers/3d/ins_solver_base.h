@@ -5,6 +5,7 @@
 
 #include "dg_mesh/dg_mesh_3d.h"
 #include "dg_dat_pool.h"
+#include "dg_linear_solvers/linear_solver.h"
 
 #include "solvers/3d/diffusion_solver.h"
 
@@ -34,6 +35,7 @@ public:
   op_dat get_pr();
 
 protected:
+  virtual void setup_pressure_viscous_solvers(LinearSolver *pr_solver, LinearSolver *vis_solver);
   void advec_current_non_linear();
   void advec_current_non_linear_over_int();
   void advec_standard();

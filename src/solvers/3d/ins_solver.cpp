@@ -78,18 +78,14 @@ void INSSolver3D::setup_common() {
   viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
 
   PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
-  viscositySolver = new PETScInvMassSolver(mesh);
-
-  int pr_tmp = 0;
-  int vis_tmp = 0;
-  config->getInt("solver-options", "pr_nullspace", pr_tmp);
-  config->getInt("solver-options", "vis_nullspace", vis_tmp);
   tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
   pressureSolver = tmp_pressureSolver;
+  viscositySolver = new PETScInvMassSolver(mesh);
+
   pressureSolver->set_matrix(pressureMatrix);
-  pressureSolver->set_nullspace(pr_tmp == 1);
   viscositySolver->set_matrix(viscosityMatrix);
-  viscositySolver->set_nullspace(vis_tmp == 1);
+
+  setup_pressure_viscous_solvers(pressureSolver, viscositySolver);
 }
 
 INSSolver3D::~INSSolver3D() {

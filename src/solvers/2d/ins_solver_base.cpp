@@ -141,6 +141,41 @@ void INSSolverBase2D::init_dats() {
   }
 }
 
+void INSSolverBase2D::setup_pressure_viscous_solvers(LinearSolver *pr_solver, LinearSolver *vis_solver) {
+  int pr_tmp = 0;
+  config->getInt("pressure-solve", "nullspace", pr_tmp);
+  pr_solver->set_nullspace(pr_tmp == 1);
+  double r_tol, a_tol;
+  if(std::is_same<DG_FP,double>::value) {
+    r_tol = 1e-8;
+    a_tol = 1e-9;
+  } else {
+    r_tol = 1e-5;
+    a_tol = 1e-6;
+  }
+  int max_iter = 500;
+  config->getDouble("pressure-solve", "r_tol", r_tol);
+  config->getDouble("pressure-solve", "a_tol", a_tol);
+  config->getInt("pressure-solve", "max_iter", max_iter);
+  pr_solver->set_tol_and_iter(r_tol, a_tol, max_iter);
+
+  int vis_tmp = 0;
+  config->getInt("viscous-solve", "nullspace", vis_tmp);
+  vis_solver->set_nullspace(vis_tmp == 1);
+  if(std::is_same<DG_FP,double>::value) {
+    r_tol = 1e-8;
+    a_tol = 1e-9;
+  } else {
+    r_tol = 1e-5;
+    a_tol = 1e-6;
+  }
+  max_iter = 5000;
+  config->getDouble("viscous-solve", "r_tol", r_tol);
+  config->getDouble("viscous-solve", "a_tol", a_tol);
+  config->getInt("viscous-solve", "max_iter", max_iter);
+  vis_solver->set_tol_and_iter(r_tol, a_tol, max_iter);
+}
+
 INSSolverBase2D::~INSSolverBase2D() {
   if(shock_capturing)
     delete diffSolver;
