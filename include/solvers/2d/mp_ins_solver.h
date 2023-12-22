@@ -49,8 +49,8 @@ private:
   void update_pressure_matrices(DGTempDat &pr_factor);
   void update_pressure_matrices_oi(DGTempDat &pr_factor, 
               DGTempDat &pr_factor_oi, DGTempDat &pr_factor_surf_oi);
-  void update_pressure_gradient(op_dat dpdx, op_dat dpdy, op_dat pr_factor);
-  void update_pressure_gradient_oi(op_dat dpdx, op_dat dpdy, op_dat pr_factor_oi);
+  void update_pressure_gradient(op_dat dpdx, op_dat dpdy);
+  void update_pressure_gradient_oi(op_dat dpdx, op_dat dpdy);
 
   FactorPoissonCoarseMatrix2D *pressureCoarseMatrix;
   PoissonMatrixFreeDiag *pressureMatrix;

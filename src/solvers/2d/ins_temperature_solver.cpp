@@ -354,6 +354,7 @@ bool INSTemperatureSolver2D::pressure() {
   if(!converged)
     throw std::runtime_error("Pressure solve did not converge");
 
+  dg_dat_pool->releaseTempDatCells(pr_factor);
   dg_dat_pool->releaseTempDatCells(divVelT);
   timer->endTimer("INSTemperatureSolver2D - Pressure Linear Solve");
 
@@ -366,11 +367,9 @@ bool INSTemperatureSolver2D::pressure() {
   mesh->grad_over_int_with_central_flux(pr, dpdx.dat, dpdy.dat);
 
   op_par_loop(mp_ins_2d_pr_2, "mp_ins_2d_pr_2", mesh->cells,
-              op_arg_dat(pr_factor.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-
-  dg_dat_pool->releaseTempDatCells(pr_factor);
 
   project_velocity(dpdx.dat, dpdy.dat);
 

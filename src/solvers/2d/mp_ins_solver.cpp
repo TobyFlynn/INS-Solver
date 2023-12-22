@@ -507,23 +507,28 @@ void MPINSSolver2D::update_pressure_matrices_oi(DGTempDat &pr_factor, DGTempDat 
   pressureCoarseMatrix->set_factor(pr_factor.dat);
 }
 
-void MPINSSolver2D::update_pressure_gradient(op_dat dpdx, op_dat dpdy, op_dat pr_factor) {
+void MPINSSolver2D::update_pressure_gradient(op_dat dpdx, op_dat dpdy) {
   op_par_loop(mp_ins_2d_pr_2, "mp_ins_2d_pr_2", mesh->cells,
-              op_arg_dat(pr_factor, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 }
 
-void MPINSSolver2D::update_pressure_gradient_oi(op_dat dpdx, op_dat dpdy, op_dat pr_factor_oi) {
+void MPINSSolver2D::update_pressure_gradient_oi(op_dat dpdx, op_dat dpdy) {
   DGTempDat dpdx_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
   DGTempDat dpdy_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
   op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, dpdx, 0.0, dpdx_oi.dat);
   op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, dpdy, 0.0, dpdy_oi.dat);
 
+  DGTempDat rho_oi = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
+  lsSolver->getRhoVolOI(rho_oi.dat);
+
   op_par_loop(mp_ins_2d_pr_2_oi, "mp_ins_2d_pr_2_oi", mesh->cells,
-              op_arg_dat(pr_factor_oi, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rho_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
               op_arg_dat(dpdx_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW),
               op_arg_dat(dpdy_oi.dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW));
+
+  dg_dat_pool->releaseTempDatCells(rho_oi);
 
   op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, dpdx_oi.dat, 0.0, dpdx);
   op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_PROJ, dpdy_oi.dat, 0.0, dpdy);
@@ -586,8 +591,9 @@ bool MPINSSolver2D::pressure() {
 
   if(pr_over_int) {
     dg_dat_pool->releaseTempDatCells(pr_factor_surf_oi);
+    dg_dat_pool->releaseTempDatCells(pr_factor_oi);
   }
-
+  dg_dat_pool->releaseTempDatCells(pr_factor);
   dg_dat_pool->releaseTempDatCells(divVelT);
   timer->endTimer("MPINSSolver2D - Pressure Linear Solve");
 
@@ -604,12 +610,10 @@ bool MPINSSolver2D::pressure() {
   mesh->grad_over_int_with_central_flux(pr, dpdx.dat, dpdy.dat);
 
   if(pr_over_int) {
-    update_pressure_gradient_oi(dpdx.dat, dpdy.dat, pr_factor_oi.dat);
-    dg_dat_pool->releaseTempDatCells(pr_factor_oi);
+    update_pressure_gradient_oi(dpdx.dat, dpdy.dat);
   } else {
-    update_pressure_gradient(dpdx.dat, dpdy.dat, pr_factor.dat);
+    update_pressure_gradient(dpdx.dat, dpdy.dat);
   }
-  dg_dat_pool->releaseTempDatCells(pr_factor);
 
   project_velocity(dpdx.dat, dpdy.dat);
 
