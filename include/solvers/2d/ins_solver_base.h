@@ -55,6 +55,7 @@ protected:
   void zero_dat(op_dat dat);
   void update_time();
   void calc_art_vis(op_dat in, op_dat out);
+  LinearSolver::Solvers set_solver_type(const std::string &str);
 
   DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, prev_time, h;
   int currentInd, sub_cycles;
@@ -69,6 +70,9 @@ protected:
   // Filter params
   DG_FP filter_alpha;
   int filter_Nc, filter_sp;
+
+  LinearSolver::Solvers pressureSolverType;
+  LinearSolver::Solvers viscositySolverType;
 
 private:
   void read_options();

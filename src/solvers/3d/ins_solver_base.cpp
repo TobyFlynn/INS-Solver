@@ -1508,3 +1508,19 @@ op_dat INSSolverBase3D::get_vel_z() {
 op_dat INSSolverBase3D::get_pr() {
   return pr;
 }
+
+LinearSolver::Solvers INSSolverBase3D::set_solver_type(const std::string &str) {
+  if(str == "petsc--amg") {
+    return LinearSolver::PETSC_AMG;
+  } else if(str == "jacobi") {
+    return LinearSolver::PETSC_JACOBI;
+  } else if(str == "block-jacobi") {
+    return LinearSolver::PETSC_BLOCK_JACOBI;
+  } else if(str == "inv-mass") {
+    return LinearSolver::PETSC_INV_MASS;
+  } else if(str == "p-multigrid") {
+    return LinearSolver::PETSC_PMULTIGRID;
+  } else {
+    dg_abort("Unknown solver type: " + str);
+  }
+}

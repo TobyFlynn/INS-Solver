@@ -115,6 +115,8 @@ void INSSolverBase2D::read_options() {
   config->getDouble("shock-capturing", "smooth_tol", shock_cap_smooth_tol);
   shock_cap_discon_tol = 1.5;
   config->getDouble("shock-capturing", "discont_tol", shock_cap_discon_tol);
+
+
 }
 
 void INSSolverBase2D::init_dats() {
@@ -1305,4 +1307,20 @@ op_dat INSSolverBase2D::get_vel_y() {
 
 op_dat INSSolverBase2D::get_pr() {
   return pr;
+}
+
+LinearSolver::Solvers INSSolverBase2D::set_solver_type(const std::string &str) {
+  if(str == "petsc--amg") {
+    return LinearSolver::PETSC_AMG;
+  } else if(str == "jacobi") {
+    return LinearSolver::PETSC_JACOBI;
+  } else if(str == "block-jacobi") {
+    return LinearSolver::PETSC_BLOCK_JACOBI;
+  } else if(str == "inv-mass") {
+    return LinearSolver::PETSC_INV_MASS;
+  } else if(str == "p-multigrid") {
+    return LinearSolver::PETSC_PMULTIGRID;
+  } else {
+    dg_abort("Unknown solver type: " + str);
+  }
 }

@@ -14,6 +14,11 @@
 #include "timing.h"
 #include "config.h"
 
+#include "dg_linear_solvers/petsc_jacobi.h"
+#include "dg_linear_solvers/petsc_block_jacobi.h"
+#include "dg_matrices/2d/factor_mm_poisson_matrix_free_diag_2d.h"
+#include "dg_matrices/2d/factor_mm_poisson_matrix_free_block_diag_2d.h"
+
 extern Timing *timer;
 extern Config *config;
 extern DGConstants *constants;
@@ -76,8 +81,9 @@ void MPINSSolver2D::setup_common() {
   // Pressure matrix and solver
   std::string pr_solver = "p-multigrid";
   config->getStr("pressure-solve", "preconditioner", pr_solver);
-  if(pr_solver != "p-multigrid") 
-    throw std::runtime_error("Only \'p-multigrid\' preconditioner is supported for 2D multiphase flow.");
+  pressureSolverType = set_solver_type(pr_solver);
+  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID) 
+    dg_abort("Only \'p-multigrid\' preconditioner is supported for 2D multiphase flow.");
   int tmp_pr_over_int = 0;
   config->getInt("pressure-solve", "over_int", tmp_pr_over_int);
   pr_over_int = tmp_pr_over_int != 0;
@@ -93,10 +99,16 @@ void MPINSSolver2D::setup_common() {
   // Viscous matrix and solver
   std::string vis_solver = "jacobi";
   config->getStr("viscous-solve", "preconditioner", vis_solver);
-  if(vis_solver != "jacobi") 
-    throw std::runtime_error("Only \'jacobi\' preconditioner is supported for 2D multiphase flow.");
-  viscosityMatrix = new FactorMMPoissonMatrixFreeDiag2D(mesh);
-  viscositySolver = new PETScJacobiSolver(mesh);
+  viscositySolverType = set_solver_type(vis_solver);
+  if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+    viscosityMatrix = new FactorMMPoissonMatrixFreeDiag2D(mesh);
+    viscositySolver = new PETScJacobiSolver(mesh);
+  } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+    viscosityMatrix = new FactorMMPoissonMatrixFreeBlockDiag2D(mesh);
+    viscositySolver = new PETScBlockJacobiSolver(mesh);
+  } else {
+    dg_abort("Only \'jacobi\' preconditioner is supported for 2D multiphase flow.");
+  }
 
   pressureSolver->set_matrix(pressureMatrix);
   viscositySolver->set_matrix(viscosityMatrix);
@@ -673,12 +685,31 @@ bool MPINSSolver2D::viscosity() {
                 op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
-    viscosityMatrix->set_factor(tmp_art_vis.dat);
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      FactorMMPoissonMatrixFreeDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag2D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      FactorMMPoissonMatrixFreeBlockDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag2D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+    }
   } else {
-    viscosityMatrix->set_factor(mu);
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      FactorMMPoissonMatrixFreeDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag2D*>(viscosityMatrix);
+      tmpMatrix->set_factor(mu);
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      FactorMMPoissonMatrixFreeBlockDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag2D*>(viscosityMatrix);
+      tmpMatrix->set_factor(mu);
+    }
   }
-  viscosityMatrix->set_mm_factor(vis_mm_factor.dat);
-  viscosityMatrix->calc_mat_partial();
+  if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+    FactorMMPoissonMatrixFreeDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag2D*>(viscosityMatrix);
+    tmpMatrix->set_mm_factor(vis_mm_factor.dat);
+    tmpMatrix->calc_mat_partial();
+  } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+    FactorMMPoissonMatrixFreeBlockDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag2D*>(viscosityMatrix);
+    tmpMatrix->set_mm_factor(vis_mm_factor.dat);
+    tmpMatrix->calc_mat_partial();
+  }
 
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_vis_bc_x, "ins_2d_vis_bc_x", mesh->bfaces,
@@ -711,12 +742,31 @@ bool MPINSSolver2D::viscosity() {
                 op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
-    viscosityMatrix->set_factor(tmp_art_vis.dat);
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      FactorMMPoissonMatrixFreeDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag2D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      FactorMMPoissonMatrixFreeBlockDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag2D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+    }
   } else {
-    viscosityMatrix->set_factor(mu);
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      FactorMMPoissonMatrixFreeDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag2D*>(viscosityMatrix);
+      tmpMatrix->set_factor(mu);
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      FactorMMPoissonMatrixFreeBlockDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag2D*>(viscosityMatrix);
+      tmpMatrix->set_factor(mu);
+    }
   }
-  viscosityMatrix->set_mm_factor(vis_mm_factor.dat);
-  viscosityMatrix->calc_mat_partial();
+  if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+    FactorMMPoissonMatrixFreeDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag2D*>(viscosityMatrix);
+    tmpMatrix->set_mm_factor(vis_mm_factor.dat);
+    tmpMatrix->calc_mat_partial();
+  } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+    FactorMMPoissonMatrixFreeBlockDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag2D*>(viscosityMatrix);
+    tmpMatrix->set_mm_factor(vis_mm_factor.dat);
+    tmpMatrix->calc_mat_partial();
+  }
 
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_vis_bc_y, "ins_2d_vis_bc_y", mesh->bfaces,

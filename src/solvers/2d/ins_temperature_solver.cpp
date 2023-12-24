@@ -126,8 +126,9 @@ void INSTemperatureSolver2D::setup_common() {
   // Pressure matrix and solver
   std::string pr_solver = "p-multigrid";
   config->getStr("pressure-solve", "preconditioner", pr_solver);
-  if(pr_solver != "p-multigrid") 
-    throw std::runtime_error("Only \'p-multigrid\' preconditioner is supported for 2D temperature + single phase flow.");
+  pressureSolverType = set_solver_type(pr_solver);
+  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID) 
+    dg_abort("Only \'p-multigrid\' preconditioner is supported for 2D temperature + single phase flow.");
   pressureMatrix = new FactorPoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new FactorPoissonCoarseMatrix2D(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
@@ -136,8 +137,9 @@ void INSTemperatureSolver2D::setup_common() {
   // Viscous matrix and solver
   std::string vis_solver = "inv-mass";
   config->getStr("viscous-solve", "preconditioner", vis_solver);
-  if(vis_solver != "inv-mass") 
-    throw std::runtime_error("Only \'inv-mass\' preconditioner is supported for 2D temperature + single phase flow.");
+  viscositySolverType = set_solver_type(vis_solver);
+  if(viscositySolverType != LinearSolver::PETSC_INV_MASS) 
+    dg_abort("Only \'inv-mass\' preconditioner is supported for 2D temperature + single phase flow.");
   viscosityMatrix = new MMPoissonMatrixFree2D(mesh);
   viscositySolver = new PETScInvMassSolver(mesh);
 

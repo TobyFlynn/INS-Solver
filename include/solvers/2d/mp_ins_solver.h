@@ -11,9 +11,8 @@
 #include "dg_matrices/2d/factor_poisson_coarse_matrix_2d.h"
 #include "dg_matrices/2d/factor_poisson_matrix_free_diag_2d.h"
 #include "dg_matrices/2d/factor_poisson_matrix_free_diag_oi_2d.h"
-#include "dg_matrices/2d/factor_mm_poisson_matrix_free_diag_2d.h"
 #include "dg_linear_solvers/petsc_pmultigrid.h"
-#include "dg_linear_solvers/petsc_jacobi.h"
+#include "dg_linear_solvers/linear_solver.h"
 
 #include <string>
 #include <vector>
@@ -54,9 +53,9 @@ private:
 
   FactorPoissonCoarseMatrix2D *pressureCoarseMatrix;
   PoissonMatrixFreeDiag *pressureMatrix;
-  FactorMMPoissonMatrixFreeDiag2D *viscosityMatrix;
+  PoissonMatrix *viscosityMatrix;
   PETScPMultigrid *pressureSolver;
-  PETScJacobiSolver *viscositySolver;
+  LinearSolver *viscositySolver;
   LevelSetSolver2D *lsSolver;
   DG_FP reynolds;
   bool resuming, dt_forced, surface_tension, pr_over_int;
