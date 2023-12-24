@@ -3,12 +3,13 @@
 #include "op_seq.h"
 
 #include "dg_dat_pool.h"
+#include "dg_abort.h"
 
 extern DGDatPool *dg_dat_pool;
 
 MinMaxInterface2D::MinMaxInterface2D(INSSolverBase2D *i, const int sample_iter) : Measurement2D(i, sample_iter) {
   if(dynamic_cast<MPINSSolver2D*>(ins) == nullptr) {
-    throw std::runtime_error("MinMaxInterface2D measurement can only be used with 2D multiphase solver\n");
+    dg_abort("MinMaxInterface2D measurement can only be used with 2D multiphase solver\n");
   }
 
   mpins = dynamic_cast<MPINSSolver2D*>(ins);

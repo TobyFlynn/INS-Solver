@@ -8,6 +8,8 @@
 
 #include "dg_op2_blas.h"
 #include "dg_constants/dg_constants.h"
+#include "dg_dat_pool.h"
+#include "dg_abort.h"
 
 #include "timing.h"
 #include "config.h"
@@ -69,7 +71,7 @@ void MPINSSolver2D::setup_common() {
   if(dt_forced) dt = tmp_dt;
 
   // if(surface_tension && sub_cycles > 0)
-  //   throw std::runtime_error("Surface tension not supported with subcycling currently");
+  //   dg_abort("Surface tension not supported with subcycling currently");
 
   // Pressure matrix and solver
   std::string pr_solver = "p-multigrid";
@@ -587,7 +589,7 @@ bool MPINSSolver2D::pressure() {
   pressureSolver->set_bcs(bc_data);
   bool converged = pressureSolver->solve(divVelT.dat, pr);
   if(!converged)
-    throw std::runtime_error("Pressure solve did not converge");
+    dg_abort("Pressure solve did not converge");
 
   if(pr_over_int) {
     dg_dat_pool->releaseTempDatCells(pr_factor_surf_oi);
@@ -695,7 +697,7 @@ bool MPINSSolver2D::viscosity() {
   viscositySolver->set_bcs(bc_data);
   bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
-    throw std::runtime_error("Viscosity X solve did not converge");
+    dg_abort("Viscosity X solve did not converge");
 
   op_par_loop(ins_2d_set_vis_y_bc_type, "ins_2d_set_vis_y_bc_type", mesh->bfaces,
               op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
@@ -733,7 +735,7 @@ bool MPINSSolver2D::viscosity() {
   viscositySolver->set_bcs(bc_data);
   bool convergedY = viscositySolver->solve(visRHS[1].dat, vel[(currentInd + 1) % 2][1]);
   if(!convergedY)
-    throw std::runtime_error("Viscosity Y solve did not converge");
+    dg_abort("Viscosity Y solve did not converge");
   timer->endTimer("MPINSSolver2D - Viscosity Linear Solve");
 
   dg_dat_pool->releaseTempDatCells(tmp_art_vis);

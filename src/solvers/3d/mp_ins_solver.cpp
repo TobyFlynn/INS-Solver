@@ -12,6 +12,7 @@
 #include "dg_linear_solvers/petsc_amg.h"
 #include "dg_linear_solvers/petsc_block_jacobi.h"
 #include "dg_linear_solvers/initial_guess_extrapolation.h"
+#include "dg_abort.h"
 
 #include <string>
 
@@ -315,7 +316,7 @@ void MPINSSolver3D::pressure() {
 
   bool converged = pressureSolver->solve(divVelT.dat, pr);
   if(!converged)
-    throw std::runtime_error("\nPressure solve failed to converge\n");
+    dg_abort("\nPressure solve failed to converge\n");
 
   if(extrapolate_initial_guess)
     add_to_pr_history();
@@ -415,7 +416,7 @@ void MPINSSolver3D::viscosity() {
   viscositySolver->set_bcs(vis_bc);
   bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
-    throw std::runtime_error("\nViscosity X solve failed to converge\n");
+    dg_abort("\nViscosity X solve failed to converge\n");
 
     if(mesh->bface2cells) {
       op_par_loop(ins_3d_vis_y, "ins_3d_vis_y", mesh->bfaces,
@@ -451,7 +452,7 @@ void MPINSSolver3D::viscosity() {
   }
   bool convergedY = viscositySolver->solve(visRHS[1].dat, vel[(currentInd + 1) % 2][1]);
   if(!convergedY)
-    throw std::runtime_error("\nViscosity Y solve failed to converge\n");
+    dg_abort("\nViscosity Y solve failed to converge\n");
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_vis_z, "ins_3d_vis_z", mesh->bfaces,
@@ -487,7 +488,7 @@ void MPINSSolver3D::viscosity() {
   }
   bool convergedZ = viscositySolver->solve(visRHS[2].dat, vel[(currentInd + 1) % 2][2]);
   if(!convergedZ)
-    throw std::runtime_error("\nViscosity Z solve failed to converge\n");
+    dg_abort("\nViscosity Z solve failed to converge\n");
 
   dg_dat_pool->releaseTempDatCells(tmp_art_vis);
   dg_dat_pool->releaseTempDatCells(vis_mm_factor);

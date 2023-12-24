@@ -15,10 +15,10 @@ extern DGConstants *constants;
 #include "dg_linear_solvers/initial_guess_extrapolation.h"
 #include "dg_dat_pool.h"
 #include "dg_utils.h"
+#include "dg_abort.h"
 
 #include <string>
 #include <iostream>
-#include <stdexcept>
 
 extern Timing *timer;
 extern Config *config;
@@ -1479,7 +1479,7 @@ void INSSolverBase3D::zero_dat(op_dat dat) {
     op_par_loop(zero_cub_surf_3d, "zero_cub_surf_3d", mesh->cells,
                 op_arg_dat(dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE));
   } else {
-    throw std::runtime_error("Trying to zero dat with incompatible dimension");
+    dg_abort("Trying to zero dat with incompatible dimension");
   }
 }
 
