@@ -3,10 +3,10 @@
 #include "op_seq.h"
 
 #include <limits>
-#include <stdexcept>
 
 #include "dg_op2_blas.h"
 #include "dg_dat_pool.h"
+#include "dg_abort.h"
 
 #include "timing.h"
 #include "config.h"
@@ -201,7 +201,7 @@ void AdvecDiffSolver2D::diff(op_dat val, op_dat vis, op_dat val_out) {
 }
 
 void AdvecDiffSolver2D::rhs_over_int(op_dat val, op_dat vis, op_dat val_out) {
-  throw std::runtime_error("rhs_over_int not implemented for AdvecDiffSolver2D");
+  dg_abort("rhs_over_int not implemented for AdvecDiffSolver2D");
 }
 
 void AdvecDiffSolver2D::set_dt(op_dat u, op_dat v, op_dat vis) {

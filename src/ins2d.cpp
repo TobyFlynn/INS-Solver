@@ -11,6 +11,7 @@
 #include "petscksp.h"
 
 #include "dg_global_constants/dg_global_constants_2d.h"
+#include "dg_abort.h"
 
 #include "timing.h"
 #include "config.h"
@@ -153,7 +154,7 @@ int main(int argc, char **argv) {
   } else if(type_of_solver == "single-phase-with-temperature") {
     ins2d = new INSTemperatureSolver2D(mesh);
   } else {
-    throw std::runtime_error("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\', \'single-phase-with-temperature\'");
+    dg_abort("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\', \'single-phase-with-temperature\'");
   }
 
   // Toolkit constants
@@ -211,7 +212,7 @@ int main(int argc, char **argv) {
         MinMaxInterface2D *min_max = new MinMaxInterface2D(ins2d);
         measurements.push_back(min_max);
       } else {
-        throw runtime_error("Unrecognised measurement: " + measurement);
+        dg_abort("Unrecognised measurement: " + measurement);
       }
     }
   }

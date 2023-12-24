@@ -9,6 +9,7 @@
 #include "dg_op2_blas.h"
 #include "dg_constants/dg_constants.h"
 #include "dg_dat_pool.h"
+#include "dg_abort.h"
 
 #include "timing.h"
 #include "config.h"
@@ -263,7 +264,7 @@ bool INSSolver2D::pressure() {
   pressureSolver->set_bcs(bc_data);
   bool converged = pressureSolver->solve(divVelT.dat, pr);
   if(!converged)
-    throw std::runtime_error("Pressure solve did not converge");
+    dg_abort("Pressure solve did not converge");
   dg_dat_pool->releaseTempDatCells(divVelT);
   timer->endTimer("INSSolver2D - Pressure Linear Solve");
 
@@ -344,7 +345,7 @@ bool INSSolver2D::viscosity() {
   viscositySolver->set_bcs(bc_data);
   bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
-    throw std::runtime_error("Viscosity X solve did not converge");
+    dg_abort("Viscosity X solve did not converge");
 
   op_par_loop(ins_2d_set_vis_y_bc_type, "ins_2d_set_vis_y_bc_type", mesh->bfaces,
               op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
@@ -370,7 +371,7 @@ bool INSSolver2D::viscosity() {
   viscositySolver->set_bcs(bc_data);
   bool convergedY = viscositySolver->solve(visRHS[1].dat, vel[(currentInd + 1) % 2][1]);
   if(!convergedY)
-    throw std::runtime_error("Viscosity Y solve did not converge");
+    dg_abort("Viscosity Y solve did not converge");
   timer->endTimer("INSSolver2D - Viscosity Linear Solve");
 
   dg_dat_pool->releaseTempDatCells(visRHS[0]);

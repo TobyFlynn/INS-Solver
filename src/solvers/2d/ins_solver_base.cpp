@@ -11,6 +11,7 @@
 #include "dg_constants/dg_constants.h"
 #include "dg_dat_pool.h"
 #include "dg_utils.h"
+#include "dg_abort.h"
 
 #include "timing.h"
 #include "config.h"
@@ -99,7 +100,7 @@ void INSSolverBase2D::read_options() {
   gravity = tmp_grav == 1;
 
   if(gravity && sub_cycles > 0)
-    throw std::runtime_error("Gravity not supported with subcycling currently");
+    dg_abort("Gravity not supported with subcycling currently");
 
   filter_alpha = 18.0;
   config->getDouble("filter", "alpha", filter_alpha);
@@ -1245,7 +1246,7 @@ void INSSolverBase2D::zero_dat(op_dat dat) {
     op_par_loop(zero_cub_surf_2d, "zero_cub_surf_2d", mesh->cells,
                 op_arg_dat(dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_WRITE));
   } else {
-    throw std::runtime_error("Trying to zero dat with incompatible dimension");
+    dg_abort("Trying to zero dat with incompatible dimension");
   }
 }
 

@@ -292,7 +292,7 @@ void LevelSetSolver2D::reinitLS() {
   timer->endTimer("LS - Construct Poly Eval");
 
   #ifdef DG_OP2_SOA
-  throw std::runtime_error("2D LS Reinit not implemented for SoA");
+  dg_abort("2D LS Reinit not implemented for SoA");
   #endif
 
   timer->startTimer("LS - Newton Method");

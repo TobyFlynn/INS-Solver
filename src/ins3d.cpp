@@ -10,6 +10,7 @@
 
 #include "dg_global_constants/dg_global_constants_3d.h"
 #include "dg_dat_pool.h"
+#include "dg_abort.h"
 
 #include "timing.h"
 #include "config.h"
@@ -129,7 +130,7 @@ int main(int argc, char **argv) {
   } else if(type_of_solver == "multi-phase") {
     ins3d = new MPINSSolver3D(mesh);
   } else {
-    throw std::runtime_error("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\'");
+    dg_abort("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\'");
   }
 
   // Toolkit constants
@@ -174,7 +175,7 @@ int main(int argc, char **argv) {
         Enstropy3D *enstropy = new Enstropy3D(ins3d, refMu, refRho, refVel, 248.0502134423985614038105205);
         measurements.push_back(enstropy);
       } else {
-        throw runtime_error("Unrecognised measurement: " + measurement);
+        dg_abort("Unrecognised measurement: " + measurement);
       }
     }
   }

@@ -3,10 +3,10 @@
 #include "op_seq.h"
 
 #include <limits>
-#include <stdexcept>
 
 #include "dg_op2_blas.h"
 #include "dg_dat_pool.h"
+#include "dg_abort.h"
 
 #include "timing.h"
 #include "config.h"
@@ -153,7 +153,7 @@ void DiffusionSolver2D::rhs(op_dat val, op_dat vis, op_dat val_out) {
 }
 
 void DiffusionSolver2D::rhs_over_int(op_dat val, op_dat vis, op_dat val_out) {
-  throw std::runtime_error("rhs_over_int not implemented for DiffusionSolver2D");
+  dg_abort("rhs_over_int not implemented for DiffusionSolver2D");
 }
 
 void DiffusionSolver2D::set_dt(op_dat vis) {
