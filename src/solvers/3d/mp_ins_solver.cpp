@@ -407,6 +407,7 @@ void MPINSSolver3D::viscosity() {
 
   timer->startTimer("Vis Linear Solve");
   DGTempDat tmp_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
+  viscosityMatrix->set_bc_types(vis_bc_types);
   if(shock_capturing) {
     calc_art_vis(velTT[0], tmp_art_vis.dat);
 
@@ -441,7 +442,6 @@ void MPINSSolver3D::viscosity() {
     tmpMatrix->calc_mat_partial();
   }
 
-  viscosityMatrix->set_bc_types(vis_bc_types);
   viscositySolver->set_bcs(vis_bc);
   bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
