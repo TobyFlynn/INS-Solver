@@ -86,8 +86,6 @@ INSTemperatureSolver2D::INSTemperatureSolver2D(DGMesh2D *m) : INSSolverBase2D(m)
 
   setup_common();
 
-  currentInd = 0;
-
   a0 = 1.0;
   a1 = 0.0;
   b0 = 1.0;
@@ -99,8 +97,6 @@ INSTemperatureSolver2D::INSTemperatureSolver2D(DGMesh2D *m, const std::string &f
   resuming = true;
 
   setup_common();
-
-  currentInd = iter;
 
   if(iter > 0) {
     g0 = 1.5;
@@ -127,7 +123,7 @@ void INSTemperatureSolver2D::setup_common() {
   std::string pr_solver = "p-multigrid";
   config->getStr("pressure-solve", "preconditioner", pr_solver);
   pressureSolverType = set_solver_type(pr_solver);
-  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID) 
+  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID)
     dg_abort("Only \'p-multigrid\' preconditioner is supported for 2D temperature + single phase flow.");
   pressureMatrix = new FactorPoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new FactorPoissonCoarseMatrix2D(mesh);
@@ -138,7 +134,7 @@ void INSTemperatureSolver2D::setup_common() {
   std::string vis_solver = "inv-mass";
   config->getStr("viscous-solve", "preconditioner", vis_solver);
   viscositySolverType = set_solver_type(vis_solver);
-  if(viscositySolverType != LinearSolver::PETSC_INV_MASS) 
+  if(viscositySolverType != LinearSolver::PETSC_INV_MASS)
     dg_abort("Only \'inv-mass\' preconditioner is supported for 2D temperature + single phase flow.");
   viscosityMatrix = new MMPoissonMatrixFree2D(mesh);
   viscositySolver = new PETScInvMassSolver(mesh);
@@ -201,13 +197,10 @@ void INSTemperatureSolver2D::init(const DG_FP re, const DG_FP refVel) {
   sub_cycle_dt = h / (DG_ORDER * DG_ORDER * max_vel());
   if(!dt_forced) {
     dt = sub_cycle_dt;
-    if(resuming)
-      dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+    if(resuming && it_pre_sub_cycle <= 0 && sub_cycles > 1)
+      dt = sub_cycle_dt * sub_cycles;
   }
   op_printf("dt: %g\n", dt);
-
-  time = dt * currentInd;
-  currentInd = currentInd % 2;
 
   if(mesh->bface2nodes) {
     op_par_loop(ins_bc_types, "ins_bc_types", mesh->bfaces,

@@ -30,6 +30,7 @@
 #define LW_INLET_LENGTH 2.0
 #define LW_RADIUS 5.833
 #define LW_BLADE_START_X 0.6
+#define LW_RAMP_UP_TIME 0.2
 
 /************************************************************************
  * You can edit the body of the functions below but not their signature *
@@ -39,10 +40,7 @@
 DEVICE_PREFIX void ps3d_set_ic(const DG_FP x, const DG_FP y, const DG_FP z,
                                DG_FP &u, DG_FP &v, DG_FP &w) {
   // Liquid Whistle Initial Conditions
-  DG_FP tmp = LW_INLET_RADIUS - sqrt(y * y + z * z);
-  tmp = fmax(0.0, tmp / (0.5 * LW_INLET_RADIUS));
-  tmp = fmin(1.0, tmp);
-  u = tmp * fmax(0.0, -x * 0.5);
+  u = 0.0;
   v = 0.0;
   w = 0.0;
 }
@@ -87,10 +85,13 @@ DEVICE_PREFIX void ps3d_custom_bc_get_vel(const int bc_type, const DG_FP time,
                                           const DG_FP mU, const DG_FP mV, const DG_FP mW,
                                           DG_FP &u, DG_FP &v, DG_FP &w) {
   if(bc_type == BC_TYPE_INFLOW) {
-    DG_FP tmp = LW_INLET_RADIUS - sqrt(y * y + z * z);
-    tmp = fmax(0.0, tmp / (0.5 * LW_INLET_RADIUS));
-    tmp = fmin(1.0, tmp);
-    u = tmp * fmax(0.0, -x * 0.5);
+    const DG_FP PI = 3.141592653589793238463;
+    DG_FP tmp = ((LW_INLET_RADIUS - 0.05) - sqrt(y * y + z * z)) / 0.05;
+    tmp = 0.5 + 0.5 * tanh(PI * tmp);
+    if(time < LW_RAMP_UP_TIME)
+      u = sin(PI * time / (2.0 * LW_RAMP_UP_TIME)) * tmp;
+    else
+      u = tmp;
     v = 0.0;
     w = 0.0;
   }
@@ -132,7 +133,7 @@ DEVICE_PREFIX void ps3d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 // Set the initial interface between phases for multiphase simulations
 DEVICE_PREFIX void ps3d_set_surface(const DG_FP x, const DG_FP y, const DG_FP z,
                                     DG_FP &s) {
-  s = sqrt((x + 3.0) * (x + 3.0) + y * y + z * z) - 2.99;
+  s = sqrt((x + 3.0) * (x + 3.0) + y * y + z * z) - 3.035;
   s = fmax(fmin(LS_CAP, s), -LS_CAP);
 }
 
@@ -156,7 +157,13 @@ DEVICE_PREFIX DG_FP ps3d_custom_bc_get_pr_neumann_multiphase(const int bc_type, 
     DG_FP res0 = -N0 - curl20 / (reynolds * rho);
     DG_FP res1 = -N1 - curl21 / (reynolds * rho);
     DG_FP res2 = -N2 - curl22 / (reynolds * rho);
-    return nx * res0 + ny * res1 + nz * res2;
+    DG_FP neumann = nx * res0 + ny * res1 + nz * res2;
+    if(time >= LW_RAMP_UP_TIME)
+      return neumann;
+    const DG_FP PI = 3.141592653589793238463;
+    DG_FP tmp = ((LW_INLET_RADIUS - 0.05) - sqrt(y * y + z * z)) / 0.05;
+    tmp = 0.5 + 0.5 * tanh(PI * tmp);
+    DG_FP vel_grad = nx * (PI / (2.0 * LW_RAMP_UP_TIME)) * cos(PI * time / (2.0 * LW_RAMP_UP_TIME)) * tmp;
   }
 
   return 0.0;

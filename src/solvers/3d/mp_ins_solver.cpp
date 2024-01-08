@@ -33,9 +33,6 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) : INSSolverBase3D(m) {
   g0 = 1.0;
 
   dt = 0.0;
-  time = 0.0;
-
-  currentInd = 0;
 
   lsSolver = new LevelSetSolver3D(mesh);
 
@@ -44,8 +41,6 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) : INSSolverBase3D(m) {
 
 MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int iter) : INSSolverBase3D(m, filename) {
   resuming = true;
-
-  currentInd = iter;
 
   if(iter > 0) {
     g0 = 1.5;
@@ -71,7 +66,7 @@ void MPINSSolver3D::setup_common() {
   std::string pr_solver = "p-multigrid";
   config->getStr("pressure-solve", "preconditioner", pr_solver);
   pressureSolverType = set_solver_type(pr_solver);
-  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID) 
+  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID)
     dg_abort("Only \'p-multigrid\' preconditioner is supported for 3D multiphase flow.");
   int pr_over_int = 0;
   config->getInt("pressure-solve", "over_int", pr_over_int);
@@ -94,7 +89,7 @@ void MPINSSolver3D::setup_common() {
   } else {
     dg_abort("Only \'jacobi\' preconditioner is supported for 3D multiphase flow.");
   }
-  
+
   pressureSolver->set_matrix(pressureMatrix);
   viscositySolver->set_matrix(viscosityMatrix);
 
@@ -147,12 +142,10 @@ void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
 
   sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
   dt = sub_cycle_dt;
-  if(resuming)
-    dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+  if(resuming && it_pre_sub_cycle <= 0 && sub_cycles > 1)
+    dt = sub_cycle_dt * sub_cycles;
   // dt *= 1e-2;
   op_printf("INS dt is %g\n", dt);
-  time = dt * currentInd;
-  currentInd = currentInd % 2;
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_bc_types, "ins_3d_bc_types", mesh->bfaces,

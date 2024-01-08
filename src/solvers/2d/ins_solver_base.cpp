@@ -46,6 +46,10 @@ INSSolverBase2D::INSSolverBase2D(DGMesh2D *m) {
 
   dPdN[0] = op_decl_dat(mesh->cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN0");
   dPdN[1] = op_decl_dat(mesh->cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN1");
+
+  prev_time = 0.0;
+  time = 0.0;
+  currentInd = 0;
 }
 
 INSSolverBase2D::INSSolverBase2D(DGMesh2D *m, const std::string &filename) {
@@ -65,6 +69,11 @@ INSSolverBase2D::INSSolverBase2D(DGMesh2D *m, const std::string &filename) {
   pr = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_pr");
   dPdN[0] = op_decl_dat_hdf5(mesh->cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, filename.c_str(), "ins_solver_dPdN0");
   dPdN[1] = op_decl_dat_hdf5(mesh->cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, filename.c_str(), "ins_solver_dPdN1");
+
+  op_get_const_hdf5("time", 1, "double", (char *)&time, filename.c_str());
+  op_get_const_hdf5("prev_time", 1, "double", (char *)&prev_time, filename.c_str());
+  op_get_const_hdf5("currentInd", 1, "int", (char *)&currentInd, filename.c_str());
+  op_get_const_hdf5("it_pre_sub_cycle", 1, "int", (char *)&it_pre_sub_cycle, filename.c_str());
 }
 
 void INSSolverBase2D::read_options() {
@@ -207,9 +216,6 @@ void INSSolverBase2D::init(const DG_FP re, const DG_FP refVel) {
                 op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
     dg_dat_pool->releaseTempDatCells(tmp_npf);
   }
-
-  time = 0.0;
-  prev_time = 0.0;
 }
 
 
@@ -1239,7 +1245,10 @@ void INSSolverBase2D::dump_checkpoint_data(const std::string &filename) {
   op_fetch_data_hdf5_file(dPdN[1], filename.c_str());
   op_fetch_data_hdf5_file(pr, filename.c_str());
 
-  // TODO save constants in same HDF5 file
+  op_write_const_hdf5("time", 1, "double", (char *)&time, filename.c_str());
+  op_write_const_hdf5("prev_time", 1, "double", (char *)&prev_time, filename.c_str());
+  op_write_const_hdf5("currentInd", 1, "int", (char *)&currentInd, filename.c_str());
+  op_write_const_hdf5("it_pre_sub_cycle", 1, "int", (char *)&it_pre_sub_cycle, filename.c_str());
 }
 
 void INSSolverBase2D::dump_visualisation_data(const std::string &filename) {
@@ -1322,5 +1331,6 @@ LinearSolver::Solvers INSSolverBase2D::set_solver_type(const std::string &str) {
     return LinearSolver::PETSC_PMULTIGRID;
   } else {
     dg_abort("Unknown solver type: " + str);
+    return LinearSolver::PETSC_AMG;
   }
 }

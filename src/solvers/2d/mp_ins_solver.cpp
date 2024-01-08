@@ -33,8 +33,6 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) : INSSolverBase2D(m) {
 
   lsSolver = new LevelSetSolver2D(m);
 
-  currentInd = 0;
-
   a0 = 1.0;
   a1 = 0.0;
   b0 = 1.0;
@@ -48,8 +46,6 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m, const std::string &filename, const int
   setup_common();
 
   lsSolver = new LevelSetSolver2D(mesh, filename);
-
-  currentInd = iter;
 
   if(iter > 0) {
     g0 = 1.5;
@@ -82,7 +78,7 @@ void MPINSSolver2D::setup_common() {
   std::string pr_solver = "p-multigrid";
   config->getStr("pressure-solve", "preconditioner", pr_solver);
   pressureSolverType = set_solver_type(pr_solver);
-  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID) 
+  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID)
     dg_abort("Only \'p-multigrid\' preconditioner is supported for 2D multiphase flow.");
   int tmp_pr_over_int = 0;
   config->getInt("pressure-solve", "over_int", tmp_pr_over_int);
@@ -176,15 +172,12 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   sub_cycle_dt = h / (DG_ORDER * DG_ORDER * max_vel());
   if(!dt_forced) {
     dt = sub_cycle_dt;
-    if(resuming)
-      dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+    if(resuming && it_pre_sub_cycle <= 0 && sub_cycles > 1)
+      dt = sub_cycle_dt * sub_cycles;
   } else {
     sub_cycle_dt = dt;
   }
   op_printf("dt: %g\n", dt);
-
-  time = dt * currentInd;
-  currentInd = currentInd % 2;
 
   if(mesh->bface2nodes) {
     op_par_loop(ins_bc_types, "ins_bc_types", mesh->bfaces,
@@ -396,9 +389,9 @@ void MPINSSolver2D::apply_pressure_neumann_bc(op_dat divVelT) {
   DGTempDat gradCurlVel[2];
   gradCurlVel[0] = dg_dat_pool->requestTempDatCells(DG_NP);
   gradCurlVel[1] = dg_dat_pool->requestTempDatCells(DG_NP);
-  
+
   mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel.dat);
-  
+
   op_par_loop(mp_ins_2d_pr_mu, "mp_ins_2d_pr_mu", mesh->cells,
               op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(curlVel.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
@@ -428,7 +421,7 @@ void MPINSSolver2D::apply_pressure_neumann_bc(op_dat divVelT) {
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[currentInd], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));
-  
+
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT);
 }
 
@@ -484,7 +477,7 @@ void MPINSSolver2D::apply_pressure_neumann_bc_oi(op_dat divVelT) {
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN_oi[currentInd], -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN_oi[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_RW));
-  
+
   op2_gemv(mesh, false, 1.0, DGConstants::CUBSURF2D_LIFT, dPdN_oi[(currentInd + 1) % 2], 1.0, divVelT);
 }
 
@@ -493,7 +486,7 @@ void MPINSSolver2D::update_pressure_matrices(DGTempDat &pr_factor) {
   op_par_loop(reciprocal, "reciprocal", mesh->cells,
               op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(pr_factor.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-  
+
   FactorPoissonMatrixFreeDiag2D *tmpPressureMatrix = dynamic_cast<FactorPoissonMatrixFreeDiag2D*>(pressureMatrix);
   tmpPressureMatrix->set_factor(pr_factor.dat);
   pressureCoarseMatrix->set_factor(pr_factor.dat);
@@ -581,7 +574,7 @@ bool MPINSSolver2D::pressure() {
                 op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
-  
+
   // Multiply RHS by mass matrix
   mesh->mass(divVelT.dat);
   timer->endTimer("MPINSSolver2D - Pressure RHS");

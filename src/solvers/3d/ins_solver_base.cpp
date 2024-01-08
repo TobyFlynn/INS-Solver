@@ -45,6 +45,10 @@ INSSolverBase3D::INSSolverBase3D(DGMesh3D *m) {
 
   dPdN[0] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN0");
   dPdN[1] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN1");
+
+  prev_time = 0.0;
+  time = 0.0;
+  currentInd = 0;
 }
 
 INSSolverBase3D::INSSolverBase3D(DGMesh3D *m, const std::string &filename) {
@@ -68,6 +72,11 @@ INSSolverBase3D::INSSolverBase3D(DGMesh3D *m, const std::string &filename) {
   pr = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_pr");
   dPdN[0] = op_decl_dat_hdf5(mesh->cells, 4 * DG_NPF, DG_FP_STR, filename.c_str(), "ins_solver_dPdN0");
   dPdN[1] = op_decl_dat_hdf5(mesh->cells, 4 * DG_NPF, DG_FP_STR, filename.c_str(), "ins_solver_dPdN1");
+
+  op_get_const_hdf5("time", 1, "double", (char *)&time, filename.c_str());
+  op_get_const_hdf5("prev_time", 1, "double", (char *)&prev_time, filename.c_str());
+  op_get_const_hdf5("currentInd", 1, "int", (char *)&currentInd, filename.c_str());
+  op_get_const_hdf5("it_pre_sub_cycle", 1, "int", (char *)&it_pre_sub_cycle, filename.c_str());
 }
 
 void INSSolverBase3D::read_options() {
@@ -211,9 +220,6 @@ void INSSolverBase3D::init(const DG_FP re, const DG_FP refVel) {
   zero_dat(velTT[0]);
   zero_dat(velTT[1]);
   zero_dat(velTT[2]);
-
-  prev_time = 0.0;
-  time = 0.0;
 }
 
 void INSSolverBase3D::advec_current_non_linear() {
@@ -1430,7 +1436,10 @@ void INSSolverBase3D::dump_checkpoint_data(const std::string &filename) {
   op_fetch_data_hdf5_file(dPdN[0], filename.c_str());
   op_fetch_data_hdf5_file(dPdN[1], filename.c_str());
 
-  // TODO save constants in same HDF5 file
+  op_write_const_hdf5("time", 1, "double", (char *)&time, filename.c_str());
+  op_write_const_hdf5("prev_time", 1, "double", (char *)&prev_time, filename.c_str());
+  op_write_const_hdf5("currentInd", 1, "int", (char *)&currentInd, filename.c_str());
+  op_write_const_hdf5("it_pre_sub_cycle", 1, "int", (char *)&it_pre_sub_cycle, filename.c_str());
 }
 
 void INSSolverBase3D::dump_visualisation_data(const std::string &filename) {
@@ -1522,5 +1531,6 @@ LinearSolver::Solvers INSSolverBase3D::set_solver_type(const std::string &str) {
     return LinearSolver::PETSC_PMULTIGRID;
   } else {
     dg_abort("Unknown solver type: " + str);
+    return LinearSolver::PETSC_AMG;
   }
 }

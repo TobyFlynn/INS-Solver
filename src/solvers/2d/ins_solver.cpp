@@ -29,8 +29,6 @@ INSSolver2D::INSSolver2D(DGMesh2D *m) : INSSolverBase2D(m) {
 
   setup_common();
 
-  currentInd = 0;
-
   a0 = 1.0;
   a1 = 0.0;
   b0 = 1.0;
@@ -42,8 +40,6 @@ INSSolver2D::INSSolver2D(DGMesh2D *m, const std::string &filename, const int ite
   resuming = true;
 
   setup_common();
-
-  currentInd = iter;
 
   if(iter > 0) {
     g0 = 1.5;
@@ -73,7 +69,7 @@ void INSSolver2D::setup_common() {
   std::string pr_solver = "p-multigrid";
   config->getStr("pressure-solve", "preconditioner", pr_solver);
   pressureSolverType = set_solver_type(pr_solver);
-  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID) 
+  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID)
     dg_abort("Only \'p-multigrid\' preconditioner is supported for 2D single phase flow.");
   int pr_over_int = 0;
   config->getInt("pressure-solve", "over_int", pr_over_int);
@@ -84,7 +80,7 @@ void INSSolver2D::setup_common() {
   PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
   tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
   pressureSolver = tmp_pressureSolver;
-  
+
   // Viscous matrix and solver
   std::string vis_solver = "inv-mass";
   config->getStr("viscous-solve", "preconditioner", vis_solver);
@@ -139,13 +135,10 @@ void INSSolver2D::init(const DG_FP re, const DG_FP refVel) {
   sub_cycle_dt = h / (DG_ORDER * DG_ORDER * max_vel());
   if(!dt_forced) {
     dt = sub_cycle_dt;
-    if(resuming)
-      dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+    if(resuming && it_pre_sub_cycle <= 0 && sub_cycles > 1)
+      dt = sub_cycle_dt * sub_cycles;
   }
   op_printf("dt: %g\n", dt);
-
-  time = dt * currentInd;
-  currentInd = currentInd % 2;
 
   if(mesh->bface2nodes) {
     op_par_loop(ins_bc_types, "ins_bc_types", mesh->bfaces,
