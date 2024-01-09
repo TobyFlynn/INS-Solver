@@ -164,6 +164,7 @@ DEVICE_PREFIX DG_FP ps3d_custom_bc_get_pr_neumann_multiphase(const int bc_type, 
     DG_FP tmp = ((LW_INLET_RADIUS - 0.05) - sqrt(y * y + z * z)) / 0.05;
     tmp = 0.5 + 0.5 * tanh(PI * tmp);
     DG_FP vel_grad = nx * (PI / (2.0 * LW_RAMP_UP_TIME)) * cos(PI * time / (2.0 * LW_RAMP_UP_TIME)) * tmp;
+    return neumann + vel_grad;
   }
 
   return 0.0;
