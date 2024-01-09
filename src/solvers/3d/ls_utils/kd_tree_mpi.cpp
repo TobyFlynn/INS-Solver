@@ -32,6 +32,7 @@ KDTree3DMPI::KDTree3DMPI(DGMesh3D *m, const DG_FP alpha) : KDTree3D(m) {
   displacements[1] = MPI_Aint_diff(displacements[1], base_address);
   MPI_Datatype mpi_datatypes[] = {DG_MPI_FP, MPI_INT};
   MPI_Type_create_struct(2, block_lengths, displacements, mpi_datatypes, &packed_type);
+  MPI_Type_commit(&packed_type);
 
   // Get local bounding box
   DG_FP min_x, max_x, min_y, max_y, min_z, max_z;
