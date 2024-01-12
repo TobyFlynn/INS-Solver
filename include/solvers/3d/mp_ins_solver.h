@@ -7,19 +7,11 @@
 
 #include "dg_mesh/dg_mesh_3d.h"
 #include "solvers/3d/ls_solver.h"
-#include "dg_matrices/3d/factor_poisson_matrix_3d.h"
 #include "dg_matrices/3d/factor_poisson_coarse_matrix_3d.h"
-#include "dg_matrices/3d/factor_poisson_semi_matrix_free_3d.h"
 #include "dg_matrices/3d/factor_poisson_matrix_free_diag_3d.h"
-#include "dg_matrices/3d/factor_poisson_matrix_free_diag_oi_3d.h"
-#include "dg_matrices/3d/factor_mm_poisson_matrix_3d.h"
-#include "dg_matrices/3d/factor_mm_poisson_matrix_free_3d.h"
-#include "dg_matrices/3d/factor_mm_poisson_semi_matrix_free_3d.h"
-#include "dg_matrices/3d/factor_mm_poisson_matrix_free_diag_3d.h"
+#include "dg_matrices/3d/factor_poisson_matrix_free_block_diag_3d.h"
 #include "dg_linear_solvers/linear_solver.h"
 #include "dg_linear_solvers/petsc_pmultigrid.h"
-#include "dg_linear_solvers/petsc_inv_mass.h"
-#include "dg_linear_solvers/petsc_jacobi.h"
 
 #include <string>
 #include <vector>
@@ -47,16 +39,10 @@ private:
   void surface_tension_curvature(op_dat curv);
 
   FactorPoissonCoarseMatrix3D *coarsePressureMatrix;
-  // FactorPoissonSemiMatrixFree3D *pressureMatrix;
-  // FactorPoissonMatrixFreeDiag3D *pressureMatrix;
-  FactorPoissonMatrixFreeDiagOI3D *pressureMatrix;
-  // FactorMMPoissonMatrix3D *viscosityMatrix;
-  // FactorMMPoissonSemiMatrixFree3D *viscosityMatrix;
-  FactorMMPoissonMatrixFreeDiag3D *viscosityMatrix;
-  // LinearSolver *pressureSolver;
+  FactorPoissonMatrixFreeDiag3D *pressureMatrix;
+  PoissonMatrix *viscosityMatrix;
   PETScPMultigrid *pressureSolver;
-  // LinearSolver *viscositySolver;
-  PETScJacobiSolver *viscositySolver;
+  LinearSolver *viscositySolver;
   LevelSetSolver3D *lsSolver;
   DG_FP reynolds;
   bool resuming, surface_tension;

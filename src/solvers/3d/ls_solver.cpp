@@ -120,7 +120,9 @@ void LevelSetSolver3D::init() {
   alpha = 24.0 * h;
   // order_width = 12.0 * h;
   // epsilon = h;
-  reinit_width = 4.0 * alpha;
+  ls_cap = 0.25;
+  reinit_width = fmin(4.0 * alpha, ls_cap);
+  // reinit_width = LS_CAP;
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
 
@@ -133,6 +135,10 @@ void LevelSetSolver3D::init() {
   #endif
 
   reinitLS();
+
+  op_par_loop(ls_post_reinit, "ls_post_reinit", mesh->cells,
+                op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
 }
 
 void LevelSetSolver3D::getRhoMu(op_dat rho, op_dat mu) {
@@ -250,7 +256,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
   DG_FP init_y = closest_pt_y;
   DG_FP init_z = closest_pt_z;
 
-  for(int step = 0; step < 20; step++) {
+  for(int step = 0; step < 50; step++) {
     DG_FP pt_x_old = pt_x;
     DG_FP pt_y_old = pt_y;
     DG_FP pt_z_old = pt_z;
@@ -328,15 +334,15 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
     }
 
     // Gone outside the element, return
-    // if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > h * h) {
-    //   pt_x = pt_x_old;
-    //   pt_y = pt_y_old;
-    //   pt_z = pt_z_old;
-    //   break;
-    // }
+    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > 4.0 * h * h) {
+      pt_x = pt_x_old;
+      pt_y = pt_y_old;
+      pt_z = pt_z_old;
+      break;
+    }
 
     // Converged, no more steps required
-    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) + (pt_z_old - pt_z) * (pt_z_old - pt_z) < 1e-18) {
+    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) + (pt_z_old - pt_z) * (pt_z_old - pt_z) < 1e-16) {
       converged = true;
       break;
     }
@@ -351,23 +357,28 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
 
 void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *closest_z,
                    const DG_FP *x, const DG_FP *y, const DG_FP *z, int *poly_ind,
-                   std::vector<PolyApprox3D> &polys, DG_FP *s, const DG_FP h, const DG_FP reinit_width) {
+                   std::vector<PolyApprox3D> &polys, DG_FP *s, const DG_FP h, 
+                   const DG_FP reinit_width, const DG_FP ls_cap) {
   int numNonConv = 0;
   int numReinit = 0;
 
   #pragma omp parallel for
   for(int i = 0; i < numPts; i++) {
     int start_ind = (i / DG_NP) * DG_NP;
-    bool reinit = false;
-    for(int j = 0; j < DG_NP; j++) {
-      if(fabs(s[start_ind + j]) < reinit_width) {
-        reinit = true;
-      }
-    }
-
-    if(reinit) {
-      bool tmp = newton_kernel(closest_x[i], closest_y[i], closest_z[i], x[i], y[i], z[i], polys[poly_ind[i]], h);
+    DG_FP dist2 = (closest_x[start_ind] - x[start_ind]) * (closest_x[start_ind] - x[start_ind]) 
+                + (closest_y[start_ind] - y[start_ind]) * (closest_y[start_ind] - y[start_ind]) 
+                + (closest_z[start_ind] - z[start_ind]) * (closest_z[start_ind] - z[start_ind]);
+    if(dist2 < (reinit_width + 2.0 * h) * (reinit_width + 2.0 * h)) {
+      DG_FP _closest_x = closest_x[i];
+      DG_FP _closest_y = closest_y[i];
+      DG_FP _closest_z = closest_z[i];
+      bool tmp = newton_kernel(_closest_x, _closest_y, _closest_z, x[i], y[i], z[i], polys[poly_ind[i]], h);
       if(tmp) {
+        bool negative = s[i] < 0.0;
+        s[i] = (_closest_x - x[i]) * (_closest_x - x[i]) + (_closest_y - y[i]) * (_closest_y - y[i]) + (_closest_z - z[i]) * (_closest_z - z[i]);
+        s[i] = sqrt(s[i]);
+        if(negative) s[i] *= -1.0;
+      } else {
         bool negative = s[i] < 0.0;
         s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]) + (closest_z[i] - z[i]) * (closest_z[i] - z[i]);
         s[i] = sqrt(s[i]);
@@ -379,16 +390,26 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
       }
       #pragma omp atomic
       numReinit++;
+    } else {
+      bool negative = s[i] < 0.0;
+      s[i] = negative ? -ls_cap : ls_cap;
     }
   }
 
   double percent_non_converge = numReinit == 0 ? 0.0 : (double)numNonConv / (double)numReinit;
   if(percent_non_converge > 0.1)
-    std::cout << percent_non_converge * 100.0 << "\% reinitialisation points did not converge" << std::endl;
+    std::cout << percent_non_converge * 100.0 << "% reinitialisation points did not converge" << std::endl;
 }
 
 void LevelSetSolver3D::reinitLS() {
   timer->startTimer("LevelSetSolver3D - reinitLS");
+  if(h == 0.0) {
+    op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,
+                op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+                op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
+    h = 1.0 / h;
+  }
+
   timer->startTimer("LevelSetSolver3D - get cells containing interface");
   const DG_FP *s_ptr = getOP2PtrHostHE(s, OP_READ);
   std::set<int> cellInds;
@@ -471,14 +492,17 @@ void LevelSetSolver3D::reinitLS() {
   if(!kdtree->empty) {
     #pragma omp parallel for
     for(int i = 0; i < mesh->cells->size; i++) {
-      bool reinit = false;
-      for(int j = 0; j < DG_NP; j++) {
-        if(fabs(surface_ptr[i * DG_NP + j]) < reinit_width) {
-          reinit = true;
-        }
-      }
-      if(reinit) {
-        for(int j = 0; j < DG_NP; j++) {
+      // Get closest sample point
+      KDCoord tmp = kdtree->closest_point(x_ptr[i * DG_NP], y_ptr[i * DG_NP], z_ptr[i * DG_NP]);
+      const DG_FP dist2 = (tmp.x - x_ptr[i * DG_NP]) * (tmp.x - x_ptr[i * DG_NP]) 
+                        + (tmp.y - y_ptr[i * DG_NP]) * (tmp.y - y_ptr[i * DG_NP]) 
+                        + (tmp.z - z_ptr[i * DG_NP]) * (tmp.z - z_ptr[i * DG_NP]);
+      closest_x[i * DG_NP] = tmp.x;
+      closest_y[i * DG_NP] = tmp.y;
+      closest_z[i * DG_NP] = tmp.z;
+      poly_ind[i * DG_NP]  = tmp.poly;
+      if(dist2 < (reinit_width + 2.0 * h) * (reinit_width + 2.0 * h)) {
+        for(int j = 1; j < DG_NP; j++) {
           // Get closest sample point
           KDCoord tmp = kdtree->closest_point(x_ptr[i * DG_NP + j], y_ptr[i * DG_NP + j], z_ptr[i * DG_NP + j]);
           closest_x[i * DG_NP + j] = tmp.x;
@@ -493,18 +517,12 @@ void LevelSetSolver3D::reinitLS() {
   }
   timer->endTimer("LevelSetSolver3D - query KD-Tree");
 
-  if(h == 0.0) {
-    op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,
-                op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
-                op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
-    h = 1.0 / h;
-  }
-
   timer->startTimer("LevelSetSolver3D - newton method");
   // Newton method
   if(!kdtree->empty) {
     newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, closest_z,
-                  x_ptr, y_ptr, z_ptr, poly_ind, polys, surface_ptr, h, reinit_width);
+                  x_ptr, y_ptr, z_ptr, poly_ind, polys, surface_ptr, h, reinit_width,
+                  ls_cap);
   }
   releaseOP2PtrHost(s, OP_RW, surface_ptr);
   timer->endTimer("LevelSetSolver3D - newton method");

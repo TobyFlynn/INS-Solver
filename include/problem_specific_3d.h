@@ -30,6 +30,9 @@
 // Add custom BC types below (number must be greater than 0), for example:
 #define BC_TYPE_INFLOW 3
 
+// Required definitions
+#define LS_CAP 1.0
+// Problem specifc definitions
 #define LW_LENGTH 50.0
 #define LW_LENGTH_SHORT 10.0
 #define LW_INLET_RADIUS 0.5

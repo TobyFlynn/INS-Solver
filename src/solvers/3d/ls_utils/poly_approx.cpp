@@ -119,6 +119,38 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
                               vector<DG_FP> &z, vector<DG_FP> &s) {
   map<Coord, Point, cmpCoords> pointMap;
 
+  for(int n = 0; n < DG_NP; n++) {
+    int ind = cell_ind * DG_NP + n;
+    Coord coord;
+    coord.x = x_ptr[ind] - offset_x;
+    coord.y = y_ptr[ind] - offset_y;
+    coord.z = z_ptr[ind] - offset_z;
+    Point point;
+    auto res = pointMap.insert(make_pair(coord, point));
+    res.first->second.coord = coord;
+    res.first->second.val   = s_ptr[ind];
+    res.first->second.count = 1;
+  }
+
+  for(const auto &sten : stencil) {
+    if(sten == cell_ind) continue;
+    for(int n = 0; n < DG_NP; n++) {
+      int ind = sten * DG_NP + n;
+
+      Coord coord;
+      coord.x = x_ptr[ind] - offset_x;
+      coord.y = y_ptr[ind] - offset_y;
+      coord.z = z_ptr[ind] - offset_z;
+      Point point;
+      auto res = pointMap.find(coord);
+      if(res == pointMap.end()) continue;
+
+      res->second.val += s_ptr[ind];
+      res->second.count++;
+    }
+  }
+
+/*
   for(const auto &sten : stencil) {
     for(int n = 0; n < DG_NP; n++) {
       int ind = sten * DG_NP + n;
@@ -136,21 +168,21 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
         res.first->second.val   = s_ptr[ind];
         res.first->second.count = 1;
       } else {
-        if(sten == cell_ind) {
-          res.first->second.val = s_ptr[ind];
-        }
+        // if(sten == cell_ind) {
+        //   res.first->second.val = s_ptr[ind];
+        // }
         // Point already exists
-        // res.first->second.val += s_ptr[ind];
-        // res.first->second.count++;
+        res.first->second.val += s_ptr[ind];
+        res.first->second.count++;
       }
     }
   }
-
+*/
   for(auto const &p : pointMap) {
     x.push_back(p.second.coord.x);
     y.push_back(p.second.coord.y);
     z.push_back(p.second.coord.z);
-    s.push_back(p.second.val);
+    s.push_back(p.second.val / (DG_FP)p.second.count);
   }
 }
 
@@ -720,7 +752,7 @@ int PolyApprox3D::num_elem_stencil() {
   if(N == 2) {
     return 12;
   } else if(N == 3) {
-    return 4;
+    return 17;
   } else if(N == 4) {
     return 8;
   } else {

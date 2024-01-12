@@ -18,6 +18,10 @@
 #define BC_TYPE_SLIP 1
 #define BC_TYPE_NATURAL_OUTFLOW 2
 
+// Required definitions
+#define LS_CAP 1.0
+// Problem specifc definitions
+
 /************************************************************************
  * You can edit the body of the functions below but not their signature *
  ************************************************************************/

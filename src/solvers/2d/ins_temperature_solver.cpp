@@ -9,6 +9,7 @@
 #include "dg_op2_blas.h"
 #include "dg_constants/dg_constants.h"
 #include "dg_dat_pool.h"
+#include "dg_abort.h"
 
 #include "timing.h"
 #include "config.h"
@@ -85,8 +86,6 @@ INSTemperatureSolver2D::INSTemperatureSolver2D(DGMesh2D *m) : INSSolverBase2D(m)
 
   setup_common();
 
-  currentInd = 0;
-
   a0 = 1.0;
   a1 = 0.0;
   b0 = 1.0;
@@ -98,8 +97,6 @@ INSTemperatureSolver2D::INSTemperatureSolver2D(DGMesh2D *m, const std::string &f
   resuming = true;
 
   setup_common();
-
-  currentInd = iter;
 
   if(iter > 0) {
     g0 = 1.5;
@@ -122,24 +119,32 @@ void INSTemperatureSolver2D::setup_common() {
   dt_forced = tmp_dt > 0.0;
   if(dt_forced) dt = tmp_dt;
 
+  // Pressure matrix and solver
+  std::string pr_solver = "p-multigrid";
+  config->getStr("pressure-solve", "preconditioner", pr_solver);
+  pressureSolverType = set_solver_type(pr_solver);
+  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID)
+    dg_abort("Only \'p-multigrid\' preconditioner is supported for 2D temperature + single phase flow.");
   pressureMatrix = new FactorPoissonMatrixFreeDiag2D(mesh);
   pressureCoarseMatrix = new FactorPoissonCoarseMatrix2D(mesh);
-  viscosityMatrix = new MMPoissonMatrixFree2D(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
   pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
+
+  // Viscous matrix and solver
+  std::string vis_solver = "inv-mass";
+  config->getStr("viscous-solve", "preconditioner", vis_solver);
+  viscositySolverType = set_solver_type(vis_solver);
+  if(viscositySolverType != LinearSolver::PETSC_INV_MASS)
+    dg_abort("Only \'inv-mass\' preconditioner is supported for 2D temperature + single phase flow.");
+  viscosityMatrix = new MMPoissonMatrixFree2D(mesh);
   viscositySolver = new PETScInvMassSolver(mesh);
 
   advecDiffSolver = new TemperatureAdvecDiffSolver2D(mesh);
 
-  int pr_tmp = 0;
-  int vis_tmp = 0;
-  config->getInt("solver-options", "pr_nullspace", pr_tmp);
-  config->getInt("solver-options", "vis_nullspace", vis_tmp);
-
   pressureSolver->set_matrix(pressureMatrix);
-  pressureSolver->set_nullspace(pr_tmp == 1);
   viscositySolver->set_matrix(viscosityMatrix);
-  viscositySolver->set_nullspace(vis_tmp == 1);
+
+  setup_pressure_viscous_solvers(pressureSolver, viscositySolver);
 
   pr_bc_types  = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_pr_bc_types");
   vis_bc_types = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_vis_bc_types");
@@ -192,13 +197,10 @@ void INSTemperatureSolver2D::init(const DG_FP re, const DG_FP refVel) {
   sub_cycle_dt = h / (DG_ORDER * DG_ORDER * max_vel());
   if(!dt_forced) {
     dt = sub_cycle_dt;
-    if(resuming)
-      dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+    if(resuming && it_pre_sub_cycle <= 0 && sub_cycles > 1)
+      dt = sub_cycle_dt * sub_cycles;
   }
   op_printf("dt: %g\n", dt);
-
-  time = dt * currentInd;
-  currentInd = currentInd % 2;
 
   if(mesh->bface2nodes) {
     op_par_loop(ins_bc_types, "ins_bc_types", mesh->bfaces,
@@ -273,6 +275,13 @@ bool INSTemperatureSolver2D::pressure() {
   gradCurlVel[0] = dg_dat_pool->requestTempDatCells(DG_NP);
   gradCurlVel[1] = dg_dat_pool->requestTempDatCells(DG_NP);
   mesh->div_with_central_flux(velT[0], velT[1], divVelT.dat);
+
+  // Calculate RHS of pressure solve
+  const DG_FP div_factor = -1.0 / dt;
+  op_par_loop(mp_ins_2d_pr_div_factor, "mp_ins_2d_pr_div_factor", mesh->cells,
+              op_arg_gbl(&div_factor, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
   mesh->curl(vel[currentInd][0], vel[currentInd][1], curlVel.dat);
   mesh->grad(curlVel.dat, gradCurlVel[0].dat, gradCurlVel[1].dat);
 
@@ -313,13 +322,11 @@ bool INSTemperatureSolver2D::pressure() {
   }
 
   // Calculate RHS of pressure solve
-  op_par_loop(mp_ins_2d_pr_1, "mp_ins_2d_pr_1", mesh->cells,
+  op_par_loop(mp_ins_2d_pr_bc_1, "mp_ins_2d_pr_bc_1", mesh->cells,
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[currentInd], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
-              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW),
-              op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));
 
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT.dat);
   mesh->mass(divVelT.dat);
@@ -341,7 +348,7 @@ bool INSTemperatureSolver2D::pressure() {
   pressureSolver->set_bcs(bc_data);
   bool converged = pressureSolver->solve(divVelT.dat, pr);
   if(!converged)
-    throw std::runtime_error("Pressure solve did not converge");
+    dg_abort("Pressure solve did not converge");
 
   dg_dat_pool->releaseTempDatCells(pr_factor);
   dg_dat_pool->releaseTempDatCells(divVelT);
@@ -429,7 +436,7 @@ bool INSTemperatureSolver2D::viscosity() {
   viscositySolver->set_bcs(bc_data);
   bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
-    throw std::runtime_error("Viscosity X solve did not converge");
+    dg_abort("Viscosity X solve did not converge");
 
   op_par_loop(ins_2d_set_vis_y_bc_type, "ins_2d_set_vis_y_bc_type", mesh->bfaces,
               op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
@@ -455,7 +462,7 @@ bool INSTemperatureSolver2D::viscosity() {
   viscositySolver->set_bcs(bc_data);
   bool convergedY = viscositySolver->solve(visRHS[1].dat, vel[(currentInd + 1) % 2][1]);
   if(!convergedY)
-    throw std::runtime_error("Viscosity Y solve did not converge");
+    dg_abort("Viscosity Y solve did not converge");
   timer->endTimer("INSTemperatureSolver2D - Viscosity Linear Solve");
 
   dg_dat_pool->releaseTempDatCells(visRHS[0]);

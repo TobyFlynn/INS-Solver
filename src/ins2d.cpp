@@ -11,6 +11,7 @@
 #include "petscksp.h"
 
 #include "dg_global_constants/dg_global_constants_2d.h"
+#include "dg_abort.h"
 
 #include "timing.h"
 #include "config.h"
@@ -71,18 +72,15 @@ int main(int argc, char **argv) {
     outputDir += "/";
   }
 
+  bool resuming = false;
   int resumeIter = 0;
-  PetscOptionsGetInt(NULL, NULL, "-r_iter", &resumeIter, &found);
+  char checkFile[255];
   string checkpointFile;
+  PetscOptionsGetString(NULL, NULL, "-checkpoint", checkFile, 255, &found);
   if(found) {
-    // Resuming from checkpoint
-    char checkFile[255];
-    PetscOptionsGetString(NULL, NULL, "-checkpoint", checkFile, 255, &found);
-    if(!found) {
-      op_printf("Did not specify a checkpoint file after specifying iteration to resume from, use the -checkpoint flag\n");
-      return -1;
-    }
     checkpointFile = string(checkFile);
+    resuming = true;
+    op_get_const_hdf5("iter", 1, "int", (char *)&resumeIter, checkpointFile.c_str());
   }
 
   int iter = 1;
@@ -90,6 +88,8 @@ int main(int argc, char **argv) {
 
   int save = -1;
   config->getInt("io", "save", save);
+  int checkpoint = -1;
+  config->getInt("io", "checkpoint", checkpoint);
 
   mu0  = 1.0;
   mu1  = 1.0;
@@ -147,13 +147,22 @@ int main(int argc, char **argv) {
   config->getStr("simulation-constants", "type_of_solver", type_of_solver);
   INSSolverBase2D *ins2d;
   if(type_of_solver == "single-phase") {
-    ins2d = new INSSolver2D(mesh);
+    if(resuming)
+      ins2d = new INSSolver2D(mesh, checkpointFile, resumeIter);
+    else
+      ins2d = new INSSolver2D(mesh);
   } else if(type_of_solver == "multi-phase") {
-    ins2d = new MPINSSolver2D(mesh);
+    if(resuming)
+      ins2d = new MPINSSolver2D(mesh, checkpointFile, resumeIter);
+    else
+      ins2d = new MPINSSolver2D(mesh);
   } else if(type_of_solver == "single-phase-with-temperature") {
-    ins2d = new INSTemperatureSolver2D(mesh);
+    if(resuming)
+      ins2d = new INSTemperatureSolver2D(mesh, checkpointFile, resumeIter);
+    else
+      ins2d = new INSTemperatureSolver2D(mesh);
   } else {
-    throw std::runtime_error("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\', \'single-phase-with-temperature\'");
+    dg_abort("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\', \'single-phase-with-temperature\'");
   }
 
   // Toolkit constants
@@ -211,7 +220,7 @@ int main(int argc, char **argv) {
         MinMaxInterface2D *min_max = new MinMaxInterface2D(ins2d);
         measurements.push_back(min_max);
       } else {
-        throw runtime_error("Unrecognised measurement: " + measurement);
+        dg_abort("Unrecognised measurement: " + measurement);
       }
     }
   }
@@ -224,12 +233,21 @@ int main(int argc, char **argv) {
   }
 
   timer->startTimer("Main loop");
-  for(int i = resumeIter; i < iter; i++) {
+  int i = 0;
+  if(resuming) i = resumeIter;
+  for(; i < iter; i++) {
     ins2d->step();
 
     if(save > 0 && (i + 1) % save == 0) {
       string out_file_tmp = outputDir + "iter-" + to_string(i + 1) + ".h5";
       ins2d->dump_visualisation_data(out_file_tmp);
+    }
+
+    if(checkpoint > 0 && (i + 1) % checkpoint == 0) {
+      string out_file_tmp = outputDir + "checkpoint-" + to_string(i + 1) + ".h5";
+      ins2d->dump_checkpoint_data(out_file_tmp);
+      int tmp_iter = i + 1;
+      op_write_const_hdf5("iter", 1, "int", (char *)&tmp_iter, out_file_tmp.c_str());
     }
 
     for(auto &measurement : measurements) {

@@ -15,10 +15,10 @@ extern DGConstants *constants;
 #include "dg_linear_solvers/initial_guess_extrapolation.h"
 #include "dg_dat_pool.h"
 #include "dg_utils.h"
+#include "dg_abort.h"
 
 #include <string>
 #include <iostream>
-#include <stdexcept>
 
 extern Timing *timer;
 extern Config *config;
@@ -45,6 +45,10 @@ INSSolverBase3D::INSSolverBase3D(DGMesh3D *m) {
 
   dPdN[0] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN0");
   dPdN[1] = op_decl_dat(mesh->cells, 4 * DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_dPdN1");
+
+  prev_time = 0.0;
+  time = 0.0;
+  currentInd = 0;
 }
 
 INSSolverBase3D::INSSolverBase3D(DGMesh3D *m, const std::string &filename) {
@@ -68,6 +72,11 @@ INSSolverBase3D::INSSolverBase3D(DGMesh3D *m, const std::string &filename) {
   pr = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ins_solver_pr");
   dPdN[0] = op_decl_dat_hdf5(mesh->cells, 4 * DG_NPF, DG_FP_STR, filename.c_str(), "ins_solver_dPdN0");
   dPdN[1] = op_decl_dat_hdf5(mesh->cells, 4 * DG_NPF, DG_FP_STR, filename.c_str(), "ins_solver_dPdN1");
+
+  op_get_const_hdf5("time", 1, "double", (char *)&time, filename.c_str());
+  op_get_const_hdf5("prev_time", 1, "double", (char *)&prev_time, filename.c_str());
+  op_get_const_hdf5("currentInd", 1, "int", (char *)&currentInd, filename.c_str());
+  op_get_const_hdf5("it_pre_sub_cycle", 1, "int", (char *)&it_pre_sub_cycle, filename.c_str());
 }
 
 void INSSolverBase3D::read_options() {
@@ -134,9 +143,44 @@ void INSSolverBase3D::init_dats() {
   if(shock_capturing) {
     diffSolver        = new DiffusionSolver3D(mesh);
     nodes_data        = op_decl_dat(mesh->nodes, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_nodes_data");
-    nodes_count       = op_decl_dat(mesh->nodes, 1, "int", (int *)NULL, "ins_solver_nodes_count");
+    nodes_count       = op_decl_dat(mesh->nodes, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_nodes_count");
     shock_cap_art_vis = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_shock_cap_art_vis");
   }
+}
+
+void INSSolverBase3D::setup_pressure_viscous_solvers(LinearSolver *pr_solver, LinearSolver *vis_solver) {
+  int pr_tmp = 0;
+  config->getInt("pressure-solve", "nullspace", pr_tmp);
+  pr_solver->set_nullspace(pr_tmp == 1);
+  double r_tol, a_tol;
+  if(std::is_same<DG_FP,double>::value) {
+    r_tol = 1e-8;
+    a_tol = 1e-9;
+  } else {
+    r_tol = 1e-5;
+    a_tol = 1e-6;
+  }
+  int max_iter = 500;
+  config->getDouble("pressure-solve", "r_tol", r_tol);
+  config->getDouble("pressure-solve", "a_tol", a_tol);
+  config->getInt("pressure-solve", "max_iter", max_iter);
+  pr_solver->set_tol_and_iter(r_tol, a_tol, max_iter);
+
+  int vis_tmp = 0;
+  config->getInt("viscous-solve", "nullspace", vis_tmp);
+  vis_solver->set_nullspace(vis_tmp == 1);
+  if(std::is_same<DG_FP,double>::value) {
+    r_tol = 1e-8;
+    a_tol = 1e-9;
+  } else {
+    r_tol = 1e-5;
+    a_tol = 1e-6;
+  }
+  max_iter = 5000;
+  config->getDouble("viscous-solve", "r_tol", r_tol);
+  config->getDouble("viscous-solve", "a_tol", a_tol);
+  config->getInt("viscous-solve", "max_iter", max_iter);
+  vis_solver->set_tol_and_iter(r_tol, a_tol, max_iter);
 }
 
 INSSolverBase3D::~INSSolverBase3D() {
@@ -176,9 +220,6 @@ void INSSolverBase3D::init(const DG_FP re, const DG_FP refVel) {
   zero_dat(velTT[0]);
   zero_dat(velTT[1]);
   zero_dat(velTT[2]);
-
-  prev_time = 0.0;
-  time = 0.0;
 }
 
 void INSSolverBase3D::advec_current_non_linear() {
@@ -1341,7 +1382,7 @@ DG_FP INSSolverBase3D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat in2
 
   op_par_loop(reset_tmp_node_dats, "reset_tmp_node_dats", mesh->nodes,
               op_arg_dat(nodes_data, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
-              op_arg_dat(nodes_count, -1, OP_ID, 1, "int", OP_WRITE));
+              op_arg_dat(nodes_count, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
 
   zero_dat(out);
 
@@ -1359,7 +1400,7 @@ DG_FP INSSolverBase3D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat in2
               op_arg_dat(in1, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(in2, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(nodes_data, -3, mesh->face2nodes, 1, DG_FP_STR, OP_INC),
-              op_arg_dat(nodes_count, -3, mesh->face2nodes, 1, "int", OP_INC));
+              op_arg_dat(nodes_count, -3, mesh->face2nodes, 1, DG_FP_STR, OP_INC));
 
   DG_FP max_vis = -1.0;
   op_par_loop(ins_3d_shock_cap_art_vis_1, "ins_3d_shock_cap_art_vis_1", mesh->cells,
@@ -1368,11 +1409,33 @@ DG_FP INSSolverBase3D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat in2
               op_arg_gbl(&shock_cap_smooth_tol, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&shock_cap_discon_tol, 1, DG_FP_STR, OP_READ),
               op_arg_dat(nodes_data, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(nodes_count, -4, mesh->cell2nodes, 1, "int", OP_READ),
+              op_arg_dat(nodes_count, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
               op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
   dg_dat_pool->releaseTempDatCells(h_tmp);
   return max_vis;
+}
+
+void INSSolverBase3D::calc_art_vis(op_dat in, op_dat out) {
+  DGTempDat u_modal = dg_dat_pool->requestTempDatCells(DG_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, in, 0.0, u_modal.dat);
+
+  op_par_loop(reset_tmp_node_dats, "reset_tmp_node_dats", mesh->nodes,
+              op_arg_dat(nodes_data, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
+              op_arg_dat(nodes_count, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+
+  op_par_loop(modal_shock_detector_3d_0, "modal_shock_detector_3d_0", mesh->cells,
+              op_arg_gbl(&shock_cap_max_diff, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(u_modal.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(nodes_data, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_INC),
+              op_arg_dat(nodes_count, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_INC));
+
+  dg_dat_pool->releaseTempDatCells(u_modal);
+
+  op_par_loop(modal_shock_detector_3d_1, "modal_shock_detector_3d_1", mesh->cells,
+              op_arg_dat(nodes_data, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(nodes_count, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 }
 
 void INSSolverBase3D::add_to_pr_history() {
@@ -1428,7 +1491,10 @@ void INSSolverBase3D::dump_checkpoint_data(const std::string &filename) {
   op_fetch_data_hdf5_file(dPdN[0], filename.c_str());
   op_fetch_data_hdf5_file(dPdN[1], filename.c_str());
 
-  // TODO save constants in same HDF5 file
+  op_write_const_hdf5("time", 1, "double", (char *)&time, filename.c_str());
+  op_write_const_hdf5("prev_time", 1, "double", (char *)&prev_time, filename.c_str());
+  op_write_const_hdf5("currentInd", 1, "int", (char *)&currentInd, filename.c_str());
+  op_write_const_hdf5("it_pre_sub_cycle", 1, "int", (char *)&it_pre_sub_cycle, filename.c_str());
 }
 
 void INSSolverBase3D::dump_visualisation_data(const std::string &filename) {
@@ -1477,7 +1543,7 @@ void INSSolverBase3D::zero_dat(op_dat dat) {
     op_par_loop(zero_cub_surf_3d, "zero_cub_surf_3d", mesh->cells,
                 op_arg_dat(dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_WRITE));
   } else {
-    throw std::runtime_error("Trying to zero dat with incompatible dimension");
+    dg_abort("Trying to zero dat with incompatible dimension");
   }
 }
 
@@ -1505,4 +1571,21 @@ op_dat INSSolverBase3D::get_vel_z() {
 
 op_dat INSSolverBase3D::get_pr() {
   return pr;
+}
+
+LinearSolver::Solvers INSSolverBase3D::set_solver_type(const std::string &str) {
+  if(str == "petsc--amg") {
+    return LinearSolver::PETSC_AMG;
+  } else if(str == "jacobi") {
+    return LinearSolver::PETSC_JACOBI;
+  } else if(str == "block-jacobi") {
+    return LinearSolver::PETSC_BLOCK_JACOBI;
+  } else if(str == "inv-mass") {
+    return LinearSolver::PETSC_INV_MASS;
+  } else if(str == "p-multigrid") {
+    return LinearSolver::PETSC_PMULTIGRID;
+  } else {
+    dg_abort("Unknown solver type: " + str);
+    return LinearSolver::PETSC_AMG;
+  }
 }

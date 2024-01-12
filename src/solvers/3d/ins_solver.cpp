@@ -15,10 +15,10 @@ extern DGConstants *constants;
 #include "dg_linear_solvers/initial_guess_extrapolation.h"
 #include "dg_dat_pool.h"
 #include "dg_utils.h"
+#include "dg_abort.h"
 
 #include <string>
 #include <iostream>
-#include <stdexcept>
 
 extern Timing *timer;
 extern Config *config;
@@ -36,17 +36,12 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) : INSSolverBase3D(m) {
   g0 = 1.0;
 
   dt = 0.0;
-  time = 0.0;
-
-  currentInd = 0;
 }
 
 INSSolver3D::INSSolver3D(DGMesh3D *m, const std::string &filename, const int iter) : INSSolverBase3D(m, filename) {
   resuming = true;
 
   setup_common();
-
-  currentInd = iter;
 
   if(iter > 0) {
     g0 = 1.5;
@@ -73,23 +68,35 @@ void INSSolver3D::setup_common() {
   pr_bc  = tmp_npf_bc;
   vis_bc = tmp_npf_bc;
 
+  // Pressure matrix and solver
+  std::string pr_solver = "p-multigrid";
+  config->getStr("pressure-solve", "preconditioner", pr_solver);
+  pressureSolverType = set_solver_type(pr_solver);
+  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID)
+    dg_abort("Only \'p-multigrid\' preconditioner is supported for 3D single phase flow.");
+  int pr_over_int = 0;
+  config->getInt("pressure-solve", "over_int", pr_over_int);
+  if(pr_over_int != 0)
+    dg_abort("Cannot over integrate the pressure solve for 3D single phase flow");
   pressureCoarseMatrix = new PoissonCoarseMatrix3D(mesh);
   pressureMatrix = new PoissonMatrixFreeDiag3D(mesh);
-  viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
-
   PETScPMultigrid *tmp_pressureSolver = new PETScPMultigrid(mesh);
-  viscositySolver = new PETScInvMassSolver(mesh);
-
-  int pr_tmp = 0;
-  int vis_tmp = 0;
-  config->getInt("solver-options", "pr_nullspace", pr_tmp);
-  config->getInt("solver-options", "vis_nullspace", vis_tmp);
   tmp_pressureSolver->set_coarse_matrix(pressureCoarseMatrix);
   pressureSolver = tmp_pressureSolver;
+
+  // Viscous matrix and solver
+  std::string vis_solver = "inv-mass";
+  config->getStr("viscous-solve", "preconditioner", vis_solver);
+  viscositySolverType = set_solver_type(vis_solver);
+  if(viscositySolverType != LinearSolver::PETSC_INV_MASS)
+    dg_abort("Only \'inv-mass\' preconditioner is supported for 3D single phase flow.");
+  viscosityMatrix = new MMPoissonMatrixFree3D(mesh);
+  viscositySolver = new PETScInvMassSolver(mesh);
+
   pressureSolver->set_matrix(pressureMatrix);
-  pressureSolver->set_nullspace(pr_tmp == 1);
   viscositySolver->set_matrix(viscosityMatrix);
-  viscositySolver->set_nullspace(vis_tmp == 1);
+
+  setup_pressure_viscous_solvers(pressureSolver, viscositySolver);
 }
 
 INSSolver3D::~INSSolver3D() {
@@ -129,13 +136,11 @@ void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
   } else {
     sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
     dt = sub_cycle_dt;
-    if(resuming)
-      dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+    if(resuming && it_pre_sub_cycle <= 0 && sub_cycles > 1)
+      dt = sub_cycle_dt * sub_cycles;
   }
   // dt *= 1e-2;
   op_printf("INS dt is %g\n", dt);
-  time = dt * currentInd;
-  currentInd = currentInd % 2;
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_bc_types, "ins_3d_bc_types", mesh->bfaces,
@@ -290,7 +295,7 @@ void INSSolver3D::pressure() {
 
   bool converged = pressureSolver->solve(divVelT.dat, pr);
   if(!converged)
-    throw std::runtime_error("\nPressure solve failed to converge\n");
+    dg_abort("\nPressure solve failed to converge\n");
 
   if(extrapolate_initial_guess)
     add_to_pr_history();
@@ -369,7 +374,7 @@ void INSSolver3D::viscosity() {
   viscositySolver->set_bcs(vis_bc);
   bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
-    throw std::runtime_error("\nViscosity X solve failed to converge\n");
+    dg_abort("\nViscosity X solve failed to converge\n");
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_vis_y, "ins_3d_vis_y", mesh->bfaces,
@@ -393,7 +398,7 @@ void INSSolver3D::viscosity() {
   viscositySolver->set_bcs(vis_bc);
   bool convergedY = viscositySolver->solve(visRHS[1].dat, vel[(currentInd + 1) % 2][1]);
   if(!convergedY)
-    throw std::runtime_error("\nViscosity Y solve failed to converge\n");
+    dg_abort("\nViscosity Y solve failed to converge\n");
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_vis_z, "ins_3d_vis_z", mesh->bfaces,
@@ -417,7 +422,7 @@ void INSSolver3D::viscosity() {
   viscositySolver->set_bcs(vis_bc);
   bool convergedZ = viscositySolver->solve(visRHS[2].dat, vel[(currentInd + 1) % 2][2]);
   if(!convergedZ)
-    throw std::runtime_error("\nViscosity Z solve failed to converge\n");
+    dg_abort("\nViscosity Z solve failed to converge\n");
 
   dg_dat_pool->releaseTempDatCells(visRHS[0]);
   dg_dat_pool->releaseTempDatCells(visRHS[1]);

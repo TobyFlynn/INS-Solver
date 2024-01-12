@@ -266,8 +266,8 @@ int KDTree3D::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord
   if(pts_end - pts_start > 1) {
     if(median - pts_start >= 1)
       left_child = construct_tree(pts_start, median, has_transformed, level + 1);
-    if(pts_end - (median + 1) >= 1)
-      right_child = construct_tree(median + 1, pts_end, has_transformed, level + 1);
+    if(pts_end - median >= 1)
+      right_child = construct_tree(median, pts_end, has_transformed, level + 1);
   }
 
   // Set children after recursive calls (to prevent seg fault caused by the vector being reallocated)

@@ -43,7 +43,7 @@ public:
 
   op_dat s, bc_types;
 
-  DG_FP alpha, order_width;
+  DG_FP alpha, order_width, ls_cap;
 private:
   void sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sampleZ,
                        std::vector<PolyApprox3D> &polys, std::map<int,int> &cell2polyMap,

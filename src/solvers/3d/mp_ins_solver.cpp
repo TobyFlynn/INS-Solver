@@ -9,9 +9,12 @@
 #include "timing.h"
 #include "config.h"
 #include "op2_utils.h"
-#include "dg_linear_solvers/petsc_amg.h"
+#include "dg_matrices/3d/factor_mm_poisson_matrix_free_diag_3d.h"
+#include "dg_matrices/3d/factor_mm_poisson_matrix_free_block_diag_3d.h"
+#include "dg_linear_solvers/petsc_jacobi.h"
 #include "dg_linear_solvers/petsc_block_jacobi.h"
 #include "dg_linear_solvers/initial_guess_extrapolation.h"
+#include "dg_abort.h"
 
 #include <string>
 
@@ -30,9 +33,6 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) : INSSolverBase3D(m) {
   g0 = 1.0;
 
   dt = 0.0;
-  time = 0.0;
-
-  currentInd = 0;
 
   lsSolver = new LevelSetSolver3D(mesh);
 
@@ -41,8 +41,6 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) : INSSolverBase3D(m) {
 
 MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int iter) : INSSolverBase3D(m, filename) {
   resuming = true;
-
-  currentInd = iter;
 
   if(iter > 0) {
     g0 = 1.5;
@@ -64,30 +62,38 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int
 }
 
 void MPINSSolver3D::setup_common() {
-  int tmp_st = 0;
-  config->getInt("solver-options", "surface_tension", tmp_st);
-  surface_tension = tmp_st == 1;
-
+  // Pressure matrix and solver
+  std::string pr_solver = "p-multigrid";
+  config->getStr("pressure-solve", "preconditioner", pr_solver);
+  pressureSolverType = set_solver_type(pr_solver);
+  if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID)
+    dg_abort("Only \'p-multigrid\' preconditioner is supported for 3D multiphase flow.");
+  int pr_over_int = 0;
+  config->getInt("pressure-solve", "over_int", pr_over_int);
+  if(pr_over_int != 0)
+    dg_abort("Over integrating the pressure solve for 3D multiphase flow is not yet supported");
   coarsePressureMatrix = new FactorPoissonCoarseMatrix3D(mesh);
-  // pressureMatrix = new FactorPoissonSemiMatrixFree3D(mesh);
-  // pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh);
-  pressureMatrix = new FactorPoissonMatrixFreeDiagOI3D(mesh);
-  // viscosityMatrix = new FactorMMPoissonSemiMatrixFree3D(mesh);
-  viscosityMatrix = new FactorMMPoissonMatrixFreeDiag3D(mesh);
-  // pressureSolver = new PETScAMGSolver(mesh);
+  pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
-  // pressureSolver = new PMultigridPoissonSolver(mesh);
-  // viscositySolver = new PETScBlockJacobiSolver(mesh);
-  // viscositySolver = new PETScInvMassSolver(mesh);
-  viscositySolver = new PETScJacobiSolver(mesh);
-  // viscositySolver = new PETScAMGSolver(mesh);
-  int pr_tmp = 0;
-  int vis_tmp = 0;
-  config->getInt("solver-options", "pr_nullspace", pr_tmp);
-  config->getInt("solver-options", "vis_nullspace", vis_tmp);
-  pressureSolver->set_nullspace(pr_tmp == 1);
+
+  // Viscous matrix and solver
+  std::string vis_solver = "jacobi";
+  config->getStr("viscous-solve", "preconditioner", vis_solver);
+  viscositySolverType = set_solver_type(vis_solver);
+  if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+    viscosityMatrix = new FactorMMPoissonMatrixFreeDiag3D(mesh);
+    viscositySolver = new PETScJacobiSolver(mesh);
+  } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+    viscosityMatrix = new FactorMMPoissonMatrixFreeBlockDiag3D(mesh);
+    viscositySolver = new PETScBlockJacobiSolver(mesh);
+  } else {
+    dg_abort("Only \'jacobi\' preconditioner is supported for 3D multiphase flow.");
+  }
+
+  pressureSolver->set_matrix(pressureMatrix);
   viscositySolver->set_matrix(viscosityMatrix);
-  viscositySolver->set_nullspace(vis_tmp == 1);
+
+  setup_pressure_viscous_solvers(pressureSolver, viscositySolver);
 
   rho = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_rho");
   mu  = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_mu");
@@ -145,12 +151,10 @@ void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
 
   sub_cycle_dt = h / ((DG_ORDER + 1) * (DG_ORDER + 1) * max_vel());
   dt = sub_cycle_dt;
-  if(resuming)
-    dt = sub_cycles > 1 ? sub_cycle_dt * sub_cycles : sub_cycle_dt;
+  if(resuming && it_pre_sub_cycle <= 0 && sub_cycles > 1)
+    dt = sub_cycle_dt * sub_cycles;
   // dt *= 1e-2;
   op_printf("INS dt is %g\n", dt);
-  time = dt * currentInd;
-  currentInd = currentInd % 2;
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_bc_types, "ins_3d_bc_types", mesh->bfaces,
@@ -479,7 +483,7 @@ void MPINSSolver3D::pressure() {
 
   bool converged = pressureSolver->solve(divVelT.dat, pr);
   if(!converged)
-    throw std::runtime_error("\nPressure solve failed to converge\n");
+    dg_abort("\nPressure solve failed to converge\n");
 
   dg_dat_pool->releaseTempDatCells(pr_factor_surf_oi);
 
@@ -530,7 +534,7 @@ void MPINSSolver3D::pressure() {
 
   project_velocity(dpdx.dat, dpdy.dat, dpdz.dat);
 
-  shock_capture(velTT[0], velTT[1], velTT[2]);
+  // shock_capture(velTT[0], velTT[1], velTT[2]);
 
   dg_dat_pool->releaseTempDatCells(dpdx);
   dg_dat_pool->releaseTempDatCells(dpdy);
@@ -586,14 +590,46 @@ void MPINSSolver3D::viscosity() {
   }
 
   timer->startTimer("Vis Linear Solve");
-  viscosityMatrix->set_factor(mu);
-  viscosityMatrix->set_mm_factor(vis_mm_factor.dat);
+  DGTempDat tmp_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
   viscosityMatrix->set_bc_types(vis_bc_types);
-  viscosityMatrix->calc_mat_partial();
+  if(shock_capturing) {
+    calc_art_vis(velTT[0], tmp_art_vis.dat);
+
+    op_par_loop(mp_ins_3d_add_mu, "mp_ins_3d_add_mu", mesh->cells,
+                op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      FactorMMPoissonMatrixFreeDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag3D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      FactorMMPoissonMatrixFreeBlockDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag3D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+    }
+  } else {
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      FactorMMPoissonMatrixFreeDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag3D*>(viscosityMatrix);
+      tmpMatrix->set_factor(mu);
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      FactorMMPoissonMatrixFreeBlockDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag3D*>(viscosityMatrix);
+      tmpMatrix->set_factor(mu);
+    }
+  }
+  if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+    FactorMMPoissonMatrixFreeDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag3D*>(viscosityMatrix);
+    tmpMatrix->set_mm_factor(vis_mm_factor.dat);
+    tmpMatrix->calc_mat_partial();
+  } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+    FactorMMPoissonMatrixFreeBlockDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag3D*>(viscosityMatrix);
+    tmpMatrix->set_mm_factor(vis_mm_factor.dat);
+    tmpMatrix->calc_mat_partial();
+  }
+
   viscositySolver->set_bcs(vis_bc);
   bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
-    throw std::runtime_error("\nViscosity X solve failed to converge\n");
+    dg_abort("\nViscosity X solve failed to converge\n");
 
     if(mesh->bface2cells) {
       op_par_loop(ins_3d_vis_y, "ins_3d_vis_y", mesh->bfaces,
@@ -615,9 +651,43 @@ void MPINSSolver3D::viscosity() {
     }
 
   viscositySolver->set_bcs(vis_bc);
+  if(shock_capturing) {
+    calc_art_vis(velTT[1], tmp_art_vis.dat);
+
+    op_par_loop(mp_ins_3d_add_mu, "mp_ins_3d_add_mu", mesh->cells,
+                op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      FactorMMPoissonMatrixFreeDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag3D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      FactorMMPoissonMatrixFreeBlockDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag3D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+    }
+  } else {
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      FactorMMPoissonMatrixFreeDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag3D*>(viscosityMatrix);
+      tmpMatrix->set_factor(mu);
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      FactorMMPoissonMatrixFreeBlockDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag3D*>(viscosityMatrix);
+      tmpMatrix->set_factor(mu);
+    }
+  }
+  if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+    FactorMMPoissonMatrixFreeDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag3D*>(viscosityMatrix);
+    tmpMatrix->set_mm_factor(vis_mm_factor.dat);
+    tmpMatrix->calc_mat_partial();
+  } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+    FactorMMPoissonMatrixFreeBlockDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag3D*>(viscosityMatrix);
+    tmpMatrix->set_mm_factor(vis_mm_factor.dat);
+    tmpMatrix->calc_mat_partial();
+  }
+
   bool convergedY = viscositySolver->solve(visRHS[1].dat, vel[(currentInd + 1) % 2][1]);
   if(!convergedY)
-    throw std::runtime_error("\nViscosity Y solve failed to converge\n");
+    dg_abort("\nViscosity Y solve failed to converge\n");
 
   if(mesh->bface2cells) {
     op_par_loop(ins_3d_vis_z, "ins_3d_vis_z", mesh->bfaces,
@@ -639,10 +709,45 @@ void MPINSSolver3D::viscosity() {
   }
 
   viscositySolver->set_bcs(vis_bc);
+  if(shock_capturing) {
+    calc_art_vis(velTT[2], tmp_art_vis.dat);
+
+    op_par_loop(mp_ins_3d_add_mu, "mp_ins_3d_add_mu", mesh->cells,
+                op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      FactorMMPoissonMatrixFreeDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag3D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      FactorMMPoissonMatrixFreeBlockDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag3D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+    }
+  } else {
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      FactorMMPoissonMatrixFreeDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag3D*>(viscosityMatrix);
+      tmpMatrix->set_factor(mu);
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      FactorMMPoissonMatrixFreeBlockDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag3D*>(viscosityMatrix);
+      tmpMatrix->set_factor(mu);
+    }
+  }
+  if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+    FactorMMPoissonMatrixFreeDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag3D*>(viscosityMatrix);
+    tmpMatrix->set_mm_factor(vis_mm_factor.dat);
+    tmpMatrix->calc_mat_partial();
+  } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+    FactorMMPoissonMatrixFreeBlockDiag3D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag3D*>(viscosityMatrix);
+    tmpMatrix->set_mm_factor(vis_mm_factor.dat);
+    tmpMatrix->calc_mat_partial();
+  }
+
   bool convergedZ = viscositySolver->solve(visRHS[2].dat, vel[(currentInd + 1) % 2][2]);
   if(!convergedZ)
-    throw std::runtime_error("\nViscosity Z solve failed to converge\n");
+    dg_abort("\nViscosity Z solve failed to converge\n");
 
+  dg_dat_pool->releaseTempDatCells(tmp_art_vis);
   dg_dat_pool->releaseTempDatCells(vis_mm_factor);
   dg_dat_pool->releaseTempDatCells(visRHS[0]);
   dg_dat_pool->releaseTempDatCells(visRHS[1]);
@@ -680,6 +785,21 @@ void MPINSSolver3D::dump_visualisation_data(const std::string &filename) {
   }
 
   if(values_to_save.count("mu") != 0) {
+    if(shock_capturing) {
+      DGTempDat tmp_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
+      calc_art_vis(velTT[0], tmp_art_vis.dat);
+
+      op_par_loop(mp_ins_3d_add_mu, "mp_ins_3d_add_mu", mesh->cells,
+                  op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+      op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
+                  op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                  op_arg_dat(mu, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+      dg_dat_pool->releaseTempDatCells(tmp_art_vis);
+    }
     op_fetch_data_hdf5_file(mu, filename.c_str());
   }
 

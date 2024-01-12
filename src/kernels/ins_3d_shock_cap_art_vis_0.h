@@ -1,8 +1,8 @@
 inline void ins_3d_shock_cap_art_vis_0(const int *faceNum, const int *fmaskL_corrected,
-                    const int *fmaskR_corrected, const DG_FP *nx, const DG_FP *ny, 
-                    const DG_FP *nz, const DG_FP *sJ, const DG_FP *fscale, 
-                    const DG_FP **h, const DG_FP **u, const DG_FP **v, const DG_FP **w, 
-                    DG_FP **out, int **out_count) {
+                    const int *fmaskR_corrected, const DG_FP *nx, const DG_FP *ny,
+                    const DG_FP *nz, const DG_FP *sJ, const DG_FP *fscale,
+                    const DG_FP **h, const DG_FP **u, const DG_FP **v, const DG_FP **w,
+                    DG_FP **out, DG_FP **out_count) {
   const int *fmask  = &FMASK[(DG_ORDER - 1) * 4 * DG_NPF];
   const int *fmaskL = &fmask[faceNum[0] * DG_NPF];
   const int *fmaskR = &fmask[faceNum[1] * DG_NPF];
@@ -51,7 +51,7 @@ inline void ins_3d_shock_cap_art_vis_0(const int *faceNum, const int *fmaskL_cor
     lengthL += marker[i] * w_L[i];
   }
   lengthL *= sJ[0];
-  
+
 
   DG_FP disSenU_L = 0.0;
   DG_FP disSenV_L = 0.0;
@@ -113,7 +113,7 @@ inline void ins_3d_shock_cap_art_vis_0(const int *faceNum, const int *fmaskL_cor
   out[1][0] += finalDisSen;
   out[2][0] += finalDisSen;
 
-  out_count[0][0] += 1;
-  out_count[1][0] += 1;
-  out_count[2][0] += 1;
+  out_count[0][0] += 1.0;
+  out_count[1][0] += 1.0;
+  out_count[2][0] += 1.0;
 }

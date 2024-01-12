@@ -84,7 +84,7 @@ DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
   const DG_FP eps = 0.05;
   const DG_FP x_2_plus_y_2 = x * x + y * y;
   const DG_FP w = sqrt(0.5 * 2.0 * 1.0 * 3.0 * 4.0 / (1.0 * 3.0 + 0.01 * 2.0));
-  if(x_2_plus_y_2 < 1e-6)
+  if(x_2_plus_y_2 < 1e-12)
     s = 2;
   else
     s = 1.0 + eps * 0.5 * (3.0 * x * x / x_2_plus_y_2 - 1.0) - sqrt(x_2_plus_y_2);

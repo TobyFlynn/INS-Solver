@@ -9,8 +9,8 @@
 
 #include "dg_matrices/3d/poisson_matrix_3d.h"
 #include "dg_matrices/3d/poisson_coarse_matrix_3d.h"
-#include "dg_matrices/3d/poisson_semi_matrix_free_3d.h"
 #include "dg_matrices/3d/poisson_matrix_free_diag_3d.h"
+#include "dg_matrices/3d/poisson_matrix_free_block_diag_3d.h"
 #include "dg_matrices/3d/mm_poisson_matrix_3d.h"
 #include "dg_matrices/3d/mm_poisson_matrix_free_3d.h"
 #include "dg_linear_solvers/petsc_inv_mass.h"

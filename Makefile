@@ -49,25 +49,39 @@ ifeq ($(BUILD_WITH_HYPRE),1)
 	COMMON_LIBS := $(COMMON_LIBS) $(HYPRE_LIB)
 endif
 
-all: cpu
+all: cpu_all cuda_all
 
-cpu: cpu_2d cpu_3d
+cpu_all: cpu_2d_all cpu_3d_all
+cpu_2d_all: cpu_omp_2d cpu_mpi_seq_2d cpu_mpi_omp_2d
+cpu_3d_all: cpu_omp_3d cpu_mpi_seq_3d cpu_mpi_omp_3d
 
-cpu_2d: $(BIN)/ins2d_openmp $(BIN)/ins2d_mpi $(BIN)/ins2d_mpi_openmp
+cpu_omp_2d: $(BIN)/ins2d_openmp
+cpu_mpi_seq_2d: $(BIN)/ins2d_mpi
+cpu_mpi_omp_2d: $(BIN)/ins2d_mpi_openmp
 
-cpu_3d: $(BIN)/ins3d_openmp $(BIN)/ins3d_mpi $(BIN)/ins3d_mpi_openmp
+cpu_omp_3d: $(BIN)/ins3d_openmp
+cpu_mpi_seq_3d: $(BIN)/ins3d_mpi
+cpu_mpi_omp_3d: $(BIN)/ins3d_mpi_openmp
 
-cuda: cuda_2d cuda_3d
+cuda_all: cuda_2d_all cuda_3d_all
+cuda_2d_all: cuda_2d mpi_cuda_2d
+cuda_3d_all: cuda_3d mpi_cuda_3d
 
-cuda_2d: $(BIN)/ins2d_cuda $(BIN)/ins2d_mpi_cuda
+cuda_2d: $(BIN)/ins2d_cuda
+mpi_cuda_2d: $(BIN)/ins2d_mpi_cuda
 
-cuda_3d: $(BIN)/ins3d_cuda $(BIN)/ins3d_mpi_cuda
+cuda_3d: $(BIN)/ins3d_cuda
+mpi_cuda_3d: $(BIN)/ins3d_mpi_cuda
 
-hip: hip_2d hip_3d
+hip_all: hip_2d_all hip_3d_all
+hip_2d_all: hip_2d mpi_hip_2d
+hip_3d_all: hip_3d mpi_hip_3d
 
-hip_2d: $(BIN)/ins2d_hip $(BIN)/ins2d_mpi_hip
+hip_2d: $(BIN)/ins2d_hip
+mpi_hip_2d: $(BIN)/ins2d_mpi_hip
 
-hip_3d: $(BIN)/ins3d_hip $(BIN)/ins3d_mpi_hip
+hip_3d: $(BIN)/ins3d_hip
+mpi_hip_3d: $(BIN)/ins3d_mpi_hip
 
 codegen: $(CODE_GEN_DIR)
 
