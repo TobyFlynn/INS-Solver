@@ -9,6 +9,7 @@
 #include "solvers/3d/ls_solver.h"
 #include "dg_matrices/3d/factor_poisson_coarse_matrix_3d.h"
 #include "dg_matrices/3d/factor_poisson_matrix_free_diag_3d.h"
+#include "dg_matrices/3d/factor_poisson_matrix_free_diag_oi_3d.h"
 #include "dg_matrices/3d/factor_poisson_matrix_free_block_diag_3d.h"
 #include "dg_linear_solvers/linear_solver.h"
 #include "dg_linear_solvers/petsc_pmultigrid.h"
@@ -38,14 +39,21 @@ private:
   void surface_tension_grad(op_dat dx, op_dat dy, op_dat dz);
   void surface_tension_curvature(op_dat curv);
 
+  void apply_pressure_neumann_bc(op_dat divVelT);
+  void apply_pressure_neumann_bc_oi(op_dat divVelT);
+  void update_pressure_matrices(DGTempDat &pr_factor);
+  void update_pressure_matrices_oi(DGTempDat &pr_factor, DGTempDat &pr_factor_oi, DGTempDat &pr_factor_surf_oi);
+  void update_pressure_gradient(op_dat dpdx, op_dat dpdy, op_dat dpdz);
+  void update_pressure_gradient_oi(op_dat dpdx, op_dat dpdy, op_dat dpdz);
+
   FactorPoissonCoarseMatrix3D *coarsePressureMatrix;
-  FactorPoissonMatrixFreeDiag3D *pressureMatrix;
+  PoissonMatrixFreeDiag *pressureMatrix;
   PoissonMatrix *viscosityMatrix;
   PETScPMultigrid *pressureSolver;
   LinearSolver *viscositySolver;
   LevelSetSolver3D *lsSolver;
   DG_FP reynolds;
-  bool resuming, surface_tension;
+  bool resuming, surface_tension, pr_over_int;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;

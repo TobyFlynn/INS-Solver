@@ -62,18 +62,25 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int
 }
 
 void MPINSSolver3D::setup_common() {
+  int tmp_st = 0;
+  config->getInt("solver-options", "surface_tension", tmp_st);
+  surface_tension = tmp_st == 1;
+
   // Pressure matrix and solver
   std::string pr_solver = "p-multigrid";
   config->getStr("pressure-solve", "preconditioner", pr_solver);
   pressureSolverType = set_solver_type(pr_solver);
   if(pressureSolverType != LinearSolver::PETSC_PMULTIGRID)
     dg_abort("Only \'p-multigrid\' preconditioner is supported for 3D multiphase flow.");
-  int pr_over_int = 0;
-  config->getInt("pressure-solve", "over_int", pr_over_int);
-  if(pr_over_int != 0)
-    dg_abort("Over integrating the pressure solve for 3D multiphase flow is not yet supported");
+  int tmp_pr_over_int = 0;
+  config->getInt("pressure-solve", "over_int", tmp_pr_over_int);
+  pr_over_int = tmp_pr_over_int != 0;
+  if(pr_over_int) {
+    pressureMatrix = new FactorPoissonMatrixFreeDiagOI3D(mesh);
+  } else {
+    pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh);
+  }
   coarsePressureMatrix = new FactorPoissonCoarseMatrix3D(mesh);
-  pressureMatrix = new FactorPoissonMatrixFreeDiag3D(mesh);
   pressureSolver = new PETScPMultigrid(mesh);
 
   // Viscous matrix and solver
@@ -87,7 +94,7 @@ void MPINSSolver3D::setup_common() {
     viscosityMatrix = new FactorMMPoissonMatrixFreeBlockDiag3D(mesh);
     viscositySolver = new PETScBlockJacobiSolver(mesh);
   } else {
-    dg_abort("Only \'jacobi\' preconditioner is supported for 3D multiphase flow.");
+    dg_abort("Only \'jacobi\' and \'block-jacobi\' preconditioner is supported for 3D multiphase flow.");
   }
 
   pressureSolver->set_matrix(pressureMatrix);
@@ -377,8 +384,7 @@ void MPINSSolver3D::advection() {
   }
 }
 
-void MPINSSolver3D::pressure() {
-  DGTempDat divVelT = dg_dat_pool->requestTempDatCells(DG_NP);
+void MPINSSolver3D::apply_pressure_neumann_bc(op_dat divVelT) {
   DGTempDat curlVel[3];
   curlVel[0] = dg_dat_pool->requestTempDatCells(DG_NP);
   curlVel[1] = dg_dat_pool->requestTempDatCells(DG_NP);
@@ -387,8 +393,6 @@ void MPINSSolver3D::pressure() {
   curl2Vel[0] = dg_dat_pool->requestTempDatCells(DG_NP);
   curl2Vel[1] = dg_dat_pool->requestTempDatCells(DG_NP);
   curl2Vel[2] = dg_dat_pool->requestTempDatCells(DG_NP);
-  // mesh->div(velT[0], velT[1], velT[2], divVelT);
-  mesh->div_with_central_flux(velT[0], velT[1], velT[2], divVelT.dat);
   mesh->curl(vel[currentInd][0], vel[currentInd][1], vel[currentInd][2],
              curlVel[0].dat, curlVel[1].dat, curlVel[2].dat);
 
@@ -405,45 +409,129 @@ void MPINSSolver3D::pressure() {
   dg_dat_pool->releaseTempDatCells(curlVel[1]);
   dg_dat_pool->releaseTempDatCells(curlVel[2]);
 
-  if(mesh->bface2cells) {
-    op_par_loop(mp_ins_3d_pr_0, "mp_ins_3d_pr_0", mesh->bfaces,
-                op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bnz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->z, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(n[currentInd][0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(n[currentInd][1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(n[currentInd][2], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(curl2Vel[0].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(curl2Vel[1].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(curl2Vel[2].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(rho, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dPdN[currentInd], 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
-  }
+  op_par_loop(mp_ins_3d_pr_0, "mp_ins_3d_pr_0", mesh->bfaces,
+              op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
+              op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bnz, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->x, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->z, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(n[currentInd][2], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(curl2Vel[0].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(curl2Vel[1].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(curl2Vel[2].dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(rho, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dPdN[currentInd], 0, mesh->bface2cells, 4 * DG_NPF, DG_FP_STR, OP_INC));
 
-  dg_dat_pool->releaseTempDatCells(curl2Vel[0]);
-  dg_dat_pool->releaseTempDatCells(curl2Vel[1]);
-  dg_dat_pool->releaseTempDatCells(curl2Vel[2]);
-
-  op_par_loop(mp_ins_3d_pr_1, "mp_ins_3d_pr_1", mesh->cells,
+  op_par_loop(mp_ins_pr_bc_dpdn_factors, "mp_ins_pr_bc_dpdn_factors", mesh->cells,
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(dPdN[currentInd], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_READ),
-              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, 4 * DG_NPF, DG_FP_STR, OP_RW),
+              op_arg_dat(dPdN[currentInd], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
+              op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT);
+}
+
+void MPINSSolver3D::apply_pressure_neumann_bc_oi(op_dat divVelT) {
+  // Temp
+  apply_pressure_neumann_bc(divVelT);
+}
+
+void MPINSSolver3D::update_pressure_matrices(DGTempDat &pr_factor) {
+  pr_factor = dg_dat_pool->requestTempDatCells(DG_NP);
+  op_par_loop(reciprocal, "reciprocal", mesh->cells,
+              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(pr_factor.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  FactorPoissonMatrixFreeDiag3D *tmpPressureMatrix = dynamic_cast<FactorPoissonMatrixFreeDiag3D*>(pressureMatrix);
+  tmpPressureMatrix->set_factor(pr_factor.dat);
+  coarsePressureMatrix->set_factor(pr_factor.dat);
+}
+
+void MPINSSolver3D::update_pressure_matrices_oi(DGTempDat &pr_factor, DGTempDat &pr_factor_oi, DGTempDat &pr_factor_surf_oi) {
+  pr_factor = dg_dat_pool->requestTempDatCells(DG_NP);
+  pr_factor_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  pr_factor_surf_oi = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
+
+  lsSolver->getRhoVolOI(pr_factor_oi.dat);
+  op_par_loop(mp_ins_3d_pr_fact_oi_0, "mp_ins_3d_pr_fact_oi_0", mesh->cells,
+              op_arg_dat(pr_factor_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
+
+  lsSolver->getRhoSurfOI(pr_factor_surf_oi.dat);
+  op_par_loop(mp_ins_3d_pr_fact_oi_1, "mp_ins_3d_pr_fact_oi_1", mesh->cells,
+              op_arg_dat(pr_factor_surf_oi.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, pr_factor_oi.dat, 0.0, pr_factor.dat);
+
+  FactorPoissonMatrixFreeDiagOI3D *tmpPressureMatrix = dynamic_cast<FactorPoissonMatrixFreeDiagOI3D*>(pressureMatrix);
+  tmpPressureMatrix->mat_free_set_factor_oi(pr_factor_oi.dat);
+  tmpPressureMatrix->mat_free_set_factor_surf_oi(pr_factor_surf_oi.dat);
+  tmpPressureMatrix->set_factor(pr_factor.dat);
+  coarsePressureMatrix->set_factor(pr_factor.dat);
+}
+
+void MPINSSolver3D::update_pressure_gradient(op_dat dpdx, op_dat dpdy, op_dat dpdz) {
+  op_par_loop(mp_ins_3d_pr_2, "mp_ins_3d_pr_2", mesh->cells,
+              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dpdx, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(dpdy, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(dpdz, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+}
+
+void MPINSSolver3D::update_pressure_gradient_oi(op_dat dpdx, op_dat dpdy, op_dat dpdz) {
+  DGTempDat dpdx_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  DGTempDat dpdy_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  DGTempDat dpdz_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, dpdx, 0.0, dpdx_oi.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, dpdy, 0.0, dpdy_oi.dat);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, dpdz, 0.0, dpdz_oi.dat);
+
+  DGTempDat rho_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
+  lsSolver->getRhoVolOI(rho_oi.dat);
+
+  op_par_loop(mp_ins_3d_pr_2_oi, "mp_ins_3d_pr_2_oi", mesh->cells,
+              op_arg_dat(rho_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dpdx_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(dpdy_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(dpdz_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
+
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, dpdx_oi.dat, 0.0, dpdx);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, dpdy_oi.dat, 0.0, dpdy);
+  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, dpdz_oi.dat, 0.0, dpdz);
+
+  dg_dat_pool->releaseTempDatCells(rho_oi);
+  dg_dat_pool->releaseTempDatCells(dpdx_oi);
+  dg_dat_pool->releaseTempDatCells(dpdy_oi);
+  dg_dat_pool->releaseTempDatCells(dpdz_oi);
+}
+
+void MPINSSolver3D::pressure() {
+  DGTempDat divVelT = dg_dat_pool->requestTempDatCells(DG_NP);
+  mesh->div_with_central_flux(velT[0], velT[1], velT[2], divVelT.dat);
+
+  // Calculate RHS of pressure solve
+  const DG_FP div_factor = -1.0 / dt;
+  op_par_loop(mp_ins_pr_div_factor, "mp_ins_pr_div_factor", mesh->cells,
+              op_arg_gbl(&div_factor, 1, DG_FP_STR, OP_READ),
               op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
-  op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT.dat);
-  mesh->mass(divVelT.dat);
-
+  // Apply Neumann pressure boundary conditions
   if(mesh->bface2cells) {
-    op_par_loop(ins_3d_pr_2, "ins_3d_pr_2", mesh->bfaces,
+    if(pr_over_int)
+      apply_pressure_neumann_bc_oi(divVelT.dat);
+    else
+      apply_pressure_neumann_bc(divVelT.dat);
+  }
+
+  // Apply Dirichlet BCs
+  if(mesh->bface2cells) {
+    op_par_loop(ins_3d_pr_dirichlet, "ins_3d_pr_dirichlet", mesh->bfaces,
                 op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
@@ -454,24 +542,17 @@ void MPINSSolver3D::pressure() {
                 op_arg_dat(pr_bc, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
 
-  DGTempDat pr_factor_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
-  lsSolver->getRhoVolOI(pr_factor_oi.dat);
-  op_par_loop(mp_ins_3d_pr_fact_oi_0, "mp_ins_3d_pr_fact_oi_0", mesh->cells,
-              op_arg_dat(pr_factor_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
+  // Multiply RHS by mass matrix
+  mesh->mass(divVelT.dat);
 
-  DGTempDat pr_factor_surf_oi = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_3D_NP);
-  lsSolver->getRhoSurfOI(pr_factor_surf_oi.dat);
-  op_par_loop(mp_ins_3d_pr_fact_oi_1, "mp_ins_3d_pr_fact_oi_1", mesh->cells,
-              op_arg_dat(pr_factor_surf_oi.dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_3D_NP, DG_FP_STR, OP_RW));
-
-  DGTempDat pr_factor = dg_dat_pool->requestTempDatCells(DG_NP);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, pr_factor_oi.dat, 0.0, pr_factor.dat);
-
+  // Call PETSc linear solver
   timer->startTimer("MPINSSolver3D - Pressure Linear Solve");
-  pressureMatrix->mat_free_set_factor_oi(pr_factor_oi.dat);
-  pressureMatrix->mat_free_set_factor_surf_oi(pr_factor_surf_oi.dat);
-  pressureMatrix->set_factor(pr_factor.dat);
-  coarsePressureMatrix->set_factor(pr_factor.dat);
+  DGTempDat pr_factor, pr_factor_oi, pr_factor_surf_oi;
+  if(pr_over_int)
+    update_pressure_matrices_oi(pr_factor_oi, pr_factor_surf_oi, pr_factor);
+  else
+    update_pressure_matrices(pr_factor);
+
   pressureMatrix->set_bc_types(pr_bc_types);
   coarsePressureMatrix->set_bc_types(pr_bc_types);
   pressureSolver->set_coarse_matrix(coarsePressureMatrix);
@@ -485,14 +566,16 @@ void MPINSSolver3D::pressure() {
   if(!converged)
     dg_abort("\nPressure solve failed to converge\n");
 
-  dg_dat_pool->releaseTempDatCells(pr_factor_surf_oi);
-
   if(extrapolate_initial_guess)
     add_to_pr_history();
-  timer->endTimer("MPINSSolver3D - Pressure Linear Solve");
 
+  if(pr_over_int) {
+    dg_dat_pool->releaseTempDatCells(pr_factor_surf_oi);
+    dg_dat_pool->releaseTempDatCells(pr_factor_oi);
+  }
   dg_dat_pool->releaseTempDatCells(pr_factor);
   dg_dat_pool->releaseTempDatCells(divVelT);
+  timer->endTimer("MPINSSolver3D - Pressure Linear Solve");
 
   zero_dat(dPdN[(currentInd + 1) % 2]);
 
@@ -501,36 +584,12 @@ void MPINSSolver3D::pressure() {
   DGTempDat dpdy = dg_dat_pool->requestTempDatCells(DG_NP);
   DGTempDat dpdz = dg_dat_pool->requestTempDatCells(DG_NP);
   mesh->grad_with_central_flux(pr, dpdx.dat, dpdy.dat, dpdz.dat);
-/*
-  op_par_loop(mp_ins_3d_pr_2, "mp_ins_3d_pr_2", mesh->cells,
-              op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(dpdz.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-*/
 
-  DGTempDat dpdx_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
-  DGTempDat dpdy_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
-  DGTempDat dpdz_oi = dg_dat_pool->requestTempDatCells(DG_CUB_3D_NP);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, dpdx.dat, 0.0, dpdx_oi.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, dpdy.dat, 0.0, dpdy_oi.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, dpdz.dat, 0.0, dpdz_oi.dat);
-
-  op_par_loop(mp_ins_3d_pr_2_oi, "mp_ins_3d_pr_2_oi", mesh->cells,
-              op_arg_dat(pr_factor_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(dpdx_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(dpdy_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(dpdz_oi.dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_RW));
-
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, dpdx_oi.dat, 0.0, dpdx.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, dpdy_oi.dat, 0.0, dpdy.dat);
-  op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_PROJ, dpdz_oi.dat, 0.0, dpdz.dat);
-
-  dg_dat_pool->releaseTempDatCells(pr_factor_oi);
-  dg_dat_pool->releaseTempDatCells(dpdx_oi);
-  dg_dat_pool->releaseTempDatCells(dpdy_oi);
-
-  dg_dat_pool->releaseTempDatCells(pr_factor_oi);
+  if(pr_over_int) {
+    update_pressure_gradient_oi(dpdx.dat, dpdy.dat, dpdz.dat);
+  } else {
+    update_pressure_gradient(dpdx.dat, dpdy.dat, dpdz.dat);
+  }
 
   project_velocity(dpdx.dat, dpdy.dat, dpdz.dat);
 

@@ -278,7 +278,7 @@ bool INSTemperatureSolver2D::pressure() {
 
   // Calculate RHS of pressure solve
   const DG_FP div_factor = -1.0 / dt;
-  op_par_loop(mp_ins_2d_pr_div_factor, "mp_ins_2d_pr_div_factor", mesh->cells,
+  op_par_loop(mp_ins_pr_div_factor, "mp_ins_pr_div_factor", mesh->cells,
               op_arg_gbl(&div_factor, 1, DG_FP_STR, OP_READ),
               op_arg_dat(divVelT.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
@@ -322,7 +322,7 @@ bool INSTemperatureSolver2D::pressure() {
   }
 
   // Calculate RHS of pressure solve
-  op_par_loop(mp_ins_2d_pr_bc_1, "mp_ins_2d_pr_bc_1", mesh->cells,
+  op_par_loop(mp_ins_pr_bc_dpdn_factors, "mp_ins_pr_bc_dpdn_factors", mesh->cells,
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
               op_arg_dat(dPdN[currentInd], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),

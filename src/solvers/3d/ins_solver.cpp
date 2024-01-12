@@ -273,7 +273,7 @@ void INSSolver3D::pressure() {
   mesh->mass(divVelT.dat);
 
   if(mesh->bface2cells) {
-    op_par_loop(ins_3d_pr_2, "ins_3d_pr_2", mesh->bfaces,
+    op_par_loop(ins_3d_pr_dirichlet, "ins_3d_pr_dirichlet", mesh->bfaces,
                 op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bfaceNum, -1, OP_ID, 1, "int", OP_READ),
