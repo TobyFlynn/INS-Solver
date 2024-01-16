@@ -120,9 +120,9 @@ void LevelSetSolver3D::init() {
   alpha = 24.0 * h;
   // order_width = 12.0 * h;
   // epsilon = h;
-  ls_cap = 0.25;
-  reinit_width = fmin(4.0 * alpha, ls_cap);
-  // reinit_width = LS_CAP;
+  ls_cap = 100.0;
+  // reinit_width = fmin(4.0 * alpha, ls_cap);
+  reinit_width = ls_cap;
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
 
@@ -256,7 +256,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
   DG_FP init_y = closest_pt_y;
   DG_FP init_z = closest_pt_z;
 
-  for(int step = 0; step < 50; step++) {
+  for(int step = 0; step < 100; step++) {
     DG_FP pt_x_old = pt_x;
     DG_FP pt_y_old = pt_y;
     DG_FP pt_z_old = pt_z;
@@ -334,7 +334,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
     }
 
     // Gone outside the element, return
-    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > 4.0 * h * h) {
+    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) + (init_z - pt_z) * (init_z - pt_z) > 4.0 * h * h) {
       pt_x = pt_x_old;
       pt_y = pt_y_old;
       pt_z = pt_z_old;
@@ -357,7 +357,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
 
 void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *closest_z,
                    const DG_FP *x, const DG_FP *y, const DG_FP *z, int *poly_ind,
-                   std::vector<PolyApprox3D> &polys, DG_FP *s, const DG_FP h, 
+                   std::vector<PolyApprox3D> &polys, DG_FP *s, const DG_FP h,
                    const DG_FP reinit_width, const DG_FP ls_cap) {
   int numNonConv = 0;
   int numReinit = 0;
@@ -365,15 +365,15 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
   #pragma omp parallel for
   for(int i = 0; i < numPts; i++) {
     int start_ind = (i / DG_NP) * DG_NP;
-    DG_FP dist2 = (closest_x[start_ind] - x[start_ind]) * (closest_x[start_ind] - x[start_ind]) 
-                + (closest_y[start_ind] - y[start_ind]) * (closest_y[start_ind] - y[start_ind]) 
+    DG_FP dist2 = (closest_x[start_ind] - x[start_ind]) * (closest_x[start_ind] - x[start_ind])
+                + (closest_y[start_ind] - y[start_ind]) * (closest_y[start_ind] - y[start_ind])
                 + (closest_z[start_ind] - z[start_ind]) * (closest_z[start_ind] - z[start_ind]);
     if(dist2 < (reinit_width + 2.0 * h) * (reinit_width + 2.0 * h)) {
       DG_FP _closest_x = closest_x[i];
       DG_FP _closest_y = closest_y[i];
       DG_FP _closest_z = closest_z[i];
       bool tmp = newton_kernel(_closest_x, _closest_y, _closest_z, x[i], y[i], z[i], polys[poly_ind[i]], h);
-      if(tmp) {
+      if(true || tmp) {
         bool negative = s[i] < 0.0;
         s[i] = (_closest_x - x[i]) * (_closest_x - x[i]) + (_closest_y - y[i]) * (_closest_y - y[i]) + (_closest_z - z[i]) * (_closest_z - z[i]);
         s[i] = sqrt(s[i]);
@@ -400,6 +400,20 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
   if(percent_non_converge > 0.1)
     std::cout << percent_non_converge * 100.0 << "% reinitialisation points did not converge" << std::endl;
 }
+
+#ifdef PRINT_SAMPLE_PTS
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+
+std::string ls_double_to_text(const double &d) {
+    std::stringstream ss;
+    ss << std::setprecision(15);
+    ss << d;
+    return ss.str();
+}
+#endif
 
 void LevelSetSolver3D::reinitLS() {
   timer->startTimer("LevelSetSolver3D - reinitLS");
@@ -464,6 +478,21 @@ void LevelSetSolver3D::reinitLS() {
   const DG_FP *sample_pts_y = getOP2PtrHost(tmp_sampleY.dat, OP_READ);
   const DG_FP *sample_pts_z = getOP2PtrHost(tmp_sampleZ.dat, OP_READ);
 
+#ifdef PRINT_SAMPLE_PTS
+  std::ofstream file("points.txt");
+  file << "X,Y,Z" << std::endl;
+
+  for(int i = 0; i < LS_SAMPLE_NP * mesh->cells->size; i++) {
+    if(!isnan(sample_pts_x[i]) && !isnan(sample_pts_y[i]) && !isnan(sample_pts_z[i])) {
+      file << ls_double_to_text(sample_pts_x[i]) << ",";
+      file << ls_double_to_text(sample_pts_y[i]) << ",";
+      file << ls_double_to_text(sample_pts_z[i]) << std::endl;
+    }
+  }
+
+  file.close();
+#endif
+
   kdtree->reset();
   kdtree->set_poly_data(_polys, _cell2polyMap);
   kdtree->build_tree(sample_pts_x, sample_pts_y, sample_pts_z, LS_SAMPLE_NP * mesh->cells->size, s);
@@ -494,8 +523,8 @@ void LevelSetSolver3D::reinitLS() {
     for(int i = 0; i < mesh->cells->size; i++) {
       // Get closest sample point
       KDCoord tmp = kdtree->closest_point(x_ptr[i * DG_NP], y_ptr[i * DG_NP], z_ptr[i * DG_NP]);
-      const DG_FP dist2 = (tmp.x - x_ptr[i * DG_NP]) * (tmp.x - x_ptr[i * DG_NP]) 
-                        + (tmp.y - y_ptr[i * DG_NP]) * (tmp.y - y_ptr[i * DG_NP]) 
+      const DG_FP dist2 = (tmp.x - x_ptr[i * DG_NP]) * (tmp.x - x_ptr[i * DG_NP])
+                        + (tmp.y - y_ptr[i * DG_NP]) * (tmp.y - y_ptr[i * DG_NP])
                         + (tmp.z - z_ptr[i * DG_NP]) * (tmp.z - z_ptr[i * DG_NP]);
       closest_x[i * DG_NP] = tmp.x;
       closest_y[i * DG_NP] = tmp.y;

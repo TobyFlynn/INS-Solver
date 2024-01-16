@@ -175,7 +175,7 @@ elif dim == "3":
     dg_npf_n1 = str(int((1 + 1) * (1 + 2) / 2))
     dg_num_faces = "4"
     dg_num_constants = "2"
-    ls_sample_np = "13"
+    ls_sample_np = dg_np
     # TODO update
     dg_cub_3d_np = "23"
     dg_cub_surf_3d_np = "12"

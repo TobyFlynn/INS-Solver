@@ -6,8 +6,6 @@ extern Timing *timer;
 
 using namespace std;
 
-void num_pts_pos_neg(const vector<DG_FP> &s, int &pos, int &neg);
-
 PolyApprox3D::PolyApprox3D(const int cell_ind, set<int> stencil,
                        const DG_FP *x_ptr, const DG_FP *y_ptr,
                        const DG_FP *z_ptr, const DG_FP *s_ptr) {
@@ -15,44 +13,6 @@ PolyApprox3D::PolyApprox3D(const int cell_ind, set<int> stencil,
 
   vector<DG_FP> x_vec, y_vec, z_vec, s_vec;
   stencil_data(cell_ind, stencil, x_ptr, y_ptr, z_ptr, s_ptr, x_vec, y_vec, z_vec, s_vec);
-
-  // Make sure equal number of points on each side of the line
-/*
-  int pts_needed = num_coeff();
-  int pts_aim = num_pts();
-  int pos_pts, neg_pts;
-  num_pts_pos_neg(s_vec, pos_pts, neg_pts);
-  while(x_vec.size() > pts_needed) {
-    // Find point furthest from the interface to discard
-    int ind_discard;
-    if(pos_pts > neg_pts) {
-      DG_FP max = s_vec[0];
-      ind_discard = 0;
-      for(int i = 1; i < x_vec.size(); i++) {
-        if(s_vec[i] > max) {
-          max = s_vec[i];
-          ind_discard = i;
-        }
-      }
-    } else {
-      DG_FP min = s_vec[0];
-      ind_discard = 0;
-      for(int i = 1; i < x_vec.size(); i++) {
-        if(s_vec[i] < min) {
-          min = s_vec[i];
-          ind_discard = i;
-        }
-      }
-    }
-    // Discard ind
-    x_vec.erase(x_vec.begin() + ind_discard);
-    y_vec.erase(y_vec.begin() + ind_discard);
-    z_vec.erase(z_vec.begin() + ind_discard);
-    s_vec.erase(s_vec.begin() + ind_discard);
-
-    num_pts_pos_neg(s_vec, pos_pts, neg_pts);
-  }
-*/
 
   if(N == 2) {
     set_2nd_order_coeff(x_vec, y_vec, z_vec, s_vec);
@@ -118,7 +78,7 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
                               vector<DG_FP> &x, vector<DG_FP> &y,
                               vector<DG_FP> &z, vector<DG_FP> &s) {
   map<Coord, Point, cmpCoords> pointMap;
-
+/*
   for(int n = 0; n < DG_NP; n++) {
     int ind = cell_ind * DG_NP + n;
     Coord coord;
@@ -149,8 +109,8 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
       res->second.count++;
     }
   }
+*/
 
-/*
   for(const auto &sten : stencil) {
     for(int n = 0; n < DG_NP; n++) {
       int ind = sten * DG_NP + n;
@@ -177,7 +137,7 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
       }
     }
   }
-*/
+
   for(auto const &p : pointMap) {
     x.push_back(p.second.coord.x);
     y.push_back(p.second.coord.y);
@@ -712,15 +672,6 @@ void PolyApprox3D::hessian_at(const DG_FP x, const DG_FP y, const DG_FP z,
     hessian_at_3rd(x - offset_x, y - offset_y, z - offset_z, dx2, dy2, dz2, dxy, dxz, dyz);
   } else if(N == 4) {
     hessian_at_4th(x - offset_x, y - offset_y, z - offset_z, dx2, dy2, dz2, dxy, dxz, dyz);
-  }
-}
-
-void num_pts_pos_neg(const vector<DG_FP> &s, int &pos, int &neg) {
-  pos = 0;
-  neg = 0;
-  for(int i = 0; i < s.size(); i++) {
-    if(s[i] > 0.0) pos++;
-    if(s[i] < 0.0) neg++;
   }
 }
 
