@@ -18,6 +18,8 @@ inline void ins_3d_proj_pen(const DG_FP *factor, const DG_FP *a0,
     vel += tmp1[i];
   }
 
-  *pen = *factor * (*h / ((DG_FP)DG_ORDER + 1.0)) * vel;
-  *pen_f = *factor * vel;
+  // *pen = *factor * (*h / ((DG_FP)DG_ORDER + 1.0)) * vel;
+  // *pen_f = *factor * vel;
+  *pen = *factor * (*h / ((DG_FP)DG_ORDER + 1.0));
+  *pen_f = *factor;
 }

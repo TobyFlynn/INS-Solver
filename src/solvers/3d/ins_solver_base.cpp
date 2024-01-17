@@ -1150,7 +1150,7 @@ void INSSolverBase3D::project_velocity(op_dat dpdx, op_dat dpdy, op_dat dpdz) {
 
     DGTempDat proj_pen = dg_dat_pool->requestTempDatCells(1);
     DGTempDat proj_pen_f = dg_dat_pool->requestTempDatCells(1);
-    DG_FP factor = dt * 1.0;
+    DG_FP factor = dt * 1.0 * 1e2;
     // DG_FP factor = dt / Cr;
     // op_printf("Cr: %g\n", Cr);
     op_par_loop(ins_3d_proj_pen, "ins_3d_proj_pen", mesh->cells,
@@ -1186,9 +1186,9 @@ void INSSolverBase3D::project_velocity(op_dat dpdx, op_dat dpdy, op_dat dpdz) {
     cg_p[2] = dg_dat_pool->requestTempDatCells(DG_NP);
 
     int iter = 0;
-    const int max_iter = 250;
+    const int max_iter = 500;
     DG_FP residual = 0.0;
-    const DG_FP tol = 1e-8;
+    const DG_FP tol = 1e-12;
 
     // Calculate first residual
     project_velocity_mat_mult(velTT[0], velTT[1], velTT[2], cg_tmp[0].dat,
