@@ -199,25 +199,37 @@ void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
 }
 
 void MPINSSolver3D::step() {
-  timer->startTimer("MPINSSolver3D - Advection");
-  advection();
-  timer->endTimer("MPINSSolver3D - Advection");
+  op_par_loop(ins_3d_set_ic_ls_test, "ins_3d_set_ic_ls_test", mesh->cells,
+              op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->z, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vel[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vel[0][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vel[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vel[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vel[1][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-  timer->startTimer("MPINSSolver3D - Filtering");
-  if(filter_advec) {
-    filter(velT[0]);
-    filter(velT[1]);
-    filter(velT[2]);
-  }
-  timer->endTimer("MPINSSolver3D - Filtering");
-
-  timer->startTimer("MPINSSolver3D - Pressure");
-  pressure();
-  timer->endTimer("MPINSSolver3D - Pressure");
-
-  timer->startTimer("MPINSSolver3D - Viscosity");
-  viscosity();
-  timer->endTimer("MPINSSolver3D - Viscosity");
+  // timer->startTimer("MPINSSolver3D - Advection");
+  // advection();
+  // timer->endTimer("MPINSSolver3D - Advection");
+  //
+  // timer->startTimer("MPINSSolver3D - Filtering");
+  // if(filter_advec) {
+  //   filter(velT[0]);
+  //   filter(velT[1]);
+  //   filter(velT[2]);
+  // }
+  // timer->endTimer("MPINSSolver3D - Filtering");
+  //
+  // timer->startTimer("MPINSSolver3D - Pressure");
+  // pressure();
+  // timer->endTimer("MPINSSolver3D - Pressure");
+  //
+  // timer->startTimer("MPINSSolver3D - Viscosity");
+  // viscosity();
+  // timer->endTimer("MPINSSolver3D - Viscosity");
 
   timer->startTimer("MPINSSolver3D - Surface");
   surface();
