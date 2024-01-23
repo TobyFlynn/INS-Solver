@@ -334,7 +334,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
     }
 
     // Gone outside the element, return
-    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) + (init_z - pt_z) * (init_z - pt_z) > 4.0 * h * h) {
+    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) + (init_z - pt_z) * (init_z - pt_z) > 10.0 * h * h) {
       pt_x = pt_x_old;
       pt_y = pt_y_old;
       pt_z = pt_z_old;
@@ -401,6 +401,8 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
     std::cout << percent_non_converge * 100.0 << "% reinitialisation points did not converge" << std::endl;
 }
 
+#define PRINT_SAMPLE_PTS
+
 #ifdef PRINT_SAMPLE_PTS
 #include <fstream>
 #include <iostream>
@@ -446,15 +448,19 @@ void LevelSetSolver3D::reinitLS() {
   std::vector<PolyApprox3D> _polys;
   std::map<int,std::set<int>> stencils = PolyApprox3D::get_stencils(cellInds, mesh->face2cells);
 
+  DGTempDat s_modal = dg_dat_pool->requestTempDatCells(DG_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, s_modal.dat);
+
   const DG_FP *_x_ptr = getOP2PtrHostHE(mesh->x, OP_READ);
   const DG_FP *_y_ptr = getOP2PtrHostHE(mesh->y, OP_READ);
   const DG_FP *_z_ptr = getOP2PtrHostHE(mesh->z, OP_READ);
+  const DG_FP *_modal_ptr = getOP2PtrHostHE(s_modal.dat, OP_READ);
 
   // Populate map
   int i = 0;
   for(auto it = cellInds.begin(); it != cellInds.end(); it++) {
     std::set<int> stencil = stencils.at(*it);
-    PolyApprox3D p(*it, stencil, _x_ptr, _y_ptr, _z_ptr, s_ptr);
+    PolyApprox3D p(*it, stencil, _x_ptr, _y_ptr, _z_ptr, s_ptr, _modal_ptr);
     _polys.push_back(p);
     _cell2polyMap.insert({*it, i});
     i++;
@@ -463,7 +469,10 @@ void LevelSetSolver3D::reinitLS() {
   releaseOP2PtrHostHE(mesh->x, OP_READ, _x_ptr);
   releaseOP2PtrHostHE(mesh->y, OP_READ, _y_ptr);
   releaseOP2PtrHostHE(mesh->z, OP_READ, _z_ptr);
+  releaseOP2PtrHostHE(s_modal.dat, OP_READ, _modal_ptr);
   releaseOP2PtrHostHE(s, OP_READ, s_ptr);
+
+  dg_dat_pool->releaseTempDatCells(s_modal);
   timer->endTimer("LevelSetSolver3D - create polynomials");
 
   DGTempDat tmp_sampleX = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);

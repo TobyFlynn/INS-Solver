@@ -199,6 +199,7 @@ void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
 }
 
 void MPINSSolver3D::step() {
+  if(time > 2.0) return;
   op_par_loop(ins_3d_set_ic_ls_test, "ins_3d_set_ic_ls_test", mesh->cells,
               op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),

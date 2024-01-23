@@ -1,6 +1,7 @@
 #include "solvers/3d/ls_solver.h"
 
 #include <set>
+#include <random>
 
 #include "dg_op2_blas.h"
 #include "dg_utils.h"
@@ -222,6 +223,11 @@ void intersect_3pts(const std::vector<ReinitCoord> &intersect_pts, DG_FP *sample
   DG_FP r_[] = {-1, -0.333333333333333, 0.333333333333333, 1, -1, -0.333333333333333, 0.333333333333333, -1, -0.333333333333333, -1};
   DG_FP s_[] = {-1, -1, -1, -1, -0.333333333333333, -0.333333333333333, -0.333333333333333, 0.333333333333333, 0.333333333333333, 1};
 
+  for(int i = 0; i < 10; i++) {
+    r_[i] *= 0.75;
+    s_[i] *= 0.75;
+  }
+
   DG_FP x_2D[10], y_2D[10];
   for(int i = 0; i < 10; i++) {
     x_2D[i] = 0.5*(-(r_[i]+s_[i])*intersect_pts[0].x+(1+r_[i])*intersect_pts[1].x+(1+s_[i])*intersect_pts[2].x);
@@ -291,14 +297,56 @@ void intersect_4pts(const std::vector<ReinitCoord> &intersect_pts, DG_FP *sample
   }
 }
 
+bool simplified_newton(DG_FP &pt_x, DG_FP &pt_y, DG_FP &pt_z, PolyApprox3D &pol, const DG_FP tol) {
+  bool converged;
+  for(int step = 0; step < 100; step++) {
+    DG_FP surf = pol.val_at(pt_x, pt_y, pt_z);
+    DG_FP dsdx, dsdy, dsdz;
+    pol.grad_at(pt_x, pt_y, pt_z, dsdx, dsdy, dsdz);
+
+    DG_FP sqrnorm = dsdx * dsdx + dsdy * dsdy + dsdz * dsdz;
+    if(sqrnorm > 0.0) {
+      dsdx *= surf / sqrnorm;
+      dsdy *= surf / sqrnorm;
+      dsdz *= surf / sqrnorm;
+    }
+
+    pt_x -= dsdx;
+    pt_y -= dsdy;
+    pt_z -= dsdz;
+
+    // Check convergence
+    if(dsdx * dsdx + dsdy * dsdy + dsdz * dsdz < tol) {
+      converged = true;
+      break;
+    }
+  }
+  return converged;
+}
+
 void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sampleZ,
               std::vector<PolyApprox3D> &polys, std::map<int,int> &cell2polyMap,
               std::set<int> &cellInds) {
-  // DG_FP ref_r_ptr[LS_SAMPLE_NP], ref_s_ptr[LS_SAMPLE_NP], ref_t_ptr[LS_SAMPLE_NP];
+  // Setup random number generator for later
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dis(-1.0, 1.0);
+
+  DG_FP ref_r_ptr[LS_SAMPLE_NP], ref_s_ptr[LS_SAMPLE_NP], ref_t_ptr[LS_SAMPLE_NP];
   // set_sample_start_coords<10>(ref_r_ptr, ref_s_ptr, ref_t_ptr);
-  const DG_FP *ref_r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
-  const DG_FP *ref_s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
-  const DG_FP *ref_t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * DG_NP;
+  const DG_FP *tmp_r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
+  const DG_FP *tmp_s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
+  const DG_FP *tmp_t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * DG_NP;
+
+  for(int i = 0; i < DG_NP; i++) {
+    ref_r_ptr[i] = tmp_r_ptr[i] * 0.75;
+    ref_s_ptr[i] = tmp_s_ptr[i] * 0.75;
+    ref_t_ptr[i] = tmp_t_ptr[i] * 0.75;
+  }
+
+  // const DG_FP *ref_r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
+  // const DG_FP *ref_s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
+  // const DG_FP *ref_t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * DG_NP;
 
   const DG_FP *s_ptr = getOP2PtrHost(s, OP_READ);
   const DG_FP *nodeX_ptr = getOP2PtrHost(mesh->nodeX, OP_READ);
@@ -324,8 +372,8 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
   }
 
   std::vector<int> cell_inds_vec(cellInds.begin(), cellInds.end());
-  const DG_FP tol = fmax(1e-18,1e-4 * h * h);
-  // const DG_FP tol = 1e-16;
+  // const DG_FP tol = fmax(1e-18, 1e-4 * h * h);
+  const DG_FP tol = 1e-16;
   // printf("TOL: %g\n", tol);
 
   #pragma omp parallel for
@@ -362,39 +410,45 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
     // Simplified Newton sampling
     int poly_ind = cell2polyMap.at(cell);
     PolyApprox3D pol = polys[poly_ind];
-
     for(int p = 0; p < LS_SAMPLE_NP; p++) {
       bool converged = false;
-      if(isnan(sampleX_c[p])) continue;
-      for(int step = 0; step < 50; step++) {
-        DG_FP surf = pol.val_at(sampleX_c[p], sampleY_c[p], sampleZ_c[p]);
-        DG_FP dsdx, dsdy, dsdz;
-        pol.grad_at(sampleX_c[p], sampleY_c[p], sampleZ_c[p], dsdx, dsdy, dsdz);
-
-        DG_FP sqrnorm = dsdx * dsdx + dsdy * dsdy + dsdz * dsdz;
-        if(sqrnorm > 0.0) {
-          dsdx *= surf / sqrnorm;
-          dsdy *= surf / sqrnorm;
-          dsdz *= surf / sqrnorm;
-        }
-
-        sampleX_c[p] -= dsdx;
-        sampleY_c[p] -= dsdy;
-        sampleZ_c[p] -= dsdz;
-
-        // Check convergence
-        if(dsdx * dsdx + dsdy * dsdy + dsdz * dsdz < tol) {
-          converged = true;
-          break;
-        }
-      }
+      if(!isnan(sampleX_c[p]))
+        converged = simplified_newton(sampleX_c[p], sampleY_c[p], sampleZ_c[p], pol, tol);
 
       // Check if point has converged
       // || !pt_in_tetra(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c)
-      if(!converged) {
-        sampleX_c[p] = NAN;
-        sampleY_c[p] = NAN;
-        sampleZ_c[p] = NAN;
+      if(!converged || !pt_in_tetra(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c)) {
+        // sampleX_c[p] = NAN;
+        // sampleY_c[p] = NAN;
+        // sampleZ_c[p] = NAN;
+
+        // Try randomly placing start and rerunning 10 times
+        bool rerun_converged = false;
+        bool rerun_in_tet = false;
+        int rerun_counter = 0;
+        while((!rerun_converged || !rerun_in_tet) && rerun_counter < 10) {
+          // Random start point
+          sampleX_c[p] = dis(gen);
+          sampleY_c[p] = dis(gen);
+          sampleZ_c[p] = dis(gen);
+          rst2xyz(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c);
+          while(!pt_in_tetra(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c)) {
+            sampleX_c[p] = dis(gen);
+            sampleY_c[p] = dis(gen);
+            sampleZ_c[p] = dis(gen);
+            rst2xyz(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c);
+          }
+          // Rerun
+          rerun_converged = simplified_newton(sampleX_c[p], sampleY_c[p], sampleZ_c[p], pol, tol);
+          rerun_in_tet = pt_in_tetra(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c);
+          rerun_counter++;
+        }
+
+        if(!rerun_converged || !rerun_in_tet) {
+          sampleX_c[p] = NAN;
+          sampleY_c[p] = NAN;
+          sampleZ_c[p] = NAN;
+        }
       }
     }
   }

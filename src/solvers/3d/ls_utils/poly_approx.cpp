@@ -1,18 +1,21 @@
 #include "ls_utils/3d/poly_approx.h"
 
 #include "timing.h"
+#include "dg_constants/dg_constants_3d.h"
+#include "dg_utils.h"
 
 extern Timing *timer;
+extern DGConstants *constants;
 
 using namespace std;
 
 PolyApprox3D::PolyApprox3D(const int cell_ind, set<int> stencil,
                        const DG_FP *x_ptr, const DG_FP *y_ptr,
-                       const DG_FP *z_ptr, const DG_FP *s_ptr) {
+                       const DG_FP *z_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr) {
   get_offset(cell_ind, x_ptr, y_ptr, z_ptr);
 
   vector<DG_FP> x_vec, y_vec, z_vec, s_vec;
-  stencil_data(cell_ind, stencil, x_ptr, y_ptr, z_ptr, s_ptr, x_vec, y_vec, z_vec, s_vec);
+  stencil_data(cell_ind, stencil, x_ptr, y_ptr, z_ptr, s_ptr, modal_ptr, x_vec, y_vec, z_vec, s_vec);
 
   if(N == 2) {
     set_2nd_order_coeff(x_vec, y_vec, z_vec, s_vec);
@@ -72,13 +75,61 @@ struct cmpCoords {
     }
 };
 
+bool in_tetra(const DG_FP ptX, const DG_FP ptY, const DG_FP ptZ,
+                 const DG_FP *nodeX, const DG_FP *nodeY,
+                 const DG_FP *nodeZ) {
+  bool sameSide0, sameSide1, sameSide2, sameSide3;
+  DG_FP normal[3];
+  // (v1 - v0) x (v2 - v0)
+  normal[0] = (nodeY[1] - nodeY[0]) * (nodeZ[2] - nodeZ[0]) - (nodeZ[1] - nodeZ[0]) * (nodeY[2] - nodeY[0]);
+  normal[1] = (nodeZ[1] - nodeZ[0]) * (nodeX[2] - nodeX[0]) - (nodeX[1] - nodeX[0]) * (nodeZ[2] - nodeZ[0]);
+  normal[2] = (nodeX[1] - nodeX[0]) * (nodeY[2] - nodeY[0]) - (nodeY[1] - nodeY[0]) * (nodeX[2] - nodeX[0]);
+  // normal . (v3 - v0)
+  DG_FP dotV = normal[0] * (nodeX[3] - nodeX[0]) + normal[1] * (nodeY[3] - nodeY[0]) + normal[2] * (nodeZ[3] - nodeZ[0]);
+  // normal . (p - v0)
+  DG_FP dotP = normal[0] * (ptX - nodeX[0]) + normal[1] * (ptY - nodeY[0]) + normal[2] * (ptZ - nodeZ[0]);
+  sameSide0 = (dotV > 0.0) == (dotP > 0.0);
+
+  // (v2 - v1) x (v3 - v1)
+  normal[0] = (nodeY[2] - nodeY[1]) * (nodeZ[3] - nodeZ[1]) - (nodeZ[2] - nodeZ[1]) * (nodeY[3] - nodeY[1]);
+  normal[1] = (nodeZ[2] - nodeZ[1]) * (nodeX[3] - nodeX[1]) - (nodeX[2] - nodeX[1]) * (nodeZ[3] - nodeZ[1]);
+  normal[2] = (nodeX[2] - nodeX[1]) * (nodeY[3] - nodeY[1]) - (nodeY[2] - nodeY[1]) * (nodeX[3] - nodeX[1]);
+  // normal . (v0 - v1)
+  dotV = normal[0] * (nodeX[0] - nodeX[1]) + normal[1] * (nodeY[0] - nodeY[1]) + normal[2] * (nodeZ[0] - nodeZ[1]);
+  // normal . (p - v1)
+  dotP = normal[0] * (ptX - nodeX[1]) + normal[1] * (ptY - nodeY[1]) + normal[2] * (ptZ - nodeZ[1]);
+  sameSide1 = (dotV > 0.0) == (dotP > 0.0);
+
+  // (v3 - v2) x (v0 - v2)
+  normal[0] = (nodeY[3] - nodeY[2]) * (nodeZ[0] - nodeZ[2]) - (nodeZ[3] - nodeZ[2]) * (nodeY[0] - nodeY[2]);
+  normal[1] = (nodeZ[3] - nodeZ[2]) * (nodeX[0] - nodeX[2]) - (nodeX[3] - nodeX[2]) * (nodeZ[0] - nodeZ[2]);
+  normal[2] = (nodeX[3] - nodeX[2]) * (nodeY[0] - nodeY[2]) - (nodeY[3] - nodeY[2]) * (nodeX[0] - nodeX[2]);
+  // normal . (v1 - v2)
+  dotV = normal[0] * (nodeX[1] - nodeX[2]) + normal[1] * (nodeY[1] - nodeY[2]) + normal[2] * (nodeZ[1] - nodeZ[2]);
+  // normal . (p - v2)
+  dotP = normal[0] * (ptX - nodeX[2]) + normal[1] * (ptY - nodeY[2]) + normal[2] * (ptZ - nodeZ[2]);
+  sameSide2 = (dotV > 0.0) == (dotP > 0.0);
+
+  // (v0 - v3) x (v1 - v3)
+  normal[0] = (nodeY[0] - nodeY[3]) * (nodeZ[1] - nodeZ[3]) - (nodeZ[0] - nodeZ[3]) * (nodeY[1] - nodeY[3]);
+  normal[1] = (nodeZ[0] - nodeZ[3]) * (nodeX[1] - nodeX[3]) - (nodeX[0] - nodeX[3]) * (nodeZ[1] - nodeZ[3]);
+  normal[2] = (nodeX[0] - nodeX[3]) * (nodeY[1] - nodeY[3]) - (nodeY[0] - nodeY[3]) * (nodeX[1] - nodeX[3]);
+  // normal . (v2 - v3)
+  dotV = normal[0] * (nodeX[2] - nodeX[3]) + normal[1] * (nodeY[2] - nodeY[3]) + normal[2] * (nodeZ[2] - nodeZ[3]);
+  // normal . (p - v3)
+  dotP = normal[0] * (ptX - nodeX[3]) + normal[1] * (ptY - nodeY[3]) + normal[2] * (ptZ - nodeZ[3]);
+  sameSide3 = (dotV > 0.0) == (dotP > 0.0);
+
+  return sameSide0 && sameSide1 && sameSide2 && sameSide3;
+}
+
 void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
                               const DG_FP *x_ptr, const DG_FP *y_ptr,
-                              const DG_FP *z_ptr, const DG_FP *s_ptr,
+                              const DG_FP *z_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr,
                               vector<DG_FP> &x, vector<DG_FP> &y,
                               vector<DG_FP> &z, vector<DG_FP> &s) {
   map<Coord, Point, cmpCoords> pointMap;
-/*
+
   for(int n = 0; n < DG_NP; n++) {
     int ind = cell_ind * DG_NP + n;
     Coord coord;
@@ -91,6 +142,63 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
     res.first->second.val   = s_ptr[ind];
     res.first->second.count = 1;
   }
+
+/*
+  std::vector<bool> consider;
+  for(const auto &sten : stencil) {
+    if(sten == cell_ind) {
+      consider.push_back(false);
+      continue;
+    }
+
+    bool share_pt = false;
+    for(int n = 0; n < DG_NP; n++) {
+      int ind = sten * DG_NP + n;
+      Coord coord;
+      coord.x = x_ptr[ind] - offset_x;
+      coord.y = y_ptr[ind] - offset_y;
+      coord.z = z_ptr[ind] - offset_z;
+      Point point;
+      auto res = pointMap.find(coord);
+      if(res != pointMap.end()) {
+        share_pt = true;
+        break;
+      }
+    }
+    consider.push_back(share_pt);
+  }
+
+  int i = 0;
+  for(const auto &sten : stencil) {
+    if(!consider[i]) {
+      i++;
+      continue;
+    }
+
+    i++;
+    for(int n = 0; n < DG_NP; n++) {
+      int ind = sten * DG_NP + n;
+
+      Coord coord;
+      coord.x = x_ptr[ind] - offset_x;
+      coord.y = y_ptr[ind] - offset_y;
+      coord.z = z_ptr[ind] - offset_z;
+      Point point;
+      auto res = pointMap.insert(make_pair(coord, point));
+
+      if(res.second) {
+        // Point was inserted
+        res.first->second.coord = coord;
+        res.first->second.val   = s_ptr[ind];
+        res.first->second.count = 1;
+      } else {
+        // Point already exists
+        res.first->second.val += s_ptr[ind];
+        res.first->second.count++;
+      }
+    }
+  }
+*/
 
   for(const auto &sten : stencil) {
     if(sten == cell_ind) continue;
@@ -109,9 +217,10 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
       res->second.count++;
     }
   }
-*/
 
+/*
   for(const auto &sten : stencil) {
+    if(sten != cell_ind) continue;
     for(int n = 0; n < DG_NP; n++) {
       int ind = sten * DG_NP + n;
 
@@ -137,7 +246,136 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
       }
     }
   }
+*/
+  const DG_FP *tmp_r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
+  const DG_FP *tmp_s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
+  const DG_FP *tmp_t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * DG_NP;
 
+  const DG_FP tetra_r[4] = {tmp_r_ptr[0], tmp_r_ptr[3], tmp_r_ptr[9], tmp_r_ptr[19]};
+  const DG_FP tetra_s[4] = {tmp_s_ptr[0], tmp_s_ptr[3], tmp_s_ptr[9], tmp_s_ptr[19]};
+  const DG_FP tetra_t[4] = {tmp_t_ptr[0], tmp_t_ptr[3], tmp_t_ptr[9], tmp_t_ptr[19]};
+
+  for(const auto &sten : stencil) {
+    bool contain_interface = false;
+    bool s_pos = s_ptr[sten * DG_NP] > 0.0;
+    for(int i = 0; i < DG_NP; i++) {
+      if(s_ptr[sten * DG_NP + i] > 0.0 != s_pos) {
+        contain_interface = true;
+        break;
+      }
+    }
+    if(!contain_interface) continue;
+
+    DG_FP ref_r_ptr[DG_NP], ref_s_ptr[DG_NP], ref_t_ptr[DG_NP];
+    for(int i = 0; i < DG_NP; i++) {
+      ref_r_ptr[i] = tmp_r_ptr[i] * 0.9;
+      ref_s_ptr[i] = tmp_s_ptr[i] * 0.9;
+      ref_t_ptr[i] = tmp_t_ptr[i] * 0.9;
+    }
+
+    const DG_FP X0 = x_ptr[sten * DG_NP + 0]; const DG_FP Y0 = y_ptr[sten * DG_NP + 0]; const DG_FP Z0 = z_ptr[sten * DG_NP + 0];
+    const DG_FP X1 = x_ptr[sten * DG_NP + 3]; const DG_FP Y1 = y_ptr[sten * DG_NP + 3]; const DG_FP Z1 = z_ptr[sten * DG_NP + 3];
+    const DG_FP X2 = x_ptr[sten * DG_NP + 9]; const DG_FP Y2 = y_ptr[sten * DG_NP + 9]; const DG_FP Z2 = z_ptr[sten * DG_NP + 9];
+    const DG_FP X3 = x_ptr[sten * DG_NP + 19]; const DG_FP Y3 = y_ptr[sten * DG_NP + 19]; const DG_FP Z3 = z_ptr[sten * DG_NP + 19];
+
+    #pragma omp parallel for
+    for(int p = 0; p < DG_NP; p++) {
+      bool converged = false;
+      for(int step = 0; step < 20; step++) {
+        DG_FP surf = DGUtils::val_at_pt_3d(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], DG_ORDER);
+        DG_FP dsdr, dsds, dsdt;
+        DGUtils::grad_at_pt_3d(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], DG_ORDER, dsdr, dsds, dsdt);
+
+        DG_FP sqrnorm = dsdr * dsdr + dsds * dsds + dsdt * dsdt;
+        if(sqrnorm > 0.0) {
+          dsdr *= surf / sqrnorm;
+          dsds *= surf / sqrnorm;
+          dsdt *= surf / sqrnorm;
+        }
+
+        ref_r_ptr[p] -= dsdr;
+        ref_s_ptr[p] -= dsds;
+        ref_t_ptr[p] -= dsdt;
+
+        // Check convergence
+        if(!in_tetra(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], tetra_r, tetra_s, tetra_t)) {
+          break;
+        }
+
+        if(dsdr * dsdr + dsds * dsds + dsdt * dsdt < 1e-8) {
+          converged = true;
+          break;
+        }
+      }
+
+      // Check if point has converged
+      // && in_tetra(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], tetra_r, tetra_s, tetra_t)
+      if(converged) {
+        const DG_FP x = 0.5 * (-(1.0 + ref_r_ptr[p] + ref_s_ptr[p] + ref_t_ptr[p]) * X0 + (1.0 + ref_r_ptr[p]) * X1 + (1.0 + ref_s_ptr[p]) * X2 + (1.0 + ref_t_ptr[p]) * X3);
+        const DG_FP y = 0.5 * (-(1.0 + ref_r_ptr[p] + ref_s_ptr[p] + ref_t_ptr[p]) * Y0 + (1.0 + ref_r_ptr[p]) * Y1 + (1.0 + ref_s_ptr[p]) * Y2 + (1.0 + ref_t_ptr[p]) * Y3);
+        const DG_FP z = 0.5 * (-(1.0 + ref_r_ptr[p] + ref_s_ptr[p] + ref_t_ptr[p]) * Z0 + (1.0 + ref_r_ptr[p]) * Z1 + (1.0 + ref_s_ptr[p]) * Z2 + (1.0 + ref_t_ptr[p]) * Z3);
+        const DG_FP tmp_val = DGUtils::val_at_pt_3d(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], DG_ORDER);
+        #pragma omp critical
+        {
+          Coord coord;
+          coord.x = x - offset_x;
+          coord.y = y - offset_y;
+          coord.z = z - offset_z;
+          Point point;
+          auto res = pointMap.insert(make_pair(coord, point));
+          if(res.second) {
+            // Point was inserted
+            res.first->second.coord = coord;
+            res.first->second.val   = tmp_val;
+            res.first->second.count = 1;
+          } else {
+            // Point already exists
+            res.first->second.val += tmp_val;
+            res.first->second.count++;
+          }
+        }
+      }
+    }
+  }
+
+/*
+  for(const auto &sten : stencil) {
+    const DG_FP X0 = x_ptr[sten * DG_NP + 0]; const DG_FP Y0 = y_ptr[sten * DG_NP + 0]; const DG_FP Z0 = z_ptr[sten * DG_NP + 0];
+    const DG_FP X1 = x_ptr[sten * DG_NP + 3]; const DG_FP Y1 = y_ptr[sten * DG_NP + 3]; const DG_FP Z1 = z_ptr[sten * DG_NP + 3];
+    const DG_FP X2 = x_ptr[sten * DG_NP + 9]; const DG_FP Y2 = y_ptr[sten * DG_NP + 9]; const DG_FP Z2 = z_ptr[sten * DG_NP + 9];
+    const DG_FP X3 = x_ptr[sten * DG_NP + 19]; const DG_FP Y3 = y_ptr[sten * DG_NP + 19]; const DG_FP Z3 = z_ptr[sten * DG_NP + 19];
+    for(int n = 0; n < DG_NP; n++) {
+      int ind = sten * DG_NP + n;
+
+      const DG_FP r = ref_r_ptr[n];
+      const DG_FP s = ref_s_ptr[n];
+      const DG_FP t = ref_t_ptr[n];
+      const DG_FP val = DGUtils::val_at_pt_3d(r, s, t, &modal_ptr[sten * DG_NP], DG_ORDER);
+
+      const DG_FP x = 0.5 * (-(1.0 + r + s + t) * X0 + (1.0 + r) * X1 + (1.0 + s) * X2 + (1.0 + t) * X3);
+      const DG_FP y = 0.5 * (-(1.0 + r + s + t) * Y0 + (1.0 + r) * Y1 + (1.0 + s) * Y2 + (1.0 + t) * Y3);
+      const DG_FP z = 0.5 * (-(1.0 + r + s + t) * Z0 + (1.0 + r) * Z1 + (1.0 + s) * Z2 + (1.0 + t) * Z3);
+
+      Coord coord;
+      coord.x = x - offset_x;
+      coord.y = y - offset_y;
+      coord.z = z - offset_z;
+      Point point;
+      auto res = pointMap.insert(make_pair(coord, point));
+
+      if(res.second) {
+        // Point was inserted
+        res.first->second.coord = coord;
+        res.first->second.val   = val;
+        res.first->second.count = 1;
+      } else {
+        // Point already exists
+        res.first->second.val += val;
+        res.first->second.count++;
+      }
+    }
+  }
+*/
   for(auto const &p : pointMap) {
     x.push_back(p.second.coord.x);
     y.push_back(p.second.coord.y);
