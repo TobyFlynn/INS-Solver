@@ -1,5 +1,7 @@
 #include "ls_utils/3d/poly_approx.h"
 
+#include <random>
+
 #include "timing.h"
 #include "dg_constants/dg_constants_3d.h"
 #include "dg_utils.h"
@@ -38,12 +40,12 @@ PolyApprox3D::PolyApprox3D(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y,
 
 void PolyApprox3D::get_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_ptr,
                             const DG_FP *z_ptr) {
-  // offset_x = x_ptr[ind * DG_NP];
-  // offset_y = y_ptr[ind * DG_NP];
-  // offset_z = z_ptr[ind * DG_NP];
-  offset_x = 0.0;
-  offset_y = 0.0;
-  offset_z = 0.0;
+  offset_x = x_ptr[ind * DG_NP];
+  offset_y = y_ptr[ind * DG_NP];
+  offset_z = z_ptr[ind * DG_NP];
+  // offset_x = 0.0;
+  // offset_y = 0.0;
+  // offset_z = 0.0;
 }
 
 struct Coord {
@@ -123,11 +125,28 @@ bool in_tetra(const DG_FP ptX, const DG_FP ptY, const DG_FP ptZ,
   return sameSide0 && sameSide1 && sameSide2 && sameSide3;
 }
 
+void pol_rst2xyz(DG_FP &sampleX, DG_FP &sampleY, DG_FP &sampleZ,
+             const DG_FP *nodeX, const DG_FP *nodeY,
+             const DG_FP *nodeZ) {
+  DG_FP r_ = sampleX;
+  DG_FP s_ = sampleY;
+  DG_FP t_ = sampleZ;
+
+  sampleX = 0.5 * (-(1.0 + r_ + s_ + t_) * nodeX[0] + (1.0 + r_) * nodeX[1] + (1.0 + s_) * nodeX[2] + (1.0 + t_) * nodeX[3]);
+  sampleY = 0.5 * (-(1.0 + r_ + s_ + t_) * nodeY[0] + (1.0 + r_) * nodeY[1] + (1.0 + s_) * nodeY[2] + (1.0 + t_) * nodeY[3]);
+  sampleZ = 0.5 * (-(1.0 + r_ + s_ + t_) * nodeZ[0] + (1.0 + r_) * nodeZ[1] + (1.0 + s_) * nodeZ[2] + (1.0 + t_) * nodeZ[3]);
+}
+
 void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
                               const DG_FP *x_ptr, const DG_FP *y_ptr,
                               const DG_FP *z_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr,
                               vector<DG_FP> &x, vector<DG_FP> &y,
                               vector<DG_FP> &z, vector<DG_FP> &s) {
+  // Setup random number generator for later
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dis(-1.0, 1.0);
+
   map<Coord, Point, cmpCoords> pointMap;
 
   for(int n = 0; n < DG_NP; n++) {
@@ -142,7 +161,6 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
     res.first->second.val   = s_ptr[ind];
     res.first->second.count = 1;
   }
-
 /*
   std::vector<bool> consider;
   for(const auto &sten : stencil) {
@@ -268,9 +286,9 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
 
     DG_FP ref_r_ptr[DG_NP], ref_s_ptr[DG_NP], ref_t_ptr[DG_NP];
     for(int i = 0; i < DG_NP; i++) {
-      ref_r_ptr[i] = tmp_r_ptr[i] * 0.9;
-      ref_s_ptr[i] = tmp_s_ptr[i] * 0.9;
-      ref_t_ptr[i] = tmp_t_ptr[i] * 0.9;
+      ref_r_ptr[i] = tmp_r_ptr[i] * 0.75;
+      ref_s_ptr[i] = tmp_s_ptr[i] * 0.75;
+      ref_t_ptr[i] = tmp_t_ptr[i] * 0.75;
     }
 
     const DG_FP X0 = x_ptr[sten * DG_NP + 0]; const DG_FP Y0 = y_ptr[sten * DG_NP + 0]; const DG_FP Z0 = z_ptr[sten * DG_NP + 0];
@@ -335,6 +353,42 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
           }
         }
       }
+    }
+  }
+
+  const DG_FP X0 = x_ptr[cell_ind * DG_NP + 0]; const DG_FP Y0 = y_ptr[cell_ind * DG_NP + 0]; const DG_FP Z0 = z_ptr[cell_ind * DG_NP + 0];
+  const DG_FP X1 = x_ptr[cell_ind * DG_NP + 3]; const DG_FP Y1 = y_ptr[cell_ind * DG_NP + 3]; const DG_FP Z1 = z_ptr[cell_ind * DG_NP + 3];
+  const DG_FP X2 = x_ptr[cell_ind * DG_NP + 9]; const DG_FP Y2 = y_ptr[cell_ind * DG_NP + 9]; const DG_FP Z2 = z_ptr[cell_ind * DG_NP + 9];
+  const DG_FP X3 = x_ptr[cell_ind * DG_NP + 19]; const DG_FP Y3 = y_ptr[cell_ind * DG_NP + 19]; const DG_FP Z3 = z_ptr[cell_ind * DG_NP + 19];
+  const DG_FP nodeX[] = {X0, X1, X2, X3};
+  const DG_FP nodeY[] = {Y0, Y1, Y2, Y3};
+  const DG_FP nodeZ[] = {Z0, Z1, Z2, Z3};
+
+  for(int p = 0; p < DG_NP; p++) {
+    DG_FP sampleX = dis(gen);
+    DG_FP sampleY = dis(gen);
+    DG_FP sampleZ = dis(gen);
+    DG_FP surf = DGUtils::val_at_pt_3d(sampleX, sampleY, sampleZ, &modal_ptr[cell_ind * DG_NP], DG_ORDER);
+    pol_rst2xyz(sampleX, sampleY, sampleZ, nodeX, nodeY, nodeZ);
+    while(!in_tetra(sampleX, sampleY, sampleZ, nodeX, nodeY, nodeZ)) {
+      sampleX = dis(gen);
+      sampleY = dis(gen);
+      sampleZ = dis(gen);
+      surf = DGUtils::val_at_pt_3d(sampleX, sampleY, sampleZ, &modal_ptr[cell_ind * DG_NP], DG_ORDER);
+      pol_rst2xyz(sampleX, sampleY, sampleZ, nodeX, nodeY, nodeZ);
+    }
+
+    Coord coord;
+    coord.x = sampleX - offset_x;
+    coord.y = sampleY - offset_y;
+    coord.z = sampleZ - offset_z;
+    Point point;
+    auto res = pointMap.insert(make_pair(coord, point));
+    if(res.second) {
+      // Point was inserted
+      res.first->second.coord = coord;
+      res.first->second.val   = surf;
+      res.first->second.count = 1;
     }
   }
 
