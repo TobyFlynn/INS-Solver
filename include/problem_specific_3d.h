@@ -1,7 +1,7 @@
 #ifndef __INS_PROBLEM_SPECIFIC_3D_H
 #define __INS_PROBLEM_SPECIFIC_3D_H
 
-#define EXAMPLE_3D_LS_TEST
+#define EXAMPLE_3D_OSCILLATING_DROPLET
 
 #if defined(EXAMPLE_3D_TGV)
 #include "examples/3d_tgv.h"
