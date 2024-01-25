@@ -298,7 +298,7 @@ void intersect_4pts(const std::vector<ReinitCoord> &intersect_pts, DG_FP *sample
 }
 
 bool simplified_newton(DG_FP &pt_x, DG_FP &pt_y, DG_FP &pt_z, PolyApprox3D &pol, const DG_FP tol) {
-  bool converged;
+  bool converged = false;
   for(int step = 0; step < 100; step++) {
     DG_FP surf = pol.val_at(pt_x, pt_y, pt_z);
     DG_FP dsdx, dsdy, dsdz;

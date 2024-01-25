@@ -137,6 +137,39 @@ void pol_rst2xyz(DG_FP &sampleX, DG_FP &sampleY, DG_FP &sampleZ,
   sampleZ = 0.5 * (-(1.0 + r_ + s_ + t_) * nodeZ[0] + (1.0 + r_) * nodeZ[1] + (1.0 + s_) * nodeZ[2] + (1.0 + t_) * nodeZ[3]);
 }
 
+bool pol_simplified_newton(DG_FP &pt_r, DG_FP &pt_s, DG_FP &pt_t, const DG_FP *modal,
+                    const DG_FP tol, const DG_FP *tetra_r, const DG_FP *tetra_s,
+                    const DG_FP *tetra_t) {
+  bool converged = false;
+  for(int step = 0; step < 20; step++) {
+    DG_FP surf = DGUtils::val_at_pt_3d(pt_r, pt_s, pt_t, modal, DG_ORDER);
+    DG_FP dsdr, dsds, dsdt;
+    DGUtils::grad_at_pt_3d(pt_r, pt_s, pt_t, modal, DG_ORDER, dsdr, dsds, dsdt);
+
+    DG_FP sqrnorm = dsdr * dsdr + dsds * dsds + dsdt * dsdt;
+    if(sqrnorm > 0.0) {
+      dsdr *= surf / sqrnorm;
+      dsds *= surf / sqrnorm;
+      dsdt *= surf / sqrnorm;
+    }
+
+    pt_r -= dsdr;
+    pt_s -= dsds;
+    pt_t -= dsdt;
+
+    if(!in_tetra(pt_r, pt_s, pt_t, tetra_r, tetra_s, tetra_t)) {
+      break;
+    }
+
+    // Check convergence
+    if(dsdr * dsdr + dsds * dsds + dsdt * dsdt < tol) {
+      converged = true;
+      break;
+    }
+  }
+  return converged;
+}
+
 void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
                               const DG_FP *x_ptr, const DG_FP *y_ptr,
                               const DG_FP *z_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr,
@@ -161,6 +194,7 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
     res.first->second.val   = s_ptr[ind];
     res.first->second.count = 1;
   }
+
 /*
   std::vector<bool> consider;
   for(const auto &sten : stencil) {
@@ -282,7 +316,7 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
         break;
       }
     }
-    if(!contain_interface) continue;
+    if(!contain_interface && sten == cell_ind) continue;
 
     DG_FP ref_r_ptr[DG_NP], ref_s_ptr[DG_NP], ref_t_ptr[DG_NP];
     for(int i = 0; i < DG_NP; i++) {
@@ -298,33 +332,24 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
 
     #pragma omp parallel for
     for(int p = 0; p < DG_NP; p++) {
-      bool converged = false;
-      for(int step = 0; step < 20; step++) {
-        DG_FP surf = DGUtils::val_at_pt_3d(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], DG_ORDER);
-        DG_FP dsdr, dsds, dsdt;
-        DGUtils::grad_at_pt_3d(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], DG_ORDER, dsdr, dsds, dsdt);
+      // bool converged = false;
+      bool converged = pol_simplified_newton(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], 1e-8, tetra_r, tetra_s, tetra_t);
 
-        DG_FP sqrnorm = dsdr * dsdr + dsds * dsds + dsdt * dsdt;
-        if(sqrnorm > 0.0) {
-          dsdr *= surf / sqrnorm;
-          dsds *= surf / sqrnorm;
-          dsdt *= surf / sqrnorm;
-        }
-
-        ref_r_ptr[p] -= dsdr;
-        ref_s_ptr[p] -= dsds;
-        ref_t_ptr[p] -= dsdt;
-
-        // Check convergence
-        if(!in_tetra(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], tetra_r, tetra_s, tetra_t)) {
-          break;
-        }
-
-        if(dsdr * dsdr + dsds * dsds + dsdt * dsdt < 1e-8) {
-          converged = true;
-          break;
-        }
-      }
+      // if(!converged && sten == cell_ind) {
+      //   int counter = 0;
+      //   while(!converged && counter < 10) {
+      //     ref_r_ptr[p] = dis(gen);
+      //     ref_s_ptr[p] = dis(gen);
+      //     ref_t_ptr[p] = dis(gen);
+      //     while(!in_tetra(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], tetra_r, tetra_s, tetra_t)) {
+      //       ref_r_ptr[p] = dis(gen);
+      //       ref_s_ptr[p] = dis(gen);
+      //       ref_t_ptr[p] = dis(gen);
+      //     }
+      //     converged = pol_simplified_newton(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], 1e-8, tetra_r, tetra_s, tetra_t);
+      //     counter++;
+      //   }
+      // }
 
       // Check if point has converged
       // && in_tetra(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], tetra_r, tetra_s, tetra_t)
@@ -392,6 +417,13 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
     }
   }
 
+
+  DG_FP ref_r_ptr[DG_NP], ref_s_ptr[DG_NP], ref_t_ptr[DG_NP];
+  for(int i = 0; i < DG_NP; i++) {
+    ref_r_ptr[i] = tmp_r_ptr[i] * 0.75;
+    ref_s_ptr[i] = tmp_s_ptr[i] * 0.75;
+    ref_t_ptr[i] = tmp_t_ptr[i] * 0.75;
+  }
 /*
   for(const auto &sten : stencil) {
     const DG_FP X0 = x_ptr[sten * DG_NP + 0]; const DG_FP Y0 = y_ptr[sten * DG_NP + 0]; const DG_FP Z0 = z_ptr[sten * DG_NP + 0];

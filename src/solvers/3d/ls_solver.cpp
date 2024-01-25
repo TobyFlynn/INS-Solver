@@ -373,7 +373,7 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
       DG_FP _closest_y = closest_y[i];
       DG_FP _closest_z = closest_z[i];
       bool tmp = newton_kernel(_closest_x, _closest_y, _closest_z, x[i], y[i], z[i], polys[poly_ind[i]], h);
-      if(true || tmp) {
+      if(tmp) {
         bool negative = s[i] < 0.0;
         s[i] = (_closest_x - x[i]) * (_closest_x - x[i]) + (_closest_y - y[i]) * (_closest_y - y[i]) + (_closest_z - z[i]) * (_closest_z - z[i]);
         s[i] = sqrt(s[i]);
