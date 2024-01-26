@@ -436,6 +436,10 @@ void MPINSSolver3D::apply_pressure_neumann_bc(op_dat divVelT) {
               op_arg_dat(dPdN[(currentInd + 1) % 2], -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_RW));
 
   op2_gemv(mesh, false, 1.0, DGConstants::LIFT, dPdN[(currentInd + 1) % 2], 1.0, divVelT);
+
+  dg_dat_pool->releaseTempDatCells(curl2Vel[0]);
+  dg_dat_pool->releaseTempDatCells(curl2Vel[1]);
+  dg_dat_pool->releaseTempDatCells(curl2Vel[2]);
 }
 
 void MPINSSolver3D::apply_pressure_neumann_bc_oi(op_dat divVelT) {
