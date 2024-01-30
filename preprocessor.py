@@ -142,7 +142,8 @@ if dim == "2":
     dg_np_n1  = str(int((1 + 1) * (1 + 2) / 2))
     dg_npf    = str(order_int + 1)
     dg_npf_n1 = str(1 + 1)
-    ls_sample_np = "10"
+    # ls_sample_np = "10"
+    ls_sample_np = dg_np
     dg_num_faces = "3"
     dg_num_constants = "5"
     # TODO update

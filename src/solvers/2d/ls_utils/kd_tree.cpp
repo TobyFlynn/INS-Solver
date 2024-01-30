@@ -19,8 +19,19 @@ bool compareY(KDCoord a, KDCoord b) {
   return a.y_rot < b.y_rot;
 }
 
-KDTree::KDTree(const DG_FP *x, const DG_FP *y, const int num,
-               DGMesh2D *mesh, op_dat s) {
+KDTree::KDTree(DGMesh2D *m) {
+  mesh = m;
+}
+
+void KDTree::reset() {
+  points.clear();
+  nodes.clear();
+  cell2polyMap.clear();
+  polys.clear();
+  n = 0;
+}
+
+void KDTree::pre_build_setup(const DG_FP *x, const DG_FP *y, const int num, op_dat s) {
   n = 0;
   for(int i = 0; i < num; i++) {
     if(!isnan(x[i]) && !isnan(y[i])) {
@@ -36,8 +47,17 @@ KDTree::KDTree(const DG_FP *x, const DG_FP *y, const int num,
   }
 
   // Construct cell to poly map for all these points
-  construct_polys(points, mesh, s);
   update_poly_inds(points);
+}
+
+void KDTree::build_tree(const DG_FP *x, const DG_FP *y, const int num, op_dat s) {
+  pre_build_setup(x, y, num, s);
+
+  if(points.size() == 0) {
+    empty = true;
+    return;
+  }
+  empty = false;
 
   timer->startTimer("K-D Tree - Construct Tree");
   construct_tree(points.begin(), points.end(), false, 0);
@@ -89,8 +109,9 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
 
   // Split across axis with greatest extent
   int axis = 0;
-  if(node.x_max - node.x_min < node.y_max - node.y_min)
+  if(node.x_max - node.x_min < node.y_max - node.y_min) {
     axis = 1;
+  }
 
   // Do rotational transform if necessary
   bool transform = !has_transformed && level > 5 && pts_end - pts_start >= leaf_size * 4;
@@ -195,8 +216,8 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
   if(pts_end - pts_start > 1) {
     if(median - pts_start >= 1)
       left_child = construct_tree(pts_start, median, has_transformed, level + 1);
-    if(pts_end - (median + 1) >= 1)
-      right_child = construct_tree(median + 1, pts_end, has_transformed, level + 1);
+    if(pts_end - median >= 1)
+      right_child = construct_tree(median, pts_end, has_transformed, level + 1);
   }
 
   // Set children after recursive calls (to prevent seg fault caused by the vector being reallocated)
@@ -264,40 +285,10 @@ void KDTree::nearest_neighbour(DG_FP x, DG_FP y, int current_ind, vector<KDCoord
   }
 }
 
-std::set<int> KDTree::cell_inds(vector<KDCoord> &points) {
-  std::set<int> result;
-  for(int i = 0; i < points.size(); i++) {
-    result.insert(points[i].poly);
-  }
-  return result;
-}
-
-void KDTree::construct_polys(vector<KDCoord> &points, DGMesh2D *mesh, op_dat s) {
-  timer->startTimer("LS - Construct Poly Approx");
-  // Get cell inds that require polynomial approximations
-  std::set<int> cellInds = cell_inds(points);
-
-  map<int,set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->face2cells);
-
-  const DG_FP *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
-  const DG_FP *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
-  const DG_FP *s_ptr = getOP2PtrHost(s, OP_READ);
-
-  // Populate map
-  int i = 0;
-  for(auto it = cellInds.begin(); it != cellInds.end(); it++) {
-    set<int> stencil = stencils.at(*it);
-    PolyApprox p(*it, stencil, x_ptr, y_ptr, s_ptr);
-    polys.push_back(p);
-    cell2polyMap.insert({*it, i});
-    i++;
-  }
-
-  releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
-  releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
-  releaseOP2PtrHost(s, OP_READ, s_ptr);
-
-  timer->endTimer("LS - Construct Poly Approx");
+void KDTree::set_poly_data(std::vector<PolyApprox> &_polys,
+                             std::map<int,int> &_cell2polyMap) {
+  polys = _polys;
+  cell2polyMap = _cell2polyMap;
 }
 
 vector<PolyApprox> KDTree::get_polys() {

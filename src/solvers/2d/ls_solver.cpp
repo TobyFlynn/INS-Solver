@@ -9,6 +9,10 @@
 #include "dg_constants/dg_constants.h"
 #include "dg_dat_pool.h"
 #include "timing.h"
+#include "op2_utils.h"
+#ifdef INS_MPI
+#include "ls_utils/2d/kd_tree_mpi.h"
+#endif
 
 extern DGConstants *constants;
 extern DGDatPool *dg_dat_pool;
@@ -110,14 +114,21 @@ void LevelSetSolver2D::init() {
   // order_width = 2.0 * h;
   // epsilon = h / DG_ORDER;
   alpha = 12.0 * h;
-  order_width = 12.0 * h;
+  // order_width = 12.0 * h;
   epsilon = h;
   // reinit_width = 20.0 * h;
-  reinit_width = 50.0;
-  reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
-  numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
+  ls_cap = 50.0;
+  reinit_width = ls_cap;
+  // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
+  // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
 
   op_printf("Alpha: %g\t\tReinit Width: %g\n", alpha, reinit_width);
+
+  #ifdef INS_MPI
+  kdtree = new KDTreeMPI(mesh, 2.0 * reinit_width);
+  #else
+  kdtree = new KDTree(mesh);
+  #endif
 
   reinitLS();
 }
@@ -215,13 +226,328 @@ void LevelSetSolver2D::getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv) {
   timer->endTimer("LevelSetSolver2D - getNormalsCurvature");
 }
 
-void LevelSetSolver2D::sampleInterface() {
-  timer->startTimer("LevelSetSolver2D - sampleInterface");
-  op_par_loop(sample_interface, "sample_interface", mesh->cells,
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 3, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 3, DG_FP_STR, OP_READ),
-              op_arg_dat(s,           -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(s_sample_x,  -1, OP_ID, LS_SAMPLE_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(s_sample_y,  -1, OP_ID, LS_SAMPLE_NP, DG_FP_STR, OP_WRITE));
-  timer->endTimer("LevelSetSolver2D - sampleInterface");
+bool newtoncp_gepp(arma::mat &A, arma::vec &b) {
+  for (int i = 0; i < 3; ++i) {
+    int j = i;
+    for (int k = i + 1; k < 3; ++k)
+      if (std::abs(A(k,i)) > std::abs(A(j,i)))
+        j = k;
+    if (j != i) {
+      for (int k = 0; k < 3; ++k)
+        std::swap(A(i,k), A(j,k));
+      std::swap(b(i), b(j));
+    }
+
+    if (std::abs(A(i,i)) < 1.0e4*std::numeric_limits<DG_FP>::epsilon())
+      return false;
+
+    DG_FP fac = 1.0 / A(i,i);
+    for (int j = i + 1; j < 3; ++j)
+      A(j,i) *= fac;
+
+    for (int j = i + 1; j < 3; ++j) {
+      for (int k = i + 1; k < 3; ++k)
+        A(j,k) -= A(j,i)*A(i,k);
+      b(j) -= A(j,i)*b(i);
+    }
+  }
+
+  for (int i = 3 - 1; i >= 0; --i) {
+    DG_FP sum = 0.0;
+    for (int j = i + 1; j < 3; ++j)
+      sum += A(i,j)*b(j);
+    b(i) = (b(i) - sum) / A(i,i);
+  }
+
+  return true;
+}
+
+bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, const DG_FP node_x, 
+                   const DG_FP node_y, PolyApprox &p, const DG_FP h) {
+  DG_FP lambda = 0.0;
+  bool converged = false;
+  DG_FP pt_x = closest_pt_x;
+  DG_FP pt_y = closest_pt_y;
+  DG_FP init_x = closest_pt_x;
+  DG_FP init_y = closest_pt_y;
+
+  for(int step = 0; step < 100; step++) {
+    DG_FP pt_x_old = pt_x;
+    DG_FP pt_y_old = pt_y;
+    // Evaluate surface and gradient at current guess
+    DG_FP surface = p.val_at(pt_x, pt_y);
+    DG_FP surface_dx, surface_dy;
+    p.grad_at(pt_x, pt_y, surface_dx, surface_dy);
+    // Evaluate Hessian
+    DG_FP hessian[3];
+    p.hessian_at(pt_x, pt_y, hessian[0], hessian[1], hessian[2]);
+
+    // Check if |nabla(surface)| = 0, if so then return
+    DG_FP gradsqrnorm = surface_dx * surface_dx + surface_dy * surface_dy;
+    if(gradsqrnorm < 1e-14)
+      break;
+
+    // Init lambda at first step
+    if(step == 0)
+      lambda = ((node_x - pt_x) * surface_dx + (node_y - pt_y) * surface_dy) / gradsqrnorm;
+
+    // Gradient of functional
+    arma::vec gradf(3);
+    gradf(0) = pt_x - node_x + lambda * surface_dx;
+    gradf(1) = pt_y - node_y + lambda * surface_dy;
+    gradf(2) = surface;
+
+    // Calculate Hessian of functional
+    arma::mat hessianf(3, 3);
+    hessianf(0, 0) = 1.0 + lambda * hessian[0];
+    hessianf(0, 1) = lambda * hessian[1]; hessianf(1, 0) = hessianf(0, 1);
+    hessianf(0, 2) = surface_dx; hessianf(2, 0) = hessianf(0, 2);
+
+    hessianf(1, 1) = 1.0 + lambda * hessian[2];
+    hessianf(1, 2) = surface_dy; hessianf(2, 1) = hessianf(1, 2);
+
+    hessianf(2, 2) = 0.0;
+
+    if(!newtoncp_gepp(hessianf, gradf)) {
+      DG_FP delta1_x = (surface / gradsqrnorm) * surface_dx;
+      DG_FP delta1_y = (surface / gradsqrnorm) * surface_dy;
+      lambda = ((node_x - pt_x) * surface_dx + (node_y - pt_y) * surface_dy) / gradsqrnorm;
+      DG_FP delta2_x = pt_x - node_x + lambda * surface_dx;
+      DG_FP delta2_y = pt_y - node_y + lambda * surface_dy;
+      DG_FP msqr = delta2_x * delta2_x + delta2_y * delta2_y;
+      if(msqr > 0.1 * h * 0.1 * h) {
+        delta2_x *= 0.1 * h / sqrt(msqr);
+        delta2_y *= 0.1 * h / sqrt(msqr);
+      }
+      pt_x -= delta1_x + delta2_x;
+      pt_y -= delta1_y + delta2_y;
+    } else {
+      arma::vec ans = gradf;
+
+      // Clamp update
+      DG_FP msqr = ans(0) * ans(0) + ans(1) * ans(1);
+      if(msqr > h * 0.5 * h * 0.5)
+        ans = ans * 0.5 * h / sqrt(msqr);
+
+      // Update guess
+      pt_x -= ans(0);
+      pt_y -= ans(1);
+      lambda -= ans(2);
+    }
+
+    // Gone outside the element, return
+    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > 10.0 * h * h) {
+      pt_x = pt_x_old;
+      pt_y = pt_y_old;
+      break;
+    }
+
+    // Converged, no more steps required
+    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) < 1e-16) {
+      converged = true;
+      break;
+    }
+  }
+
+  closest_pt_x = pt_x;
+  closest_pt_y = pt_y;
+
+  return converged;
+}
+
+void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
+                   const DG_FP *x, const DG_FP *y, int *poly_ind,
+                   std::vector<PolyApprox> &polys, DG_FP *s, const DG_FP h,
+                   const DG_FP reinit_width, const DG_FP ls_cap) {
+  int numNonConv = 0;
+  int numReinit = 0;
+
+  #pragma omp parallel for
+  for(int i = 0; i < numPts; i++) {
+    int start_ind = (i / DG_NP) * DG_NP;
+    DG_FP dist2 = (closest_x[start_ind] - x[start_ind]) * (closest_x[start_ind] - x[start_ind])
+                + (closest_y[start_ind] - y[start_ind]) * (closest_y[start_ind] - y[start_ind]);
+    if(dist2 < (reinit_width + 2.0 * h) * (reinit_width + 2.0 * h)) {
+      DG_FP _closest_x = closest_x[i];
+      DG_FP _closest_y = closest_y[i];
+      bool tmp = newton_kernel(_closest_x, _closest_y, x[i], y[i], polys[poly_ind[i]], h);
+      if(tmp) {
+        bool negative = s[i] < 0.0;
+        s[i] = (_closest_x - x[i]) * (_closest_x - x[i]) + (_closest_y - y[i]) * (_closest_y - y[i]);
+        s[i] = sqrt(s[i]);
+        if(negative) s[i] *= -1.0;
+      } else {
+        bool negative = s[i] < 0.0;
+        s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
+        s[i] = sqrt(s[i]);
+        if(negative) s[i] *= -1.0;
+      }
+      if(!tmp) {
+        #pragma omp atomic
+        numNonConv++;
+      }
+      #pragma omp atomic
+      numReinit++;
+    } else {
+      bool negative = s[i] < 0.0;
+      s[i] = negative ? -ls_cap : ls_cap;
+    }
+  }
+
+  double percent_non_converge = numReinit == 0 ? 0.0 : (double)numNonConv / (double)numReinit;
+  if(percent_non_converge > 0.1)
+    std::cout << percent_non_converge * 100.0 << "% reinitialisation points did not converge" << std::endl;
+}
+
+#define PRINT_SAMPLE_PTS
+
+#ifdef PRINT_SAMPLE_PTS
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+
+std::string ls_double_to_text(const double &d) {
+    std::stringstream ss;
+    ss << std::setprecision(15);
+    ss << d;
+    return ss.str();
+}
+#endif
+
+void LevelSetSolver2D::reinitLS() {
+  timer->startTimer("LevelSetSolver2D - reinitLS");
+  timer->startTimer("LevelSetSolver2D - get cells containing interface");
+  const DG_FP *s_ptr = getOP2PtrHostHE(s, OP_READ);
+  std::set<int> cellInds;
+  for(int i = 0; i < mesh->cells->size; i++) {
+    bool reinit = false;
+    bool pos = s_ptr[i * DG_NP] >= 0.0;
+    for(int j = 1; j < DG_NP; j++) {
+      if((s_ptr[i * DG_NP + j] >= 0.0) != pos) {
+        reinit = true;
+      }
+    }
+    if(reinit) {
+      cellInds.insert(i);
+    }
+  }
+  timer->endTimer("LevelSetSolver2D - get cells containing interface");
+
+  timer->startTimer("LevelSetSolver2D - create polynomials");
+  std::map<int,int> _cell2polyMap;
+  std::vector<PolyApprox> _polys;
+  std::map<int,std::set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->face2cells);
+
+  DGTempDat s_modal = dg_dat_pool->requestTempDatCells(DG_NP);
+  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, s_modal.dat);
+
+  const DG_FP *_x_ptr = getOP2PtrHostHE(mesh->x, OP_READ);
+  const DG_FP *_y_ptr = getOP2PtrHostHE(mesh->y, OP_READ);
+  const DG_FP *_modal_ptr = getOP2PtrHostHE(s_modal.dat, OP_READ);
+
+  // Populate map
+  int i = 0;
+  for(auto it = cellInds.begin(); it != cellInds.end(); it++) {
+    std::set<int> stencil = stencils.at(*it);
+    PolyApprox p(*it, stencil, _x_ptr, _y_ptr, s_ptr, _modal_ptr);
+    _polys.push_back(p);
+    _cell2polyMap.insert({*it, i});
+    i++;
+  }
+
+  releaseOP2PtrHostHE(mesh->x, OP_READ, _x_ptr);
+  releaseOP2PtrHostHE(mesh->y, OP_READ, _y_ptr);
+  releaseOP2PtrHostHE(s_modal.dat, OP_READ, _modal_ptr);
+  releaseOP2PtrHostHE(s, OP_READ, s_ptr);
+
+  dg_dat_pool->releaseTempDatCells(s_modal);
+  timer->endTimer("LevelSetSolver2D - create polynomials");
+
+  DGTempDat tmp_sampleX = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);
+  DGTempDat tmp_sampleY = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);
+  timer->startTimer("LevelSetSolver2D - sample interface");
+  sampleInterface(tmp_sampleX.dat, tmp_sampleY.dat, _polys, _cell2polyMap, cellInds);
+  timer->endTimer("LevelSetSolver2D - sample interface");
+
+  timer->startTimer("LevelSetSolver2D - build KD-Tree");
+  const DG_FP *sample_pts_x = getOP2PtrHost(tmp_sampleX.dat, OP_READ);
+  const DG_FP *sample_pts_y = getOP2PtrHost(tmp_sampleY.dat, OP_READ);
+
+#ifdef PRINT_SAMPLE_PTS
+  std::ofstream file("points.txt");
+  file << "X,Y" << std::endl;
+
+  for(int i = 0; i < LS_SAMPLE_NP * mesh->cells->size; i++) {
+    if(!isnan(sample_pts_x[i]) && !isnan(sample_pts_y[i])) {
+      file << ls_double_to_text(sample_pts_x[i]) << ",";
+      file << ls_double_to_text(sample_pts_y[i]) << std::endl;
+    }
+  }
+
+  file.close();
+#endif
+
+  kdtree->reset();
+  kdtree->set_poly_data(_polys, _cell2polyMap);
+  kdtree->build_tree(sample_pts_x, sample_pts_y, LS_SAMPLE_NP * mesh->cells->size, s);
+
+  releaseOP2PtrHost(tmp_sampleX.dat, OP_READ, sample_pts_x);
+  releaseOP2PtrHost(tmp_sampleY.dat, OP_READ, sample_pts_y);
+
+  dg_dat_pool->releaseTempDatCells(tmp_sampleX);
+  dg_dat_pool->releaseTempDatCells(tmp_sampleY);
+  timer->endTimer("LevelSetSolver2D - build KD-Tree");
+
+  timer->startTimer("LevelSetSolver2D - query KD-Tree");
+  const DG_FP *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
+  const DG_FP *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
+
+  DG_FP *closest_x = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+  DG_FP *closest_y = (DG_FP *)calloc(DG_NP * mesh->cells->size, sizeof(DG_FP));
+  int *poly_ind    = (int *)calloc(DG_NP * mesh->cells->size, sizeof(int));
+  std::vector<PolyApprox> polys;
+
+  DG_FP *surface_ptr = getOP2PtrHost(s, OP_RW);
+  if(!kdtree->empty) {
+    #pragma omp parallel for
+    for(int i = 0; i < mesh->cells->size; i++) {
+      // Get closest sample point
+      KDCoord tmp = kdtree->closest_point(x_ptr[i * DG_NP], y_ptr[i * DG_NP]);
+      const DG_FP dist2 = (tmp.x - x_ptr[i * DG_NP]) * (tmp.x - x_ptr[i * DG_NP])
+                        + (tmp.y - y_ptr[i * DG_NP]) * (tmp.y - y_ptr[i * DG_NP]);
+      closest_x[i * DG_NP] = tmp.x;
+      closest_y[i * DG_NP] = tmp.y;
+      poly_ind[i * DG_NP]  = tmp.poly;
+      if(dist2 < (reinit_width + 2.0 * h) * (reinit_width + 2.0 * h)) {
+        for(int j = 1; j < DG_NP; j++) {
+          // Get closest sample point
+          KDCoord tmp = kdtree->closest_point(x_ptr[i * DG_NP + j], y_ptr[i * DG_NP + j]);
+          closest_x[i * DG_NP + j] = tmp.x;
+          closest_y[i * DG_NP + j] = tmp.y;
+          poly_ind[i * DG_NP + j]  = tmp.poly;
+        }
+      }
+    }
+
+    polys = kdtree->get_polys();
+  }
+  timer->endTimer("LevelSetSolver2D - query KD-Tree");
+
+  timer->startTimer("LevelSetSolver2D - newton method");
+  // Newton method
+  if(!kdtree->empty) {
+    newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr, 
+                  y_ptr, poly_ind, polys, surface_ptr, h, reinit_width, ls_cap);
+  }
+  releaseOP2PtrHost(s, OP_RW, surface_ptr);
+  timer->endTimer("LevelSetSolver2D - newton method");
+
+  free(closest_x);
+  free(closest_y);
+  free(poly_ind);
+
+  releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
+  releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
+  timer->endTimer("LevelSetSolver2D - reinitLS");
 }

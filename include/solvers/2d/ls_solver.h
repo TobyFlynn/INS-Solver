@@ -6,8 +6,13 @@
 #include "op_seq.h"
 
 #include "solvers/2d/advection_solver.h"
+#include "ls_utils/2d/ls_reinit_poly.h"
+#include "ls_utils/2d/kd_tree.h"
 
 #include "dg_mesh/dg_mesh_2d.h"
+
+#include <map>
+#include <vector>
 
 class LevelSetAdvectionSolver2D : public AdvectionSolver2D {
 public:
@@ -42,9 +47,10 @@ public:
 
   op_dat u, v, s, dsdx, dsdy, s_sample_x, s_sample_y;
 
-  DG_FP alpha, order_width;
+  DG_FP alpha, order_width, ls_cap;
 private:
-  void sampleInterface();
+  void sampleInterface(op_dat sampleX, op_dat sampleY, std::vector<PolyApprox> &polys, 
+                       std::map<int,int> &cell2polyMap, std::set<int> &cellInds);
   void reinitLS();
   bool reinitNeeded();
 
@@ -53,6 +59,7 @@ private:
   bool resuming;
 
   LevelSetAdvectionSolver2D *advecSolver;
+  KDTree *kdtree;
 };
 
 #endif

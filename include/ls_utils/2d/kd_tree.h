@@ -37,26 +37,31 @@ struct KDNode {
 
 class KDTree {
 public:
-  KDTree(const DG_FP *x, const DG_FP *y, const int num, DGMesh2D *mesh, op_dat s);
+  KDTree(DGMesh2D *m);
 
+  virtual void build_tree(const DG_FP *x, const DG_FP *y, const int num, op_dat s);
+  virtual void reset();
   KDCoord closest_point(DG_FP x, DG_FP y);
   std::vector<PolyApprox> get_polys();
+  void set_poly_data(std::vector<PolyApprox> &_polys, std::map<int,int> &_cell2polyMap);
 
-private:
+  std::vector<KDCoord> points;
+  bool empty;
+protected:
   int construct_tree(std::vector<KDCoord>::iterator pts_start, std::vector<KDCoord>::iterator pts_end, bool has_transformed, int level);
   DG_FP bb_sqr_dist(const int node_ind, const DG_FP x, const DG_FP y);
   void nearest_neighbour(DG_FP x, DG_FP y, int current_ind, std::vector<KDCoord>::iterator &closest_pt, DG_FP &closest_distance);
 
-  std::set<int> cell_inds(std::vector<KDCoord> &points);
-  void construct_polys(std::vector<KDCoord> &points, DGMesh2D *mesh, op_dat s);
   void update_poly_inds(std::vector<KDCoord> &points);
+  void pre_build_setup(const DG_FP *x, const DG_FP *y, const int num, op_dat s);
 
   std::vector<KDNode> nodes;
-  std::vector<KDCoord> points;
+
   int n;
   std::map<int,int> cell2polyMap;
   std::vector<PolyApprox> polys;
-  static const int leaf_size = 10;
+  static const int leaf_size = 100;
+  DGMesh2D *mesh;
 };
 
 #endif
