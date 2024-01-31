@@ -31,6 +31,7 @@ public:
 
   // Getters (used for measurements)
   op_dat get_ls();
+  DG_FP get_ls_alpha();
 
   op_dat rho, mu, st[2][2];
 private:

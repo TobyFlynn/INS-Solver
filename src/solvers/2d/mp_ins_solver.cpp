@@ -851,3 +851,7 @@ void MPINSSolver2D::surface() {
 op_dat MPINSSolver2D::get_ls() {
   return lsSolver->s;
 }
+
+DG_FP MPINSSolver2D::get_ls_alpha() {
+  return lsSolver->alpha;
+}

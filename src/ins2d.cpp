@@ -21,6 +21,7 @@
 #include "measurements/2d/lift_drag_cylinder.h"
 #include "measurements/2d/l2_error_vortex.h"
 #include "measurements/2d/min_max_interface.h"
+#include "measurements/2d/min_max_pressure.h"
 
 Timing *timer;
 Config *config;
@@ -219,6 +220,9 @@ int main(int argc, char **argv) {
       } else if(measurement == "min_max_interface") {
         MinMaxInterface2D *min_max = new MinMaxInterface2D(ins2d);
         measurements.push_back(min_max);
+      } else if(measurement == "min_max_pressure") {
+        MinMaxPressure2D *min_max_pr = new MinMaxPressure2D(ins2d, 1);
+        measurements.push_back(min_max_pr);
       } else {
         dg_abort("Unrecognised measurement: " + measurement);
       }

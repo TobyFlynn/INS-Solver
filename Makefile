@@ -177,7 +177,8 @@ COMMON_2D_OBJ := ins2d_op.o \
 	measurements/2d/measurement.o \
 	measurements_op/2d/lift_drag_cylinder_op.o \
 	measurements_op/2d/l2_error_vortex_op.o \
-	measurements_op/2d/min_max_interface_op.o
+	measurements_op/2d/min_max_interface_op.o \
+	measurements_op/2d/min_max_pressure_op.o
 
 # 2D CPU only object files
 CPU_2D_OBJ := solvers/2d/ls_utils/ls_reinit.o

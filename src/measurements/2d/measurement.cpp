@@ -20,8 +20,8 @@ std::string Measurement2D::double_to_text(const double &d) {
 }
 
 bool Measurement2D::sample_this_iter() {
+  count++;
   if(count != sample_rate) {
-    count++;
     return false;
   }
   count = 0;
