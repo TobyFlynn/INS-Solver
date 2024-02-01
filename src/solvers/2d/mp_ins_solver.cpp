@@ -202,17 +202,27 @@ void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
 }
 
 void MPINSSolver2D::step() {
-  timer->startTimer("MPINSSolver2D - Advection");
-  advection();
-  timer->endTimer("MPINSSolver2D - Advection");
+  if(time > 2.0) return;
+  op_par_loop(ins_2d_set_ic_ls_test, "ins_3d_set_ic_ls_test", mesh->cells,
+              op_arg_gbl(&time, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->x, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->y, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(vel[0][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vel[0][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vel[1][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(vel[1][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
-  timer->startTimer("MPINSSolver2D - Pressure");
-  pressure();
-  timer->endTimer("MPINSSolver2D - Pressure");
+  // timer->startTimer("MPINSSolver2D - Advection");
+  // advection();
+  // timer->endTimer("MPINSSolver2D - Advection");
 
-  timer->startTimer("MPINSSolver2D - Viscosity");
-  viscosity();
-  timer->endTimer("MPINSSolver2D - Viscosity");
+  // timer->startTimer("MPINSSolver2D - Pressure");
+  // pressure();
+  // timer->endTimer("MPINSSolver2D - Pressure");
+
+  // timer->startTimer("MPINSSolver2D - Viscosity");
+  // viscosity();
+  // timer->endTimer("MPINSSolver2D - Viscosity");
 
   timer->startTimer("MPINSSolver2D - Surface");
   surface();

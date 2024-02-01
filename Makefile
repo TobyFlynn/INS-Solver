@@ -170,6 +170,7 @@ COMMON_2D_OBJ := ins2d_op.o \
 	solvers_op/2d/advec_diff_solver_op.o \
   solvers_op/2d/ls_solver_op.o \
   solvers/2d/ls_utils/ls_reinit_poly.o \
+	solvers/2d/ls_utils/kd_tree.o \
   solvers_op/2d/ins_solver_base_op.o \
   solvers_op/2d/ins_solver_op.o \
 	solvers_op/2d/ins_temperature_solver_op.o \
@@ -188,9 +189,6 @@ CUDA_2D_OBJ := solvers/2d/ls_utils/ls_reinit_gpu.o
 
 # 2D HIP only object files
 HIP_2D_OBJ := solvers/2d/ls_utils/ls_reinit_hip.o
-
-# 2D Non-MPI only object files
-SN_2D_OBJ := solvers/2d/ls_utils/kd_tree.o
 
 # 2D MPI only object files
 MPI_2D_OBJ := solvers/2d/ls_utils/kd_tree_mpi.o
@@ -316,7 +314,6 @@ $(3D_MPI_HIP_OBJ_DIR)/%.o: $(CODE_GEN_DIR)/gen_3d/%.cu | $(3D_MPI_HIP_OBJ_DIR)
 2D_OMP_OBJ := $(addprefix $(2D_OMP_OBJ_DIR)/,\
 	$(COMMON_2D_OBJ) \
 	$(CPU_2D_OBJ) \
-	$(SN_2D_OBJ) \
 	openmp/ins2d_kernels.o)
 $(BIN)/ins2d_openmp: $(2D_OMP_OBJ) | $(BIN)
 	$(CXX) $(CXXFLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_openmp -ldgtoolkit $(OP2_OPENMP_LIBS) $(OPENMP_FLAG) $(COMMON_LIBS) $(EXTRA_LIBS_CPU) -o $@
@@ -325,7 +322,6 @@ $(BIN)/ins2d_openmp: $(2D_OMP_OBJ) | $(BIN)
 2D_CUDA_OBJ := $(addprefix $(2D_CUDA_OBJ_DIR)/,\
 	$(COMMON_2D_OBJ) \
 	$(CUDA_2D_OBJ) \
-	$(SN_2D_OBJ) \
 	cuda/ins2d_kernels.o)
 $(BIN)/ins2d_cuda: $(2D_CUDA_OBJ) | $(BIN)
 	$(NVCC) $(NVCC_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_cuda -ldgtoolkit $(OP2_CUDA_LIBS) $(COMMON_LIBS) $(MPI_LIB) $(CUBLAS_LIB) $(EXTRA_LIBS_CUDA) -o $@
@@ -334,7 +330,6 @@ $(BIN)/ins2d_cuda: $(2D_CUDA_OBJ) | $(BIN)
 2D_HIP_OBJ := $(addprefix $(2D_HIP_OBJ_DIR)/,\
 	$(COMMON_2D_OBJ) \
 	$(HIP_2D_OBJ) \
-	$(SN_2D_OBJ) \
 	hip/ins2d_kernels.o)
 $(BIN)/ins2d_hip: $(2D_HIP_OBJ) | $(BIN)
 	$(HIPCC) $(HIP_FLAGS) $^ -L$(OP2_DG_TOOLKIT_DIR)/lib -lop2dgtoolkit_2d_hip -ldgtoolkit $(OP2_HIP_LIBS) $(COMMON_LIBS) $(MPI_LIB) $(HIPBLAS_LIB) $(EXTRA_LIBS_HIP) -o $@

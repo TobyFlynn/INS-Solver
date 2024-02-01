@@ -1,16 +1,18 @@
-#include "op_seq.h"
-
 #include "ls_utils/2d/ls_reinit_poly.h"
 
+#include <random>
 #include <map>
-#include <iostream>
 
 #include "op2_utils.h"
 #include "timing.h"
-
-using namespace std;
+#include "dg_constants/dg_constants_2d.h"
+#include "dg_utils.h"
+#include "dg_global_constants/dg_global_constants_2d.h"
 
 extern Timing *timer;
+extern DGConstants *constants;
+
+using namespace std;
 
 bool vec_contains(const int val, const vector<int> &vec) {
   for(int i = 0; i < vec.size(); i++) {
@@ -20,11 +22,17 @@ bool vec_contains(const int val, const vector<int> &vec) {
   return false;
 }
 
-void PolyApprox::get_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_ptr) {
+void PolyApprox::calc_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_ptr) {
   // offset_x = x_ptr[ind * DG_NP];
   // offset_y = y_ptr[ind * DG_NP];
   offset_x = 0.0;
   offset_y = 0.0;
+  // for(int i = 0; i < DG_NP; i++) {
+  //   offset_x += x_ptr[ind * DG_NP + i];
+  //   offset_y += y_ptr[ind * DG_NP + i];
+  // }
+  // offset_x /= (DG_FP)DG_NP;
+  // offset_y /= (DG_FP)DG_NP;
 }
 
 struct Coord {
@@ -52,12 +60,72 @@ struct cmpCoords {
     }
 };
 
-void PolyApprox::stencil_data(const set<int> &stencil, const DG_FP *x_ptr,
-                              const DG_FP *y_ptr, const DG_FP *s_ptr,
-                              vector<DG_FP> &x, vector<DG_FP> &y,
-                              vector<DG_FP> &s) {
-  map<Coord, Point, cmpCoords> pointMap;
+DG_FP pol_in_tri_sign(const DG_FP x, const DG_FP y, const DG_FP v0x, const DG_FP v0y, const DG_FP v1x, const DG_FP v1y) {
+  return (x - v1x) * (v0y - v1y) - (v0x - v1x) * (y - v1y);
+}
 
+bool pol_in_tri(const DG_FP ptX, const DG_FP ptY, const DG_FP *nodeX, const DG_FP *nodeY) {
+  bool has_neg, has_pos;
+
+  DG_FP d1 = pol_in_tri_sign(ptX, ptY, nodeX[0], nodeY[0], nodeX[1], nodeY[1]);
+  DG_FP d2 = pol_in_tri_sign(ptX, ptY, nodeX[1], nodeY[1], nodeX[2], nodeY[2]);
+  DG_FP d3 = pol_in_tri_sign(ptX, ptY, nodeX[2], nodeY[2], nodeX[0], nodeY[0]);
+
+  has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+  has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+  return !(has_neg && has_pos);
+}
+
+void pol_rs2xy(DG_FP &sampleX, DG_FP &sampleY, const DG_FP *nodeX, const DG_FP *nodeY) {
+  DG_FP r_ = sampleX;
+  DG_FP s_ = sampleY;
+
+  sampleX = 0.5 * (nodeX[1] * (1.0 + r_) + nodeX[2] * (1.0 + s_) - nodeX[0] * (s_ + r_));
+  sampleY = 0.5 * (nodeY[1] * (1.0 + r_) + nodeY[2] * (1.0 + s_) - nodeY[0] * (s_ + r_));
+}
+
+bool pol_simplified_newton(DG_FP &pt_r, DG_FP &pt_s, const DG_FP *modal,
+                           const DG_FP tol, const DG_FP *tetra_r, const DG_FP *tetra_s) {
+  bool converged = false;
+  for(int step = 0; step < 50; step++) {
+    DG_FP surf = DGUtils::val_at_pt_2d(pt_r, pt_s, modal, DG_ORDER);
+    DG_FP dsdr, dsds;
+    DGUtils::grad_at_pt_2d(pt_r, pt_s, modal, DG_ORDER, dsdr, dsds);
+
+    DG_FP sqrnorm = dsdr * dsdr + dsds * dsds;
+    if(sqrnorm > 0.0) {
+      dsdr *= surf / sqrnorm;
+      dsds *= surf / sqrnorm;
+    }
+
+    pt_r -= dsdr;
+    pt_s -= dsds;
+
+    if(!pol_in_tri(pt_r, pt_s, tetra_r, tetra_s)) {
+      break;
+    }
+
+    // Check convergence
+    if(dsdr * dsdr + dsds * dsds < tol) {
+      converged = true;
+      break;
+    }
+  }
+  return converged;
+}
+
+void PolyApprox::stencil_data(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
+                              const DG_FP *y_ptr, const DG_FP *s_ptr, 
+                              const DG_FP *modal_ptr, vector<DG_FP> &x, 
+                              vector<DG_FP> &y, vector<DG_FP> &s) {
+  // Setup random number generator for later
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dis(-1.0, 1.0);
+  
+  map<Coord, Point, cmpCoords> pointMap;
+/*
   for(const auto &sten : stencil) {
     for(int n = 0; n < DG_NP; n++) {
       int ind = sten * DG_NP + n;
@@ -80,6 +148,147 @@ void PolyApprox::stencil_data(const set<int> &stencil, const DG_FP *x_ptr,
       }
     }
   }
+*/
+
+  for(int n = 0; n < DG_NP; n++) {
+    int ind = cell_ind * DG_NP + n;
+    Coord coord;
+    coord.x = x_ptr[ind] - offset_x;
+    coord.y = y_ptr[ind] - offset_y;
+    Point point;
+    auto res = pointMap.insert(make_pair(coord, point));
+    res.first->second.coord = coord;
+    res.first->second.val   = s_ptr[ind];
+    res.first->second.count = 1;
+  }
+
+  for(const auto &sten : stencil) {
+    if(sten == cell_ind) continue;
+    for(int n = 0; n < DG_NP; n++) {
+      int ind = sten * DG_NP + n;
+
+      Coord coord;
+      coord.x = x_ptr[ind] - offset_x;
+      coord.y = y_ptr[ind] - offset_y;
+      Point point;
+      auto res = pointMap.find(coord);
+      if(res == pointMap.end()) continue;
+
+      res->second.val += s_ptr[ind];
+      res->second.count++;
+    }
+  }
+
+  const int fmask_node_ind_0 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];
+  const int fmask_node_ind_1 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + DG_NPF - 1];
+  const int fmask_node_ind_2 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + 2 * DG_NPF - 1];
+  const DG_FP *tmp_r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
+  const DG_FP *tmp_s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
+  const DG_FP tetra_r[3] = {tmp_r_ptr[fmask_node_ind_0], tmp_r_ptr[fmask_node_ind_1], tmp_r_ptr[fmask_node_ind_2]};
+  const DG_FP tetra_s[3] = {tmp_s_ptr[fmask_node_ind_0], tmp_s_ptr[fmask_node_ind_1], tmp_s_ptr[fmask_node_ind_2]};
+
+  for(const auto &sten : stencil) {
+    bool contain_interface = false;
+    bool s_pos = s_ptr[sten * DG_NP] > 0.0;
+    for(int i = 0; i < DG_NP; i++) {
+      if(s_ptr[sten * DG_NP + i] > 0.0 != s_pos) {
+        contain_interface = true;
+        break;
+      }
+    }
+    if(!contain_interface || sten != cell_ind) continue;
+
+    DG_FP ref_r_ptr[DG_NP], ref_s_ptr[DG_NP];
+    for(int i = 0; i < DG_NP; i++) {
+      ref_r_ptr[i] = tmp_r_ptr[i] * 0.75;
+      ref_s_ptr[i] = tmp_s_ptr[i] * 0.75;
+    }
+
+    const DG_FP X0 = x_ptr[sten * DG_NP + fmask_node_ind_0]; const DG_FP Y0 = y_ptr[sten * DG_NP + fmask_node_ind_0];
+    const DG_FP X1 = x_ptr[sten * DG_NP + fmask_node_ind_1]; const DG_FP Y1 = y_ptr[sten * DG_NP + fmask_node_ind_1];
+    const DG_FP X2 = x_ptr[sten * DG_NP + fmask_node_ind_2]; const DG_FP Y2 = y_ptr[sten * DG_NP + fmask_node_ind_2];
+
+    const DG_FP nodeX[] = {X0, X1, X2};
+    const DG_FP nodeY[] = {Y0, Y1, Y2};
+
+    #pragma omp parallel for
+    for(int p = 0; p < DG_NP; p++) {
+      // bool converged = false;
+      bool converged = pol_simplified_newton(ref_r_ptr[p], ref_s_ptr[p], &modal_ptr[sten * DG_NP], 1e-8, tetra_r, tetra_s);
+
+      if(!converged && sten == cell_ind) {
+        int counter = 0;
+        while(!converged && counter < 10) {
+          ref_r_ptr[p] = dis(gen);
+          ref_s_ptr[p] = dis(gen);
+          while(!pol_in_tri(ref_r_ptr[p], ref_s_ptr[p], tetra_r, tetra_s)) {
+            ref_r_ptr[p] = dis(gen);
+            ref_s_ptr[p] = dis(gen);
+          }
+          converged = pol_simplified_newton(ref_r_ptr[p], ref_s_ptr[p], &modal_ptr[sten * DG_NP], 1e-8, tetra_r, tetra_s);
+          counter++;
+        }
+      }
+
+      // Check if point has converged
+      // && in_tetra(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], tetra_r, tetra_s, tetra_t)
+      if(converged) {
+        DG_FP x = ref_r_ptr[p];
+        DG_FP y = ref_s_ptr[p];
+        pol_rs2xy(x, y, nodeX, nodeY);
+        const DG_FP tmp_val = DGUtils::val_at_pt_2d(ref_r_ptr[p], ref_s_ptr[p], &modal_ptr[sten * DG_NP], DG_ORDER);
+        #pragma omp critical
+        {
+          Coord coord;
+          coord.x = x - offset_x;
+          coord.y = y - offset_y;
+          Point point;
+          auto res = pointMap.insert(make_pair(coord, point));
+          if(res.second) {
+            // Point was inserted
+            res.first->second.coord = coord;
+            res.first->second.val   = tmp_val;
+            res.first->second.count = 1;
+          } else {
+            // Point already exists
+            res.first->second.val += tmp_val;
+            res.first->second.count++;
+          }
+        }
+      }
+    }
+  }
+
+  const DG_FP X0 = x_ptr[cell_ind * DG_NP + fmask_node_ind_0]; const DG_FP Y0 = y_ptr[cell_ind * DG_NP + fmask_node_ind_0];
+  const DG_FP X1 = x_ptr[cell_ind * DG_NP + fmask_node_ind_1]; const DG_FP Y1 = y_ptr[cell_ind * DG_NP + fmask_node_ind_1];
+  const DG_FP X2 = x_ptr[cell_ind * DG_NP + fmask_node_ind_2]; const DG_FP Y2 = y_ptr[cell_ind * DG_NP + fmask_node_ind_2];
+  const DG_FP nodeX[] = {X0, X1, X2};
+  const DG_FP nodeY[] = {Y0, Y1, Y2};
+
+  for(int p = 0; p < DG_NP; p++) {
+    DG_FP sampleX = dis(gen);
+    DG_FP sampleY = dis(gen);
+    DG_FP surf = DGUtils::val_at_pt_2d(sampleX, sampleY, &modal_ptr[cell_ind * DG_NP], DG_ORDER);
+    pol_rs2xy(sampleX, sampleY, nodeX, nodeY);
+    while(!pol_in_tri(sampleX, sampleY, nodeX, nodeY)) {
+      sampleX = dis(gen);
+      sampleY = dis(gen);
+      surf = DGUtils::val_at_pt_2d(sampleX, sampleY, &modal_ptr[cell_ind * DG_NP], DG_ORDER);
+      pol_rs2xy(sampleX, sampleY, nodeX, nodeY);
+    }
+
+    Coord coord;
+    coord.x = sampleX - offset_x;
+    coord.y = sampleY - offset_y;
+    Point point;
+    auto res = pointMap.insert(make_pair(coord, point));
+    if(res.second) {
+      // Point was inserted
+      res.first->second.coord = coord;
+      res.first->second.val   = surf;
+      res.first->second.count = 1;
+    }
+  }
 
   for(auto const &p : pointMap) {
     x.push_back(p.second.coord.x);
@@ -99,12 +308,12 @@ void num_pts_pos_neg(const vector<DG_FP> &s, int &pos, int &neg) {
 
 PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
                        const DG_FP *x_ptr, const DG_FP *y_ptr,
-                       const DG_FP *s_ptr) {
-  get_offset(cell_ind, x_ptr, y_ptr);
+                       const DG_FP *s_ptr, const DG_FP *modal_ptr) {
+  calc_offset(cell_ind, x_ptr, y_ptr);
 
   vector<DG_FP> x_vec, y_vec, s_vec;
-  stencil_data(stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_vec);
-
+  stencil_data(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, x_vec, y_vec, s_vec);
+/*
   // Make sure equal number of points on each side of the line
   int pts_needed = num_coeff();
   int pts_aim = num_pts();
@@ -139,7 +348,7 @@ PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
 
     num_pts_pos_neg(s_vec, pos_pts, neg_pts);
   }
-
+*/
   if(N == 2) {
     set_2nd_order_coeff(x_vec, y_vec, s_vec);
   } else if(N == 3) {

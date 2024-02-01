@@ -316,7 +316,7 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
         break;
       }
     }
-    if(!contain_interface && sten == cell_ind) continue;
+    if(!contain_interface || sten != cell_ind) continue;
 
     DG_FP ref_r_ptr[DG_NP], ref_s_ptr[DG_NP], ref_t_ptr[DG_NP];
     for(int i = 0; i < DG_NP; i++) {
@@ -335,21 +335,21 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
       // bool converged = false;
       bool converged = pol_simplified_newton(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], 1e-8, tetra_r, tetra_s, tetra_t);
 
-      // if(!converged && sten == cell_ind) {
-      //   int counter = 0;
-      //   while(!converged && counter < 10) {
-      //     ref_r_ptr[p] = dis(gen);
-      //     ref_s_ptr[p] = dis(gen);
-      //     ref_t_ptr[p] = dis(gen);
-      //     while(!in_tetra(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], tetra_r, tetra_s, tetra_t)) {
-      //       ref_r_ptr[p] = dis(gen);
-      //       ref_s_ptr[p] = dis(gen);
-      //       ref_t_ptr[p] = dis(gen);
-      //     }
-      //     converged = pol_simplified_newton(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], 1e-8, tetra_r, tetra_s, tetra_t);
-      //     counter++;
-      //   }
-      // }
+      if(!converged && sten == cell_ind) {
+        int counter = 0;
+        while(!converged && counter < 10) {
+          ref_r_ptr[p] = dis(gen);
+          ref_s_ptr[p] = dis(gen);
+          ref_t_ptr[p] = dis(gen);
+          while(!in_tetra(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], tetra_r, tetra_s, tetra_t)) {
+            ref_r_ptr[p] = dis(gen);
+            ref_s_ptr[p] = dis(gen);
+            ref_t_ptr[p] = dis(gen);
+          }
+          converged = pol_simplified_newton(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], 1e-8, tetra_r, tetra_s, tetra_t);
+          counter++;
+        }
+      }
 
       // Check if point has converged
       // && in_tetra(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], tetra_r, tetra_s, tetra_t)

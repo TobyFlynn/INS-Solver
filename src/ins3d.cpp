@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
   config->getDouble("fluid-constants", "refMu", refMu);
   config->getDouble("fluid-constants", "refSurfTen", refSurfTen);
   r_ynolds = refRho * refVel * refLen / refMu;
-  weber = refRho * refVel * refLen / refSurfTen;
+  weber = refRho * refVel * refVel * refLen / refSurfTen;
 
   int re = -1;
   PetscOptionsGetInt(NULL, NULL, "-re", &re, &found);

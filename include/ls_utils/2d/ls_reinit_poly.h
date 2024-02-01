@@ -15,7 +15,7 @@
 class PolyApprox {
 public:
   PolyApprox(const int cell_ind, std::set<int> stencil, const DG_FP *x_ptr,
-             const DG_FP *y_ptr, const DG_FP *s_ptr);
+             const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr);
   PolyApprox(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y);
 
   DG_FP val_at(const DG_FP x, const DG_FP y);
@@ -25,7 +25,7 @@ public:
   DG_FP get_coeff(int ind);
   void get_offsets(DG_FP &x, DG_FP &y);
 
-  static const int N = 3;
+  static const int N = DG_ORDER;
   static int num_coeff();
   static int num_elem_stencil();
   static std::map<int,std::set<int>> get_stencils(const std::set<int> &central_inds, op_map edge_map);
@@ -33,9 +33,9 @@ private:
   DG_FP offset_x, offset_y;
   std::vector<DG_FP> coeff;
 
-  void get_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_ptr);
-  void stencil_data(const std::set<int> &stencil, const DG_FP *x_ptr, const DG_FP *y_ptr,
-                    const DG_FP *s_ptr, std::vector<DG_FP> &x, std::vector<DG_FP> &y,
+  void calc_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_ptr);
+  void stencil_data(const int cell_ind, const std::set<int> &stencil, const DG_FP *x_ptr, const DG_FP *y_ptr,
+                    const DG_FP *s_ptr, const DG_FP *modal_ptr, std::vector<DG_FP> &x, std::vector<DG_FP> &y,
                     std::vector<DG_FP> &s);
   int num_pts();
 
