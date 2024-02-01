@@ -399,8 +399,6 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
     std::cout << percent_non_converge * 100.0 << "% reinitialisation points did not converge" << std::endl;
 }
 
-#define PRINT_SAMPLE_PTS
-
 #ifdef PRINT_SAMPLE_PTS
 #include <fstream>
 #include <iostream>

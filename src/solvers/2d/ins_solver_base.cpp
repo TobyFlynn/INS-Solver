@@ -81,7 +81,7 @@ void INSSolverBase2D::read_options() {
   std::string save_tmp = "all";
   config->getStr("io", "values_to_save", save_tmp);
   if(save_tmp == "all")
-    save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set,shock_cap_art_vis";
+    save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set,shock_cap_art_vis,curvature";
   std::stringstream tmp_ss(save_tmp);
   std::string val_str;
   while(std::getline(tmp_ss, val_str, ',')) {
