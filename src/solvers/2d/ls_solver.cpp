@@ -336,7 +336,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, const DG_FP node_x,
     }
 
     // Gone outside the element, return
-    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > 10.0 * h * h) {
+    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > 4.0 * h * h) {
       pt_x = pt_x_old;
       pt_y = pt_y_old;
       break;

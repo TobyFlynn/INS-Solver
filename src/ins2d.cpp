@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
   config->getDouble("fluid-constants", "refSurfTen", refSurfTen);
   config->getDouble("fluid-constants", "refGrav", refGrav);
   r_ynolds = refRho * refVel * refLen / refMu;
-  weber = refRho * refVel * refLen / refSurfTen;
+  weber = refRho * refVel * refVel * refLen / refSurfTen;
   froude = refVel / sqrt(refGrav * refLen);
 
   // Temperature stuff

@@ -22,11 +22,17 @@ bool vec_contains(const int val, const vector<int> &vec) {
   return false;
 }
 
-void PolyApprox::get_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_ptr) {
+void PolyApprox::calc_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_ptr) {
   // offset_x = x_ptr[ind * DG_NP];
   // offset_y = y_ptr[ind * DG_NP];
   offset_x = 0.0;
   offset_y = 0.0;
+  // for(int i = 0; i < DG_NP; i++) {
+  //   offset_x += x_ptr[ind * DG_NP + i];
+  //   offset_y += y_ptr[ind * DG_NP + i];
+  // }
+  // offset_x /= (DG_FP)DG_NP;
+  // offset_y /= (DG_FP)DG_NP;
 }
 
 struct Coord {
@@ -82,7 +88,7 @@ void pol_rs2xy(DG_FP &sampleX, DG_FP &sampleY, const DG_FP *nodeX, const DG_FP *
 bool pol_simplified_newton(DG_FP &pt_r, DG_FP &pt_s, const DG_FP *modal,
                            const DG_FP tol, const DG_FP *tetra_r, const DG_FP *tetra_s) {
   bool converged = false;
-  for(int step = 0; step < 20; step++) {
+  for(int step = 0; step < 50; step++) {
     DG_FP surf = DGUtils::val_at_pt_2d(pt_r, pt_s, modal, DG_ORDER);
     DG_FP dsdr, dsds;
     DGUtils::grad_at_pt_2d(pt_r, pt_s, modal, DG_ORDER, dsdr, dsds);
@@ -303,7 +309,7 @@ void num_pts_pos_neg(const vector<DG_FP> &s, int &pos, int &neg) {
 PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
                        const DG_FP *x_ptr, const DG_FP *y_ptr,
                        const DG_FP *s_ptr, const DG_FP *modal_ptr) {
-  get_offset(cell_ind, x_ptr, y_ptr);
+  calc_offset(cell_ind, x_ptr, y_ptr);
 
   vector<DG_FP> x_vec, y_vec, s_vec;
   stencil_data(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, x_vec, y_vec, s_vec);
