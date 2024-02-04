@@ -52,8 +52,8 @@ private:
   // bool reinitNeeded();
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
-  int reinit_count;
   bool resuming;
+  int reinit_counter, reinit_frequency;
 
   LevelSetAdvectionSolver3D *advectionSolver;
   KDTree3D *kdtree;

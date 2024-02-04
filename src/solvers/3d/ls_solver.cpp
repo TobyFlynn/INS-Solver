@@ -15,9 +15,11 @@
 #include <fstream>
 
 #include "timing.h"
+#include "config.h"
 
 extern Timing *timer;
 extern DGDatPool *dg_dat_pool;
+extern Config *config;
 
 /**************************************************************************
  * LS Advection Solver class that extends the base Advection Solver class *
@@ -77,7 +79,6 @@ LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m) {
   s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_solver_s");
 
   h = 0;
-  reinit_count = 0;
 }
 
 LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m, const std::string &filename) {
@@ -88,7 +89,6 @@ LevelSetSolver3D::LevelSetSolver3D(DGMesh3D *m, const std::string &filename) {
   s = op_decl_dat_hdf5(mesh->cells, DG_NP, DG_FP_STR, filename.c_str(), "ls_solver_s");
 
   h = 0;
-  reinit_count = 0;
 }
 
 LevelSetSolver3D::~LevelSetSolver3D() {
@@ -125,6 +125,10 @@ void LevelSetSolver3D::init() {
   reinit_width = ls_cap;
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
+
+  reinit_counter = 0;
+  reinit_frequency = 24;
+  config->getInt("solver-options", "ls_reinit_freq", reinit_frequency);
 
   op_printf("LS h: %g\nLS alpha: %g\n", h, alpha);
 
@@ -198,13 +202,13 @@ void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const DG_FP dt, const 
   for(int i = 0; i < num_steps; i++)
     advectionSolver->step(s, u, v, w);
 
-  if(reinit_count > 24) {
+  reinit_counter++;
+  if(reinit_counter > reinit_frequency) {
     reinitLS();
-    reinit_count = 0;
+    reinit_counter = 0;
     op_par_loop(ls_post_reinit, "ls_post_reinit", mesh->cells,
                 op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
   }
-  reinit_count++;
   timer->endTimer("LevelSetSolver3D - step");
 }
 

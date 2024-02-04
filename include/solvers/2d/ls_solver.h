@@ -57,6 +57,7 @@ private:
   DG_FP h, epsilon, reinit_dt, reinit_width;
   int numSteps;
   bool resuming;
+  int reinit_counter, reinit_frequency;
 
   LevelSetAdvectionSolver2D *advecSolver;
   KDTree *kdtree;

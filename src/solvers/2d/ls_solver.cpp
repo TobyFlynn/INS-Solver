@@ -9,6 +9,7 @@
 #include "dg_constants/dg_constants.h"
 #include "dg_dat_pool.h"
 #include "timing.h"
+#include "config.h"
 #include "op2_utils.h"
 #ifdef INS_MPI
 #include "ls_utils/2d/kd_tree_mpi.h"
@@ -17,8 +18,7 @@
 extern DGConstants *constants;
 extern DGDatPool *dg_dat_pool;
 extern Timing *timer;
-
-int counter;
+extern Config *config;
 
 /**************************************************************************
  * LS Advection Solver class that extends the base Advection Solver class *
@@ -122,6 +122,10 @@ void LevelSetSolver2D::init() {
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
   // numSteps = ceil((2.0 * alpha / reinit_dt) * 1.1);
 
+  reinit_counter = 0;
+  reinit_frequency = 14;
+  config->getInt("solver-options", "ls_reinit_freq", reinit_frequency);
+
   op_printf("Alpha: %g\t\tReinit Width: %g\n", alpha, reinit_width);
 
   #ifdef INS_MPI
@@ -148,12 +152,12 @@ void LevelSetSolver2D::step(const DG_FP dt, const int num_steps) {
   for(int i = 0; i < num_steps; i++)
     advecSolver->step(s, u, v);
 
-  counter++;
-  if(counter > 14) {
+  reinit_counter++;
+  if(reinit_counter > reinit_frequency) {
     timer->startTimer("LevelSetSolver2D - reinitLS");
     reinitLS();
     timer->endTimer("LevelSetSolver2D - reinitLS");
-    counter = 0;
+    reinit_counter = 0;
   }
   timer->endTimer("LevelSetSolver2D - step");
 }
