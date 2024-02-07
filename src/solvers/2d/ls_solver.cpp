@@ -275,7 +275,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, const DG_FP node_x,
   DG_FP init_x = closest_pt_x;
   DG_FP init_y = closest_pt_y;
 
-  for(int step = 0; step < 100; step++) {
+  for(int step = 0; step < 50; step++) {
     DG_FP pt_x_old = pt_x;
     DG_FP pt_y_old = pt_y;
     // Evaluate surface and gradient at current guess
@@ -340,14 +340,14 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, const DG_FP node_x,
     }
 
     // Gone outside the element, return
-    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > 4.0 * h * h) {
+    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > 2.0 * 2.0 * h * h) {
       pt_x = pt_x_old;
       pt_y = pt_y_old;
       break;
     }
 
     // Converged, no more steps required
-    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) < 1e-16) {
+    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) < 1e-18) {
       converged = true;
       break;
     }
@@ -372,21 +372,27 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
     DG_FP dist2 = (closest_x[start_ind] - x[start_ind]) * (closest_x[start_ind] - x[start_ind])
                 + (closest_y[start_ind] - y[start_ind]) * (closest_y[start_ind] - y[start_ind]);
     if(dist2 < (reinit_width + 2.0 * h) * (reinit_width + 2.0 * h)) {
-      DG_FP _closest_x = closest_x[i];
-      DG_FP _closest_y = closest_y[i];
-      bool tmp = newton_kernel(_closest_x, _closest_y, x[i], y[i], polys[poly_ind[i]], h);
-      if(tmp) {
+      DG_FP poly_offset_x, poly_offset_y;
+      polys[poly_ind[i]].get_offsets(poly_offset_x, poly_offset_y);
+      DG_FP _closest_x = closest_x[i] - poly_offset_x;
+      DG_FP _closest_y = closest_y[i] - poly_offset_y;
+      DG_FP _node_x = x[i] - poly_offset_x;
+      DG_FP _node_y = y[i] - poly_offset_y;
+      bool converged = newton_kernel(_closest_x, _closest_y, _node_x, _node_y, polys[poly_ind[i]], h);
+      if(converged) {
+        // DG_FP dsdx, dsdy;
+        // polys[poly_ind[i]].grad_at(_closest_x, _closest_y, dsdx, dsdy);
+        // DG_FP dot = (_node_x - _closest_x) * dsdx + (_node_y - _closest_y) * dsdy;
+        // bool negative = dot < 0.0;
         bool negative = s[i] < 0.0;
-        s[i] = (_closest_x - x[i]) * (_closest_x - x[i]) + (_closest_y - y[i]) * (_closest_y - y[i]);
+        s[i] = (_closest_x - _node_x) * (_closest_x - _node_x) + (_closest_y - _node_y) * (_closest_y - _node_y);
         s[i] = sqrt(s[i]);
         if(negative) s[i] *= -1.0;
       } else {
-        bool negative = s[i] < 0.0;
-        s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
-        s[i] = sqrt(s[i]);
-        if(negative) s[i] *= -1.0;
-      }
-      if(!tmp) {
+        // bool negative = s[i] < 0.0;
+        // s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
+        // s[i] = sqrt(s[i]);
+        // if(negative) s[i] *= -1.0;
         #pragma omp atomic
         numNonConv++;
       }
