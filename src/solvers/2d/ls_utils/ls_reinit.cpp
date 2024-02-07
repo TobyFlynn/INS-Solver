@@ -76,14 +76,14 @@ void set_initial_sample_pts(const DG_FP *surface, const DG_FP *nodeX, const DG_F
   }
 
   DG_FP dist = sqrt((end1x - end0x) * (end1x - end0x) + (end1y - end0y) * (end1y - end0y));
-  DG_FP dist_per_sample = dist / (LS_SAMPLE_NP + 1.0);
+  DG_FP dist_per_sample = dist / (LS_SAMPLE_NP - 1.0);
 
   DG_FP incrementx = ((end1x - end0x) / dist) * dist_per_sample;
   DG_FP incrementy = ((end1y - end0y) / dist) * dist_per_sample;
 
   for(int i = 0; i < LS_SAMPLE_NP; i++) {
-    sampleX[i] = end0x + incrementx * (i + 1);
-    sampleY[i] = end0y + incrementy * (i + 1);
+    sampleX[i] = end0x + incrementx * i;
+    sampleY[i] = end0y + incrementy * i;
   }
 }
 
@@ -112,7 +112,7 @@ bool simplified_newton(DG_FP &pt_x, DG_FP &pt_y, PolyApprox &pol, const DG_FP to
     pol.grad_at(pt_x, pt_y, dsdx, dsdy);
 
     DG_FP sqrnorm = dsdx * dsdx + dsdy * dsdy;
-    if(sqrnorm > 0.0) {
+    if(sqrnorm > 1e-14) {
       dsdx *= surf / sqrnorm;
       dsdy *= surf / sqrnorm;
     }
@@ -136,8 +136,8 @@ void LevelSetSolver2D::sampleInterface(op_dat sampleX, op_dat sampleY, std::vect
   std::mt19937 gen(rd());
   std::uniform_real_distribution<> dis(-1.0, 1.0);
 
-  // const DG_FP tol = fmax(1e-18, 1e-4 * h * h);
-  const DG_FP tol = 1e-16;
+  const DG_FP tol = fmax(1e-18, 1e-4 * h * h);
+  // const DG_FP tol = 1e-16;
 
   const DG_FP *s_ptr = getOP2PtrHost(s, OP_READ);
   const DG_FP *nodeX_ptr = getOP2PtrHost(mesh->nodeX, OP_READ);
@@ -175,37 +175,61 @@ void LevelSetSolver2D::sampleInterface(op_dat sampleX, op_dat sampleY, std::vect
     // Simplified Newton method
     int poly_ind = cell2polyMap.at(cell_ind);
     PolyApprox pol = polys[poly_ind];
-    for(int i = 0; i < DG_NP; i++) {
+    DG_FP off_x, off_y;
+    pol.get_offsets(off_x, off_y);
+
+    for(int i = 0; i < LS_SAMPLE_NP; i++) {
+      sampleX[i] -= off_x;
+      sampleY[i] -= off_y;
+    }
+
+    const DG_FP _nodeX[] = {nodeX[0] - off_x, nodeX[1] - off_x, nodeX[2] - off_x};
+    const DG_FP _nodeY[] = {nodeY[0] - off_y, nodeY[1] - off_y, nodeY[2] - off_y};
+
+    for(int i = 0; i < LS_SAMPLE_NP; i++) {
       bool converged = false;
+      DG_FP start_x = sampleX[i];
+      DG_FP start_y = sampleY[i];
       if(!isnan(sampleX[i]))
         converged = simplified_newton(sampleX[i], sampleY[i], pol, tol);
+      DG_FP dist_travelled = (start_x - sampleX[i]) * (start_x - sampleX[i]) + (start_y - sampleY[i]) * (start_y - sampleY[i]);
 
-      if(!converged || !in_tri(sampleX[i], sampleY[i], nodeX, nodeY)) {
+      // || !in_tri(sampleX[i], sampleY[i], _nodeX, _nodeY)
+      // || dist_travelled > 1.5 * 1.5 * h * h
+      if(!converged) {
         // Try randomly placing start and rerunning 10 times
         bool rerun_converged = false;
-        bool rerun_in_tri = false;
+        bool rerun_in_bounds = false;
         int rerun_counter = 0;
-        while((!rerun_converged || !rerun_in_tri) && rerun_counter < 10) {
+        while((!rerun_converged || !rerun_in_bounds) && rerun_counter < 10) {
           // Random start point
           sampleX[i] = dis(gen);
           sampleY[i] = dis(gen);
-          rs2xy(sampleX[i], sampleY[i], nodeX, nodeY);
-          while(!in_tri(sampleX[i], sampleY[i], nodeX, nodeY)) {
+          rs2xy(sampleX[i], sampleY[i], _nodeX, _nodeY);
+          while(!in_tri(sampleX[i], sampleY[i], _nodeX, _nodeY)) {
             sampleX[i] = dis(gen);
             sampleY[i] = dis(gen);
-            rs2xy(sampleX[i], sampleY[i], nodeX, nodeY);
+            rs2xy(sampleX[i], sampleY[i], _nodeX, _nodeY);
           }
           // Rerun
+          DG_FP start_x = sampleX[i];
+          DG_FP start_y = sampleY[i];
           rerun_converged = simplified_newton(sampleX[i], sampleY[i], pol, tol);
-          rerun_in_tri = in_tri(sampleX[i], sampleY[i], nodeX, nodeY);
+          DG_FP dist_travelled = (start_x - sampleX[i]) * (start_x - sampleX[i]) + (start_y - sampleY[i]) * (start_y - sampleY[i]);
+          rerun_in_bounds = dist_travelled > 1.5 * 1.5 * h * h;
           rerun_counter++;
         }
 
-        if(!rerun_converged || !rerun_in_tri) {
+        if(!rerun_converged || !rerun_in_bounds) {
           sampleX[i] = NAN;
           sampleY[i] = NAN;
         }
       }
+    }
+
+    for(int i = 0; i < LS_SAMPLE_NP; i++) {
+      sampleX[i] += off_x;
+      sampleY[i] += off_y;
     }
   }
 
