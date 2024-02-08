@@ -18,11 +18,11 @@
 
 class INSSolver2D : public INSSolverBase2D {
 public:
-  INSSolver2D(DGMesh2D *m);
-  INSSolver2D(DGMesh2D *m, const std::string &filename, const int iter);
-  ~INSSolver2D();
+  INSSolver2D(DGMesh2D *m, const DG_FP re);
+  INSSolver2D(DGMesh2D *m, const DG_FP re, const std::string &filename, const int iter);
+  ~INSSolver2D() override;
 
-  void init(const DG_FP re, const DG_FP refVel) override;
+  void init() override;
   void step() override;
 
 private:

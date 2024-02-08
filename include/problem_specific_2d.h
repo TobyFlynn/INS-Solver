@@ -1,7 +1,7 @@
 #ifndef __INS_PROBLEM_SPECIFIC_2D_H
 #define __INS_PROBLEM_SPECIFIC_2D_H
 
-#define EXAMPLE_2D_OSCILLATING_DROPLET
+#define EXAMPLE_2D_LS_TEST
 
 #if defined(EXAMPLE_2D_CYLINDER)
 #include "examples/2d_cylinder.h"
@@ -156,6 +156,12 @@ DEVICE_PREFIX void ps2d_custom_bc_get_temperature_grad(const int bc_type, const 
                                         DG_FP &tPx, DG_FP &tPy) {
   tPx = tMx;
   tPy = tMy;
+}
+
+// Set the velocity for the level-set-only solver based on current time and coordinates
+DEVICE_PREFIX void ps2d_set_ls_vel(const DG_FP time, const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v) {
+  u = 0.0;
+  v = 0.0;
 }
 
 #endif

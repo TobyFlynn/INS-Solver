@@ -81,7 +81,7 @@ void TemperatureAdvecDiffSolver2D::bc_kernel_diff_1(op_dat val, op_dat val_x, op
 /************************
  * Main INS Temperature Solver class *
  ************************/
-INSTemperatureSolver2D::INSTemperatureSolver2D(DGMesh2D *m) : INSSolverBase2D(m) {
+INSTemperatureSolver2D::INSTemperatureSolver2D(DGMesh2D *m, const DG_FP re) : INSSolverBase2D(m) {
   resuming = false;
 
   setup_common();
@@ -91,9 +91,11 @@ INSTemperatureSolver2D::INSTemperatureSolver2D(DGMesh2D *m) : INSSolverBase2D(m)
   b0 = 1.0;
   b1 = 0.0;
   g0 = 1.0;
+
+  reynolds = re;
 }
 
-INSTemperatureSolver2D::INSTemperatureSolver2D(DGMesh2D *m, const std::string &filename, const int iter) : INSSolverBase2D(m, filename) {
+INSTemperatureSolver2D::INSTemperatureSolver2D(DGMesh2D *m, const DG_FP re, const std::string &filename, const int iter) : INSSolverBase2D(m, filename) {
   resuming = true;
 
   setup_common();
@@ -111,6 +113,8 @@ INSTemperatureSolver2D::INSTemperatureSolver2D(DGMesh2D *m, const std::string &f
     b1 = 0.0;
     g0 = 1.0;
   }
+
+  reynolds = re;
 }
 
 void INSTemperatureSolver2D::setup_common() {
@@ -162,11 +166,9 @@ INSTemperatureSolver2D::~INSTemperatureSolver2D() {
   delete advecDiffSolver;
 }
 
-void INSTemperatureSolver2D::init(const DG_FP re, const DG_FP refVel) {
+void INSTemperatureSolver2D::init() {
   timer->startTimer("INSTemperatureSolver2D - Init");
-  INSSolverBase2D::init(re, refVel);
-
-  reynolds = re;
+  INSSolverBase2D::init();
 
   // Set initial conditions
   if(!resuming) {

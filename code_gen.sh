@@ -43,6 +43,7 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/ins_solver.cpp \
         solvers/2d/ins_temperature_solver.cpp \
         solvers/2d/mp_ins_solver.cpp \
+        solvers/2d/ls_driver.cpp \
         measurements/2d/lift_drag_cylinder.cpp \
         measurements/2d/l2_error_vortex.cpp \
         measurements/2d/min_max_interface.cpp \
@@ -78,6 +79,7 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/ins_solver.cpp \
         solvers/3d/ls_solver.cpp \
         solvers/3d/mp_ins_solver.cpp \
+        solvers/3d/ls_driver.cpp \
         measurements/3d/enstropy.cpp \
         kernels/
 

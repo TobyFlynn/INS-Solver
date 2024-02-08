@@ -23,7 +23,7 @@ extern DGConstants *constants;
 extern Config *config;
 extern DGDatPool *dg_dat_pool;
 
-MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) : INSSolverBase3D(m) {
+MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const DG_FP re) : INSSolverBase3D(m) {
   resuming = false;
 
   a0 = 1.0;
@@ -34,12 +34,14 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m) : INSSolverBase3D(m) {
 
   dt = 0.0;
 
+  reynolds = re;
+
   lsSolver = new LevelSetSolver3D(mesh);
 
   setup_common();
 }
 
-MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int iter) : INSSolverBase3D(m, filename) {
+MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const DG_FP re, const std::string &filename, const int iter) : INSSolverBase3D(m, filename) {
   resuming = true;
 
   if(iter > 0) {
@@ -55,6 +57,8 @@ MPINSSolver3D::MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int
     b1 = 0.0;
     g0 = 1.0;
   }
+
+  reynolds = re;
 
   lsSolver = new LevelSetSolver3D(mesh, filename);
 
@@ -133,12 +137,9 @@ MPINSSolver3D::~MPINSSolver3D() {
   delete lsSolver;
 }
 
-void MPINSSolver3D::init(const DG_FP re, const DG_FP refVel) {
+void MPINSSolver3D::init() {
   timer->startTimer("MPINSSolver3D - Init");
-
-  INSSolverBase3D::init(re, refVel);
-
-  reynolds = re;
+  INSSolverBase3D::init();
 
   lsSolver->init();
 

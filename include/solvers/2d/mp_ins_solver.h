@@ -19,12 +19,12 @@
 
 class MPINSSolver2D : public INSSolverBase2D {
 public:
-  MPINSSolver2D(DGMesh2D *m);
-  MPINSSolver2D(DGMesh2D *m, const std::string &filename, const int iter);
-  ~MPINSSolver2D();
+  MPINSSolver2D(DGMesh2D *m, const DG_FP re);
+  MPINSSolver2D(DGMesh2D *m, const DG_FP re, const std::string &filename, const int iter);
+  ~MPINSSolver2D() override;
 
   void step() override;
-  void init(const DG_FP re, const DG_FP refVel) override;
+  void init() override;
 
   void dump_visualisation_data(const std::string &filename) override;
   void dump_checkpoint_data(const std::string &filename) override;

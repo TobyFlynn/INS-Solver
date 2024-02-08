@@ -116,4 +116,12 @@ DEVICE_PREFIX void ps2d_custom_bc_get_temperature_grad(const int bc_type, const 
   tPy = tMy;
 }
 
+// Set the velocity for the level-set-only solver based on current time and coordinates
+DEVICE_PREFIX void ps2d_set_ls_vel(const DG_FP time, const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v) {
+  const DG_FP PI = 3.141592653589793238463;
+  const DG_FP time_component = cos(PI * time / 8.0);
+  u = sin(PI * x) * sin(PI * x) * sin(2.0 * PI * y) * time_component;
+  v = -sin(PI * y) * sin(PI * y) * sin(2.0 * PI * x) * time_component;
+}
+
 #endif

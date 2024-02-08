@@ -17,11 +17,11 @@
 
 class INSSolver3D : public INSSolverBase3D {
 public:
-  INSSolver3D(DGMesh3D *m);
-  INSSolver3D(DGMesh3D *m, const std::string &filename, const int iter);
-  ~INSSolver3D();
+  INSSolver3D(DGMesh3D *m, const DG_FP re);
+  INSSolver3D(DGMesh3D *m, const DG_FP re, const std::string &filename, const int iter);
+  ~INSSolver3D() override;
 
-  void init(const DG_FP re, const DG_FP refVel) override;
+  void init() override;
   void step() override;
 
 private:

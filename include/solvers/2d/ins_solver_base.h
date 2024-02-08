@@ -1,8 +1,9 @@
 #ifndef __INS_2D_INS_SOLVER_BASE_H
 #define __INS_2D_INS_SOLVER_BASE_H
 
-#include "dg_compiler_defs.h"
+#include "simulation_driver.h"
 
+#include "dg_compiler_defs.h"
 #include "dg_mesh/dg_mesh_2d.h"
 #include "dg_dat_pool.h"
 #include "dg_linear_solvers/linear_solver.h"
@@ -12,20 +13,20 @@
 #include <string>
 #include <set>
 
-class INSSolverBase2D {
+class INSSolverBase2D : public SimulationDriver {
 public:
   INSSolverBase2D(DGMesh2D *m);
   INSSolverBase2D(DGMesh2D *m, const std::string &filename);
-  virtual ~INSSolverBase2D();
+  virtual ~INSSolverBase2D() override;
 
-  virtual void init(const DG_FP re, const DG_FP refVel);
+  virtual void init() override;
   virtual void step() = 0;
   DG_FP get_time();
   DG_FP get_dt();
 
   // IO
-  virtual void dump_visualisation_data(const std::string &filename);
-  virtual void dump_checkpoint_data(const std::string &filename);
+  virtual void dump_visualisation_data(const std::string &filename) override;
+  virtual void dump_checkpoint_data(const std::string &filename) override;
 
   // Getters (used for measurements)
   DGMesh2D* get_mesh();

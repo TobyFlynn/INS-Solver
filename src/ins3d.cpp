@@ -19,6 +19,7 @@
 #include "solvers/3d/advection_solver.h"
 #include "solvers/3d/ins_solver.h"
 #include "solvers/3d/mp_ins_solver.h"
+#include "drivers/3d/ls_driver.h"
 #include "measurements/3d/enstropy.h"
 
 Timing *timer;
@@ -29,6 +30,30 @@ using namespace std;
 
 // Global constants
 DG_FP r_ynolds, weber, mu0, mu1, rho0, rho1;
+
+void add_measurements(INSSolverBase3D *ins3d, vector<Measurement3D*> &measurements, DG_FP refMu, DG_FP refRho, DG_FP refVel) {
+  // Get list of measurements to take
+  // Options are: enstropy
+  string mes_tmp = "none";
+  config->getStr("io", "measurements", mes_tmp);
+  if(mes_tmp != "none") {
+    set<string> measurements_to_take;
+    stringstream tmp_ss(mes_tmp);
+    string val_str;
+    while(getline(tmp_ss, val_str, ',')) {
+      measurements_to_take.insert(val_str);
+    }
+
+    for(auto &measurement : measurements_to_take) {
+      if(measurement == "enstropy") {
+        Enstropy3D *enstropy = new Enstropy3D(ins3d, refMu, refRho, refVel, 248.0502134423985614038105205);
+        measurements.push_back(enstropy);
+      } else {
+        dg_abort("Unrecognised measurement: " + measurement);
+      }
+    }
+  }
+}
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 1);
@@ -128,17 +153,26 @@ int main(int argc, char **argv) {
 
   std::string type_of_solver = "single-phase";
   config->getStr("simulation-constants", "type_of_solver", type_of_solver);
-  INSSolverBase3D *ins3d;
+  vector<Measurement3D*> measurements;
+  SimulationDriver *driver;
   if(type_of_solver == "single-phase") {
+    INSSolverBase3D *ins3d;
     if(resuming)
-      ins3d = new INSSolver3D(mesh, checkpointFile, resumeIter);
+      ins3d = new INSSolver3D(mesh, r_ynolds, checkpointFile, resumeIter);
     else
-      ins3d = new INSSolver3D(mesh);
+      ins3d = new INSSolver3D(mesh, r_ynolds);
+    add_measurements(ins3d, measurements, refMu, refRho, refVel);
+    driver = ins3d;
   } else if(type_of_solver == "multi-phase") {
+    INSSolverBase3D *ins3d;
     if(resuming)
-      ins3d = new MPINSSolver3D(mesh, checkpointFile, resumeIter);
+      ins3d = new MPINSSolver3D(mesh, r_ynolds, checkpointFile, resumeIter);
     else
-      ins3d = new MPINSSolver3D(mesh);
+      ins3d = new MPINSSolver3D(mesh, r_ynolds);
+    add_measurements(ins3d, measurements, refMu, refRho, refVel);
+    driver = ins3d;
+  } else if(type_of_solver == "level-set-only") {
+    driver = new LSDriver3D(mesh);
   } else {
     dg_abort("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\'");
   }
@@ -165,53 +199,29 @@ int main(int argc, char **argv) {
   timer->endTimer("OP2 Partitioning");
 
   mesh->init();
-  ins3d->init(r_ynolds, refVel);
-
-  // Set up measurements
-  vector<Measurement3D*> measurements;
-  // Get list of measurements to take
-  // Options are: enstropy
-  string mes_tmp = "none";
-  config->getStr("io", "measurements", mes_tmp);
-  if(mes_tmp != "none") {
-    set<string> measurements_to_take;
-    stringstream tmp_ss(mes_tmp);
-    string val_str;
-    while(getline(tmp_ss, val_str, ',')) {
-      measurements_to_take.insert(val_str);
-    }
-
-    for(auto &measurement : measurements_to_take) {
-      if(measurement == "enstropy") {
-        Enstropy3D *enstropy = new Enstropy3D(ins3d, refMu, refRho, refVel, 248.0502134423985614038105205);
-        measurements.push_back(enstropy);
-      } else {
-        dg_abort("Unrecognised measurement: " + measurement);
-      }
-    }
-  }
+  driver->init();
 
   int save_ic = 1;
   config->getInt("io", "save_ic", save_ic);
   if(save_ic) {
     string out_file_ic = outputDir + "ic.h5";
-    ins3d->dump_visualisation_data(out_file_ic);
+    driver->dump_visualisation_data(out_file_ic);
   }
 
   timer->startTimer("Main loop");
   int i = 0;
   if(resuming) i = resumeIter;
   for(; i < iter; i++) {
-    ins3d->step();
+    driver->step();
 
     if(save > 0 && (i + 1) % save == 0) {
       string out_file_tmp = outputDir + "iter-" + to_string(i + 1) + ".h5";
-      ins3d->dump_visualisation_data(out_file_tmp);
+      driver->dump_visualisation_data(out_file_tmp);
     }
 
     if(checkpoint > 0 && (i + 1) % checkpoint == 0) {
       string out_file_tmp = outputDir + "checkpoint-" + to_string(i + 1) + ".h5";
-      ins3d->dump_checkpoint_data(out_file_tmp);
+      driver->dump_checkpoint_data(out_file_tmp);
       int tmp_iter = i + 1;
       op_write_const_hdf5("iter", 1, "int", (char *)&tmp_iter, out_file_tmp.c_str());
     }
@@ -226,14 +236,15 @@ int main(int argc, char **argv) {
   config->getInt("io", "save_end", save_end);
   if(save_end) {
     string out_file_end = outputDir + "end.h5";
-    ins3d->dump_visualisation_data(out_file_end);
+    driver->dump_visualisation_data(out_file_end);
   }
 
   for(auto &measurement : measurements) {
     measurement->output(outputDir);
   }
 
-  timer->exportTimings(outputDir + "timings", iter, ins3d->get_time());
+  // timer->exportTimings(outputDir + "timings", iter, ins3d->get_time());
+  timer->exportTimings(outputDir + "timings", iter, 0.0);
 
   for(auto &measurement : measurements) {
     delete measurement;
@@ -242,19 +253,19 @@ int main(int argc, char **argv) {
   dg_dat_pool->report();
 
   // Print closing summary
-  op_printf("\n\n Summary of simulation:\n");
-  op_printf("%d iterations\n", iter);
-  op_printf("%g time (non-dimensionalised)\n", ins3d->get_time());
-  op_printf("%g time (s)\n", ins3d->get_time() * refLen / refVel);
-  op_printf("Reference density: %g kg m^-3\n", refRho);
-  op_printf("Reference velocity: %g m s^-1\n", refVel);
-  op_printf("Reference length: %g m\n", refLen);
-  op_printf("Reference viscosity: %g m^2 s^-1\n", refMu);
-  op_printf("Density ratio of %g : %g\n", rho0, rho1);
-  op_printf("Viscosity ratio of %g : %g\n", mu0, mu1);
-  op_printf("Re: %g\n", r_ynolds);
+  // op_printf("\n\n Summary of simulation:\n");
+  // op_printf("%d iterations\n", iter);
+  // op_printf("%g time (non-dimensionalised)\n", ins3d->get_time());
+  // op_printf("%g time (s)\n", ins3d->get_time() * refLen / refVel);
+  // op_printf("Reference density: %g kg m^-3\n", refRho);
+  // op_printf("Reference velocity: %g m s^-1\n", refVel);
+  // op_printf("Reference length: %g m\n", refLen);
+  // op_printf("Reference viscosity: %g m^2 s^-1\n", refMu);
+  // op_printf("Density ratio of %g : %g\n", rho0, rho1);
+  // op_printf("Viscosity ratio of %g : %g\n", mu0, mu1);
+  // op_printf("Re: %g\n", r_ynolds);
 
-  delete ins3d;
+  delete driver;
 
   ierr = PetscFinalize();
 

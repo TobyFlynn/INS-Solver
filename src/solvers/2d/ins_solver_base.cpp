@@ -193,7 +193,7 @@ INSSolverBase2D::~INSSolverBase2D() {
     delete diffSolver;
 }
 
-void INSSolverBase2D::init(const DG_FP re, const DG_FP refVel) {
+void INSSolverBase2D::init() {
   h = 0.0;
   op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),

@@ -32,11 +32,11 @@ protected:
 
 class INSTemperatureSolver2D : public INSSolverBase2D {
 public:
-  INSTemperatureSolver2D(DGMesh2D *m);
-  INSTemperatureSolver2D(DGMesh2D *m, const std::string &filename, const int iter);
-  ~INSTemperatureSolver2D();
+  INSTemperatureSolver2D(DGMesh2D *m, const DG_FP re);
+  INSTemperatureSolver2D(DGMesh2D *m, const DG_FP re, const std::string &filename, const int iter);
+  ~INSTemperatureSolver2D() override;
 
-  void init(const DG_FP re, const DG_FP refVel) override;
+  void init() override;
   void step() override;
 
   void dump_visualisation_data(const std::string &filename) override;

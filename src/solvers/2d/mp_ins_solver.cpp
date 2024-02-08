@@ -26,7 +26,7 @@ extern DGDatPool *dg_dat_pool;
 
 using namespace std;
 
-MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) : INSSolverBase2D(m) {
+MPINSSolver2D::MPINSSolver2D(DGMesh2D *m, const DG_FP re) : INSSolverBase2D(m) {
   resuming = false;
 
   setup_common();
@@ -38,9 +38,11 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m) : INSSolverBase2D(m) {
   b0 = 1.0;
   b1 = 0.0;
   g0 = 1.0;
+
+  reynolds = re;
 }
 
-MPINSSolver2D::MPINSSolver2D(DGMesh2D *m, const std::string &filename, const int iter) : INSSolverBase2D(m, filename) {
+MPINSSolver2D::MPINSSolver2D(DGMesh2D *m, const DG_FP re, const std::string &filename, const int iter) : INSSolverBase2D(m, filename) {
   resuming = true;
 
   setup_common();
@@ -60,6 +62,8 @@ MPINSSolver2D::MPINSSolver2D(DGMesh2D *m, const std::string &filename, const int
     b1 = 0.0;
     g0 = 1.0;
   }
+
+  reynolds = re;
 }
 
 void MPINSSolver2D::setup_common() {
@@ -135,11 +139,9 @@ MPINSSolver2D::~MPINSSolver2D() {
   delete viscositySolver;
 }
 
-void MPINSSolver2D::init(const DG_FP re, const DG_FP refVel) {
+void MPINSSolver2D::init() {
   timer->startTimer("MPINSSolver2D - Init");
-  INSSolverBase2D::init(re, refVel);
-
-  reynolds = re;
+  INSSolverBase2D::init();
 
   // Set initial conditions
   if(!resuming) {

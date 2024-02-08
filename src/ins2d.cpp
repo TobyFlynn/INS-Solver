@@ -18,6 +18,7 @@
 #include "solvers/2d/ins_solver.h"
 #include "solvers/2d/ins_temperature_solver.h"
 #include "solvers/2d/mp_ins_solver.h"
+#include "drivers/2d/ls_driver.h"
 #include "measurements/2d/lift_drag_cylinder.h"
 #include "measurements/2d/l2_error_vortex.h"
 #include "measurements/2d/min_max_interface.h"
@@ -30,6 +31,40 @@ using namespace std;
 
 // Global constants
 DG_FP r_ynolds, mu0, mu1, rho0, rho1, gamma_e, weber, froude, coeff_thermal_expan, peclet;
+
+// Set up measurements
+void add_measurements(INSSolverBase2D *ins2d, vector<Measurement2D*> &measurements, const DG_FP refMu) {
+  // Get list of measurements to take
+  // Options are: lift_drag, l2_vortex, min_max_interface
+  string mes_tmp = "none";
+  config->getStr("io", "measurements", mes_tmp);
+  if(mes_tmp != "none") {
+    set<string> measurements_to_take;
+    stringstream tmp_ss(mes_tmp);
+    string val_str;
+    while(getline(tmp_ss, val_str, ',')) {
+      measurements_to_take.insert(val_str);
+    }
+
+    for(auto &measurement : measurements_to_take) {
+      if(measurement == "lift_drag") {
+        LiftDragCylinder2D *lift_drag = new LiftDragCylinder2D(ins2d, refMu, 0.3, 0.3, 0.7, 0.7);
+        measurements.push_back(lift_drag);
+      } else if(measurement == "l2_vortex") {
+        L2ErrorVortex2D *l2_error = new L2ErrorVortex2D(ins2d);
+        measurements.push_back(l2_error);
+      } else if(measurement == "min_max_interface") {
+        MinMaxInterface2D *min_max = new MinMaxInterface2D(ins2d);
+        measurements.push_back(min_max);
+      } else if(measurement == "min_max_pressure") {
+        MinMaxPressure2D *min_max_pr = new MinMaxPressure2D(ins2d, 1);
+        measurements.push_back(min_max_pr);
+      } else {
+        dg_abort("Unrecognised measurement: " + measurement);
+      }
+    }
+  }
+}
 
 int main(int argc, char **argv) {
   op_init(argc, argv, 1);
@@ -146,22 +181,37 @@ int main(int argc, char **argv) {
 
   std::string type_of_solver = "single-phase";
   config->getStr("simulation-constants", "type_of_solver", type_of_solver);
-  INSSolverBase2D *ins2d;
+  SimulationDriver* driver;
+  vector<Measurement2D*> measurements;
   if(type_of_solver == "single-phase") {
+    INSSolverBase2D *ins2d;
     if(resuming)
-      ins2d = new INSSolver2D(mesh, checkpointFile, resumeIter);
+      ins2d = new INSSolver2D(mesh, r_ynolds, checkpointFile, resumeIter);
     else
-      ins2d = new INSSolver2D(mesh);
+      ins2d = new INSSolver2D(mesh, r_ynolds);
+    add_measurements(ins2d, measurements, refMu);
+    driver = ins2d;
   } else if(type_of_solver == "multi-phase") {
+    INSSolverBase2D *ins2d;
     if(resuming)
-      ins2d = new MPINSSolver2D(mesh, checkpointFile, resumeIter);
+      ins2d = new MPINSSolver2D(mesh, r_ynolds, checkpointFile, resumeIter);
     else
-      ins2d = new MPINSSolver2D(mesh);
+      ins2d = new MPINSSolver2D(mesh, r_ynolds);
+    add_measurements(ins2d, measurements, refMu);
+    driver = ins2d;
   } else if(type_of_solver == "single-phase-with-temperature") {
+    INSSolverBase2D *ins2d;
     if(resuming)
-      ins2d = new INSTemperatureSolver2D(mesh, checkpointFile, resumeIter);
+      ins2d = new INSTemperatureSolver2D(mesh, r_ynolds, checkpointFile, resumeIter);
     else
-      ins2d = new INSTemperatureSolver2D(mesh);
+      ins2d = new INSTemperatureSolver2D(mesh, r_ynolds);
+    add_measurements(ins2d, measurements, refMu);
+    driver = ins2d;
+  } else if(type_of_solver == "level-set-only") {
+    if(resuming)
+      throw std::runtime_error("Resuming level-set-only simulation is not supported currently");
+    else
+      driver = new LSDriver2D(mesh);
   } else {
     dg_abort("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\', \'single-phase-with-temperature\'");
   }
@@ -194,62 +244,29 @@ int main(int argc, char **argv) {
   timer->endTimer("OP2 Partitioning");
 
   mesh->init();
-  ins2d->init(r_ynolds, refVel);
-
-  // Set up measurements
-  vector<Measurement2D*> measurements;
-  // Get list of measurements to take
-  // Options are: lift_drag, l2_vortex, min_max_interface
-  string mes_tmp = "none";
-  config->getStr("io", "measurements", mes_tmp);
-  if(mes_tmp != "none") {
-    set<string> measurements_to_take;
-    stringstream tmp_ss(mes_tmp);
-    string val_str;
-    while(getline(tmp_ss, val_str, ',')) {
-      measurements_to_take.insert(val_str);
-    }
-
-    for(auto &measurement : measurements_to_take) {
-      if(measurement == "lift_drag") {
-        LiftDragCylinder2D *lift_drag = new LiftDragCylinder2D(ins2d, refMu, 0.3, 0.3, 0.7, 0.7);
-        measurements.push_back(lift_drag);
-      } else if(measurement == "l2_vortex") {
-        L2ErrorVortex2D *l2_error = new L2ErrorVortex2D(ins2d);
-        measurements.push_back(l2_error);
-      } else if(measurement == "min_max_interface") {
-        MinMaxInterface2D *min_max = new MinMaxInterface2D(ins2d);
-        measurements.push_back(min_max);
-      } else if(measurement == "min_max_pressure") {
-        MinMaxPressure2D *min_max_pr = new MinMaxPressure2D(ins2d, 1);
-        measurements.push_back(min_max_pr);
-      } else {
-        dg_abort("Unrecognised measurement: " + measurement);
-      }
-    }
-  }
+  driver->init();
 
   int save_ic = 1;
   config->getInt("io", "save_ic", save_ic);
   if(save_ic) {
     string out_file_ic = outputDir + "ic.h5";
-    ins2d->dump_visualisation_data(out_file_ic);
+    driver->dump_visualisation_data(out_file_ic);
   }
 
   timer->startTimer("Main loop");
   int i = 0;
   if(resuming) i = resumeIter;
   for(; i < iter; i++) {
-    ins2d->step();
+    driver->step();
 
     if(save > 0 && (i + 1) % save == 0) {
       string out_file_tmp = outputDir + "iter-" + to_string(i + 1) + ".h5";
-      ins2d->dump_visualisation_data(out_file_tmp);
+      driver->dump_visualisation_data(out_file_tmp);
     }
 
     if(checkpoint > 0 && (i + 1) % checkpoint == 0) {
       string out_file_tmp = outputDir + "checkpoint-" + to_string(i + 1) + ".h5";
-      ins2d->dump_checkpoint_data(out_file_tmp);
+      driver->dump_checkpoint_data(out_file_tmp);
       int tmp_iter = i + 1;
       op_write_const_hdf5("iter", 1, "int", (char *)&tmp_iter, out_file_tmp.c_str());
     }
@@ -264,39 +281,40 @@ int main(int argc, char **argv) {
   config->getInt("io", "save_end", save_end);
   if(save_end) {
     string out_file_end = outputDir + "end.h5";
-    ins2d->dump_visualisation_data(out_file_end);
+    driver->dump_visualisation_data(out_file_end);
   }
 
   for(auto &measurement : measurements) {
     measurement->output(outputDir);
   }
 
-  timer->exportTimings(outputDir + "timings", iter, ins2d->get_time());
+  // timer->exportTimings(outputDir + "timings", iter, ins2d->get_time());
+  timer->exportTimings(outputDir + "timings", iter, 0.0);
 
   for(auto &measurement : measurements) {
     delete measurement;
   }
 
   // Print closing summary
-  op_printf("\n\n Summary of simulation:\n");
-  op_printf("%d iterations\n", iter);
-  op_printf("%g time (non-dimensionalised)\n", ins2d->get_time());
-  op_printf("%g time (s)\n", ins2d->get_time() * refLen / refVel);
-  op_printf("Reference density: %g kg m^-3\n", refRho);
-  op_printf("Reference velocity: %g m s^-1\n", refVel);
-  op_printf("Reference length: %g m\n", refLen);
-  op_printf("Reference viscosity: %g m^2 s^-1\n", refMu);
-  op_printf("Reference gravity: %g m s^-2\n", refMu);
-  op_printf("Reference surface tension: %g N m^-1\n", refSurfTen);
-  op_printf("Density ratio of %g : %g\n", rho0, rho1);
-  op_printf("Viscosity ratio of %g : %g\n", mu0, mu1);
-  op_printf("Re (fluid 0): %g\n", r_ynolds * (rho0 / mu0));
-  op_printf("Re (fluid 1): %g\n", r_ynolds * (rho1 / mu1));
-  op_printf("Weber: %g\n", weber);
-  op_printf("Froude: %g\n", froude);
-  op_printf("Peclet: %g\n\n", peclet);
+  // op_printf("\n\n Summary of simulation:\n");
+  // op_printf("%d iterations\n", iter);
+  // op_printf("%g time (non-dimensionalised)\n", ins2d->get_time());
+  // op_printf("%g time (s)\n", ins2d->get_time() * refLen / refVel);
+  // op_printf("Reference density: %g kg m^-3\n", refRho);
+  // op_printf("Reference velocity: %g m s^-1\n", refVel);
+  // op_printf("Reference length: %g m\n", refLen);
+  // op_printf("Reference viscosity: %g m^2 s^-1\n", refMu);
+  // op_printf("Reference gravity: %g m s^-2\n", refMu);
+  // op_printf("Reference surface tension: %g N m^-1\n", refSurfTen);
+  // op_printf("Density ratio of %g : %g\n", rho0, rho1);
+  // op_printf("Viscosity ratio of %g : %g\n", mu0, mu1);
+  // op_printf("Re (fluid 0): %g\n", r_ynolds * (rho0 / mu0));
+  // op_printf("Re (fluid 1): %g\n", r_ynolds * (rho1 / mu1));
+  // op_printf("Weber: %g\n", weber);
+  // op_printf("Froude: %g\n", froude);
+  // op_printf("Peclet: %g\n\n", peclet);
 
-  delete ins2d;
+  delete driver;
 
   ierr = PetscFinalize();
 

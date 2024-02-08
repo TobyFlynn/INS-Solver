@@ -1,7 +1,7 @@
 #ifndef __INS_PROBLEM_SPECIFIC_3D_H
 #define __INS_PROBLEM_SPECIFIC_3D_H
 
-#define EXAMPLE_3D_OSCILLATING_DROPLET
+#define EXAMPLE_3D_LS_TEST
 
 #if defined(EXAMPLE_3D_TGV)
 #include "examples/3d_tgv.h"
@@ -186,6 +186,14 @@ DEVICE_PREFIX DG_FP ps3d_custom_bc_get_pr_neumann_multiphase(const int bc_type, 
   }
 
   return 0.0;
+}
+
+// Set the velocity for the level-set-only solver based on current time and coordinates
+DEVICE_PREFIX void ps3d_set_ls_vel(const DG_FP time, const DG_FP x, const DG_FP y, const DG_FP z, 
+                                   DG_FP &u, DG_FP &v, DG_FP &w) {
+  u = 0.0;
+  v = 0.0;
+  w = 0.0;
 }
 
 #endif

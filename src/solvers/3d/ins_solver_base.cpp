@@ -188,7 +188,7 @@ INSSolverBase3D::~INSSolverBase3D() {
     delete diffSolver;
 }
 
-void INSSolverBase3D::init(const DG_FP re, const DG_FP refVel) {
+void INSSolverBase3D::init() {
   // Characteristic length of mesh approximation
   h = 0.0;
   op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,

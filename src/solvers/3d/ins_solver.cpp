@@ -24,7 +24,7 @@ extern Timing *timer;
 extern Config *config;
 extern DGDatPool *dg_dat_pool;
 
-INSSolver3D::INSSolver3D(DGMesh3D *m) : INSSolverBase3D(m) {
+INSSolver3D::INSSolver3D(DGMesh3D *m, const DG_FP re) : INSSolverBase3D(m) {
   resuming = false;
 
   setup_common();
@@ -36,9 +36,11 @@ INSSolver3D::INSSolver3D(DGMesh3D *m) : INSSolverBase3D(m) {
   g0 = 1.0;
 
   dt = 0.0;
+
+  reynolds = re;
 }
 
-INSSolver3D::INSSolver3D(DGMesh3D *m, const std::string &filename, const int iter) : INSSolverBase3D(m, filename) {
+INSSolver3D::INSSolver3D(DGMesh3D *m, const DG_FP re, const std::string &filename, const int iter) : INSSolverBase3D(m, filename) {
   resuming = true;
 
   setup_common();
@@ -56,6 +58,8 @@ INSSolver3D::INSSolver3D(DGMesh3D *m, const std::string &filename, const int ite
     b1 = 0.0;
     g0 = 1.0;
   }
+
+  reynolds = re;
 }
 
 void INSSolver3D::setup_common() {
@@ -107,12 +111,9 @@ INSSolver3D::~INSSolver3D() {
   delete viscositySolver;
 }
 
-void INSSolver3D::init(const DG_FP re, const DG_FP refVel) {
+void INSSolver3D::init() {
   timer->startTimer("INSSolver3D - Init");
-
-  INSSolverBase3D::init(re, refVel);
-
-  reynolds = re;
+  INSSolverBase3D::init();
 
   // Set initial conditions
   if(!resuming) {

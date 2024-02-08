@@ -19,12 +19,12 @@
 
 class MPINSSolver3D : public INSSolverBase3D {
 public:
-  MPINSSolver3D(DGMesh3D *m);
-  MPINSSolver3D(DGMesh3D *m, const std::string &filename, const int iter);
-  ~MPINSSolver3D();
+  MPINSSolver3D(DGMesh3D *m, const DG_FP re);
+  MPINSSolver3D(DGMesh3D *m, const DG_FP re, const std::string &filename, const int iter);
+  ~MPINSSolver3D() override;
 
   void step() override;
-  void init(const DG_FP re, const DG_FP refVel) override;
+  void init() override;
   void dump_visualisation_data(const std::string &filename) override;
   void dump_checkpoint_data(const std::string &filename) override;
 

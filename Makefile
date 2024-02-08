@@ -175,6 +175,7 @@ COMMON_2D_OBJ := ins2d_op.o \
   solvers_op/2d/ins_solver_op.o \
 	solvers_op/2d/ins_temperature_solver_op.o \
   solvers_op/2d/mp_ins_solver_op.o \
+	solvers_op/2d/ls_driver_op.o \
 	measurements/2d/measurement.o \
 	measurements_op/2d/lift_drag_cylinder_op.o \
 	measurements_op/2d/l2_error_vortex_op.o \
@@ -203,6 +204,7 @@ COMMON_3D_OBJ := ins3d_op.o \
   solvers/3d/ls_utils/poly_approx.o \
   solvers/3d/ls_utils/kd_tree.o \
   solvers_op/3d/mp_ins_solver_op.o \
+	solvers_op/3d/ls_driver_op.o \
 	measurements/3d/measurement.o \
 	measurements_op/3d/enstropy_op.o
 
