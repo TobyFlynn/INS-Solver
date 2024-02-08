@@ -11,6 +11,15 @@ extern DGConstants *constants;
 
 using namespace std;
 
+void num_pts_pos_neg(const vector<DG_FP> &s, int &pos, int &neg) {
+  pos = 0;
+  neg = 0;
+  for(int i = 0; i < s.size(); i++) {
+    if(s[i] > 0.0) pos++;
+    if(s[i] < 0.0) neg++;
+  }
+}
+
 PolyApprox3D::PolyApprox3D(const int cell_ind, set<int> stencil,
                        const DG_FP *x_ptr, const DG_FP *y_ptr,
                        const DG_FP *z_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr) {
@@ -18,6 +27,42 @@ PolyApprox3D::PolyApprox3D(const int cell_ind, set<int> stencil,
 
   vector<DG_FP> x_vec, y_vec, z_vec, s_vec;
   stencil_data(cell_ind, stencil, x_ptr, y_ptr, z_ptr, s_ptr, modal_ptr, x_vec, y_vec, z_vec, s_vec);
+
+  // Make sure equal number of points on each side of the line
+  int pts_needed = num_coeff();
+  int pts_aim = num_pts();
+  int pos_pts, neg_pts;
+  num_pts_pos_neg(s_vec, pos_pts, neg_pts);
+  while((x_vec.size() > pts_needed && pos_pts != neg_pts) || x_vec.size() > pts_aim) {
+    // Find point furthest from the interface to discard
+    int ind_discard;
+    if(pos_pts > neg_pts) {
+      DG_FP max = s_vec[0];
+      ind_discard = 0;
+      for(int i = 1; i < x_vec.size(); i++) {
+        if(s_vec[i] > max) {
+          max = s_vec[i];
+          ind_discard = i;
+        }
+      }
+    } else {
+      DG_FP min = s_vec[0];
+      ind_discard = 0;
+      for(int i = 1; i < x_vec.size(); i++) {
+        if(s_vec[i] < min) {
+          min = s_vec[i];
+          ind_discard = i;
+        }
+      }
+    }
+    // Discard ind
+    x_vec.erase(x_vec.begin() + ind_discard);
+    y_vec.erase(y_vec.begin() + ind_discard);
+    z_vec.erase(z_vec.begin() + ind_discard);
+    s_vec.erase(s_vec.begin() + ind_discard);
+
+    num_pts_pos_neg(s_vec, pos_pts, neg_pts);
+  }
 
   if(N == 2) {
     set_2nd_order_coeff(x_vec, y_vec, z_vec, s_vec);
@@ -40,12 +85,17 @@ PolyApprox3D::PolyApprox3D(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y,
 
 void PolyApprox3D::get_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_ptr,
                             const DG_FP *z_ptr) {
-  offset_x = x_ptr[ind * DG_NP];
-  offset_y = y_ptr[ind * DG_NP];
-  offset_z = z_ptr[ind * DG_NP];
-  // offset_x = 0.0;
-  // offset_y = 0.0;
-  // offset_z = 0.0;
+  offset_x = 0.0;
+  offset_y = 0.0;
+  offset_z = 0.0;
+  for(int i = 0; i < DG_NP; i++) {
+    offset_x += x_ptr[ind * DG_NP + i];
+    offset_y += y_ptr[ind * DG_NP + i];
+    offset_z += z_ptr[ind * DG_NP + i];
+  }
+  offset_x /= (DG_FP)DG_NP;
+  offset_y /= (DG_FP)DG_NP;
+  offset_z /= (DG_FP)DG_NP;
 }
 
 struct Coord {
@@ -181,7 +231,7 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
   std::uniform_real_distribution<> dis(-1.0, 1.0);
 
   map<Coord, Point, cmpCoords> pointMap;
-
+/*
   for(int n = 0; n < DG_NP; n++) {
     int ind = cell_ind * DG_NP + n;
     Coord coord;
@@ -195,7 +245,6 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
     res.first->second.count = 1;
   }
 
-/*
   std::vector<bool> consider;
   for(const auto &sten : stencil) {
     if(sten == cell_ind) {
@@ -250,7 +299,6 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
       }
     }
   }
-*/
 
   for(const auto &sten : stencil) {
     if(sten == cell_ind) continue;
@@ -269,10 +317,8 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
       res->second.count++;
     }
   }
-
-/*
+*/
   for(const auto &sten : stencil) {
-    if(sten != cell_ind) continue;
     for(int n = 0; n < DG_NP; n++) {
       int ind = sten * DG_NP + n;
 
@@ -298,7 +344,7 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
       }
     }
   }
-*/
+/*
   const DG_FP *tmp_r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
   const DG_FP *tmp_s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
   const DG_FP *tmp_t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * DG_NP;
@@ -424,7 +470,7 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
     ref_s_ptr[i] = tmp_s_ptr[i] * 0.75;
     ref_t_ptr[i] = tmp_t_ptr[i] * 0.75;
   }
-/*
+
   for(const auto &sten : stencil) {
     const DG_FP X0 = x_ptr[sten * DG_NP + 0]; const DG_FP Y0 = y_ptr[sten * DG_NP + 0]; const DG_FP Z0 = z_ptr[sten * DG_NP + 0];
     const DG_FP X1 = x_ptr[sten * DG_NP + 3]; const DG_FP Y1 = y_ptr[sten * DG_NP + 3]; const DG_FP Z1 = z_ptr[sten * DG_NP + 3];
@@ -699,11 +745,11 @@ DG_FP PolyApprox3D::val_at_4th(const DG_FP x, const DG_FP y, const DG_FP z) {
 DG_FP PolyApprox3D::val_at(const DG_FP x, const DG_FP y, const DG_FP z) {
   DG_FP res = 0.0;
   if(N == 2) {
-    res = val_at_2nd(x - offset_x, y - offset_y, z - offset_z);
+    res = val_at_2nd(x, y, z);
   } else if(N == 3) {
-    res = val_at_3rd(x - offset_x, y - offset_y, z - offset_z);
+    res = val_at_3rd(x, y, z);
   } else if(N == 4) {
-    res = val_at_4th(x - offset_x, y - offset_y, z - offset_z);
+    res = val_at_4th(x, y, z);
   }
   return res;
 }
@@ -843,11 +889,11 @@ void PolyApprox3D::grad_at_4th(const DG_FP x, const DG_FP y, const DG_FP z,
 void PolyApprox3D::grad_at(const DG_FP x, const DG_FP y, const DG_FP z,
                          DG_FP &dx, DG_FP &dy, DG_FP &dz) {
   if(N == 2) {
-    grad_at_2nd(x - offset_x, y - offset_y, z - offset_z, dx, dy, dz);
+    grad_at_2nd(x, y, z, dx, dy, dz);
   } else if(N == 3) {
-    grad_at_3rd(x - offset_x, y - offset_y, z - offset_z, dx, dy, dz);
+    grad_at_3rd(x, y, z, dx, dy, dz);
   } else if(N == 4) {
-    grad_at_4th(x - offset_x, y - offset_y, z - offset_z, dx, dy, dz);
+    grad_at_4th(x, y, z, dx, dy, dz);
   }
 }
 
@@ -991,11 +1037,11 @@ void PolyApprox3D::hessian_at(const DG_FP x, const DG_FP y, const DG_FP z,
                             DG_FP &dx2, DG_FP &dy2, DG_FP &dz2,
                             DG_FP &dxy, DG_FP &dxz, DG_FP &dyz) {
   if(N == 2) {
-    hessian_at_2nd(x - offset_x, y - offset_y, z - offset_z, dx2, dy2, dz2, dxy, dxz, dyz);
+    hessian_at_2nd(x, y, z, dx2, dy2, dz2, dxy, dxz, dyz);
   } else if(N == 3) {
-    hessian_at_3rd(x - offset_x, y - offset_y, z - offset_z, dx2, dy2, dz2, dxy, dxz, dyz);
+    hessian_at_3rd(x, y, z, dx2, dy2, dz2, dxy, dxz, dyz);
   } else if(N == 4) {
-    hessian_at_4th(x - offset_x, y - offset_y, z - offset_z, dx2, dy2, dz2, dxy, dxz, dyz);
+    hessian_at_4th(x, y, z, dx2, dy2, dz2, dxy, dxz, dyz);
   }
 }
 
@@ -1015,7 +1061,7 @@ int PolyApprox3D::num_pts() {
   if(N == 2) {
     return 10;
   } else if(N == 3) {
-    return 20;
+    return 30;
   } else if(N == 4) {
     return 35;
   } else {

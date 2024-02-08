@@ -138,7 +138,7 @@ void LevelSetSolver3D::init() {
   kdtree = new KDTree3D(mesh);
   #endif
 
-  reinitLS();
+  // reinitLS();
 
   op_par_loop(ls_post_reinit, "ls_post_reinit", mesh->cells,
                 op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
@@ -260,7 +260,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
   DG_FP init_y = closest_pt_y;
   DG_FP init_z = closest_pt_z;
 
-  for(int step = 0; step < 100; step++) {
+  for(int step = 0; step < 50; step++) {
     DG_FP pt_x_old = pt_x;
     DG_FP pt_y_old = pt_y;
     DG_FP pt_z_old = pt_z;
@@ -338,7 +338,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
     }
 
     // Gone outside the element, return
-    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) + (init_z - pt_z) * (init_z - pt_z) > 10.0 * h * h) {
+    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) + (init_z - pt_z) * (init_z - pt_z) > 1.5 * h * h) {
       pt_x = pt_x_old;
       pt_y = pt_y_old;
       pt_z = pt_z_old;
@@ -346,7 +346,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
     }
 
     // Converged, no more steps required
-    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) + (pt_z_old - pt_z) * (pt_z_old - pt_z) < 1e-16) {
+    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) + (pt_z_old - pt_z) * (pt_z_old - pt_z) < 1e-18) {
       converged = true;
       break;
     }
@@ -373,13 +373,18 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
                 + (closest_y[start_ind] - y[start_ind]) * (closest_y[start_ind] - y[start_ind])
                 + (closest_z[start_ind] - z[start_ind]) * (closest_z[start_ind] - z[start_ind]);
     if(dist2 < (reinit_width + 2.0 * h) * (reinit_width + 2.0 * h)) {
-      DG_FP _closest_x = closest_x[i];
-      DG_FP _closest_y = closest_y[i];
-      DG_FP _closest_z = closest_z[i];
-      bool tmp = newton_kernel(_closest_x, _closest_y, _closest_z, x[i], y[i], z[i], polys[poly_ind[i]], h);
+      DG_FP off_x, off_y, off_z;
+      polys[poly_ind[i]].get_offsets(off_x, off_y, off_z);
+      DG_FP _closest_x = closest_x[i] - off_x;
+      DG_FP _closest_y = closest_y[i] - off_y;
+      DG_FP _closest_z = closest_z[i] - off_z;
+      DG_FP _node_x = x[i] - off_x;
+      DG_FP _node_y = y[i] - off_y;
+      DG_FP _node_z = z[i] - off_z;
+      bool tmp = newton_kernel(_closest_x, _closest_y, _closest_z, _node_x, _node_y, _node_z, polys[poly_ind[i]], h);
       if(tmp) {
         bool negative = s[i] < 0.0;
-        s[i] = (_closest_x - x[i]) * (_closest_x - x[i]) + (_closest_y - y[i]) * (_closest_y - y[i]) + (_closest_z - z[i]) * (_closest_z - z[i]);
+        s[i] = (_closest_x - _node_x) * (_closest_x - _node_x) + (_closest_y - _node_y) * (_closest_y - _node_y) + (_closest_z - _node_z) * (_closest_z - _node_z);
         s[i] = sqrt(s[i]);
         if(negative) s[i] *= -1.0;
       } else {
@@ -387,8 +392,6 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
         s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]) + (closest_z[i] - z[i]) * (closest_z[i] - z[i]);
         s[i] = sqrt(s[i]);
         if(negative) s[i] *= -1.0;
-      }
-      if(!tmp) {
         #pragma omp atomic
         numNonConv++;
       }

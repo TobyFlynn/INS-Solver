@@ -59,3 +59,7 @@ void LSDriver3D::dump_visualisation_data(const std::string &filename) {
 void LSDriver3D::dump_checkpoint_data(const std::string &filename) {
   throw std::runtime_error("Checkpointing not supported with level-set-only");
 }
+
+DG_FP LSDriver3D::get_time() {
+  return time;
+}

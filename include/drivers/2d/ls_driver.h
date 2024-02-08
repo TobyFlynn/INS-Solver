@@ -13,6 +13,7 @@ public:
   void step() override;
   void dump_visualisation_data(const std::string &filename) override;
   void dump_checkpoint_data(const std::string &filename) override;
+  DG_FP get_time() override;
 
 private:
   DGMesh2D *mesh;

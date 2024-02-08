@@ -21,7 +21,7 @@ public:
 
   virtual void init() override;
   virtual void step() = 0;
-  DG_FP get_time();
+  DG_FP get_time() override;
   DG_FP get_dt();
 
   // IO

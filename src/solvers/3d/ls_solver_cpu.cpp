@@ -407,9 +407,17 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
       }
     }
 
-    // Simplified Newton sampling
     int poly_ind = cell2polyMap.at(cell);
     PolyApprox3D pol = polys[poly_ind];
+    DG_FP off_x, off_y, off_z;
+    pol.get_offsets(off_x, off_y, off_z);
+    for(int i = 0; i < LS_SAMPLE_NP; i++) {
+      sampleX_c[i] -= off_x;
+      sampleY_c[i] -= off_y;
+      sampleZ_c[i] -= off_z;
+    }
+
+    // Simplified Newton sampling
     for(int p = 0; p < LS_SAMPLE_NP; p++) {
       bool converged = false;
       if(!isnan(sampleX_c[p]))
@@ -450,6 +458,12 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
           sampleZ_c[p] = NAN;
         }
       }
+    }
+
+    for(int i = 0; i < LS_SAMPLE_NP; i++) {
+      sampleX_c[i] += off_x;
+      sampleY_c[i] += off_y;
+      sampleZ_c[i] += off_z;
     }
   }
 
