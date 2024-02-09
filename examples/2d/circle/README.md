@@ -10,7 +10,7 @@ reconstructing the convergence figures for L1 norm.
 ## Running
 
 Generate meshes
-```
+```bash
 for n in $(seq 1 4)
 do
     out_dir=m$n
@@ -31,4 +31,6 @@ do
 done
 ```
 
+```bash
 ins2d_mpi -config config.ini -input m1/mesh.h5 -output m1/
+```
