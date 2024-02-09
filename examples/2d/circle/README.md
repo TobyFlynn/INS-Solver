@@ -7,7 +7,7 @@ The domain setup follows Ngu. [-2, 2], [2, 2] and the mesh refinement aims at
 reconstructing the convergence figures for L1 norm.
 
 
-## To run
+## Running
 
 Generate meshes
 ```
@@ -24,5 +24,11 @@ do
         -nt 3 \
         -clscale $scale\
         -o $out_dir/mesh.vtk
+    mpirun -n 1 ${OP2_DG_TOOLKIT_DIR}/bin/vtk2hdf5_2D \
+        -file $out_dir/mesh.vtk \
+        -bc none
+    mv mesh.h5 $out_dir
 done
 ```
+
+ins2d_mpi -config config.ini -input m1/mesh.h5 -output m1/
