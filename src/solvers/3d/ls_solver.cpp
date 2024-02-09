@@ -128,7 +128,8 @@ void LevelSetSolver3D::init() {
 
   reinit_counter = 0;
   reinit_frequency = 24;
-  config->getInt("solver-options", "ls_reinit_freq", reinit_frequency);
+  config->getInt("level-set-options", "reinit_freq", reinit_frequency);
+  reinitialise = reinit_frequency > 0;
 
   op_printf("LS h: %g\nLS alpha: %g\n", h, alpha);
 
@@ -138,7 +139,11 @@ void LevelSetSolver3D::init() {
   kdtree = new KDTree3D(mesh);
   #endif
 
-  // reinitLS();
+  int tmp_reinit_ic = 1;
+  config->getInt("level-set-options", "reinit_ic", tmp_reinit_ic);
+
+  if(tmp_reinit_ic != 0)
+    reinitLS();
 
   op_par_loop(ls_post_reinit, "ls_post_reinit", mesh->cells,
                 op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
@@ -203,7 +208,7 @@ void LevelSetSolver3D::step(op_dat u, op_dat v, op_dat w, const DG_FP dt, const 
     advectionSolver->step(s, u, v, w);
 
   reinit_counter++;
-  if(reinit_counter > reinit_frequency) {
+  if(reinitialise && reinit_counter >= reinit_frequency) {
     reinitLS();
     reinit_counter = 0;
     op_par_loop(ls_post_reinit, "ls_post_reinit", mesh->cells,

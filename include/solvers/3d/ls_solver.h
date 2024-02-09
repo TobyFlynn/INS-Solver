@@ -52,7 +52,7 @@ private:
   // bool reinitNeeded();
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
-  bool resuming;
+  bool resuming, reinitialise;
   int reinit_counter, reinit_frequency;
 
   LevelSetAdvectionSolver3D *advectionSolver;
