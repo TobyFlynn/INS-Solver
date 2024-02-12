@@ -9,7 +9,7 @@
 
 class MinMaxPressure2D : public Measurement2D {
 public:
-  MinMaxPressure2D(INSSolverBase2D *i, const int sample_iter = 20);
+  MinMaxPressure2D(SimulationDriver *d, const int sample_iter = 20);
 
   virtual void measure() override;
 

@@ -1,14 +1,14 @@
-#ifndef __INS_L2_ERROR_VORTEX_2D_H
-#define __INS_L2_ERROR_VORTEX_2D_H
+#ifndef __INS_LS_ADVEC_ERROR_2D_H
+#define __INS_LS_ADVEC_ERROR_2D_H
 
 #include <vector>
 
 #include "measurement_2d.h"
-#include "solvers/2d/ins_solver_base.h"
+#include "drivers/2d/ls_driver.h"
 
-class L2ErrorVortex2D : public Measurement2D {
+class LSAdvecError : public Measurement2D {
 public:
-  L2ErrorVortex2D(SimulationDriver *d, const int sample_iter = 20);
+  LSAdvecError(SimulationDriver *d, const int sample_iter = 20);
 
   virtual void measure() override;
 
@@ -23,7 +23,7 @@ private:
     DG_FP err;
   };
   std::vector<L2ErrorHistory> history;
-  INSSolverBase2D *ins;
+  LSDriver2D *ls_driver;
 };
 
 #endif

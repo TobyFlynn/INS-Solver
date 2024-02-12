@@ -31,7 +31,7 @@ using namespace std;
 // Global constants
 DG_FP r_ynolds, weber, mu0, mu1, rho0, rho1;
 
-void add_measurements(INSSolverBase3D *ins3d, vector<Measurement3D*> &measurements, DG_FP refMu, DG_FP refRho, DG_FP refVel) {
+void add_measurements(SimulationDriver *driver, vector<Measurement3D*> &measurements, DG_FP refMu, DG_FP refRho, DG_FP refVel) {
   // Get list of measurements to take
   // Options are: enstropy
   string mes_tmp = "none";
@@ -46,7 +46,7 @@ void add_measurements(INSSolverBase3D *ins3d, vector<Measurement3D*> &measuremen
 
     for(auto &measurement : measurements_to_take) {
       if(measurement == "enstropy") {
-        Enstropy3D *enstropy = new Enstropy3D(ins3d, refMu, refRho, refVel, 248.0502134423985614038105205);
+        Enstropy3D *enstropy = new Enstropy3D(driver, refMu, refRho, refVel, 248.0502134423985614038105205);
         measurements.push_back(enstropy);
       } else {
         dg_abort("Unrecognised measurement: " + measurement);
@@ -161,7 +161,6 @@ int main(int argc, char **argv) {
       ins3d = new INSSolver3D(mesh, r_ynolds, checkpointFile, resumeIter);
     else
       ins3d = new INSSolver3D(mesh, r_ynolds);
-    add_measurements(ins3d, measurements, refMu, refRho, refVel);
     driver = ins3d;
   } else if(type_of_solver == "multi-phase") {
     INSSolverBase3D *ins3d;
@@ -169,13 +168,14 @@ int main(int argc, char **argv) {
       ins3d = new MPINSSolver3D(mesh, r_ynolds, checkpointFile, resumeIter);
     else
       ins3d = new MPINSSolver3D(mesh, r_ynolds);
-    add_measurements(ins3d, measurements, refMu, refRho, refVel);
     driver = ins3d;
   } else if(type_of_solver == "level-set-only") {
     driver = new LSDriver3D(mesh);
   } else {
     dg_abort("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\'");
   }
+
+  add_measurements(driver, measurements, refMu, refRho, refVel);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 2, "int", DG_CONSTANTS);

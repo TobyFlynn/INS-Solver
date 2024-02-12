@@ -6,19 +6,19 @@
 
 extern DGDatPool *dg_dat_pool;
 
-MinMaxPressure2D::MinMaxPressure2D(INSSolverBase2D *i, const int sample_iter) : Measurement2D(i, sample_iter) {
-  if(dynamic_cast<MPINSSolver2D*>(ins) == nullptr) {
+MinMaxPressure2D::MinMaxPressure2D(SimulationDriver *d, const int sample_iter) : Measurement2D(d, sample_iter) {
+  if(dynamic_cast<MPINSSolver2D*>(d) == nullptr) {
     dg_abort("MinMaxInterface2D measurement can only be used with 2D multiphase solver\n");
   }
 
-  mpins = dynamic_cast<MPINSSolver2D*>(ins);
+  mpins = dynamic_cast<MPINSSolver2D*>(d);
 }
 
 void MinMaxPressure2D::measure() {
   if(!sample_this_iter())
     return;
 
-  DGMesh2D *mesh = ins->get_mesh();
+  DGMesh2D *mesh = mpins->get_mesh();
   const DG_FP alpha = mpins->get_ls_alpha();
 
   DG_FP min_pr = 1e18;
@@ -27,10 +27,10 @@ void MinMaxPressure2D::measure() {
               op_arg_gbl(&alpha, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&min_pr, 1, DG_FP_STR, OP_MIN),
               op_arg_gbl(&max_pr, 1, DG_FP_STR, OP_MAX),
-              op_arg_dat(ins->get_pr(), -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mpins->get_pr(), -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mpins->get_ls(), -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
 
-  DG_FP time = ins->get_time();
+  DG_FP time = mpins->get_time();
   MinMaxHistory tmp;
   tmp.time = time;
   tmp.min_pr = min_pr;

@@ -2,6 +2,10 @@
 
 #include "op_seq.h"
 
+#include "config.h"
+
+extern Config *config;
+
 LSDriver3D::LSDriver3D(DGMesh3D *m) {
   mesh = m;
   lsSolver = new LevelSetSolver3D(mesh);
@@ -27,7 +31,13 @@ void LSDriver3D::init() {
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
   h = 1.0 / h;
-  dt = 0.5 * h / (DG_FP)(DG_ORDER * DG_ORDER);
+
+  double tmp_dt = -1.0;
+  config->getDouble("solver-options", "force_dt", tmp_dt);
+  if(tmp_dt > 0.0)
+    dt = tmp_dt;
+  else
+    dt = 0.5 * h / (DG_FP)((DG_ORDER + 1) * (DG_ORDER + 1));
 
   op_par_loop(ins_3d_bc_types, "ins_3d_bc_types", mesh->bfaces,
                 op_arg_dat(mesh->node_coords, -3, mesh->bface2nodes, 3, DG_FP_STR, OP_READ),

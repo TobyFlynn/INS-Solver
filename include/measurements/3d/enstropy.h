@@ -4,10 +4,11 @@
 #include <vector>
 
 #include "measurement_3d.h"
+#include "solvers/3d/ins_solver_base.h"
 
 class Enstropy3D : public Measurement3D {
 public:
-  Enstropy3D(INSSolverBase3D *i, const DG_FP refMu, const DG_FP refRho, 
+  Enstropy3D(SimulationDriver *d, const DG_FP refMu, const DG_FP refRho, 
              const DG_FP refVel,const DG_FP volume, const int sample_iter = 20);
 
   virtual void measure() override;
@@ -28,6 +29,8 @@ private:
   };
   std::vector<EnstropyHistory> history;
   DG_FP mu, vol, rho, vel;
+
+  INSSolverBase3D *ins;
 };
 
 #endif

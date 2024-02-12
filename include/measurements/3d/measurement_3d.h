@@ -3,11 +3,11 @@
 
 #include <string>
 
-#include "solvers/3d/ins_solver_base.h"
+#include "simulation_driver.h"
 
 class Measurement3D {
 public:
-  Measurement3D(INSSolverBase3D *i, const int sample_iter);
+  Measurement3D(SimulationDriver *d, const int sample_iter);
 
   virtual void measure() = 0;
   virtual void output(std::string &filename);
@@ -20,7 +20,7 @@ protected:
   std::string double_to_text(const double &d);
   bool sample_this_iter();
 
-  INSSolverBase3D *ins;
+  SimulationDriver *driver;
   int io_count;
 
 private:

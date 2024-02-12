@@ -5,8 +5,8 @@
 #include <iomanip>
 #include <sstream>
 
-Measurement3D::Measurement3D(INSSolverBase3D *i, const int sample_iter) {
-  ins = i;
+Measurement3D::Measurement3D(SimulationDriver *d, const int sample_iter) {
+  driver = d;
   sample_rate = sample_iter;
   count = 0;
   io_count = 0;

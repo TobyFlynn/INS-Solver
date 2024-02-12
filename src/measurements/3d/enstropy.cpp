@@ -5,17 +5,22 @@
 #include "dg_op2_blas.h"
 #include "dg_constants/dg_constants.h"
 #include "dg_dat_pool.h"
+#include "dg_abort.h"
 
 extern DGConstants *constants;
 extern DGDatPool *dg_dat_pool;
 
-Enstropy3D::Enstropy3D(INSSolverBase3D *i, const DG_FP refMu, const DG_FP refRho, 
+Enstropy3D::Enstropy3D(SimulationDriver *d, const DG_FP refMu, const DG_FP refRho, 
                        const DG_FP refVel, const DG_FP volume, 
-                       const int sample_iter) : Measurement3D(i, sample_iter) {
+                       const int sample_iter) : Measurement3D(d, sample_iter) {
   mu = refMu;
   rho = refRho;
   vel = refVel;
   vol = volume;
+  if(dynamic_cast<INSSolverBase3D*>(d) == nullptr) {
+    dg_abort("Enstropy3D measurement can only be used with 3D single or multiphase solver\n");
+  }
+  ins = dynamic_cast<INSSolverBase3D*>(d);
 }
 
 void Enstropy3D::measure() {

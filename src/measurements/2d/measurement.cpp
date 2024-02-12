@@ -5,8 +5,8 @@
 #include <iomanip>
 #include <sstream>
 
-Measurement2D::Measurement2D(INSSolverBase2D *i, const int sample_iter) {
-  ins = i;
+Measurement2D::Measurement2D(SimulationDriver *d, const int sample_iter) {
+  driver = d;
   sample_rate = sample_iter;
   count = 0;
   io_count = 0;

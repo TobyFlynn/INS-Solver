@@ -23,6 +23,7 @@
 #include "measurements/2d/l2_error_vortex.h"
 #include "measurements/2d/min_max_interface.h"
 #include "measurements/2d/min_max_pressure.h"
+#include "measurements/2d/ls_advec_error.h"
 
 Timing *timer;
 Config *config;
@@ -33,7 +34,7 @@ using namespace std;
 DG_FP r_ynolds, mu0, mu1, rho0, rho1, gamma_e, weber, froude, coeff_thermal_expan, peclet;
 
 // Set up measurements
-void add_measurements(INSSolverBase2D *ins2d, vector<Measurement2D*> &measurements, const DG_FP refMu) {
+void add_measurements(SimulationDriver *driver, vector<Measurement2D*> &measurements, const DG_FP refMu) {
   // Get list of measurements to take
   // Options are: lift_drag, l2_vortex, min_max_interface
   string mes_tmp = "none";
@@ -48,17 +49,20 @@ void add_measurements(INSSolverBase2D *ins2d, vector<Measurement2D*> &measuremen
 
     for(auto &measurement : measurements_to_take) {
       if(measurement == "lift_drag") {
-        LiftDragCylinder2D *lift_drag = new LiftDragCylinder2D(ins2d, refMu, 0.3, 0.3, 0.7, 0.7);
+        LiftDragCylinder2D *lift_drag = new LiftDragCylinder2D(driver, refMu, 0.3, 0.3, 0.7, 0.7);
         measurements.push_back(lift_drag);
       } else if(measurement == "l2_vortex") {
-        L2ErrorVortex2D *l2_error = new L2ErrorVortex2D(ins2d);
+        L2ErrorVortex2D *l2_error = new L2ErrorVortex2D(driver);
         measurements.push_back(l2_error);
       } else if(measurement == "min_max_interface") {
-        MinMaxInterface2D *min_max = new MinMaxInterface2D(ins2d);
+        MinMaxInterface2D *min_max = new MinMaxInterface2D(driver);
         measurements.push_back(min_max);
       } else if(measurement == "min_max_pressure") {
-        MinMaxPressure2D *min_max_pr = new MinMaxPressure2D(ins2d, 1);
+        MinMaxPressure2D *min_max_pr = new MinMaxPressure2D(driver, 1);
         measurements.push_back(min_max_pr);
+      } else if(measurement == "l2_ls_advec") {
+        LSAdvecError *l2_error = new LSAdvecError(driver, 1);
+        measurements.push_back(l2_error);
       } else {
         dg_abort("Unrecognised measurement: " + measurement);
       }
@@ -189,7 +193,6 @@ int main(int argc, char **argv) {
       ins2d = new INSSolver2D(mesh, r_ynolds, checkpointFile, resumeIter);
     else
       ins2d = new INSSolver2D(mesh, r_ynolds);
-    add_measurements(ins2d, measurements, refMu);
     driver = ins2d;
   } else if(type_of_solver == "multi-phase") {
     INSSolverBase2D *ins2d;
@@ -197,7 +200,6 @@ int main(int argc, char **argv) {
       ins2d = new MPINSSolver2D(mesh, r_ynolds, checkpointFile, resumeIter);
     else
       ins2d = new MPINSSolver2D(mesh, r_ynolds);
-    add_measurements(ins2d, measurements, refMu);
     driver = ins2d;
   } else if(type_of_solver == "single-phase-with-temperature") {
     INSSolverBase2D *ins2d;
@@ -205,7 +207,6 @@ int main(int argc, char **argv) {
       ins2d = new INSTemperatureSolver2D(mesh, r_ynolds, checkpointFile, resumeIter);
     else
       ins2d = new INSTemperatureSolver2D(mesh, r_ynolds);
-    add_measurements(ins2d, measurements, refMu);
     driver = ins2d;
   } else if(type_of_solver == "level-set-only") {
     if(resuming)
@@ -215,6 +216,8 @@ int main(int argc, char **argv) {
   } else {
     dg_abort("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\', \'single-phase-with-temperature\'");
   }
+
+  add_measurements(driver, measurements, refMu);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);

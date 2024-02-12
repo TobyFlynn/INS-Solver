@@ -8,7 +8,7 @@
 
 class LiftDragCylinder2D : public Measurement2D {
 public:
-  LiftDragCylinder2D(INSSolverBase2D *i, const DG_FP refMu, const DG_FP x0, 
+  LiftDragCylinder2D(SimulationDriver *d, const DG_FP refMu, const DG_FP x0, 
                      const DG_FP y0, const DG_FP x1, const DG_FP y1,
                      const int sample_iter = 20);
 
@@ -28,6 +28,7 @@ private:
   std::vector<LiftDragHistory> history;
   DG_FP mu;
   DG_FP box[4];
+  INSSolverBase2D *ins;
 };
 
 #endif

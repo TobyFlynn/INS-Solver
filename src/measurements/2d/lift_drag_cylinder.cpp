@@ -3,17 +3,22 @@
 #include "op_seq.h"
 
 #include "dg_dat_pool.h"
+#include "dg_abort.h"
 
 extern DGDatPool *dg_dat_pool;
 
-LiftDragCylinder2D::LiftDragCylinder2D(INSSolverBase2D *i, const DG_FP refMu, const DG_FP x0, 
+LiftDragCylinder2D::LiftDragCylinder2D(SimulationDriver *d, const DG_FP refMu, const DG_FP x0, 
                                        const DG_FP y0, const DG_FP x1, const DG_FP y1, 
-                                       const int sample_iter) : Measurement2D(i, sample_iter) {
+                                       const int sample_iter) : Measurement2D(d, sample_iter) {
   mu = refMu;
   box[0] = x0;
   box[1] = y0;
   box[2] = x1;
   box[3] = y1;
+  if(dynamic_cast<INSSolverBase2D*>(d) == nullptr) {
+    dg_abort("L2ErrorVortex2D measurement can only be used with 2D single or multiphase solver\n");
+  }
+  ins = dynamic_cast<INSSolverBase2D*>(d);
 }
 
 void LiftDragCylinder2D::measure() {

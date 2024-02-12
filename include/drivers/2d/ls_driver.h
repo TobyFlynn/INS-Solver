@@ -14,6 +14,8 @@ public:
   void dump_visualisation_data(const std::string &filename) override;
   void dump_checkpoint_data(const std::string &filename) override;
   DG_FP get_time() override;
+  DGMesh2D* get_mesh();
+  op_dat get_surface();
 
 private:
   DGMesh2D *mesh;
