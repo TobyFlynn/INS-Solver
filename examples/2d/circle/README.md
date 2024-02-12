@@ -11,11 +11,11 @@ reconstructing the convergence figures for L1 norm.
 
 Generate meshes
 ```bash
-for n in $(seq 1 4)
+for n in $(seq 0 3)
 do
     out_dir=m$n
     mkdir $out_dir
-    scale=$((1.0/$n))
+    scale=$((2.0**-$n))
     gmsh \
         mesh.geo \
         -2 \
