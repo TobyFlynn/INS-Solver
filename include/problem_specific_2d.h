@@ -1,7 +1,7 @@
 #ifndef __INS_PROBLEM_SPECIFIC_2D_H
 #define __INS_PROBLEM_SPECIFIC_2D_H
 
-#define EXAMPLE_2D_LS_TEST
+#define EXAMPLE_2D_ELLIPSE
 
 #if defined(EXAMPLE_2D_CYLINDER)
 #include "examples/2d_cylinder.h"
@@ -25,6 +25,8 @@
 #include "examples/2d_ls_test.h"
 #elif defined(EXAMPLE_2D_CIRCLE)
 #include "examples/2d/circle.h"
+#elif defined(EXAMPLE_2D_ELLIPSE)
+#include "examples/2d/ellipse.h"
 #else
 
 #if defined(INS_CUDA)
