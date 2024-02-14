@@ -30,7 +30,15 @@ void LSDriver2D::init() {
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
   h = 1.0 / h;
-  dt = 0.5 * h / (DG_FP)(DG_ORDER * DG_ORDER);
+
+  double tmp_dt = -1.0;
+  config->getDouble("solver-options", "force_dt", tmp_dt);
+  if(tmp_dt > 0.0)
+    dt = tmp_dt;
+  else
+    dt = 0.5 * h / (DG_FP)((DG_ORDER + 1) * (DG_ORDER + 1));
+  
+  op_printf("dt: %g\n", dt);
 
   op_par_loop(ins_bc_types, "ins_bc_types", mesh->bfaces,
                 op_arg_dat(mesh->node_coords, -2, mesh->bface2nodes, 2, DG_FP_STR, OP_READ),
@@ -49,6 +57,8 @@ void LSDriver2D::step() {
   
   lsSolver->setVelField(u, v);
   lsSolver->step(dt, 1);
+
+  time += dt;
 }
 
 void LSDriver2D::dump_visualisation_data(const std::string &filename) {
