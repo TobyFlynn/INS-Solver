@@ -122,4 +122,8 @@ DEVICE_PREFIX void ps2d_set_ls_vel(const DG_FP time, const DG_FP x, const DG_FP 
   v = 0.0;
 }
 
+DEVICE_PREFIX DG_FP ps2d_get_analytical_solution(const DG_FP time, const DG_FP x, const DG_FP y) {
+  return sqrt(x*x + y*y) - 1.0;
+}
+
 #endif
