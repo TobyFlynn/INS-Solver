@@ -1,36 +1,7 @@
-#ifndef __INS_PROBLEM_SPECIFIC_2D_H
-#define __INS_PROBLEM_SPECIFIC_2D_H
+#ifndef __INS_2D_LS_TEST_H
+#define __INS_2D_LS_TEST_H
 
-#define EXAMPLE_2D_ZALESAK_DISC
-
-#if defined(EXAMPLE_2D_CYLINDER)
-#include "examples/2d_cylinder.h"
-#elif defined(EXAMPLE_2D_VORTEX)
-#include "examples/2d_vortex.h"
-#elif defined(EXAMPLE_2D_CIRCULAR_DROPLET)
-#include "examples/2d_circular_droplet.h"
-#elif defined(EXAMPLE_2D_OSCILLATING_DROPLET)
-#include "examples/2d_oscillating_droplet.h"
-#elif defined(EXAMPLE_2D_DAM_BREAK)
-#include "examples/2d_dam_break.h"
-#elif defined(EXAMPLE_2D_RISING_BUBBLE)
-#include "examples/2d_rising_bubble.h"
-#elif defined(EXAMPLE_2D_LS_TEST)
-#include "examples/2d_ls_test.h"
-#elif defined(EXAMPLE_2D_LS_TEST_STATIONARY)
-#include "examples/2d_ls_test_stationary.h"
-#elif defined(EXAMPLE_2D_LS_ADVEC)
-#include "examples/2d_ls_advec.h"
-#elif defined(EXAMPLE_2D_LS_TEST)
-#include "examples/2d_ls_test.h"
-#elif defined(EXAMPLE_2D_CIRCLE)
-#include "examples/2d/circle.h"
-#elif defined(EXAMPLE_2D_ELLIPSE)
-#include "examples/2d/ellipse.h"
-#elif defined(EXAMPLE_2D_ZALESAK_DISC)
-#include "examples/2d/zalesak.h"
-#else
-
+#include <cmath>
 #if defined(INS_CUDA)
 #define DEVICE_PREFIX __device__
 #elif defined(INS_HIP)
@@ -44,11 +15,10 @@
 #define BC_NEUMANN 1
 
 // Hardcoded BC types, do not edit
-#define BC_TYPE_NO_SLIP 0
-#define BC_TYPE_SLIP 1
-#define BC_TYPE_NATURAL_OUTFLOW 2
-// Add custom BC types below (number must be greater than 0), for example:
-#define BC_TYPE_INFLOW 3
+#define BC_TYPE_NATURAL_OUTFLOW 0
+#define BC_TYPE_NO_SLIP 1
+#define BC_TYPE_SLIP_X 2
+#define BC_TYPE_SLIP_Y 3
 
 /************************************************************************
  * You can edit the body of the functions below but not their signature *
@@ -56,14 +26,6 @@
 
 // Set the initial conditions of the problem
 DEVICE_PREFIX void ps2d_set_ic(const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v) {
-  // Euler vortex initial conditions
-  // const DG_FP PI = 3.141592653589793238463;
-  // const DG_FP R = 1.5;
-  // const DG_FP S = 13.5;
-  // DG_FP f = (1.0 - x * x - y * y) / (2.0 * R * R);
-  // u = (S * y * exp(f)) / (2.0 * PI * R);
-  // v = (1.0 - ((S * x * exp(f)) / (2.0 * PI * R)));
-
   u = 0.0;
   v = 0.0;
 }
@@ -72,20 +34,18 @@ DEVICE_PREFIX void ps2d_set_ic(const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v)
 DEVICE_PREFIX void ps2d_set_boundary_type(const DG_FP x0, const DG_FP y0,
                                           const DG_FP x1, const DG_FP y1,
                                           int &bc_type) {
-  bc_type = BC_TYPE_NO_SLIP;
+  bc_type = BC_TYPE_NATURAL_OUTFLOW;
 }
 
 // Custom BC pressure and viscosity linear solves BC conditions
 DEVICE_PREFIX int ps2d_custom_bc_get_pr_type(const int bc_type, int &pr_bc) {
-  if(bc_type == BC_TYPE_INFLOW) {
-    pr_bc = BC_NEUMANN;
-  }
+  // Only outflows
+  return -1;
 }
 
 DEVICE_PREFIX int ps2d_custom_bc_get_vis_type(const int bc_type, int &vis_bc) {
-  if(bc_type == BC_TYPE_INFLOW) {
-    vis_bc = BC_DIRICHLET;
-  }
+  // Only outflows
+  return -1;
 }
 
 // Custom BC velocities on boundary
@@ -94,10 +54,7 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vel(const int bc_type, const DG_FP time,
                                           const DG_FP nx, const DG_FP ny,
                                           const DG_FP mU, const DG_FP mV,
                                           DG_FP &u, DG_FP &v) {
-  if(bc_type == BC_TYPE_INFLOW) {
-    u = 1.0;
-    v = 0.0;
-  }
+  // Only outflows
 }
 
 // Custom BC pressure Neumann boundary condition (return 0.0 if not Neumann) [SINGLE-PHASE]
@@ -105,12 +62,6 @@ DEVICE_PREFIX DG_FP ps2d_custom_bc_get_pr_neumann(const int bc_type, const DG_FP
                           const DG_FP x, const DG_FP y, const DG_FP nx, const DG_FP ny,
                           const DG_FP N0, const DG_FP N1, const DG_FP gradCurlVel0,
                           const DG_FP gradCurlVel1, const DG_FP reynolds) {
-  if(bc_type == BC_TYPE_INFLOW) {
-    DG_FP res1 = -N0 - gradCurlVel1 / reynolds;
-    DG_FP res2 = -N1 + gradCurlVel0 / reynolds;
-    return nx * res1 + ny * res2;
-  }
-
   return 0.0;
 }
 
@@ -130,7 +81,59 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 
 // Set the initial interface between phases for multiphase simulations
 DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
-  s = sqrt(x * x + y * y) - 7.5;
+  const DG_FP xO = 0.5;
+  const DG_FP yO = 0.75;
+  const DG_FP r = 0.15;
+  const DG_FP w = 0.05;
+  const DG_FP h = 0.25;
+
+  const DG_FP xL = xO - 0.5*w;
+  const DG_FP xR = xO + 0.5*w;
+
+  const DG_FP yT = yO - r + h;
+  const DG_FP yB = yO - sqrt(r*r - 0.5*w*w);
+
+  DG_FP f1 = sqrt((x - xO)*(x - xO) + (y - yO)*(y - yO)) - r;
+  DG_FP f2 = x - xL;
+  DG_FP f3 = -(x - xR);
+  DG_FP f4 = -(y - yT);
+  DG_FP f5 = sqrt((x - xL)*(x - xL) + (y - yB)*(y - yB));
+  DG_FP f6 = sqrt((x - xR)*(x - xR) + (y - yB)*(y - yB));
+  DG_FP f7 = -sqrt((x - xL)*(x - xL) + (y - yT)*(y - yT));
+  DG_FP f8 = -sqrt((x - xR)*(x - xR) + (y - yT)*(y - yT));
+
+  if (y >= yT)
+  {
+      if (x <= xL)
+          s = fabs(f1) < fabs(f7) ? f1 : f7;
+      else if (x > xR)
+          s = fabs(f1) < fabs(f8) ? f1 : f8;
+      else
+          s = fabs(f1) < fabs(f4) ? f1 : f4;
+  }
+  else if ((y < yT) && (y >= yB))
+  {
+      if (x <= xL)
+          s = fabs(f1) < fabs(f2) ? f1 : f2;
+      else if (x > xR)
+          s = fabs(f1) < fabs(f3) ? f1 : f3;
+      else
+      {
+          if ((fabs(f4) < fabs(f2)) && (fabs(f4) < fabs(f3)))
+              s = f4;
+          else
+              s = fabs(f2) < fabs(f3) ? f2 : f3;
+      }
+  }
+  else if (y < yB)
+  {
+      if ((x <= xL) || (x > xR))
+          s = f1;
+      else
+          s = fabs(f5) < fabs(f6) ? f5 : f6;
+  }
+  else
+      s = 0.0;
 }
 
 // Set level set value on custom BCs (return sM otherwise)
@@ -143,12 +146,6 @@ DEVICE_PREFIX DG_FP ps2d_custom_bc_get_pr_neumann_multiphase(const int bc_type, 
                           const DG_FP x, const DG_FP y, const DG_FP nx, const DG_FP ny,
                           const DG_FP N0, const DG_FP N1, const DG_FP gradCurlVel0,
                           const DG_FP gradCurlVel1, const DG_FP reynolds, const DG_FP rho) {
-  if(bc_type == BC_TYPE_INFLOW) {
-    DG_FP res1 = -N0 - gradCurlVel1 / (reynolds * rho);
-    DG_FP res2 = -N1 + gradCurlVel0 / (reynolds * rho);
-    return nx * res1 + ny * res2;
-  }
-
   return 0.0;
 }
 
@@ -172,9 +169,12 @@ DEVICE_PREFIX void ps2d_custom_bc_get_temperature_grad(const int bc_type, const 
 
 // Set the velocity for the level-set-only solver based on current time and coordinates
 DEVICE_PREFIX void ps2d_set_ls_vel(const DG_FP time, const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v) {
-  u = 0.0;
-  v = 0.0;
+  u = 0.5 - y;
+  v = x - 0.5;
 }
 
-#endif
+DEVICE_PREFIX DG_FP ps2d_get_analytical_solution(const DG_FP time, const DG_FP x, const DG_FP y) {
+  return sqrt(x*x + y*y) - 1.0;
+}
+
 #endif
