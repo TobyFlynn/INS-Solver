@@ -2,7 +2,6 @@
 
 Currently mostly reinitalisation tests.
 
-
 ## Running
 
 Every subdirectory has files that need to be run in linear order.
@@ -11,4 +10,5 @@ Every subdirectory has files that need to be run in linear order.
 1. `run.sh`
 1. `post.py`
 
-The Python post-processing file requires VTK, Numpy and Matplotlib.
+The meshing uses GMSH. The post-processing may need Python as well as VTK,
+Numpy and Matplotlib.

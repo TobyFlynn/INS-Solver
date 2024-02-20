@@ -1,3 +1,59 @@
+/**
+ *
+Zalesak's slotted disc benchmark with level-set:
+
+                               +++++++++                             
+                         +     |       |    +≠                       
+        f1            +  f1|f7 | f1|f4 |  f1|f8 +                    
+                   +           |       |          +                  
+                 +-------------+++++++++------------+                
+                +              +  f4   +              +              
+                               +       +               +             
+                               +       +                +            
+                               +       +                 +           
+            +                  +       +                             
+                               +       +                  +          
+           ×                   +       +                  ∞          
+           +                   +       +                             
+           +                   +       +                             
+           ∞      f1|f2        +f2   f3+      f3|f1       ÷          
+                               +       +                  +          
+            +                  +       +                             
+             ×                 +       +                 +           
+                               +       +                +            
+               ∞               +       +               +             
+                +              +       +                             
+                               +       +            +                
+                    ≠          +       +          +                  
+                      +        +       +       +                     
+                          +    +       +   ++                        
+                              f5      f6
+
+Input variables (currently set according to Ngo:
+(xO, yO)    - the centre of the circle
+r           - radius of the circle
+w           - width of the slot
+h           - height of the slot (assuming h > r)
+
+Computed variables:
+(xL, yT) - top left corner of the slot
+(xR, yT) - top right corner of the slot
+(xL, yB) - bottom left corner of the slot
+(xR, yB) - btottom right corner of the slot
+
+Below are the signed distance function. They assume that the negative sign is
+on the insde of the disk. They are also marked on the image above:
+f1 = sqrt((x - xO)*(x - xO) + (y - yO)*(y - yO)) - r;
+f2 = x - xL;
+f3 = -(x - xR);
+f4 = -(y - yT);
+f5 = sqrt((x - xL)*(x - xL) + (y - yB)*(y - yB));
+f6 = sqrt((x - xR)*(x - xR) + (y - yB)*(y - yB));
+f7 = -sqrt((x - xL)*(x - xL) + (y - yT)*(y - yT));
+f8 = -sqrt((x - xR)*(x - xR) + (y - yT)*(y - yT));
+*/
+
+
 #ifndef __INS_2D_LS_TEST_H
 #define __INS_2D_LS_TEST_H
 
@@ -169,8 +225,14 @@ DEVICE_PREFIX void ps2d_custom_bc_get_temperature_grad(const int bc_type, const 
 
 // Set the velocity for the level-set-only solver based on current time and coordinates
 DEVICE_PREFIX void ps2d_set_ls_vel(const DG_FP time, const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v) {
-  u = 0.5 - y;
-  v = x - 0.5;
+  // The choice of constants here aims to make the period of rotation equal to
+  // 1 time unit for the disc defined by parameters above. If we want to
+  // generalise this we would need to make these constants global.
+  const DG_FP PI = 3.141592653589793238463;
+  u = 2.0 * PI * (0.5 - y);
+  v = 2.0 * PI * (x - 0.5);
+  //u = 1.0;
+  //v = 0.0;
 }
 
 DEVICE_PREFIX DG_FP ps2d_get_analytical_solution(const DG_FP time, const DG_FP x, const DG_FP y) {

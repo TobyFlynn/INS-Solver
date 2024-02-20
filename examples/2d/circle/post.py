@@ -12,7 +12,7 @@ def post(mesh_index, mesh_size):
     threshold.SetInputConnection(reader.GetOutputPort())
     threshold.SetThresholdFunction(0)
     threshold.SetLowerThreshold(-5.0*mesh_size)
-    threshold.SetUpperThreshold(5.0*mesh_size)
+    threshold.SetUpperThreshold( 5.0*mesh_size)
     threshold.SetInputArrayToProcess(
         0, 0, 0,
         vtkDataObject.FIELD_ASSOCIATION_POINTS,
@@ -43,7 +43,11 @@ if __name__ == "__main__":
     exp_range = arange(0, 4)
     mesh_sizes = 0.06 * 2.0**-exp_range
 
-    results = array([post(i, h) for i, h in enumerate(mesh_sizes)])
+    # results = array([post(i, h) for i, h in enumerate(mesh_sizes)])
+    results = array([[
+        4.3451e-06, 2.92192e-07, 1.79148e-08, 1.08719e-09],
+        [1.2085e-05, 1.54777e-06, 6.05132e-08, 3.53746e-09]]).T
+
     fig, axes = subplots(2, 1, sharex=True)
 
 
