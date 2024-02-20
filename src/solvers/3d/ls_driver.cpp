@@ -57,6 +57,8 @@ void LSDriver3D::step() {
               op_arg_dat(w, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
   lsSolver->step(u, v, w, dt, 1);
+
+  time += dt;
 }
 
 void LSDriver3D::dump_visualisation_data(const std::string &filename) {

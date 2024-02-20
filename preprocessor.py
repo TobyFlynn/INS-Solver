@@ -177,9 +177,21 @@ elif dim == "3":
     dg_num_faces = "4"
     dg_num_constants = "2"
     ls_sample_np = dg_np
-    # TODO update
-    dg_cub_3d_np = "23"
-    dg_cub_surf_3d_np = "12"
+    if order == "1":
+        dg_cub_3d_np = "4"
+        dg_cub_surf_3d_np = "3"
+    elif order == "2":
+        dg_cub_3d_np = "11"
+        dg_cub_surf_3d_np = "6"
+    elif order == "3":
+        dg_cub_3d_np = "23"
+        dg_cub_surf_3d_np = "12"
+    elif order == "4":
+        dg_cub_3d_np = "44"
+        dg_cub_surf_3d_np = "16"
+    else:
+        print("This order of DG is not supported yet...exiting")
+        sys.exit(-1)
 
 inputfiles = []
 

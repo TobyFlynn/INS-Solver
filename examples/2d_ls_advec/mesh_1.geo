@@ -1,5 +1,5 @@
 // Target element size
-lc = 0.1;
+lc = 1.0 / 64.0;
 
 // Bottom left coords
 xL = -1.0;

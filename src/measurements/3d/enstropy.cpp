@@ -57,7 +57,7 @@ DG_FP Enstropy3D::calc_enstropy() {
   op2_gemv(mesh, false, 1.0, DGConstants::CUB3D_INTERP, curl[2].dat, 0.0, cub_curl[2].dat);
 
   DG_FP *cub_w_ptr = constants->get_mat_ptr(DGConstants::CUB3D_W);
-  op_par_loop(measure_enstrophy_0, "measure_enstrophy_0", mesh->cells,
+  op_par_loop(measure_enstrophy, "measure_enstrophy", mesh->cells,
               op_arg_gbl(cub_w_ptr, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->geof, -1, OP_ID, 10, DG_FP_STR, OP_READ),
               op_arg_dat(cub_curl[0].dat, -1, OP_ID, DG_CUB_3D_NP, DG_FP_STR, OP_READ),
@@ -71,7 +71,7 @@ DG_FP Enstropy3D::calc_enstropy() {
   dg_dat_pool->releaseTempDatCells(cub_curl[2]);
 
   DG_FP enstropy = 0.0;
-  op_par_loop(measure_enstrophy_1, "measure_enstrophy_1", mesh->cells,
+  op_par_loop(sum_dg_np, "sum_dg_np", mesh->cells,
               op_arg_gbl(&enstropy, 1, DG_FP_STR, OP_INC),
               op_arg_dat(curl[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
 
@@ -121,7 +121,7 @@ DG_FP Enstropy3D::calc_ke() {
   dg_dat_pool->releaseTempDatCells(cub_ke_tmp);
 
   DG_FP kinetic_energy = 0.0;
-  op_par_loop(measure_enstrophy_1, "measure_enstrophy_1", mesh->cells,
+  op_par_loop(sum_dg_np, "sum_dg_np", mesh->cells,
               op_arg_gbl(&kinetic_energy, 1, DG_FP_STR, OP_INC),
               op_arg_dat(ke_tmp.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
 

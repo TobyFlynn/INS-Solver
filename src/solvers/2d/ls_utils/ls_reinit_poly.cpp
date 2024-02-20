@@ -225,8 +225,8 @@ void PolyApprox::set_3rd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP>
     b(i) = s[i];
   }
 
-  arma::vec ans = arma::solve(A, b);
-  // arma::vec ans = arma::inv(A.t() * A) * A.t() * b;
+  // arma::vec ans = arma::solve(A, b);
+  arma::vec ans = arma::inv(A.t() * A) * A.t() * b;
   for(int i = 0; i < 10; i++) {
     coeff.push_back(ans(i));
   }
@@ -460,7 +460,7 @@ int PolyApprox::num_pts() {
   if(N == 2) {
     return 12;
   } else if(N == 3) {
-    return 25;
+    return 26;
   } else if(N == 4) {
     return 25;
   } else {
@@ -494,7 +494,9 @@ struct stencil_query {
   set<int> central_inds;
 };
 
-map<int,set<int>> PolyApprox::get_stencils(const set<int> &central_inds, op_map edge_map) {
+map<int,set<int>> PolyApprox::get_stencils(const set<int> &central_inds, op_map edge_map, const DG_FP *x_ptr, const DG_FP *y_ptr) {
+  return single_layer_stencils(central_inds, edge_map, x_ptr, y_ptr);
+  
   timer->startTimer("PolyApprox - get_stencils");
   map<int,set<int>> stencils;
   map<int,stencil_query> queryInds;
@@ -550,6 +552,113 @@ map<int,set<int>> PolyApprox::get_stencils(const set<int> &central_inds, op_map 
                 sq.ind = edge_map->map[i - 1];
                 auto res = newQueryInds.insert({edge_map->map[i - 1], sq});
                 res.first->second.central_inds.insert(ind);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    queryInds = newQueryInds;
+  }
+  timer->endTimer("PolyApprox - get_stencils");
+
+  return stencils;
+}
+
+bool share_coords(const DG_FP *x_ptr, const DG_FP *y_ptr, const std::vector<Coord> &nodes) {
+  for(int i = 0; i < DG_NP; i++) {
+    for(int n = 0; n < 3; n++) {
+      bool xCmp = abs(x_ptr[i] - nodes[n].x) < 1e-8;
+      bool yCmp = abs(y_ptr[i] - nodes[n].y) < 1e-8;
+      if(xCmp && yCmp) return true;
+    }
+  }
+  return false;
+}
+
+map<int,set<int>> PolyApprox::single_layer_stencils(const set<int> &central_inds, op_map edge_map, const DG_FP *x_ptr, const DG_FP *y_ptr) {
+  timer->startTimer("PolyApprox - get_stencils");
+  map<int,set<int>> stencils;
+  map<int,stencil_query> queryInds;
+  const int num_elements = num_elem_stencil();
+  map<int,std::vector<Coord>> central_inds_nodes;
+
+  const int fmask_node_ind_0 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];
+  const int fmask_node_ind_1 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + DG_NPF - 1];
+  const int fmask_node_ind_2 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + 2 * DG_NPF - 1];
+
+  for(const auto &ind : central_inds) {
+    set<int> st;
+    st.insert(ind);
+    stencils.insert({ind, st});
+    stencil_query sq;
+    sq.ind = ind;
+    sq.central_inds.insert(ind);
+    queryInds.insert({ind, sq});
+
+    std::vector<Coord> nodes;
+    Coord node0, node1, node2;
+    node0.x = x_ptr[ind * DG_NP + fmask_node_ind_0];
+    node0.y = y_ptr[ind * DG_NP + fmask_node_ind_0];
+    nodes.push_back(node0);
+    node1.x = x_ptr[ind * DG_NP + fmask_node_ind_1];
+    node1.y = y_ptr[ind * DG_NP + fmask_node_ind_1];
+    nodes.push_back(node1);
+    node2.x = x_ptr[ind * DG_NP + fmask_node_ind_2];
+    node2.y = y_ptr[ind * DG_NP + fmask_node_ind_2];
+    nodes.push_back(node2);
+    central_inds_nodes.insert({ind, nodes});
+  }
+
+  const int numEdges = edge_map->from->size;
+  
+  while(queryInds.size() > 0) {
+    map<int,stencil_query> newQueryInds;
+
+    // Iterate over each edge pair
+    for(int i = 0; i < numEdges * 2; i++) {
+      // Find if this cell ind is in the query inds
+      auto it = queryInds.find(edge_map->map[i]);
+      if(it != queryInds.end()) {
+        if(i % 2 == 0) {
+          // For each central ind associated with this query ind
+          for(const auto &ind : it->second.central_inds) {
+            auto stencil_it = stencils.find(ind);
+            // Check if the other cell in this edge is already in the stencil for this central ind
+            if(stencil_it->second.find(edge_map->map[i + 1]) == stencil_it->second.end()
+               && stencil_it->second.size() < num_elements) {
+              // Check if we share a node with the central ind
+              auto node_coords = central_inds_nodes.at(ind);
+              if(share_coords(x_ptr + edge_map->map[i + 1] * DG_NP, y_ptr + edge_map->map[i + 1] * DG_NP, node_coords)) {
+                stencil_it->second.insert(edge_map->map[i + 1]);
+                // If stencil is not full then add to next rounds query inds
+                if(stencil_it->second.size() < num_elements) {
+                  stencil_query sq;
+                  sq.ind = edge_map->map[i + 1];
+                  auto res = newQueryInds.insert({edge_map->map[i + 1], sq});
+                  res.first->second.central_inds.insert(ind);
+                }
+              }
+            }
+          }
+        } else {
+          // For each central ind associated with this query ind
+          for(const auto &ind : it->second.central_inds) {
+            auto stencil_it = stencils.find(ind);
+            // Check if the other cell in this edge is already in the stencil for this central ind
+            if(stencil_it->second.find(edge_map->map[i - 1]) == stencil_it->second.end()
+               && stencil_it->second.size() < num_elements) {
+              auto node_coords = central_inds_nodes.at(ind);
+              if(share_coords(x_ptr + edge_map->map[i - 1] * DG_NP, y_ptr + edge_map->map[i - 1] * DG_NP, node_coords)) {
+                stencil_it->second.insert(edge_map->map[i - 1]);
+                // If stencil is not full then add to next rounds query inds
+                if(stencil_it->second.size() < num_elements) {
+                  stencil_query sq;
+                  sq.ind = edge_map->map[i - 1];
+                  auto res = newQueryInds.insert({edge_map->map[i - 1], sq});
+                  res.first->second.central_inds.insert(ind);
+                }
               }
             }
           }

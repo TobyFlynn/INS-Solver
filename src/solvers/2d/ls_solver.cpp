@@ -345,14 +345,14 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, const DG_FP node_x,
     }
 
     // Gone outside the element, return
-    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > 2.0 * 2.0 * h * h) {
+    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) > 1.5 * 1.5 * h * h) {
       pt_x = pt_x_old;
       pt_y = pt_y_old;
       break;
     }
 
     // Converged, no more steps required
-    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) < 1e-18) {
+    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) < 1e-24) {
       converged = true;
       break;
     }
@@ -394,10 +394,10 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
         s[i] = sqrt(s[i]);
         if(negative) s[i] *= -1.0;
       } else {
-        // bool negative = s[i] < 0.0;
-        // s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
-        // s[i] = sqrt(s[i]);
-        // if(negative) s[i] *= -1.0;
+        bool negative = s[i] < 0.0;
+        s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
+        s[i] = sqrt(s[i]);
+        if(negative) s[i] *= -1.0;
         #pragma omp atomic
         numNonConv++;
       }
@@ -448,15 +448,16 @@ void LevelSetSolver2D::reinitLS() {
   timer->endTimer("LevelSetSolver2D - get cells containing interface");
 
   timer->startTimer("LevelSetSolver2D - create polynomials");
+  const DG_FP *_x_ptr = getOP2PtrHostHE(mesh->x, OP_READ);
+  const DG_FP *_y_ptr = getOP2PtrHostHE(mesh->y, OP_READ);
+
   std::map<int,int> _cell2polyMap;
   std::vector<PolyApprox> _polys;
-  std::map<int,std::set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->face2cells);
+  std::map<int,std::set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->face2cells, _x_ptr, _y_ptr);
 
   DGTempDat s_modal = dg_dat_pool->requestTempDatCells(DG_NP);
   op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, s_modal.dat);
 
-  const DG_FP *_x_ptr = getOP2PtrHostHE(mesh->x, OP_READ);
-  const DG_FP *_y_ptr = getOP2PtrHostHE(mesh->y, OP_READ);
   const DG_FP *_modal_ptr = getOP2PtrHostHE(s_modal.dat, OP_READ);
 
   // Populate map

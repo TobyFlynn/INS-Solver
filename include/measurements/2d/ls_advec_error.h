@@ -18,11 +18,13 @@ protected:
   virtual std::string get_next_csv_line() override;
 
 private:
-  struct L2ErrorHistory {
+  struct ErrorHistory {
     DG_FP time;
-    DG_FP err;
+    DG_FP l1;
+    DG_FP l2;
+    DG_FP l_max;
   };
-  std::vector<L2ErrorHistory> history;
+  std::vector<ErrorHistory> history;
   LSDriver2D *ls_driver;
 };
 

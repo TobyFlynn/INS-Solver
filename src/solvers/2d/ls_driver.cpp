@@ -57,6 +57,8 @@ void LSDriver2D::step() {
   
   lsSolver->setVelField(u, v);
   lsSolver->step(dt, 1);
+
+  time += dt;
 }
 
 void LSDriver2D::dump_visualisation_data(const std::string &filename) {
