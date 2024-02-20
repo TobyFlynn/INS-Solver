@@ -4,15 +4,15 @@
 #define EXAMPLE_3D_LS_TEST_STATIONARY
 
 #if defined(EXAMPLE_3D_TGV)
-#include "examples/3d_tgv.h"
+#include "examples/3d/tgv.h"
 #elif defined(EXAMPLE_3D_LIQUID_WHISTLE)
-#include "examples/3d_liquid_whistle.h"
+#include "examples/3d/liquid_whistle.h"
 #elif defined(EXAMPLE_3D_OSCILLATING_DROPLET)
-#include "examples/3d_oscillating_droplet.h"
+#include "examples/3d/oscillating_droplet.h"
 #elif defined(EXAMPLE_3D_LS_TEST)
-#include "examples/3d_ls_test.h"
+#include "examples/3d/ls_test.h"
 #elif defined(EXAMPLE_3D_LS_TEST_STATIONARY)
-#include "examples/3d_ls_test_stationary.h"
+#include "examples/3d/ls_test_stationary.h"
 #else
 
 #if defined(INS_CUDA)

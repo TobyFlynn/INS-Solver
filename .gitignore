@@ -4,5 +4,5 @@ results
 grids
 bin
 obj
-examples/*/*.vtk
-examples/*/*.h5
+examples/**/*.vtk
+examples/**/*.h5
