@@ -19,6 +19,9 @@
 #define BC_TYPE_SLIP_X 2
 #define BC_TYPE_SLIP_Y 3
 
+#define CENTRE_X -0.65
+#define CENTRE_Y -0.65
+
 /************************************************************************
  * You can edit the body of the functions below but not their signature *
  ************************************************************************/
@@ -80,7 +83,7 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 
 // Set the initial interface between phases for multiphase simulations
 DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
-  s = sqrt((x + 0.65) * (x + 0.65) + (y + 0.65) * (y + 0.65)) - 0.2;
+  s = sqrt((x - CENTRE_X) * (x - CENTRE_X) + (y - CENTRE_Y) * (y - CENTRE_Y)) - 0.2;
 }
 
 // Set level set value on custom BCs (return sM otherwise)
@@ -118,6 +121,15 @@ DEVICE_PREFIX void ps2d_custom_bc_get_temperature_grad(const int bc_type, const 
 DEVICE_PREFIX void ps2d_set_ls_vel(const DG_FP time, const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v) {
   u = 1.0 / sqrt(2.0);
   v = 1.0 / sqrt(2.0);
+}
+
+DEVICE_PREFIX DG_FP ps2d_get_analytical_solution(const DG_FP time, const DG_FP x, const DG_FP y) {
+  const DG_FP vel_x = 1.0 / sqrt(2.0);
+  const DG_FP vel_y = 1.0 / sqrt(2.0);
+  const DG_FP centre_x = CENTRE_X + time  * vel_x;
+  const DG_FP centre_y = CENTRE_Y + time  * vel_y;
+
+  return sqrt((x - centre_x) * (x - centre_x) + (y - centre_y) * (y - centre_y)) - 0.2;
 }
 
 #endif

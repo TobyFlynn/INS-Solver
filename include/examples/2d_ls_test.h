@@ -124,4 +124,8 @@ DEVICE_PREFIX void ps2d_set_ls_vel(const DG_FP time, const DG_FP x, const DG_FP 
   v = -sin(PI * y) * sin(PI * y) * sin(2.0 * PI * x) * time_component;
 }
 
+DEVICE_PREFIX DG_FP ps2d_get_analytical_solution(const DG_FP time, const DG_FP x, const DG_FP y) {
+  return 0.0;
+}
+
 #endif

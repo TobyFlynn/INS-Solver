@@ -87,7 +87,7 @@ void LSDriver2D::dump_visualisation_data(const std::string &filename) {
   op_printf("L_MAX = %g\n", l_max);
   mesh->mass(err);
   DG_FP l1 = 0.0;
-  op_par_loop(measure_l2_error_vortex_1, "measure_l2_error_vortex_1", mesh->cells,
+  op_par_loop(sum_dg_np, "sum_dg_np", mesh->cells,
               op_arg_gbl(&l1, 1, DG_FP_STR, OP_INC),
               op_arg_dat(err, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
   op_printf("L_1 = %g\n", l1);
