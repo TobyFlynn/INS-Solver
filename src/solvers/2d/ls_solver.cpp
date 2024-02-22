@@ -385,11 +385,11 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
       DG_FP _node_y = y[i] - poly_offset_y;
       bool converged = newton_kernel(_closest_x, _closest_y, _node_x, _node_y, polys[poly_ind[i]], h);
       if(converged) {
-        // DG_FP dsdx, dsdy;
-        // polys[poly_ind[i]].grad_at(_closest_x, _closest_y, dsdx, dsdy);
-        // DG_FP dot = (_node_x - _closest_x) * dsdx + (_node_y - _closest_y) * dsdy;
-        // bool negative = dot < 0.0;
-        bool negative = s[i] < 0.0;
+        DG_FP dsdx, dsdy;
+        polys[poly_ind[i]].grad_at(_closest_x, _closest_y, dsdx, dsdy);
+        DG_FP dot = (_node_x - _closest_x) * dsdx + (_node_y - _closest_y) * dsdy;
+        bool negative = dot < 0.0;
+        // bool negative = s[i] < 0.0;
         s[i] = (_closest_x - _node_x) * (_closest_x - _node_x) + (_closest_y - _node_y) * (_closest_y - _node_y);
         s[i] = sqrt(s[i]);
         if(negative) s[i] *= -1.0;

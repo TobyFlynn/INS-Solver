@@ -117,13 +117,13 @@ PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
 
   vector<DG_FP> x_vec, y_vec, s_vec;
   stencil_data(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, x_vec, y_vec, s_vec);
-
+/*
   // Make sure equal number of points on each side of the line
   int pts_needed = num_coeff();
   int pts_aim = num_pts();
   int pos_pts, neg_pts;
   num_pts_pos_neg(s_vec, pos_pts, neg_pts);
-  while((x_vec.size() > pts_needed && pos_pts != neg_pts) || x_vec.size() > pts_aim) {
+  while(x_vec.size() > pts_aim) {
     // Find point furthest from the interface to discard
     int ind_discard;
     if(pos_pts > neg_pts) {
@@ -152,7 +152,7 @@ PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
 
     num_pts_pos_neg(s_vec, pos_pts, neg_pts);
   }
-
+*/
   if(N == 2) {
     set_2nd_order_coeff(x_vec, y_vec, s_vec);
   } else if(N == 3) {
@@ -200,8 +200,8 @@ void PolyApprox::set_2nd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP>
     b(i) = s[i];
   }
 
-  arma::vec ans = arma::solve(A, b);
-  // arma::vec ans = arma::solve(arma::inv(A.t() * A) * A.t(), b);
+  // arma::vec ans = arma::solve(A, b);
+  arma::vec ans = arma::inv(A.t() * A) * A.t() * b;
   for(int i = 0; i < 6; i++) {
     coeff.push_back(ans(i));
   }
@@ -224,12 +224,66 @@ void PolyApprox::set_3rd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP>
 
     b(i) = s[i];
   }
-
   // arma::vec ans = arma::solve(A, b);
   arma::vec ans = arma::inv(A.t() * A) * A.t() * b;
+ 
   for(int i = 0; i < 10; i++) {
     coeff.push_back(ans(i));
   }
+
+  arma::vec res = A * ans;
+  bool redo_with_weighted_least_squares = false;
+  set<int> problem_inds;
+  for(int i = 0; i < x.size(); i++) {
+    if(res(i) > 0.0 != b(i) > 0.0) {
+      redo_with_weighted_least_squares = true;
+      problem_inds.insert(i);
+    }
+  }
+
+  if(redo_with_weighted_least_squares) {
+    arma::mat A(x.size(), 10);
+    arma::vec b(x.size());
+    arma::vec w(x.size());
+    const DG_FP sigma = 0.00001;
+    for(int i = 0; i < x.size(); i++) {
+      A(i,C_POLY_IND)   = 1.0;
+      A(i,X_POLY_IND)   = x[i];
+      A(i,Y_POLY_IND)   = y[i];
+      A(i,X2_POLY_IND)  = x[i] * x[i];
+      A(i,XY_POLY_IND)  = x[i] * y[i];
+      A(i,Y2_POLY_IND)  = y[i] * y[i];
+      A(i,X3_POLY_IND)  = x[i] * x[i] * x[i];
+      A(i,X2Y_POLY_IND) = x[i] * x[i] * y[i];
+      A(i,Y2X_POLY_IND) = x[i] * y[i] * y[i];
+      A(i,Y3_POLY_IND)  = y[i] * y[i] * y[i];
+
+      b(i) = s[i];
+      w(i) = exp(-s[i] * s[i] / sigma);
+      // w(i) = 1.0 / (1.0 + fabs(s[i]));
+      if(problem_inds.count(i) > 0) w(i) = 2.0;
+    }
+    arma::mat W = arma::diagmat(w);
+    arma::vec ans = arma::inv(A.t() * W * A) * A.t() * W * b;
+  
+    coeff.clear();
+    for(int i = 0; i < 10; i++) {
+      coeff.push_back(ans(i));
+    }
+  }
+
+/*
+  arma::vec res = A * ans - b;
+  double residual = arma::dot(res, res);
+
+  if(residual > 1e-5) {
+    coeff.clear();
+    set_2nd_order_coeff(x, y, s);
+    while(coeff.size() != 10) {
+      coeff.push_back(0.0);
+    }
+  }
+*/
 }
 
 void PolyApprox::set_4th_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s) {
@@ -255,8 +309,8 @@ void PolyApprox::set_4th_order_coeff(const vector<DG_FP> &x, const vector<DG_FP>
     b(i) = s[i];
   }
 
-  arma::vec ans = arma::solve(A, b);
-  // arma::vec ans = arma::inv(A.t() * A) * A.t() * b;
+  // arma::vec ans = arma::solve(A, b);
+  arma::vec ans = arma::inv(A.t() * A) * A.t() * b;
   for(int i = 0; i < 15; i++) {
     coeff.push_back(ans(i));
   }
@@ -458,9 +512,9 @@ int PolyApprox::num_coeff() {
 
 int PolyApprox::num_pts() {
   if(N == 2) {
-    return 12;
-  } else if(N == 3) {
     return 26;
+  } else if(N == 3) {
+    return 24;
   } else if(N == 4) {
     return 25;
   } else {

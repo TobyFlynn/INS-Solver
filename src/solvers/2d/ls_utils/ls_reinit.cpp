@@ -196,7 +196,7 @@ void LevelSetSolver2D::sampleInterface(op_dat sampleX, op_dat sampleY, std::vect
 
       // || !in_tri(sampleX[i], sampleY[i], _nodeX, _nodeY)
       // || dist_travelled > 1.5 * 1.5 * h * h
-      if(!converged) {
+      if(!converged || dist_travelled > 1.5 * 1.5 * h * h) {
         // Try randomly placing start and rerunning 10 times
         bool rerun_converged = false;
         bool rerun_in_bounds = false;
