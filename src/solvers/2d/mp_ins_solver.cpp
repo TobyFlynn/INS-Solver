@@ -241,6 +241,17 @@ void MPINSSolver2D::step() {
 }
 
 void MPINSSolver2D::surface_tension_grad(op_dat dx, op_dat dy) {
+  DGTempDat heaviside = dg_dat_pool->requestTempDatCells(DG_NP);
+  op_par_loop(ins_2d_st_new_0, "ins_2d_st_new_0", mesh->cells,
+              op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(heaviside.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  
+  mesh->grad_over_int_with_central_flux(heaviside.dat, dx, dy);
+  dg_dat_pool->releaseTempDatCells(heaviside);
+}
+
+void MPINSSolver2D::surface_tension_grad_over_int(op_dat dx, op_dat dy) {
   // grad heaviside
   DGTempDat st_tmp_0 = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
   op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, lsSolver->s, 0.0, st_tmp_0.dat);

@@ -42,6 +42,7 @@ private:
   void surface();
 
   void surface_tension_grad(op_dat dx, op_dat dy);
+  void surface_tension_grad_over_int(op_dat dx, op_dat dy);
   void surface_tension_curvature(op_dat curv);
 
   void apply_pressure_neumann_bc(op_dat divVelT);
