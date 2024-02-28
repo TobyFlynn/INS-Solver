@@ -15,7 +15,7 @@
 class PolyApprox3D {
 public:
   PolyApprox3D(const int cell_ind, std::set<int> stencil, const DG_FP *x_ptr,
-               const DG_FP *y_ptr, const DG_FP *z_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr);
+               const DG_FP *y_ptr, const DG_FP *z_ptr, const DG_FP *s_ptr, const DG_FP h);
   PolyApprox3D(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y, DG_FP off_z);
 
   DG_FP val_at(const DG_FP x, const DG_FP y, const DG_FP z);
@@ -37,16 +37,15 @@ private:
 
   void get_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_ptr, const DG_FP *z_ptr);
   void stencil_data(const int cell_ind, const std::set<int> &stencil, const DG_FP *x_ptr, const DG_FP *y_ptr,
-                    const DG_FP *z_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, std::vector<DG_FP> &x,
+                    const DG_FP *z_ptr, const DG_FP *s_ptr, std::vector<DG_FP> &x,
                     std::vector<DG_FP> &y, std::vector<DG_FP> &z, std::vector<DG_FP> &s);
   int num_pts();
 
-  void set_2nd_order_coeff(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &z,
-                           const std::vector<DG_FP> &s);
-  void set_3rd_order_coeff(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &z,
-                           const std::vector<DG_FP> &s);
-  void set_4th_order_coeff(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &z,
-                           const std::vector<DG_FP> &s);
+  void fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &z, const vector<DG_FP> &s, const DG_FP h);
+  arma::mat get_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &z);
+  arma::mat get_2nd_order_vandermonde(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &z);
+  arma::mat get_3rd_order_vandermonde(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &z);
+  arma::mat get_4th_order_vandermonde(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &z);
 
   DG_FP val_at_2nd(const DG_FP x, const DG_FP y, const DG_FP z);
   DG_FP val_at_3rd(const DG_FP x, const DG_FP y, const DG_FP z);

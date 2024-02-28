@@ -40,8 +40,9 @@ struct cmpCoords {
 };
 
 void avg_stencil(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
-                 const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap);
+                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP offset_x, 
+                 const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap);
+/*
 void avg_stencil_nodes(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
                  const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
                  const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap);
@@ -57,6 +58,7 @@ void proj_onto_interface(const int cell_ind, const set<int> &stencil, const DG_F
 void random_pts(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
                 const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap);
+*/
 
 bool vec_contains(const int val, const vector<int> &vec) {
   for(int i = 0; i < vec.size(); i++) {
@@ -78,20 +80,14 @@ void PolyApprox::calc_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_p
 }
 
 void PolyApprox::stencil_data(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                              const DG_FP *y_ptr, const DG_FP *s_ptr, 
-                              const DG_FP *modal_ptr, vector<DG_FP> &x, 
+                              const DG_FP *y_ptr, const DG_FP *s_ptr, vector<DG_FP> &x, 
                               vector<DG_FP> &y, vector<DG_FP> &s) {
-  // Setup random number generator for later
-  
   map<Coord, Point, cmpCoords> pointMap;
-  avg_stencil(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, offset_x, offset_y, pointMap);
+  avg_stencil(cell_ind, stencil, x_ptr, y_ptr, s_ptr, offset_x, offset_y, pointMap);
   
   // avg_stencil_nodes(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, offset_x, offset_y, pointMap);
-
   // central_avg(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, offset_x, offset_y, pointMap);
-
   // proj_onto_interface(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, offset_x, offset_y, pointMap);
-
   // random_pts(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, offset_x, offset_y, pointMap);
 
   for(auto const &p : pointMap) {
@@ -101,65 +97,15 @@ void PolyApprox::stencil_data(const int cell_ind, const set<int> &stencil, const
   }
 }
 
-void num_pts_pos_neg(const vector<DG_FP> &s, int &pos, int &neg) {
-  pos = 0;
-  neg = 0;
-  for(int i = 0; i < s.size(); i++) {
-    if(s[i] > 0.0) pos++;
-    if(s[i] < 0.0) neg++;
-  }
-}
-
 PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
                        const DG_FP *x_ptr, const DG_FP *y_ptr,
-                       const DG_FP *s_ptr, const DG_FP *modal_ptr) {
+                       const DG_FP *s_ptr, const DG_FP h) {
   calc_offset(cell_ind, x_ptr, y_ptr);
-
+  
   vector<DG_FP> x_vec, y_vec, s_vec;
-  stencil_data(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, x_vec, y_vec, s_vec);
-/*
-  // Make sure equal number of points on each side of the line
-  int pts_needed = num_coeff();
-  int pts_aim = num_pts();
-  int pos_pts, neg_pts;
-  num_pts_pos_neg(s_vec, pos_pts, neg_pts);
-  while(x_vec.size() > pts_aim) {
-    // Find point furthest from the interface to discard
-    int ind_discard;
-    if(pos_pts > neg_pts) {
-      DG_FP max = s_vec[0];
-      ind_discard = 0;
-      for(int i = 1; i < x_vec.size(); i++) {
-        if(s_vec[i] > max) {
-          max = s_vec[i];
-          ind_discard = i;
-        }
-      }
-    } else {
-      DG_FP min = s_vec[0];
-      ind_discard = 0;
-      for(int i = 1; i < x_vec.size(); i++) {
-        if(s_vec[i] < min) {
-          min = s_vec[i];
-          ind_discard = i;
-        }
-      }
-    }
-    // Discard ind
-    x_vec.erase(x_vec.begin() + ind_discard);
-    y_vec.erase(y_vec.begin() + ind_discard);
-    s_vec.erase(s_vec.begin() + ind_discard);
-
-    num_pts_pos_neg(s_vec, pos_pts, neg_pts);
-  }
-*/
-  if(N == 2) {
-    set_2nd_order_coeff(x_vec, y_vec, s_vec);
-  } else if(N == 3) {
-    set_3rd_order_coeff(x_vec, y_vec, s_vec);
-  } else if(N == 4) {
-    set_4th_order_coeff(x_vec, y_vec, s_vec);
-  }
+  stencil_data(cell_ind, stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_vec);
+  
+  fit_poly(x_vec, y_vec, s_vec, h);
 }
 
 PolyApprox::PolyApprox(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y) {
@@ -168,6 +114,62 @@ PolyApprox::PolyApprox(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y) {
   for(int i = 0; i < num_coeff(); i++) {
     coeff.push_back(c[i]);
   }
+}
+
+void PolyApprox::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s, const DG_FP h) {
+  // Set A vandermonde matrix and b
+  arma::mat A = get_vandermonde(x, y);
+  arma::vec b(s);
+
+  // Fit poly by using QR
+  arma::mat Q, R;
+  arma::qr(Q, R, A);
+  arma::vec ans = arma::solve(R, Q.t() * b);
+  
+  coeff = arma::conv_to<vector<DG_FP>>::from(ans);
+
+  arma::vec res = A * ans;
+  bool node_with_wrong_sign = false;
+  set<int> problem_inds;
+  arma::vec w(x.size());
+  const DG_FP sigma = h * 0.01;
+  for(int i = 0; i < x.size(); i++) {
+    w(i) = exp(-s[i] * s[i] / sigma);
+    if(res(i) > 0.0 != b(i) > 0.0) {
+      node_with_wrong_sign = true;
+      problem_inds.insert(i);
+    }
+  }
+
+  int redo_counter = 0;
+  const int max_redo = 50;
+  while(node_with_wrong_sign && redo_counter < max_redo) {
+    for(int i = 0; i < x.size(); i++) {
+      if(problem_inds.count(i) > 0) 
+        w(i) = w(i) * 2.0;
+    }
+    arma::mat W = arma::diagmat(arma::sqrt(w));
+    arma::mat Q, R;
+    arma::qr(Q, R, W*A);
+    arma::vec ans = arma::solve(R, Q.t() * W * b);
+  
+    coeff = arma::conv_to<vector<DG_FP>>::from(ans);
+
+    arma::vec res = A * ans;
+    node_with_wrong_sign = false;
+    problem_inds.clear();
+    for(int i = 0; i < x.size(); i++) {
+      if(res(i) > 0.0 != b(i) > 0.0) {
+        node_with_wrong_sign = true;
+        problem_inds.insert(i);
+      }
+    }
+
+    redo_counter++;
+  }
+
+  // if(redo_counter == max_redo) printf("Max redo\n");
+  // if(node_with_wrong_sign) printf("Node with wrong sign\n");
 }
 
 #define C_POLY_IND 0
@@ -186,9 +188,8 @@ PolyApprox::PolyApprox(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y) {
 #define Y3X_POLY_IND 13
 #define Y4_POLY_IND 14
 
-void PolyApprox::set_2nd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s) {
+arma::mat PolyApprox::get_2nd_order_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y) {
   arma::mat A(x.size(), 6);
-  arma::vec b(x.size());
   for(int i = 0; i < x.size(); i++) {
     A(i,C_POLY_IND)  = 1.0;
     A(i,X_POLY_IND)  = x[i];
@@ -196,20 +197,14 @@ void PolyApprox::set_2nd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP>
     A(i,X2_POLY_IND) = x[i] * x[i];
     A(i,XY_POLY_IND) = x[i] * y[i];
     A(i,Y2_POLY_IND) = y[i] * y[i];
-
-    b(i) = s[i];
   }
 
-  // arma::vec ans = arma::solve(A, b);
-  arma::vec ans = arma::inv(A.t() * A) * A.t() * b;
-  for(int i = 0; i < 6; i++) {
-    coeff.push_back(ans(i));
-  }
+  return A;
 }
 
-void PolyApprox::set_3rd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s) {
+arma::mat PolyApprox::get_3rd_order_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y) {
+  // Set A vandermonde matrix and b
   arma::mat A(x.size(), 10);
-  arma::vec b(x.size());
   for(int i = 0; i < x.size(); i++) {
     A(i,C_POLY_IND)   = 1.0;
     A(i,X_POLY_IND)   = x[i];
@@ -220,75 +215,14 @@ void PolyApprox::set_3rd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP>
     A(i,X3_POLY_IND)  = x[i] * x[i] * x[i];
     A(i,X2Y_POLY_IND) = x[i] * x[i] * y[i];
     A(i,Y2X_POLY_IND) = x[i] * y[i] * y[i];
-    A(i,Y3_POLY_IND)  = y[i] * y[i] * y[i];
-
-    b(i) = s[i];
-  }
-  // arma::vec ans = arma::solve(A, b);
-  arma::vec ans = arma::inv(A.t() * A) * A.t() * b;
- 
-  for(int i = 0; i < 10; i++) {
-    coeff.push_back(ans(i));
+    A(i,Y3_POLY_IND)  = y[i] * y[i] * y[i];    
   }
 
-  arma::vec res = A * ans;
-  bool redo_with_weighted_least_squares = false;
-  set<int> problem_inds;
-  for(int i = 0; i < x.size(); i++) {
-    if(res(i) > 0.0 != b(i) > 0.0) {
-      redo_with_weighted_least_squares = true;
-      problem_inds.insert(i);
-    }
-  }
-
-  if(redo_with_weighted_least_squares) {
-    arma::mat A(x.size(), 10);
-    arma::vec b(x.size());
-    arma::vec w(x.size());
-    const DG_FP sigma = 0.00001;
-    for(int i = 0; i < x.size(); i++) {
-      A(i,C_POLY_IND)   = 1.0;
-      A(i,X_POLY_IND)   = x[i];
-      A(i,Y_POLY_IND)   = y[i];
-      A(i,X2_POLY_IND)  = x[i] * x[i];
-      A(i,XY_POLY_IND)  = x[i] * y[i];
-      A(i,Y2_POLY_IND)  = y[i] * y[i];
-      A(i,X3_POLY_IND)  = x[i] * x[i] * x[i];
-      A(i,X2Y_POLY_IND) = x[i] * x[i] * y[i];
-      A(i,Y2X_POLY_IND) = x[i] * y[i] * y[i];
-      A(i,Y3_POLY_IND)  = y[i] * y[i] * y[i];
-
-      b(i) = s[i];
-      w(i) = exp(-s[i] * s[i] / sigma);
-      // w(i) = 1.0 / (1.0 + fabs(s[i]));
-      if(problem_inds.count(i) > 0) w(i) = 2.0;
-    }
-    arma::mat W = arma::diagmat(w);
-    arma::vec ans = arma::inv(A.t() * W * A) * A.t() * W * b;
-  
-    coeff.clear();
-    for(int i = 0; i < 10; i++) {
-      coeff.push_back(ans(i));
-    }
-  }
-
-/*
-  arma::vec res = A * ans - b;
-  double residual = arma::dot(res, res);
-
-  if(residual > 1e-5) {
-    coeff.clear();
-    set_2nd_order_coeff(x, y, s);
-    while(coeff.size() != 10) {
-      coeff.push_back(0.0);
-    }
-  }
-*/
+  return A;
 }
 
-void PolyApprox::set_4th_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s) {
+arma::mat PolyApprox::get_4th_order_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y) {
   arma::mat A(x.size(), 15);
-  arma::vec b(x.size());
   for(int i = 0; i < x.size(); i++) {
     A(i,C_POLY_IND)    = 1.0;
     A(i,X_POLY_IND)    = x[i];
@@ -305,15 +239,21 @@ void PolyApprox::set_4th_order_coeff(const vector<DG_FP> &x, const vector<DG_FP>
     A(i,X2Y2_POLY_IND) = x[i] * x[i] * y[i] * y[i];
     A(i,Y3X_POLY_IND)  = x[i] * y[i] * y[i] * y[i];
     A(i,Y4_POLY_IND)   = y[i] * y[i] * y[i] * y[i];
-
-    b(i) = s[i];
   }
 
-  // arma::vec ans = arma::solve(A, b);
-  arma::vec ans = arma::inv(A.t() * A) * A.t() * b;
-  for(int i = 0; i < 15; i++) {
-    coeff.push_back(ans(i));
+  return A;
+}
+
+arma::mat PolyApprox::get_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y) {
+  arma::mat res;
+  if(N == 2) {
+    res = get_2nd_order_vandermonde(x, y);
+  } else if(N == 3) {
+    res = get_3rd_order_vandermonde(x, y);
+  } else if(N == 4) {
+    res = get_4th_order_vandermonde(x, y);
   }
+  return res;
 }
 
 DG_FP PolyApprox::val_at_2nd(const DG_FP x, const DG_FP y) {
@@ -550,7 +490,7 @@ struct stencil_query {
 
 map<int,set<int>> PolyApprox::get_stencils(const set<int> &central_inds, op_map edge_map, const DG_FP *x_ptr, const DG_FP *y_ptr) {
   return single_layer_stencils(central_inds, edge_map, x_ptr, y_ptr);
-  
+/*  
   timer->startTimer("PolyApprox - get_stencils");
   map<int,set<int>> stencils;
   map<int,stencil_query> queryInds;
@@ -618,6 +558,7 @@ map<int,set<int>> PolyApprox::get_stencils(const set<int> &central_inds, op_map 
   timer->endTimer("PolyApprox - get_stencils");
 
   return stencils;
+*/
 }
 
 bool share_coords(const DG_FP *x_ptr, const DG_FP *y_ptr, const std::vector<Coord> &nodes) {
@@ -730,7 +671,34 @@ map<int,set<int>> PolyApprox::single_layer_stencils(const set<int> &central_inds
 /*
  * Different ways of getting the stencil data
  */
+void avg_stencil(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
+                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP offset_x, 
+                 const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap) {
+  for(const auto &sten : stencil) {
+    for(int n = 0; n < DG_NP; n++) {
+      int ind = sten * DG_NP + n;
 
+      Coord coord;
+      coord.x = x_ptr[ind] - offset_x;
+      coord.y = y_ptr[ind] - offset_y;
+      Point point;
+      auto res = pointMap.insert(make_pair(coord, point));
+
+      if(res.second) {
+        // Point was inserted
+        res.first->second.coord = coord;
+        res.first->second.val   = s_ptr[ind];
+        res.first->second.count = 1;
+      } else {
+        // Point already exists
+        res.first->second.val += s_ptr[ind];
+        res.first->second.count++;
+      }
+    }
+  }
+}
+
+/*
 DG_FP pol_in_tri_sign(const DG_FP x, const DG_FP y, const DG_FP v0x, const DG_FP v0y, const DG_FP v1x, const DG_FP v1y) {
   return (x - v1x) * (v0y - v1y) - (v0x - v1x) * (y - v1y);
 }
@@ -784,33 +752,6 @@ bool pol_simplified_newton(DG_FP &pt_r, DG_FP &pt_s, const DG_FP *modal,
     }
   }
   return converged;
-}
-
-void avg_stencil(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
-                 const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap) {
-  for(const auto &sten : stencil) {
-    for(int n = 0; n < DG_NP; n++) {
-      int ind = sten * DG_NP + n;
-
-      Coord coord;
-      coord.x = x_ptr[ind] - offset_x;
-      coord.y = y_ptr[ind] - offset_y;
-      Point point;
-      auto res = pointMap.insert(make_pair(coord, point));
-
-      if(res.second) {
-        // Point was inserted
-        res.first->second.coord = coord;
-        res.first->second.val   = s_ptr[ind];
-        res.first->second.count = 1;
-      } else {
-        // Point already exists
-        res.first->second.val += s_ptr[ind];
-        res.first->second.count++;
-      }
-    }
-  }
 }
 
 void avg_stencil_nodes(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
@@ -1041,3 +982,4 @@ void random_pts(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
     }
   }
 }
+*/

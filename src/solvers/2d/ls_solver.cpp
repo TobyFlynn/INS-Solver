@@ -455,16 +455,11 @@ void LevelSetSolver2D::reinitLS() {
   std::vector<PolyApprox> _polys;
   std::map<int,std::set<int>> stencils = PolyApprox::get_stencils(cellInds, mesh->face2cells, _x_ptr, _y_ptr);
 
-  DGTempDat s_modal = dg_dat_pool->requestTempDatCells(DG_NP);
-  op2_gemv(mesh, false, 1.0, DGConstants::INV_V, s, 0.0, s_modal.dat);
-
-  const DG_FP *_modal_ptr = getOP2PtrHostHE(s_modal.dat, OP_READ);
-
   // Populate map
   int i = 0;
   for(auto it = cellInds.begin(); it != cellInds.end(); it++) {
     std::set<int> stencil = stencils.at(*it);
-    PolyApprox p(*it, stencil, _x_ptr, _y_ptr, s_ptr, _modal_ptr);
+    PolyApprox p(*it, stencil, _x_ptr, _y_ptr, s_ptr, h);
     _polys.push_back(p);
     _cell2polyMap.insert({*it, i});
     i++;
@@ -472,10 +467,7 @@ void LevelSetSolver2D::reinitLS() {
 
   releaseOP2PtrHostHE(mesh->x, OP_READ, _x_ptr);
   releaseOP2PtrHostHE(mesh->y, OP_READ, _y_ptr);
-  releaseOP2PtrHostHE(s_modal.dat, OP_READ, _modal_ptr);
   releaseOP2PtrHostHE(s, OP_READ, s_ptr);
-
-  dg_dat_pool->releaseTempDatCells(s_modal);
   timer->endTimer("LevelSetSolver2D - create polynomials");
 
   DGTempDat tmp_sampleX = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);

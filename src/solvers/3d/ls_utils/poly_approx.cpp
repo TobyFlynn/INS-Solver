@@ -11,66 +11,16 @@ extern DGConstants *constants;
 
 using namespace std;
 
-void num_pts_pos_neg(const vector<DG_FP> &s, int &pos, int &neg) {
-  pos = 0;
-  neg = 0;
-  for(int i = 0; i < s.size(); i++) {
-    if(s[i] > 0.0) pos++;
-    if(s[i] < 0.0) neg++;
-  }
-}
-
 PolyApprox3D::PolyApprox3D(const int cell_ind, set<int> stencil,
-                       const DG_FP *x_ptr, const DG_FP *y_ptr,
-                       const DG_FP *z_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr) {
+                           const DG_FP *x_ptr, const DG_FP *y_ptr,
+                           const DG_FP *z_ptr, const DG_FP *s_ptr, 
+                           const DG_FP h) {
   get_offset(cell_ind, x_ptr, y_ptr, z_ptr);
 
   vector<DG_FP> x_vec, y_vec, z_vec, s_vec;
-  stencil_data(cell_ind, stencil, x_ptr, y_ptr, z_ptr, s_ptr, modal_ptr, x_vec, y_vec, z_vec, s_vec);
+  stencil_data(cell_ind, stencil, x_ptr, y_ptr, z_ptr, s_ptr, x_vec, y_vec, z_vec, s_vec);
 
-  // Make sure equal number of points on each side of the line
-  int pts_needed = num_coeff();
-  int pts_aim = num_pts();
-  int pos_pts, neg_pts;
-  num_pts_pos_neg(s_vec, pos_pts, neg_pts);
-  while((x_vec.size() > pts_needed && pos_pts != neg_pts) || x_vec.size() > pts_aim) {
-    // Find point furthest from the interface to discard
-    int ind_discard;
-    if(pos_pts > neg_pts) {
-      DG_FP max = s_vec[0];
-      ind_discard = 0;
-      for(int i = 1; i < x_vec.size(); i++) {
-        if(s_vec[i] > max) {
-          max = s_vec[i];
-          ind_discard = i;
-        }
-      }
-    } else {
-      DG_FP min = s_vec[0];
-      ind_discard = 0;
-      for(int i = 1; i < x_vec.size(); i++) {
-        if(s_vec[i] < min) {
-          min = s_vec[i];
-          ind_discard = i;
-        }
-      }
-    }
-    // Discard ind
-    x_vec.erase(x_vec.begin() + ind_discard);
-    y_vec.erase(y_vec.begin() + ind_discard);
-    z_vec.erase(z_vec.begin() + ind_discard);
-    s_vec.erase(s_vec.begin() + ind_discard);
-
-    num_pts_pos_neg(s_vec, pos_pts, neg_pts);
-  }
-
-  if(N == 2) {
-    set_2nd_order_coeff(x_vec, y_vec, z_vec, s_vec);
-  } else if(N == 3) {
-    set_3rd_order_coeff(x_vec, y_vec, z_vec, s_vec);
-  } else if(N == 4) {
-    set_4th_order_coeff(x_vec, y_vec, z_vec, s_vec);
-  }
+  fit_poly(x_vec, y_vec, z_vec, s_vec, h);
 }
 
 PolyApprox3D::PolyApprox3D(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y,
@@ -96,6 +46,62 @@ void PolyApprox3D::get_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_
   offset_x /= (DG_FP)DG_NP;
   offset_y /= (DG_FP)DG_NP;
   offset_z /= (DG_FP)DG_NP;
+}
+
+void PolyApprox::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &z, const vector<DG_FP> &s, const DG_FP h) {
+  // Set A vandermonde matrix and b
+  arma::mat A = get_vandermonde(x, y, z);
+  arma::vec b(s);
+
+  // Fit poly by using QR
+  arma::mat Q, R;
+  arma::qr(Q, R, A);
+  arma::vec ans = arma::solve(R, Q.t() * b);
+  
+  coeff = arma::conv_to<vector<DG_FP>>::from(ans);
+
+  arma::vec res = A * ans;
+  bool node_with_wrong_sign = false;
+  set<int> problem_inds;
+  arma::vec w(x.size());
+  const DG_FP sigma = h * 0.01;
+  for(int i = 0; i < x.size(); i++) {
+    w(i) = exp(-s[i] * s[i] / sigma);
+    if(res(i) > 0.0 != b(i) > 0.0) {
+      node_with_wrong_sign = true;
+      problem_inds.insert(i);
+    }
+  }
+
+  int redo_counter = 0;
+  const int max_redo = 50;
+  while(node_with_wrong_sign && redo_counter < max_redo) {
+    for(int i = 0; i < x.size(); i++) {
+      if(problem_inds.count(i) > 0) 
+        w(i) = w(i) * 2.0;
+    }
+    arma::mat W = arma::diagmat(arma::sqrt(w));
+    arma::mat Q, R;
+    arma::qr(Q, R, W*A);
+    arma::vec ans = arma::solve(R, Q.t() * W * b);
+  
+    coeff = arma::conv_to<vector<DG_FP>>::from(ans);
+
+    arma::vec res = A * ans;
+    node_with_wrong_sign = false;
+    problem_inds.clear();
+    for(int i = 0; i < x.size(); i++) {
+      if(res(i) > 0.0 != b(i) > 0.0) {
+        node_with_wrong_sign = true;
+        problem_inds.insert(i);
+      }
+    }
+
+    redo_counter++;
+  }
+
+  // if(redo_counter == max_redo) printf("Max redo\n");
+  // if(node_with_wrong_sign) printf("Node with wrong sign\n");
 }
 
 struct Coord {
@@ -127,197 +133,13 @@ struct cmpCoords {
     }
 };
 
-bool in_tetra(const DG_FP ptX, const DG_FP ptY, const DG_FP ptZ,
-                 const DG_FP *nodeX, const DG_FP *nodeY,
-                 const DG_FP *nodeZ) {
-  bool sameSide0, sameSide1, sameSide2, sameSide3;
-  DG_FP normal[3];
-  // (v1 - v0) x (v2 - v0)
-  normal[0] = (nodeY[1] - nodeY[0]) * (nodeZ[2] - nodeZ[0]) - (nodeZ[1] - nodeZ[0]) * (nodeY[2] - nodeY[0]);
-  normal[1] = (nodeZ[1] - nodeZ[0]) * (nodeX[2] - nodeX[0]) - (nodeX[1] - nodeX[0]) * (nodeZ[2] - nodeZ[0]);
-  normal[2] = (nodeX[1] - nodeX[0]) * (nodeY[2] - nodeY[0]) - (nodeY[1] - nodeY[0]) * (nodeX[2] - nodeX[0]);
-  // normal . (v3 - v0)
-  DG_FP dotV = normal[0] * (nodeX[3] - nodeX[0]) + normal[1] * (nodeY[3] - nodeY[0]) + normal[2] * (nodeZ[3] - nodeZ[0]);
-  // normal . (p - v0)
-  DG_FP dotP = normal[0] * (ptX - nodeX[0]) + normal[1] * (ptY - nodeY[0]) + normal[2] * (ptZ - nodeZ[0]);
-  sameSide0 = (dotV > 0.0) == (dotP > 0.0);
-
-  // (v2 - v1) x (v3 - v1)
-  normal[0] = (nodeY[2] - nodeY[1]) * (nodeZ[3] - nodeZ[1]) - (nodeZ[2] - nodeZ[1]) * (nodeY[3] - nodeY[1]);
-  normal[1] = (nodeZ[2] - nodeZ[1]) * (nodeX[3] - nodeX[1]) - (nodeX[2] - nodeX[1]) * (nodeZ[3] - nodeZ[1]);
-  normal[2] = (nodeX[2] - nodeX[1]) * (nodeY[3] - nodeY[1]) - (nodeY[2] - nodeY[1]) * (nodeX[3] - nodeX[1]);
-  // normal . (v0 - v1)
-  dotV = normal[0] * (nodeX[0] - nodeX[1]) + normal[1] * (nodeY[0] - nodeY[1]) + normal[2] * (nodeZ[0] - nodeZ[1]);
-  // normal . (p - v1)
-  dotP = normal[0] * (ptX - nodeX[1]) + normal[1] * (ptY - nodeY[1]) + normal[2] * (ptZ - nodeZ[1]);
-  sameSide1 = (dotV > 0.0) == (dotP > 0.0);
-
-  // (v3 - v2) x (v0 - v2)
-  normal[0] = (nodeY[3] - nodeY[2]) * (nodeZ[0] - nodeZ[2]) - (nodeZ[3] - nodeZ[2]) * (nodeY[0] - nodeY[2]);
-  normal[1] = (nodeZ[3] - nodeZ[2]) * (nodeX[0] - nodeX[2]) - (nodeX[3] - nodeX[2]) * (nodeZ[0] - nodeZ[2]);
-  normal[2] = (nodeX[3] - nodeX[2]) * (nodeY[0] - nodeY[2]) - (nodeY[3] - nodeY[2]) * (nodeX[0] - nodeX[2]);
-  // normal . (v1 - v2)
-  dotV = normal[0] * (nodeX[1] - nodeX[2]) + normal[1] * (nodeY[1] - nodeY[2]) + normal[2] * (nodeZ[1] - nodeZ[2]);
-  // normal . (p - v2)
-  dotP = normal[0] * (ptX - nodeX[2]) + normal[1] * (ptY - nodeY[2]) + normal[2] * (ptZ - nodeZ[2]);
-  sameSide2 = (dotV > 0.0) == (dotP > 0.0);
-
-  // (v0 - v3) x (v1 - v3)
-  normal[0] = (nodeY[0] - nodeY[3]) * (nodeZ[1] - nodeZ[3]) - (nodeZ[0] - nodeZ[3]) * (nodeY[1] - nodeY[3]);
-  normal[1] = (nodeZ[0] - nodeZ[3]) * (nodeX[1] - nodeX[3]) - (nodeX[0] - nodeX[3]) * (nodeZ[1] - nodeZ[3]);
-  normal[2] = (nodeX[0] - nodeX[3]) * (nodeY[1] - nodeY[3]) - (nodeY[0] - nodeY[3]) * (nodeX[1] - nodeX[3]);
-  // normal . (v2 - v3)
-  dotV = normal[0] * (nodeX[2] - nodeX[3]) + normal[1] * (nodeY[2] - nodeY[3]) + normal[2] * (nodeZ[2] - nodeZ[3]);
-  // normal . (p - v3)
-  dotP = normal[0] * (ptX - nodeX[3]) + normal[1] * (ptY - nodeY[3]) + normal[2] * (ptZ - nodeZ[3]);
-  sameSide3 = (dotV > 0.0) == (dotP > 0.0);
-
-  return sameSide0 && sameSide1 && sameSide2 && sameSide3;
-}
-
-void pol_rst2xyz(DG_FP &sampleX, DG_FP &sampleY, DG_FP &sampleZ,
-             const DG_FP *nodeX, const DG_FP *nodeY,
-             const DG_FP *nodeZ) {
-  DG_FP r_ = sampleX;
-  DG_FP s_ = sampleY;
-  DG_FP t_ = sampleZ;
-
-  sampleX = 0.5 * (-(1.0 + r_ + s_ + t_) * nodeX[0] + (1.0 + r_) * nodeX[1] + (1.0 + s_) * nodeX[2] + (1.0 + t_) * nodeX[3]);
-  sampleY = 0.5 * (-(1.0 + r_ + s_ + t_) * nodeY[0] + (1.0 + r_) * nodeY[1] + (1.0 + s_) * nodeY[2] + (1.0 + t_) * nodeY[3]);
-  sampleZ = 0.5 * (-(1.0 + r_ + s_ + t_) * nodeZ[0] + (1.0 + r_) * nodeZ[1] + (1.0 + s_) * nodeZ[2] + (1.0 + t_) * nodeZ[3]);
-}
-
-bool pol_simplified_newton(DG_FP &pt_r, DG_FP &pt_s, DG_FP &pt_t, const DG_FP *modal,
-                    const DG_FP tol, const DG_FP *tetra_r, const DG_FP *tetra_s,
-                    const DG_FP *tetra_t) {
-  bool converged = false;
-  for(int step = 0; step < 20; step++) {
-    DG_FP surf = DGUtils::val_at_pt_3d(pt_r, pt_s, pt_t, modal, DG_ORDER);
-    DG_FP dsdr, dsds, dsdt;
-    DGUtils::grad_at_pt_3d(pt_r, pt_s, pt_t, modal, DG_ORDER, dsdr, dsds, dsdt);
-
-    DG_FP sqrnorm = dsdr * dsdr + dsds * dsds + dsdt * dsdt;
-    if(sqrnorm > 0.0) {
-      dsdr *= surf / sqrnorm;
-      dsds *= surf / sqrnorm;
-      dsdt *= surf / sqrnorm;
-    }
-
-    pt_r -= dsdr;
-    pt_s -= dsds;
-    pt_t -= dsdt;
-
-    if(!in_tetra(pt_r, pt_s, pt_t, tetra_r, tetra_s, tetra_t)) {
-      break;
-    }
-
-    // Check convergence
-    if(dsdr * dsdr + dsds * dsds + dsdt * dsdt < tol) {
-      converged = true;
-      break;
-    }
-  }
-  return converged;
-}
-
 void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
-                              const DG_FP *x_ptr, const DG_FP *y_ptr,
-                              const DG_FP *z_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr,
-                              vector<DG_FP> &x, vector<DG_FP> &y,
-                              vector<DG_FP> &z, vector<DG_FP> &s) {
+                                const DG_FP *x_ptr, const DG_FP *y_ptr,
+                                const DG_FP *z_ptr, const DG_FP *s_ptr,
+                                vector<DG_FP> &x, vector<DG_FP> &y,
+                                vector<DG_FP> &z, vector<DG_FP> &s) {
   // Setup random number generator for later
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<> dis(-1.0, 1.0);
-
   map<Coord, Point, cmpCoords> pointMap;
-/*
-  for(int n = 0; n < DG_NP; n++) {
-    int ind = cell_ind * DG_NP + n;
-    Coord coord;
-    coord.x = x_ptr[ind] - offset_x;
-    coord.y = y_ptr[ind] - offset_y;
-    coord.z = z_ptr[ind] - offset_z;
-    Point point;
-    auto res = pointMap.insert(make_pair(coord, point));
-    res.first->second.coord = coord;
-    res.first->second.val   = s_ptr[ind];
-    res.first->second.count = 1;
-  }
-
-  std::vector<bool> consider;
-  for(const auto &sten : stencil) {
-    if(sten == cell_ind) {
-      consider.push_back(false);
-      continue;
-    }
-
-    bool share_pt = false;
-    for(int n = 0; n < DG_NP; n++) {
-      int ind = sten * DG_NP + n;
-      Coord coord;
-      coord.x = x_ptr[ind] - offset_x;
-      coord.y = y_ptr[ind] - offset_y;
-      coord.z = z_ptr[ind] - offset_z;
-      Point point;
-      auto res = pointMap.find(coord);
-      if(res != pointMap.end()) {
-        share_pt = true;
-        break;
-      }
-    }
-    consider.push_back(share_pt);
-  }
-
-  int i = 0;
-  for(const auto &sten : stencil) {
-    if(!consider[i]) {
-      i++;
-      continue;
-    }
-
-    i++;
-    for(int n = 0; n < DG_NP; n++) {
-      int ind = sten * DG_NP + n;
-
-      Coord coord;
-      coord.x = x_ptr[ind] - offset_x;
-      coord.y = y_ptr[ind] - offset_y;
-      coord.z = z_ptr[ind] - offset_z;
-      Point point;
-      auto res = pointMap.insert(make_pair(coord, point));
-
-      if(res.second) {
-        // Point was inserted
-        res.first->second.coord = coord;
-        res.first->second.val   = s_ptr[ind];
-        res.first->second.count = 1;
-      } else {
-        // Point already exists
-        res.first->second.val += s_ptr[ind];
-        res.first->second.count++;
-      }
-    }
-  }
-
-  for(const auto &sten : stencil) {
-    if(sten == cell_ind) continue;
-    for(int n = 0; n < DG_NP; n++) {
-      int ind = sten * DG_NP + n;
-
-      Coord coord;
-      coord.x = x_ptr[ind] - offset_x;
-      coord.y = y_ptr[ind] - offset_y;
-      coord.z = z_ptr[ind] - offset_z;
-      Point point;
-      auto res = pointMap.find(coord);
-      if(res == pointMap.end()) continue;
-
-      res->second.val += s_ptr[ind];
-      res->second.count++;
-    }
-  }
-*/
   for(const auto &sten : stencil) {
     for(int n = 0; n < DG_NP; n++) {
       int ind = sten * DG_NP + n;
@@ -344,170 +166,7 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
       }
     }
   }
-/*
-  const DG_FP *tmp_r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
-  const DG_FP *tmp_s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
-  const DG_FP *tmp_t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * DG_NP;
 
-  const DG_FP tetra_r[4] = {tmp_r_ptr[0], tmp_r_ptr[3], tmp_r_ptr[9], tmp_r_ptr[19]};
-  const DG_FP tetra_s[4] = {tmp_s_ptr[0], tmp_s_ptr[3], tmp_s_ptr[9], tmp_s_ptr[19]};
-  const DG_FP tetra_t[4] = {tmp_t_ptr[0], tmp_t_ptr[3], tmp_t_ptr[9], tmp_t_ptr[19]};
-
-  for(const auto &sten : stencil) {
-    bool contain_interface = false;
-    bool s_pos = s_ptr[sten * DG_NP] > 0.0;
-    for(int i = 0; i < DG_NP; i++) {
-      if(s_ptr[sten * DG_NP + i] > 0.0 != s_pos) {
-        contain_interface = true;
-        break;
-      }
-    }
-    if(!contain_interface || sten != cell_ind) continue;
-
-    DG_FP ref_r_ptr[DG_NP], ref_s_ptr[DG_NP], ref_t_ptr[DG_NP];
-    for(int i = 0; i < DG_NP; i++) {
-      ref_r_ptr[i] = tmp_r_ptr[i] * 0.75;
-      ref_s_ptr[i] = tmp_s_ptr[i] * 0.75;
-      ref_t_ptr[i] = tmp_t_ptr[i] * 0.75;
-    }
-
-    const DG_FP X0 = x_ptr[sten * DG_NP + 0]; const DG_FP Y0 = y_ptr[sten * DG_NP + 0]; const DG_FP Z0 = z_ptr[sten * DG_NP + 0];
-    const DG_FP X1 = x_ptr[sten * DG_NP + 3]; const DG_FP Y1 = y_ptr[sten * DG_NP + 3]; const DG_FP Z1 = z_ptr[sten * DG_NP + 3];
-    const DG_FP X2 = x_ptr[sten * DG_NP + 9]; const DG_FP Y2 = y_ptr[sten * DG_NP + 9]; const DG_FP Z2 = z_ptr[sten * DG_NP + 9];
-    const DG_FP X3 = x_ptr[sten * DG_NP + 19]; const DG_FP Y3 = y_ptr[sten * DG_NP + 19]; const DG_FP Z3 = z_ptr[sten * DG_NP + 19];
-
-    #pragma omp parallel for
-    for(int p = 0; p < DG_NP; p++) {
-      // bool converged = false;
-      bool converged = pol_simplified_newton(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], 1e-8, tetra_r, tetra_s, tetra_t);
-
-      if(!converged && sten == cell_ind) {
-        int counter = 0;
-        while(!converged && counter < 10) {
-          ref_r_ptr[p] = dis(gen);
-          ref_s_ptr[p] = dis(gen);
-          ref_t_ptr[p] = dis(gen);
-          while(!in_tetra(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], tetra_r, tetra_s, tetra_t)) {
-            ref_r_ptr[p] = dis(gen);
-            ref_s_ptr[p] = dis(gen);
-            ref_t_ptr[p] = dis(gen);
-          }
-          converged = pol_simplified_newton(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], 1e-8, tetra_r, tetra_s, tetra_t);
-          counter++;
-        }
-      }
-
-      // Check if point has converged
-      // && in_tetra(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], tetra_r, tetra_s, tetra_t)
-      if(converged) {
-        const DG_FP x = 0.5 * (-(1.0 + ref_r_ptr[p] + ref_s_ptr[p] + ref_t_ptr[p]) * X0 + (1.0 + ref_r_ptr[p]) * X1 + (1.0 + ref_s_ptr[p]) * X2 + (1.0 + ref_t_ptr[p]) * X3);
-        const DG_FP y = 0.5 * (-(1.0 + ref_r_ptr[p] + ref_s_ptr[p] + ref_t_ptr[p]) * Y0 + (1.0 + ref_r_ptr[p]) * Y1 + (1.0 + ref_s_ptr[p]) * Y2 + (1.0 + ref_t_ptr[p]) * Y3);
-        const DG_FP z = 0.5 * (-(1.0 + ref_r_ptr[p] + ref_s_ptr[p] + ref_t_ptr[p]) * Z0 + (1.0 + ref_r_ptr[p]) * Z1 + (1.0 + ref_s_ptr[p]) * Z2 + (1.0 + ref_t_ptr[p]) * Z3);
-        const DG_FP tmp_val = DGUtils::val_at_pt_3d(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], &modal_ptr[sten * DG_NP], DG_ORDER);
-        #pragma omp critical
-        {
-          Coord coord;
-          coord.x = x - offset_x;
-          coord.y = y - offset_y;
-          coord.z = z - offset_z;
-          Point point;
-          auto res = pointMap.insert(make_pair(coord, point));
-          if(res.second) {
-            // Point was inserted
-            res.first->second.coord = coord;
-            res.first->second.val   = tmp_val;
-            res.first->second.count = 1;
-          } else {
-            // Point already exists
-            res.first->second.val += tmp_val;
-            res.first->second.count++;
-          }
-        }
-      }
-    }
-  }
-
-  const DG_FP X0 = x_ptr[cell_ind * DG_NP + 0]; const DG_FP Y0 = y_ptr[cell_ind * DG_NP + 0]; const DG_FP Z0 = z_ptr[cell_ind * DG_NP + 0];
-  const DG_FP X1 = x_ptr[cell_ind * DG_NP + 3]; const DG_FP Y1 = y_ptr[cell_ind * DG_NP + 3]; const DG_FP Z1 = z_ptr[cell_ind * DG_NP + 3];
-  const DG_FP X2 = x_ptr[cell_ind * DG_NP + 9]; const DG_FP Y2 = y_ptr[cell_ind * DG_NP + 9]; const DG_FP Z2 = z_ptr[cell_ind * DG_NP + 9];
-  const DG_FP X3 = x_ptr[cell_ind * DG_NP + 19]; const DG_FP Y3 = y_ptr[cell_ind * DG_NP + 19]; const DG_FP Z3 = z_ptr[cell_ind * DG_NP + 19];
-  const DG_FP nodeX[] = {X0, X1, X2, X3};
-  const DG_FP nodeY[] = {Y0, Y1, Y2, Y3};
-  const DG_FP nodeZ[] = {Z0, Z1, Z2, Z3};
-
-  for(int p = 0; p < DG_NP; p++) {
-    DG_FP sampleX = dis(gen);
-    DG_FP sampleY = dis(gen);
-    DG_FP sampleZ = dis(gen);
-    DG_FP surf = DGUtils::val_at_pt_3d(sampleX, sampleY, sampleZ, &modal_ptr[cell_ind * DG_NP], DG_ORDER);
-    pol_rst2xyz(sampleX, sampleY, sampleZ, nodeX, nodeY, nodeZ);
-    while(!in_tetra(sampleX, sampleY, sampleZ, nodeX, nodeY, nodeZ)) {
-      sampleX = dis(gen);
-      sampleY = dis(gen);
-      sampleZ = dis(gen);
-      surf = DGUtils::val_at_pt_3d(sampleX, sampleY, sampleZ, &modal_ptr[cell_ind * DG_NP], DG_ORDER);
-      pol_rst2xyz(sampleX, sampleY, sampleZ, nodeX, nodeY, nodeZ);
-    }
-
-    Coord coord;
-    coord.x = sampleX - offset_x;
-    coord.y = sampleY - offset_y;
-    coord.z = sampleZ - offset_z;
-    Point point;
-    auto res = pointMap.insert(make_pair(coord, point));
-    if(res.second) {
-      // Point was inserted
-      res.first->second.coord = coord;
-      res.first->second.val   = surf;
-      res.first->second.count = 1;
-    }
-  }
-
-
-  DG_FP ref_r_ptr[DG_NP], ref_s_ptr[DG_NP], ref_t_ptr[DG_NP];
-  for(int i = 0; i < DG_NP; i++) {
-    ref_r_ptr[i] = tmp_r_ptr[i] * 0.75;
-    ref_s_ptr[i] = tmp_s_ptr[i] * 0.75;
-    ref_t_ptr[i] = tmp_t_ptr[i] * 0.75;
-  }
-
-  for(const auto &sten : stencil) {
-    const DG_FP X0 = x_ptr[sten * DG_NP + 0]; const DG_FP Y0 = y_ptr[sten * DG_NP + 0]; const DG_FP Z0 = z_ptr[sten * DG_NP + 0];
-    const DG_FP X1 = x_ptr[sten * DG_NP + 3]; const DG_FP Y1 = y_ptr[sten * DG_NP + 3]; const DG_FP Z1 = z_ptr[sten * DG_NP + 3];
-    const DG_FP X2 = x_ptr[sten * DG_NP + 9]; const DG_FP Y2 = y_ptr[sten * DG_NP + 9]; const DG_FP Z2 = z_ptr[sten * DG_NP + 9];
-    const DG_FP X3 = x_ptr[sten * DG_NP + 19]; const DG_FP Y3 = y_ptr[sten * DG_NP + 19]; const DG_FP Z3 = z_ptr[sten * DG_NP + 19];
-    for(int n = 0; n < DG_NP; n++) {
-      int ind = sten * DG_NP + n;
-
-      const DG_FP r = ref_r_ptr[n];
-      const DG_FP s = ref_s_ptr[n];
-      const DG_FP t = ref_t_ptr[n];
-      const DG_FP val = DGUtils::val_at_pt_3d(r, s, t, &modal_ptr[sten * DG_NP], DG_ORDER);
-
-      const DG_FP x = 0.5 * (-(1.0 + r + s + t) * X0 + (1.0 + r) * X1 + (1.0 + s) * X2 + (1.0 + t) * X3);
-      const DG_FP y = 0.5 * (-(1.0 + r + s + t) * Y0 + (1.0 + r) * Y1 + (1.0 + s) * Y2 + (1.0 + t) * Y3);
-      const DG_FP z = 0.5 * (-(1.0 + r + s + t) * Z0 + (1.0 + r) * Z1 + (1.0 + s) * Z2 + (1.0 + t) * Z3);
-
-      Coord coord;
-      coord.x = x - offset_x;
-      coord.y = y - offset_y;
-      coord.z = z - offset_z;
-      Point point;
-      auto res = pointMap.insert(make_pair(coord, point));
-
-      if(res.second) {
-        // Point was inserted
-        res.first->second.coord = coord;
-        res.first->second.val   = val;
-        res.first->second.count = 1;
-      } else {
-        // Point already exists
-        res.first->second.val += val;
-        res.first->second.count++;
-      }
-    }
-  }
-*/
   for(auto const &p : pointMap) {
     x.push_back(p.second.coord.x);
     y.push_back(p.second.coord.y);
@@ -552,10 +211,9 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
 #define Y4_POLY_IND 33
 #define Z4_POLY_IND 34
 
-void PolyApprox3D::set_2nd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y,
-                                     const vector<DG_FP> &z, const vector<DG_FP> &s) {
+arma::mat PolyApprox3D::get_2nd_order_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y, 
+                                                  const vector<DG_FP> &z) {
   arma::mat A(x.size(), num_coeff());
-  arma::vec b(x.size());
   for(int i = 0; i < x.size(); i++) {
     A(i,C_POLY_IND)  = 1.0;
     A(i,X_POLY_IND)  = x[i];
@@ -567,20 +225,13 @@ void PolyApprox3D::set_2nd_order_coeff(const vector<DG_FP> &x, const vector<DG_F
     A(i,X2_POLY_IND) = x[i] * x[i];
     A(i,Y2_POLY_IND) = y[i] * y[i];
     A(i,Z2_POLY_IND) = z[i] * z[i];
-
-    b(i) = s[i];
   }
-
-  arma::vec ans = arma::solve(A, b);
-  for(int i = 0; i < num_coeff(); i++) {
-    coeff.push_back(ans(i));
-  }
+  return A;
 }
 
-void PolyApprox3D::set_3rd_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y,
-                                     const vector<DG_FP> &z, const vector<DG_FP> &s) {
+arma::mat PolyApprox3D::get_3rd_order_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y,
+                                                  const vector<DG_FP> &z) {
   arma::mat A(x.size(), num_coeff());
-  arma::vec b(x.size());
   for(int i = 0; i < x.size(); i++) {
     A(i,C_POLY_IND)   = 1.0;
     A(i,X_POLY_IND)   = x[i];
@@ -602,20 +253,13 @@ void PolyApprox3D::set_3rd_order_coeff(const vector<DG_FP> &x, const vector<DG_F
     A(i,X3_POLY_IND)  = x[i] * x[i] * x[i];
     A(i,Y3_POLY_IND)  = y[i] * y[i] * y[i];
     A(i,Z3_POLY_IND)  = z[i] * z[i] * z[i];
-
-    b(i) = s[i];
   }
-
-  arma::vec ans = arma::solve(A, b);
-  for(int i = 0; i < num_coeff(); i++) {
-    coeff.push_back(ans(i));
-  }
+  return A;
 }
 
-void PolyApprox3D::set_4th_order_coeff(const vector<DG_FP> &x, const vector<DG_FP> &y,
-                                     const vector<DG_FP> &z, const vector<DG_FP> &s) {
+arma::mat PolyApprox3D::get_4th_order_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y,
+                                                  const vector<DG_FP> &z) {
   arma::mat A(x.size(), num_coeff());
-  arma::vec b(x.size());
   for(int i = 0; i < x.size(); i++) {
     A(i,C_POLY_IND)    = 1.0;
     A(i,X_POLY_IND)    = x[i];
@@ -652,14 +296,20 @@ void PolyApprox3D::set_4th_order_coeff(const vector<DG_FP> &x, const vector<DG_F
     A(i,X4_POLY_IND)   = x[i] * x[i] * x[i] * x[i];
     A(i,Y4_POLY_IND)   = y[i] * y[i] * y[i] * y[i];
     A(i,Z4_POLY_IND)   = z[i] * z[i] * z[i] * z[i];
-
-    b(i) = s[i];
   }
+  return A;
+}
 
-  arma::vec ans = arma::solve(A, b);
-  for(int i = 0; i < num_coeff(); i++) {
-    coeff.push_back(ans(i));
+arma::mat PolyApprox::get_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &z) {
+  arma::mat res;
+  if(N == 2) {
+    res = get_2nd_order_vandermonde(x, y, z);
+  } else if(N == 3) {
+    res = get_3rd_order_vandermonde(x, y, z);
+  } else if(N == 4) {
+    res = get_4th_order_vandermonde(x, y, z);
   }
+  return res;
 }
 
 DG_FP PolyApprox3D::val_at_2nd(const DG_FP x, const DG_FP y, const DG_FP z) {
