@@ -48,7 +48,7 @@ void PolyApprox3D::get_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_
   offset_z /= (DG_FP)DG_NP;
 }
 
-void PolyApprox::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &z, const vector<DG_FP> &s, const DG_FP h) {
+void PolyApprox3D::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &z, const vector<DG_FP> &s, const DG_FP h) {
   // Set A vandermonde matrix and b
   arma::mat A = get_vandermonde(x, y, z);
   arma::vec b(s);
@@ -300,7 +300,7 @@ arma::mat PolyApprox3D::get_4th_order_vandermonde(const vector<DG_FP> &x, const 
   return A;
 }
 
-arma::mat PolyApprox::get_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &z) {
+arma::mat PolyApprox3D::get_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &z) {
   arma::mat res;
   if(N == 2) {
     res = get_2nd_order_vandermonde(x, y, z);

@@ -41,8 +41,8 @@ private:
                     std::vector<DG_FP> &y, std::vector<DG_FP> &z, std::vector<DG_FP> &s);
   int num_pts();
 
-  void fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &z, const vector<DG_FP> &s, const DG_FP h);
-  arma::mat get_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &z);
+  void fit_poly(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &z, const std::vector<DG_FP> &s, const DG_FP h);
+  arma::mat get_vandermonde(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &z);
   arma::mat get_2nd_order_vandermonde(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &z);
   arma::mat get_3rd_order_vandermonde(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &z);
   arma::mat get_4th_order_vandermonde(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &z);
