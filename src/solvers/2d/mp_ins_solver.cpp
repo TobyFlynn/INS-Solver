@@ -70,6 +70,9 @@ void MPINSSolver2D::setup_common() {
   int tmp_st = 0;
   config->getInt("solver-options", "surface_tension", tmp_st);
   surface_tension = tmp_st == 1;
+  int tmp_st_oi = 0;
+  config->getInt("solver-options", "over_int_surface_tension", tmp_st_oi);
+  over_int_surface_tension = tmp_st_oi == 1;
   double tmp_dt = -1.0;
   config->getDouble("solver-options", "force_dt", tmp_dt);
   dt_forced = tmp_dt > 0.0;
@@ -241,6 +244,17 @@ void MPINSSolver2D::step() {
 }
 
 void MPINSSolver2D::surface_tension_grad(op_dat dx, op_dat dy) {
+  DGTempDat heaviside = dg_dat_pool->requestTempDatCells(DG_NP);
+  op_par_loop(ins_2d_st_new_0, "ins_2d_st_new_0", mesh->cells,
+              op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(heaviside.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  
+  mesh->grad_over_int_with_central_flux(heaviside.dat, dx, dy);
+  dg_dat_pool->releaseTempDatCells(heaviside);
+}
+
+void MPINSSolver2D::surface_tension_grad_over_int(op_dat dx, op_dat dy) {
   // grad heaviside
   DGTempDat st_tmp_0 = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
   op2_gemv(mesh, false, 1.0, DGConstants::CUB2D_INTERP, lsSolver->s, 0.0, st_tmp_0.dat);
@@ -334,7 +348,10 @@ void MPINSSolver2D::advection() {
   if(surface_tension) {
     // Calculate surface tension
     // grad heaviside
-    surface_tension_grad(st[currentInd][0], st[currentInd][1]);
+    if(over_int_surface_tension)
+      surface_tension_grad_over_int(st[currentInd][0], st[currentInd][1]);
+    else
+      surface_tension_grad(st[currentInd][0], st[currentInd][1]);
 
     // Calculate curvature
     DGTempDat tmp_curvature = dg_dat_pool->requestTempDatCells(DG_NP);

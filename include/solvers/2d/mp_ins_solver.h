@@ -42,6 +42,7 @@ private:
   void surface();
 
   void surface_tension_grad(op_dat dx, op_dat dy);
+  void surface_tension_grad_over_int(op_dat dx, op_dat dy);
   void surface_tension_curvature(op_dat curv);
 
   void apply_pressure_neumann_bc(op_dat divVelT);
@@ -59,7 +60,7 @@ private:
   LinearSolver *viscositySolver;
   LevelSetSolver2D *lsSolver;
   DG_FP reynolds;
-  bool resuming, dt_forced, surface_tension, pr_over_int;
+  bool resuming, dt_forced, surface_tension, pr_over_int, over_int_surface_tension;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;
