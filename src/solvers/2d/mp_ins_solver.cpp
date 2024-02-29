@@ -70,6 +70,9 @@ void MPINSSolver2D::setup_common() {
   int tmp_st = 0;
   config->getInt("solver-options", "surface_tension", tmp_st);
   surface_tension = tmp_st == 1;
+  int tmp_st_oi = 0;
+  config->getInt("solver-options", "over_int_surface_tension", tmp_st_oi);
+  over_int_surface_tension = tmp_st_oi == 1;
   double tmp_dt = -1.0;
   config->getDouble("solver-options", "force_dt", tmp_dt);
   dt_forced = tmp_dt > 0.0;
@@ -345,7 +348,10 @@ void MPINSSolver2D::advection() {
   if(surface_tension) {
     // Calculate surface tension
     // grad heaviside
-    surface_tension_grad(st[currentInd][0], st[currentInd][1]);
+    if(over_int_surface_tension)
+      surface_tension_grad_over_int(st[currentInd][0], st[currentInd][1]);
+    else
+      surface_tension_grad(st[currentInd][0], st[currentInd][1]);
 
     // Calculate curvature
     DGTempDat tmp_curvature = dg_dat_pool->requestTempDatCells(DG_NP);
