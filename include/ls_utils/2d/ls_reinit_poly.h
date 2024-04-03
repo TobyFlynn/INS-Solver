@@ -2,6 +2,7 @@
 #define __INS_LS_REINIT_POLY_H
 
 #include "dg_compiler_defs.h"
+#include "dg_utils.h"
 
 #include "op_seq.h"
 
@@ -32,6 +33,16 @@ public:
 private:
   DG_FP offset_x, offset_y;
   std::vector<DG_FP> coeff;
+  
+  static const bool RDF = false;
+  static const bool local_stencil_correction = false;
+  std::vector<DGUtils::Vec<2>> rdf_stencil_pts;
+  DG_FP rdf_eps;
+  DG_FP gaussian(DG_FP r);
+  arma::mat get_rdf_vandermonde(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y);
+  DG_FP val_at_rdf(const DG_FP x, const DG_FP y);
+  void grad_at_rdf(const DG_FP x, const DG_FP y, DG_FP &dx, DG_FP &dy);
+  void hessian_at_rdf(const DG_FP x, const DG_FP y, DG_FP &dx2, DG_FP &dxy, DG_FP &dy2);
 
   static std::map<int,std::set<int>> single_layer_stencils(const std::set<int> &central_inds, op_map edge_map, const DG_FP *x_ptr, const DG_FP *y_ptr);
 
@@ -39,6 +50,10 @@ private:
   void stencil_data(const int cell_ind, const std::set<int> &stencil, const DG_FP *x_ptr, const DG_FP *y_ptr,
                     const DG_FP *s_ptr, std::vector<DG_FP> &x, std::vector<DG_FP> &y, std::vector<DG_FP> &s);
   int num_pts();
+
+  std::vector<std::set<int>> construct_adj_list(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y);
+  std::vector<int> body_scan(std::vector<DG_FP> &x, std::vector<DG_FP> &y, std::vector<DG_FP> &s);
+  void local_stencil_correction(std::vector<DG_FP> &x, std::vector<DG_FP> &y, std::vector<DG_FP> &s, std::vector<int> &bodies);
 
   void fit_poly(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &s, const DG_FP h);
 

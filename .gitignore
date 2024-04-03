@@ -6,3 +6,7 @@ bin
 obj
 examples/**/*.vtk
 examples/**/*.h5
+*.vtk
+*.pvsm
+*.png
+*.txt

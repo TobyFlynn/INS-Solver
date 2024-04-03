@@ -2,63 +2,30 @@
 
 #include <random>
 #include <map>
+#include <fstream>
+#include <iostream>
 
 #include "op2_utils.h"
 #include "timing.h"
 #include "dg_constants/dg_constants_2d.h"
-#include "dg_utils.h"
 #include "dg_global_constants/dg_global_constants_2d.h"
+
+#include "CDT.h"
 
 extern Timing *timer;
 extern DGConstants *constants;
 
 using namespace std;
 
-struct Coord {
-  DG_FP x;
-  DG_FP y;
-};
-
 struct Point {
-  Coord coord;
+  DGUtils::Vec<2> coord;
   DG_FP val;
   int count;
 };
 
-struct cmpCoords {
-    bool operator()(const Coord& a, const Coord& b) const {
-        bool xCmp = abs(a.x - b.x) < 1e-8;
-        bool yCmp = abs(a.y - b.y) < 1e-8;
-        if(xCmp && yCmp) {
-          return false;
-        } else if(xCmp) {
-          return a.y < b.y;
-        } else {
-          return a.x < b.x;
-        }
-    }
-};
-
 void avg_stencil(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
                  const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP offset_x, 
-                 const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap);
-/*
-void avg_stencil_nodes(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
-                 const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap);
-void avg_stencil_if_contain_interface(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
-                 const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap);
-void central_avg(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
-                 const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap);
-void proj_onto_interface(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                         const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
-                         const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap);
-void random_pts(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
-                const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap);
-*/
+                 const DG_FP offset_y, map<DGUtils::Vec<2>, Point> &pointMap);
 
 bool vec_contains(const int val, const vector<int> &vec) {
   for(int i = 0; i < vec.size(); i++) {
@@ -82,17 +49,12 @@ void PolyApprox::calc_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_p
 void PolyApprox::stencil_data(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
                               const DG_FP *y_ptr, const DG_FP *s_ptr, vector<DG_FP> &x, 
                               vector<DG_FP> &y, vector<DG_FP> &s) {
-  map<Coord, Point, cmpCoords> pointMap;
+  map<DGUtils::Vec<2>, Point> pointMap;
   avg_stencil(cell_ind, stencil, x_ptr, y_ptr, s_ptr, offset_x, offset_y, pointMap);
-  
-  // avg_stencil_nodes(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, offset_x, offset_y, pointMap);
-  // central_avg(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, offset_x, offset_y, pointMap);
-  // proj_onto_interface(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, offset_x, offset_y, pointMap);
-  // random_pts(cell_ind, stencil, x_ptr, y_ptr, s_ptr, modal_ptr, offset_x, offset_y, pointMap);
 
   for(auto const &p : pointMap) {
-    x.push_back(p.second.coord.x);
-    y.push_back(p.second.coord.y);
+    x.push_back(p.second.coord[0]);
+    y.push_back(p.second.coord[1]);
     s.push_back(p.second.val / (DG_FP)p.second.count);
   }
 }
@@ -105,6 +67,11 @@ PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
   vector<DG_FP> x_vec, y_vec, s_vec;
   stencil_data(cell_ind, stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_vec);
   
+  if(local_stencil_correction) {
+    std::vector<int> bodies = body_scan(x_vec, y_vec, s_vec);
+    local_stencil_correction(x_vec, y_vec, s_vec, bodies);
+  }
+
   fit_poly(x_vec, y_vec, s_vec, h);
 }
 
@@ -116,37 +83,423 @@ PolyApprox::PolyApprox(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y) {
   }
 }
 
-void PolyApprox::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s, const DG_FP h) {
-  // Set A vandermonde matrix and b
-  arma::mat A = get_vandermonde(x, y);
-  arma::vec b(s);
+bool double_eq(const double d0, const double d1) {
+  return fabs(d0 - d1) < 1e-8;
+}
 
-  // Fit poly by using QR
-  arma::mat Q, R;
-  arma::qr(Q, R, A);
-  arma::vec ans = arma::solve(R, Q.t() * b);
-  
-  coeff = arma::conv_to<vector<DG_FP>>::from(ans);
-
-  arma::vec res = A * ans;
-  bool node_with_wrong_sign = false;
-  set<int> problem_inds;
-  arma::vec w(x.size());
-  const DG_FP sigma = h * 0.01;
+std::vector<std::set<int>> PolyApprox::construct_adj_list(const vector<DG_FP> &x, const vector<DG_FP> &y) {
+  std::vector<DGUtils::Vec<2>> pts;
   for(int i = 0; i < x.size(); i++) {
-    w(i) = exp(-s[i] * s[i] / sigma);
-    if(res(i) > 0.0 != b(i) > 0.0) {
-      node_with_wrong_sign = true;
-      problem_inds.insert(i);
+    pts.push_back(DGUtils::Vec<2>(x[i], y[i]));
+  }
+  
+  // Delunay triangulation of DG nodes in stencil
+  CDT::Triangulation<double> cdt;
+  cdt.insertVertices(pts.begin(), pts.end(), [](const DGUtils::Vec<2>& p){ return p[0]; }, [](const DGUtils::Vec<2>& p){ return p[1]; });
+  cdt.eraseSuperTriangle();
+  auto triangles = cdt.triangles;
+  auto vertices = cdt.vertices;
+
+  std::map<int,int> vertices_map;
+  for(int i = 0; i < pts.size(); i++) {
+    for(int j = 0; j < pts.size(); j++) {
+      if(double_eq(vertices[i].x, pts[j][0]) && double_eq(vertices[i].y, pts[j][1])) {
+        vertices_map.insert({i, j});
+        break;
+      }
     }
   }
 
+  // Construct adjaciency list from triangulation
+  std::vector<std::set<int>> adj_map(pts.size());
+  for(const auto &tri : triangles) {
+    const int node_0 = vertices_map.at(tri.vertices[0]);
+    const int node_1 = vertices_map.at(tri.vertices[1]);
+    const int node_2 = vertices_map.at(tri.vertices[2]);
+    
+    adj_map[node_0].insert(node_1);
+    adj_map[node_0].insert(node_2);
+    adj_map[node_1].insert(node_0);
+    adj_map[node_1].insert(node_2);
+    adj_map[node_2].insert(node_0);
+    adj_map[node_2].insert(node_1);
+  }
+
+  return adj_map;
+}
+
+std::vector<int> PolyApprox::body_scan(vector<DG_FP> &x, vector<DG_FP> &y, vector<DG_FP> &s) {
+  // Construct adjaciency list from triangulation
+  std::vector<std::set<int>> adj_map = construct_adj_list(x, y);
+
+  // Do the body scan
+  std::vector<int> bodies(x.size(), -1);
+  std::set<int> visited_pts;
+  int body_ind = 0;
+  int current_pt = 0;
+  bool current_body_is_pos = s[current_pt] >= 0.0;
+  bodies[current_pt] = body_ind;
+  visited_pts.insert(current_pt);
+  std::stack<int> query_queue;
+  for(const auto &ind : adj_map[current_pt]) {
+    if(s[ind] >= 0.0 == current_body_is_pos && visited_pts.count(ind) == 0) {
+      bodies[ind] = body_ind;
+      query_queue.push(ind);
+    }
+  }
+
+  while(visited_pts.size() != x.size()) {
+    if(query_queue.size() == 0) {
+      body_ind++;
+      for(int i = 0; i < x.size(); i++) {
+        if(visited_pts.count(i) == 0) {
+          current_pt = i;
+          break;
+        }
+      }
+      current_body_is_pos = s[current_pt] >= 0.0;
+      bodies[current_pt] = body_ind;
+      visited_pts.insert(current_pt);
+      for(const auto &ind : adj_map[current_pt]) {
+        if(s[ind] >= 0.0 == current_body_is_pos && visited_pts.count(ind) == 0) {
+          bodies[ind] = body_ind;
+          query_queue.push(ind);
+        }
+      }
+    } else {
+      current_pt = query_queue.top();
+      query_queue.pop();
+      visited_pts.insert(current_pt);
+      for(const auto &ind : adj_map[current_pt]) {
+        if(s[ind] >= 0.0 == current_body_is_pos && visited_pts.count(ind) == 0) {
+          bodies[ind] = body_ind;
+          query_queue.push(ind);
+        }
+      }
+    }
+  }
+
+  return bodies;
+}
+
+DG_FP min_distance_to_line_segment(const DGUtils::Vec<2> &seg0, const DGUtils::Vec<2> &seg1, const DGUtils::Vec<2> &pt) {
+  DG_FP mag_squared = (seg0 - seg1).sqr_magnitude();
+  if(mag_squared < 1e-14)
+    return (seg0 - pt).magnitude();
+
+  DGUtils::Vec<2> tmp_0 = pt - seg0;
+  DGUtils::Vec<2> tmp_1 = seg1 - seg0;
+  DG_FP tmp = tmp_0.dot(tmp_1) / mag_squared;
+  DG_FP factor = fmax(0, fmin(1.0, tmp));
+  DGUtils::Vec<2> closest_pt = seg0 + factor * tmp_1;
+  return (closest_pt - pt).magnitude();
+}
+
+bool would_make_cycle(const std::pair<int,int> &new_seg, const std::set<std::pair<int,int>> &segments, const int num_points) {
+  std::vector<std::set<int>> adj_list(num_points);
+  for(const auto &seg : segments) {
+    adj_list[seg.first].insert(seg.second);
+    adj_list[seg.second].insert(seg.first);
+  }
+  adj_list[new_seg.first].insert(new_seg.second);
+  adj_list[new_seg.second].insert(new_seg.first);
+
+  std::vector<bool> visited(num_points, false);
+  int current_node = new_seg.first;
+  int parent_node = -1;
+  std::stack<int> backtrack;
+  std::set<int> backtrack_contents;
+  while(true) {
+    visited[current_node] = true;
+    int next_node = -1;
+    for(const auto &ind : adj_list[current_node]) {
+      if(visited[ind]) {
+        if(ind != parent_node && backtrack_contents.count(ind) != 0)
+          return true;
+      } else {
+        next_node = ind;
+      }
+    }
+
+    // Handle backtracking
+    if(next_node == -1) {
+      if(backtrack.size() == 0) {
+        return false;
+      }
+
+      current_node = backtrack.top();
+      backtrack.pop();
+      backtrack_contents.erase(current_node);
+      if(backtrack.size() == 0) {
+        parent_node = -1;
+      } else {
+        parent_node = backtrack.top();
+      }
+    } else {
+      backtrack.push(current_node);
+      backtrack_contents.insert(current_node);
+      parent_node = current_node;
+      current_node = next_node;
+    }
+  }
+}
+
+void PolyApprox::local_stencil_correction(std::vector<DG_FP> &x, std::vector<DG_FP> &y, std::vector<DG_FP> &s, std::vector<int> &bodies) {
+  // TODO reuse adj_list from body_scan
+  std::vector<std::set<int>> adj_list = construct_adj_list(x, y);
+  
+  // Count how many bodies there were
+  int num_bodies = 0;
+  for(int i = 0; i < x.size(); i++) {
+    num_bodies = num_bodies < bodies[i] ? bodies[i] : num_bodies;
+  }
+  num_bodies++;
+
+  if(num_bodies <= 2)
+    return;
+
+  if(num_bodies != 3) {
+    printf("Number of bodies in stencil is %d\n", num_bodies);
+    return;
+  }
+
+  // Find min distance from origin for each body
+  DG_FP body_dists[3] = {1e5, 1e5, 1e5};
+  std::set<int> pos_bodies, neg_bodies;
+  for(int i = 0; i < x.size(); i++) {
+    DG_FP dist = x[i] * x[i] + y[i] * y[i];
+    body_dists[bodies[i]] = body_dists[bodies[i]] > dist ? dist : body_dists[bodies[i]];
+    if(s[i] >= 0.0)
+      pos_bodies.insert(bodies[i]);
+    else
+      neg_bodies.insert(bodies[i]);
+  }
+
+  // Decide which body is problematic
+  int problem_body = -1;
+  int safe_body = -1;
+  if(pos_bodies.size() > neg_bodies.size()) {
+    DG_FP max_dist = 0.0;
+    for(const auto &body_ind : pos_bodies) {
+      if(max_dist < body_dists[body_ind]) {
+        max_dist = body_dists[body_ind];
+        problem_body = body_ind;
+      }
+    }
+
+    for(const auto &body_ind : pos_bodies) {
+      if(body_ind != problem_body)
+        safe_body = body_ind;
+    }
+  } else {
+    DG_FP max_dist = 0.0;
+    for(const auto &body_ind : neg_bodies) {
+      if(max_dist < body_dists[body_ind]) {
+        max_dist = body_dists[body_ind];
+        problem_body = body_ind;
+      }
+    }
+
+    for(const auto &body_ind : neg_bodies) {
+      if(body_ind != problem_body)
+        safe_body = body_ind;
+    }
+  }
+
+  // Label nodes according to Ngo paper
+  std::vector<int> node_labels(x.size(), -1);
+  for(int i = 0; i < x.size(); i++) {
+    if(bodies[i] == safe_body) {
+      node_labels[i] = 1;
+      for(const auto &ind : adj_list[i]) {
+        if(node_labels[ind] == -1)
+          node_labels[ind] = 2;
+      }
+    }
+  }
+  for(int i = 0; i < x.size(); i++) {
+    if(node_labels[i] == -1)
+      node_labels[i] = 3;
+  }
+/*
+  // std::cout << "*** NODE LABELS ***" << std::endl;
+  std::ofstream nodes_file("nodes.csv");
+  nodes_file << "X,Y,S,B,NL" << std::endl;
+  for(int i = 0; i < x.size(); i++) {
+    nodes_file << x[i] << ",";
+    nodes_file << y[i] << ",";
+    nodes_file << s[i] << ",";
+    nodes_file << bodies[i] << ",";
+    nodes_file << node_labels[i] << std::endl;
+  }
+  nodes_file.close();
+*/
+  // Get points on interface using linear interpolation between nodes of label 1 and 2
+  std::vector<DGUtils::Vec<2>> interface_pts;
+  for(int i = 0; i < x.size(); i++) {
+    if(node_labels[i] == 2) {
+      for(const auto &ind : adj_list[i]) {
+        if(node_labels[ind] == 1) {
+          DGUtils::Vec<2> pt;
+          DG_FP factor = s[i] / (s[i] - s[ind]);
+          pt[0] = x[i] + factor * (x[ind] - x[i]);
+          pt[1] = y[i] + factor * (y[ind] - y[i]);
+          interface_pts.push_back(pt);
+        }
+      }
+    }
+  }
+/*
+  // std::cout << "*** INTERFACE PTS ***" << std::endl;
+  std::ofstream pts_file("pts.csv");
+  pts_file << "X,Y" << std::endl;
+  for(int i = 0; i < interface_pts.size(); i++) {
+    pts_file << interface_pts[i].x << ",";
+    pts_file << interface_pts[i].y << std::endl;
+  }
+  pts_file.close();
+*/
+/*
+  // Local reinit of nodes with label 3 just using points on interface
+  bool node_3_neg = pos_bodies.size() > neg_bodies.size(); 
+  for(int i = 0; i < x.size(); i++) {
+    if(node_labels[i] == 3) {
+      // Find closest point
+      DG_FP dist = 1e5;
+      for(int j = 0; j < interface_pts.size(); j++) {
+        DG_FP tmp_dist = (interface_pts[j].x - x[i]) * (interface_pts[j].x - x[i])
+                       + (interface_pts[j].y - y[i]) * (interface_pts[j].y - y[i]);
+        dist = dist > tmp_dist ? tmp_dist : dist;
+      }
+      dist = sqrt(dist);
+      s[i] = dist;
+      if(node_3_neg) s[i] = -s[i];
+    }
+  }
+*/
+
+  // Get segments of line representing interface
+  std::set<std::pair<int,int>> segments;
+  const int total_number_of_segments = interface_pts.size() - 1;
+  std::vector<int> pt_degree(interface_pts.size(), 0);
+  while(segments.size() < total_number_of_segments) {
+    // Iterate over all potential segments, find shortest one
+    std::pair<int,int> shortest_segment = {-1, -1};
+    DG_FP dist = 1e5;
+    for(int i = 0; i < interface_pts.size(); i++) {
+      if(pt_degree[i] == 2) 
+        continue;
+      for(int j = i + 1; j < interface_pts.size(); j++) {
+        if(pt_degree[j] == 2 || segments.count({i, j}) != 0 || would_make_cycle({i, j}, segments, interface_pts.size()))
+          continue;
+        DG_FP tmp_dist = (interface_pts[i] - interface_pts[j]).sqr_magnitude();
+        if(tmp_dist < dist) {
+          dist = tmp_dist;
+          shortest_segment = {i, j};
+        }
+      }
+    }
+
+    pt_degree[shortest_segment.first]++;
+    pt_degree[shortest_segment.second]++;
+    segments.insert(shortest_segment);
+  }
+/*
+  std::ofstream segments_file("segments.csv");
+  segments_file << "X,Y" << std::endl;
+  for(const auto &seg : segments) {
+    for(int i = 0; i < 20; i++) {
+      DG_FP factor = (DG_FP) i / 19.0;
+      segments_file << interface_pts[seg.first].x + factor * (interface_pts[seg.second].x - interface_pts[seg.first].x) << ",";
+      segments_file << interface_pts[seg.first].y + factor * (interface_pts[seg.second].y - interface_pts[seg.first].y) << std::endl;
+    }
+  }
+  segments_file.close();
+  exit(-1);
+*/
+  // Local reinit of nodes with label 3
+  bool node_3_neg = pos_bodies.size() > neg_bodies.size(); 
+  for(int i = 0; i < x.size(); i++) {
+    if(node_labels[i] == 3) {
+      DGUtils::Vec<2> current_pt(x[i], y[i]);
+      // Find closest point
+      DG_FP dist = 1e5;
+      int closest_pt = -1;
+      for(int j = 0; j < interface_pts.size(); j++) {
+        DG_FP tmp_dist = (interface_pts[j] - current_pt).sqr_magnitude();
+        if(dist > tmp_dist) {
+          dist = tmp_dist;
+          closest_pt = j;
+        }
+      }
+
+      // Get line segments involving the closest point
+      std::vector<std::pair<int,int>> segments_to_consider;
+      for(const auto &seg : segments) {
+        if(seg.first == closest_pt || seg.second == closest_pt)
+          segments_to_consider.push_back(seg);
+      }
+
+      // Get smallest distance to the segements
+      DG_FP reinit_dist = 1e5;
+      for(const auto &seg : segments_to_consider) {
+        DG_FP tmp = min_distance_to_line_segment(interface_pts[seg.first], interface_pts[seg.second], current_pt);
+        dist = dist > tmp ? tmp : dist;
+      }
+
+      s[i] = dist;
+      if(node_3_neg) s[i] = -s[i];
+    }
+  }
+
+/*
+  // std::cout << "*** REINIT NODES ***" << std::endl;
+  std::ofstream reinit_nodes_file("reinit_nodes.csv");
+  reinit_nodes_file << "X,Y,S,B,NL" << std::endl;
+  for(int i = 0; i < x.size(); i++) {
+    reinit_nodes_file << x[i] << ",";
+    reinit_nodes_file << y[i] << ",";
+    reinit_nodes_file << s[i] << ",";
+    reinit_nodes_file << bodies[i] << ",";
+    reinit_nodes_file << node_labels[i] << std::endl;
+  }
+  reinit_nodes_file.close();
+
+  exit(-1);
+*/
+}
+
+void PolyApprox::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s, const DG_FP h) {
+  // Set A vandermonde matrix and b
+  arma::mat A;
+  if(RDF) {
+    rdf_eps = 512.0 / (h * h);
+    A = get_rdf_vandermonde(x, y);
+    arma::vec b(s);
+    arma::vec ans = arma::inv(A) * b;
+    coeff = arma::conv_to<vector<DG_FP>>::from(ans);
+    return;
+  } else {
+    A = get_vandermonde(x, y);
+  }
+  arma::vec b(s);
+  arma::vec w(x.size());
+  // const DG_FP sigma = h * 0.1;
+  const DG_FP sigma = h * 0.01;
+  for(int i = 0; i < x.size(); i++) {
+    const DG_FP dist_from_origin = x[i] * x[i] + y[i] * y[i];
+    w(i) = exp(-dist_from_origin / sigma);
+    // w(i) = exp(-s[i] * s[i] / sigma);
+    // w(i) = 1.0;
+  }
+
+  bool node_with_wrong_sign = false;
+  set<int> problem_inds;
   int redo_counter = 0;
   const int max_redo = 50;
-  while(node_with_wrong_sign && redo_counter < max_redo) {
-    for(int i = 0; i < x.size(); i++) {
-      if(problem_inds.count(i) > 0) 
-        w(i) = w(i) * 2.0;
+  do {
+    for(const int &ind : problem_inds) {
+      w(ind) = w(ind) * 2.0;
     }
     arma::mat W = arma::diagmat(arma::sqrt(w));
     arma::mat Q, R;
@@ -166,10 +519,31 @@ void PolyApprox::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const 
     }
 
     redo_counter++;
-  }
+  } while(node_with_wrong_sign && redo_counter < max_redo);
 
   // if(redo_counter == max_redo) printf("Max redo\n");
   // if(node_with_wrong_sign) printf("Node with wrong sign\n");
+}
+
+DG_FP PolyApprox::gaussian(DG_FP r) {
+  return exp(-(rdf_eps * r));
+}
+
+arma::mat PolyApprox::get_rdf_vandermonde(const vector<DG_FP> &x, const vector<DG_FP> &y) {
+  for(int i = 0; i < x.size(); i++) {
+    rdf_stencil_pts.push_back(DGUtils::Vec<2>(x[i], y[i]));
+  }
+  
+  // Set A vandermonde matrix and b
+  arma::mat A(rdf_stencil_pts.size(), rdf_stencil_pts.size());
+  for(int i = 0; i < rdf_stencil_pts.size(); i++) {
+    for(int j = 0; j < rdf_stencil_pts.size(); j++) {
+      DG_FP distance_to_i = (rdf_stencil_pts[j] - rdf_stencil_pts[i]).sqr_magnitude();
+      A(i, j) = gaussian(distance_to_i);
+    }
+  }
+
+  return A;
 }
 
 #define C_POLY_IND 0
@@ -302,9 +676,23 @@ DG_FP PolyApprox::val_at_4th(const DG_FP x, const DG_FP y) {
   return res;
 }
 
+DG_FP PolyApprox::val_at_rdf(const DG_FP x, const DG_FP y) {
+  DGUtils::Vec<2> pt(x, y);
+
+  DG_FP result = 0.0;
+  for(int i = 0; i < rdf_stencil_pts.size(); i++) {
+    DG_FP dist = (pt - rdf_stencil_pts[i]).sqr_magnitude();
+    result += coeff[i] * gaussian(dist);
+  }
+
+  return result;
+}
+
 DG_FP PolyApprox::val_at(const DG_FP x, const DG_FP y) {
   DG_FP res = 0.0;
-  if(N == 2) {
+  if(RDF) {
+    res = val_at_rdf(x, y);
+  } else if(N == 2) {
     res = val_at_2nd(x, y);
   } else if(N == 3) {
     res = val_at_3rd(x, y);
@@ -373,9 +761,24 @@ void PolyApprox::grad_at_4th(const DG_FP x, const DG_FP y, DG_FP &dx, DG_FP &dy)
   dy += 4.0 * coeff[Y4_POLY_IND] * y * y * y;
 }
 
+void PolyApprox::grad_at_rdf(const DG_FP x, const DG_FP y, DG_FP &dx, DG_FP &dy) {
+  dx = 0.0;
+  dy = 0.0;
+
+  DGUtils::Vec<2> pt(x, y);
+  for(int i = 0; i < rdf_stencil_pts.size(); i++) {
+    DG_FP dist = (pt - rdf_stencil_pts[i]).sqr_magnitude();
+    DG_FP gauss = gaussian(dist);
+    dx += -2.0 * rdf_eps * x * coeff[i] * gauss;
+    dy += -2.0 * rdf_eps * y * coeff[i] * gauss;
+  }
+}
+
 void PolyApprox::grad_at(const DG_FP x, const DG_FP y,
                          DG_FP &dx, DG_FP &dy) {
-  if(N == 2) {
+  if(RDF) {
+    grad_at_rdf(x, y, dx, dy);
+  } else if(N == 2) {
     grad_at_2nd(x, y, dx, dy);
   } else if(N == 3) {
     grad_at_3rd(x, y, dx, dy);
@@ -427,9 +830,26 @@ void PolyApprox::hessian_at_4th(const DG_FP x, const DG_FP y, DG_FP &dx2, DG_FP 
   dy2 += 12.0 * coeff[Y4_POLY_IND] * y * y;
 }
 
+void PolyApprox::hessian_at_rdf(const DG_FP x, const DG_FP y, DG_FP &dx2, DG_FP &dxy, DG_FP &dy2) {
+  dx2 = 0.0;
+  dxy = 0.0;
+  dy2 = 0.0;
+
+  DGUtils::Vec<2> pt(x, y);
+  for(int i = 0; i < rdf_stencil_pts.size(); i++) {
+    DG_FP dist = (pt - rdf_stencil_pts[i]).sqr_magnitude();
+    DG_FP gauss = gaussian(dist);
+    dx2 += 2.0 * coeff[i] * rdf_eps * (2.0 * rdf_eps * x * x - 1.0) * gauss;
+    dxy += 4.0 * coeff[i] * rdf_eps * rdf_eps * x * y * gauss;
+    dy2 += 2.0 * coeff[i] * rdf_eps * (2.0 * rdf_eps * y * y - 1.0) * gauss;
+  }
+}
+
 void PolyApprox::hessian_at(const DG_FP x, const DG_FP y,
                             DG_FP &dx2, DG_FP &dxy, DG_FP &dy2) {
-  if(N == 2) {
+  if(RDF) {
+    hessian_at_rdf(x, y, dx2, dxy, dy2);
+  } else if(N == 2) {
     hessian_at_2nd(x, y, dx2, dxy, dy2);
   } else if(N == 3) {
     hessian_at_3rd(x, y, dx2, dxy, dy2);
@@ -561,11 +981,11 @@ map<int,set<int>> PolyApprox::get_stencils(const set<int> &central_inds, op_map 
 */
 }
 
-bool share_coords(const DG_FP *x_ptr, const DG_FP *y_ptr, const std::vector<Coord> &nodes) {
+bool share_coords(const DG_FP *x_ptr, const DG_FP *y_ptr, const std::vector<DGUtils::Vec<2>> &nodes) {
   for(int i = 0; i < DG_NP; i++) {
     for(int n = 0; n < 3; n++) {
-      bool xCmp = abs(x_ptr[i] - nodes[n].x) < 1e-8;
-      bool yCmp = abs(y_ptr[i] - nodes[n].y) < 1e-8;
+      bool xCmp = abs(x_ptr[i] - nodes[n][0]) < 1e-8;
+      bool yCmp = abs(y_ptr[i] - nodes[n][1]) < 1e-8;
       if(xCmp && yCmp) return true;
     }
   }
@@ -577,7 +997,7 @@ map<int,set<int>> PolyApprox::single_layer_stencils(const set<int> &central_inds
   map<int,set<int>> stencils;
   map<int,stencil_query> queryInds;
   const int num_elements = num_elem_stencil();
-  map<int,std::vector<Coord>> central_inds_nodes;
+  map<int,std::vector<DGUtils::Vec<2>>> central_inds_nodes;
 
   const int fmask_node_ind_0 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];
   const int fmask_node_ind_1 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + DG_NPF - 1];
@@ -592,16 +1012,16 @@ map<int,set<int>> PolyApprox::single_layer_stencils(const set<int> &central_inds
     sq.central_inds.insert(ind);
     queryInds.insert({ind, sq});
 
-    std::vector<Coord> nodes;
-    Coord node0, node1, node2;
-    node0.x = x_ptr[ind * DG_NP + fmask_node_ind_0];
-    node0.y = y_ptr[ind * DG_NP + fmask_node_ind_0];
+    std::vector<DGUtils::Vec<2>> nodes;
+    DGUtils::Vec<2> node0, node1, node2;
+    node0[0] = x_ptr[ind * DG_NP + fmask_node_ind_0];
+    node0[1] = y_ptr[ind * DG_NP + fmask_node_ind_0];
     nodes.push_back(node0);
-    node1.x = x_ptr[ind * DG_NP + fmask_node_ind_1];
-    node1.y = y_ptr[ind * DG_NP + fmask_node_ind_1];
+    node1[0] = x_ptr[ind * DG_NP + fmask_node_ind_1];
+    node1[1] = y_ptr[ind * DG_NP + fmask_node_ind_1];
     nodes.push_back(node1);
-    node2.x = x_ptr[ind * DG_NP + fmask_node_ind_2];
-    node2.y = y_ptr[ind * DG_NP + fmask_node_ind_2];
+    node2[0] = x_ptr[ind * DG_NP + fmask_node_ind_2];
+    node2[1] = y_ptr[ind * DG_NP + fmask_node_ind_2];
     nodes.push_back(node2);
     central_inds_nodes.insert({ind, nodes});
   }
@@ -673,14 +1093,14 @@ map<int,set<int>> PolyApprox::single_layer_stencils(const set<int> &central_inds
  */
 void avg_stencil(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
                  const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP offset_x, 
-                 const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap) {
+                 const DG_FP offset_y, map<DGUtils::Vec<2>, Point> &pointMap) {
   for(const auto &sten : stencil) {
     for(int n = 0; n < DG_NP; n++) {
       int ind = sten * DG_NP + n;
 
-      Coord coord;
-      coord.x = x_ptr[ind] - offset_x;
-      coord.y = y_ptr[ind] - offset_y;
+      DGUtils::Vec<2> coord;
+      coord[0] = x_ptr[ind] - offset_x;
+      coord[1] = y_ptr[ind] - offset_y;
       Point point;
       auto res = pointMap.insert(make_pair(coord, point));
 
@@ -697,289 +1117,3 @@ void avg_stencil(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr
     }
   }
 }
-
-/*
-DG_FP pol_in_tri_sign(const DG_FP x, const DG_FP y, const DG_FP v0x, const DG_FP v0y, const DG_FP v1x, const DG_FP v1y) {
-  return (x - v1x) * (v0y - v1y) - (v0x - v1x) * (y - v1y);
-}
-
-bool pol_in_tri(const DG_FP ptX, const DG_FP ptY, const DG_FP *nodeX, const DG_FP *nodeY) {
-  bool has_neg, has_pos;
-
-  DG_FP d1 = pol_in_tri_sign(ptX, ptY, nodeX[0], nodeY[0], nodeX[1], nodeY[1]);
-  DG_FP d2 = pol_in_tri_sign(ptX, ptY, nodeX[1], nodeY[1], nodeX[2], nodeY[2]);
-  DG_FP d3 = pol_in_tri_sign(ptX, ptY, nodeX[2], nodeY[2], nodeX[0], nodeY[0]);
-
-  has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-  has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
-
-  return !(has_neg && has_pos);
-}
-
-void pol_rs2xy(DG_FP &sampleX, DG_FP &sampleY, const DG_FP *nodeX, const DG_FP *nodeY) {
-  DG_FP r_ = sampleX;
-  DG_FP s_ = sampleY;
-
-  sampleX = 0.5 * (nodeX[1] * (1.0 + r_) + nodeX[2] * (1.0 + s_) - nodeX[0] * (s_ + r_));
-  sampleY = 0.5 * (nodeY[1] * (1.0 + r_) + nodeY[2] * (1.0 + s_) - nodeY[0] * (s_ + r_));
-}
-
-bool pol_simplified_newton(DG_FP &pt_r, DG_FP &pt_s, const DG_FP *modal,
-                           const DG_FP tol, const DG_FP *tetra_r, const DG_FP *tetra_s) {
-  bool converged = false;
-  for(int step = 0; step < 50; step++) {
-    DG_FP surf = DGUtils::val_at_pt_2d(pt_r, pt_s, modal, DG_ORDER);
-    DG_FP dsdr, dsds;
-    DGUtils::grad_at_pt_2d(pt_r, pt_s, modal, DG_ORDER, dsdr, dsds);
-
-    DG_FP sqrnorm = dsdr * dsdr + dsds * dsds;
-    if(sqrnorm > 0.0) {
-      dsdr *= surf / sqrnorm;
-      dsds *= surf / sqrnorm;
-    }
-
-    pt_r -= dsdr;
-    pt_s -= dsds;
-
-    if(!pol_in_tri(pt_r, pt_s, tetra_r, tetra_s)) {
-      break;
-    }
-
-    // Check convergence
-    if(dsdr * dsdr + dsds * dsds < tol) {
-      converged = true;
-      break;
-    }
-  }
-  return converged;
-}
-
-void avg_stencil_nodes(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
-                 const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap) {
-  const int fmask_node_ind_0 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];
-  const int fmask_node_ind_1 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + DG_NPF - 1];
-  const int fmask_node_ind_2 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + 2 * DG_NPF - 1];
-  int inds[] = {fmask_node_ind_0, fmask_node_ind_1, fmask_node_ind_2};
-  for(const auto &sten : stencil) {
-
-    for(int n = 0; n < 3; n++) {
-      int ind = sten * DG_NP + inds[n];
-
-      Coord coord;
-      coord.x = x_ptr[ind] - offset_x;
-      coord.y = y_ptr[ind] - offset_y;
-      Point point;
-      auto res = pointMap.insert(make_pair(coord, point));
-
-      if(res.second) {
-        // Point was inserted
-        res.first->second.coord = coord;
-        res.first->second.val   = s_ptr[ind];
-        res.first->second.count = 1;
-      } else {
-        // Point already exists
-        res.first->second.val += s_ptr[ind];
-        res.first->second.count++;
-      }
-    }
-  }
-}
-
-void avg_stencil_if_contain_interface(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
-                 const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap) {
-  for(const auto &sten : stencil) {
-    bool contain_interface = false;
-    bool pos = s_ptr[sten * DG_NP] > 0.0;
-    for(int i = 1; i < DG_NP; i++) {
-      if(pos != s_ptr[sten * DG_NP + i] > 0.0)
-        contain_interface = true;
-    }
-    if(!contain_interface) continue;
-    for(int n = 0; n < DG_NP; n++) {
-      int ind = sten * DG_NP + n;
-
-      Coord coord;
-      coord.x = x_ptr[ind] - offset_x;
-      coord.y = y_ptr[ind] - offset_y;
-      Point point;
-      auto res = pointMap.insert(make_pair(coord, point));
-
-      if(res.second) {
-        // Point was inserted
-        res.first->second.coord = coord;
-        res.first->second.val   = s_ptr[ind];
-        res.first->second.count = 1;
-      } else {
-        // Point already exists
-        res.first->second.val += s_ptr[ind];
-        res.first->second.count++;
-      }
-    }
-  }
-}
-
-void central_avg(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
-                 const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap) {
-  for(int n = 0; n < DG_NP; n++) {
-    int ind = cell_ind * DG_NP + n;
-    Coord coord;
-    coord.x = x_ptr[ind] - offset_x;
-    coord.y = y_ptr[ind] - offset_y;
-    Point point;
-    auto res = pointMap.insert(make_pair(coord, point));
-    res.first->second.coord = coord;
-    res.first->second.val   = s_ptr[ind];
-    res.first->second.count = 1;
-  }
-
-  for(const auto &sten : stencil) {
-    if(sten == cell_ind) continue;
-    for(int n = 0; n < DG_NP; n++) {
-      int ind = sten * DG_NP + n;
-
-      Coord coord;
-      coord.x = x_ptr[ind] - offset_x;
-      coord.y = y_ptr[ind] - offset_y;
-      Point point;
-      auto res = pointMap.find(coord);
-      if(res == pointMap.end()) continue;
-
-      res->second.val += s_ptr[ind];
-      res->second.count++;
-    }
-  }
-}
-
-void proj_onto_interface(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                         const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
-                         const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap) {
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<> dis(-1.0, 1.0);
-
-  const int fmask_node_ind_0 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];
-  const int fmask_node_ind_1 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + DG_NPF - 1];
-  const int fmask_node_ind_2 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + 2 * DG_NPF - 1];
-  const DG_FP *tmp_r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
-  const DG_FP *tmp_s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
-  const DG_FP tetra_r[3] = {tmp_r_ptr[fmask_node_ind_0], tmp_r_ptr[fmask_node_ind_1], tmp_r_ptr[fmask_node_ind_2]};
-  const DG_FP tetra_s[3] = {tmp_s_ptr[fmask_node_ind_0], tmp_s_ptr[fmask_node_ind_1], tmp_s_ptr[fmask_node_ind_2]};
-
-  for(const auto &sten : stencil) {
-    bool contain_interface = false;
-    bool s_pos = s_ptr[sten * DG_NP] > 0.0;
-    for(int i = 0; i < DG_NP; i++) {
-      if(s_ptr[sten * DG_NP + i] > 0.0 != s_pos) {
-        contain_interface = true;
-        break;
-      }
-    }
-    if(!contain_interface || sten != cell_ind) continue;
-
-    DG_FP ref_r_ptr[DG_NP], ref_s_ptr[DG_NP];
-    for(int i = 0; i < DG_NP; i++) {
-      ref_r_ptr[i] = tmp_r_ptr[i] * 0.75;
-      ref_s_ptr[i] = tmp_s_ptr[i] * 0.75;
-    }
-
-    const DG_FP X0 = x_ptr[sten * DG_NP + fmask_node_ind_0]; const DG_FP Y0 = y_ptr[sten * DG_NP + fmask_node_ind_0];
-    const DG_FP X1 = x_ptr[sten * DG_NP + fmask_node_ind_1]; const DG_FP Y1 = y_ptr[sten * DG_NP + fmask_node_ind_1];
-    const DG_FP X2 = x_ptr[sten * DG_NP + fmask_node_ind_2]; const DG_FP Y2 = y_ptr[sten * DG_NP + fmask_node_ind_2];
-
-    const DG_FP nodeX[] = {X0, X1, X2};
-    const DG_FP nodeY[] = {Y0, Y1, Y2};
-
-    #pragma omp parallel for
-    for(int p = 0; p < DG_NP; p++) {
-      // bool converged = false;
-      bool converged = pol_simplified_newton(ref_r_ptr[p], ref_s_ptr[p], &modal_ptr[sten * DG_NP], 1e-8, tetra_r, tetra_s);
-
-      if(!converged && sten == cell_ind) {
-        int counter = 0;
-        while(!converged && counter < 10) {
-          ref_r_ptr[p] = dis(gen);
-          ref_s_ptr[p] = dis(gen);
-          while(!pol_in_tri(ref_r_ptr[p], ref_s_ptr[p], tetra_r, tetra_s)) {
-            ref_r_ptr[p] = dis(gen);
-            ref_s_ptr[p] = dis(gen);
-          }
-          converged = pol_simplified_newton(ref_r_ptr[p], ref_s_ptr[p], &modal_ptr[sten * DG_NP], 1e-8, tetra_r, tetra_s);
-          counter++;
-        }
-      }
-
-      // Check if point has converged
-      // && in_tetra(ref_r_ptr[p], ref_s_ptr[p], ref_t_ptr[p], tetra_r, tetra_s, tetra_t)
-      if(converged) {
-        DG_FP x = ref_r_ptr[p];
-        DG_FP y = ref_s_ptr[p];
-        pol_rs2xy(x, y, nodeX, nodeY);
-        const DG_FP tmp_val = DGUtils::val_at_pt_2d(ref_r_ptr[p], ref_s_ptr[p], &modal_ptr[sten * DG_NP], DG_ORDER);
-        #pragma omp critical
-        {
-          Coord coord;
-          coord.x = x - offset_x;
-          coord.y = y - offset_y;
-          Point point;
-          auto res = pointMap.insert(make_pair(coord, point));
-          if(res.second) {
-            // Point was inserted
-            res.first->second.coord = coord;
-            res.first->second.val   = tmp_val;
-            res.first->second.count = 1;
-          } else {
-            // Point already exists
-            res.first->second.val += tmp_val;
-            res.first->second.count++;
-          }
-        }
-      }
-    }
-  }
-}
-
-void random_pts(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP *modal_ptr, 
-                const DG_FP offset_x, const DG_FP offset_y, map<Coord, Point, cmpCoords> &pointMap) {
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<> dis(-1.0, 1.0);
-
-  const int fmask_node_ind_0 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];
-  const int fmask_node_ind_1 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + DG_NPF - 1];
-  const int fmask_node_ind_2 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + 2 * DG_NPF - 1];
-  const DG_FP X0 = x_ptr[cell_ind * DG_NP + fmask_node_ind_0]; const DG_FP Y0 = y_ptr[cell_ind * DG_NP + fmask_node_ind_0];
-  const DG_FP X1 = x_ptr[cell_ind * DG_NP + fmask_node_ind_1]; const DG_FP Y1 = y_ptr[cell_ind * DG_NP + fmask_node_ind_1];
-  const DG_FP X2 = x_ptr[cell_ind * DG_NP + fmask_node_ind_2]; const DG_FP Y2 = y_ptr[cell_ind * DG_NP + fmask_node_ind_2];
-  const DG_FP nodeX[] = {X0, X1, X2};
-  const DG_FP nodeY[] = {Y0, Y1, Y2};
-
-  for(int p = 0; p < DG_NP; p++) {
-    DG_FP sampleX = dis(gen);
-    DG_FP sampleY = dis(gen);
-    DG_FP surf = DGUtils::val_at_pt_2d(sampleX, sampleY, &modal_ptr[cell_ind * DG_NP], DG_ORDER);
-    pol_rs2xy(sampleX, sampleY, nodeX, nodeY);
-    while(!pol_in_tri(sampleX, sampleY, nodeX, nodeY)) {
-      sampleX = dis(gen);
-      sampleY = dis(gen);
-      surf = DGUtils::val_at_pt_2d(sampleX, sampleY, &modal_ptr[cell_ind * DG_NP], DG_ORDER);
-      pol_rs2xy(sampleX, sampleY, nodeX, nodeY);
-    }
-
-    Coord coord;
-    coord.x = sampleX - offset_x;
-    coord.y = sampleY - offset_y;
-    Point point;
-    auto res = pointMap.insert(make_pair(coord, point));
-    if(res.second) {
-      // Point was inserted
-      res.first->second.coord = coord;
-      res.first->second.val   = surf;
-      res.first->second.count = 1;
-    }
-  }
-}
-*/
