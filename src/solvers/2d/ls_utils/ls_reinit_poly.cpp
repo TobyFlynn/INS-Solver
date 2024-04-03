@@ -67,7 +67,7 @@ PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
   vector<DG_FP> x_vec, y_vec, s_vec;
   stencil_data(cell_ind, stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_vec);
   
-  if(local_stencil_correction) {
+  if(do_stencil_correction) {
     std::vector<int> bodies = body_scan(x_vec, y_vec, s_vec);
     local_stencil_correction(x_vec, y_vec, s_vec, bodies);
   }

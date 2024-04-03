@@ -35,7 +35,7 @@ private:
   std::vector<DG_FP> coeff;
   
   static const bool RDF = false;
-  static const bool local_stencil_correction = false;
+  static const bool do_stencil_correction = false;
   std::vector<DGUtils::Vec<2>> rdf_stencil_pts;
   DG_FP rdf_eps;
   DG_FP gaussian(DG_FP r);
