@@ -26,3 +26,14 @@ Curve Loop(1) = {1, 2, 3, 4};
 Plane Surface(1) = {1};
 
 Physical Surface("fluid") = {1};
+
+Field[1] = Box;
+Field[1].VIn = lc / 4.0;
+Field[1].VOut = lc;
+Field[1].XMin = 0.25;
+Field[1].XMax = 0.75;
+Field[1].YMin = 0.4;
+Field[1].YMax = 1.2;
+Field[1].Thickness = 0.2;
+
+Background Field = 1;

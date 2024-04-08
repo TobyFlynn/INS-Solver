@@ -108,8 +108,8 @@ void INSSolverBase2D::read_options() {
   config->getInt("solver-options", "gravity", tmp_grav);
   gravity = tmp_grav == 1;
 
-  if(gravity && sub_cycles > 0)
-    dg_abort("Gravity not supported with subcycling currently");
+  // if(gravity && sub_cycles > 0)
+  //   dg_abort("Gravity not supported with subcycling currently");
 
   filter_alpha = 18.0;
   config->getDouble("filter", "alpha", filter_alpha);
@@ -742,13 +742,26 @@ void INSSolverBase2D::advec_sub_cycle() {
   }
 
   // Get final velT
-  op_par_loop(ins_advec_sc_update_2d, "ins_advec_sc_update_2d", mesh->cells,
-              op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc_tmp[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc_tmp[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  if(gravity) {
+    op_par_loop(ins_advec_sc_update_grav_2d, "ins_advec_sc_update_grav_2d", mesh->cells,
+                op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(advec_sc_tmp[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(advec_sc_tmp[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  } else {
+    op_par_loop(ins_advec_sc_update_2d, "ins_advec_sc_update_2d", mesh->cells,
+                op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(advec_sc_tmp[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(advec_sc_tmp[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  }
 
   dg_dat_pool->releaseTempDatCells(advec_sc_tmp[0]);
   dg_dat_pool->releaseTempDatCells(advec_sc_tmp[1]);
