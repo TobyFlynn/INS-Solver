@@ -72,7 +72,18 @@ PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
     local_stencil_correction(x_vec, y_vec, s_vec, bodies);
   }
 
-  fit_poly(x_vec, y_vec, s_vec, h);
+  // Calc h
+  auto min_x = std::min_element(x_vec.begin(), x_vec.end());
+  auto min_y = std::min_element(y_vec.begin(), y_vec.end());
+  auto max_x = std::max_element(x_vec.begin(), x_vec.end());
+  auto max_y = std::max_element(y_vec.begin(), y_vec.end());
+  
+  DGUtils::Vec<2> min_pt(*min_x, *min_y);
+  DGUtils::Vec<2> max_pt(*max_x, *max_y);
+
+  DG_FP new_h = (max_pt - min_pt).magnitude();
+
+  fit_poly(x_vec, y_vec, s_vec, new_h);
 }
 
 PolyApprox::PolyApprox(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y) {
@@ -128,7 +139,7 @@ std::vector<std::set<int>> PolyApprox::construct_adj_list(const vector<DG_FP> &x
   return adj_map;
 }
 
-std::vector<int> PolyApprox::body_scan(vector<DG_FP> &x, vector<DG_FP> &y, vector<DG_FP> &s) {
+std::vector<int> PolyApprox::body_scan(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s) {
   // Construct adjaciency list from triangulation
   std::vector<std::set<int>> adj_map = construct_adj_list(x, y);
 
@@ -469,7 +480,52 @@ void PolyApprox::local_stencil_correction(std::vector<DG_FP> &x, std::vector<DG_
 */
 }
 
-void PolyApprox::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s, const DG_FP h) {
+std::vector<int> PolyApprox::get_labels_for_least_squares(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s) {
+  // Construct adjaciency list from triangulation
+  std::vector<std::set<int>> adj_list = construct_adj_list(x, y);
+  std::vector<int> bodies = body_scan(x, y, s);
+
+  // Label nodes with distance to interface
+  std::vector<int> labels(x.size(), -1);
+  bool pts_not_visited = false;
+  for(int i = 0; i < x.size(); i++) {
+    const int current_body = bodies[i];
+    for(const int &ind : adj_list[i]) {
+      if(bodies[ind] != current_body)
+        labels[i] = 0;
+    }
+    if(labels[i] == -1)
+      pts_not_visited = true;
+  }
+
+  int current_label = 1;
+  while(pts_not_visited) {
+    pts_not_visited = false;
+    for(int i = 0; i < x.size(); i++) {
+      if(labels[i] != -1) continue;
+      for(const int &ind : adj_list[i]) {
+        if(labels[ind] == current_label - 1)
+          labels[i] = current_label;
+      }
+      if(labels[i] == -1)
+        pts_not_visited = true;
+    }
+    current_label++;
+  }
+
+  return labels;
+}
+
+arma::vec PolyApprox::get_weights_for_least_squares(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s, const DG_FP h) {
+  std::vector<int> labels = get_labels_for_least_squares(x, y, s);
+  arma::vec w(x.size());
+  for(int i = 0; i < x.size(); i++) {
+    w(i) = 1.0 / (1.0 + 10.0 * labels[i]);
+  }
+  return w;
+}
+
+void PolyApprox::fit_poly(vector<DG_FP> &x, vector<DG_FP> &y, vector<DG_FP> &s, const DG_FP h) {
   // Set A vandermonde matrix and b
   arma::mat A;
   if(RDF) {
@@ -483,23 +539,16 @@ void PolyApprox::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const 
     A = get_vandermonde(x, y);
   }
   arma::vec b(s);
-  arma::vec w(x.size());
-  // const DG_FP sigma = h * 0.1;
-  const DG_FP sigma = h * 0.01;
-  for(int i = 0; i < x.size(); i++) {
-    const DG_FP dist_from_origin = x[i] * x[i] + y[i] * y[i];
-    w(i) = exp(-dist_from_origin / sigma);
-    // w(i) = exp(-s[i] * s[i] / sigma);
-    // w(i) = 1.0;
-  }
+  arma::vec w = get_weights_for_least_squares(x, y, s, h);
+  std::vector<int> labels = get_labels_for_least_squares(x, y, s);
 
   bool node_with_wrong_sign = false;
   set<int> problem_inds;
   int redo_counter = 0;
-  const int max_redo = 50;
+  const int max_redo = 500;
   do {
     for(const int &ind : problem_inds) {
-      w(ind) = w(ind) * 2.0;
+      w(ind) = w(ind) * 1.25;
     }
     arma::mat W = arma::diagmat(arma::sqrt(w));
     arma::mat Q, R;
@@ -512,7 +561,7 @@ void PolyApprox::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const 
     node_with_wrong_sign = false;
     problem_inds.clear();
     for(int i = 0; i < x.size(); i++) {
-      if(res(i) > 0.0 != b(i) > 0.0) {
+      if(res(i) > 0.0 != b(i) > 0.0 || ((labels[i] == 0 && fabs(res(i) - b(i)) > 1e-4) && w(i) < 100.0)) {
         node_with_wrong_sign = true;
         problem_inds.insert(i);
       }
@@ -521,7 +570,7 @@ void PolyApprox::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const 
     redo_counter++;
   } while(node_with_wrong_sign && redo_counter < max_redo);
 
-  // if(redo_counter == max_redo) printf("Max redo\n");
+  if(redo_counter == max_redo) printf("Max redo\n");
   // if(node_with_wrong_sign) printf("Node with wrong sign\n");
 }
 
