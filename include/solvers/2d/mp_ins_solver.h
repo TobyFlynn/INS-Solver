@@ -48,7 +48,7 @@ private:
   void apply_pressure_neumann_bc(op_dat divVelT);
   void apply_pressure_neumann_bc_oi(op_dat divVelT);
   void update_pressure_matrices(DGTempDat &pr_factor);
-  void update_pressure_matrices_oi(DGTempDat &pr_factor, 
+  void update_pressure_matrices_oi(DGTempDat &pr_factor,
               DGTempDat &pr_factor_oi, DGTempDat &pr_factor_surf_oi);
   void update_pressure_gradient(op_dat dpdx, op_dat dpdy);
   void update_pressure_gradient_oi(op_dat dpdx, op_dat dpdy);
@@ -61,6 +61,7 @@ private:
   LevelSetSolver2D *lsSolver;
   DG_FP reynolds;
   bool resuming, dt_forced, surface_tension, pr_over_int, over_int_surface_tension;
+  bool gravity_modified_pressure;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;

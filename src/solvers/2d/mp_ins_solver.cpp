@@ -77,9 +77,12 @@ void MPINSSolver2D::setup_common() {
   config->getDouble("solver-options", "force_dt", tmp_dt);
   dt_forced = tmp_dt > 0.0;
   if(dt_forced) dt = tmp_dt;
+  int tmp_grav = 0;
+  config->getInt("solver-options", "gravity_modified_pressure", tmp_grav);
+  gravity_modified_pressure = tmp_grav == 1;
 
-  // if(surface_tension && sub_cycles > 0)
-  //   dg_abort("Surface tension not supported with subcycling currently");
+  if(gravity && gravity_modified_pressure)
+    dg_abort("Do not use both \'gravity\' and \'gravity_modified_pressure\'");
 
   // Pressure matrix and solver
   std::string pr_solver = "p-multigrid";
@@ -249,7 +252,7 @@ void MPINSSolver2D::surface_tension_grad(op_dat dx, op_dat dy) {
               op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
               op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(heaviside.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-  
+
   mesh->grad_over_int_with_central_flux(heaviside.dat, dx, dy);
   dg_dat_pool->releaseTempDatCells(heaviside);
 }
@@ -634,6 +637,28 @@ bool MPINSSolver2D::pressure() {
 
   // Calculate gradient of pressure
   mesh->grad_over_int_with_central_flux(pr, dpdx.dat, dpdy.dat);
+
+  if(gravity_modified_pressure) {
+    // Calculate average density
+    DGTempDat tmp_rho = dg_dat_pool->requestTempDatCells(DG_NP);
+    op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_rho.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    mesh->mass(tmp_rho.dat);
+    DG_FP avg_rho = 0.0;
+    op_par_loop(sum_dg_np, "sum_dg_np", mesh->cells,
+                op_arg_gbl(&avg_rho, 1, DG_FP_STR, OP_INC),
+                op_arg_dat(tmp_rho.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+    avg_rho /= domain_area;
+    dg_dat_pool->releaseTempDatCells(tmp_rho);
+
+    // Add new gravity formulation
+    op_par_loop(mp_ins_2d_pr_grav, "mp_ins_2d_pr_grav", mesh->cells,
+                op_arg_gbl(&avg_rho, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  }
 
   if(pr_over_int) {
     update_pressure_gradient_oi(dpdx.dat, dpdy.dat);

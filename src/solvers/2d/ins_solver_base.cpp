@@ -216,6 +216,19 @@ void INSSolverBase2D::init() {
                 op_arg_dat(proj_h, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
     dg_dat_pool->releaseTempDatCells(tmp_npf);
   }
+
+  // Calculate area of the domain
+  DGTempDat tmp_dat = dg_dat_pool->requestTempDatCells(DG_NP);
+  DG_FP value = 1.0;
+  op_par_loop(set_val_dg_np, "set_val_dg_np", mesh->cells,
+              op_arg_gbl(&value, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(tmp_dat.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  mesh->mass(tmp_dat.dat);
+  domain_area = 0.0;
+  op_par_loop(sum_dg_np, "sum_dg_np", mesh->cells,
+              op_arg_gbl(&domain_area, 1, DG_FP_STR, OP_INC),
+              op_arg_dat(tmp_dat.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+  dg_dat_pool->releaseTempDatCells(tmp_dat);
 }
 
 
