@@ -45,7 +45,7 @@ public:
 
   DGMesh2D *mesh;
 
-  op_dat u, v, s, dsdx, dsdy, s_sample_x, s_sample_y;
+  op_dat u, v, s, dsdx, dsdy, s_sample_x, s_sample_y, kink, kink_nodes;
 
   DG_FP alpha, order_width, ls_cap;
 private:
@@ -53,6 +53,7 @@ private:
                        std::map<int,int> &cell2polyMap, std::set<int> &cellInds);
   void reinitLS();
   bool reinitNeeded();
+  void detect_kinks();
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
   int numSteps;
