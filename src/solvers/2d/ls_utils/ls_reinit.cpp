@@ -196,12 +196,12 @@ void LevelSetSolver2D::sampleInterface(op_dat sampleX, op_dat sampleY, std::vect
 
       // || !in_tri(sampleX[i], sampleY[i], _nodeX, _nodeY)
       // || dist_travelled > 1.5 * 1.5 * h * h
-      if(!converged || dist_travelled > 1.5 * 1.5 * h * h) {
+      if(!converged || !in_tri(sampleX[i], sampleY[i], _nodeX, _nodeY)) {
         // Try randomly placing start and rerunning 10 times
         bool rerun_converged = false;
         bool rerun_in_bounds = false;
         int rerun_counter = 0;
-        while((!rerun_converged || !rerun_in_bounds) && rerun_counter < 10) {
+        while((!rerun_converged || !rerun_in_bounds) && rerun_counter < 20) {
           // Random start point
           sampleX[i] = dis(gen);
           sampleY[i] = dis(gen);
@@ -216,7 +216,8 @@ void LevelSetSolver2D::sampleInterface(op_dat sampleX, op_dat sampleY, std::vect
           DG_FP start_y = sampleY[i];
           rerun_converged = simplified_newton(sampleX[i], sampleY[i], pol, tol);
           DG_FP dist_travelled = (start_x - sampleX[i]) * (start_x - sampleX[i]) + (start_y - sampleY[i]) * (start_y - sampleY[i]);
-          rerun_in_bounds = dist_travelled > 1.5 * 1.5 * h * h;
+          // rerun_in_bounds = dist_travelled > 0.5 * 0.5 * h * h;
+          rerun_in_bounds = in_tri(sampleX[i], sampleY[i], _nodeX, _nodeY);
           rerun_counter++;
         }
 

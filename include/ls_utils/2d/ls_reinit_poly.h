@@ -48,14 +48,17 @@ private:
 
   void calc_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_ptr);
   void stencil_data(const int cell_ind, const std::set<int> &stencil, const DG_FP *x_ptr, const DG_FP *y_ptr,
-                    const DG_FP *s_ptr, std::vector<DG_FP> &x, std::vector<DG_FP> &y, std::vector<DG_FP> &s);
+                    const DG_FP *s_ptr, std::vector<DG_FP> &x, std::vector<DG_FP> &y, std::vector<DG_FP> &s_mean,
+                    std::vector<DG_FP> &s_variance);
   int num_pts();
 
   std::vector<std::set<int>> construct_adj_list(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y);
-  std::vector<int> body_scan(std::vector<DG_FP> &x, std::vector<DG_FP> &y, std::vector<DG_FP> &s);
+  std::vector<int> body_scan(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &s);
   void local_stencil_correction(std::vector<DG_FP> &x, std::vector<DG_FP> &y, std::vector<DG_FP> &s, std::vector<int> &bodies);
 
-  void fit_poly(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &s, const DG_FP h);
+  std::vector<int> get_labels_for_least_squares(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &s);
+  arma::vec get_weights_for_least_squares(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y, const std::vector<DG_FP> &s, const std::vector<DG_FP> &s_variance, const DG_FP h);
+  void fit_poly(std::vector<DG_FP> &x, std::vector<DG_FP> &y, std::vector<DG_FP> &s_mean, std::vector<DG_FP> &s_variance, const DG_FP h);
 
   arma::mat get_vandermonde(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y);
   arma::mat get_2nd_order_vandermonde(const std::vector<DG_FP> &x, const std::vector<DG_FP> &y);

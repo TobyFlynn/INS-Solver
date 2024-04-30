@@ -19,13 +19,12 @@ using namespace std;
 
 struct Point {
   DGUtils::Vec<2> coord;
-  DG_FP val;
-  int count;
+  std::vector<DG_FP> values;
 };
 
-void avg_stencil(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP offset_x, 
-                 const DG_FP offset_y, map<DGUtils::Vec<2>, Point> &pointMap);
+void get_stencil_values(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
+                        const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP offset_x, 
+                        const DG_FP offset_y, map<DGUtils::Vec<2>, Point> &pointMap);
 
 bool vec_contains(const int val, const vector<int> &vec) {
   for(int i = 0; i < vec.size(); i++) {
@@ -48,14 +47,31 @@ void PolyApprox::calc_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_p
 
 void PolyApprox::stencil_data(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
                               const DG_FP *y_ptr, const DG_FP *s_ptr, vector<DG_FP> &x, 
-                              vector<DG_FP> &y, vector<DG_FP> &s) {
+                              vector<DG_FP> &y, vector<DG_FP> &s_mean, vector<DG_FP> &s_variance) {
   map<DGUtils::Vec<2>, Point> pointMap;
-  avg_stencil(cell_ind, stencil, x_ptr, y_ptr, s_ptr, offset_x, offset_y, pointMap);
+  get_stencil_values(cell_ind, stencil, x_ptr, y_ptr, s_ptr, offset_x, offset_y, pointMap);
 
   for(auto const &p : pointMap) {
     x.push_back(p.second.coord[0]);
     y.push_back(p.second.coord[1]);
-    s.push_back(p.second.val / (DG_FP)p.second.count);
+    // Calculate mean
+    DG_FP sum = 0.0;
+    for(const auto &val : p.second.values) {
+      sum += val;
+    }
+    const DG_FP mean = sum / (DG_FP)p.second.values.size();
+    s_mean.push_back(mean);
+    // Calculate variance
+    if(p.second.values.size() == 1) {
+      s_variance.push_back(0.0);
+    } else {
+      sum = 0.0;
+      for(const auto &val : p.second.values) {
+        sum += (val - mean) * (val - mean);
+      }
+      const DG_FP variance = sum / (DG_FP)(p.second.values.size() - 1);
+      s_variance.push_back(variance);
+    }
   }
 }
 
@@ -64,15 +80,26 @@ PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
                        const DG_FP *s_ptr, const DG_FP h) {
   calc_offset(cell_ind, x_ptr, y_ptr);
   
-  vector<DG_FP> x_vec, y_vec, s_vec;
-  stencil_data(cell_ind, stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_vec);
+  vector<DG_FP> x_vec, y_vec, s_mean_vec, s_variance_vec;
+  stencil_data(cell_ind, stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_mean_vec, s_variance_vec);
   
   if(do_stencil_correction) {
-    std::vector<int> bodies = body_scan(x_vec, y_vec, s_vec);
-    local_stencil_correction(x_vec, y_vec, s_vec, bodies);
+    std::vector<int> bodies = body_scan(x_vec, y_vec, s_mean_vec);
+    local_stencil_correction(x_vec, y_vec, s_mean_vec, bodies);
   }
 
-  fit_poly(x_vec, y_vec, s_vec, h);
+  // Calc h
+  auto min_x = std::min_element(x_vec.begin(), x_vec.end());
+  auto min_y = std::min_element(y_vec.begin(), y_vec.end());
+  auto max_x = std::max_element(x_vec.begin(), x_vec.end());
+  auto max_y = std::max_element(y_vec.begin(), y_vec.end());
+  
+  DGUtils::Vec<2> min_pt(*min_x, *min_y);
+  DGUtils::Vec<2> max_pt(*max_x, *max_y);
+
+  DG_FP new_h = (max_pt - min_pt).magnitude();
+
+  fit_poly(x_vec, y_vec, s_mean_vec, s_variance_vec, new_h);
 }
 
 PolyApprox::PolyApprox(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y) {
@@ -128,7 +155,7 @@ std::vector<std::set<int>> PolyApprox::construct_adj_list(const vector<DG_FP> &x
   return adj_map;
 }
 
-std::vector<int> PolyApprox::body_scan(vector<DG_FP> &x, vector<DG_FP> &y, vector<DG_FP> &s) {
+std::vector<int> PolyApprox::body_scan(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s) {
   // Construct adjaciency list from triangulation
   std::vector<std::set<int>> adj_map = construct_adj_list(x, y);
 
@@ -469,7 +496,67 @@ void PolyApprox::local_stencil_correction(std::vector<DG_FP> &x, std::vector<DG_
 */
 }
 
-void PolyApprox::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s, const DG_FP h) {
+std::vector<int> PolyApprox::get_labels_for_least_squares(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s) {
+  // Construct adjaciency list from triangulation
+  std::vector<std::set<int>> adj_list = construct_adj_list(x, y);
+  std::vector<int> bodies = body_scan(x, y, s);
+
+  // Label nodes with distance to interface
+  std::vector<int> labels(x.size(), -1);
+  bool pts_not_visited = false;
+  for(int i = 0; i < x.size(); i++) {
+    const int current_body = bodies[i];
+    for(const int &ind : adj_list[i]) {
+      if(bodies[ind] != current_body)
+        labels[i] = 0;
+    }
+    if(labels[i] == -1)
+      pts_not_visited = true;
+  }
+
+  int current_label = 1;
+  while(pts_not_visited) {
+    pts_not_visited = false;
+    for(int i = 0; i < x.size(); i++) {
+      if(labels[i] != -1) continue;
+      for(const int &ind : adj_list[i]) {
+        if(labels[ind] == current_label - 1)
+          labels[i] = current_label;
+      }
+      if(labels[i] == -1)
+        pts_not_visited = true;
+    }
+    current_label++;
+  }
+
+  return labels;
+}
+
+arma::vec PolyApprox::get_weights_for_least_squares(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s, 
+                                                    const vector<DG_FP> &s_variance, const DG_FP h) {
+  // std::vector<int> labels = get_labels_for_least_squares(x, y, s);
+  // arma::vec w(x.size());
+  // for(int i = 0; i < x.size(); i++) {
+  //   w(i) = 1.0 / (1.0 + 10.0 * labels[i]);
+  // }
+
+  // arma::vec w(x.size());
+  // for(int i = 0; i < x.size(); i++) {
+  //   DG_FP sd = sqrt(fmax(1e-12, s_variance[i]));
+  //   w(i) = 1.0 / (sd * 1e3);
+  // }
+
+  const DG_FP sigma = h * 0.01;
+  arma::vec w(x.size());
+  for(int i = 0; i < x.size(); i++) {
+    const DG_FP dist_from_origin = x[i] * x[i] + y[i] * y[i];
+    w(i) = exp(-dist_from_origin / sigma);
+  }
+
+  return w;
+}
+
+void PolyApprox::fit_poly(vector<DG_FP> &x, vector<DG_FP> &y, vector<DG_FP> &s, vector<DG_FP> &s_variance, const DG_FP h) {
   // Set A vandermonde matrix and b
   arma::mat A;
   if(RDF) {
@@ -483,20 +570,13 @@ void PolyApprox::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, const 
     A = get_vandermonde(x, y);
   }
   arma::vec b(s);
-  arma::vec w(x.size());
-  // const DG_FP sigma = h * 0.1;
-  const DG_FP sigma = h * 0.01;
-  for(int i = 0; i < x.size(); i++) {
-    const DG_FP dist_from_origin = x[i] * x[i] + y[i] * y[i];
-    w(i) = exp(-dist_from_origin / sigma);
-    // w(i) = exp(-s[i] * s[i] / sigma);
-    // w(i) = 1.0;
-  }
+  arma::vec w = get_weights_for_least_squares(x, y, s, s_variance, h);
+  // std::vector<int> labels = get_labels_for_least_squares(x, y, s);
 
   bool node_with_wrong_sign = false;
   set<int> problem_inds;
   int redo_counter = 0;
-  const int max_redo = 50;
+  const int max_redo = 5;
   do {
     for(const int &ind : problem_inds) {
       w(ind) = w(ind) * 2.0;
@@ -1091,9 +1171,9 @@ map<int,set<int>> PolyApprox::single_layer_stencils(const set<int> &central_inds
 /*
  * Different ways of getting the stencil data
  */
-void avg_stencil(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                 const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP offset_x, 
-                 const DG_FP offset_y, map<DGUtils::Vec<2>, Point> &pointMap) {
+void get_stencil_values(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
+                        const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP offset_x, 
+                        const DG_FP offset_y, map<DGUtils::Vec<2>, Point> &pointMap) {
   for(const auto &sten : stencil) {
     for(int n = 0; n < DG_NP; n++) {
       int ind = sten * DG_NP + n;
@@ -1107,12 +1187,10 @@ void avg_stencil(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr
       if(res.second) {
         // Point was inserted
         res.first->second.coord = coord;
-        res.first->second.val   = s_ptr[ind];
-        res.first->second.count = 1;
+        res.first->second.values.push_back(s_ptr[ind]);
       } else {
         // Point already exists
-        res.first->second.val += s_ptr[ind];
-        res.first->second.count++;
+        res.first->second.values.push_back(s_ptr[ind]);
       }
     }
   }

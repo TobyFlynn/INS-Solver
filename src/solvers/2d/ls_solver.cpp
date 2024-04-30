@@ -69,6 +69,8 @@ LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m) {
   s = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_s");
   dsdx = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_dsdx");
   dsdy = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_dsdy");
+  kink = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_kink");
+  kink_nodes = op_decl_dat(mesh->nodes, 1, DG_FP_STR, (DG_FP *)NULL, "ls_kink_nodes");
   s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_x");
   s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_y");
 
@@ -83,6 +85,7 @@ LevelSetSolver2D::LevelSetSolver2D(DGMesh2D *m, const std::string &filename) {
 
   dsdx = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_dsdx");
   dsdy = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_dsdy");
+  kink = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ls_kink");
   s_sample_x = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_x");
   s_sample_y = op_decl_dat(mesh->cells, LS_SAMPLE_NP, DG_FP_STR, (DG_FP *)NULL, "s_sample_y");
 
@@ -366,7 +369,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, const DG_FP node_x,
 
 void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
                    const DG_FP *x, const DG_FP *y, int *poly_ind,
-                   std::vector<PolyApprox> &polys, DG_FP *s, const DG_FP h,
+                   std::vector<PolyApprox> &polys, DG_FP *s, DG_FP *kink, const DG_FP h,
                    const DG_FP reinit_width, const DG_FP ls_cap) {
   int numNonConv = 0;
   int numReinit = 0;
@@ -376,7 +379,15 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
     int start_ind = (i / DG_NP) * DG_NP;
     DG_FP dist2 = (closest_x[start_ind] - x[start_ind]) * (closest_x[start_ind] - x[start_ind])
                 + (closest_y[start_ind] - y[start_ind]) * (closest_y[start_ind] - y[start_ind]);
+    
     if(dist2 < (reinit_width + 2.0 * h) * (reinit_width + 2.0 * h)) {
+      DG_FP dist1 = (closest_x[i] - x[i]) * (closest_x[i] - x[i])
+                  + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
+      if(kink[i] != 0.0 && dist1 < 9.0 * h * h)
+        continue;
+      else
+        kink[i] = 0.0;
+
       DG_FP poly_offset_x, poly_offset_y;
       polys[poly_ind[i]].get_offsets(poly_offset_x, poly_offset_y);
       DG_FP _closest_x = closest_x[i] - poly_offset_x;
@@ -385,17 +396,18 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
       DG_FP _node_y = y[i] - poly_offset_y;
       bool converged = newton_kernel(_closest_x, _closest_y, _node_x, _node_y, polys[poly_ind[i]], h);
       if(converged) {
-        DG_FP dsdx, dsdy;
-        polys[poly_ind[i]].grad_at(_closest_x, _closest_y, dsdx, dsdy);
-        DG_FP dot = (_node_x - _closest_x) * dsdx + (_node_y - _closest_y) * dsdy;
-        bool negative = dot < 0.0;
-        // bool negative = s[i] < 0.0;
+        // DG_FP dsdx, dsdy;
+        // polys[poly_ind[i]].grad_at(_closest_x, _closest_y, dsdx, dsdy);
+        // DG_FP dot = (_node_x - _closest_x) * dsdx + (_node_y - _closest_y) * dsdy;
+        // bool negative = dot < 0.0;
+        bool negative = s[i] < 0.0;
         s[i] = (_closest_x - _node_x) * (_closest_x - _node_x) + (_closest_y - _node_y) * (_closest_y - _node_y);
         s[i] = sqrt(s[i]);
         if(negative) s[i] *= -1.0;
       } else {
         bool negative = s[i] < 0.0;
-        s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
+        // s[i] = (closest_x[i] - x[i]) * (closest_x[i] - x[i]) + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
+        s[i] = dist1;
         s[i] = sqrt(s[i]);
         if(negative) s[i] *= -1.0;
         #pragma omp atomic
@@ -414,6 +426,29 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
     std::cout << percent_non_converge * 100.0 << "% reinitialisation points did not converge" << std::endl;
 }
 
+void LevelSetSolver2D::detect_kinks() {
+  op_par_loop(ls_reset_node_dat, "ls_reset_node_dat", mesh->nodes,
+              op_arg_dat(kink_nodes, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
+
+  DGTempDat dsdx = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat dsdy = dg_dat_pool->requestTempDatCells(DG_NP);
+
+  mesh->grad_with_central_flux(s, dsdx.dat, dsdy.dat);
+
+  op_par_loop(ls_kink_detection_0, "ls_kink_detection_0", mesh->cells,
+              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dsdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(dsdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(kink_nodes, -3, mesh->cell2nodes, 1, DG_FP_STR, OP_INC));
+
+  op_par_loop(ls_kink_detection_1, "ls_kink_detection_1", mesh->cells,
+              op_arg_dat(kink_nodes, -3, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(kink, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  dg_dat_pool->releaseTempDatCells(dsdx);
+  dg_dat_pool->releaseTempDatCells(dsdy);
+}
+
 #ifdef PRINT_SAMPLE_PTS
 #include <fstream>
 #include <iostream>
@@ -430,6 +465,11 @@ std::string ls_double_to_text(const double &d) {
 
 void LevelSetSolver2D::reinitLS() {
   timer->startTimer("LevelSetSolver2D - reinitLS");
+
+  timer->startTimer("LevelSetSolver2D - detect kinks");
+  detect_kinks();
+  timer->endTimer("LevelSetSolver2D - detect kinks");
+
   timer->startTimer("LevelSetSolver2D - get cells containing interface");
   const DG_FP *s_ptr = getOP2PtrHostHE(s, OP_READ);
   std::set<int> cellInds;
@@ -542,10 +582,12 @@ void LevelSetSolver2D::reinitLS() {
 
   timer->startTimer("LevelSetSolver2D - newton method");
   // Newton method
+  DG_FP *kink_ptr = getOP2PtrHost(kink, OP_RW);
   if(!kdtree->empty) {
     newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr, 
-                  y_ptr, poly_ind, polys, surface_ptr, h, reinit_width, ls_cap);
+                  y_ptr, poly_ind, polys, surface_ptr, kink_ptr, h, reinit_width, ls_cap);
   }
+  releaseOP2PtrHost(kink, OP_RW, kink_ptr);
   releaseOP2PtrHost(s, OP_RW, surface_ptr);
   timer->endTimer("LevelSetSolver2D - newton method");
 

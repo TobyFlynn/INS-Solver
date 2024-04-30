@@ -65,6 +65,7 @@ void LSDriver2D::dump_visualisation_data(const std::string &filename) {
   op_fetch_data_hdf5_file(mesh->x, filename.c_str());
   op_fetch_data_hdf5_file(mesh->y, filename.c_str());
   op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
+  op_fetch_data_hdf5_file(lsSolver->kink, filename.c_str());
 
   op_dat err = op_decl_dat_temp(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "err");
   DG_FP l_max = 0.0;
