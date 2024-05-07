@@ -9,5 +9,4 @@ gmsh \
 
 mpirun -n 1 ${OP2_DG_TOOLKIT_DIR}/bin/vtk2hdf5_2D \
     -file mesh.vtk \
-    -bc none
-
+    -bc periodic_y
