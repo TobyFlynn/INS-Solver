@@ -49,11 +49,12 @@ public:
 
   DG_FP alpha, order_width, ls_cap;
 private:
-  void sampleInterface(op_dat sampleX, op_dat sampleY, std::vector<PolyApprox> &polys, 
+  void sampleInterface(op_dat sampleX, op_dat sampleY, std::vector<PolyApprox> &polys,
                        std::map<int,int> &cell2polyMap, std::set<int> &cellInds);
   void reinitLS();
   bool reinitNeeded();
   void detect_kinks();
+  void detect_kinks_v2();
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
   int numSteps;

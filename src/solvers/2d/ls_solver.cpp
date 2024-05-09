@@ -162,9 +162,7 @@ void LevelSetSolver2D::step(const DG_FP dt, const int num_steps) {
 
   reinit_counter++;
   if(reinitialise && reinit_counter >= reinit_frequency) {
-    timer->startTimer("LevelSetSolver2D - reinitLS");
     reinitLS();
-    timer->endTimer("LevelSetSolver2D - reinitLS");
     reinit_counter = 0;
   }
   timer->endTimer("LevelSetSolver2D - step");
@@ -274,7 +272,7 @@ bool newtoncp_gepp(arma::mat &A, arma::vec &b) {
   return true;
 }
 
-bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, const DG_FP node_x, 
+bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, const DG_FP node_x,
                    const DG_FP node_y, PolyApprox &p, const DG_FP h) {
   DG_FP lambda = 0.0;
   bool converged = false;
@@ -379,7 +377,7 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y,
     int start_ind = (i / DG_NP) * DG_NP;
     DG_FP dist2 = (closest_x[start_ind] - x[start_ind]) * (closest_x[start_ind] - x[start_ind])
                 + (closest_y[start_ind] - y[start_ind]) * (closest_y[start_ind] - y[start_ind]);
-    
+
     if(dist2 < (reinit_width + 2.0 * h) * (reinit_width + 2.0 * h)) {
       DG_FP dist1 = (closest_x[i] - x[i]) * (closest_x[i] - x[i])
                   + (closest_y[i] - y[i]) * (closest_y[i] - y[i]);
@@ -449,6 +447,114 @@ void LevelSetSolver2D::detect_kinks() {
   dg_dat_pool->releaseTempDatCells(dsdy);
 }
 
+struct LSKinkPoint {
+  DGUtils::Vec<2> coord;
+  DG_FP s, dsdx, dsdy;
+  int count;
+  std::vector<int> indices;
+};
+
+void LevelSetSolver2D::detect_kinks_v2() {
+  op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+              op_arg_dat(kink, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  DGTempDat dsdx = dg_dat_pool->requestTempDatCells(DG_NP);
+  DGTempDat dsdy = dg_dat_pool->requestTempDatCells(DG_NP);
+  mesh->grad_with_central_flux(s, dsdx.dat, dsdy.dat);
+
+  const DG_FP *x_ptr = getOP2PtrHost(mesh->x, OP_READ);
+  const DG_FP *y_ptr = getOP2PtrHost(mesh->y, OP_READ);
+  const DG_FP *s_ptr = getOP2PtrHost(s, OP_READ);
+  const DG_FP *dsdx_ptr = getOP2PtrHost(dsdx.dat, OP_READ);
+  const DG_FP *dsdy_ptr = getOP2PtrHost(dsdy.dat, OP_READ);
+
+  std::map<DGUtils::Vec<2>, LSKinkPoint> pointMap;
+
+  for(int i = 0; i < mesh->cells->size * DG_NP; i++) {
+    if(fabs(s_ptr[i]) < 4.0 * h) {
+      DGUtils::Vec<2> coord(x_ptr[i], y_ptr[i]);
+      LSKinkPoint point;
+      auto res = pointMap.insert({coord, point});
+      if(res.second) {
+        // Point was inserted
+        res.first->second.coord = coord;
+        res.first->second.s = s_ptr[i];
+        res.first->second.dsdx = dsdx_ptr[i];
+        res.first->second.dsdy = dsdy_ptr[i];
+        res.first->second.count = 1;
+        res.first->second.indices.push_back(i);
+      } else {
+        // Point already exists
+        res.first->second.s += s_ptr[i];
+        res.first->second.dsdx += dsdx_ptr[i];
+        res.first->second.dsdy += dsdy_ptr[i];
+        res.first->second.count++;
+        res.first->second.indices.push_back(i);
+      }
+    }
+  }
+
+  releaseOP2PtrHost(dsdy.dat, OP_READ, dsdy_ptr);
+  releaseOP2PtrHost(dsdx.dat, OP_READ, dsdx_ptr);
+  releaseOP2PtrHost(s, OP_READ, s_ptr);
+  releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
+  releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
+
+  dg_dat_pool->releaseTempDatCells(dsdx);
+  dg_dat_pool->releaseTempDatCells(dsdy);
+
+  std::vector<LSKinkPoint> points;
+  points.reserve(pointMap.size());
+
+  for(auto const &p : pointMap) {
+    LSKinkPoint point = p.second;
+    point.s = point.s / (DG_FP)point.count;
+    point.dsdx = point.dsdx / (DG_FP)point.count;
+    point.dsdy = point.dsdy / (DG_FP)point.count;
+    point.count = 1;
+    points.push_back(point);
+  }
+
+  DG_FP *kink_ptr = getOP2PtrHost(kink, OP_RW);
+  const DG_FP max_distance_between_points = 4.0 * h * h;
+  const DG_FP sqr_tol = 0.5 * 0.5;
+  #pragma omp parallel for
+  for(int i = 0; i < points.size(); i++) {
+    bool is_a_kink = false;
+    for(int j = 0; j < points.size(); j++) {
+      if(j == i || (points[i].coord - points[j].coord).sqr_magnitude() > max_distance_between_points)
+        continue;
+
+      const DG_FP n1_mag = sqrt(points[j].dsdx * points[j].dsdx + points[j].dsdy * points[j].dsdy);
+      const DG_FP n1_x = points[j].dsdx / n1_mag;
+      const DG_FP n1_y = points[j].dsdy / n1_mag;
+      for(int k = j + 1; k < points.size(); k++) {
+        if(k == i || k == j || (points[i].coord - points[k].coord).sqr_magnitude() > max_distance_between_points)
+          continue;
+
+        const DG_FP n2_mag = sqrt(points[k].dsdx * points[k].dsdx + points[k].dsdy * points[k].dsdy);
+        const DG_FP n2_x = points[k].dsdx / n2_mag;
+        const DG_FP n2_y = points[k].dsdy / n2_mag;
+
+        const DG_FP sqr_dist = (n1_x - n2_x) * (n1_x - n2_x) + (n1_y - n2_y) * (n1_y - n2_y);
+        if(sqr_dist > sqr_tol) {
+          is_a_kink = true;
+          break;
+        }
+      }
+      if(is_a_kink)
+        break;
+    }
+
+    if(is_a_kink) {
+      for(auto const &ind : points[i].indices) {
+        kink_ptr[ind] = 1.0;
+      }
+    }
+  }
+  releaseOP2PtrHost(kink, OP_RW, kink_ptr);
+}
+
 #ifdef PRINT_SAMPLE_PTS
 #include <fstream>
 #include <iostream>
@@ -467,7 +573,7 @@ void LevelSetSolver2D::reinitLS() {
   timer->startTimer("LevelSetSolver2D - reinitLS");
 
   timer->startTimer("LevelSetSolver2D - detect kinks");
-  detect_kinks();
+  detect_kinks_v2();
   timer->endTimer("LevelSetSolver2D - detect kinks");
 
   timer->startTimer("LevelSetSolver2D - get cells containing interface");
@@ -584,7 +690,7 @@ void LevelSetSolver2D::reinitLS() {
   // Newton method
   DG_FP *kink_ptr = getOP2PtrHost(kink, OP_RW);
   if(!kdtree->empty) {
-    newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr, 
+    newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, x_ptr,
                   y_ptr, poly_ind, polys, surface_ptr, kink_ptr, h, reinit_width, ls_cap);
   }
   releaseOP2PtrHost(kink, OP_RW, kink_ptr);
