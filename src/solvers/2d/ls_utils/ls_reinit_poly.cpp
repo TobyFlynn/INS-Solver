@@ -582,7 +582,7 @@ arma::vec PolyApprox::get_weights_for_least_squares(const vector<DG_FP> &x, cons
   //   w(i) = 1.0 / (sd * 1e3);
   // }
 
-  const DG_FP sigma = h * 0.01;
+  const DG_FP sigma = h * 0.001;
   arma::vec w(x.size());
   for(int i = 0; i < x.size(); i++) {
     const DG_FP dist_from_origin = x[i] * x[i] + y[i] * y[i];
