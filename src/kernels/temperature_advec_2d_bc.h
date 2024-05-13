@@ -8,7 +8,7 @@ inline void temperature_advec_2d_bc(const int *bedge_type, const int *edgeNum, c
 
   // Get BC value
   DG_FP tP[DG_NPF];
-  if(*bedge_type == BC_TYPE_NO_SLIP || *bedge_type == BC_TYPE_SLIP_X || *bedge_type == BC_TYPE_SLIP_Y || *bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
+  if(*bedge_type == BC_TYPE_NO_SLIP || *bedge_type == BC_TYPE_SLIP || *bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
       tP[i] = val[fmask_ind];

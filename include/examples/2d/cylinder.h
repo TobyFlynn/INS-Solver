@@ -16,10 +16,9 @@
 // Hardcoded BC types, do not edit
 #define BC_TYPE_NATURAL_OUTFLOW 0
 #define BC_TYPE_NO_SLIP 1
-#define BC_TYPE_SLIP_X 2
-#define BC_TYPE_SLIP_Y 3
+#define BC_TYPE_SLIP 2
 // Add custom BC types below (number must be greater than 0), for example:
-#define BC_TYPE_INFLOW 4
+#define BC_TYPE_INFLOW 3
 
 /************************************************************************
  * You can edit the body of the functions below but not their signature *
@@ -40,18 +39,18 @@ DEVICE_PREFIX void ps2d_set_boundary_type(const DG_FP x0, const DG_FP y0,
   } else if(fp_equal(x0, x1) && x0 > 5.0) {
     bc_type = BC_TYPE_NATURAL_OUTFLOW;
   } else {
-    bc_type = BC_TYPE_NO_SLIP;
+    bc_type = BC_TYPE_SLIP;
   }
 }
 
 // Custom BC pressure and viscosity linear solves BC conditions
-DEVICE_PREFIX int ps2d_custom_bc_get_pr_type(const int bc_type, int &pr_bc) {
+DEVICE_PREFIX void ps2d_custom_bc_get_pr_type(const int bc_type, int &pr_bc) {
   if(bc_type == BC_TYPE_INFLOW) {
     pr_bc = BC_NEUMANN;
   }
 }
 
-DEVICE_PREFIX int ps2d_custom_bc_get_vis_type(const int bc_type, int &vis_bc) {
+DEVICE_PREFIX void ps2d_custom_bc_get_vis_type(const int bc_type, int &vis_bc) {
   if(bc_type == BC_TYPE_INFLOW) {
     vis_bc = BC_DIRICHLET;
   }
@@ -83,7 +82,7 @@ DEVICE_PREFIX DG_FP ps2d_custom_bc_get_pr_neumann(const int bc_type, const DG_FP
     DG_FP res2 = -N1 + gradCurlVel0 / reynolds;
     DG_FP neumann = nx * res1 + ny * res2;
     DG_FP vel_grad = nx * 4.0 * (PI / 8.0) * cos(PI * capped_time / 8.0) * y * (1.0 - y);
-    return neumann + vel_grad;
+    return neumann - vel_grad;
   }
 
   return 0.0;

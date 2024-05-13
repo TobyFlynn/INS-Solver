@@ -17,8 +17,7 @@
 // Hardcoded BC types, do not edit
 #define BC_TYPE_NATURAL_OUTFLOW 0
 #define BC_TYPE_NO_SLIP 1
-#define BC_TYPE_SLIP_X 2
-#define BC_TYPE_SLIP_Y 3
+#define BC_TYPE_SLIP 2
 
 /************************************************************************
  * You can edit the body of the functions below but not their signature *
@@ -38,14 +37,12 @@ DEVICE_PREFIX void ps2d_set_boundary_type(const DG_FP x0, const DG_FP y0,
 }
 
 // Custom BC pressure and viscosity linear solves BC conditions
-DEVICE_PREFIX int ps2d_custom_bc_get_pr_type(const int bc_type, int &pr_bc) {
+DEVICE_PREFIX void ps2d_custom_bc_get_pr_type(const int bc_type, int &pr_bc) {
   // Only outflows
-  return -1;
 }
 
-DEVICE_PREFIX int ps2d_custom_bc_get_vis_type(const int bc_type, int &vis_bc) {
+DEVICE_PREFIX void ps2d_custom_bc_get_vis_type(const int bc_type, int &vis_bc) {
   // Only outflows
-  return -1;
 }
 
 // Custom BC velocities on boundary
@@ -81,7 +78,7 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 
 // Set the initial interface between phases for multiphase simulations
 DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
-  s = 
+  s =
       (1.0 - exp(-(x - 0.3)*(x - 0.3) - (y - 0.3)*(y - 0.3)))
       * (sqrt(4*x*x + 9*y*y) - 1.0);
 }
