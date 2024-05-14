@@ -19,30 +19,22 @@ inline void ins_3d_advec_sc_rhs_2(const DG_FP *t, const int *bc_type, const int 
       wbR[i] = 0.0;
     }
   } else if(*bc_type == BC_TYPE_SLIP) {
+    const DG_FP mag_normal = sqrt(*nx * *nx + *ny * *ny + *nz * *nz);
+    const DG_FP nx_ = *nx / mag_normal;
+    const DG_FP ny_ = *ny / mag_normal;
+    const DG_FP nz_ = *nz / mag_normal;
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
       // S
-      const DG_FP mags = sqrt(us[fmask_ind] * us[fmask_ind] + vs[fmask_ind] * vs[fmask_ind] + ws[fmask_ind] * ws[fmask_ind]);
-      const DG_FP dots = *nx * us[fmask_ind] + *ny * vs[fmask_ind] + *nz * ws[fmask_ind];
-      usR[i] = us[fmask_ind] - dots * *nx;
-      vsR[i] = vs[fmask_ind] - dots * *ny;
-      wsR[i] = ws[fmask_ind] - dots * *nz;
-      const DG_FP mag2s = sqrt(usR[i] * usR[i] + vsR[i] * vsR[i] + wsR[i] * wsR[i]);
-      const DG_FP mag_factors = fabs(mags) < 1e-8 || fabs(mag2s) < 1e-8 ? 1.0 : mags / mag2s;
-      usR[i] *= mag_factors;
-      vsR[i] *= mag_factors;
-      wsR[i] *= mag_factors;
+      const DG_FP dot_s = nx_ * us[fmask_ind] + ny_ * vs[fmask_ind] + nz_ * ws[fmask_ind];
+      usR[i] = us[fmask_ind] - dot_s * nx_;
+      vsR[i] = vs[fmask_ind] - dot_s * ny_;
+      wsR[i] = ws[fmask_ind] - dot_s * nz_;
       // B
-      const DG_FP magb = sqrt(ub[fmask_ind] * ub[fmask_ind] + vb[fmask_ind] * vb[fmask_ind] + wb[fmask_ind] * wb[fmask_ind]);
-      const DG_FP dotb = *nx * ub[fmask_ind] + *ny * vb[fmask_ind] + *nz * wb[fmask_ind];
-      ubR[i] = ub[fmask_ind] - dotb * *nx;
-      vbR[i] = vb[fmask_ind] - dotb * *ny;
-      wbR[i] = wb[fmask_ind] - dotb * *nz;
-      const DG_FP mag2b = sqrt(ubR[i] * ubR[i] + vbR[i] * vbR[i] + wbR[i] * wbR[i]);
-      const DG_FP mag_factorb = fabs(magb) < 1e-8 || fabs(mag2b) < 1e-8 ? 1.0 : magb / mag2b;
-      ubR[i] *= mag_factorb;
-      vbR[i] *= mag_factorb;
-      wbR[i] *= mag_factorb;
+      const DG_FP dot_b = nx_ * ub[fmask_ind] + ny_ * vb[fmask_ind] + nz_ * wb[fmask_ind];
+      ubR[i] = ub[fmask_ind] - dot_b * nx_;
+      vbR[i] = vb[fmask_ind] - dot_b * ny_;
+      wbR[i] = wb[fmask_ind] - dot_b * nz_;
     }
   } else if(*bc_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {

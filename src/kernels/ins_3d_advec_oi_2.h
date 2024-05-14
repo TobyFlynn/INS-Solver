@@ -16,18 +16,16 @@ inline void ins_3d_advec_oi_2(const DG_FP *t, const int *bc_type,
       wR[i] = 0.0;
     }
   } else if(*bc_type == BC_TYPE_SLIP) {
+    const DG_FP mag_normal = sqrt(*nx * *nx + *ny * *ny + *nz * *nz);
+    const DG_FP nx_ = *nx / mag_normal;
+    const DG_FP ny_ = *ny / mag_normal;
+    const DG_FP nz_ = *nz / mag_normal;
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
-      const DG_FP mag = sqrt(u[fmask_ind] * u[fmask_ind] + v[fmask_ind] * v[fmask_ind] + w[fmask_ind] * w[fmask_ind]);
-      const DG_FP dot = *nx * u[fmask_ind] + *ny * v[fmask_ind] + *nz * w[fmask_ind];
-      uR[i] = u[fmask_ind] - dot * *nx;
-      vR[i] = v[fmask_ind] - dot * *ny;
-      wR[i] = w[fmask_ind] - dot * *nz;
-      const DG_FP mag2 = sqrt(uR[fInd + i] * uR[fInd + i] + vR[fInd + i] * vR[fInd + i] + wR[fInd + i] * wR[fInd + i]);
-      const DG_FP mag_factor = fabs(mag) < 1e-8 || fabs(mag2) < 1e-8 ? 1.0 : mag / mag2;
-      uR[i] *= mag_factor;
-      vR[i] *= mag_factor;
-      wR[i] *= mag_factor;
+      const DG_FP dot = nx_ * u[fmask_ind] + ny_ * v[fmask_ind] + nz_ * w[fmask_ind];
+      uR[i] = u[fmask_ind] - dot * nx_;
+      vR[i] = v[fmask_ind] - dot * ny_;
+      wR[i] = w[fmask_ind] - dot * nz_;
     }
   } else if(*bc_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
