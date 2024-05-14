@@ -8,7 +8,7 @@ inline void ls_advec_2d_oi_bc(const int *bedge_type, const int *bedgeNum,
   const int fIndCub = edge * DG_CUB_SURF_2D_NP;
 
   DG_FP tmp_valP[DG_NPF];
-  if(*bedge_type == BC_TYPE_NO_SLIP || *bedge_type == BC_TYPE_SLIP_X || *bedge_type == BC_TYPE_SLIP_Y || *bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
+  if(*bedge_type == BC_TYPE_NO_SLIP || *bedge_type == BC_TYPE_SLIP || *bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
       tmp_valP[i] = val[fmask_ind];

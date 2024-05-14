@@ -13,17 +13,17 @@ inline void ins_2d_advec_oi_2(const DG_FP *t, const int *bedge_type,
       uR[i] = 0.0;
       vR[i] = 0.0;
     }
-  } else if(*bedge_type == BC_TYPE_SLIP_X) {
+  } else if (*bedge_type == BC_TYPE_SLIP) {
+    DG_FP tangent_x = *ny;
+    DG_FP tangent_y = -*nx;
+    DG_FP tangent_mag = sqrt(tangent_x * tangent_x + tangent_y * tangent_y);
+    tangent_x /= tangent_mag;
+    tangent_y /= tangent_mag;
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
-      uR[i] = 0.0;
-      vR[i] = v[fmask_ind];
-    }
-  } else if (*bedge_type == BC_TYPE_SLIP_Y) {
-    for(int i = 0; i < DG_NPF; i++) {
-      const int fmask_ind = fmask[i];
-      uR[i] = u[fmask_ind];
-      vR[i] = 0.0;
+      const DG_FP dot = u[fmask_ind] * tangent_x + v[fmask_ind] * tangent_y;
+      uR[i] = dot * tangent_x;
+      vR[i] = dot * tangent_y;
     }
   } else if(*bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {

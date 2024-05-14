@@ -16,21 +16,20 @@ inline void ins_2d_advec_sc_rhs_oi_2(const DG_FP *t, const int *bedge_type,
       ubR[i] = 0.0;
       vbR[i] = 0.0;
     }
-  } else if(*bedge_type == BC_TYPE_SLIP_X) {
+  } else if (*bedge_type == BC_TYPE_SLIP) {
+    DG_FP tangent_x = *ny;
+    DG_FP tangent_y = -*nx;
+    DG_FP tangent_mag = sqrt(tangent_x * tangent_x + tangent_y * tangent_y);
+    tangent_x /= tangent_mag;
+    tangent_y /= tangent_mag;
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
-      usR[i] = 0.0;
-      vsR[i] = vs[fmask_ind];
-      ubR[i] = 0.0;
-      vbR[i] = vb[fmask_ind];
-    }
-  } else if(*bedge_type == BC_TYPE_SLIP_Y) {
-    for(int i = 0; i < DG_NPF; i++) {
-      const int fmask_ind = fmask[i];
-      usR[i] = us[fmask_ind];
-      vsR[i] = 0.0;
-      ubR[i] = ub[fmask_ind];
-      vbR[i] = 0.0;
+      const DG_FP dot_s = us[fmask_ind] * tangent_x + vs[fmask_ind] * tangent_y;
+      const DG_FP dot_b = ub[fmask_ind] * tangent_x + vb[fmask_ind] * tangent_y;
+      usR[i] = dot_s * tangent_x;
+      vsR[i] = dot_s * tangent_y;
+      ubR[i] = dot_b * tangent_x;
+      vbR[i] = dot_b * tangent_y;
     }
   } else if(*bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {

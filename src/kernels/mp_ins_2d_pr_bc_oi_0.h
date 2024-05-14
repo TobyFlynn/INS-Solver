@@ -34,7 +34,7 @@ inline void mp_ins_2d_pr_bc_oi_0(const DG_FP *t, const int *bedge_type,
     }
   }
 
-  if(*bedge_type == BC_TYPE_NO_SLIP || *bedge_type == BC_TYPE_SLIP_X || *bedge_type == BC_TYPE_SLIP_Y) {
+  if(*bedge_type == BC_TYPE_NO_SLIP || *bedge_type == BC_TYPE_SLIP) {
     for(int i = 0; i < DG_CUB_SURF_2D_NP; i++) {
       DG_FP res1 = -oi_N0[i] - oi_gradCurlVel1[i] / (r_ynolds * rho[fIndCub + i]);
       DG_FP res2 = -oi_N1[i] + oi_gradCurlVel0[i] / (r_ynolds * rho[fIndCub + i]);

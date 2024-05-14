@@ -19,11 +19,12 @@ using namespace std;
 
 struct Point {
   DGUtils::Vec<2> coord;
-  std::vector<DG_FP> values;
+  DG_FP value;
+  int count;
 };
 
 void get_stencil_values(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                        const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP offset_x, 
+                        const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP offset_x,
                         const DG_FP offset_y, map<DGUtils::Vec<2>, Point> &pointMap);
 
 bool vec_contains(const int val, const vector<int> &vec) {
@@ -46,7 +47,41 @@ void PolyApprox::calc_offset(const int ind, const DG_FP *x_ptr, const DG_FP *y_p
 }
 
 void PolyApprox::stencil_data(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                              const DG_FP *y_ptr, const DG_FP *s_ptr, vector<DG_FP> &x, 
+                              const DG_FP *y_ptr, const DG_FP *s_ptr, vector<DG_FP> &x,
+                              vector<DG_FP> &y, vector<DG_FP> &s_mean) {
+  map<DGUtils::Vec<2>, Point> pointMap;
+  get_stencil_values(cell_ind, stencil, x_ptr, y_ptr, s_ptr, offset_x, offset_y, pointMap);
+
+  for(auto const &p : pointMap) {
+    x.push_back(p.second.coord[0]);
+    y.push_back(p.second.coord[1]);
+    s_mean.push_back(p.second.value / (DG_FP)p.second.count);
+    /*
+    // Calculate mean
+    DG_FP sum = 0.0;
+    for(const auto &val : p.second.values) {
+      sum += val;
+    }
+    const DG_FP mean = sum / (DG_FP)p.second.values.size();
+    s_mean.push_back(mean);
+    // Calculate variance
+    if(p.second.values.size() == 1) {
+      s_variance.push_back(0.0);
+    } else {
+      sum = 0.0;
+      for(const auto &val : p.second.values) {
+        sum += (val - mean) * (val - mean);
+      }
+      const DG_FP variance = sum / (DG_FP)(p.second.values.size() - 1);
+      s_variance.push_back(variance);
+    }
+    */
+  }
+}
+
+/*
+void PolyApprox::stencil_data_variance(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
+                              const DG_FP *y_ptr, const DG_FP *s_ptr, vector<DG_FP> &x,
                               vector<DG_FP> &y, vector<DG_FP> &s_mean, vector<DG_FP> &s_variance) {
   map<DGUtils::Vec<2>, Point> pointMap;
   get_stencil_values(cell_ind, stencil, x_ptr, y_ptr, s_ptr, offset_x, offset_y, pointMap);
@@ -74,15 +109,16 @@ void PolyApprox::stencil_data(const int cell_ind, const set<int> &stencil, const
     }
   }
 }
+*/
 
 PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
                        const DG_FP *x_ptr, const DG_FP *y_ptr,
                        const DG_FP *s_ptr, const DG_FP h) {
   calc_offset(cell_ind, x_ptr, y_ptr);
-  
-  vector<DG_FP> x_vec, y_vec, s_mean_vec, s_variance_vec;
-  stencil_data(cell_ind, stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_mean_vec, s_variance_vec);
-  
+
+  vector<DG_FP> x_vec, y_vec, s_mean_vec;
+  stencil_data(cell_ind, stencil, x_ptr, y_ptr, s_ptr, x_vec, y_vec, s_mean_vec);
+
   if(do_stencil_correction) {
     std::vector<int> bodies = body_scan(x_vec, y_vec, s_mean_vec);
     local_stencil_correction(x_vec, y_vec, s_mean_vec, bodies);
@@ -93,13 +129,13 @@ PolyApprox::PolyApprox(const int cell_ind, set<int> stencil,
   auto min_y = std::min_element(y_vec.begin(), y_vec.end());
   auto max_x = std::max_element(x_vec.begin(), x_vec.end());
   auto max_y = std::max_element(y_vec.begin(), y_vec.end());
-  
+
   DGUtils::Vec<2> min_pt(*min_x, *min_y);
   DGUtils::Vec<2> max_pt(*max_x, *max_y);
 
   DG_FP new_h = (max_pt - min_pt).magnitude();
 
-  fit_poly(x_vec, y_vec, s_mean_vec, s_variance_vec, new_h);
+  fit_poly(x_vec, y_vec, s_mean_vec, new_h);
 }
 
 PolyApprox::PolyApprox(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y) {
@@ -119,7 +155,7 @@ std::vector<std::set<int>> PolyApprox::construct_adj_list(const vector<DG_FP> &x
   for(int i = 0; i < x.size(); i++) {
     pts.push_back(DGUtils::Vec<2>(x[i], y[i]));
   }
-  
+
   // Delunay triangulation of DG nodes in stencil
   CDT::Triangulation<double> cdt;
   cdt.insertVertices(pts.begin(), pts.end(), [](const DGUtils::Vec<2>& p){ return p[0]; }, [](const DGUtils::Vec<2>& p){ return p[1]; });
@@ -143,7 +179,7 @@ std::vector<std::set<int>> PolyApprox::construct_adj_list(const vector<DG_FP> &x
     const int node_0 = vertices_map.at(tri.vertices[0]);
     const int node_1 = vertices_map.at(tri.vertices[1]);
     const int node_2 = vertices_map.at(tri.vertices[2]);
-    
+
     adj_map[node_0].insert(node_1);
     adj_map[node_0].insert(node_2);
     adj_map[node_1].insert(node_0);
@@ -274,7 +310,7 @@ bool would_make_cycle(const std::pair<int,int> &new_seg, const std::set<std::pai
 void PolyApprox::local_stencil_correction(std::vector<DG_FP> &x, std::vector<DG_FP> &y, std::vector<DG_FP> &s, std::vector<int> &bodies) {
   // TODO reuse adj_list from body_scan
   std::vector<std::set<int>> adj_list = construct_adj_list(x, y);
-  
+
   // Count how many bodies there were
   int num_bodies = 0;
   for(int i = 0; i < x.size(); i++) {
@@ -388,7 +424,7 @@ void PolyApprox::local_stencil_correction(std::vector<DG_FP> &x, std::vector<DG_
 */
 /*
   // Local reinit of nodes with label 3 just using points on interface
-  bool node_3_neg = pos_bodies.size() > neg_bodies.size(); 
+  bool node_3_neg = pos_bodies.size() > neg_bodies.size();
   for(int i = 0; i < x.size(); i++) {
     if(node_labels[i] == 3) {
       // Find closest point
@@ -414,7 +450,7 @@ void PolyApprox::local_stencil_correction(std::vector<DG_FP> &x, std::vector<DG_
     std::pair<int,int> shortest_segment = {-1, -1};
     DG_FP dist = 1e5;
     for(int i = 0; i < interface_pts.size(); i++) {
-      if(pt_degree[i] == 2) 
+      if(pt_degree[i] == 2)
         continue;
       for(int j = i + 1; j < interface_pts.size(); j++) {
         if(pt_degree[j] == 2 || segments.count({i, j}) != 0 || would_make_cycle({i, j}, segments, interface_pts.size()))
@@ -445,7 +481,7 @@ void PolyApprox::local_stencil_correction(std::vector<DG_FP> &x, std::vector<DG_
   exit(-1);
 */
   // Local reinit of nodes with label 3
-  bool node_3_neg = pos_bodies.size() > neg_bodies.size(); 
+  bool node_3_neg = pos_bodies.size() > neg_bodies.size();
   for(int i = 0; i < x.size(); i++) {
     if(node_labels[i] == 3) {
       DGUtils::Vec<2> current_pt(x[i], y[i]);
@@ -532,8 +568,8 @@ std::vector<int> PolyApprox::get_labels_for_least_squares(const vector<DG_FP> &x
   return labels;
 }
 
-arma::vec PolyApprox::get_weights_for_least_squares(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s, 
-                                                    const vector<DG_FP> &s_variance, const DG_FP h) {
+arma::vec PolyApprox::get_weights_for_least_squares(const vector<DG_FP> &x, const vector<DG_FP> &y, const vector<DG_FP> &s,
+                                                    const DG_FP h) {
   // std::vector<int> labels = get_labels_for_least_squares(x, y, s);
   // arma::vec w(x.size());
   // for(int i = 0; i < x.size(); i++) {
@@ -546,7 +582,7 @@ arma::vec PolyApprox::get_weights_for_least_squares(const vector<DG_FP> &x, cons
   //   w(i) = 1.0 / (sd * 1e3);
   // }
 
-  const DG_FP sigma = h * 0.01;
+  const DG_FP sigma = h * 0.001;
   arma::vec w(x.size());
   for(int i = 0; i < x.size(); i++) {
     const DG_FP dist_from_origin = x[i] * x[i] + y[i] * y[i];
@@ -556,7 +592,7 @@ arma::vec PolyApprox::get_weights_for_least_squares(const vector<DG_FP> &x, cons
   return w;
 }
 
-void PolyApprox::fit_poly(vector<DG_FP> &x, vector<DG_FP> &y, vector<DG_FP> &s, vector<DG_FP> &s_variance, const DG_FP h) {
+void PolyApprox::fit_poly(vector<DG_FP> &x, vector<DG_FP> &y, vector<DG_FP> &s, const DG_FP h) {
   // Set A vandermonde matrix and b
   arma::mat A;
   if(RDF) {
@@ -570,23 +606,23 @@ void PolyApprox::fit_poly(vector<DG_FP> &x, vector<DG_FP> &y, vector<DG_FP> &s, 
     A = get_vandermonde(x, y);
   }
   arma::vec b(s);
-  arma::vec w = get_weights_for_least_squares(x, y, s, s_variance, h);
+  arma::vec w = get_weights_for_least_squares(x, y, s, h);
   // std::vector<int> labels = get_labels_for_least_squares(x, y, s);
 
   bool node_with_wrong_sign = false;
   set<int> problem_inds;
   int redo_counter = 0;
   const int max_redo = 5;
+  arma::vec ans;
   do {
     for(const int &ind : problem_inds) {
       w(ind) = w(ind) * 2.0;
     }
-    arma::mat W = arma::diagmat(arma::sqrt(w));
-    arma::mat Q, R;
-    arma::qr(Q, R, W*A);
-    arma::vec ans = arma::solve(R, Q.t() * W * b);
-  
-    coeff = arma::conv_to<vector<DG_FP>>::from(ans);
+    arma::mat W = arma::diagmat(w);
+    // arma::mat Q, R;
+    // arma::qr(Q, R, W*A);
+    // ans = arma::solve(R, Q.t() * W * b);
+    ans = arma::solve(W * A, W * b);
 
     arma::vec res = A * ans;
     node_with_wrong_sign = false;
@@ -601,6 +637,8 @@ void PolyApprox::fit_poly(vector<DG_FP> &x, vector<DG_FP> &y, vector<DG_FP> &s, 
     redo_counter++;
   } while(node_with_wrong_sign && redo_counter < max_redo);
 
+  coeff = arma::conv_to<vector<DG_FP>>::from(ans);
+
   // if(redo_counter == max_redo) printf("Max redo\n");
   // if(node_with_wrong_sign) printf("Node with wrong sign\n");
 }
@@ -613,7 +651,7 @@ arma::mat PolyApprox::get_rdf_vandermonde(const vector<DG_FP> &x, const vector<D
   for(int i = 0; i < x.size(); i++) {
     rdf_stencil_pts.push_back(DGUtils::Vec<2>(x[i], y[i]));
   }
-  
+
   // Set A vandermonde matrix and b
   arma::mat A(rdf_stencil_pts.size(), rdf_stencil_pts.size());
   for(int i = 0; i < rdf_stencil_pts.size(); i++) {
@@ -669,7 +707,7 @@ arma::mat PolyApprox::get_3rd_order_vandermonde(const vector<DG_FP> &x, const ve
     A(i,X3_POLY_IND)  = x[i] * x[i] * x[i];
     A(i,X2Y_POLY_IND) = x[i] * x[i] * y[i];
     A(i,Y2X_POLY_IND) = x[i] * y[i] * y[i];
-    A(i,Y3_POLY_IND)  = y[i] * y[i] * y[i];    
+    A(i,Y3_POLY_IND)  = y[i] * y[i] * y[i];
   }
 
   return A;
@@ -990,7 +1028,7 @@ struct stencil_query {
 
 map<int,set<int>> PolyApprox::get_stencils(const set<int> &central_inds, op_map edge_map, const DG_FP *x_ptr, const DG_FP *y_ptr) {
   return single_layer_stencils(central_inds, edge_map, x_ptr, y_ptr);
-/*  
+/*
   timer->startTimer("PolyApprox - get_stencils");
   map<int,set<int>> stencils;
   map<int,stencil_query> queryInds;
@@ -1107,7 +1145,7 @@ map<int,set<int>> PolyApprox::single_layer_stencils(const set<int> &central_inds
   }
 
   const int numEdges = edge_map->from->size;
-  
+
   while(queryInds.size() > 0) {
     map<int,stencil_query> newQueryInds;
 
@@ -1172,7 +1210,7 @@ map<int,set<int>> PolyApprox::single_layer_stencils(const set<int> &central_inds
  * Different ways of getting the stencil data
  */
 void get_stencil_values(const int cell_ind, const set<int> &stencil, const DG_FP *x_ptr,
-                        const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP offset_x, 
+                        const DG_FP *y_ptr, const DG_FP *s_ptr, const DG_FP offset_x,
                         const DG_FP offset_y, map<DGUtils::Vec<2>, Point> &pointMap) {
   for(const auto &sten : stencil) {
     for(int n = 0; n < DG_NP; n++) {
@@ -1187,10 +1225,12 @@ void get_stencil_values(const int cell_ind, const set<int> &stencil, const DG_FP
       if(res.second) {
         // Point was inserted
         res.first->second.coord = coord;
-        res.first->second.values.push_back(s_ptr[ind]);
+        res.first->second.value = s_ptr[ind];
+        res.first->second.count = 1;
       } else {
         // Point already exists
-        res.first->second.values.push_back(s_ptr[ind]);
+        res.first->second.value += s_ptr[ind];
+        res.first->second.count++;
       }
     }
   }

@@ -8,7 +8,7 @@ inline void temperature_diff_2d_bc_1(const int *bc_type, const int *edgeNum,
   const int *fmask = &FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + edge * DG_NPF];
 
   DG_FP vP[DG_NPF], vPx[DG_NPF], vPy[DG_NPF];
-  if(*bc_type == BC_TYPE_NO_SLIP || *bc_type == BC_TYPE_SLIP_X || *bc_type == BC_TYPE_SLIP_Y || *bc_type == BC_TYPE_NATURAL_OUTFLOW) {
+  if(*bc_type == BC_TYPE_NO_SLIP || *bc_type == BC_TYPE_SLIP || *bc_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
       vP[i] = val[fmask_ind];

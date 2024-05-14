@@ -45,11 +45,11 @@ public:
 
   DGMesh2D *mesh;
 
-  op_dat u, v, s, dsdx, dsdy, s_sample_x, s_sample_y, kink, kink_nodes;
+  op_dat u, v, s, dsdx, dsdy, s_sample_x, s_sample_y, kink;
 
   DG_FP alpha, order_width, ls_cap;
 private:
-  void sampleInterface(op_dat sampleX, op_dat sampleY, std::vector<PolyApprox> &polys, 
+  void sampleInterface(op_dat sampleX, op_dat sampleY, std::vector<PolyApprox> &polys,
                        std::map<int,int> &cell2polyMap, std::set<int> &cellInds);
   void reinitLS();
   bool reinitNeeded();
@@ -57,7 +57,7 @@ private:
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
   int numSteps;
-  bool resuming, reinitialise;
+  bool resuming, reinitialise, kink_detection;
   int reinit_counter, reinit_frequency;
 
   LevelSetAdvectionSolver2D *advecSolver;

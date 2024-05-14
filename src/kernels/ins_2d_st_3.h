@@ -10,7 +10,7 @@ inline void ins_2d_st_3(const int *bedge_type, const int *bedgeNum,
     sM[edge * DG_NPF + i] = s[find];
   }
 
-  if(*bedge_type == BC_TYPE_NO_SLIP || *bedge_type == BC_TYPE_SLIP_X || *bedge_type == BC_TYPE_SLIP_Y || *bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
+  if(*bedge_type == BC_TYPE_NO_SLIP || *bedge_type == BC_TYPE_SLIP || *bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];
       sP[edge * DG_NPF + i] = s[fmask_ind];

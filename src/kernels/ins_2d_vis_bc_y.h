@@ -4,9 +4,20 @@ inline void ins_2d_vis_bc_y(const DG_FP *t, const DG_FP *g0, const int *bedge_ty
                             DG_FP *out) {
   const int edge = *bedgeNum;
   const int *fmask = &FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + edge * DG_NPF];
-  if(*bedge_type == BC_TYPE_NO_SLIP || *bedge_type == BC_TYPE_SLIP_X || *bedge_type == BC_TYPE_SLIP_Y || *bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
+  if(*bedge_type == BC_TYPE_NO_SLIP || *bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
       out[i] = 0.0;
+    }
+  } else if(*bedge_type == BC_TYPE_SLIP) {
+    DG_FP tangent_x = *ny;
+    DG_FP tangent_y = -*nx;
+    DG_FP tangent_mag = sqrt(tangent_x * tangent_x + tangent_y * tangent_y);
+    tangent_x /= tangent_mag;
+    tangent_y /= tangent_mag;
+    for(int i = 0; i < DG_NPF; i++) {
+      const int fmask_ind = fmask[i];
+      const DG_FP dot = (u[fmask_ind] * tangent_x + v[fmask_ind] * tangent_y) / *g0;
+      out[i] = dot * tangent_y;
     }
   } else {
     int vis_type;

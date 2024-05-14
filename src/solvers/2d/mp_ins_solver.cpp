@@ -200,10 +200,15 @@ void MPINSSolver2D::init() {
     op_par_loop(ins_2d_set_pr_bc_type, "ins_2d_set_pr_bc_type", mesh->bfaces,
                 op_arg_dat(bc_types,    -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(pr_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
+
+    op_par_loop(ins_2d_set_vis_bc_type, "ins_2d_set_vis_bc_type", mesh->bfaces,
+                op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
   }
 
   pressureCoarseMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->set_bc_types(pr_bc_types);
+  viscosityMatrix->set_bc_types(vis_bc_types);
   pressureSolver->init();
   viscositySolver->init();
 
@@ -758,10 +763,6 @@ bool MPINSSolver2D::viscosity() {
 
   // Call PETSc linear solver
   timer->startTimer("MPINSSolver2D - Viscosity Linear Solve");
-  op_par_loop(ins_2d_set_vis_x_bc_type, "ins_2d_set_vis_x_bc_type", mesh->bfaces,
-              op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
-  viscosityMatrix->set_bc_types(vis_bc_types);
   DGTempDat tmp_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
   if(shock_capturing) {
     calc_art_vis(velTT[0], tmp_art_vis.dat);
@@ -816,10 +817,6 @@ bool MPINSSolver2D::viscosity() {
   if(!convergedX)
     dg_abort("Viscosity X solve did not converge");
 
-  op_par_loop(ins_2d_set_vis_y_bc_type, "ins_2d_set_vis_y_bc_type", mesh->bfaces,
-              op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
-  viscosityMatrix->set_bc_types(vis_bc_types);
   if(shock_capturing) {
     calc_art_vis(velTT[1], tmp_art_vis.dat);
 
@@ -929,6 +926,7 @@ void MPINSSolver2D::dump_visualisation_data(const std::string &filename) {
 
   if(values_to_save.count("level_set") != 0) {
     op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
+    op_fetch_data_hdf5_file(lsSolver->kink, filename.c_str());
   }
 
   if(values_to_save.count("curvature") != 0) {

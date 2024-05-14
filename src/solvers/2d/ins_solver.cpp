@@ -150,10 +150,15 @@ void INSSolver2D::init() {
     op_par_loop(ins_2d_set_pr_bc_type, "ins_2d_set_pr_bc_type", mesh->bfaces,
                 op_arg_dat(bc_types,    -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(pr_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
+
+    op_par_loop(ins_2d_set_vis_bc_type, "ins_2d_set_vis_bc_type", mesh->bfaces,
+                op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
   }
 
   pressureCoarseMatrix->set_bc_types(pr_bc_types);
   pressureMatrix->set_bc_types(pr_bc_types);
+  viscosityMatrix->set_bc_types(vis_bc_types);
   pressureSolver->init();
   viscositySolver->init();
 
@@ -321,11 +326,6 @@ bool INSSolver2D::viscosity() {
 
   // Call PETSc linear solver
   timer->startTimer("INSSolver2D - Viscosity Linear Solve");
-  op_par_loop(ins_2d_set_vis_x_bc_type, "ins_2d_set_vis_x_bc_type", mesh->bfaces,
-              op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
-  viscosityMatrix->set_bc_types(vis_bc_types);
-
   factor = g0 * reynolds / dt;
   if(factor != viscosityMatrix->get_factor()) {
     viscosityMatrix->set_factor(factor);
@@ -354,11 +354,6 @@ bool INSSolver2D::viscosity() {
   if(!convergedX)
     dg_abort("Viscosity X solve did not converge");
 
-  op_par_loop(ins_2d_set_vis_y_bc_type, "ins_2d_set_vis_y_bc_type", mesh->bfaces,
-              op_arg_dat(bc_types,     -1, OP_ID, 1, "int", OP_READ),
-              op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE));
-  viscosityMatrix->set_bc_types(vis_bc_types);
-
   // Get BCs for viscosity solve
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_vis_bc_y, "ins_2d_vis_bc_y", mesh->bfaces,
@@ -383,11 +378,6 @@ bool INSSolver2D::viscosity() {
 
   dg_dat_pool->releaseTempDatCells(visRHS[0]);
   dg_dat_pool->releaseTempDatCells(visRHS[1]);
-
-  // timer->startTimer("Filtering");
-  // filter(mesh, Q[(currentInd + 1) % 2][0]);
-  // filter(mesh, Q[(currentInd + 1) % 2][1]);
-  // timer->endTimer("Filtering");
 
   return convergedX && convergedY;
 }
