@@ -146,8 +146,8 @@ void KDTreeMPI::build_tree(const DG_FP *x, const DG_FP *y, const int num, op_dat
   // Prepare data to send
   vector<kdtree_mpi_pack> packed_data(n);
   for(int i = 0; i < n; i++) {
-    packed_data[i].pos[0] = points[i].x;
-    packed_data[i].pos[1] = points[i].y;
+    packed_data[i].pos[0] = points[i].coord[0];
+    packed_data[i].pos[1] = points[i].coord[1];
     packed_data[i].poly_ind = points[i].poly;
   }
   const int POLY_NUM_COEFF = PolyApprox::num_coeff();
@@ -198,10 +198,10 @@ void KDTreeMPI::build_tree(const DG_FP *x, const DG_FP *y, const int num, op_dat
     while(curr_rank < ranks.size() - 1 && i >= num_pts_per_rank_disp[curr_rank + 1])
       curr_rank++;
     KDCoord kc;
-    kc.x = pts_rcv[i].pos[0];
-    kc.y = pts_rcv[i].pos[1];
-    kc.x_rot = pts_rcv[i].pos[0];
-    kc.y_rot = pts_rcv[i].pos[1];
+    kc.coord[0] = pts_rcv[i].pos[0];
+    kc.coord[1] = pts_rcv[i].pos[1];
+    kc.coord_rot[0] = pts_rcv[i].pos[0];
+    kc.coord_rot[1] = pts_rcv[i].pos[1];
     kc.poly = num_polys_l + num_polys_per_rank_disp[curr_rank] + pts_rcv[i].poly_ind;
     points.push_back(kc);
   }
