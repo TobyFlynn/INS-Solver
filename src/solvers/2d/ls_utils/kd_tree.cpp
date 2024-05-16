@@ -106,19 +106,16 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
   // Split across axis with greatest extent
   int axis = 0;
   DGUtils::Vec<2> extent = node.max - node.min;
+  DG_FP max_extent = extent[0];
   if(extent[0] < extent[1]) {
     axis = 1;
+    max_extent = extent[1];
   }
 
   // Do rotational transform if necessary
   bool transform = !has_transformed && level > 5 && pts_end - pts_start >= leaf_size * 4;
   if(transform) {
-    DG_FP hole_radius_sqr = 0.0;
-    if(axis == 0) {
-      hole_radius_sqr = 0.05 * extent[0] * 0.05 * extent[0];
-    } else {
-      hole_radius_sqr = 0.05 * extent[1] * 0.05 * extent[1];
-    }
+    DG_FP hole_radius_sqr = 0.05 * max_extent * 0.05 * max_extent;
 
     DGUtils::Vec<2> normal(1.0, 0.0);
     for(auto it = pts_start; it != pts_end; it++) {
@@ -145,9 +142,6 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
       if(alpha < min_alpha) min_alpha = alpha;
     }
 
-    DG_FP max_extent = extent[0];
-    if(axis == 1)
-      max_extent = extent[1];
     if(max_alpha - min_alpha < 0.1 * max_extent) {
       // Calculate orthonormal basis via Householder matrix
       arma::mat axes(2, 2);

@@ -537,20 +537,20 @@ void LevelSetSolver3D::reinitLS() {
     for(int i = 0; i < mesh->cells->size; i++) {
       // Get closest sample point
       KDCoord tmp = kdtree->closest_point(x_ptr[i * DG_NP], y_ptr[i * DG_NP], z_ptr[i * DG_NP]);
-      const DG_FP dist2 = (tmp.x - x_ptr[i * DG_NP]) * (tmp.x - x_ptr[i * DG_NP])
-                        + (tmp.y - y_ptr[i * DG_NP]) * (tmp.y - y_ptr[i * DG_NP])
-                        + (tmp.z - z_ptr[i * DG_NP]) * (tmp.z - z_ptr[i * DG_NP]);
-      closest_x[i * DG_NP] = tmp.x;
-      closest_y[i * DG_NP] = tmp.y;
-      closest_z[i * DG_NP] = tmp.z;
+      const DG_FP dist2 = (tmp.coord[0] - x_ptr[i * DG_NP]) * (tmp.coord[0] - x_ptr[i * DG_NP])
+                        + (tmp.coord[1] - y_ptr[i * DG_NP]) * (tmp.coord[1] - y_ptr[i * DG_NP])
+                        + (tmp.coord[2] - z_ptr[i * DG_NP]) * (tmp.coord[2] - z_ptr[i * DG_NP]);
+      closest_x[i * DG_NP] = tmp.coord[0];
+      closest_y[i * DG_NP] = tmp.coord[1];
+      closest_z[i * DG_NP] = tmp.coord[2];
       poly_ind[i * DG_NP]  = tmp.poly;
       if(dist2 < (reinit_width + 2.0 * h) * (reinit_width + 2.0 * h)) {
         for(int j = 1; j < DG_NP; j++) {
           // Get closest sample point
           KDCoord tmp = kdtree->closest_point(x_ptr[i * DG_NP + j], y_ptr[i * DG_NP + j], z_ptr[i * DG_NP + j]);
-          closest_x[i * DG_NP + j] = tmp.x;
-          closest_y[i * DG_NP + j] = tmp.y;
-          closest_z[i * DG_NP + j] = tmp.z;
+          closest_x[i * DG_NP + j] = tmp.coord[0];
+          closest_y[i * DG_NP + j] = tmp.coord[1];
+          closest_z[i * DG_NP + j] = tmp.coord[2];
           poly_ind[i * DG_NP + j]  = tmp.poly;
         }
       }
