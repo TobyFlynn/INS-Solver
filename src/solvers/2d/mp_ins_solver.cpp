@@ -702,7 +702,7 @@ bool MPINSSolver2D::pressure() {
     sv /= volume;
 
     // Update forcing term
-    fsv_factor -= fsv_relaxation_factor * (0.05 - sv);
+    fsv_factor -= fsv_relaxation_factor * (1.0 - sv);
 
     // Add forcing term
     // TODO account for g0 here??

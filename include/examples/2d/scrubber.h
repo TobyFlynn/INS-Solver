@@ -16,8 +16,7 @@
 // Hardcoded BC types, do not edit
 #define BC_TYPE_NATURAL_OUTFLOW 0
 #define BC_TYPE_NO_SLIP 1
-#define BC_TYPE_SLIP_X 2
-#define BC_TYPE_SLIP_Y 3
+#define BC_TYPE_SLIP 2
 
 #define DOMAIN_HEIGHT 4.203912
 
@@ -35,7 +34,7 @@ DEVICE_PREFIX void ps2d_set_ic(const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v)
 DEVICE_PREFIX void ps2d_set_boundary_type(const DG_FP x0, const DG_FP y0,
                                           const DG_FP x1, const DG_FP y1,
                                           int &bc_type) {
-  bc_type = BC_TYPE_NO_SLIP;
+  bc_type = BC_TYPE_SLIP;
 }
 
 // Custom BC pressure and viscosity linear solves BC conditions
