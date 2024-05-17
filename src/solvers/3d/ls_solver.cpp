@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <limits>
 
 #include "timing.h"
 #include "config.h"
@@ -109,10 +110,10 @@ void LevelSetSolver3D::init() {
                 op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   }
 
-  h = 0.0;
-  op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,
+  h = std::numeric_limits<DG_FP>::max();
+  op_par_loop(calc_h_3d_max, "calc_h_3d_max", mesh->faces,
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
-              op_arg_gbl(&h, 1, DG_FP_STR, OP_MAX));
+              op_arg_gbl(&h, 1, DG_FP_STR, OP_MIN));
   h = 1.0 / h;
   // alpha = 2.0 * h / DG_ORDER;
   // order_width = 2.0 * h;
@@ -343,7 +344,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
     }
 
     // Gone outside the element, return
-    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) + (init_z - pt_z) * (init_z - pt_z) > 1.5 * h * h) {
+    if((init_x - pt_x) * (init_x - pt_x) + (init_y - pt_y) * (init_y - pt_y) + (init_z - pt_z) * (init_z - pt_z) > 1.5 * 1.5 * h * h) {
       pt_x = pt_x_old;
       pt_y = pt_y_old;
       pt_z = pt_z_old;
@@ -351,7 +352,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
     }
 
     // Converged, no more steps required
-    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) + (pt_z_old - pt_z) * (pt_z_old - pt_z) < 1e-18) {
+    if((pt_x_old - pt_x) * (pt_x_old - pt_x) + (pt_y_old - pt_y) * (pt_y_old - pt_y) + (pt_z_old - pt_z) * (pt_z_old - pt_z) < 1e-16) {
       converged = true;
       break;
     }
@@ -386,8 +387,8 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
       DG_FP _node_x = x[i] - off_x;
       DG_FP _node_y = y[i] - off_y;
       DG_FP _node_z = z[i] - off_z;
-      bool tmp = newton_kernel(_closest_x, _closest_y, _closest_z, _node_x, _node_y, _node_z, polys[poly_ind[i]], h);
-      if(tmp) {
+      bool converged = newton_kernel(_closest_x, _closest_y, _closest_z, _node_x, _node_y, _node_z, polys[poly_ind[i]], h);
+      if(converged) {
         bool negative = s[i] < 0.0;
         s[i] = (_closest_x - _node_x) * (_closest_x - _node_x) + (_closest_y - _node_y) * (_closest_y - _node_y) + (_closest_z - _node_z) * (_closest_z - _node_z);
         s[i] = sqrt(s[i]);
@@ -458,11 +459,12 @@ void LevelSetSolver3D::reinitLS() {
   timer->startTimer("LevelSetSolver3D - create polynomials");
   std::map<int,int> _cell2polyMap;
   std::vector<PolyApprox3D> _polys;
-  std::map<int,std::set<int>> stencils = PolyApprox3D::get_stencils(cellInds, mesh->face2cells);
 
   const DG_FP *_x_ptr = getOP2PtrHostHE(mesh->x, OP_READ);
   const DG_FP *_y_ptr = getOP2PtrHostHE(mesh->y, OP_READ);
   const DG_FP *_z_ptr = getOP2PtrHostHE(mesh->z, OP_READ);
+
+  std::map<int,std::set<int>> stencils = PolyApprox3D::get_stencils(cellInds, mesh->face2cells, _x_ptr, _y_ptr, _z_ptr);
 
   // Populate map
   int i = 0;

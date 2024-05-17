@@ -9,15 +9,10 @@
 #include "ls_utils/3d/poly_approx.h"
 #include "dg_dat_pool.h"
 #include "dg_constants/dg_constants_3d.h"
+#include "dg_global_constants/dg_global_constants_3d.h"
 
 extern DGDatPool *dg_dat_pool;
 extern DGConstants *constants;
-
-struct ReinitCoord {
-  DG_FP x;
-  DG_FP y;
-  DG_FP z;
-};
 
 void rst2xyz(DG_FP &sampleX, DG_FP &sampleY, DG_FP &sampleZ,
              const DG_FP *nodeX, const DG_FP *nodeY,
@@ -140,9 +135,14 @@ void set_sample_start_coords(DG_FP *r, DG_FP *s, DG_FP *t) {
 }
 
 void intersecting_pts(const DG_FP *s, const DG_FP *nodeX, const DG_FP *nodeY,
-                      const DG_FP *nodeZ, std::vector<ReinitCoord> &pts) {
+                      const DG_FP *nodeZ, std::vector<DGUtils::Vec<3>> &pts) {
   // Check each tet edge
   // TODO generalise for all orders
+  const int fmask_node_ind_0 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];
+  const int fmask_node_ind_1 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + DG_NPF - 1];
+  const int fmask_node_ind_2 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + 2 * DG_NPF - 1];
+  const int fmask_node_ind_3 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + 3 * DG_NPF - 1];
+
   const DG_FP node0_s = s[0];
   const DG_FP node1_s = s[3];
   const DG_FP node2_s = s[9];
@@ -150,74 +150,70 @@ void intersecting_pts(const DG_FP *s, const DG_FP *nodeX, const DG_FP *nodeY,
   // Node0 -> Node1
   if(node0_s > 0.0 != node1_s > 0.0) {
     const DG_FP s_factor = node0_s / (node0_s - node1_s);
-    ReinitCoord coord;
-    coord.x = nodeX[0] - s_factor * (nodeX[0] - nodeX[1]);
-    coord.y = nodeY[0] - s_factor * (nodeY[0] - nodeY[1]);
-    coord.z = nodeZ[0] - s_factor * (nodeZ[0] - nodeZ[1]);
+    DGUtils::Vec<3> coord;
+    coord[0] = nodeX[0] - s_factor * (nodeX[0] - nodeX[1]);
+    coord[1] = nodeY[0] - s_factor * (nodeY[0] - nodeY[1]);
+    coord[2] = nodeZ[0] - s_factor * (nodeZ[0] - nodeZ[1]);
     pts.push_back(coord);
   }
   // Node0 -> Node2
   if(node0_s > 0.0 != node2_s > 0.0) {
     const DG_FP s_factor = node0_s / (node0_s - node2_s);
-    ReinitCoord coord;
-    coord.x = nodeX[0] - s_factor * (nodeX[0] - nodeX[2]);
-    coord.y = nodeY[0] - s_factor * (nodeY[0] - nodeY[2]);
-    coord.z = nodeZ[0] - s_factor * (nodeZ[0] - nodeZ[2]);
+    DGUtils::Vec<3> coord;
+    coord[0] = nodeX[0] - s_factor * (nodeX[0] - nodeX[2]);
+    coord[1] = nodeY[0] - s_factor * (nodeY[0] - nodeY[2]);
+    coord[2] = nodeZ[0] - s_factor * (nodeZ[0] - nodeZ[2]);
     pts.push_back(coord);
   }
   // Node0 -> Node3
   if(node0_s > 0.0 != node3_s > 0.0) {
     const DG_FP s_factor = node0_s / (node0_s - node3_s);
-    ReinitCoord coord;
-    coord.x = nodeX[0] - s_factor * (nodeX[0] - nodeX[3]);
-    coord.y = nodeY[0] - s_factor * (nodeY[0] - nodeY[3]);
-    coord.z = nodeZ[0] - s_factor * (nodeZ[0] - nodeZ[3]);
+    DGUtils::Vec<3> coord;
+    coord[0] = nodeX[0] - s_factor * (nodeX[0] - nodeX[3]);
+    coord[1] = nodeY[0] - s_factor * (nodeY[0] - nodeY[3]);
+    coord[2] = nodeZ[0] - s_factor * (nodeZ[0] - nodeZ[3]);
     pts.push_back(coord);
   }
   // Node1 -> Node2
   if(node1_s > 0.0 != node2_s > 0.0) {
     const DG_FP s_factor = node1_s / (node1_s - node2_s);
-    ReinitCoord coord;
-    coord.x = nodeX[1] - s_factor * (nodeX[1] - nodeX[2]);
-    coord.y = nodeY[1] - s_factor * (nodeY[1] - nodeY[2]);
-    coord.z = nodeZ[1] - s_factor * (nodeZ[1] - nodeZ[2]);
+    DGUtils::Vec<3> coord;
+    coord[0] = nodeX[1] - s_factor * (nodeX[1] - nodeX[2]);
+    coord[1] = nodeY[1] - s_factor * (nodeY[1] - nodeY[2]);
+    coord[2] = nodeZ[1] - s_factor * (nodeZ[1] - nodeZ[2]);
     pts.push_back(coord);
   }
   // Node1 -> Node3
   if(node1_s > 0.0 != node3_s > 0.0) {
     const DG_FP s_factor = node1_s / (node1_s - node3_s);
-    ReinitCoord coord;
-    coord.x = nodeX[1] - s_factor * (nodeX[1] - nodeX[3]);
-    coord.y = nodeY[1] - s_factor * (nodeY[1] - nodeY[3]);
-    coord.z = nodeZ[1] - s_factor * (nodeZ[1] - nodeZ[3]);
+    DGUtils::Vec<3> coord;
+    coord[0] = nodeX[1] - s_factor * (nodeX[1] - nodeX[3]);
+    coord[1] = nodeY[1] - s_factor * (nodeY[1] - nodeY[3]);
+    coord[2] = nodeZ[1] - s_factor * (nodeZ[1] - nodeZ[3]);
     pts.push_back(coord);
   }
   // Node2 -> Node3
   if(node2_s > 0.0 != node3_s > 0.0) {
     const DG_FP s_factor = node2_s / (node2_s - node3_s);
-    ReinitCoord coord;
-    coord.x = nodeX[2] - s_factor * (nodeX[2] - nodeX[3]);
-    coord.y = nodeY[2] - s_factor * (nodeY[2] - nodeY[3]);
-    coord.z = nodeZ[2] - s_factor * (nodeZ[2] - nodeZ[3]);
+    DGUtils::Vec<3> coord;
+    coord[0] = nodeX[2] - s_factor * (nodeX[2] - nodeX[3]);
+    coord[1] = nodeY[2] - s_factor * (nodeY[2] - nodeY[3]);
+    coord[2] = nodeZ[2] - s_factor * (nodeZ[2] - nodeZ[3]);
     pts.push_back(coord);
   }
 }
 
-void intersect_3pts(const std::vector<ReinitCoord> &intersect_pts, DG_FP *sampleX,
+void intersect_3pts(const std::vector<DGUtils::Vec<3>> &intersect_pts, DG_FP *sampleX,
                     DG_FP *sampleY, DG_FP *sampleZ) {
   // Get intersecting plane eqn
   DG_FP plane_coeff[4];
-  DG_FP vec0[3], vec1[3];
-  vec0[0] = intersect_pts[1].x - intersect_pts[0].x;
-  vec0[1] = intersect_pts[1].y - intersect_pts[0].y;
-  vec0[2] = intersect_pts[1].z - intersect_pts[0].z;
-  vec1[0] = intersect_pts[2].x - intersect_pts[0].x;
-  vec1[1] = intersect_pts[2].y - intersect_pts[0].y;
-  vec1[2] = intersect_pts[2].z - intersect_pts[0].z;
+  DGUtils::Vec<3> vec0 = intersect_pts[1] - intersect_pts[0];
+  DGUtils::Vec<3> vec1 = intersect_pts[2] - intersect_pts[0];
+
   plane_coeff[0] = vec0[1] * vec1[2] - vec0[2] * vec1[1];
   plane_coeff[1] = vec0[2] * vec1[0] - vec0[0] * vec1[2];
   plane_coeff[2] = vec0[0] * vec1[1] - vec0[1] * vec1[0];
-  plane_coeff[3] = -(plane_coeff[0] * intersect_pts[0].x + plane_coeff[1] * intersect_pts[0].y + plane_coeff[2] * intersect_pts[0].z);
+  plane_coeff[3] = -(plane_coeff[0] * intersect_pts[0][0] + plane_coeff[1] * intersect_pts[0][1] + plane_coeff[2] * intersect_pts[0][2]);
 
   // Calc sampling points
   DG_FP r_[] = {-1, -0.333333333333333, 0.333333333333333, 1, -1, -0.333333333333333, 0.333333333333333, -1, -0.333333333333333, -1};
@@ -228,18 +224,27 @@ void intersect_3pts(const std::vector<ReinitCoord> &intersect_pts, DG_FP *sample
     s_[i] *= 0.75;
   }
 
-  DG_FP x_2D[10], y_2D[10];
+  DG_FP x_2D[10], y_2D[10], z_2D[10];
   for(int i = 0; i < 10; i++) {
-    x_2D[i] = 0.5*(-(r_[i]+s_[i])*intersect_pts[0].x+(1+r_[i])*intersect_pts[1].x+(1+s_[i])*intersect_pts[2].x);
-    y_2D[i] = 0.5*(-(r_[i]+s_[i])*intersect_pts[0].y+(1+r_[i])*intersect_pts[1].y+(1+s_[i])*intersect_pts[2].y);
+    x_2D[i] = 0.5*(-(r_[i]+s_[i])*intersect_pts[0][0]+(1+r_[i])*intersect_pts[1][0]+(1+s_[i])*intersect_pts[2][0]);
+    y_2D[i] = 0.5*(-(r_[i]+s_[i])*intersect_pts[0][1]+(1+r_[i])*intersect_pts[1][1]+(1+s_[i])*intersect_pts[2][1]);
+    z_2D[i] = 0.5*(-(r_[i]+s_[i])*intersect_pts[0][2]+(1+r_[i])*intersect_pts[1][2]+(1+s_[i])*intersect_pts[2][2]);
   }
 
   // Now project onto intersecting 3D plane
   for(int i = 0; i < 10; i++) {
-    sampleX[i] = x_2D[i];
-    sampleY[i] = y_2D[i];
     if(fabs(plane_coeff[2]) > 1e-8) {
+      sampleX[i] = x_2D[i];
+      sampleY[i] = y_2D[i];
       sampleZ[i] = (-plane_coeff[0] * x_2D[i] - plane_coeff[1] * y_2D[i] - plane_coeff[3]) / plane_coeff[2];
+    } else if(fabs(plane_coeff[1]) > 1e-8) {
+      sampleX[i] = x_2D[i];
+      sampleY[i] = (-plane_coeff[0] * x_2D[i] - plane_coeff[2] * z_2D[i] - plane_coeff[3]) / plane_coeff[1];
+      sampleZ[i] = z_2D[i];
+    } else if(fabs(plane_coeff[0]) > 1e-8) {
+      sampleX[i] = (-plane_coeff[1] * y_2D[i] - plane_coeff[2] * z_2D[i] - plane_coeff[3]) / plane_coeff[0];
+      sampleY[i] = y_2D[i];
+      sampleZ[i] = z_2D[i];
     } else {
       sampleX[i] = NAN;
       sampleY[i] = NAN;
@@ -248,48 +253,34 @@ void intersect_3pts(const std::vector<ReinitCoord> &intersect_pts, DG_FP *sample
   }
 }
 
-void intersect_4pts(const std::vector<ReinitCoord> &intersect_pts, DG_FP *sampleX,
+void intersect_4pts(const std::vector<DGUtils::Vec<3>> &intersect_pts, DG_FP *sampleX,
                     DG_FP *sampleY, DG_FP *sampleZ) {
   // 1st Triangle is first 3 points
   intersect_3pts(intersect_pts, sampleX, sampleY, sampleZ);
   // Find which points make up second triangle
-  ReinitCoord mid_0_1;
-  mid_0_1.x = 0.5 * (intersect_pts[0].x + intersect_pts[1].x);
-  mid_0_1.y = 0.5 * (intersect_pts[0].y + intersect_pts[1].y);
-  mid_0_1.z = 0.5 * (intersect_pts[0].z + intersect_pts[1].z);
-  ReinitCoord mid_1_2;
-  mid_1_2.x = 0.5 * (intersect_pts[1].x + intersect_pts[2].x);
-  mid_1_2.y = 0.5 * (intersect_pts[1].y + intersect_pts[2].y);
-  mid_1_2.z = 0.5 * (intersect_pts[1].z + intersect_pts[2].z);
-  ReinitCoord mid_2_0;
-  mid_2_0.x = 0.5 * (intersect_pts[2].x + intersect_pts[0].x);
-  mid_2_0.y = 0.5 * (intersect_pts[2].y + intersect_pts[0].y);
-  mid_2_0.z = 0.5 * (intersect_pts[2].z + intersect_pts[0].z);
+  DGUtils::Vec<3> mid_0_1 = 0.5 * (intersect_pts[0] + intersect_pts[1]);
+  DGUtils::Vec<3> mid_1_2 = 0.5 * (intersect_pts[1] + intersect_pts[2]);
+  DGUtils::Vec<3> mid_2_0 = 0.5 * (intersect_pts[2] + intersect_pts[0]);
 
-  DG_FP dist_0_1 = (mid_0_1.x - intersect_pts[3].x) * (mid_0_1.x - intersect_pts[3].x)
-                 + (mid_0_1.y - intersect_pts[3].y) * (mid_0_1.y - intersect_pts[3].y)
-                 + (mid_0_1.z - intersect_pts[3].z) * (mid_0_1.z - intersect_pts[3].z);
-  DG_FP dist_1_2 = (mid_1_2.x - intersect_pts[3].x) * (mid_1_2.x - intersect_pts[3].x)
-                 + (mid_1_2.y - intersect_pts[3].y) * (mid_1_2.y - intersect_pts[3].y)
-                 + (mid_1_2.z - intersect_pts[3].z) * (mid_1_2.z - intersect_pts[3].z);
-  DG_FP dist_2_0 = (mid_2_0.x - intersect_pts[3].x) * (mid_2_0.x - intersect_pts[3].x)
-                 + (mid_2_0.y - intersect_pts[3].y) * (mid_2_0.y - intersect_pts[3].y)
-                 + (mid_2_0.z - intersect_pts[3].z) * (mid_2_0.z - intersect_pts[3].z);
+  DG_FP dist_0_1 = (mid_0_1 - intersect_pts[3]).sqr_magnitude();
+  DG_FP dist_1_2 = (mid_1_2 - intersect_pts[3]).sqr_magnitude();
+  DG_FP dist_2_0 = (mid_2_0 - intersect_pts[3]).sqr_magnitude();
+
   // Call 2nd Triangle
   if(dist_0_1 <= dist_1_2 && dist_0_1 <= dist_2_0) {
-    std::vector<ReinitCoord> tmp_intersect_pts;
+    std::vector<DGUtils::Vec<3>> tmp_intersect_pts;
     tmp_intersect_pts.push_back(intersect_pts[0]);
     tmp_intersect_pts.push_back(intersect_pts[1]);
     tmp_intersect_pts.push_back(intersect_pts[3]);
     intersect_3pts(tmp_intersect_pts, sampleX + 10, sampleY + 10, sampleZ + 10);
   } else if(dist_1_2 <= dist_0_1 && dist_1_2 <= dist_2_0) {
-    std::vector<ReinitCoord> tmp_intersect_pts;
+    std::vector<DGUtils::Vec<3>> tmp_intersect_pts;
     tmp_intersect_pts.push_back(intersect_pts[1]);
     tmp_intersect_pts.push_back(intersect_pts[2]);
     tmp_intersect_pts.push_back(intersect_pts[3]);
     intersect_3pts(tmp_intersect_pts, sampleX + 10, sampleY + 10, sampleZ + 10);
   } else {
-    std::vector<ReinitCoord> tmp_intersect_pts;
+    std::vector<DGUtils::Vec<3>> tmp_intersect_pts;
     tmp_intersect_pts.push_back(intersect_pts[2]);
     tmp_intersect_pts.push_back(intersect_pts[0]);
     tmp_intersect_pts.push_back(intersect_pts[3]);
@@ -305,7 +296,7 @@ bool simplified_newton(DG_FP &pt_x, DG_FP &pt_y, DG_FP &pt_z, PolyApprox3D &pol,
     pol.grad_at(pt_x, pt_y, pt_z, dsdx, dsdy, dsdz);
 
     DG_FP sqrnorm = dsdx * dsdx + dsdy * dsdy + dsdz * dsdz;
-    if(sqrnorm > 0.0) {
+    if(sqrnorm > 1e-14) {
       dsdx *= surf / sqrnorm;
       dsdy *= surf / sqrnorm;
       dsdz *= surf / sqrnorm;
@@ -338,10 +329,16 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
   const DG_FP *tmp_s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
   const DG_FP *tmp_t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * DG_NP;
 
+  // for(int i = 0; i < DG_NP; i++) {
+  //   ref_r_ptr[i] = tmp_r_ptr[i] * 0.75;
+  //   ref_s_ptr[i] = tmp_s_ptr[i] * 0.75;
+  //   ref_t_ptr[i] = tmp_t_ptr[i] * 0.75;
+  // }
+
   for(int i = 0; i < DG_NP; i++) {
-    ref_r_ptr[i] = tmp_r_ptr[i] * 0.75;
-    ref_s_ptr[i] = tmp_s_ptr[i] * 0.75;
-    ref_t_ptr[i] = tmp_t_ptr[i] * 0.75;
+    ref_r_ptr[i] = tmp_r_ptr[i];
+    ref_s_ptr[i] = tmp_s_ptr[i];
+    ref_t_ptr[i] = tmp_t_ptr[i];
   }
 
   // const DG_FP *ref_r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
@@ -372,13 +369,13 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
   }
 
   std::vector<int> cell_inds_vec(cellInds.begin(), cellInds.end());
-  // const DG_FP tol = fmax(1e-18, 1e-4 * h * h);
-  const DG_FP tol = 1e-16;
+  const DG_FP tol = fmax(1e-18, 1e-4 * h * h);
+  // const DG_FP tol = 1e-16;
   // printf("TOL: %g\n", tol);
 
   #pragma omp parallel for
   for(int i = 0; i < cell_inds_vec.size(); i++) {
-    int cell = cell_inds_vec[i];
+    const int cell = cell_inds_vec[i];
     const DG_FP *s_c = s_ptr + cell * DG_NP;
     const DG_FP *nodeX_c = nodeX_ptr + cell * 4;
     const DG_FP *nodeY_c = nodeY_ptr + cell * 4;
@@ -391,7 +388,7 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
     DG_FP *sampleZ_c = sampleZ_ptr + cell * LS_SAMPLE_NP;
 
     // Edge intersect test
-    std::vector<ReinitCoord> intersect_pts;
+    std::vector<DGUtils::Vec<3>> intersect_pts;
     intersecting_pts(s_c, nodeX_c, nodeY_c, nodeZ_c, intersect_pts);
 
     if(intersect_pts.size() == 3) {
@@ -411,30 +408,34 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
     PolyApprox3D pol = polys[poly_ind];
     DG_FP off_x, off_y, off_z;
     pol.get_offsets(off_x, off_y, off_z);
-    for(int i = 0; i < LS_SAMPLE_NP; i++) {
-      sampleX_c[i] -= off_x;
-      sampleY_c[i] -= off_y;
-      sampleZ_c[i] -= off_z;
+    for(int p = 0; p < LS_SAMPLE_NP; p++) {
+      sampleX_c[p] -= off_x;
+      sampleY_c[p] -= off_y;
+      sampleZ_c[p] -= off_z;
     }
 
     // Simplified Newton sampling
     for(int p = 0; p < LS_SAMPLE_NP; p++) {
       bool converged = false;
+      DG_FP start_x = sampleX_c[p];
+      DG_FP start_y = sampleY_c[p];
+      DG_FP start_z = sampleZ_c[p];
       if(!isnan(sampleX_c[p]))
         converged = simplified_newton(sampleX_c[p], sampleY_c[p], sampleZ_c[p], pol, tol);
+      
+      DG_FP dist_travelled = (start_x - sampleX_c[p]) * (start_x - sampleX_c[p]) 
+                           + (start_y - sampleY_c[p]) * (start_y - sampleY_c[p])
+                           + (start_z - sampleZ_c[p]) * (start_z - sampleZ_c[p]);
 
       // Check if point has converged
       // || !pt_in_tetra(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c)
-      if(!converged || !pt_in_tetra(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c)) {
-        // sampleX_c[p] = NAN;
-        // sampleY_c[p] = NAN;
-        // sampleZ_c[p] = NAN;
-
+      // || dist_travelled > 1.5 * 1.5 * h * h
+      if(!converged || !pt_in_tetra(sampleX_c[p] + off_x, sampleY_c[p] + off_y, sampleZ_c[p] + off_z, nodeX_c, nodeY_c, nodeZ_c)) {
         // Try randomly placing start and rerunning 10 times
         bool rerun_converged = false;
-        bool rerun_in_tet = false;
+        bool rerun_in_bounds = false;
         int rerun_counter = 0;
-        while((!rerun_converged || !rerun_in_tet) && rerun_counter < 10) {
+        while((!rerun_converged || !rerun_in_bounds) && rerun_counter < 50) {
           // Random start point
           sampleX_c[p] = dis(gen);
           sampleY_c[p] = dis(gen);
@@ -446,13 +447,24 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
             sampleZ_c[p] = dis(gen);
             rst2xyz(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c);
           }
+          sampleX_c[p] -= off_x;
+          sampleY_c[p] -= off_y;
+          sampleZ_c[p] -= off_z;
           // Rerun
+          start_x = sampleX_c[p];
+          start_y = sampleY_c[p];
+          start_z = sampleZ_c[p];
           rerun_converged = simplified_newton(sampleX_c[p], sampleY_c[p], sampleZ_c[p], pol, tol);
-          rerun_in_tet = pt_in_tetra(sampleX_c[p], sampleY_c[p], sampleZ_c[p], nodeX_c, nodeY_c, nodeZ_c);
+          dist_travelled = (start_x - sampleX_c[p]) * (start_x - sampleX_c[p]) 
+                         + (start_y - sampleY_c[p]) * (start_y - sampleY_c[p])
+                         + (start_z - sampleZ_c[p]) * (start_z - sampleZ_c[p]);
+          // rerun_in_bounds = dist_travelled <= 1.5 * 1.5 * h * h;
+          rerun_in_bounds = pt_in_tetra(sampleX_c[p] + off_x, sampleY_c[p] + off_y, sampleZ_c[p] + off_z, nodeX_c, nodeY_c, nodeZ_c);
           rerun_counter++;
         }
 
-        if(!rerun_converged || !rerun_in_tet) {
+        // || !rerun_in_bounds
+        if(!rerun_converged || !rerun_in_bounds) {
           sampleX_c[p] = NAN;
           sampleY_c[p] = NAN;
           sampleZ_c[p] = NAN;
@@ -460,10 +472,10 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
       }
     }
 
-    for(int i = 0; i < LS_SAMPLE_NP; i++) {
-      sampleX_c[i] += off_x;
-      sampleY_c[i] += off_y;
-      sampleZ_c[i] += off_z;
+    for(int p = 0; p < LS_SAMPLE_NP; p++) {
+      sampleX_c[p] += off_x;
+      sampleY_c[p] += off_y;
+      sampleZ_c[p] += off_z;
     }
   }
 

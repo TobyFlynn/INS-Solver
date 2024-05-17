@@ -61,7 +61,7 @@ protected:
   int n;
   std::map<int,int> cell2polyMap;
   std::vector<PolyApprox3D> polys;
-  static const int leaf_size = 100;
+  static const int leaf_size = 10;
   DGMesh3D *mesh;
 };
 
