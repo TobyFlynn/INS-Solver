@@ -29,7 +29,7 @@ void Enstrophy3D::measure() {
     return;
 
   EnstrophyHistory tmp;
-  tmp.time = ins->get_time()  * len / vel;
+  tmp.time = ins->get_time() * len / vel;
   tmp.enstrophy = calc_enstrophy();
   tmp.ke = calc_ke();
   history.push_back(tmp);
@@ -130,11 +130,11 @@ DG_FP Enstrophy3D::calc_ke() {
 
   // Multiply by 0.5 and divide by volume. Rho is constant in single phase case,
   // so cancels through in equation
-  return 0.5 * kinetic_energy / (vol * vel * vel);
+  return -0.5 * kinetic_energy / (vol * vel * vel);
 }
 
 std::string Enstrophy3D::get_filename() {
-  return "enstropy";
+  return "enstrophy";
 }
 
 std::string Enstrophy3D::get_csv_header() {
