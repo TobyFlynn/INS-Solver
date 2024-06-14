@@ -22,15 +22,32 @@ PolyApprox3D::PolyApprox3D(const int cell_ind, set<int> stencil,
   stencil_data(cell_ind, stencil, x_ptr, y_ptr, z_ptr, s_ptr, x_vec, y_vec, z_vec, s_vec);
 
   // Calc h
-  auto min_x = std::min_element(x_vec.begin(), x_vec.end());
-  auto min_y = std::min_element(y_vec.begin(), y_vec.end());
-  auto min_z = std::min_element(z_vec.begin(), z_vec.end());
-  auto max_x = std::max_element(x_vec.begin(), x_vec.end());
-  auto max_y = std::max_element(y_vec.begin(), y_vec.end());
-  auto max_z = std::max_element(z_vec.begin(), z_vec.end());
-  
-  DGUtils::Vec<3> min_pt(*min_x, *min_y, *min_z);
-  DGUtils::Vec<3> max_pt(*max_x, *max_y, *max_z);
+  // auto min_x = std::min_element(x_vec.begin(), x_vec.end());
+  // auto min_y = std::min_element(y_vec.begin(), y_vec.end());
+  // auto min_z = std::min_element(z_vec.begin(), z_vec.end());
+  // auto max_x = std::max_element(x_vec.begin(), x_vec.end());
+  // auto max_y = std::max_element(y_vec.begin(), y_vec.end());
+  // auto max_z = std::max_element(z_vec.begin(), z_vec.end());
+  // DGUtils::Vec<3> min_pt(*min_x, *min_y, *min_z);
+  // DGUtils::Vec<3> max_pt(*max_x, *max_y, *max_z);
+
+  DG_FP min_x = x_ptr[cell_ind * DG_NP];
+  DG_FP max_x = x_ptr[cell_ind * DG_NP];
+  DG_FP min_y = y_ptr[cell_ind * DG_NP];
+  DG_FP max_y = y_ptr[cell_ind * DG_NP];
+  DG_FP min_z = z_ptr[cell_ind * DG_NP];
+  DG_FP max_z = z_ptr[cell_ind * DG_NP];
+  for(int i = 1; i < DG_NP; i++) {
+    const int ind = cell_ind * DG_NP + i;
+    if(x_ptr[ind] < min_x) min_x = x_ptr[ind];
+    if(x_ptr[ind] > max_x) max_x = x_ptr[ind];
+    if(y_ptr[ind] < min_y) min_y = y_ptr[ind];
+    if(y_ptr[ind] > max_y) max_y = y_ptr[ind];
+    if(z_ptr[ind] < min_z) min_z = z_ptr[ind];
+    if(z_ptr[ind] > max_z) max_z = z_ptr[ind];
+  }
+  DGUtils::Vec<3> min_pt(min_x, min_y, min_z);
+  DGUtils::Vec<3> max_pt(max_x, max_y, max_z);
 
   DG_FP new_h = (max_pt - min_pt).magnitude();
 
@@ -68,7 +85,7 @@ void PolyApprox3D::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, cons
   arma::vec b(s);
 
   arma::vec w(x.size());
-  const DG_FP sigma = h * 0.01;
+  const DG_FP sigma = h * 0.001;
   for(int i = 0; i < x.size(); i++) {
     const DG_FP dist_from_origin = x[i] * x[i] + y[i] * y[i] + z[i] * z[i];
     w(i) = exp(-dist_from_origin / sigma);

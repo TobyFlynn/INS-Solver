@@ -329,16 +329,10 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
   const DG_FP *tmp_s_ptr = constants->get_mat_ptr(DGConstants::S) + (DG_ORDER - 1) * DG_NP;
   const DG_FP *tmp_t_ptr = constants->get_mat_ptr(DGConstants::T) + (DG_ORDER - 1) * DG_NP;
 
-  // for(int i = 0; i < DG_NP; i++) {
-  //   ref_r_ptr[i] = tmp_r_ptr[i] * 0.75;
-  //   ref_s_ptr[i] = tmp_s_ptr[i] * 0.75;
-  //   ref_t_ptr[i] = tmp_t_ptr[i] * 0.75;
-  // }
-
   for(int i = 0; i < DG_NP; i++) {
-    ref_r_ptr[i] = tmp_r_ptr[i];
-    ref_s_ptr[i] = tmp_s_ptr[i];
-    ref_t_ptr[i] = tmp_t_ptr[i];
+    ref_r_ptr[i] = tmp_r_ptr[i] * 0.75;
+    ref_s_ptr[i] = tmp_s_ptr[i] * 0.75;
+    ref_t_ptr[i] = tmp_t_ptr[i] * 0.75;
   }
 
   // const DG_FP *ref_r_ptr = constants->get_mat_ptr(DGConstants::R) + (DG_ORDER - 1) * DG_NP;
@@ -435,7 +429,7 @@ void LevelSetSolver3D::sampleInterface(op_dat sampleX, op_dat sampleY, op_dat sa
         bool rerun_converged = false;
         bool rerun_in_bounds = false;
         int rerun_counter = 0;
-        while((!rerun_converged || !rerun_in_bounds) && rerun_counter < 50) {
+        while((!rerun_converged || !rerun_in_bounds) && rerun_counter < 500) {
           // Random start point
           sampleX_c[p] = dis(gen);
           sampleY_c[p] = dis(gen);
