@@ -50,6 +50,7 @@ private:
                        std::set<int> &cellInds);
   void reinitLS();
   void detect_kinks();
+  void create_point_map_for_kink_detection();
   // bool reinitNeeded();
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
@@ -58,6 +59,7 @@ private:
 
   LevelSetAdvectionSolver3D *advectionSolver;
   KDTree3D *kdtree;
+  std::map<DGUtils::Vec<3>,std::vector<DGUtils::Vec<3>>> point_map_for_kink_detection;
 };
 
 #endif
