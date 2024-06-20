@@ -49,7 +49,7 @@ void add_measurements(SimulationDriver *driver, vector<Measurement2D*> &measurem
 
     for(auto &measurement : measurements_to_take) {
       if(measurement == "lift_drag") {
-        LiftDragCylinder2D *lift_drag = new LiftDragCylinder2D(driver, refMu, 0.3, 0.3, 0.7, 0.7);
+        LiftDragCylinder2D *lift_drag = new LiftDragCylinder2D(driver, 7.0, 7.0, 9.0, 9.0);
         measurements.push_back(lift_drag);
       } else if(measurement == "l2_vortex") {
         L2ErrorVortex2D *l2_error = new L2ErrorVortex2D(driver);
