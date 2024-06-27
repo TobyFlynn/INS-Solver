@@ -222,8 +222,6 @@ int main(int argc, char **argv) {
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
   op_decl_const(DG_ORDER * 3 * DG_NPF, "int", FMASK);
-  // op_decl_const(DG_ORDER * DG_CUB_NP, DG_FP_STR, cubW_g);
-  // op_decl_const(DG_ORDER * DG_GF_NP, DG_FP_STR, gaussW_g);
 
   // Application constants
   op_decl_const(1, DG_FP_STR, &r_ynolds);
