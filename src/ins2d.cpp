@@ -24,6 +24,7 @@
 #include "measurements/2d/min_max_interface.h"
 #include "measurements/2d/min_max_pressure.h"
 #include "measurements/2d/ls_advec_error.h"
+#include "measurements/2d/mass_of_phases.h"
 
 Timing *timer;
 Config *config;
@@ -63,6 +64,9 @@ void add_measurements(SimulationDriver *driver, vector<Measurement2D*> &measurem
       } else if(measurement == "l2_ls_advec") {
         LSAdvecError *l2_error = new LSAdvecError(driver, 1);
         measurements.push_back(l2_error);
+      } else if(measurement == "mass_of_phases") {
+        MassOfPhases2D *mass_error = new MassOfPhases2D(driver);
+        measurements.push_back(mass_error);
       } else {
         dg_abort("Unrecognised measurement: " + measurement);
       }

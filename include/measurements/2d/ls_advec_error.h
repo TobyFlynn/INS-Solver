@@ -8,7 +8,7 @@
 
 class LSAdvecError : public Measurement2D {
 public:
-  LSAdvecError(SimulationDriver *d, const int sample_iter = 20);
+  LSAdvecError(SimulationDriver *d, const int sample_iter = 5);
 
   virtual void measure() override;
 

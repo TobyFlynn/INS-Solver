@@ -10,7 +10,7 @@ class Enstrophy3D : public Measurement3D {
 public:
   Enstrophy3D(SimulationDriver *d, const DG_FP refMu, const DG_FP refRho,
               const DG_FP refVel, const DG_FP refLen, const DG_FP volume,
-              const int sample_iter = 20);
+              const int sample_iter = 5);
 
   virtual void measure() override;
 
