@@ -69,12 +69,12 @@ void INSSolver2D::setup_common() {
   dt_forced = tmp_dt > 0.0;
   if(dt_forced) dt = tmp_dt;
   int tmp_force_vel = 0;
-  config->getInt("force-superficial-vecocity", "on", tmp_force_vel);
+  config->getInt("force-superficial-velocity", "on", tmp_force_vel);
   force_superficial_velocity = tmp_force_vel == 1;
   fsv_relaxation_factor = 0.9;
-  config->getDouble("force-superficial-vecocity", "relaxation_factor", fsv_relaxation_factor);
+  config->getDouble("force-superficial-velocity", "relaxation_factor", fsv_relaxation_factor);
   fsv_factor = 750.0;
-  config->getDouble("force-superficial-vecocity", "initial_forcing_value", fsv_factor);
+  config->getDouble("force-superficial-velocity", "initial_forcing_value", fsv_factor);
 
   // Pressure matrix and solver
   std::string pr_solver = "p-multigrid";
