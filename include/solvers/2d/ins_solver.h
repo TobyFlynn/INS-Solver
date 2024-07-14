@@ -38,10 +38,8 @@ private:
   LinearSolver *pressureSolver;
   PETScInvMassSolver *viscositySolver;
 
-  bool resuming;
-  bool vis_solve;
-  bool dt_forced;
-  DG_FP reynolds;
+  bool resuming, vis_solve, dt_forced, force_superficial_velocity;
+  DG_FP reynolds, fsv_relaxation_factor, fsv_factor;
 
   op_dat pr_bc_types, vis_bc_types;
 

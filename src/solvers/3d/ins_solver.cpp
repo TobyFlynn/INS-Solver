@@ -72,6 +72,14 @@ void INSSolver3D::setup_common() {
   pr_bc  = tmp_npf_bc;
   vis_bc = tmp_npf_bc;
 
+  int tmp_force_vel = 0;
+  config->getInt("force-superficial-vecocity", "on", tmp_force_vel);
+  force_superficial_velocity = tmp_force_vel == 1;
+  fsv_relaxation_factor = 0.9;
+  config->getDouble("force-superficial-vecocity", "relaxation_factor", fsv_relaxation_factor);
+  fsv_factor = 750.0;
+  config->getDouble("force-superficial-vecocity", "initial_forcing_value", fsv_factor);
+
   // Pressure matrix and solver
   std::string pr_solver = "p-multigrid";
   config->getStr("pressure-solve", "preconditioner", pr_solver);
@@ -311,6 +319,35 @@ void INSSolver3D::pressure() {
   DGTempDat dpdy = dg_dat_pool->requestTempDatCells(DG_NP);
   DGTempDat dpdz = dg_dat_pool->requestTempDatCells(DG_NP);
   mesh->grad_with_central_flux(pr, dpdx.dat, dpdy.dat, dpdz.dat);
+
+  // Currently only in the case where flow direction is (0,1)
+  if(force_superficial_velocity) {
+    // Calculate the superficial velocity of one phase (sort of,
+    // over the entire volume instead of a cross-section)
+    DGTempDat tmp_sv = dg_dat_pool->requestTempDatCells(DG_NP);
+    op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
+                op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_sv.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    mesh->mass(tmp_sv.dat);
+    DG_FP sv = 0.0;
+    op_par_loop(sum_dg_np, "sum_dg_np", mesh->cells,
+                op_arg_gbl(&sv, 1, DG_FP_STR, OP_INC),
+                op_arg_dat(tmp_sv.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+    dg_dat_pool->releaseTempDatCells(tmp_sv);
+    sv /= domain_area;
+
+    // Update forcing term
+    fsv_factor -= fsv_relaxation_factor * (1.0 - sv);
+
+    // Add forcing term
+    // TODO account for g0 here??
+
+    op_par_loop(mp_ins_pr_fsv, "mp_ins_pr_fsv", mesh->cells,
+                op_arg_gbl(&fsv_factor, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    op_printf("Superficial velocity: %g\nForcing factor: %g\n", sv, fsv_factor);
+  }
 
   project_velocity(dpdx.dat, dpdy.dat, dpdz.dat);
 

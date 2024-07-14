@@ -81,10 +81,12 @@ void MPINSSolver2D::setup_common() {
   config->getInt("solver-options", "gravity_modified_pressure", tmp_grav);
   gravity_modified_pressure = tmp_grav == 1;
   int tmp_force_vel = 0;
-  config->getInt("solver-options", "force_superficial_velocity", tmp_force_vel);
+  config->getInt("force-superficial-vecocity", "on", tmp_force_vel);
   force_superficial_velocity = tmp_force_vel == 1;
   fsv_relaxation_factor = 0.9;
+  config->getDouble("force-superficial-vecocity", "relaxation_factor", fsv_relaxation_factor);
   fsv_factor = 750.0;
+  config->getDouble("force-superficial-vecocity", "initial_forcing_value", fsv_factor);
 
   if(gravity && gravity_modified_pressure)
     dg_abort("Do not use both \'gravity\' and \'gravity_modified_pressure\'");
@@ -663,10 +665,9 @@ bool MPINSSolver2D::pressure() {
     dg_dat_pool->releaseTempDatCells(tmp_rho);
 
     // Add new gravity formulation
-    op_par_loop(mp_ins_2d_pr_grav, "mp_ins_2d_pr_grav", mesh->cells,
+    op_par_loop(mp_ins_pr_grav, "mp_ins_pr_grav", mesh->cells,
                 op_arg_gbl(&avg_rho, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(dpdx.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
                 op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
   }
 
@@ -674,7 +675,7 @@ bool MPINSSolver2D::pressure() {
   if(force_superficial_velocity) {
     // Volume that one phase occupies
     DGTempDat tmp_vol = dg_dat_pool->requestTempDatCells(DG_NP);
-    op_par_loop(mp_ins_2d_vol_phase, "mp_ins_2d_vol_phase", mesh->cells,
+    op_par_loop(mp_ins_vol_phase, "mp_ins_vol_phase", mesh->cells,
                 op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(tmp_vol.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
@@ -688,7 +689,7 @@ bool MPINSSolver2D::pressure() {
     // Calculate the superficial velocity of one phase (sort of,
     // over the entire volume instead of a cross-section)
     DGTempDat tmp_sv = dg_dat_pool->requestTempDatCells(DG_NP);
-    op_par_loop(mp_ins_2d_sv_phase, "mp_ins_2d_sv_phase", mesh->cells,
+    op_par_loop(mp_ins_sv_phase, "mp_ins_sv_phase", mesh->cells,
                 op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
@@ -707,7 +708,7 @@ bool MPINSSolver2D::pressure() {
     // Add forcing term
     // TODO account for g0 here??
 
-    op_par_loop(mp_ins_2d_pr_fsv, "mp_ins_2d_pr_fsv", mesh->cells,
+    op_par_loop(mp_ins_pr_fsv, "mp_ins_pr_fsv", mesh->cells,
                 op_arg_gbl(&fsv_factor, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 

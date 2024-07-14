@@ -62,7 +62,7 @@ protected:
   void calc_art_vis(op_dat in, op_dat out);
   LinearSolver::Solvers set_solver_type(const std::string &str);
 
-  DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, prev_time, h;
+  DG_FP g0, a0, a1, b0, b1, dt, sub_cycle_dt, time, prev_time, h, domain_area;
   int currentInd, sub_cycles;
   op_dat vel[2][3], velT[3], velTT[3], pr, n[2][3], dPdN[2], bc_types, proj_h;
 

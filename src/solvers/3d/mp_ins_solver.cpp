@@ -69,6 +69,19 @@ void MPINSSolver3D::setup_common() {
   int tmp_st = 0;
   config->getInt("solver-options", "surface_tension", tmp_st);
   surface_tension = tmp_st == 1;
+  int tmp_grav = 0;
+  config->getInt("solver-options", "gravity_modified_pressure", tmp_grav);
+  gravity_modified_pressure = tmp_grav == 1;
+  int tmp_force_vel = 0;
+  config->getInt("force-superficial-vecocity", "on", tmp_force_vel);
+  force_superficial_velocity = tmp_force_vel == 1;
+  fsv_relaxation_factor = 0.9;
+  config->getDouble("force-superficial-vecocity", "relaxation_factor", fsv_relaxation_factor);
+  fsv_factor = 750.0;
+  config->getDouble("force-superficial-vecocity", "initial_forcing_value", fsv_factor);
+
+  if(gravity && gravity_modified_pressure)
+    dg_abort("Do not use both \'gravity\' and \'gravity_modified_pressure\'");
 
   // Pressure matrix and solver
   std::string pr_solver = "p-multigrid";
@@ -589,6 +602,71 @@ void MPINSSolver3D::pressure() {
   DGTempDat dpdy = dg_dat_pool->requestTempDatCells(DG_NP);
   DGTempDat dpdz = dg_dat_pool->requestTempDatCells(DG_NP);
   mesh->grad_with_central_flux(pr, dpdx.dat, dpdy.dat, dpdz.dat);
+
+  if(gravity_modified_pressure) {
+    // Calculate average density
+    DGTempDat tmp_rho = dg_dat_pool->requestTempDatCells(DG_NP);
+    op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_rho.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    mesh->mass(tmp_rho.dat);
+    DG_FP avg_rho = 0.0;
+    op_par_loop(sum_dg_np, "sum_dg_np", mesh->cells,
+                op_arg_gbl(&avg_rho, 1, DG_FP_STR, OP_INC),
+                op_arg_dat(tmp_rho.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+    avg_rho /= domain_area;
+    dg_dat_pool->releaseTempDatCells(tmp_rho);
+
+    // Add new gravity formulation
+    op_par_loop(mp_ins_pr_grav, "mp_ins_pr_grav", mesh->cells,
+                op_arg_gbl(&avg_rho, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  }
+
+  // Currently only in the case where flow direction is (0,1)
+  if(force_superficial_velocity) {
+    // Volume that one phase occupies
+    DGTempDat tmp_vol = dg_dat_pool->requestTempDatCells(DG_NP);
+    op_par_loop(mp_ins_vol_phase, "mp_ins_vol_phase", mesh->cells,
+                op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_vol.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    mesh->mass(tmp_vol.dat);
+    DG_FP volume = 0.0;
+    op_par_loop(sum_dg_np, "sum_dg_np", mesh->cells,
+                op_arg_gbl(&volume, 1, DG_FP_STR, OP_INC),
+                op_arg_dat(tmp_vol.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+    dg_dat_pool->releaseTempDatCells(tmp_vol);
+
+    // Calculate the superficial velocity of one phase (sort of,
+    // over the entire volume instead of a cross-section)
+    DGTempDat tmp_sv = dg_dat_pool->requestTempDatCells(DG_NP);
+    op_par_loop(mp_ins_sv_phase, "mp_ins_sv_phase", mesh->cells,
+                op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_sv.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    mesh->mass(tmp_sv.dat);
+    DG_FP sv = 0.0;
+    op_par_loop(sum_dg_np, "sum_dg_np", mesh->cells,
+                op_arg_gbl(&sv, 1, DG_FP_STR, OP_INC),
+                op_arg_dat(tmp_sv.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+    dg_dat_pool->releaseTempDatCells(tmp_sv);
+    sv /= volume;
+
+    // Update forcing term
+    fsv_factor -= fsv_relaxation_factor * (1.0 - sv);
+
+    // Add forcing term
+    // TODO account for g0 here??
+
+    op_par_loop(mp_ins_pr_fsv, "mp_ins_pr_fsv", mesh->cells,
+                op_arg_gbl(&fsv_factor, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(dpdy.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    op_printf("Air volume: %g\nAir superficial velocity: %g\nForcing factor: %g\n", volume, sv, fsv_factor);
+  }
 
   if(pr_over_int) {
     update_pressure_gradient_oi(dpdx.dat, dpdy.dat, dpdz.dat);

@@ -39,9 +39,8 @@ private:
   MMPoissonMatrixFree3D *viscosityMatrix;
   LinearSolver *pressureSolver;
   PETScInvMassSolver *viscositySolver;
-  DG_FP reynolds;
-  bool resuming;
-  bool forced_dt;
+  DG_FP reynolds, fsv_relaxation_factor, fsv_factor;
+  bool resuming, forced_dt, force_superficial_velocity;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;

@@ -52,8 +52,8 @@ private:
   PETScPMultigrid *pressureSolver;
   LinearSolver *viscositySolver;
   LevelSetSolver3D *lsSolver;
-  DG_FP reynolds;
-  bool resuming, surface_tension, pr_over_int;
+  DG_FP reynolds, fsv_relaxation_factor, fsv_factor;
+  bool resuming, surface_tension, pr_over_int, gravity_modified_pressure, force_superficial_velocity;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;
