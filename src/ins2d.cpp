@@ -306,7 +306,7 @@ int main(int argc, char **argv) {
   op_printf("Reference velocity: %g m s^-1\n", refVel);
   op_printf("Reference length: %g m\n", refLen);
   op_printf("Reference viscosity: %g m^2 s^-1\n", refMu);
-  op_printf("Reference gravity: %g m s^-2\n", refMu);
+  op_printf("Reference gravity: %g m s^-2\n", refGrav);
   op_printf("Reference surface tension: %g N m^-1\n", refSurfTen);
   op_printf("Density ratio of %g : %g\n", rho0, rho1);
   op_printf("Viscosity ratio of %g : %g\n", mu0, mu1);

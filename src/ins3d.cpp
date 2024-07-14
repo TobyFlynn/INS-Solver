@@ -29,7 +29,7 @@ extern DGDatPool *dg_dat_pool;
 using namespace std;
 
 // Global constants
-DG_FP r_ynolds, weber, mu0, mu1, rho0, rho1;
+DG_FP r_ynolds, weber, froude, mu0, mu1, rho0, rho1;
 
 void add_measurements(SimulationDriver *driver, vector<Measurement3D*> &measurements, DG_FP refMu, DG_FP refRho, DG_FP refVel) {
   // Get list of measurements to take
@@ -132,13 +132,16 @@ int main(int argc, char **argv) {
   DG_FP refLen = 0.001;
   DG_FP refMu  = 1.0e-5;
   DG_FP refSurfTen = 70.0 * 1e-3;
+  DG_FP refGrav = 9.8;
   config->getDouble("fluid-constants", "refRho", refRho);
   config->getDouble("fluid-constants", "refVel", refVel);
   config->getDouble("fluid-constants", "refLen", refLen);
   config->getDouble("fluid-constants", "refMu", refMu);
   config->getDouble("fluid-constants", "refSurfTen", refSurfTen);
+  config->getDouble("fluid-constants", "refGrav", refGrav);
   r_ynolds = refRho * refVel * refLen / refMu;
   weber = refRho * refVel * refVel * refLen / refSurfTen;
+  froude = refVel / sqrt(refGrav * refLen);
 
   int re = -1;
   PetscOptionsGetInt(NULL, NULL, "-re", &re, &found);
@@ -148,6 +151,7 @@ int main(int argc, char **argv) {
 
   op_printf("\n\nRe: %g\n", r_ynolds);
   op_printf("Weber: %g\n\n", weber);
+  op_printf("Froude: %g\n", froude);
 
   DGMesh3D *mesh = new DGMesh3D(filename);
 
@@ -184,6 +188,7 @@ int main(int argc, char **argv) {
   // Application constants
   op_decl_const(1, DG_FP_STR, &r_ynolds);
   op_decl_const(1, DG_FP_STR, &weber);
+  op_decl_const(1, DG_FP_STR, &froude);
   op_decl_const(1, DG_FP_STR, &mu0);
   op_decl_const(1, DG_FP_STR, &mu1);
   op_decl_const(1, DG_FP_STR, &rho0);
@@ -260,9 +265,14 @@ int main(int argc, char **argv) {
   op_printf("Reference velocity: %g m s^-1\n", refVel);
   op_printf("Reference length: %g m\n", refLen);
   op_printf("Reference viscosity: %g m^2 s^-1\n", refMu);
+  op_printf("Reference gravity: %g m s^-2\n", refGrav);
   op_printf("Density ratio of %g : %g\n", rho0, rho1);
   op_printf("Viscosity ratio of %g : %g\n", mu0, mu1);
   op_printf("Re: %g\n", r_ynolds);
+  op_printf("Re (fluid 0): %g\n", r_ynolds * (rho0 / mu0));
+  op_printf("Re (fluid 1): %g\n", r_ynolds * (rho1 / mu1));
+  op_printf("Weber: %g\n", weber);
+  op_printf("Froude: %g\n", froude);
 
   delete driver;
 

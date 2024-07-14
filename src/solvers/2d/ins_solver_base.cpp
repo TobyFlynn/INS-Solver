@@ -791,8 +791,7 @@ void INSSolverBase2D::advec_sub_cycle(op_dat fx, op_dat fy, op_dat fx_old, op_da
   advec_sub_cycle();
 
   // Calculate the intermediate velocity values
-  if(gravity) {
-    op_par_loop(ins_2d_advec_sc_force_grav_2d, "ins_2d_advec_sc_force_grav_2d", mesh->cells,
+  op_par_loop(ins_2d_advec_sc_force_2d, "ins_2d_advec_sc_force_2d", mesh->cells,
               op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
               op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
@@ -802,18 +801,6 @@ void INSSolverBase2D::advec_sub_cycle(op_dat fx, op_dat fy, op_dat fx_old, op_da
               op_arg_dat(fy_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-  } else {
-    op_par_loop(ins_2d_advec_sc_force_2d, "ins_2d_advec_sc_force_2d", mesh->cells,
-              op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(fx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(fy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(fx_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(fy_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-  }
 }
 
 void INSSolverBase2D::project_velocity_mat_mult(op_dat u, op_dat v,

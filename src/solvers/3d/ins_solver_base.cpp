@@ -110,6 +110,9 @@ void INSSolverBase3D::read_options() {
   int tmp_shock = 0;
   config->getInt("solver-options", "shock_capturing", tmp_shock);
   shock_capturing = tmp_shock == 1;
+  int tmp_grav = 0;
+  config->getInt("solver-options", "gravity", tmp_grav);
+  gravity = tmp_grav == 1;
 
   filter_alpha = 18.0;
   config->getDouble("filter", "alpha", filter_alpha);
@@ -457,27 +460,51 @@ void INSSolverBase3D::advec_standard() {
   }
 
   // Calculate the intermediate velocity values
-  op_par_loop(ins_3d_advec_3, "ins_3d_advec_3", mesh->cells,
-              op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(n[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(n[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(n[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  if(gravity) {
+    op_par_loop(ins_3d_advec_3_grav, "ins_3d_advec_3_grav", mesh->cells,
+                op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  } else {
+    op_par_loop(ins_3d_advec_3, "ins_3d_advec_3", mesh->cells,
+                op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  }
 }
 
 void INSSolverBase3D::advec_standard(op_dat fx, op_dat fy, op_dat fz, op_dat fx_old, op_dat fy_old, op_dat fz_old) {
@@ -488,33 +515,63 @@ void INSSolverBase3D::advec_standard(op_dat fx, op_dat fy, op_dat fz, op_dat fx_
   }
 
   // Calculate the intermediate velocity values
-  op_par_loop(ins_3d_advec_3_force, "ins_3d_advec_3_force", mesh->cells,
-              op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(vel[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(n[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(n[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(n[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(fx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(fy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(fz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(fx_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(fy_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(fz_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  if(gravity) {
+    op_par_loop(ins_3d_advec_3_force_grav, "ins_3d_advec_3_force_grav", mesh->cells,
+                op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fx_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fy_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fz_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  } else {
+    op_par_loop(ins_3d_advec_3_force, "ins_3d_advec_3_force", mesh->cells,
+                op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vel[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[currentInd][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[(currentInd + 1) % 2][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[(currentInd + 1) % 2][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(n[(currentInd + 1) % 2][2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fx, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fy, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fz, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fx_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fy_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(fz_old, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+                op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  }
 }
 
 void INSSolverBase3D::advec_sub_cycle_rk_step(const DG_FP time_sc, const DG_FP rk_dt, op_dat u, op_dat v, op_dat w) {
@@ -650,15 +707,30 @@ void INSSolverBase3D::advec_sub_cycle() {
   timer->endTimer("INSSolverBase3D - Subcycle 1");
 
   // Get final velT
-  op_par_loop(ins_3d_advec_sc_update, "ins_3d_advec_sc_update", mesh->cells,
-              op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc_tmp[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc_tmp[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(advec_sc_tmp[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
-              op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  if(gravity) {
+    op_par_loop(ins_3d_advec_sc_update_grav, "ins_3d_advec_sc_update_grav", mesh->cells,
+                op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&b0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&b1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&dt, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(advec_sc_tmp[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(advec_sc_tmp[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(advec_sc_tmp[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  } else {
+    op_par_loop(ins_3d_advec_sc_update, "ins_3d_advec_sc_update", mesh->cells,
+                op_arg_gbl(&a0, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&a1, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(advec_sc_tmp[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(advec_sc_tmp[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(advec_sc_tmp[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velT[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(velT[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(velT[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  }
 
   dg_dat_pool->releaseTempDatCells(advec_sc_tmp[0]);
   dg_dat_pool->releaseTempDatCells(advec_sc_tmp[1]);
