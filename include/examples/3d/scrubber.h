@@ -1,23 +1,5 @@
-#ifndef __INS_PROBLEM_SPECIFIC_3D_H
-#define __INS_PROBLEM_SPECIFIC_3D_H
-
-#define EXAMPLE_3D_SCRUBBER
-
-#if defined(EXAMPLE_3D_TGV)
-#include "examples/3d/tgv.h"
-#elif defined(EXAMPLE_3D_CYLINDER)
-#include "examples/3d/cylinder.h"
-#elif defined(EXAMPLE_3D_LIQUID_WHISTLE)
-#include "examples/3d/liquid_whistle.h"
-#elif defined(EXAMPLE_3D_OSCILLATING_DROPLET)
-#include "examples/3d/oscillating_droplet.h"
-#elif defined(EXAMPLE_3D_LS_TEST)
-#include "examples/3d/ls_test.h"
-#elif defined(EXAMPLE_3D_LS_TEST_STATIONARY)
-#include "examples/3d/ls_test_stationary.h"
-#elif defined(EXAMPLE_3D_SCRUBBER)
-#include "examples/3d/scrubber.h"
-#else
+#ifndef __INS_3D_SCRUBBER_H
+#define __INS_3D_SCRUBBER_H
 
 #if defined(INS_CUDA)
 #define DEVICE_PREFIX __device__
@@ -35,19 +17,11 @@
 #define BC_TYPE_NO_SLIP 0
 #define BC_TYPE_SLIP 1
 #define BC_TYPE_NATURAL_OUTFLOW 2
-// Add custom BC types below (number must be greater than 0), for example:
-#define BC_TYPE_INFLOW 3
 
 // Required definitions
-#define LS_CAP 1.0
+#define LS_CAP 0.25
 // Problem specifc definitions
-#define LW_LENGTH 50.0
-#define LW_LENGTH_SHORT 10.0
-#define LW_INLET_RADIUS 0.5
-#define LW_INLET_NO_SLIP_RADIUS 0.75
-#define LW_INLET_LENGTH 2.0
-#define LW_RADIUS 5.833
-#define LW_BLADE_START_X 0.6
+#define DOMAIN_HEIGHT 4.203912
 
 /************************************************************************
  * You can edit the body of the functions below but not their signature *
@@ -57,16 +31,8 @@
 DEVICE_PREFIX void ps3d_set_ic(const DG_FP x, const DG_FP y, const DG_FP z,
                                DG_FP &u, DG_FP &v, DG_FP &w) {
   // Liquid Whistle Initial Conditions
-  // DG_FP tmp = y * y + z * z - LW_INLET_RADIUS * LW_INLET_RADIUS;
-  // tmp = fabs(tmp);
-  // tmp = fmin(1.0, tmp / 0.1);
-  // u = tmp * fmax(0.0, 0.0 - (x + 1.0));
-  // v = 0.0;
-  // w = 0.0;
-
-  // TGV Initial Conditions
-  u = sin(x) * cos(y) * cos(z);
-  v = -cos(x) * sin(y) * cos(z);
+  u = 0.0;
+  v = 0.0;
   w = 0.0;
 }
 
@@ -75,32 +41,16 @@ DEVICE_PREFIX void ps3d_set_boundary_type(const DG_FP x0, const DG_FP y0, const 
                                           const DG_FP x1, const DG_FP y1, const DG_FP z1,
                                           const DG_FP x2, const DG_FP y2, const DG_FP z2,
                                           int &bc_type) {
-  if(fp_equal(x0, x1) && fp_equal(x0, x2) && x0 < -LW_INLET_LENGTH + 0.1) {
-    bc_type = BC_TYPE_INFLOW;
-  } else if(x0 < 1e-8 && x1 < 1e-8 && x2 < 1e-8) {
-    bc_type = BC_TYPE_NO_SLIP;
-  } else if(fp_equal(x0, x1) && fp_equal(x0, x2) && x0 > LW_LENGTH_SHORT - 0.1) {
-    bc_type = BC_TYPE_NATURAL_OUTFLOW;
-  } else if(y0 * y0 + z0 * z0 < LW_RADIUS * LW_RADIUS - 5e-1 &&
-            y1 * y1 + z1 * z1 < LW_RADIUS * LW_RADIUS - 5e-1 &&
-            y2 * y2 + z2 * z2 < LW_RADIUS * LW_RADIUS - 5e-1) {
-    bc_type = BC_TYPE_NO_SLIP;
-  } else {
-    bc_type = BC_TYPE_SLIP;
-  }
+  bc_type = BC_TYPE_SLIP;
 }
 
 // Custom BC pressure and viscosity linear solves BC conditions
 DEVICE_PREFIX void ps3d_custom_bc_get_pr_type(const int bc_type, int &pr_bc) {
-  if(bc_type == BC_TYPE_INFLOW) {
-    pr_bc = BC_NEUMANN;
-  }
+  
 }
 
 DEVICE_PREFIX void ps3d_custom_bc_get_vis_type(const int bc_type, int &vis_bc) {
-  if(bc_type == BC_TYPE_INFLOW) {
-    vis_bc = BC_DIRICHLET;
-  }
+  
 }
 
 // Custom BC velocities on boundary
@@ -109,14 +59,7 @@ DEVICE_PREFIX void ps3d_custom_bc_get_vel(const int bc_type, const DG_FP time,
                                           const DG_FP nx, const DG_FP ny, const DG_FP nz,
                                           const DG_FP mU, const DG_FP mV, const DG_FP mW,
                                           DG_FP &u, DG_FP &v, DG_FP &w) {
-  if(bc_type == BC_TYPE_INFLOW) {
-    DG_FP tmp = y * y + z * z - LW_INLET_RADIUS * LW_INLET_RADIUS;
-    tmp = fabs(tmp);
-    tmp = fmin(1.0, tmp / 0.1);
-    u = tmp * 1.0;
-    v = 0.0;
-    w = 0.0;
-  }
+  
 }
 
 // Custom BC pressure Neumann boundary condition (return 0.0 if not Neumann) [SINGLE-PHASE]
@@ -125,13 +68,6 @@ DEVICE_PREFIX DG_FP ps3d_custom_bc_get_pr_neumann(const int bc_type, const DG_FP
                           const DG_FP ny, const DG_FP nz, const DG_FP N0, const DG_FP N1,
                           const DG_FP N2, const DG_FP curl20, const DG_FP curl21,
                           const DG_FP curl22, const DG_FP reynolds) {
-  if(bc_type == BC_TYPE_INFLOW) {
-    DG_FP res0 = -N0 - curl20 / reynolds;
-    DG_FP res1 = -N1 - curl21 / reynolds;
-    DG_FP res2 = -N2 - curl22 / reynolds;
-    return nx * res0 + ny * res1 + nz * res2;
-  }
-
   return 0.0;
 }
 
@@ -155,26 +91,79 @@ DEVICE_PREFIX void ps3d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 // Set the initial interface between phases for multiphase simulations
 DEVICE_PREFIX void ps3d_set_surface(const DG_FP x, const DG_FP y, const DG_FP z,
                                     DG_FP &s) {
-  // s[i] = sqrt((x[i] - 3.0) * (x[i] - 3.0) + (y[i] - 3.0) * (y[i] - 3.0) + (z[i] - 3.0) * (z[i] - 3.0)) - 1.5;
-  // s[i] = x[i] - 1.0;
-  // s[i] = sqrt((x[i] - 1.0) * (x[i] - 1.0) + (y[i] - 0.5) * (y[i] - 0.5) + (z[i] - 0.5) * (z[i] - 0.5)) - 0.25;
-  // s[i] = sqrt((x[i] - 0.1) * (x[i] - 0.1) + y[i] * y[i] + z[i] * z[i]) - 0.05;
-  // if(x[i] >= -1e-5)
-  //   s[i] = fmax(fmax(fabs(x[i] + 1e-3), fabs(y[i])), fabs(z[i]));
-  // else
-  //   s[i] = x[i] + 1e-3;
+  const DG_FP MIN_X = -1.19;
+  const DG_FP MAX_X = 1.18;
+  const DG_FP IC_DEPTH = 0.15;
+  // Plate 0
+  const DG_FP MIN_Y_PLATE_0 = 1.62;
+  const DG_FP MAX_Y_PLATE_0 = MIN_Y_PLATE_0 + IC_DEPTH;
+  // Plate 1
+  const DG_FP MIN_Y_PLATE_1 = 0.55;
+  const DG_FP MAX_Y_PLATE_1 = MIN_Y_PLATE_1 + IC_DEPTH;
+  // Plate 2
+  const DG_FP MIN_Y_PLATE_2 = -0.47;
+  const DG_FP MAX_Y_PLATE_2 = MIN_Y_PLATE_2 + IC_DEPTH;
+  // Plate 3
+  const DG_FP MIN_Y_PLATE_3 = -1.54;
+  const DG_FP MAX_Y_PLATE_3 = MIN_Y_PLATE_3 + IC_DEPTH;
 
-  s = sqrt((x + 3.0) * (x + 3.0) + y * y + z * z) - 2.99;
-  s = fmax(fmin(1.0, s), -1.0);
+  if(x > MIN_X && x < MAX_X) {
+    const DG_FP min_dist_to_x_boundary = fmin(x - MIN_X, MAX_X - x);
+    if(y > MIN_Y_PLATE_0 && y < MAX_Y_PLATE_0) {
+      s = -fmin(MAX_Y_PLATE_0 - y, min_dist_to_x_boundary);
+    } else if(y > MIN_Y_PLATE_1 && y < MAX_Y_PLATE_1) {
+      s = -fmin(MAX_Y_PLATE_1 - y, min_dist_to_x_boundary);
+    } else if(y > MIN_Y_PLATE_2 && y < MAX_Y_PLATE_2) {
+      s = -fmin(MAX_Y_PLATE_2 - y, min_dist_to_x_boundary);
+    } else if(y > MIN_Y_PLATE_3 && y < MAX_Y_PLATE_3) {
+      s = -fmin(MAX_Y_PLATE_3 - y, min_dist_to_x_boundary);
+    } else {
+      if(y > MAX_Y_PLATE_0) {
+        s = y - MAX_Y_PLATE_0;
+      } else if(y > MAX_Y_PLATE_1) {
+        s = y - MAX_Y_PLATE_1;
+      } else if(y > MAX_Y_PLATE_2) {
+        s = y - MAX_Y_PLATE_2;
+      } else if(y > MAX_Y_PLATE_3) {
+        s = y - MAX_Y_PLATE_3;
+      } else {
+        s = (y + DOMAIN_HEIGHT) - MAX_Y_PLATE_0;
+      }
+    }
+  } else {
+    if(y > MIN_Y_PLATE_0 && y < MAX_Y_PLATE_0 || y > MIN_Y_PLATE_1 && y < MAX_Y_PLATE_1
+       || y > MIN_Y_PLATE_2 && y < MAX_Y_PLATE_2 || y > MIN_Y_PLATE_3 && y < MAX_Y_PLATE_3) {
+      s = x < MIN_X ? MIN_X - x : x - MAX_X;
+    } else {
+      if(y > MAX_Y_PLATE_0) {
+        DG_FP dist_pt_l = (x - MIN_X) * (x - MIN_X) + (y - MAX_Y_PLATE_0) * (y - MAX_Y_PLATE_0);
+        DG_FP dist_pt_r = (x - MAX_X) * (x - MAX_X) + (y - MAX_Y_PLATE_0) * (y - MAX_Y_PLATE_0);
+        s = sqrt(fmin(dist_pt_l, dist_pt_r));
+      } else if(y > MAX_Y_PLATE_1) {
+        DG_FP dist_pt_l = (x - MIN_X) * (x - MIN_X) + (y - MAX_Y_PLATE_1) * (y - MAX_Y_PLATE_1);
+        DG_FP dist_pt_r = (x - MAX_X) * (x - MAX_X) + (y - MAX_Y_PLATE_1) * (y - MAX_Y_PLATE_1);
+        s = sqrt(fmin(dist_pt_l, dist_pt_r));
+      } else if(y > MAX_Y_PLATE_2) {
+        DG_FP dist_pt_l = (x - MIN_X) * (x - MIN_X) + (y - MAX_Y_PLATE_2) * (y - MAX_Y_PLATE_2);
+        DG_FP dist_pt_r = (x - MAX_X) * (x - MAX_X) + (y - MAX_Y_PLATE_2) * (y - MAX_Y_PLATE_2);
+        s = sqrt(fmin(dist_pt_l, dist_pt_r));
+      } else if(y > MAX_Y_PLATE_3) {
+        DG_FP dist_pt_l = (x - MIN_X) * (x - MIN_X) + (y - MAX_Y_PLATE_3) * (y - MAX_Y_PLATE_3);
+        DG_FP dist_pt_r = (x - MAX_X) * (x - MAX_X) + (y - MAX_Y_PLATE_3) * (y - MAX_Y_PLATE_3);
+        s = sqrt(fmin(dist_pt_l, dist_pt_r));
+      } else {
+        DG_FP dist_pt_l = (x - MIN_X) * (x - MIN_X) + ((y + DOMAIN_HEIGHT) - MAX_Y_PLATE_0) * ((y + DOMAIN_HEIGHT) - MAX_Y_PLATE_0);
+        DG_FP dist_pt_r = (x - MAX_X) * (x - MAX_X) + ((y + DOMAIN_HEIGHT) - MAX_Y_PLATE_0) * ((y + DOMAIN_HEIGHT) - MAX_Y_PLATE_0);
+        s = sqrt(fmin(dist_pt_l, dist_pt_r));
+      }
+    }
+  }
+  s = fmax(fmin(LS_CAP, s), -LS_CAP);
 }
 
 // Set level set value on custom BCs (return sM otherwise)
 DEVICE_PREFIX DG_FP ps3d_custom_bc_get_ls(const int bc_type, const DG_FP x,
                                 const DG_FP y, const DG_FP z, const DG_FP sM) {
-  if(bc_type == BC_TYPE_INFLOW) {
-    return -1.0;
-  }
-
   return sM;
 }
 
@@ -184,13 +173,6 @@ DEVICE_PREFIX DG_FP ps3d_custom_bc_get_pr_neumann_multiphase(const int bc_type, 
                           const DG_FP ny, const DG_FP nz, const DG_FP N0, const DG_FP N1,
                           const DG_FP N2, const DG_FP curl20, const DG_FP curl21,
                           const DG_FP curl22, const DG_FP reynolds, const DG_FP rho) {
-  if(bc_type == BC_TYPE_INFLOW) {
-    DG_FP res0 = -N0 - curl20 / (reynolds * rho);
-    DG_FP res1 = -N1 - curl21 / (reynolds * rho);
-    DG_FP res2 = -N2 - curl22 / (reynolds * rho);
-    return nx * res0 + ny * res1 + nz * res2;
-  }
-
   return 0.0;
 }
 
@@ -202,5 +184,4 @@ DEVICE_PREFIX void ps3d_set_ls_vel(const DG_FP time, const DG_FP x, const DG_FP 
   w = 0.0;
 }
 
-#endif
 #endif
