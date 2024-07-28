@@ -9,7 +9,7 @@
 
 class MinMaxInterface2D : public Measurement2D {
 public:
-  MinMaxInterface2D(SimulationDriver *d, const int sample_iter = 20);
+  MinMaxInterface2D(SimulationDriver *d, const int sample_iter = 5);
 
   virtual void measure() override;
 

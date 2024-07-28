@@ -181,7 +181,8 @@ COMMON_2D_OBJ := ins2d_op.o \
 	measurements_op/2d/l2_error_vortex_op.o \
 	measurements_op/2d/min_max_interface_op.o \
 	measurements_op/2d/min_max_pressure_op.o \
-	measurements_op/2d/ls_advec_error_op.o
+	measurements_op/2d/ls_advec_error_op.o \
+	measurements_op/2d/mass_of_phases_op.o
 
 # 2D CPU only object files
 CPU_2D_OBJ := solvers/2d/ls_utils/ls_reinit.o
@@ -207,7 +208,7 @@ COMMON_3D_OBJ := ins3d_op.o \
   solvers_op/3d/mp_ins_solver_op.o \
 	solvers_op/3d/ls_driver_op.o \
 	measurements/3d/measurement.o \
-	measurements_op/3d/enstropy_op.o
+	measurements_op/3d/enstrophy_op.o
 
 # 3D CPU only object files
 CPU_3D_OBJ := solvers/3d/ls_solver_cpu.o

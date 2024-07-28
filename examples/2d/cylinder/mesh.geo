@@ -1,19 +1,24 @@
 // Target element size of cylinder
-lc2 = 0.05;
+lc2 = 0.1;
 
 // Bottom left coords
 xL = 0;
 yL = 0;
 
 // Top right coords
-xR = 2.2 / 0.41;
-yR = 0.41 / 0.41;
+xR = 32;
+yR = 16;
 
-p5 = newp; Point(p5) = {0.2 / 0.41, 0.2 / 0.41, 0, lc2};
-p6 = newp; Point(p6) = {0.25 / 0.41, 0.2 / 0.41, 0, lc2};
-p7 = newp; Point(p7) = {0.2 / 0.41, 0.15 / 0.41, 0, lc2};
-p8 = newp; Point(p8) = {0.15 / 0.41, 0.2 / 0.41, 0, lc2};
-p9 = newp; Point(p9) = {0.2 / 0.41, 0.25 / 0.41, 0, lc2};
+// Circle centre
+xCC = 8;
+yCC = 8;
+radCC = 0.5;
+
+p5 = newp; Point(p5) = {xCC, yCC, 0, lc2};
+p6 = newp; Point(p6) = {xCC + radCC, yCC, 0, lc2};
+p7 = newp; Point(p7) = {xCC, yCC - radCC, 0, lc2};
+p8 = newp; Point(p8) = {xCC - radCC, yCC, 0, lc2};
+p9 = newp; Point(p9) = {xCC, yCC + radCC, 0, lc2};
 
 Circle(1) = {p6, p5, p7};
 Circle(2) = {p7, p5, p8};
@@ -23,7 +28,7 @@ Circle(4) = {p9, p5, p6};
 Line Loop(1) = {2, 3, 4, 1};
 
 // Target element size of boundary
-lc1 = 0.1;
+lc1 = 0.3;
 // Outline points
 p1 = newp; Point(p1) = {xL, yL, 0, lc1};
 p2 = newp; Point(p2) = {xL, yR, 0, lc1};
@@ -40,3 +45,4 @@ Curve Loop(2) = {l1, l2, l3, l4};
 
 // Surface of mesh
 Plane Surface(1) = {2, 1};
+Physical Surface("fluid") = {1};

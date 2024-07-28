@@ -8,8 +8,6 @@
 #include "dg_dat_pool.h"
 #include "dg_linear_solvers/linear_solver.h"
 
-#include "solvers/2d/diffusion_solver.h"
-
 #include <string>
 #include <set>
 
@@ -51,7 +49,6 @@ protected:
   void project_velocity(op_dat dpdx, op_dat dpdy);
   DG_FP max_vel();
   void add_to_pr_history();
-  void shock_capture(op_dat in0, op_dat in1);
   void filter(op_dat in);
   void zero_dat(op_dat dat);
   void update_time();
@@ -79,11 +76,9 @@ protected:
 private:
   void read_options();
   void init_dats();
-  DG_FP shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat out);
 
   DG_FP shock_cap_max_diff, shock_cap_smooth_tol, shock_cap_discon_tol;
-  op_dat nodes_data, nodes_count, shock_cap_art_vis;
-  DiffusionSolver2D *diffSolver;
+  op_dat nodes_data, nodes_count;
 };
 
 #endif

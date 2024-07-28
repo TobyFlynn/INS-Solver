@@ -49,6 +49,7 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         measurements/2d/min_max_interface.cpp \
         measurements/2d/min_max_pressure.cpp \
         measurements/2d/ls_advec_error.cpp \
+        measurements/2d/mass_of_phases.cpp \
         kernels/
 
 cuda_line_no_2d=$(grep -n op_cuda_reduction cuda/ins2d_kernels.cu | cut -d : -f 1)
@@ -81,7 +82,7 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/ls_solver.cpp \
         solvers/3d/mp_ins_solver.cpp \
         solvers/3d/ls_driver.cpp \
-        measurements/3d/enstropy.cpp \
+        measurements/3d/enstrophy.cpp \
         kernels/
 
 cuda_line_no_3d=$(grep -n op_cuda_reduction cuda/ins3d_kernels.cu | cut -d : -f 1)

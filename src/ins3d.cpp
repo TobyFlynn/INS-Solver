@@ -20,7 +20,7 @@
 #include "solvers/3d/ins_solver.h"
 #include "solvers/3d/mp_ins_solver.h"
 #include "drivers/3d/ls_driver.h"
-#include "measurements/3d/enstropy.h"
+#include "measurements/3d/enstrophy.h"
 
 Timing *timer;
 Config *config;
@@ -31,7 +31,8 @@ using namespace std;
 // Global constants
 DG_FP r_ynolds, weber, froude, mu0, mu1, rho0, rho1;
 
-void add_measurements(SimulationDriver *driver, vector<Measurement3D*> &measurements, DG_FP refMu, DG_FP refRho, DG_FP refVel) {
+void add_measurements(SimulationDriver *driver, vector<Measurement3D*> &measurements,
+                      DG_FP refMu, DG_FP refRho, DG_FP refVel, DG_FP refLen) {
   // Get list of measurements to take
   // Options are: enstropy
   string mes_tmp = "none";
@@ -45,9 +46,10 @@ void add_measurements(SimulationDriver *driver, vector<Measurement3D*> &measurem
     }
 
     for(auto &measurement : measurements_to_take) {
-      if(measurement == "enstropy") {
-        Enstropy3D *enstropy = new Enstropy3D(driver, refMu, refRho, refVel, 248.0502134423985614038105205);
-        measurements.push_back(enstropy);
+      if(measurement == "enstrophy") {
+        Enstrophy3D *enstrophy = new Enstrophy3D(driver, refMu, refRho, refVel,
+                                        refLen, 248.0502134423985614038105205);
+        measurements.push_back(enstrophy);
       } else {
         dg_abort("Unrecognised measurement: " + measurement);
       }
@@ -179,7 +181,7 @@ int main(int argc, char **argv) {
     dg_abort("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\'");
   }
 
-  add_measurements(driver, measurements, refMu, refRho, refVel);
+  add_measurements(driver, measurements, refMu, refRho, refVel, refLen);
 
   // Toolkit constants
   op_decl_const(DG_ORDER * 2, "int", DG_CONSTANTS);

@@ -676,8 +676,6 @@ void MPINSSolver3D::pressure() {
 
   project_velocity(dpdx.dat, dpdy.dat, dpdz.dat);
 
-  // shock_capture(velTT[0], velTT[1], velTT[2]);
-
   dg_dat_pool->releaseTempDatCells(dpdx);
   dg_dat_pool->releaseTempDatCells(dpdy);
   dg_dat_pool->releaseTempDatCells(dpdz);

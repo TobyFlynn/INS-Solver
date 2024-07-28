@@ -1,5 +1,5 @@
-#ifndef __INS_MIN_MAX_PRESSURE_2D_H
-#define __INS_MIN_MAX_PRESSURE_2D_H
+#ifndef __INS_MASS_OF_PHASES_2D_H
+#define __INS_MASS_OF_PHASES_2D_H
 
 #include <vector>
 
@@ -7,9 +7,9 @@
 #include "solvers/2d/ins_solver_base.h"
 #include "solvers/2d/mp_ins_solver.h"
 
-class MinMaxPressure2D : public Measurement2D {
+class MassOfPhases2D : public Measurement2D {
 public:
-  MinMaxPressure2D(SimulationDriver *d, const int sample_iter = 5);
+  MassOfPhases2D(SimulationDriver *d, const int sample_iter = 5);
 
   virtual void measure() override;
 
@@ -19,12 +19,15 @@ protected:
   virtual std::string get_next_csv_line() override;
 
 private:
-  struct MinMaxHistory {
+  struct MassHistory {
     DG_FP time;
-    DG_FP min_pr;
-    DG_FP max_pr;
+    DG_FP phase0_vol;
+    DG_FP phase1_vol;
+    DG_FP phase0_mass;
+    DG_FP phase1_mass;
+    DG_FP total_mass;
   };
-  std::vector<MinMaxHistory> history;
+  std::vector<MassHistory> history;
   MPINSSolver2D *mpins;
 };
 

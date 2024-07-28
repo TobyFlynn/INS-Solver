@@ -376,8 +376,6 @@ bool INSTemperatureSolver2D::pressure() {
 
   project_velocity(dpdx.dat, dpdy.dat);
 
-  shock_capture(velTT[0], velTT[1]);
-
   dg_dat_pool->releaseTempDatCells(dpdx);
   dg_dat_pool->releaseTempDatCells(dpdy);
   timer->endTimer("INSTemperatureSolver2D - Pressure Projection");

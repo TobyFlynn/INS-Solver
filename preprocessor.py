@@ -1,6 +1,66 @@
 import os
 import sys
 
+def get_2d_constants(order):
+    order_int = int(order)
+    dg_np     = str(int((order_int + 1) * (order_int + 2) / 2))
+    dg_npf    = str(order_int + 1)
+    if order == "1":
+        dg_cub_np = "3"
+        dg_cub_surf_np = "3"
+    elif order == "2":
+        dg_cub_np = "6"
+        dg_cub_surf_np = "5"
+    elif order == "3":
+        dg_cub_np = "12"
+        dg_cub_surf_np = "7"
+    elif order == "4":
+        dg_cub_np = "16"
+        dg_cub_surf_np = "9"
+    elif order == "5":
+        dg_cub_np = "25"
+        dg_cub_surf_np = "11"
+    elif order == "6":
+        dg_cub_np = "36"
+        dg_cub_surf_np = "13"
+    elif order == "7":
+        dg_cub_np = "46"
+        dg_cub_surf_np = "15"
+    else:
+        print("This order of DG is not supported yet...exiting")
+        sys.exit()
+    return dg_np, dg_npf, dg_cub_np, dg_cub_surf_np
+
+def get_3d_constants(order):
+    order_int = int(order)
+    dg_np     = str(int((order_int + 1) * (order_int + 2) * (order_int + 3) / 6))
+    dg_npf    = str(int((order_int + 1) * (order_int + 2) / 2))
+    if order == "1":
+        dg_cub_np = "4"
+        dg_cub_surf_np = "3"
+    elif order == "2":
+        dg_cub_np = "11"
+        dg_cub_surf_np = "6"
+    elif order == "3":
+        dg_cub_np = "23"
+        dg_cub_surf_np = "12"
+    elif order == "4":
+        dg_cub_np = "44"
+        dg_cub_surf_np = "16"
+    elif order == "5":
+        dg_cub_np = "74"
+        dg_cub_surf_np = "25"
+    elif order == "6":
+        dg_cub_np = "122"
+        dg_cub_surf_np = "36"
+    elif order == "7":
+        dg_cub_np = "177"
+        dg_cub_surf_np = "46"
+    else:
+        print("This order of DG is not supported yet...exiting")
+        sys.exit()
+    return dg_np, dg_npf, dg_cub_np, dg_cub_surf_np
+
 gemv_template = \
 """
 #if !defined(OP2_DG_CUDA) && !defined(OP2_DG_HIP)
@@ -122,9 +182,6 @@ dg_np        = ""
 dg_np_n1     = ""
 dg_npf       = ""
 dg_npf_n1    = ""
-dg_cub_np    = ""
-dg_g_np      = ""
-dg_gf_np     = ""
 ls_sample_np = ""
 dg_num_faces = ""
 dg_order     = order
@@ -137,61 +194,17 @@ fp_type = "d"
 
 # Get DG order from command line args
 if dim == "2":
-    order_int = int(order)
-    dg_np     = str(int((order_int + 1) * (order_int + 2) / 2))
-    dg_np_n1  = str(int((1 + 1) * (1 + 2) / 2))
-    dg_npf    = str(order_int + 1)
-    dg_npf_n1 = str(1 + 1)
-    # ls_sample_np = "10"
-    ls_sample_np = dg_np
+    dg_order  = order
+    dg_np, dg_npf, dg_cub_2d_np, dg_cub_surf_2d_np = get_2d_constants(order)
+    dg_np_n1, dg_npf_n1 = get_2d_constants("1")[0:2]
     dg_num_faces = "3"
-    dg_num_constants = "5"
-    # TODO update
-    dg_cub_2d_np = "12"
-    dg_cub_surf_2d_np = "7"
-    if order == "1":
-        dg_cub_np    = "12"
-        dg_g_np      = "9"
-        dg_gf_np     = "3"
-    elif order == "2":
-        dg_cub_np    = "16"
-        dg_g_np      = "12"
-        dg_gf_np     = "4"
-    elif order == "3":
-        dg_cub_np    = "36"
-        dg_g_np      = "18"
-        dg_gf_np     = "6"
-    elif order == "4":
-        dg_cub_np    = "46"
-        dg_g_np      = "21"
-        dg_gf_np     = "7"
-    else:
-        print("This order of DG is not supported yet...exiting")
-        sys.exit(-1)
-elif dim == "3":
-    order_int = int(order)
-    dg_np     = str(int((order_int + 1) * (order_int + 2) * (order_int + 3) / 6))
-    dg_np_n1  = str(int((1 + 1) * (1 + 2) * (1 + 3) / 6))
-    dg_npf    = str(int((order_int + 1) * (order_int + 2) / 2))
-    dg_npf_n1 = str(int((1 + 1) * (1 + 2) / 2))
-    dg_num_faces = "4"
-    dg_num_constants = "2"
     ls_sample_np = dg_np
-    if order == "1":
-        dg_cub_3d_np = "4"
-        dg_cub_surf_3d_np = "3"
-    elif order == "2":
-        dg_cub_3d_np = "11"
-        dg_cub_surf_3d_np = "6"
-    elif order == "3":
-        dg_cub_3d_np = "23"
-        dg_cub_surf_3d_np = "12"
-    elif order == "4":
-        dg_cub_3d_np = "44"
-        dg_cub_surf_3d_np = "16"
-    else:
-        print("This order of DG is not supported yet...exiting")
-        sys.exit(-1)
+elif dim == "3":
+    dg_order  = order
+    dg_np, dg_npf, dg_cub_3d_np, dg_cub_surf_3d_np = get_3d_constants(order)
+    dg_np_n1, dg_npf_n1 = get_3d_constants("1")[0:2]
+    dg_num_faces = "4"
+    ls_sample_np = dg_np
 
 inputfiles = []
 
@@ -224,9 +237,6 @@ for f in inputfiles:
         newdata = newdata.replace("DG_NPF", dg_npf)
         newdata = newdata.replace("DG_NP_N1", dg_np_n1)
         newdata = newdata.replace("DG_NP", dg_np)
-        newdata = newdata.replace("DG_CUB_NP", dg_cub_np)
-        newdata = newdata.replace("DG_G_NP", dg_g_np)
-        newdata = newdata.replace("DG_GF_NP", dg_gf_np)
         newdata = newdata.replace("LS_SAMPLE_NP", ls_sample_np)
         newdata = newdata.replace("DG_NUM_FACES", dg_num_faces)
         newdata = newdata.replace("DG_NUM_CONSTANTS", dg_num_constants)

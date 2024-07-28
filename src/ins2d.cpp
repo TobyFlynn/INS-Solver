@@ -24,6 +24,7 @@
 #include "measurements/2d/min_max_interface.h"
 #include "measurements/2d/min_max_pressure.h"
 #include "measurements/2d/ls_advec_error.h"
+#include "measurements/2d/mass_of_phases.h"
 
 Timing *timer;
 Config *config;
@@ -49,7 +50,7 @@ void add_measurements(SimulationDriver *driver, vector<Measurement2D*> &measurem
 
     for(auto &measurement : measurements_to_take) {
       if(measurement == "lift_drag") {
-        LiftDragCylinder2D *lift_drag = new LiftDragCylinder2D(driver, refMu, 0.3, 0.3, 0.7, 0.7);
+        LiftDragCylinder2D *lift_drag = new LiftDragCylinder2D(driver, 7.0, 7.0, 9.0, 9.0);
         measurements.push_back(lift_drag);
       } else if(measurement == "l2_vortex") {
         L2ErrorVortex2D *l2_error = new L2ErrorVortex2D(driver);
@@ -63,6 +64,9 @@ void add_measurements(SimulationDriver *driver, vector<Measurement2D*> &measurem
       } else if(measurement == "l2_ls_advec") {
         LSAdvecError *l2_error = new LSAdvecError(driver, 1);
         measurements.push_back(l2_error);
+      } else if(measurement == "mass_of_phases") {
+        MassOfPhases2D *mass_error = new MassOfPhases2D(driver);
+        measurements.push_back(mass_error);
       } else {
         dg_abort("Unrecognised measurement: " + measurement);
       }
@@ -222,8 +226,6 @@ int main(int argc, char **argv) {
   // Toolkit constants
   op_decl_const(DG_ORDER * 5, "int", DG_CONSTANTS);
   op_decl_const(DG_ORDER * 3 * DG_NPF, "int", FMASK);
-  // op_decl_const(DG_ORDER * DG_CUB_NP, DG_FP_STR, cubW_g);
-  // op_decl_const(DG_ORDER * DG_GF_NP, DG_FP_STR, gaussW_g);
 
   // Application constants
   op_decl_const(1, DG_FP_STR, &r_ynolds);

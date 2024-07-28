@@ -36,8 +36,10 @@ DEVICE_PREFIX void ps2d_set_boundary_type(const DG_FP x0, const DG_FP y0,
                                           int &bc_type) {
   if(fp_equal(x0, x1) && x0 < 1e-4) {
     bc_type = BC_TYPE_INFLOW;
-  } else if(fp_equal(x0, x1) && x0 > 5.0) {
+  } else if(fp_equal(x0, x1) && x0 > 31.0) {
     bc_type = BC_TYPE_NATURAL_OUTFLOW;
+  } else if(x0 > 7.0 && x0 < 9.0 && y0 > 7.0 && y0 < 9.0) {
+    bc_type = BC_TYPE_NO_SLIP;
   } else {
     bc_type = BC_TYPE_SLIP;
   }
@@ -65,7 +67,7 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vel(const int bc_type, const DG_FP time,
   const DG_FP PI = 3.141592653589793238463;
   if(bc_type == BC_TYPE_INFLOW) {
     const DG_FP capped_time = fmin(time, 4.0);
-    u = 4.0 * sin(PI * capped_time / 8.0) * y * (1.0 - y);
+    u = sin(PI * capped_time / 8.0);
     v = 0.0;
   }
 }
@@ -81,7 +83,7 @@ DEVICE_PREFIX DG_FP ps2d_custom_bc_get_pr_neumann(const int bc_type, const DG_FP
     DG_FP res1 = -N0 - gradCurlVel1 / reynolds;
     DG_FP res2 = -N1 + gradCurlVel0 / reynolds;
     DG_FP neumann = nx * res1 + ny * res2;
-    DG_FP vel_grad = nx * 4.0 * (PI / 8.0) * cos(PI * capped_time / 8.0) * y * (1.0 - y);
+    DG_FP vel_grad = nx * (PI / 8.0) * cos(PI * capped_time / 8.0);
     return neumann - vel_grad;
   }
 

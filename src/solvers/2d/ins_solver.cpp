@@ -13,9 +13,12 @@
 
 #include "timing.h"
 #include "config.h"
-#include "dg_linear_solvers/petsc_amg.h"
-#include "dg_linear_solvers/petsc_block_jacobi.h"
+
 #include "dg_linear_solvers/petsc_pmultigrid.h"
+#include "dg_linear_solvers/petsc_jacobi.h"
+#include "dg_linear_solvers/petsc_block_jacobi.h"
+#include "dg_matrices/2d/factor_mm_poisson_matrix_free_diag_2d.h"
+#include "dg_matrices/2d/factor_mm_poisson_matrix_free_block_diag_2d.h"
 
 extern Timing *timer;
 extern Config *config;
@@ -96,10 +99,22 @@ void INSSolver2D::setup_common() {
   std::string vis_solver = "inv-mass";
   config->getStr("viscous-solve", "preconditioner", vis_solver);
   viscositySolverType = set_solver_type(vis_solver);
-  if(viscositySolverType != LinearSolver::PETSC_INV_MASS)
-    dg_abort("Only \'inv-mass\' preconditioner is supported for 2D single phase flow.");
-  viscosityMatrix = new MMPoissonMatrixFree2D(mesh);
-  viscositySolver = new PETScInvMassSolver(mesh);
+  if(shock_capturing) {
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      viscosityMatrix = new FactorMMPoissonMatrixFreeDiag2D(mesh);
+      viscositySolver = new PETScJacobiSolver(mesh);
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      viscosityMatrix = new FactorMMPoissonMatrixFreeBlockDiag2D(mesh);
+      viscositySolver = new PETScBlockJacobiSolver(mesh);
+    } else {
+      dg_abort("Only \'jacobi\' and \'block-jacobi\' preconditioner is supported for 2D single phase flow with shock capturing.");
+    }
+  } else {
+    if(viscositySolverType != LinearSolver::PETSC_INV_MASS)
+      dg_abort("Only \'inv-mass\' preconditioner is supported for 2D single phase flow without shock capturing.");
+    viscosityMatrix = new MMPoissonMatrixFree2D(mesh);
+    viscositySolver = new PETScInvMassSolver(mesh);
+  }
 
   pressureSolver->set_matrix(pressureMatrix);
   viscositySolver->set_matrix(viscosityMatrix);
@@ -114,7 +129,7 @@ INSSolver2D::~INSSolver2D() {
   delete pressureCoarseMatrix;
   delete pressureMatrix;
   delete viscosityMatrix;
-  delete (PETScPMultigrid *)pressureSolver;
+  delete pressureSolver;
   delete viscositySolver;
 }
 
@@ -326,8 +341,6 @@ bool INSSolver2D::pressure() {
 
   project_velocity(dpdx.dat, dpdy.dat);
 
-  shock_capture(velTT[0], velTT[1]);
-
   dg_dat_pool->releaseTempDatCells(dpdx);
   dg_dat_pool->releaseTempDatCells(dpdy);
   timer->endTimer("INSSolver2D - Pressure Projection");
@@ -363,10 +376,37 @@ bool INSSolver2D::viscosity() {
   // Call PETSc linear solver
   timer->startTimer("INSSolver2D - Viscosity Linear Solve");
   factor = g0 * reynolds / dt;
-  if(factor != viscosityMatrix->get_factor()) {
-    viscosityMatrix->set_factor(factor);
-    // viscosityMatrix->calc_mat();
-    viscositySolver->setFactor(1.0 / factor);
+  DGTempDat tmp_art_vis, tmp_mm_factor;
+  if(shock_capturing) {
+    tmp_art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
+    tmp_mm_factor = dg_dat_pool->requestTempDatCells(DG_NP);
+    calc_art_vis(velTT[0], tmp_art_vis.dat);
+
+    op_par_loop(add_one, "add_one", mesh->cells,
+                op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+    
+    op_par_loop(set_val_dg_np, "set_val_dg_np", mesh->cells,
+                op_arg_gbl(&factor, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_mm_factor.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      FactorMMPoissonMatrixFreeDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag2D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+      tmpMatrix->set_mm_factor(tmp_mm_factor.dat);
+      tmpMatrix->calc_mat_partial();
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      FactorMMPoissonMatrixFreeBlockDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag2D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+      tmpMatrix->set_mm_factor(tmp_mm_factor.dat);
+      tmpMatrix->calc_mat_partial();
+    }
+  } else {
+    MMPoissonMatrixFree2D *tmpMatrix = dynamic_cast<MMPoissonMatrixFree2D*>(viscosityMatrix);
+    PETScInvMassSolver *tmpSolver = dynamic_cast<PETScInvMassSolver*>(viscositySolver);
+    if(factor != tmpMatrix->get_factor()) {
+      tmpMatrix->set_factor(factor);
+      tmpSolver->setFactor(1.0 / factor);
+    }
   }
 
   // Get BCs for viscosity solve
@@ -391,6 +431,23 @@ bool INSSolver2D::viscosity() {
     dg_abort("Viscosity X solve did not converge");
 
   // Get BCs for viscosity solve
+  if(shock_capturing) {
+    calc_art_vis(velTT[1], tmp_art_vis.dat);
+
+    op_par_loop(add_one, "add_one", mesh->cells,
+                op_arg_dat(tmp_art_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
+      FactorMMPoissonMatrixFreeDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeDiag2D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+      tmpMatrix->calc_mat_partial();
+    } else if(viscositySolverType == LinearSolver::PETSC_BLOCK_JACOBI) {
+      FactorMMPoissonMatrixFreeBlockDiag2D *tmpMatrix = dynamic_cast<FactorMMPoissonMatrixFreeBlockDiag2D*>(viscosityMatrix);
+      tmpMatrix->set_factor(tmp_art_vis.dat);
+      tmpMatrix->calc_mat_partial();
+    }
+  }
+
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_vis_bc_y, "ins_2d_vis_bc_y", mesh->bfaces,
                 op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
@@ -414,6 +471,11 @@ bool INSSolver2D::viscosity() {
 
   dg_dat_pool->releaseTempDatCells(visRHS[0]);
   dg_dat_pool->releaseTempDatCells(visRHS[1]);
+
+  if(shock_capturing) {
+    dg_dat_pool->releaseTempDatCells(tmp_art_vis);
+    dg_dat_pool->releaseTempDatCells(tmp_mm_factor);
+  }
 
   return convergedX && convergedY;
 }

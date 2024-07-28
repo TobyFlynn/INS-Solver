@@ -7,10 +7,9 @@
 
 extern DGDatPool *dg_dat_pool;
 
-LiftDragCylinder2D::LiftDragCylinder2D(SimulationDriver *d, const DG_FP refMu, const DG_FP x0, 
+LiftDragCylinder2D::LiftDragCylinder2D(SimulationDriver *d, const DG_FP x0, 
                                        const DG_FP y0, const DG_FP x1, const DG_FP y1, 
                                        const int sample_iter) : Measurement2D(d, sample_iter) {
-  mu = refMu;
   box[0] = x0;
   box[1] = y0;
   box[2] = x1;
@@ -45,7 +44,6 @@ void LiftDragCylinder2D::measure() {
                 op_arg_gbl(box, 4, DG_FP_STR, OP_READ),
                 op_arg_gbl(&lift_coeff, 1, DG_FP_STR, OP_INC),
                 op_arg_gbl(&drag_coeff, 1, DG_FP_STR, OP_INC),
-                op_arg_gbl(&mu, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),

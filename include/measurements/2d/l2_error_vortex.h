@@ -8,7 +8,7 @@
 
 class L2ErrorVortex2D : public Measurement2D {
 public:
-  L2ErrorVortex2D(SimulationDriver *d, const int sample_iter = 20);
+  L2ErrorVortex2D(SimulationDriver *d, const int sample_iter = 5);
 
   virtual void measure() override;
 

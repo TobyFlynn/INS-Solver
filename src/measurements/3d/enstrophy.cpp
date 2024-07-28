@@ -1,4 +1,4 @@
-#include "measurements/3d/enstropy.h"
+#include "measurements/3d/enstrophy.h"
 
 #include "op_seq.h"
 
@@ -10,31 +10,32 @@
 extern DGConstants *constants;
 extern DGDatPool *dg_dat_pool;
 
-Enstropy3D::Enstropy3D(SimulationDriver *d, const DG_FP refMu, const DG_FP refRho, 
-                       const DG_FP refVel, const DG_FP volume, 
+Enstrophy3D::Enstrophy3D(SimulationDriver *d, const DG_FP refMu, const DG_FP refRho,
+                       const DG_FP refVel, const DG_FP refLen, const DG_FP volume,
                        const int sample_iter) : Measurement3D(d, sample_iter) {
   mu = refMu;
   rho = refRho;
   vel = refVel;
+  len = refLen;
   vol = volume;
   if(dynamic_cast<INSSolverBase3D*>(d) == nullptr) {
-    dg_abort("Enstropy3D measurement can only be used with 3D single or multiphase solver\n");
+    dg_abort("Enstrophy3D measurement can only be used with 3D single or multiphase solver\n");
   }
   ins = dynamic_cast<INSSolverBase3D*>(d);
 }
 
-void Enstropy3D::measure() {
+void Enstrophy3D::measure() {
   if(!sample_this_iter())
     return;
 
-  EnstropyHistory tmp;
-  tmp.time = ins->get_time();
-  tmp.enstropy = calc_enstropy();
+  EnstrophyHistory tmp;
+  tmp.time = ins->get_time() * len / vel;
+  tmp.enstrophy = calc_enstrophy();
   tmp.ke = calc_ke();
   history.push_back(tmp);
 }
 
-DG_FP Enstropy3D::calc_enstropy() {
+DG_FP Enstrophy3D::calc_enstrophy() {
   DGMesh3D *mesh = ins->get_mesh();
   op_dat u = ins->get_vel_x();
   op_dat v = ins->get_vel_y();
@@ -70,21 +71,21 @@ DG_FP Enstropy3D::calc_enstropy() {
   dg_dat_pool->releaseTempDatCells(cub_curl[1]);
   dg_dat_pool->releaseTempDatCells(cub_curl[2]);
 
-  DG_FP enstropy = 0.0;
+  DG_FP enstrophy = 0.0;
   op_par_loop(sum_dg_np, "sum_dg_np", mesh->cells,
-              op_arg_gbl(&enstropy, 1, DG_FP_STR, OP_INC),
+              op_arg_gbl(&enstrophy, 1, DG_FP_STR, OP_INC),
               op_arg_dat(curl[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
 
   dg_dat_pool->releaseTempDatCells(curl[0]);
   dg_dat_pool->releaseTempDatCells(curl[1]);
   dg_dat_pool->releaseTempDatCells(curl[2]);
 
-  // Multiply by mu and divide by volume. 
+  // Multiply by mu and divide by volume.
   // Rho is constant so just single division by refRho needed.
-  return mu * enstropy / (vol * rho * vel * vel);
+  return mu * enstrophy / (vol * rho * vel * vel);
 }
 
-DG_FP Enstropy3D::calc_ke() {
+DG_FP Enstrophy3D::calc_ke() {
   DGMesh3D *mesh = ins->get_mesh();
   op_dat u = ins->get_vel_x();
   op_dat v = ins->get_vel_y();
@@ -129,21 +130,21 @@ DG_FP Enstropy3D::calc_ke() {
 
   // Multiply by 0.5 and divide by volume. Rho is constant in single phase case,
   // so cancels through in equation
-  return 0.5 * kinetic_energy / (vol * vel * vel);
+  return -0.5 * kinetic_energy / (vol * vel * vel);
 }
 
-std::string Enstropy3D::get_filename() {
-  return "enstropy";
+std::string Enstrophy3D::get_filename() {
+  return "enstrophy";
 }
 
-std::string Enstropy3D::get_csv_header() {
-  return "time,enstropy,kinetic_energy";
+std::string Enstrophy3D::get_csv_header() {
+  return "time,enstrophy,kinetic_energy";
 }
 
-std::string Enstropy3D::get_next_csv_line() {
+std::string Enstrophy3D::get_next_csv_line() {
   if(io_count < history.size()) {
     std::string result = double_to_text(history[io_count].time) + ",";
-    result = result + double_to_text(history[io_count].enstropy) + ",";
+    result = result + double_to_text(history[io_count].enstrophy) + ",";
     result = result + double_to_text(history[io_count].ke);
     io_count++;
     return result;
