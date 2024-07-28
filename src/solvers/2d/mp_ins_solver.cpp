@@ -673,8 +673,6 @@ bool MPINSSolver2D::pressure() {
 
   project_velocity(dpdx.dat, dpdy.dat);
 
-  // shock_capture(velTT[0], velTT[1]);
-
   dg_dat_pool->releaseTempDatCells(dpdx);
   dg_dat_pool->releaseTempDatCells(dpdy);
   timer->endTimer("MPINSSolver2D - Pressure Projection");

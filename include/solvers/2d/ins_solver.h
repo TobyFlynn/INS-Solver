@@ -12,6 +12,7 @@
 #include "dg_matrices/2d/poisson_matrix_free_diag_2d.h"
 #include "dg_matrices/2d/mm_poisson_matrix_free_2d.h"
 #include "dg_linear_solvers/linear_solver.h"
+#include "dg_linear_solvers/petsc_pmultigrid.h"
 #include "dg_linear_solvers/petsc_inv_mass.h"
 
 #include "dg_mesh/dg_mesh_2d.h"
@@ -34,9 +35,9 @@ private:
 
   PoissonCoarseMatrix2D *pressureCoarseMatrix;
   PoissonMatrixFreeDiag2D *pressureMatrix;
-  MMPoissonMatrixFree2D *viscosityMatrix;
-  LinearSolver *pressureSolver;
-  PETScInvMassSolver *viscositySolver;
+  PoissonMatrix *viscosityMatrix;
+  PETScPMultigrid *pressureSolver;
+  LinearSolver *viscositySolver;
 
   bool resuming;
   bool vis_solve;
