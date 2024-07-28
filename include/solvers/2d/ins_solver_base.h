@@ -8,8 +8,6 @@
 #include "dg_dat_pool.h"
 #include "dg_linear_solvers/linear_solver.h"
 
-#include "solvers/2d/diffusion_solver.h"
-
 #include <string>
 #include <set>
 

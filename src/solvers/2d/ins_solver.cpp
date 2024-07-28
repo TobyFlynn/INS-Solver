@@ -412,7 +412,6 @@ bool INSSolver2D::viscosity() {
     }
   }
 
-
   if(mesh->bface2cells) {
     op_par_loop(ins_2d_vis_bc_y, "ins_2d_vis_bc_y", mesh->bfaces,
                 op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),

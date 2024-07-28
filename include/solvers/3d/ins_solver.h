@@ -14,6 +14,7 @@
 #include "dg_matrices/3d/mm_poisson_matrix_3d.h"
 #include "dg_matrices/3d/mm_poisson_matrix_free_3d.h"
 #include "dg_linear_solvers/petsc_inv_mass.h"
+#include "dg_linear_solvers/petsc_pmultigrid.h"
 
 class INSSolver3D : public INSSolverBase3D {
 public:
@@ -30,18 +31,13 @@ private:
   void pressure();
   void viscosity();
 
-  // DGMesh3D *mesh;
-  // PoissonMatrix3D *pressureMatrix;
   PoissonCoarseMatrix3D *pressureCoarseMatrix;
-  // PoissonSemiMatrixFree3D *pressureMatrix;
   PoissonMatrixFreeDiag3D *pressureMatrix;
-  // MMPoissonMatrix3D *viscosityMatrix;
-  MMPoissonMatrixFree3D *viscosityMatrix;
-  LinearSolver *pressureSolver;
-  PETScInvMassSolver *viscositySolver;
+  PoissonMatrix *viscosityMatrix;
+  PETScPMultigrid *pressureSolver;
+  LinearSolver *viscositySolver;
   DG_FP reynolds;
-  bool resuming;
-  bool forced_dt;
+  bool resuming, forced_dt;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;

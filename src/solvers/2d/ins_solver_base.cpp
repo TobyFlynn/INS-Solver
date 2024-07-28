@@ -81,7 +81,7 @@ void INSSolverBase2D::read_options() {
   std::string save_tmp = "all";
   config->getStr("io", "values_to_save", save_tmp);
   if(save_tmp == "all")
-    save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set,curvature,art_vis_x,art_vis_y";
+    save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set,curvature,art_vis";
   std::stringstream tmp_ss(save_tmp);
   std::string val_str;
   while(std::getline(tmp_ss, val_str, ',')) {
@@ -1238,14 +1238,11 @@ void INSSolverBase2D::dump_visualisation_data(const std::string &filename) {
     op_fetch_data_hdf5_file(pr, filename.c_str());
   }
 
-  if(values_to_save.count("art_vis_x") != 0 && shock_capturing) {
+  if(values_to_save.count("art_vis") != 0 && shock_capturing) {
     op_dat art_vis_x = op_decl_dat_temp(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "art_vis_x");
     calc_art_vis(velTT[0], art_vis_x);
     op_fetch_data_hdf5_file(art_vis_x, filename.c_str());
     op_free_dat_temp(art_vis_x);
-  }
-
-  if(values_to_save.count("art_vis_y") != 0 && shock_capturing) {
     op_dat art_vis_y = op_decl_dat_temp(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "art_vis_y");
     calc_art_vis(velTT[1], art_vis_y);
     op_fetch_data_hdf5_file(art_vis_y, filename.c_str());

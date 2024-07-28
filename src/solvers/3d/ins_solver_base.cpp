@@ -85,7 +85,7 @@ void INSSolverBase3D::read_options() {
   std::string save_tmp = "all";
   config->getStr("io", "values_to_save", save_tmp);
   if(save_tmp == "all")
-    save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set,shock_cap_art_vis";
+    save_tmp = "velocity,pressure,non_linear,surface_tension,intermediate_velocities,mu,rho,level_set,art_vis";
   std::stringstream tmp_ss(save_tmp);
   std::string val_str;
   while(std::getline(tmp_ss, val_str, ',')) {
@@ -141,10 +141,8 @@ void INSSolverBase3D::init_dats() {
   }
 
   if(shock_capturing) {
-    diffSolver        = new DiffusionSolver3D(mesh);
-    nodes_data        = op_decl_dat(mesh->nodes, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_nodes_data");
-    nodes_count       = op_decl_dat(mesh->nodes, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_nodes_count");
-    shock_cap_art_vis = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "ins_solver_shock_cap_art_vis");
+    nodes_data  = op_decl_dat(mesh->nodes, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_nodes_data");
+    nodes_count = op_decl_dat(mesh->nodes, 1, DG_FP_STR, (DG_FP *)NULL, "ins_solver_nodes_count");
   }
 }
 
@@ -184,8 +182,7 @@ void INSSolverBase3D::setup_pressure_viscous_solvers(LinearSolver *pr_solver, Li
 }
 
 INSSolverBase3D::~INSSolverBase3D() {
-  if(shock_capturing)
-    delete diffSolver;
+  
 }
 
 void INSSolverBase3D::init() {
@@ -1350,72 +1347,6 @@ void INSSolverBase3D::filter(op_dat in) {
   dg_dat_pool->releaseTempDatCells(u_modal);
 }
 
-void INSSolverBase3D::shock_capture(op_dat in0, op_dat in1, op_dat in2) {
-  if(shock_capturing && shock_cap_max_diff > 0.0) {
-    // DGTempDat art_vis = dg_dat_pool->requestTempDatCells(DG_NP);
-
-    DG_FP max_vis = shock_cap_calc_art_vis(in0, in1, in2, shock_cap_art_vis);
-
-    if(max_vis > 1e-8) {
-      diffSolver->set_dt(shock_cap_art_vis);
-      int num_steps_diff = dt / diffSolver->get_dt() + 1;
-      for(int i = 0; i < num_steps_diff; i++) {
-        diffSolver->step(in0, shock_cap_art_vis);
-        diffSolver->step(in1, shock_cap_art_vis);
-        diffSolver->step(in2, shock_cap_art_vis);
-      }
-    }
-
-    // dg_dat_pool->releaseTempDatCells(art_vis);
-  }
-}
-
-DG_FP INSSolverBase3D::shock_cap_calc_art_vis(op_dat in0, op_dat in1, op_dat in2, op_dat out) {
-
-  DGTempDat h_tmp = dg_dat_pool->requestTempDatCells(1);
-
-  op_par_loop(calc_h_explicitly_3d, "calc_h_explicitly_3d", mesh->cells,
-              op_arg_dat(mesh->nodeX, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->nodeY, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->nodeZ, -1, OP_ID, 4, DG_FP_STR, OP_READ),
-              op_arg_dat(h_tmp.dat, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
-
-  op_par_loop(reset_tmp_node_dats, "reset_tmp_node_dats", mesh->nodes,
-              op_arg_dat(nodes_data, -1, OP_ID, 1, DG_FP_STR, OP_WRITE),
-              op_arg_dat(nodes_count, -1, OP_ID, 1, DG_FP_STR, OP_WRITE));
-
-  zero_dat(out);
-
-  op_par_loop(ins_3d_shock_cap_art_vis_0, "ins_3d_shock_cap_art_vis_0", mesh->faces,
-              op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
-              op_arg_dat(mesh->fmaskR,  -1, OP_ID, DG_NPF, "int", OP_READ),
-              op_arg_dat(mesh->nx,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->ny,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->nz,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->sJ,      -1, OP_ID, 2, DG_FP_STR, OP_READ),
-              op_arg_dat(mesh->fscale,  -1, OP_ID, 2, DG_FP_STR, OP_READ),
-              op_arg_dat(h_tmp.dat, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(in0, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(in1, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(in2, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(nodes_data, -3, mesh->face2nodes, 1, DG_FP_STR, OP_INC),
-              op_arg_dat(nodes_count, -3, mesh->face2nodes, 1, DG_FP_STR, OP_INC));
-
-  DG_FP max_vis = -1.0;
-  op_par_loop(ins_3d_shock_cap_art_vis_1, "ins_3d_shock_cap_art_vis_1", mesh->cells,
-              op_arg_gbl(&max_vis, 1, DG_FP_STR, OP_MAX),
-              op_arg_gbl(&shock_cap_max_diff, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&shock_cap_smooth_tol, 1, DG_FP_STR, OP_READ),
-              op_arg_gbl(&shock_cap_discon_tol, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(nodes_data, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(nodes_count, -4, mesh->cell2nodes, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(out, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
-
-  dg_dat_pool->releaseTempDatCells(h_tmp);
-  return max_vis;
-}
-
 void INSSolverBase3D::calc_art_vis(op_dat in, op_dat out) {
   DGTempDat u_modal = dg_dat_pool->requestTempDatCells(DG_NP);
   op2_gemv(mesh, false, 1.0, DGConstants::INV_V, in, 0.0, u_modal.dat);
@@ -1527,8 +1458,19 @@ void INSSolverBase3D::dump_visualisation_data(const std::string &filename) {
     op_fetch_data_hdf5_file(pr, filename.c_str());
   }
 
-  if(values_to_save.count("shock_cap_art_vis") != 0 && shock_capturing) {
-    op_fetch_data_hdf5_file(shock_cap_art_vis, filename.c_str());
+  if(values_to_save.count("art_vis") != 0 && shock_capturing) {
+    op_dat art_vis_x = op_decl_dat_temp(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "art_vis_x");
+    calc_art_vis(velTT[0], art_vis_x);
+    op_fetch_data_hdf5_file(art_vis_x, filename.c_str());
+    op_free_dat_temp(art_vis_x);
+    op_dat art_vis_y = op_decl_dat_temp(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "art_vis_y");
+    calc_art_vis(velTT[1], art_vis_y);
+    op_fetch_data_hdf5_file(art_vis_y, filename.c_str());
+    op_free_dat_temp(art_vis_y);
+    op_dat art_vis_z = op_decl_dat_temp(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "art_vis_z");
+    calc_art_vis(velTT[2], art_vis_z);
+    op_fetch_data_hdf5_file(art_vis_z, filename.c_str());
+    op_free_dat_temp(art_vis_z);
   }
 }
 
