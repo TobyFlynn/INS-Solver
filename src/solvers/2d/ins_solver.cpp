@@ -339,6 +339,25 @@ bool INSSolver2D::viscosity() {
 
   // Call PETSc linear solver
   timer->startTimer("INSSolver2D - Viscosity Linear Solve");
+  // Get BCs for viscosity solve
+  if(mesh->bface2cells) {
+    op_par_loop(ins_2d_vis_bc_x, "ins_2d_vis_bc_x", mesh->bfaces,
+                op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
+                op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(velTT[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE),
+                op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
+  }
+  viscosityMatrix->set_bc_types(vis_bc_types);
+  viscositySolver->set_bcs(bc_data);
+
   factor = g0 * reynolds / dt;
   DGTempDat tmp_art_vis, tmp_mm_factor;
   if(shock_capturing) {
@@ -373,9 +392,13 @@ bool INSSolver2D::viscosity() {
     }
   }
 
+  bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
+  if(!convergedX)
+    dg_abort("Viscosity X solve did not converge");
+
   // Get BCs for viscosity solve
   if(mesh->bface2cells) {
-    op_par_loop(ins_2d_vis_bc_x, "ins_2d_vis_bc_x", mesh->bfaces,
+    op_par_loop(ins_2d_vis_bc_y, "ins_2d_vis_bc_y", mesh->bfaces,
                 op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
                 op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
@@ -386,15 +409,12 @@ bool INSSolver2D::viscosity() {
                 op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
-
+  viscosityMatrix->set_bc_types(vis_bc_types);
   viscositySolver->set_bcs(bc_data);
-  bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
-  if(!convergedX)
-    dg_abort("Viscosity X solve did not converge");
 
-  // Get BCs for viscosity solve
   if(shock_capturing) {
     calc_art_vis(velTT[1], tmp_art_vis.dat);
 
@@ -412,22 +432,6 @@ bool INSSolver2D::viscosity() {
     }
   }
 
-  if(mesh->bface2cells) {
-    op_par_loop(ins_2d_vis_bc_y, "ins_2d_vis_bc_y", mesh->bfaces,
-                op_arg_gbl(&time_n1, 1, DG_FP_STR, OP_READ),
-                op_arg_gbl(&g0, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(bc_types,       -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
-                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->x,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velTT[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(velTT[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
-  }
-
-  viscositySolver->set_bcs(bc_data);
   bool convergedY = viscositySolver->solve(visRHS[1].dat, vel[(currentInd + 1) % 2][1]);
   if(!convergedY)
     dg_abort("Viscosity Y solve did not converge");

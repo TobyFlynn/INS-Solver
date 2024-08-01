@@ -430,9 +430,10 @@ bool INSTemperatureSolver2D::viscosity() {
                 op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
-
+  viscosityMatrix->set_bc_types(vis_bc_types);
   viscositySolver->set_bcs(bc_data);
   bool convergedX = viscositySolver->solve(visRHS[0].dat, vel[(currentInd + 1) % 2][0]);
   if(!convergedX)
@@ -451,9 +452,10 @@ bool INSTemperatureSolver2D::viscosity() {
                 op_arg_dat(mesh->y,  0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(velTT[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(vis_bc_types, -1, OP_ID, 1, "int", OP_WRITE),
                 op_arg_dat(bc_data, -1, OP_ID, DG_NPF, DG_FP_STR, OP_WRITE));
   }
-
+  viscosityMatrix->set_bc_types(vis_bc_types);
   viscositySolver->set_bcs(bc_data);
   bool convergedY = viscositySolver->solve(visRHS[1].dat, vel[(currentInd + 1) % 2][1]);
   if(!convergedY)
