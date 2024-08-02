@@ -1,7 +1,7 @@
 #ifndef __INS_PROBLEM_SPECIFIC_2D_H
 #define __INS_PROBLEM_SPECIFIC_2D_H
 
-#define EXAMPLE_2D_RAYLEIGH_TAYLOR
+#define EXAMPLE_2D_CYLINDER
 
 #if defined(EXAMPLE_2D_CYLINDER)
 #include "examples/2d/cylinder.h"

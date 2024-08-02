@@ -15,6 +15,9 @@
 #include "dg_linear_solvers/petsc_pmultigrid.h"
 #include "dg_linear_solvers/petsc_inv_mass.h"
 
+#include "slip_matrix/2d/viscous_matrix.h"
+#include "slip_matrix/2d/viscous_solver.h"
+
 #include "dg_mesh/dg_mesh_2d.h"
 
 class INSSolver2D : public INSSolverBase2D {
@@ -39,12 +42,16 @@ private:
   PETScPMultigrid *pressureSolver;
   LinearSolver *viscositySolver;
 
+  ViscousMatrix2D *newViscousMatrix;
+  ViscousSolver *newViscousSolver;
+
   bool resuming;
   bool vis_solve;
   bool dt_forced;
+  bool new_viscous_matrix;
   DG_FP reynolds;
 
-  op_dat pr_bc_types, vis_bc_types;
+  op_dat pr_bc_types, vis_bc_types, bc_data_2, vis_bc_types_2;
 
   std::vector<std::pair<DG_FP,DG_FP>> l2_err_history;
 };
