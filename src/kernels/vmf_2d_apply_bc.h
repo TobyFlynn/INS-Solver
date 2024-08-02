@@ -70,7 +70,9 @@ inline void vmf_2d_apply_bc(const int *p, const int *faceNum, const int *u_bc_ty
       }
     }
   } else {
-    // TODO
+    // Do nothing for BC_SLIP 
+    // not implementing friction, so tangent Neumann portion = 0
+    // not porous, so normal Dirichlet portion = 0
   }
 
   if(*v_bc_type == 0) {
@@ -120,6 +122,8 @@ inline void vmf_2d_apply_bc(const int *p, const int *faceNum, const int *u_bc_ty
       }
     }
   } else {
-    // TODO
+    // Do nothing for BC_SLIP 
+    // not implementing friction, so tangent Neumann portion = 0
+    // not porous, so normal Dirichlet portion = 0
   }
 }

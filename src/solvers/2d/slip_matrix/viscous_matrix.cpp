@@ -108,6 +108,8 @@ void ViscousMatrix2D::mult(op_dat u_in, op_dat v_in, op_dat u_out, op_dat v_out)
                 op_arg_dat(u_bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(v_bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(u_in, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(u_x.dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(u_y.dat, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),

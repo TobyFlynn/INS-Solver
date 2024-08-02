@@ -15,6 +15,7 @@ inline void ins_2d_vis_bc_x(const DG_FP *t, const DG_FP *g0, const int *bedge_ty
     }
     *vis_type = BC_NEUMANN;
   } else if(*bedge_type == BC_TYPE_SLIP) {
+    /*
     DG_FP tangent_x = *ny;
     DG_FP tangent_y = -*nx;
     DG_FP tangent_mag = sqrt(tangent_x * tangent_x + tangent_y * tangent_y);
@@ -26,6 +27,11 @@ inline void ins_2d_vis_bc_x(const DG_FP *t, const DG_FP *g0, const int *bedge_ty
       out[i] = dot * tangent_x;
     }
     *vis_type = BC_DIRICHLET;
+    */
+    for(int i = 0; i < DG_NPF; i++) {
+      out[i] = 0.0;
+    }
+    *vis_type = BC_SLIP;
   } else if(*bedge_type == BC_TYPE_SLIP_X) {
     for(int i = 0; i < DG_NPF; i++) {
       out[i] = 0.0;
