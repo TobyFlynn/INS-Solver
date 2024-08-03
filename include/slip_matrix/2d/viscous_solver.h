@@ -11,7 +11,7 @@
 class ViscousSolver {
 public:
   enum Preconditioners {
-    NONE, INV_MASS, FACTOR_INV_MASS
+    NONE, INV_MASS, FACTOR_INV_MASS, RECP_FACTOR_DAT_INV_MASS
   };
   ViscousSolver(DGMesh2D *m);
   virtual void set_matrix(Matrix2Vec *mat);
@@ -21,11 +21,12 @@ public:
   virtual void set_tol_and_iter(const double rtol, const double atol, const int maxiter);
   virtual void set_preconditioner(Preconditioners p);
   void set_inv_mass_factor(DG_FP f);
+  void set_inv_mass_recp_factor(op_dat f);
 
 protected:
   Matrix2Vec *matrix;
   bool nullspace, zero_input;
-  op_dat u_bc, v_bc;
+  op_dat u_bc, v_bc, inv_mass_recp_factor;
   DGMesh2D *mesh;
   Preconditioners preconditioner;
   int max_iter;
@@ -45,6 +46,7 @@ protected:
   virtual void precondition(op_dat u_res, op_dat v_res, op_dat u, op_dat v);
   virtual void pre_inv_mass(op_dat u_res, op_dat v_res, op_dat u, op_dat v);
   virtual void pre_factor_inv_mass(op_dat u_res, op_dat v_res, op_dat u, op_dat v);
+  virtual void pre_recp_dat_factor_inv_mass(op_dat u_res, op_dat v_res, op_dat u, op_dat v);
 };
 
 #endif

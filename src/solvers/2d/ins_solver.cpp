@@ -74,7 +74,7 @@ void INSSolver2D::setup_common() {
   config->getDouble("solver-options", "force_dt", tmp_dt);
   dt_forced = tmp_dt > 0.0;
   if(dt_forced) dt = tmp_dt;
-  int tmp_slip_bcs = 1;
+  int tmp_slip_bcs = 0;
   config->getInt("solver-options", "uses_slip_bcs", tmp_slip_bcs);
   uses_slip_bcs = tmp_slip_bcs != 0;
 

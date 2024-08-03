@@ -45,10 +45,7 @@ private:
   Matrix2Vec *slipViscousMatrix;
   ViscousSolver *slipViscousSolver;
 
-  bool resuming;
-  bool vis_solve;
-  bool dt_forced;
-  bool uses_slip_bcs;
+  bool resuming, vis_solve, dt_forced, uses_slip_bcs;
   DG_FP reynolds;
 
   op_dat pr_bc_types, vis_bc_types, bc_data_2, vis_bc_types_2;

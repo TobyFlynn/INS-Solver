@@ -48,6 +48,10 @@ void ViscousSolver::set_inv_mass_factor(DG_FP f) {
   inv_mass_factor = f;
 }
 
+void ViscousSolver::set_inv_mass_recp_factor(op_dat f) {
+  inv_mass_recp_factor = f;
+}
+
 void ViscousSolver::set_preconditioner(Preconditioners p) {
   preconditioner = p;
 }
@@ -313,6 +317,9 @@ void ViscousSolver::precondition(op_dat u_res, op_dat v_res, op_dat u, op_dat v)
     case Preconditioners::FACTOR_INV_MASS:
       pre_factor_inv_mass(u_res, v_res, u, v);
       break;
+    case Preconditioners::RECP_FACTOR_DAT_INV_MASS:
+      pre_recp_dat_factor_inv_mass(u_res, v_res, u, v);
+      break;
   }
 }
 
@@ -339,4 +346,13 @@ void ViscousSolver::pre_factor_inv_mass(op_dat u_res, op_dat v_res, op_dat u, op
   op_par_loop(constant_mult, "constant_mult", mesh->cells,
               op_arg_gbl(&inv_mass_factor, 1, DG_FP_STR, OP_READ),
               op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+}
+
+void ViscousSolver::pre_recp_dat_factor_inv_mass(op_dat u_res, op_dat v_res, op_dat u, op_dat v) {
+  pre_inv_mass(u_res, v_res, u, v);
+
+  op_par_loop(cg_recp_factor_inv_mass, "cg_recp_factor_inv_mass", mesh->cells,
+                op_arg_dat(inv_mass_recp_factor, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 }
