@@ -265,8 +265,8 @@ void ViscousSolver::update_ans(DG_FP alpha, op_dat p0, op_dat p1, op_dat u, op_d
                 op_arg_gbl(&alpha, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(p0, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(p1, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
-                op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ));
+                op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+                op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 }
 
 DG_FP ViscousSolver::update_res(DG_FP alpha, op_dat Ap0, op_dat Ap1, op_dat r0, op_dat r1) {
