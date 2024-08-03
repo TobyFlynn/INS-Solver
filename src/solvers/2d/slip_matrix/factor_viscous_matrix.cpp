@@ -12,10 +12,16 @@ extern DGConstants *constants;
 extern Timing *timer;
 extern DGDatPool *dg_dat_pool;
 
-FactorViscousMatrix2D::FactorViscousMatrix2D(DGMesh2D *m) {
+FactorViscousMatrix2D::FactorViscousMatrix2D(DGMesh2D *m, bool calc_diagonal) {
   mesh = m;
 
   mat_free_tau_c = op_decl_dat(mesh->cells, 3, DG_FP_STR, (DG_FP *)NULL, "mat_free_tau_c");
+  u_diag = nullptr;
+  v_diag = nullptr;
+  if(calc_diagonal) {
+    u_diag = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "mat_free_u_diag");
+    v_diag = op_decl_dat(mesh->cells, DG_NP, DG_FP_STR, (DG_FP *)NULL, "mat_free_v_diag");
+  }
 }
 
 void FactorViscousMatrix2D::set_bc_types(op_dat u_bc_ty, op_dat v_bc_ty) {
@@ -190,4 +196,51 @@ void FactorViscousMatrix2D::mult(op_dat u_in, op_dat v_in, op_dat u_out, op_dat 
   dg_dat_pool->releaseTempDatCells(v_x_avg);
   dg_dat_pool->releaseTempDatCells(v_y_avg);
   timer->endTimer("FactorViscousMatrix2D - mult");
+}
+
+void FactorViscousMatrix2D::calc_diag() {
+  if(!u_diag)
+    return;
+
+  op_par_loop(fvmf_2d_op1_diag, "fvmf_2d_op1_diag", mesh->cells,
+              op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
+              op_arg_dat(factor, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u_diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+  
+  op_par_loop(fvmf_2d_op2_diag, "fvmf_2d_op2_diag", mesh->faces,
+              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(mesh->nx, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ny, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->sJ, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->geof, -2, mesh->face2cells, 5, DG_FP_STR, OP_READ),
+              op_arg_dat(factor, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u_diag, 0, mesh->face2cells, DG_NP, DG_FP_STR, OP_INC),
+              op_arg_dat(u_diag, 1, mesh->face2cells, DG_NP, DG_FP_STR, OP_INC));
+  
+  op_par_loop(fvmf_2d_mm_diag, "fvmf_2d_mm_diag", mesh->cells,
+              op_arg_dat(mm_factor, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
+              op_arg_dat(u_diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+  
+  // Up until here the calculation of u_diag and v_diag is identical
+  op_par_loop(copy_dg_np, "copy_dg_np", mesh->cells,
+              op_arg_dat(u_diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(v_diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+
+  if(mesh->bface2cells) {
+    op_par_loop(fvmf_2d_bop_diag, "fvmf_2d_bop_diag", mesh->bfaces,
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(u_bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(v_bc_types, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bsJ, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->geof, 0, mesh->bface2cells, 5, DG_FP_STR, OP_READ),
+                op_arg_dat(factor, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(u_diag, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_INC),
+                op_arg_dat(v_diag, 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_INC));
+  }
 }

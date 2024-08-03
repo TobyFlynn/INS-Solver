@@ -109,8 +109,8 @@ void MPINSSolver2D::setup_common() {
   // Viscous matrix and solver
   if(uses_slip_bcs) {
     slipViscousSolver = new ViscousSolver(mesh);
-    slipViscousMatrix = new FactorViscousMatrix2D(mesh);
-    slipViscousSolver->set_preconditioner(ViscousSolver::RECP_FACTOR_DAT_INV_MASS);
+    slipViscousMatrix = new FactorViscousMatrix2D(mesh, true);
+    slipViscousSolver->set_preconditioner(ViscousSolver::JACOBI);
     slipViscousSolver->set_matrix(slipViscousMatrix);
     slipViscousSolver->set_tol_and_iter(1e-8, 1e-9, 1000);
     bc_data_2 = op_decl_dat(mesh->bfaces, DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_bc_data_2");
@@ -787,6 +787,7 @@ bool MPINSSolver2D::viscosity() {
     slipViscousMatrix->set_bc_types(vis_bc_types, vis_bc_types_2);
     slipViscousSolver->set_bcs(bc_data, bc_data_2);
     slipViscousSolver->set_inv_mass_recp_factor(vis_mm_factor.dat);
+    slipViscousMatrix->calc_diag();
 
     bool converged = slipViscousSolver->solve(visRHS[0].dat, visRHS[1].dat, vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1]);
 

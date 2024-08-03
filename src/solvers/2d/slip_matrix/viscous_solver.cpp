@@ -2,6 +2,8 @@
 
 #include "op_seq.h"
 
+#include "slip_matrix/2d/factor_viscous_matrix.h"
+
 #include "dg_op2_blas.h"
 #include "dg_constants/dg_constants.h"
 #include "dg_dat_pool.h"
@@ -320,6 +322,9 @@ void ViscousSolver::precondition(op_dat u_res, op_dat v_res, op_dat u, op_dat v)
     case Preconditioners::RECP_FACTOR_DAT_INV_MASS:
       pre_recp_dat_factor_inv_mass(u_res, v_res, u, v);
       break;
+    case Preconditioners::JACOBI:
+      pre_jacobi(u_res, v_res, u, v);
+      break;
   }
 }
 
@@ -355,4 +360,18 @@ void ViscousSolver::pre_recp_dat_factor_inv_mass(op_dat u_res, op_dat v_res, op_
                 op_arg_dat(inv_mass_recp_factor, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
                 op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+}
+
+void ViscousSolver::pre_jacobi(op_dat u_res, op_dat v_res, op_dat u, op_dat v) {
+  FactorViscousMatrix2D *tmpMatrix = dynamic_cast<FactorViscousMatrix2D*>(matrix);
+  if(!tmpMatrix)
+    dg_abort("Viscous solve Jacobi preconditioner is only supported with factor viscous matrix");
+
+  op_par_loop(cg_jacobi, "cg_jacobi", mesh->cells,
+              op_arg_dat(tmpMatrix->u_diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmpMatrix->v_diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u_res, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(v_res, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 }
