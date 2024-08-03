@@ -396,6 +396,9 @@ bool INSSolver2D::viscosity() {
     if(!converged)
       dg_abort("Viscosity solve did not converge");
 
+    dg_dat_pool->releaseTempDatCells(visRHS[0]);
+    dg_dat_pool->releaseTempDatCells(visRHS[1]);
+
     return converged;
   } else {
     // Call PETSc linear solver

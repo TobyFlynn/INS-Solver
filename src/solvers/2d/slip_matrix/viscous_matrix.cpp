@@ -26,7 +26,6 @@ void ViscousMatrix2D::set_bc_types(op_dat u_bc_ty, op_dat v_bc_ty) {
 void ViscousMatrix2D::apply_bc(op_dat u_rhs, op_dat v_rhs, op_dat u_bc, op_dat v_bc) {
   if(mesh->bface2cells) {
     op_par_loop(vmf_2d_apply_bc, "vmf_2d_apply_bc", mesh->bfaces,
-                op_arg_gbl(&mesh->order_int, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(u_bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(v_bc_types, -1, OP_ID, 1, "int", OP_READ),
@@ -53,13 +52,11 @@ DG_FP ViscousMatrix2D::get_factor() {
 void ViscousMatrix2D::mat_free_pre_compute_tau() {
   timer->startTimer("ViscousMatrix2D - calc tau");
   op_par_loop(vmf_2d_calc_tau_faces, "vmf_2d_calc_tau_faces", mesh->faces,
-              op_arg_gbl(&mesh->order_int, 1, "int", OP_READ),
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(mat_free_tau_c, -2, mesh->face2cells, 3, DG_FP_STR, OP_WRITE));
   if(mesh->bface2cells) {
     op_par_loop(vmf_2d_calc_tau_bfaces, "vmf_2d_calc_tau_bfaces", mesh->bfaces,
-                op_arg_gbl(&mesh->order_int, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mat_free_tau_c, 0, mesh->bface2cells, 3, DG_FP_STR, OP_WRITE));
@@ -104,7 +101,6 @@ void ViscousMatrix2D::mult(op_dat u_in, op_dat v_in, op_dat u_out, op_dat v_out)
 
   if(mesh->bface2cells) {
     op_par_loop(vmf_2d_mult_avg_jump, "vmf_2d_mult_avg_jump", mesh->bfaces,
-                op_arg_gbl(&mesh->order_int, 1, "int", OP_READ),
                 op_arg_dat(u_bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(v_bc_types, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
@@ -125,7 +121,6 @@ void ViscousMatrix2D::mult(op_dat u_in, op_dat v_in, op_dat u_out, op_dat v_out)
   }
 
   op_par_loop(vmf_2d_mult_flux, "vmf_2d_mult_flux", mesh->cells,
-              op_arg_gbl(&mesh->order_int, 1, "int", OP_READ),
               op_arg_dat(mesh->nx_c, -1, OP_ID, 3, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->ny_c, -1, OP_ID, 3, DG_FP_STR, OP_READ),
               op_arg_dat(mesh->sJ_c, -1, OP_ID, 3, DG_FP_STR, OP_READ),
@@ -150,7 +145,6 @@ void ViscousMatrix2D::mult(op_dat u_in, op_dat v_in, op_dat u_out, op_dat v_out)
   op2_gemv(mesh, false, 1.0, DGConstants::EMAT, v_jump.dat, 0.0, v_out);
 
   op_par_loop(vmf_2d_mult_cells_geof, "vmf_2d_mult_cells_geof", mesh->cells,
-              op_arg_gbl(&mesh->order_int, 1, "int", OP_READ),
               op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
               op_arg_dat(u_x.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
               op_arg_dat(u_y.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
@@ -163,7 +157,6 @@ void ViscousMatrix2D::mult(op_dat u_in, op_dat v_in, op_dat u_out, op_dat v_out)
   op2_gemv(mesh, true, 1.0, DGConstants::DS, v_y.dat, 1.0, v_out);
 
   op_par_loop(vmf_2d_mult_mm_geof, "vmf_2d_mult_mm_geof", mesh->cells,
-              op_arg_gbl(&mesh->order_int, 1, "int", OP_READ),
               op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
               op_arg_gbl(&factor,  1, DG_FP_STR, OP_READ),
               op_arg_dat(u_in,  -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),

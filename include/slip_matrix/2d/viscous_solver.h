@@ -5,7 +5,7 @@
 
 #include "op_seq.h"
 
-#include "viscous_matrix.h"
+#include "matrix_2_vec.h"
 #include "dg_mesh/dg_mesh_2d.h"
 
 class ViscousSolver {
@@ -14,7 +14,7 @@ public:
     NONE, INV_MASS, FACTOR_INV_MASS
   };
   ViscousSolver(DGMesh2D *m);
-  virtual void set_matrix(ViscousMatrix2D *mat);
+  virtual void set_matrix(Matrix2Vec *mat);
   void set_bcs(op_dat u_bcs, op_dat v_bcs);
   void set_nullspace(bool ns);
   virtual bool solve(op_dat u_rhs, op_dat v_rhs, op_dat u_ans, op_dat v_ans);
@@ -23,7 +23,7 @@ public:
   void set_inv_mass_factor(DG_FP f);
 
 protected:
-  ViscousMatrix2D *matrix;
+  Matrix2Vec *matrix;
   bool nullspace, zero_input;
   op_dat u_bc, v_bc;
   DGMesh2D *mesh;

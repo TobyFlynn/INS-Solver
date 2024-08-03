@@ -28,7 +28,7 @@ ViscousSolver::ViscousSolver(DGMesh2D *m) {
   zero_input = false;
 }
 
-void ViscousSolver::set_matrix(ViscousMatrix2D *mat) {
+void ViscousSolver::set_matrix(Matrix2Vec *mat) {
   matrix = mat;
 }
 

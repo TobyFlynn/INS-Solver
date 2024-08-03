@@ -5,19 +5,17 @@
 
 #include "op_seq.h"
 
-#include "petscvec.h"
-#include "petscksp.h"
-
 #include "dg_mesh/dg_mesh_2d.h"
+#include "matrix_2_vec.h"
 
-class ViscousMatrix2D {
+class ViscousMatrix2D : public Matrix2Vec {
 public:
   ViscousMatrix2D(DGMesh2D *m);
 
   // op_dat bc_types - 0 for Dirichlet, 1 for Neumann
-  virtual void set_bc_types(op_dat u_bc_ty, op_dat v_bc_ty);
-  virtual void apply_bc(op_dat u_rhs, op_dat v_rhs, op_dat u_bc, op_dat v_bc);
-  virtual void mult(op_dat u_in, op_dat v_in, op_dat u_out, op_dat v_out);
+  virtual void set_bc_types(op_dat u_bc_ty, op_dat v_bc_ty) override;
+  virtual void apply_bc(op_dat u_rhs, op_dat v_rhs, op_dat u_bc, op_dat v_bc) override;
+  virtual void mult(op_dat u_in, op_dat v_in, op_dat u_out, op_dat v_out) override;
   void set_factor(DG_FP f);
   DG_FP get_factor();
   // virtual void mult_sp(op_dat in, op_dat out);
