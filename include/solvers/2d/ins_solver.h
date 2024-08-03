@@ -15,7 +15,7 @@
 #include "dg_linear_solvers/petsc_pmultigrid.h"
 #include "dg_linear_solvers/petsc_inv_mass.h"
 
-#include "slip_matrix/2d/viscous_matrix.h"
+#include "slip_matrix/2d/matrix_2_vec.h"
 #include "slip_matrix/2d/viscous_solver.h"
 
 #include "dg_mesh/dg_mesh_2d.h"
@@ -40,15 +40,15 @@ private:
   PoissonMatrixFreeDiag2D *pressureMatrix;
   PoissonMatrix *viscosityMatrix;
   PETScPMultigrid *pressureSolver;
-  LinearSolver *viscositySolver;
+  LinearSolver *viscositySolver = nullptr;
 
-  ViscousMatrix2D *newViscousMatrix;
-  ViscousSolver *newViscousSolver;
+  Matrix2Vec *slipViscousMatrix;
+  ViscousSolver *slipViscousSolver;
 
   bool resuming;
   bool vis_solve;
   bool dt_forced;
-  bool new_viscous_matrix;
+  bool uses_slip_bcs;
   DG_FP reynolds;
 
   op_dat pr_bc_types, vis_bc_types, bc_data_2, vis_bc_types_2;

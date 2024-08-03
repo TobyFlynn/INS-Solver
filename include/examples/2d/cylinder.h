@@ -42,7 +42,7 @@ DEVICE_PREFIX void ps2d_set_boundary_type(const DG_FP x0, const DG_FP y0,
   } else if(fp_equal(x0, x1) && x0 > 31.0) {
     bc_type = BC_TYPE_NATURAL_OUTFLOW;
   } else if(x0 > 7.0 && x0 < 9.0 && y0 > 7.0 && y0 < 9.0) {
-    bc_type = BC_TYPE_SLIP;
+    bc_type = BC_TYPE_NO_SLIP;
   } else {
     bc_type = BC_TYPE_INFLOW;
   }
