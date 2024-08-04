@@ -30,6 +30,22 @@ inline void ins_advec_sc_rhs_2_2d(const DG_FP *t, const int *bedge_type, const i
       pUb[i] = dot_b * tangent_x;
       pVb[i] = dot_b * tangent_y;
     }
+  } else if (*bedge_type == BC_TYPE_SLIP_X) {
+    for(int i = 0; i < DG_NPF; i++) {
+      const int fmask_ind = fmask[i];
+      pUs[i] = 0.0;
+      pVs[i] = vs[fmask_ind];
+      pUb[i] = 0.0;
+      pVb[i] = vb[fmask_ind];
+    }
+  } else if (*bedge_type == BC_TYPE_SLIP_Y) {
+    for(int i = 0; i < DG_NPF; i++) {
+      const int fmask_ind = fmask[i];
+      pUs[i] = us[fmask_ind];
+      pVs[i] = 0.0;
+      pUb[i] = ub[fmask_ind];
+      pVb[i] = 0.0;
+    }
   } else if(*bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];

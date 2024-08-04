@@ -25,6 +25,18 @@ inline void ins_advec_bc_2d(const DG_FP *t, const int *bedge_type, const int *be
       pU[i] = dot * tangent_x;
       pV[i] = dot * tangent_y;
     }
+  } else if(*bedge_type == BC_TYPE_SLIP_X) {
+    for(int i = 0; i < DG_NPF; i++) {
+      const int fmask_ind = fmask[i];
+      pU[i] = 0.0;
+      pV[i] = v[fmask_ind];
+    }
+  } else if(*bedge_type == BC_TYPE_SLIP_Y) {
+    for(int i = 0; i < DG_NPF; i++) {
+      const int fmask_ind = fmask[i];
+      pU[i] = u[fmask_ind];
+      pV[i] = 0.0;
+    }
   } else if(*bedge_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {
       const int fmask_ind = fmask[i];

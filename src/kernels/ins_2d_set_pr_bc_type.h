@@ -3,6 +3,10 @@ inline void ins_2d_set_pr_bc_type(const int *type, int *pr_type) {
     *pr_type = BC_NEUMANN;
   } else if(*type == BC_TYPE_SLIP) {
     *pr_type = BC_NEUMANN;
+  } else if(*type == BC_TYPE_SLIP_X) {
+    *pr_type = BC_NEUMANN;
+  } else if(*type == BC_TYPE_SLIP_Y) {
+    *pr_type = BC_NEUMANN;
   } else if(*type == BC_TYPE_NATURAL_OUTFLOW) {
     *pr_type = BC_DIRICHLET;
   } else {

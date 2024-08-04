@@ -182,7 +182,10 @@ COMMON_2D_OBJ := ins2d_op.o \
 	measurements_op/2d/min_max_interface_op.o \
 	measurements_op/2d/min_max_pressure_op.o \
 	measurements_op/2d/ls_advec_error_op.o \
-	measurements_op/2d/mass_of_phases_op.o
+	measurements_op/2d/mass_of_phases_op.o \
+	solvers_op/2d/slip_matrix/viscous_matrix_op.o \
+	solvers_op/2d/slip_matrix/factor_viscous_matrix_op.o \
+	solvers_op/2d/slip_matrix/viscous_solver_op.o
 
 # 2D CPU only object files
 CPU_2D_OBJ := solvers/2d/ls_utils/ls_reinit.o
