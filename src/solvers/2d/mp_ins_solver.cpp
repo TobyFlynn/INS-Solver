@@ -111,16 +111,16 @@ void MPINSSolver2D::setup_common() {
   config->getStr("viscous-solve", "preconditioner", vis_solver);
   viscositySolverType = set_solver_type(vis_solver);
   if(uses_slip_bcs) {
-    slipViscousSolver = new ViscousSolver(mesh);
+    slipViscousSolver = new ViscousSolver2D(mesh);
     if(vis_solver == "jacobi") {
       slipViscousMatrix = new FactorViscousMatrix2D(mesh, true, false);
-      slipViscousSolver->set_preconditioner(ViscousSolver::JACOBI);
+      slipViscousSolver->set_preconditioner(ViscousSolver2D::JACOBI);
     } else if(vis_solver == "block-jacobi") {
       slipViscousMatrix = new FactorViscousMatrix2D(mesh, false, true);
-      slipViscousSolver->set_preconditioner(ViscousSolver::BLOCK_JACOBI);
+      slipViscousSolver->set_preconditioner(ViscousSolver2D::BLOCK_JACOBI);
     } else if(vis_solver == "inv-mass") {
       slipViscousMatrix = new FactorViscousMatrix2D(mesh, false, false);
-      slipViscousSolver->set_preconditioner(ViscousSolver::RECP_FACTOR_DAT_INV_MASS);
+      slipViscousSolver->set_preconditioner(ViscousSolver2D::RECP_FACTOR_DAT_INV_MASS);
     } else {
       dg_abort("Unsupported preconditioner for slip BCs");
     }

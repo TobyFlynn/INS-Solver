@@ -64,7 +64,7 @@ private:
   LevelSetSolver2D *lsSolver;
 
   FactorViscousMatrix2D *slipViscousMatrix;
-  ViscousSolver *slipViscousSolver;
+  ViscousSolver2D *slipViscousSolver;
 
   DG_FP reynolds;
   bool resuming, dt_forced, surface_tension, pr_over_int, over_int_surface_tension;

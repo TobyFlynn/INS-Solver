@@ -3,8 +3,10 @@ inline void ins_3d_vis_x(const DG_FP *t, const DG_FP *g0, const int *bc_type, co
                          const DG_FP *x, const DG_FP *y, const DG_FP *z,
                          const DG_FP *u, const DG_FP *v, const DG_FP *w,
                          int *type, DG_FP *bcs) {
-  if(*bc_type == BC_TYPE_NO_SLIP || *bc_type == BC_TYPE_SLIP) {
+  if(*bc_type == BC_TYPE_NO_SLIP) {
     *type = BC_DIRICHLET;
+  } else if(*bc_type == BC_TYPE_SLIP) {
+    *type = BC_SLIP;
   } else if(*bc_type == BC_TYPE_NATURAL_OUTFLOW) {
     *type = BC_NEUMANN;
   } else {
@@ -17,17 +19,8 @@ inline void ins_3d_vis_x(const DG_FP *t, const DG_FP *g0, const int *bc_type, co
       bcs[i] = 0.0;
     }
   } else if(*bc_type == BC_TYPE_SLIP) {
-    const DG_FP mag_normal = sqrt(*nx * *nx + *ny * *ny + *nz * *nz);
-    const DG_FP nx_ = *nx / mag_normal;
-    const DG_FP ny_ = *ny / mag_normal;
-    const DG_FP nz_ = *nz / mag_normal;
     for(int i = 0; i < DG_NPF; i++) {
-      const int fmask_ind = fmask[i];
-      const DG_FP u_scaled = u[fmask_ind] / *g0;
-      const DG_FP v_scaled = v[fmask_ind] / *g0;
-      const DG_FP w_scaled = w[fmask_ind] / *g0;
-      const DG_FP dot = nx_ * u_scaled + ny_ * v_scaled + nz_ * w_scaled;
-      bcs[i] = u_scaled - dot * nx_;
+      bcs[i] = 0.0;
     }
   } else if(*bc_type == BC_TYPE_NATURAL_OUTFLOW) {
     for(int i = 0; i < DG_NPF; i++) {

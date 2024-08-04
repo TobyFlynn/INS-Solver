@@ -43,7 +43,7 @@ private:
   LinearSolver *viscositySolver = nullptr;
 
   Matrix2Vec *slipViscousMatrix;
-  ViscousSolver *slipViscousSolver;
+  ViscousSolver2D *slipViscousSolver;
 
   bool resuming, vis_solve, dt_forced, uses_slip_bcs;
   DG_FP reynolds;

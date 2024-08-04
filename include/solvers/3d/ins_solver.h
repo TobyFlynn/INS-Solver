@@ -16,6 +16,9 @@
 #include "dg_linear_solvers/petsc_inv_mass.h"
 #include "dg_linear_solvers/petsc_pmultigrid.h"
 
+#include "slip_matrix/3d/matrix_3_vec.h"
+#include "slip_matrix/3d/viscous_solver.h"
+
 class INSSolver3D : public INSSolverBase3D {
 public:
   INSSolver3D(DGMesh3D *m, const DG_FP re);
@@ -35,13 +38,18 @@ private:
   PoissonMatrixFreeDiag3D *pressureMatrix;
   PoissonMatrix *viscosityMatrix;
   PETScPMultigrid *pressureSolver;
-  LinearSolver *viscositySolver;
+  LinearSolver *viscositySolver = nullptr;
+
+  Matrix3Vec *slipViscousMatrix;
+  ViscousSolver3D *slipViscousSolver;
+
   DG_FP reynolds;
-  bool resuming, forced_dt;
+  bool resuming, forced_dt, uses_slip_bcs;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;
   op_dat vis_bc_types, vis_bc;
+  op_dat bc_data_2, vis_bc_types_2, bc_data_3, vis_bc_types_3;
 };
 
 #endif
