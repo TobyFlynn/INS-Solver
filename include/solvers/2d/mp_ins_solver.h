@@ -60,7 +60,7 @@ private:
   PoissonMatrixFreeDiag *pressureMatrix;
   PoissonMatrix *viscosityMatrix = nullptr;
   PETScPMultigrid *pressureSolver;
-  LinearSolver *viscositySolver;
+  LinearSolver *viscositySolver = nullptr;
   LevelSetSolver2D *lsSolver;
 
   FactorViscousMatrix2D *slipViscousMatrix;

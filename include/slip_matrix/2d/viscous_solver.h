@@ -11,7 +11,7 @@
 class ViscousSolver {
 public:
   enum Preconditioners {
-    NONE, INV_MASS, FACTOR_INV_MASS, RECP_FACTOR_DAT_INV_MASS, JACOBI
+    NONE, INV_MASS, FACTOR_INV_MASS, RECP_FACTOR_DAT_INV_MASS, JACOBI, BLOCK_JACOBI
   };
   ViscousSolver(DGMesh2D *m);
   virtual void set_matrix(Matrix2Vec *mat);
@@ -48,6 +48,7 @@ protected:
   virtual void pre_factor_inv_mass(op_dat u_res, op_dat v_res, op_dat u, op_dat v);
   virtual void pre_recp_dat_factor_inv_mass(op_dat u_res, op_dat v_res, op_dat u, op_dat v);
   virtual void pre_jacobi(op_dat u_res, op_dat v_res, op_dat u, op_dat v);
+  virtual void pre_block_jacobi(op_dat u_res, op_dat v_res, op_dat u, op_dat v);
 };
 
 #endif

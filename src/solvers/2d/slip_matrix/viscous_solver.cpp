@@ -325,6 +325,9 @@ void ViscousSolver::precondition(op_dat u_res, op_dat v_res, op_dat u, op_dat v)
     case Preconditioners::JACOBI:
       pre_jacobi(u_res, v_res, u, v);
       break;
+    case Preconditioners::BLOCK_JACOBI:
+      pre_block_jacobi(u_res, v_res, u, v);
+      break;
   }
 }
 
@@ -370,6 +373,20 @@ void ViscousSolver::pre_jacobi(op_dat u_res, op_dat v_res, op_dat u, op_dat v) {
   op_par_loop(cg_jacobi, "cg_jacobi", mesh->cells,
               op_arg_dat(tmpMatrix->u_diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(tmpMatrix->v_diag, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u_res, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(v_res, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
+              op_arg_dat(v, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+}
+
+void ViscousSolver::pre_block_jacobi(op_dat u_res, op_dat v_res, op_dat u, op_dat v) {
+  FactorViscousMatrix2D *tmpMatrix = dynamic_cast<FactorViscousMatrix2D*>(matrix);
+  if(!tmpMatrix)
+    dg_abort("Viscous solve block Jacobi preconditioner is only supported with factor viscous matrix");
+
+  op_par_loop(cg_block_jacobi, "cg_block_jacobi", mesh->cells,
+              op_arg_dat(tmpMatrix->u_inv_block_diag, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(tmpMatrix->v_inv_block_diag, -1, OP_ID, DG_NP * DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(u_res, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(v_res, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(u, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
