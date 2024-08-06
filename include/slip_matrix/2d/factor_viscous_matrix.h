@@ -10,7 +10,7 @@
 
 class FactorViscousMatrix2D : public Matrix2Vec {
 public:
-  FactorViscousMatrix2D(DGMesh2D *m, bool calc_diagonal = false);
+  FactorViscousMatrix2D(DGMesh2D *m, bool calc_diagonal = false, bool calc_inv_block_diagonal = false);
 
   // op_dat bc_types - 0 for Dirichlet, 1 for Neumann
   virtual void set_bc_types(op_dat u_bc_ty, op_dat v_bc_ty) override;
@@ -19,6 +19,7 @@ public:
   void set_factor(op_dat f);
   void set_mm_factor(op_dat f);
   void calc_diag();
+  void calc_inv_block_diag();
   // virtual void mult_sp(op_dat in, op_dat out);
   // virtual void multJacobi(op_dat in, op_dat out);
   // virtual void multJacobi_sp(op_dat in, op_dat out);
@@ -28,7 +29,7 @@ public:
   // op_dat op1, op2[2], opbc, glb_ind, glb_indL, glb_indR;
   // int unknowns;
 
-  op_dat u_diag, v_diag;
+  op_dat u_diag, v_diag, u_inv_block_diag, v_inv_block_diag;
 protected:
   // virtual void set_glb_ind();
   // virtual void calc_glb_ind() = 0;

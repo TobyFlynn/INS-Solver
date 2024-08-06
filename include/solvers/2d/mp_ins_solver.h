@@ -60,11 +60,11 @@ private:
   PoissonMatrixFreeDiag *pressureMatrix;
   PoissonMatrix *viscosityMatrix = nullptr;
   PETScPMultigrid *pressureSolver;
-  LinearSolver *viscositySolver;
+  LinearSolver *viscositySolver = nullptr;
   LevelSetSolver2D *lsSolver;
 
   FactorViscousMatrix2D *slipViscousMatrix;
-  ViscousSolver *slipViscousSolver;
+  ViscousSolver2D *slipViscousSolver;
 
   DG_FP reynolds, fsv_relaxation_factor, fsv_factor;
   bool resuming, dt_forced, surface_tension, pr_over_int, over_int_surface_tension;

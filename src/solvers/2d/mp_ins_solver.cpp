@@ -114,18 +114,28 @@ void MPINSSolver2D::setup_common() {
   pressureSolver->set_matrix(pressureMatrix);
 
   // Viscous matrix and solver
+  std::string vis_solver = "jacobi";
+  config->getStr("viscous-solve", "preconditioner", vis_solver);
+  viscositySolverType = set_solver_type(vis_solver);
   if(uses_slip_bcs) {
-    slipViscousSolver = new ViscousSolver(mesh);
-    slipViscousMatrix = new FactorViscousMatrix2D(mesh, true);
-    slipViscousSolver->set_preconditioner(ViscousSolver::JACOBI);
+    slipViscousSolver = new ViscousSolver2D(mesh);
+    if(vis_solver == "jacobi") {
+      slipViscousMatrix = new FactorViscousMatrix2D(mesh, true, false);
+      slipViscousSolver->set_preconditioner(ViscousSolver2D::JACOBI);
+    } else if(vis_solver == "block-jacobi") {
+      slipViscousMatrix = new FactorViscousMatrix2D(mesh, false, true);
+      slipViscousSolver->set_preconditioner(ViscousSolver2D::BLOCK_JACOBI);
+    } else if(vis_solver == "inv-mass") {
+      slipViscousMatrix = new FactorViscousMatrix2D(mesh, false, false);
+      slipViscousSolver->set_preconditioner(ViscousSolver2D::RECP_FACTOR_DAT_INV_MASS);
+    } else {
+      dg_abort("Unsupported preconditioner for slip BCs");
+    }
     slipViscousSolver->set_matrix(slipViscousMatrix);
     slipViscousSolver->set_tol_and_iter(1e-8, 1e-9, 1000);
     bc_data_2 = op_decl_dat(mesh->bfaces, DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_bc_data_2");
     vis_bc_types_2 = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_vis_bc_types_2");
   } else {
-    std::string vis_solver = "jacobi";
-    config->getStr("viscous-solve", "preconditioner", vis_solver);
-    viscositySolverType = set_solver_type(vis_solver);
     if(viscositySolverType == LinearSolver::PETSC_JACOBI) {
       viscosityMatrix = new FactorMMPoissonMatrixFreeDiag2D(mesh);
       viscositySolver = new PETScJacobiSolver(mesh);
@@ -838,6 +848,7 @@ bool MPINSSolver2D::viscosity() {
     slipViscousSolver->set_bcs(bc_data, bc_data_2);
     slipViscousSolver->set_inv_mass_recp_factor(vis_mm_factor.dat);
     slipViscousMatrix->calc_diag();
+    slipViscousMatrix->calc_inv_block_diag();
 
     bool converged = slipViscousSolver->solve(visRHS[0].dat, visRHS[1].dat, vel[(currentInd + 1) % 2][0], vel[(currentInd + 1) % 2][1]);
 

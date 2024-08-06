@@ -104,13 +104,13 @@ void INSSolver2D::setup_common() {
 
   // Viscous matrix and solver
   if(uses_slip_bcs) {
-    slipViscousSolver = new ViscousSolver(mesh);
+    slipViscousSolver = new ViscousSolver2D(mesh);
     if(shock_capturing) {
       slipViscousMatrix = new FactorViscousMatrix2D(mesh);
-      slipViscousSolver->set_preconditioner(ViscousSolver::FACTOR_INV_MASS);
+      slipViscousSolver->set_preconditioner(ViscousSolver2D::FACTOR_INV_MASS);
     } else {
       slipViscousMatrix = new ViscousMatrix2D(mesh);
-      slipViscousSolver->set_preconditioner(ViscousSolver::FACTOR_INV_MASS);
+      slipViscousSolver->set_preconditioner(ViscousSolver2D::FACTOR_INV_MASS);
     }
     slipViscousSolver->set_matrix(slipViscousMatrix);
     slipViscousSolver->set_tol_and_iter(1e-8, 1e-9, 1000);

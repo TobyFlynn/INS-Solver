@@ -86,6 +86,9 @@ python3 $OP2_TRANSLATOR ins3d.cpp \
         solvers/3d/mp_ins_solver.cpp \
         solvers/3d/ls_driver.cpp \
         measurements/3d/enstrophy.cpp \
+        solvers/3d/slip_matrix/viscous_matrix.cpp \
+        solvers/3d/slip_matrix/factor_viscous_matrix.cpp \
+        solvers/3d/slip_matrix/viscous_solver.cpp \
         kernels/
 
 cuda_line_no_3d=$(grep -n op_cuda_reduction cuda/ins3d_kernels.cu | cut -d : -f 1)

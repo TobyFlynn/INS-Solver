@@ -45,7 +45,7 @@ private:
   bool resuming, vis_solve, dt_forced, force_superficial_velocity, uses_slip_bcs;
   DG_FP reynolds, fsv_relaxation_factor, fsv_factor;
   Matrix2Vec *slipViscousMatrix;
-  ViscousSolver *slipViscousSolver;
+  ViscousSolver2D *slipViscousSolver;
 
   op_dat pr_bc_types, vis_bc_types, bc_data_2, vis_bc_types_2;
 

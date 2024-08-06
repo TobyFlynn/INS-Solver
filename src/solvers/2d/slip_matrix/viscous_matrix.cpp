@@ -51,12 +51,12 @@ DG_FP ViscousMatrix2D::get_factor() {
 
 void ViscousMatrix2D::mat_free_pre_compute_tau() {
   timer->startTimer("ViscousMatrix2D - calc tau");
-  op_par_loop(vmf_2d_calc_tau_faces, "vmf_2d_calc_tau_faces", mesh->faces,
+  op_par_loop(vmf_calc_tau_faces, "vmf_calc_tau_faces", mesh->faces,
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
               op_arg_dat(mat_free_tau_c, -2, mesh->face2cells, 3, DG_FP_STR, OP_WRITE));
   if(mesh->bface2cells) {
-    op_par_loop(vmf_2d_calc_tau_bfaces, "vmf_2d_calc_tau_bfaces", mesh->bfaces,
+    op_par_loop(vmf_calc_tau_bfaces, "vmf_calc_tau_bfaces", mesh->bfaces,
                 op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
                 op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
                 op_arg_dat(mat_free_tau_c, 0, mesh->bface2cells, 3, DG_FP_STR, OP_WRITE));
