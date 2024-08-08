@@ -403,11 +403,19 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
       DG_FP dist1 = (closest_x[i] - x[i]) * (closest_x[i] - x[i])
                   + (closest_y[i] - y[i]) * (closest_y[i] - y[i])
                   + (closest_z[i] - z[i]) * (closest_z[i] - z[i]);
+/*      
       if(kink[i] != 0.0 && dist1 < 9.0 * h * h)
         continue;
       else
         kink[i] = 0.0;
-      
+*/
+
+      bool kink_cell = false;
+      for(int n = 0; n < DG_NP; n++) {
+        kink_cell = kink_cell || (kink[start_ind + n] != 0.0);
+      }
+      if(kink_cell) continue;
+
       DG_FP off_x, off_y, off_z;
       polys[poly_ind[i]].get_offsets(off_x, off_y, off_z);
       DG_FP _closest_x = closest_x[i] - off_x;
