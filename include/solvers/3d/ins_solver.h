@@ -38,10 +38,9 @@ private:
   PoissonMatrixFreeDiag3D *pressureMatrix;
   PoissonMatrix *viscosityMatrix;
   PETScPMultigrid *pressureSolver;
-  LinearSolver *viscositySolver;
+  LinearSolver *viscositySolver = nullptr;
   DG_FP reynolds, fsv_relaxation_factor, fsv_factor;
   bool resuming, forced_dt, force_superficial_velocity, uses_slip_bcs;
-  LinearSolver *viscositySolver = nullptr;
 
   Matrix3Vec *slipViscousMatrix;
   ViscousSolver3D *slipViscousSolver;

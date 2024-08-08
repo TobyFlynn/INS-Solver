@@ -12,11 +12,14 @@
 // BC types for linear solvers
 #define BC_DIRICHLET 0
 #define BC_NEUMANN 1
+#define BC_SLIP 2
 
 // Hardcoded BC types, do not edit
 #define BC_TYPE_NATURAL_OUTFLOW 0
 #define BC_TYPE_NO_SLIP 1
 #define BC_TYPE_SLIP 2
+#define BC_TYPE_SLIP_X 3
+#define BC_TYPE_SLIP_Y 4
 
 #define DOMAIN_HEIGHT 4.203912
 
@@ -81,9 +84,9 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 
 // Set the initial interface between phases for multiphase simulations
 DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
-  const DG_FP MIN_X = -1.19;
-  const DG_FP MAX_X = 1.18;
-  const DG_FP IC_DEPTH = 0.15;
+  const DG_FP MIN_X = -1.25;
+  const DG_FP MAX_X = 1.25;
+  const DG_FP IC_DEPTH = 0.3;
   // Plate 0
   const DG_FP MIN_Y_PLATE_0 = 1.62;
   const DG_FP MAX_Y_PLATE_0 = MIN_Y_PLATE_0 + IC_DEPTH;
