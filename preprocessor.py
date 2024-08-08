@@ -239,7 +239,6 @@ for f in inputfiles:
         newdata = newdata.replace("DG_NP", dg_np)
         newdata = newdata.replace("LS_SAMPLE_NP", ls_sample_np)
         newdata = newdata.replace("DG_NUM_FACES", dg_num_faces)
-        newdata = newdata.replace("DG_NUM_CONSTANTS", dg_num_constants)
         newdata = newdata.replace("DG_ORDER", dg_order)
         newdata = newdata.replace("DG_CUB_3D_NP", dg_cub_3d_np)
         newdata = newdata.replace("DG_CUB_SURF_3D_NP", dg_cub_surf_3d_np)

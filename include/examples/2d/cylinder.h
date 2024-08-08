@@ -12,13 +12,16 @@
 // BC types for linear solvers
 #define BC_DIRICHLET 0
 #define BC_NEUMANN 1
+#define BC_SLIP 2
 
 // Hardcoded BC types, do not edit
 #define BC_TYPE_NATURAL_OUTFLOW 0
 #define BC_TYPE_NO_SLIP 1
 #define BC_TYPE_SLIP 2
+#define BC_TYPE_SLIP_X 3
+#define BC_TYPE_SLIP_Y 4
 // Add custom BC types below (number must be greater than 0), for example:
-#define BC_TYPE_INFLOW 3
+#define BC_TYPE_INFLOW 5
 
 /************************************************************************
  * You can edit the body of the functions below but not their signature *
@@ -41,7 +44,7 @@ DEVICE_PREFIX void ps2d_set_boundary_type(const DG_FP x0, const DG_FP y0,
   } else if(x0 > 7.0 && x0 < 9.0 && y0 > 7.0 && y0 < 9.0) {
     bc_type = BC_TYPE_NO_SLIP;
   } else {
-    bc_type = BC_TYPE_SLIP;
+    bc_type = BC_TYPE_INFLOW;
   }
 }
 

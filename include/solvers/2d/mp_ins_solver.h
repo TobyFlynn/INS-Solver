@@ -14,6 +14,9 @@
 #include "dg_linear_solvers/petsc_pmultigrid.h"
 #include "dg_linear_solvers/linear_solver.h"
 
+#include "slip_matrix/2d/factor_viscous_matrix.h"
+#include "slip_matrix/2d/viscous_solver.h"
+
 #include <string>
 #include <vector>
 
@@ -55,17 +58,20 @@ private:
 
   FactorPoissonCoarseMatrix2D *pressureCoarseMatrix;
   PoissonMatrixFreeDiag *pressureMatrix;
-  PoissonMatrix *viscosityMatrix;
+  PoissonMatrix *viscosityMatrix = nullptr;
   PETScPMultigrid *pressureSolver;
-  LinearSolver *viscositySolver;
+  LinearSolver *viscositySolver = nullptr;
   LevelSetSolver2D *lsSolver;
   DG_FP reynolds, fsv_relaxation_factor, fsv_factor;
-  bool resuming, dt_forced, surface_tension, pr_over_int, over_int_surface_tension;
+  bool resuming, dt_forced, surface_tension, pr_over_int, over_int_surface_tension, uses_slip_bcs;
   bool gravity_modified_pressure, force_superficial_velocity;
+
+  FactorViscousMatrix2D *slipViscousMatrix;
+  ViscousSolver2D *slipViscousSolver;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;
-  op_dat vis_bc_types, vis_bc;
+  op_dat vis_bc_types, vis_bc, bc_data_2, vis_bc_types_2;
   op_dat dPdN_oi[2];
 };
 
