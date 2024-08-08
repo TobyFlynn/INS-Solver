@@ -66,6 +66,7 @@ void LSDriver3D::dump_visualisation_data(const std::string &filename) {
   op_fetch_data_hdf5_file(mesh->y, filename.c_str());
   op_fetch_data_hdf5_file(mesh->z, filename.c_str());
   op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
+  op_fetch_data_hdf5_file(lsSolver->kink, filename.c_str());
 }
 
 void LSDriver3D::dump_checkpoint_data(const std::string &filename) {

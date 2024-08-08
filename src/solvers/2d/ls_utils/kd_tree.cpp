@@ -12,11 +12,11 @@ extern Timing *timer;
 using namespace std;
 
 bool compareX(KDCoord a, KDCoord b) {
-  return a.x_rot < b.x_rot;
+  return a.coord_rot[0] < b.coord_rot[0];
 }
 
 bool compareY(KDCoord a, KDCoord b) {
-  return a.y_rot < b.y_rot;
+  return a.coord_rot[1] < b.coord_rot[1];
 }
 
 KDTree::KDTree(DGMesh2D *m) {
@@ -37,10 +37,10 @@ void KDTree::pre_build_setup(const DG_FP *x, const DG_FP *y, const int num, op_d
     if(!isnan(x[i]) && !isnan(y[i])) {
       n++;
       KDCoord pt;
-      pt.x = x[i];
-      pt.y = y[i];
-      pt.x_rot = x[i];
-      pt.y_rot = y[i];
+      pt.coord[0] = x[i];
+      pt.coord[1] = y[i];
+      pt.coord_rot[0] = x[i];
+      pt.coord_rot[1] = y[i];
       pt.poly = i / LS_SAMPLE_NP;
       points.push_back(pt);
     }
@@ -68,8 +68,9 @@ KDCoord KDTree::closest_point(DG_FP x, DG_FP y) {
   DG_FP closest_distance = std::numeric_limits<DG_FP>::max();
   vector<KDCoord>::iterator res = points.end();
   int current_ind = 0;
+  DGUtils::Vec<2> coord(x, y);
 
-  nearest_neighbour(x, y, current_ind, res, closest_distance);
+  nearest_neighbour(coord, current_ind, res, closest_distance);
 
   return *res;
 }
@@ -80,22 +81,17 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
   node.r = -1;
 
   // Bounding box and mean
-  node.x_min = pts_start->x_rot;
-  node.x_max = pts_start->x_rot;
-  node.y_min = pts_start->y_rot;
-  node.y_max = pts_start->y_rot;
-  DG_FP x_avg = pts_start->x_rot;
-  DG_FP y_avg = pts_start->y_rot;
+  node.min = pts_start->coord_rot;
+  node.max = pts_start->coord_rot;
+  DGUtils::Vec<2> avg = pts_start->coord_rot;
   for(auto it = pts_start + 1; it != pts_end; it++) {
-    x_avg += it->x_rot;
-    y_avg += it->y_rot;
-    if(node.x_min > it->x_rot) node.x_min = it->x_rot;
-    if(node.y_min > it->y_rot) node.y_min = it->y_rot;
-    if(node.x_max < it->x_rot) node.x_max = it->x_rot;
-    if(node.y_max < it->y_rot) node.y_max = it->y_rot;
+    avg += it->coord_rot;
+    if(node.min[0] > it->coord_rot[0]) node.min[0] = it->coord_rot[0];
+    if(node.min[1] > it->coord_rot[1]) node.min[1] = it->coord_rot[1];
+    if(node.max[0] < it->coord_rot[0]) node.max[0] = it->coord_rot[0];
+    if(node.max[1] < it->coord_rot[1]) node.max[1] = it->coord_rot[1];
   }
-  x_avg /= (DG_FP)(pts_end - pts_start);
-  y_avg /= (DG_FP)(pts_end - pts_start);
+  avg /= (DG_FP)(pts_end - pts_start);
 
   if(pts_end - pts_start <= leaf_size) {
     node.start = pts_start;
@@ -109,83 +105,72 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
 
   // Split across axis with greatest extent
   int axis = 0;
-  if(node.x_max - node.x_min < node.y_max - node.y_min) {
+  DGUtils::Vec<2> extent = node.max - node.min;
+  DG_FP max_extent = extent[0];
+  if(extent[0] < extent[1]) {
     axis = 1;
+    max_extent = extent[1];
   }
 
   // Do rotational transform if necessary
   bool transform = !has_transformed && level > 5 && pts_end - pts_start >= leaf_size * 4;
   if(transform) {
-    DG_FP hole_radius_sqr = 0.0;
-    if(axis == 0) {
-      hole_radius_sqr = 0.05 * (node.x_max - node.x_min) * 0.05 * (node.x_max - node.x_min);
-    } else {
-      hole_radius_sqr = 0.05 * (node.y_max - node.y_min) * 0.05 * (node.y_max - node.y_min);
-    }
+    DG_FP hole_radius_sqr = 0.05 * max_extent * 0.05 * max_extent;
 
-    arma::vec normal(2);
-    normal(0) = 1.0;
-    normal(1) = 0.0;
-
+    DGUtils::Vec<2> normal(1.0, 0.0);
     for(auto it = pts_start; it != pts_end; it++) {
-      DG_FP x_tmp = it->x_rot - x_avg;
-      DG_FP y_tmp = it->y_rot - y_avg;
-      DG_FP msqr = x_tmp * x_tmp + y_tmp * y_tmp;
+      DGUtils::Vec<2> tmp = it->coord_rot - avg;
+      DG_FP msqr = tmp.sqr_magnitude();
       if(msqr > hole_radius_sqr) {
-        DG_FP tmp_dot = x_tmp * normal(0) + y_tmp * normal(1);
-        normal(0) -= x_tmp * tmp_dot / msqr;
-        normal(1) -= y_tmp * tmp_dot / msqr;
+        DG_FP dot = tmp.dot(normal);
+        normal -= tmp * (dot / msqr);
       }
     }
 
-    DG_FP msqr = normal(0) * normal(0) + normal(1) * normal(1);
+    DG_FP msqr = normal.sqr_magnitude();
     if(msqr == 0.0) {
-      normal(0) = 1.0;
+      normal[0] = 1.0;
     } else {
-      normal(0) /= sqrt(msqr);
-      normal(1) /= sqrt(msqr);
+      normal /= sqrt(msqr);
     }
 
-    DG_FP min_alpha = pts_start->x_rot * normal(0) + pts_start->y_rot * normal(1);
+    DG_FP min_alpha = pts_start->coord_rot.dot(normal);
     DG_FP max_alpha = min_alpha;
     for(auto it = pts_start + 1; it != pts_end; it++) {
-      DG_FP alpha = it->x_rot * normal[0] + it->y_rot * normal[1];
+      DG_FP alpha = it->coord_rot.dot(normal);
       if(alpha > max_alpha) max_alpha = alpha;
       if(alpha < min_alpha) min_alpha = alpha;
     }
 
-    DG_FP max_extent = node.x_max - node.x_min;
-    if(axis == 1)
-      max_extent = node.y_max - node.y_min;
     if(max_alpha - min_alpha < 0.1 * max_extent) {
       // Calculate orthonormal basis via Householder matrix
       arma::mat axes(2, 2);
-      int j = fabs(normal(0)) < fabs(normal(1)) ? 0 : 1;
-      arma::vec u = normal;
-      u(j) -= 1.0;
-      DG_FP u_norm = sqrt(u(0) * u(0) + u(1) * u(1));
-      u = u / u_norm;
+      int j = fabs(normal[0]) < fabs(normal[1]) ? 0 : 1;
+      DGUtils::Vec<2> u = normal;
+      u[j] -= 1.0;
+      DG_FP u_norm = u.magnitude();
+      u /= u_norm;
       for(int dim = 0; dim < 2; dim++) {
         for(int i = 0; i < 2; i++) {
-          axes(dim, i) = (dim == i ? 1.0 : 0.0) - 2.0 * u(dim) * u(i);
+          axes(dim, i) = (dim == i ? 1.0 : 0.0) - 2.0 * u[dim] * u[i];
         }
       }
 
       // Apply coord transformation
-      DG_FP alpha_x = axes(0,0) * pts_start->x_rot + axes(0,1) * pts_start->y_rot;
-      DG_FP alpha_y = axes(1,0) * pts_start->x_rot + axes(1,1) * pts_start->y_rot;
-      pts_start->x_rot = alpha_x;
-      pts_start->y_rot = alpha_y;
+      DG_FP alpha_x = axes(0,0) * pts_start->coord_rot[0] + axes(0,1) * pts_start->coord_rot[1];
+      DG_FP alpha_y = axes(1,0) * pts_start->coord_rot[0] + axes(1,1) * pts_start->coord_rot[1];
+      pts_start->coord_rot[0] = alpha_x;
+      pts_start->coord_rot[1] = alpha_y;
       DG_FP b_min_x = alpha_x;
       DG_FP b_max_x = alpha_x;
       DG_FP b_min_y = alpha_y;
       DG_FP b_max_y = alpha_y;
 
       for(auto it = pts_start + 1; it != pts_end; it++) {
-        alpha_x = axes(0,0) * it->x_rot + axes(0,1) * it->y_rot;
-        alpha_y = axes(1,0) * it->x_rot + axes(1,1) * it->y_rot;
-        it->x_rot = alpha_x;
-        it->y_rot = alpha_y;
+        alpha_x = axes(0,0) * it->coord_rot[0] + axes(0,1) * it->coord_rot[1];
+        alpha_y = axes(1,0) * it->coord_rot[0] + axes(1,1) * it->coord_rot[1];
+        it->coord_rot[0] = alpha_x;
+        it->coord_rot[1] = alpha_y;
         if(alpha_x < b_min_x) b_min_x = alpha_x;
         if(alpha_x > b_max_x) b_max_x = alpha_x;
         if(alpha_y < b_min_y) b_min_y = alpha_y;
@@ -227,26 +212,26 @@ int KDTree::construct_tree(vector<KDCoord>::iterator pts_start, vector<KDCoord>:
   return node_ind;
 }
 
-DG_FP KDTree::bb_sqr_dist(const int node_ind, const DG_FP x, const DG_FP y) {
+DG_FP KDTree::bb_sqr_dist(const int node_ind, DGUtils::Vec<2> &coord) {
   DG_FP sqr_dist = 0.0;
-  if(x < nodes[node_ind].x_min)
-    sqr_dist += (x - nodes[node_ind].x_min) * (x - nodes[node_ind].x_min);
-  else if(x > nodes[node_ind].x_max)
-    sqr_dist += (x - nodes[node_ind].x_max) * (x - nodes[node_ind].x_max);
+  if(coord[0] < nodes[node_ind].min[0])
+    sqr_dist += (coord[0] - nodes[node_ind].min[0]) * (coord[0] - nodes[node_ind].min[0]);
+  else if(coord[0] > nodes[node_ind].max[0])
+    sqr_dist += (coord[0] - nodes[node_ind].max[0]) * (coord[0] - nodes[node_ind].max[0]);
 
-  if(y < nodes[node_ind].y_min)
-    sqr_dist += (y - nodes[node_ind].y_min) * (y - nodes[node_ind].y_min);
-  else if(y > nodes[node_ind].y_max)
-    sqr_dist += (y - nodes[node_ind].y_max) * (y - nodes[node_ind].y_max);
+  if(coord[1] < nodes[node_ind].min[1])
+    sqr_dist += (coord[1] - nodes[node_ind].min[1]) * (coord[1] - nodes[node_ind].min[1]);
+  else if(coord[1] > nodes[node_ind].max[1])
+    sqr_dist += (coord[1] - nodes[node_ind].max[1]) * (coord[1] - nodes[node_ind].max[1]);
 
   return sqr_dist;
 }
 
-void KDTree::nearest_neighbour(DG_FP x, DG_FP y, int current_ind, vector<KDCoord>::iterator &closest_pt, DG_FP &closest_distance) {
+void KDTree::nearest_neighbour(DGUtils::Vec<2> coord, int current_ind, vector<KDCoord>::iterator &closest_pt, DG_FP &closest_distance) {
   if(nodes[current_ind].l == -1 && nodes[current_ind].r == -1) {
     // Leaf node
     for(auto it = nodes[current_ind].start; it != nodes[current_ind].end; it++) {
-      DG_FP sqr_dist = (it->x_rot - x) * (it->x_rot - x) + (it->y_rot - y) * (it->y_rot - y);
+      DG_FP sqr_dist = (it->coord_rot - coord).sqr_magnitude();
       if(closest_distance > sqr_dist) {
         closest_distance = sqr_dist;
         closest_pt = it;
@@ -259,27 +244,27 @@ void KDTree::nearest_neighbour(DG_FP x, DG_FP y, int current_ind, vector<KDCoord
 
   // Apply transform
   if(nodes[current_ind].rot.n_elem > 1) {
-    DG_FP new_x = nodes[current_ind].rot(0,0) * x + nodes[current_ind].rot(0,1) * y;
-    DG_FP new_y = nodes[current_ind].rot(1,0) * x + nodes[current_ind].rot(1,1) * y;
-    x = new_x;
-    y = new_y;
+    DG_FP new_x = nodes[current_ind].rot(0,0) * coord[0] + nodes[current_ind].rot(0,1) * coord[1];
+    DG_FP new_y = nodes[current_ind].rot(1,0) * coord[0] + nodes[current_ind].rot(1,1) * coord[1];
+    coord[0] = new_x;
+    coord[1] = new_y;
   }
 
-  DG_FP dist_l = bb_sqr_dist(nodes[current_ind].l, x, y);
-  DG_FP dist_r = bb_sqr_dist(nodes[current_ind].r, x, y);
+  DG_FP dist_l = bb_sqr_dist(nodes[current_ind].l, coord);
+  DG_FP dist_r = bb_sqr_dist(nodes[current_ind].r, coord);
 
   if(dist_l < dist_r) {
     if(dist_l < closest_distance) {
-      nearest_neighbour(x, y, nodes[current_ind].l, closest_pt, closest_distance);
+      nearest_neighbour(coord, nodes[current_ind].l, closest_pt, closest_distance);
       if(dist_r < closest_distance) {
-        nearest_neighbour(x, y, nodes[current_ind].r, closest_pt, closest_distance);
+        nearest_neighbour(coord, nodes[current_ind].r, closest_pt, closest_distance);
       }
     }
   } else {
     if(dist_r < closest_distance) {
-      nearest_neighbour(x, y, nodes[current_ind].r, closest_pt, closest_distance);
+      nearest_neighbour(coord, nodes[current_ind].r, closest_pt, closest_distance);
       if(dist_l < closest_distance) {
-        nearest_neighbour(x, y, nodes[current_ind].l, closest_pt, closest_distance);
+        nearest_neighbour(coord, nodes[current_ind].l, closest_pt, closest_distance);
       }
     }
   }

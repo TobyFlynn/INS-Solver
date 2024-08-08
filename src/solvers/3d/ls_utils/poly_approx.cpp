@@ -4,6 +4,7 @@
 
 #include "timing.h"
 #include "dg_constants/dg_constants_3d.h"
+#include "dg_global_constants/dg_global_constants_3d.h"
 #include "dg_utils.h"
 
 extern Timing *timer;
@@ -20,7 +21,37 @@ PolyApprox3D::PolyApprox3D(const int cell_ind, set<int> stencil,
   vector<DG_FP> x_vec, y_vec, z_vec, s_vec;
   stencil_data(cell_ind, stencil, x_ptr, y_ptr, z_ptr, s_ptr, x_vec, y_vec, z_vec, s_vec);
 
-  fit_poly(x_vec, y_vec, z_vec, s_vec, h);
+  // Calc h
+  // auto min_x = std::min_element(x_vec.begin(), x_vec.end());
+  // auto min_y = std::min_element(y_vec.begin(), y_vec.end());
+  // auto min_z = std::min_element(z_vec.begin(), z_vec.end());
+  // auto max_x = std::max_element(x_vec.begin(), x_vec.end());
+  // auto max_y = std::max_element(y_vec.begin(), y_vec.end());
+  // auto max_z = std::max_element(z_vec.begin(), z_vec.end());
+  // DGUtils::Vec<3> min_pt(*min_x, *min_y, *min_z);
+  // DGUtils::Vec<3> max_pt(*max_x, *max_y, *max_z);
+
+  DG_FP min_x = x_ptr[cell_ind * DG_NP];
+  DG_FP max_x = x_ptr[cell_ind * DG_NP];
+  DG_FP min_y = y_ptr[cell_ind * DG_NP];
+  DG_FP max_y = y_ptr[cell_ind * DG_NP];
+  DG_FP min_z = z_ptr[cell_ind * DG_NP];
+  DG_FP max_z = z_ptr[cell_ind * DG_NP];
+  for(int i = 1; i < DG_NP; i++) {
+    const int ind = cell_ind * DG_NP + i;
+    if(x_ptr[ind] < min_x) min_x = x_ptr[ind];
+    if(x_ptr[ind] > max_x) max_x = x_ptr[ind];
+    if(y_ptr[ind] < min_y) min_y = y_ptr[ind];
+    if(y_ptr[ind] > max_y) max_y = y_ptr[ind];
+    if(z_ptr[ind] < min_z) min_z = z_ptr[ind];
+    if(z_ptr[ind] > max_z) max_z = z_ptr[ind];
+  }
+  DGUtils::Vec<3> min_pt(min_x, min_y, min_z);
+  DGUtils::Vec<3> max_pt(max_x, max_y, max_z);
+
+  DG_FP new_h = (max_pt - min_pt).magnitude();
+
+  fit_poly(x_vec, y_vec, z_vec, s_vec, new_h);
 }
 
 PolyApprox3D::PolyApprox3D(std::vector<DG_FP> &c, DG_FP off_x, DG_FP off_y,
@@ -53,84 +84,51 @@ void PolyApprox3D::fit_poly(const vector<DG_FP> &x, const vector<DG_FP> &y, cons
   arma::mat A = get_vandermonde(x, y, z);
   arma::vec b(s);
 
-  // Fit poly by using QR
-  arma::mat Q, R;
-  arma::qr(Q, R, A);
-  arma::vec ans = arma::solve(R, Q.t() * b);
-  
-  coeff = arma::conv_to<vector<DG_FP>>::from(ans);
-
-  arma::vec res = A * ans;
-  bool node_with_wrong_sign = false;
-  set<int> problem_inds;
   arma::vec w(x.size());
-  const DG_FP sigma = h * 0.01;
+  const DG_FP sigma = h * 0.001;
   for(int i = 0; i < x.size(); i++) {
-    w(i) = exp(-s[i] * s[i] / sigma);
-    if(res(i) > 0.0 != b(i) > 0.0) {
-      node_with_wrong_sign = true;
-      problem_inds.insert(i);
-    }
+    const DG_FP dist_from_origin = x[i] * x[i] + y[i] * y[i] + z[i] * z[i];
+    w(i) = exp(-dist_from_origin / sigma);
+    // w(i) = exp(-s[i] * s[i] / sigma);
+    // w(i) = 1.0;
   }
 
+  set<int> problem_inds;
   int redo_counter = 0;
-  const int max_redo = 50;
-  while(node_with_wrong_sign && redo_counter < max_redo) {
-    for(int i = 0; i < x.size(); i++) {
-      if(problem_inds.count(i) > 0) 
-        w(i) = w(i) * 2.0;
+  const int max_redo = 5;
+  arma::vec ans;
+  do {
+    for(const int &ind : problem_inds) {
+      w(ind) = w(ind) * 2.0;
     }
+
     arma::mat W = arma::diagmat(arma::sqrt(w));
-    arma::mat Q, R;
-    arma::qr(Q, R, W*A);
-    arma::vec ans = arma::solve(R, Q.t() * W * b);
-  
-    coeff = arma::conv_to<vector<DG_FP>>::from(ans);
+    // arma::mat Q, R;
+    // arma::qr(Q, R, W*A);
+    // arma::vec ans = arma::solve(R, Q.t() * W * b);
+    ans = arma::solve(W * A, W * b);
 
     arma::vec res = A * ans;
-    node_with_wrong_sign = false;
     problem_inds.clear();
     for(int i = 0; i < x.size(); i++) {
       if(res(i) > 0.0 != b(i) > 0.0) {
-        node_with_wrong_sign = true;
         problem_inds.insert(i);
       }
     }
 
     redo_counter++;
-  }
+  } while(problem_inds.size() > 0 && redo_counter < max_redo);
+
+  coeff = arma::conv_to<vector<DG_FP>>::from(ans);
 
   // if(redo_counter == max_redo) printf("Max redo\n");
   // if(node_with_wrong_sign) printf("Node with wrong sign\n");
 }
 
-struct Coord {
-  DG_FP x;
-  DG_FP y;
-  DG_FP z;
-};
-
 struct Point {
-  Coord coord;
+  DGUtils::Vec<3> coord;
   DG_FP val;
   int count;
-};
-
-struct cmpCoords {
-    bool operator()(const Coord& a, const Coord& b) const {
-        bool xCmp = abs(a.x - b.x) < 1e-8;
-        bool yCmp = abs(a.y - b.y) < 1e-8;
-        bool zCmp = abs(a.z - b.z) < 1e-8;
-        if(xCmp && yCmp && zCmp) {
-          return false;
-        } else if(xCmp && yCmp) {
-          return a.z < b.z;
-        } else if(xCmp) {
-          return a.y < b.y;
-        } else {
-          return a.x < b.x;
-        }
-    }
 };
 
 void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
@@ -139,15 +137,15 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
                                 vector<DG_FP> &x, vector<DG_FP> &y,
                                 vector<DG_FP> &z, vector<DG_FP> &s) {
   // Setup random number generator for later
-  map<Coord, Point, cmpCoords> pointMap;
+  map<DGUtils::Vec<3>, Point> pointMap;
   for(const auto &sten : stencil) {
     for(int n = 0; n < DG_NP; n++) {
       int ind = sten * DG_NP + n;
 
-      Coord coord;
-      coord.x = x_ptr[ind] - offset_x;
-      coord.y = y_ptr[ind] - offset_y;
-      coord.z = z_ptr[ind] - offset_z;
+      DGUtils::Vec<3> coord;
+      coord[0] = x_ptr[ind] - offset_x;
+      coord[1] = y_ptr[ind] - offset_y;
+      coord[2] = z_ptr[ind] - offset_z;
       Point point;
       auto res = pointMap.insert(make_pair(coord, point));
 
@@ -157,9 +155,6 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
         res.first->second.val   = s_ptr[ind];
         res.first->second.count = 1;
       } else {
-        // if(sten == cell_ind) {
-        //   res.first->second.val = s_ptr[ind];
-        // }
         // Point already exists
         res.first->second.val += s_ptr[ind];
         res.first->second.count++;
@@ -168,9 +163,9 @@ void PolyApprox3D::stencil_data(const int cell_ind, const set<int> &stencil,
   }
 
   for(auto const &p : pointMap) {
-    x.push_back(p.second.coord.x);
-    y.push_back(p.second.coord.y);
-    z.push_back(p.second.coord.z);
+    x.push_back(p.second.coord[0]);
+    y.push_back(p.second.coord[1]);
+    z.push_back(p.second.coord[2]);
     s.push_back(p.second.val / (DG_FP)p.second.count);
   }
 }
@@ -746,7 +741,9 @@ struct stencil_query {
   set<int> central_inds;
 };
 
-map<int,set<int>> PolyApprox3D::get_stencils(const set<int> &central_inds, op_map edge_map) {
+map<int,set<int>> PolyApprox3D::get_stencils(const set<int> &central_inds, op_map edge_map, const DG_FP *x_ptr, const DG_FP *y_ptr, const DG_FP *z_ptr) {
+  return single_layer_stencils(central_inds, edge_map, x_ptr, y_ptr, z_ptr);
+
   timer->startTimer("PolyApprox3D - get_stencils");
   map<int,set<int>> stencils;
   map<int,stencil_query> queryInds;
@@ -813,6 +810,113 @@ map<int,set<int>> PolyApprox3D::get_stencils(const set<int> &central_inds, op_ma
       queryInds = newQueryInds;
     }
   }
+  timer->endTimer("PolyApprox3D - get_stencils");
+  return stencils;
+
+}
+
+bool share_coords(const DG_FP *x_ptr, const DG_FP *y_ptr, const DG_FP *z_ptr, const std::vector<DGUtils::Vec<3>> &nodes) {
+  for(int i = 0; i < DG_NP; i++) {
+    for(int n = 0; n < 4; n++) {
+      bool xCmp = abs(x_ptr[i] - nodes[n][0]) < 1e-8;
+      bool yCmp = abs(y_ptr[i] - nodes[n][1]) < 1e-8;
+      bool zCmp = abs(z_ptr[i] - nodes[n][2]) < 1e-8;
+      if(xCmp && yCmp && zCmp) return true;
+    }
+  }
+  return false;
+}
+
+map<int,set<int>> PolyApprox3D::single_layer_stencils(const set<int> &central_inds, op_map edge_map, const DG_FP *x_ptr, const DG_FP *y_ptr, const DG_FP *z_ptr) {
+  timer->startTimer("PolyApprox3D - get_stencils");
+  map<int,set<int>> stencils;
+  map<int,stencil_query> queryInds;
+  map<int,std::vector<DGUtils::Vec<3>>> central_inds_nodes;
+
+  // const int fmask_node_ind_0 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF];
+  // const int fmask_node_ind_1 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + DG_NPF - 1];
+  // const int fmask_node_ind_2 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + 2 * DG_NPF - 1];
+  // const int fmask_node_ind_3 = FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + 3 * DG_NPF - 1];
+
+  // const int fmask_node_ind_0 = 0;
+  // const int fmask_node_ind_1 = 3;
+  // const int fmask_node_ind_2 = 9;
+  // const int fmask_node_ind_3 = 19;
+  set<int> fmask_inds;
+  for(int i = 0; i < DG_NUM_FACES * DG_NPF; i++) {
+    fmask_inds.insert(FMASK[(DG_ORDER - 1) * DG_NUM_FACES * DG_NPF + i]);
+  }
+
+  for(const auto &ind : central_inds) {
+    set<int> st;
+    st.insert(ind);
+    stencils.insert({ind, st});
+    stencil_query sq;
+    sq.ind = ind;
+    sq.central_inds.insert(ind);
+    queryInds.insert({ind, sq});
+
+    std::vector<DGUtils::Vec<3>> nodes;
+    for(const auto &fmask_ind : fmask_inds) {
+      DGUtils::Vec<3> node;
+      node[0] = x_ptr[ind * DG_NP + fmask_ind];
+      node[1] = y_ptr[ind * DG_NP + fmask_ind];
+      node[2] = z_ptr[ind * DG_NP + fmask_ind];
+      nodes.push_back(node);
+    }
+    central_inds_nodes.insert({ind, nodes});
+  }
+
+  const int numEdges = edge_map->from->size;
+  while(queryInds.size() > 0) {
+    map<int,stencil_query> newQueryInds;
+
+    // Iterate over each edge pair
+    for(int i = 0; i < numEdges * 2; i++) {
+      // Find if this cell ind is in the query inds
+      auto it = queryInds.find(edge_map->map[i]);
+      if(it != queryInds.end()) {
+        if(i % 2 == 0) {
+          // For each central ind associated with this query ind
+          for(const auto &ind : it->second.central_inds) {
+            auto stencil_it = stencils.find(ind);
+            // Check if the other cell in this edge is already in the stencil for this central ind
+            if(stencil_it->second.find(edge_map->map[i + 1]) == stencil_it->second.end()) {
+              // Check if we share a node with the central ind
+              auto node_coords = central_inds_nodes.at(ind);
+              if(share_coords(x_ptr + edge_map->map[i + 1] * DG_NP, y_ptr + edge_map->map[i + 1] * DG_NP, z_ptr + edge_map->map[i + 1] * DG_NP, node_coords)) {
+                stencil_it->second.insert(edge_map->map[i + 1]);
+                stencil_query sq;
+                sq.ind = edge_map->map[i + 1];
+                auto res = newQueryInds.insert({edge_map->map[i + 1], sq});
+                res.first->second.central_inds.insert(ind);
+              }
+            }
+          }
+        } else {
+          // For each central ind associated with this query ind
+          for(const auto &ind : it->second.central_inds) {
+            auto stencil_it = stencils.find(ind);
+            // Check if the other cell in this edge is already in the stencil for this central ind
+            if(stencil_it->second.find(edge_map->map[i - 1]) == stencil_it->second.end()) {
+              // Check if we share a node with the central ind
+              auto node_coords = central_inds_nodes.at(ind);
+              if(share_coords(x_ptr + edge_map->map[i - 1] * DG_NP, y_ptr + edge_map->map[i - 1] * DG_NP, z_ptr + edge_map->map[i - 1] * DG_NP, node_coords)) {
+                stencil_it->second.insert(edge_map->map[i - 1]);
+                stencil_query sq;
+                sq.ind = edge_map->map[i - 1];
+                auto res = newQueryInds.insert({edge_map->map[i - 1], sq});
+                res.first->second.central_inds.insert(ind);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    queryInds = newQueryInds;
+  }
+
   timer->endTimer("PolyApprox3D - get_stencils");
   return stencils;
 }

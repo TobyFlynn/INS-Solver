@@ -1000,5 +1000,6 @@ void MPINSSolver3D::dump_visualisation_data(const std::string &filename) {
 
   if(values_to_save.count("level_set") != 0) {
     op_fetch_data_hdf5_file(lsSolver->s, filename.c_str());
+    op_fetch_data_hdf5_file(lsSolver->kink, filename.c_str());
   }
 }
