@@ -12,6 +12,7 @@
 // BC types for linear solvers
 #define BC_DIRICHLET 0
 #define BC_NEUMANN 1
+#define BC_SLIP 2
 
 // Hardcoded BC types, do not edit
 #define BC_TYPE_NO_SLIP 0
