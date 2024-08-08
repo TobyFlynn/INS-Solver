@@ -41,7 +41,7 @@ public:
 
   DGMesh3D *mesh;
 
-  op_dat s, bc_types;
+  op_dat s, bc_types, kink;
 
   DG_FP alpha, order_width, ls_cap;
 private:
@@ -49,14 +49,17 @@ private:
                        std::vector<PolyApprox3D> &polys, std::map<int,int> &cell2polyMap,
                        std::set<int> &cellInds);
   void reinitLS();
+  void detect_kinks();
+  void create_point_map_for_kink_detection();
   // bool reinitNeeded();
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
-  bool resuming, reinitialise;
+  bool resuming, reinitialise, kink_detection;
   int reinit_counter, reinit_frequency;
 
   LevelSetAdvectionSolver3D *advectionSolver;
   KDTree3D *kdtree;
+  std::map<DGUtils::Vec<3>,std::vector<DGUtils::Vec<3>>> point_map_for_kink_detection;
 };
 
 #endif

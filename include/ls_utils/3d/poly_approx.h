@@ -30,7 +30,8 @@ public:
   static const int N = DG_ORDER;
   static int num_coeff();
   static int num_elem_stencil();
-  static std::map<int,std::set<int>> get_stencils(const std::set<int> &central_inds, op_map edge_map);
+  static std::map<int,std::set<int>> get_stencils(const std::set<int> &central_inds, op_map edge_map, const DG_FP *x_ptr, const DG_FP *y_ptr, const DG_FP *z_ptr);
+  static std::map<int,std::set<int>> single_layer_stencils(const std::set<int> &central_inds, op_map edge_map, const DG_FP *x_ptr, const DG_FP *y_ptr, const DG_FP *z_ptr);
 private:
   DG_FP offset_x, offset_y, offset_z;
   std::vector<DG_FP> coeff;
