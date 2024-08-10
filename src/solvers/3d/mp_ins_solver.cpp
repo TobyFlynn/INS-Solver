@@ -110,7 +110,13 @@ void MPINSSolver3D::setup_common() {
       dg_abort("Unsupported preconditioner for slip BCs");
     }
     slipViscousSolver->set_matrix(slipViscousMatrix);
-    slipViscousSolver->set_tol_and_iter(1e-8, 1e-9, 1000);
+    double vis_rtol = 1e-8;
+    double vis_atol = 1e-9;
+    int vis_max_iter = 5000;
+    config->getDouble("viscous-solve", "r_tol", vis_rtol);
+    config->getDouble("viscous-solve", "a_tol", vis_atol);
+    config->getInt("viscous-solve", "max_iter", vis_max_iter);
+    slipViscousSolver->set_tol_and_iter(vis_rtol, vis_atol, vis_max_iter);
     bc_data_2 = op_decl_dat(mesh->bfaces, DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_bc_data_2");
     vis_bc_types_2 = op_decl_dat(mesh->bfaces, 1, "int", (int *)NULL, "ins_solver_vis_bc_types_2");
     bc_data_3 = op_decl_dat(mesh->bfaces, DG_NPF, DG_FP_STR, (DG_FP *)NULL, "ins_solver_bc_data_3");
