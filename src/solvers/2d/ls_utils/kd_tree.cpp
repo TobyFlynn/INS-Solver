@@ -48,6 +48,44 @@ void KDTree::pre_build_setup(const DG_FP *x, const DG_FP *y, const int num, op_d
 
   // Construct cell to poly map for all these points
   update_poly_inds(points);
+
+  // Duplicate points to account for periodic boundary
+  std::vector<KDCoord> periodic_points;
+  for(int i = 0; i < points.size(); i++) {
+    if(points[i].coord[1] < -2.070326 + 1.0) {
+      KDCoord pt;
+      pt.coord[0] = points[i].coord[0];
+      pt.coord[1] = points[i].coord[1] + 4.203912;
+      pt.coord_rot[0] = points[i].coord_rot[0];
+      pt.coord_rot[1] = points[i].coord_rot[1] + 4.203912;
+      std::vector<double> coeff;
+      for(int j = 0; j < PolyApprox::num_coeff(); j++)
+        coeff.push_back(polys[points[i].poly].get_coeff(j));
+      double poly_x_offset, poly_y_offset;
+      polys[points[i].poly].get_offsets(poly_x_offset, poly_y_offset);
+      PolyApprox offset_poly(coeff, poly_x_offset, poly_y_offset + 4.203912);
+      polys.push_back(offset_poly);
+      pt.poly = polys.size() - 1;
+      periodic_points.push_back(pt);
+    } else if(points[i].coord[1] > 2.133586 - 1.0) {
+      KDCoord pt;
+      pt.coord[0] = points[i].coord[0];
+      pt.coord[1] = points[i].coord[1] - 4.203912;
+      pt.coord_rot[0] = points[i].coord_rot[0];
+      pt.coord_rot[1] = points[i].coord_rot[1] - 4.203912;
+      std::vector<double> coeff;
+      for(int j = 0; j < PolyApprox::num_coeff(); j++)
+        coeff.push_back(polys[points[i].poly].get_coeff(j));
+      double poly_x_offset, poly_y_offset;
+      polys[points[i].poly].get_offsets(poly_x_offset, poly_y_offset);
+      PolyApprox offset_poly(coeff, poly_x_offset, poly_y_offset - 4.203912);
+      polys.push_back(offset_poly);
+      pt.poly = polys.size() - 1;
+      periodic_points.push_back(pt);
+    }
+  }
+
+  points.insert(points.end(), periodic_points.begin(), periodic_points.end());
 }
 
 void KDTree::build_tree(const DG_FP *x, const DG_FP *y, const int num, op_dat s) {

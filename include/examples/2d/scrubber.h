@@ -100,6 +100,87 @@ DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
   const DG_FP MIN_Y_PLATE_3 = -1.54;
   const DG_FP MAX_Y_PLATE_3 = MIN_Y_PLATE_3 + IC_DEPTH;
 
+  if(y >= MIN_Y_PLATE_0 && y <= MAX_Y_PLATE_0 && x <= MAX_X) {
+    if(y + 0.3395 * x - 1.200625 > 0)
+      s = -fmin(MAX_Y_PLATE_0 - y, MAX_X - x);
+    else
+      s = 1.0;
+  } else if(y >= MIN_Y_PLATE_1 && y <= MAX_Y_PLATE_1 && x >= MIN_X) {
+    if(y - 0.3395 * x - 0.12563 > 0)
+      s = -fmin(MAX_Y_PLATE_1 - y, x - MIN_X);
+    else
+      s = 1.0;
+  } else if(y >= MIN_Y_PLATE_2 && y <= MAX_Y_PLATE_2 && x <= MAX_X) {
+    if(y + 0.3395 * x + 0.89937 > 0)
+      s = -fmin(MAX_Y_PLATE_2 - y, MAX_X - x);
+    else
+      s = 1.0;
+  } else if(y >= MIN_Y_PLATE_3 && y <= MAX_Y_PLATE_3 && x >= MIN_X) {
+    if(y - 0.3395 * x + 1.97937 > 0)
+      s = -fmin(MAX_Y_PLATE_3 - y, x - MIN_X);
+    else
+      s = 1.0;
+  } else {
+    if(y > MIN_Y_PLATE_0 && y < MAX_Y_PLATE_0 || y > MIN_Y_PLATE_1 && y < MAX_Y_PLATE_1
+       || y > MIN_Y_PLATE_2 && y < MAX_Y_PLATE_2 || y > MIN_Y_PLATE_3 && y < MAX_Y_PLATE_3) {
+      s = x < MIN_X ? MIN_X - x : x - MAX_X;
+    } else {
+      if(y > MAX_Y_PLATE_0) {
+        if(x >= MAX_X) {
+          DG_FP dist_pt_r = (x - MAX_X) * (x - MAX_X) + (y - MAX_Y_PLATE_0) * (y - MAX_Y_PLATE_0);
+          s = sqrt(dist_pt_r);
+        } else {
+          s = y - MAX_Y_PLATE_0;
+        }
+      } else if(y > MAX_Y_PLATE_1) {
+        if(x <= MIN_X) {
+          DG_FP dist_pt_l = (x - MIN_X) * (x - MIN_X) + (y - MAX_Y_PLATE_1) * (y - MAX_Y_PLATE_1);
+          s = sqrt(dist_pt_l);
+        } else {
+          s = y - MAX_Y_PLATE_1;
+        }
+      } else if(y > MAX_Y_PLATE_2) {
+        if(x >= MAX_X) {
+          DG_FP dist_pt_r = (x - MAX_X) * (x - MAX_X) + (y - MAX_Y_PLATE_2) * (y - MAX_Y_PLATE_2);
+          s = sqrt(dist_pt_r);
+        } else {
+          s = y - MAX_Y_PLATE_2;
+        }
+      } else if(y > MAX_Y_PLATE_3) {
+        if(x <= MIN_X) {
+          DG_FP dist_pt_l = (x - MIN_X) * (x - MIN_X) + (y - MAX_Y_PLATE_3) * (y - MAX_Y_PLATE_3);
+          s = sqrt(dist_pt_l);
+        } else {
+          s = y - MAX_Y_PLATE_3;
+        }
+      } else {
+        if(x >= MAX_X) {
+          DG_FP dist_pt_r = (x - MAX_X) * (x - MAX_X) + ((y + DOMAIN_HEIGHT) - MAX_Y_PLATE_0) * ((y + DOMAIN_HEIGHT) - MAX_Y_PLATE_0);
+          s = sqrt(dist_pt_r);
+        } else {
+          s = y - (MAX_Y_PLATE_0 - DOMAIN_HEIGHT);
+        }
+      }
+    }
+  }
+
+/*  
+  const DG_FP MIN_X = -1.25;
+  const DG_FP MAX_X = 1.25;
+  const DG_FP IC_DEPTH = 0.35;
+  // Plate 0
+  const DG_FP MIN_Y_PLATE_0 = 1.62;
+  const DG_FP MAX_Y_PLATE_0 = MIN_Y_PLATE_0 + IC_DEPTH;
+  // Plate 1
+  const DG_FP MIN_Y_PLATE_1 = 0.55;
+  const DG_FP MAX_Y_PLATE_1 = MIN_Y_PLATE_1 + IC_DEPTH;
+  // Plate 2
+  const DG_FP MIN_Y_PLATE_2 = -0.47;
+  const DG_FP MAX_Y_PLATE_2 = MIN_Y_PLATE_2 + IC_DEPTH;
+  // Plate 3
+  const DG_FP MIN_Y_PLATE_3 = -1.54;
+  const DG_FP MAX_Y_PLATE_3 = MIN_Y_PLATE_3 + IC_DEPTH;
+
   if(x > MIN_X && x < MAX_X) {
     const DG_FP min_dist_to_x_boundary = fmin(x - MIN_X, MAX_X - x);
     if(y > MIN_Y_PLATE_0 && y < MAX_Y_PLATE_0) {
@@ -151,6 +232,7 @@ DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
       }
     }
   }
+*/
 }
 
 // Set level set value on custom BCs (return sM otherwise)

@@ -51,6 +51,12 @@ KDTreeMPI::KDTreeMPI(DGMesh2D *m, const DG_FP alpha) : KDTree(m) {
     if(y_ptr[i] > max_y) max_y = y_ptr[i];
   }
 
+  // Account for replicating points within 1.0 of the periodic boundary
+  if(min_y < -2.070326 + 1.0)
+    max_y = 2.133586 + 1.0;
+  if(max_y > 2.133586 - 1.0)
+    min_y = -2.070326 - 1.0;
+
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
   releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
 

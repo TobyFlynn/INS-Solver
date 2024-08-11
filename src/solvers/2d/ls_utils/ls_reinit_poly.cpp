@@ -1104,6 +1104,12 @@ bool share_coords(const DG_FP *x_ptr, const DG_FP *y_ptr, const std::vector<DGUt
     for(int n = 0; n < 3; n++) {
       bool xCmp = abs(x_ptr[i] - nodes[n][0]) < 1e-8;
       bool yCmp = abs(y_ptr[i] - nodes[n][1]) < 1e-8;
+      if(abs(y_ptr[i] - nodes[n][1]) > 3.5) {
+        if(nodes[n][1] < -1.9)
+          yCmp = abs((y_ptr[i] - 4.203912) - nodes[n][1]) < 1e-8;
+        else if(nodes[n][1] > 1.9)
+          yCmp = abs((y_ptr[i] + 4.203912) - nodes[n][1]) < 1e-8;
+      }
       if(xCmp && yCmp) return true;
     }
   }
@@ -1219,6 +1225,12 @@ void get_stencil_values(const int cell_ind, const set<int> &stencil, const DG_FP
       DGUtils::Vec<2> coord;
       coord[0] = x_ptr[ind] - offset_x;
       coord[1] = y_ptr[ind] - offset_y;
+      if(fabs(y_ptr[ind] - offset_y) > 3.0) {
+        if(offset_y < -1.9)
+          coord[1] = (y_ptr[ind] - 4.203912) - offset_y;
+        else if(offset_y > 1.9)
+          coord[1] = (y_ptr[ind] + 4.203912) - offset_y;
+      }
       Point point;
       auto res = pointMap.insert(make_pair(coord, point));
 
