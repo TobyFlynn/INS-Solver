@@ -51,7 +51,7 @@ public:
 private:
   void sampleInterface(op_dat sampleX, op_dat sampleY, std::vector<PolyApprox> &polys,
                        std::map<int,int> &cell2polyMap, std::set<int> &cellInds);
-  void reinitLS();
+  void reinitLS(bool use_kink_detection);
   bool reinitNeeded();
   void detect_kinks();
 

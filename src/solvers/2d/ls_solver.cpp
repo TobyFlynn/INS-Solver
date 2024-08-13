@@ -147,8 +147,11 @@ void LevelSetSolver2D::init() {
   config->getInt("level-set-options", "kink_detection", tmp_kink);
   kink_detection = tmp_kink == 1;
 
+  int use_kink_for_ic = kink_detection ? 1 : 0;
+  config->getInt("level-set-options", "ic_kink_detection", use_kink_for_ic);
+
   if(tmp_reinit_ic != 0)
-    reinitLS();
+    reinitLS(use_kink_for_ic == 1);
 }
 
 void LevelSetSolver2D::set_bc_types(op_dat bc) {
@@ -168,7 +171,7 @@ void LevelSetSolver2D::step(const DG_FP dt, const int num_steps) {
 
   reinit_counter++;
   if(reinitialise && reinit_counter >= reinit_frequency) {
-    reinitLS();
+    reinitLS(kink_detection);
     reinit_counter = 0;
   }
   timer->endTimer("LevelSetSolver2D - step");
@@ -584,13 +587,16 @@ std::string ls_double_to_text(const double &d) {
 }
 #endif
 
-void LevelSetSolver2D::reinitLS() {
+void LevelSetSolver2D::reinitLS(bool use_kink_detection) {
   timer->startTimer("LevelSetSolver2D - reinitLS");
 
-  if(kink_detection) {
+  if(use_kink_detection) {
     timer->startTimer("LevelSetSolver2D - detect kinks");
     detect_kinks();
     timer->endTimer("LevelSetSolver2D - detect kinks");
+  } else {
+    op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
+                op_arg_dat(kink, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   }
 
   timer->startTimer("LevelSetSolver2D - get cells containing interface");
