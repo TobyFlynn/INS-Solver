@@ -53,6 +53,8 @@ python3 $OP2_TRANSLATOR ins2d.cpp \
         solvers/2d/slip_matrix/viscous_matrix.cpp \
         solvers/2d/slip_matrix/factor_viscous_matrix.cpp \
         solvers/2d/slip_matrix/viscous_solver.cpp \
+        solvers/2d/compressible_euler_driver.cpp \
+        solvers/2d/compressible_euler.cpp \
         kernels/
 
 cuda_line_no_2d=$(grep -n op_cuda_reduction cuda/ins2d_kernels.cu | cut -d : -f 1)

@@ -19,6 +19,7 @@
 #include "solvers/2d/ins_temperature_solver.h"
 #include "solvers/2d/mp_ins_solver.h"
 #include "drivers/2d/ls_driver.h"
+#include "drivers/2d/compressible_euler_driver.h"
 #include "measurements/2d/lift_drag_cylinder.h"
 #include "measurements/2d/l2_error_vortex.h"
 #include "measurements/2d/min_max_interface.h"
@@ -217,6 +218,11 @@ int main(int argc, char **argv) {
       throw std::runtime_error("Resuming level-set-only simulation is not supported currently");
     else
       driver = new LSDriver2D(mesh);
+  } else if(type_of_solver == "compressible-euler") {
+    if(resuming)
+      throw std::runtime_error("Resuming level-set-only simulation is not supported currently");
+    else
+      driver = new CompressibleEulerDriver2D(mesh);
   } else {
     dg_abort("Unknown \'type_of_solver\' specified in config file, valid options: \'single-phase\', \'multi-phase\', \'single-phase-with-temperature\'");
   }
