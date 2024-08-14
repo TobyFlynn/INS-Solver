@@ -21,10 +21,12 @@ public:
 
 private:
   void rhs(op_dat *inQ, op_dat *outQ);
+  void rhs_over_int(op_dat *inQ, op_dat *outQ);
 
   DGMesh2D *mesh;
   DG_FP h, dt, time;
   op_dat rk_wQ[4], rk_RHSQ[3][4];
+  bool over_int;
 };
 
 #endif

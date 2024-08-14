@@ -35,6 +35,7 @@ CompressibleEuler2D::CompressibleEuler2D(DGMesh2D *m) {
   }
 
   time = 0.0;
+  over_int = false;
 }
 
 CompressibleEuler2D::~CompressibleEuler2D() {
@@ -58,7 +59,10 @@ void CompressibleEuler2D::init() {
 }
 
 void CompressibleEuler2D::step() {
-  rhs(Q, rk_RHSQ[0]);
+  if(over_int)
+    rhs_over_int(Q, rk_RHSQ[0]);
+  else
+    rhs(Q, rk_RHSQ[0]);
 
   op_par_loop(euler_2d_wQ_0, "euler_2d_wQ_0", mesh->cells,
               op_arg_gbl(&dt, 1, "double", OP_READ),
@@ -75,7 +79,10 @@ void CompressibleEuler2D::step() {
               op_arg_dat(rk_wQ[2], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(rk_wQ[3], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  rhs(rk_wQ, rk_RHSQ[1]);
+  if(over_int)
+    rhs_over_int(rk_wQ, rk_RHSQ[1]);
+  else
+    rhs(rk_wQ, rk_RHSQ[1]);
 
   op_par_loop(euler_2d_wQ_1, "euler_2d_wQ_1", mesh->cells,
               op_arg_gbl(&dt, 1, "double", OP_READ),
@@ -96,7 +103,10 @@ void CompressibleEuler2D::step() {
               op_arg_dat(rk_wQ[2], -1, OP_ID, DG_NP, "double", OP_WRITE),
               op_arg_dat(rk_wQ[3], -1, OP_ID, DG_NP, "double", OP_WRITE));
 
-  rhs(rk_wQ, rk_RHSQ[2]);
+  if(over_int)
+    rhs_over_int(rk_wQ, rk_RHSQ[2]);
+  else
+    rhs(rk_wQ, rk_RHSQ[2]);
 
   op_par_loop(euler_2d_wQ_2, "euler_2d_wQ_2", mesh->cells,
               op_arg_gbl(&dt, 1, "double", OP_READ),
@@ -122,6 +132,94 @@ void CompressibleEuler2D::step() {
 
 void CompressibleEuler2D::rhs(op_dat *inQ, op_dat *outQ) {
   DGTempDat F[4], G[4];
+  F[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  F[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  F[2] = dg_dat_pool->requestTempDatCells(DG_NP);
+  F[3] = dg_dat_pool->requestTempDatCells(DG_NP);
+  G[0] = dg_dat_pool->requestTempDatCells(DG_NP);
+  G[1] = dg_dat_pool->requestTempDatCells(DG_NP);
+  G[2] = dg_dat_pool->requestTempDatCells(DG_NP);
+  G[3] = dg_dat_pool->requestTempDatCells(DG_NP);
+
+  timer->startTimer("Euler2D - Vol Kernel");
+  op_par_loop(euler_2d_vol, "euler_2d_vol", mesh->cells,
+              op_arg_dat(inQ[0], -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(inQ[1], -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(inQ[2], -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(inQ[3], -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(F[0].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(F[1].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(F[2].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(F[3].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(G[0].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(G[1].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(G[2].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(G[3].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE));
+  timer->endTimer("Euler2D - Vol Kernel");
+
+  timer->startTimer("Euler2D - Vol Div");
+  mesh->div_weak(F[0].dat, G[0].dat, outQ[0]);
+  mesh->div_weak(F[1].dat, G[1].dat, outQ[1]);
+  mesh->div_weak(F[2].dat, G[2].dat, outQ[2]);
+  mesh->div_weak(F[3].dat, G[3].dat, outQ[3]);
+  timer->endTimer("Euler2D - Vol Div");
+
+  dg_dat_pool->releaseTempDatCells(F[0]);
+  dg_dat_pool->releaseTempDatCells(F[1]);
+  dg_dat_pool->releaseTempDatCells(F[2]);
+  dg_dat_pool->releaseTempDatCells(F[3]);
+  dg_dat_pool->releaseTempDatCells(G[0]);
+  dg_dat_pool->releaseTempDatCells(G[1]);
+  dg_dat_pool->releaseTempDatCells(G[2]);
+  dg_dat_pool->releaseTempDatCells(G[3]);
+
+  DGTempDat surf_terms[4];
+  surf_terms[0] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  surf_terms[1] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  surf_terms[2] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+  surf_terms[3] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+
+  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+              op_arg_dat(surf_terms[0].dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+              op_arg_dat(surf_terms[1].dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+              op_arg_dat(surf_terms[2].dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+              op_arg_dat(surf_terms[3].dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+
+  timer->startTimer("Euler2D - Surf Kernel");
+  op_par_loop(euler_2d_surf, "euler_2d_surf", mesh->faces,
+              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+              op_arg_dat(mesh->nx, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->ny, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(mesh->fscale, -1, OP_ID, 2, DG_FP_STR, OP_READ),
+              op_arg_dat(inQ[0], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(inQ[1], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(inQ[2], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(inQ[3], -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(surf_terms[0].dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(surf_terms[1].dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(surf_terms[2].dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
+              op_arg_dat(surf_terms[3].dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+  timer->endTimer("Euler2D - Surf Kernel");
+
+  timer->startTimer("Euler2D - Surf Lift");
+  op2_gemv(mesh, false, -1.0, DGConstants::LIFT, surf_terms[0].dat, 1.0, outQ[0]);
+  op2_gemv(mesh, false, -1.0, DGConstants::LIFT, surf_terms[1].dat, 1.0, outQ[1]);
+  op2_gemv(mesh, false, -1.0, DGConstants::LIFT, surf_terms[2].dat, 1.0, outQ[2]);
+  op2_gemv(mesh, false, -1.0, DGConstants::LIFT, surf_terms[3].dat, 1.0, outQ[3]);
+  timer->endTimer("Euler2D - Surf Lift");
+
+  dg_dat_pool->releaseTempDatCells(surf_terms[0]);
+  dg_dat_pool->releaseTempDatCells(surf_terms[1]);
+  dg_dat_pool->releaseTempDatCells(surf_terms[2]);
+  dg_dat_pool->releaseTempDatCells(surf_terms[3]);
+}
+
+void CompressibleEuler2D::rhs_over_int(op_dat *inQ, op_dat *outQ) {
+  DGTempDat F[4], G[4];
   F[0] = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
   F[1] = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
   F[2] = dg_dat_pool->requestTempDatCells(DG_CUB_2D_NP);
@@ -139,7 +237,7 @@ void CompressibleEuler2D::rhs(op_dat *inQ, op_dat *outQ) {
   timer->endTimer("Euler2D - Vol Interp");
 
   timer->startTimer("Euler2D - Vol Kernel");
-  op_par_loop(euler_2d_vol, "euler_2d_vol", mesh->cells,
+  op_par_loop(euler_2d_vol_oi, "euler_2d_vol_oi", mesh->cells,
               op_arg_dat(mesh->geof, -1, OP_ID, 5, DG_FP_STR, OP_READ),
               op_arg_dat(F[0].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW),
               op_arg_dat(F[1].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_RW),
@@ -178,7 +276,7 @@ void CompressibleEuler2D::rhs(op_dat *inQ, op_dat *outQ) {
   surf_terms[3] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
 
   timer->startTimer("Euler2D - Surf Kernel");
-  op_par_loop(euler_2d_surf, "euler_2d_surf", mesh->faces,
+  op_par_loop(euler_2d_surf_oi, "euler_2d_surf_oi", mesh->faces,
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
               op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
               op_arg_dat(mesh->nx, -1, OP_ID, 2, DG_FP_STR, OP_READ),
