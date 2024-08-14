@@ -58,3 +58,7 @@ DG_FP CompressibleEulerDriver2D::get_time() {
 DGMesh2D* CompressibleEulerDriver2D::get_mesh() {
   return mesh;
 }
+
+op_dat CompressibleEulerDriver2D::get_rho() {
+  return euler_solver->Q[0];
+}
