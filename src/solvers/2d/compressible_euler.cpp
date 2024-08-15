@@ -35,7 +35,7 @@ CompressibleEuler2D::CompressibleEuler2D(DGMesh2D *m) {
   }
 
   time = 0.0;
-  over_int = false;
+  over_int = true;
 }
 
 CompressibleEuler2D::~CompressibleEuler2D() {
@@ -293,6 +293,15 @@ void CompressibleEuler2D::rhs_over_int(op_dat *inQ, op_dat *outQ) {
   surf_terms[2] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
   surf_terms[3] = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_CUB_SURF_2D_NP);
 
+  op_par_loop(zero_cub_surf_2d, "zero_cub_surf_2d", mesh->cells,
+                op_arg_dat(surf_terms[0].dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_WRITE));
+  op_par_loop(zero_cub_surf_2d, "zero_cub_surf_2d", mesh->cells,
+                op_arg_dat(surf_terms[1].dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_WRITE));
+  op_par_loop(zero_cub_surf_2d, "zero_cub_surf_2d", mesh->cells,
+                op_arg_dat(surf_terms[2].dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_WRITE));
+  op_par_loop(zero_cub_surf_2d, "zero_cub_surf_2d", mesh->cells,
+                op_arg_dat(surf_terms[3].dat, -1, OP_ID, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_WRITE));
+
   timer->startTimer("Euler2D - Surf Kernel");
   op_par_loop(euler_2d_surf_oi, "euler_2d_surf_oi", mesh->faces,
               op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
@@ -309,6 +318,24 @@ void CompressibleEuler2D::rhs_over_int(op_dat *inQ, op_dat *outQ) {
               op_arg_dat(surf_terms[2].dat, -2, mesh->face2cells, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_WRITE),
               op_arg_dat(surf_terms[3].dat, -2, mesh->face2cells, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_WRITE));
   timer->endTimer("Euler2D - Surf Kernel");
+
+  timer->startTimer("Euler2D - BC Surf Kernel");
+  if(mesh->bface2cells) {
+    op_par_loop(euler_2d_surf_bc_oi, "euler_2d_surf_bc_oi", mesh->bfaces,
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(inQ[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(inQ[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(inQ[2], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(inQ[3], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(surf_terms[0].dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_INC),
+                op_arg_dat(surf_terms[1].dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_INC),
+                op_arg_dat(surf_terms[2].dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_INC),
+                op_arg_dat(surf_terms[3].dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_CUB_SURF_2D_NP, DG_FP_STR, OP_INC));
+  }
+  timer->endTimer("Euler2D - BC Surf Kernel");
 
   timer->startTimer("Euler2D - Surf Lift");
   op2_gemv(mesh, false, -1.0, DGConstants::CUBSURF2D_LIFT, surf_terms[0].dat, 1.0, outQ[0]);
