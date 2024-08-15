@@ -143,18 +143,18 @@ void CompressibleEuler2D::rhs(op_dat *inQ, op_dat *outQ) {
 
   timer->startTimer("Euler2D - Vol Kernel");
   op_par_loop(euler_2d_vol, "euler_2d_vol", mesh->cells,
-              op_arg_dat(inQ[0], -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(inQ[1], -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(inQ[2], -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(inQ[3], -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(F[0].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(F[1].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(F[2].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(F[3].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(G[0].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(G[1].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(G[2].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE),
-              op_arg_dat(G[3].dat, -1, OP_ID, DG_CUB_2D_NP, DG_FP_STR, OP_WRITE));
+              op_arg_dat(inQ[0], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(inQ[1], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(inQ[2], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(inQ[3], -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(F[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(F[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(F[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(F[3].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(G[0].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(G[1].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(G[2].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE),
+              op_arg_dat(G[3].dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
   timer->endTimer("Euler2D - Vol Kernel");
 
   timer->startTimer("Euler2D - Vol Div");
@@ -204,6 +204,24 @@ void CompressibleEuler2D::rhs(op_dat *inQ, op_dat *outQ) {
               op_arg_dat(surf_terms[2].dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE),
               op_arg_dat(surf_terms[3].dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
   timer->endTimer("Euler2D - Surf Kernel");
+
+  timer->startTimer("Euler2D - BC Surf Kernel");
+  if(mesh->bface2cells) {
+    op_par_loop(euler_2d_surf_bc, "euler_2d_surf_bc", mesh->bfaces,
+                op_arg_dat(mesh->bedgeNum, -1, OP_ID, 1, "int", OP_READ),
+                op_arg_dat(mesh->bnx, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bny, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(mesh->bfscale, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(inQ[0], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(inQ[1], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(inQ[2], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(inQ[3], 0, mesh->bface2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(surf_terms[0].dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+                op_arg_dat(surf_terms[1].dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+                op_arg_dat(surf_terms[2].dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC),
+                op_arg_dat(surf_terms[3].dat, 0, mesh->bface2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_INC));
+  }
+  timer->endTimer("Euler2D - BC Surf Kernel");
 
   timer->startTimer("Euler2D - Surf Lift");
   op2_gemv(mesh, false, -1.0, DGConstants::LIFT, surf_terms[0].dat, 1.0, outQ[0]);
