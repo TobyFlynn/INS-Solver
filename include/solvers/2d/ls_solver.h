@@ -54,14 +54,18 @@ private:
   void reinitLS();
   bool reinitNeeded();
   void detect_kinks();
+  void create_point_map_for_kink_detection();
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
+  DG_FP kink_max_distance_between_points, kink_sqr_tol;
+  int kink_max_neighbours;
   int numSteps;
-  bool resuming, reinitialise, kink_detection;
+  bool resuming, reinitialise, kink_detection, kink_avoid_whole_element;
   int reinit_counter, reinit_frequency;
 
   LevelSetAdvectionSolver2D *advecSolver;
   KDTree *kdtree;
+  std::map<DGUtils::Vec<2>,std::vector<DGUtils::Vec<2>>> point_map_for_kink_detection;
 };
 
 #endif
