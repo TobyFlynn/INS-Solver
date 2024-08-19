@@ -1559,6 +1559,8 @@ void INSSolverBase3D::dump_visualisation_data(const std::string &filename) {
     op_fetch_data_hdf5_file(art_vis_z, filename.c_str());
     op_free_dat_temp(art_vis_z);
   }
+
+  op_write_const_hdf5("time", 1, "double", (char *)&time, filename.c_str());
 }
 
 void INSSolverBase3D::zero_dat(op_dat dat) {
