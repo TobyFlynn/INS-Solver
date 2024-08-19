@@ -54,7 +54,9 @@ private:
   // bool reinitNeeded();
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
-  bool resuming, reinitialise, kink_detection;
+  DG_FP kink_max_distance_between_points, kink_sqr_tol;
+  int kink_max_neighbours;
+  bool resuming, reinitialise, kink_detection, kink_avoid_whole_element;
   int reinit_counter, reinit_frequency;
 
   LevelSetAdvectionSolver3D *advectionSolver;

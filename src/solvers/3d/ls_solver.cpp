@@ -136,6 +136,7 @@ void LevelSetSolver3D::init() {
   // order_width = 12.0 * h;
   // epsilon = h;
   ls_cap = 100.0;
+  config->getDouble("level-set-options", "ls_cap", ls_cap);
   // reinit_width = fmin(4.0 * alpha, ls_cap);
   reinit_width = ls_cap;
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
@@ -160,7 +161,18 @@ void LevelSetSolver3D::init() {
   int tmp_kink = 1;
   config->getInt("level-set-options", "kink_detection", tmp_kink);
   kink_detection = tmp_kink == 1;
+  int tmp_kink_element = 0;
+  config->getInt("level-set-options", "kink_avoid_whole_element", tmp_kink_element);
+  kink_avoid_whole_element = tmp_kink_element == 1;
 
+  kink_max_distance_between_points = 2.0;
+  config->getDouble("level-set-options", "kink_max_distance_between_points", kink_max_distance_between_points);
+  kink_max_distance_between_points *= h;
+  kink_max_neighbours = 100;
+  config->getInt("level-set-options", "kink_max_neighbours", kink_max_neighbours);
+  kink_sqr_tol = 0.5;
+  config->getDouble("level-set-options", "kink_tol", kink_sqr_tol);
+  kink_sqr_tol *= kink_sqr_tol;
   if(kink_detection)
     create_point_map_for_kink_detection();
 
@@ -389,7 +401,7 @@ bool newton_kernel(DG_FP &closest_pt_x, DG_FP &closest_pt_y, DG_FP &closest_pt_z
 void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *closest_z,
                    const DG_FP *x, const DG_FP *y, const DG_FP *z, int *poly_ind,
                    std::vector<PolyApprox3D> &polys, DG_FP *s, DG_FP *kink, const DG_FP h,
-                   const DG_FP reinit_width, const DG_FP ls_cap) {
+                   const DG_FP reinit_width, const DG_FP ls_cap, bool kink_avoid_whole_element) {
   int numNonConv = 0;
   int numReinit = 0;
 
@@ -403,18 +415,19 @@ void newton_method(const int numPts, DG_FP *closest_x, DG_FP *closest_y, DG_FP *
       DG_FP dist1 = (closest_x[i] - x[i]) * (closest_x[i] - x[i])
                   + (closest_y[i] - y[i]) * (closest_y[i] - y[i])
                   + (closest_z[i] - z[i]) * (closest_z[i] - z[i]);
-/*      
-      if(kink[i] != 0.0 && dist1 < 9.0 * h * h)
-        continue;
-      else
-        kink[i] = 0.0;
-*/
 
-      bool kink_cell = false;
-      for(int n = 0; n < DG_NP; n++) {
-        kink_cell = kink_cell || (kink[start_ind + n] != 0.0);
+      if(kink_avoid_whole_element) {
+        bool kink_cell = false;
+        for(int n = 0; n < DG_NP; n++) {
+          kink_cell = kink_cell || (kink[start_ind + n] != 0.0);
+        }
+        if(kink_cell) continue;
+      } else {
+        if(kink[i] != 0.0 && dist1 < 9.0 * h * h)
+          continue;
+        else
+          kink[i] = 0.0;
       }
-      if(kink_cell) continue;
 
       DG_FP off_x, off_y, off_z;
       polys[poly_ind[i]].get_offsets(off_x, off_y, off_z);
@@ -488,51 +501,49 @@ void LevelSetSolver3D::create_point_map_for_kink_detection() {
   // Create a map consisting of buckets that contain a vector of points.
   // Each bucket is a square of length max_distance_between_points.
   // Key to the bucket is the coordinates of its bottom left vertex.
-  // const DG_FP max_distance_between_points = 2.0 * h;
-  const DG_FP max_distance_between_points = 0.5 * h;
-  const DG_FP max_distance_between_points_sqr = max_distance_between_points * max_distance_between_points;
+  const DG_FP max_distance_between_points_sqr = kink_max_distance_between_points * kink_max_distance_between_points;
   std::map<DGUtils::Vec<3>, std::vector<LSKinkPoint>> bucket_map;
   for(auto const &p : pointMap) {
     LSKinkPoint point = p.second;
 
     DGUtils::Vec<3> bucket_coord = point.coord;
-    bucket_coord[0] = static_cast<int>(bucket_coord[0] / max_distance_between_points) * max_distance_between_points;
-    bucket_coord[1] = static_cast<int>(bucket_coord[1] / max_distance_between_points) * max_distance_between_points;
-    bucket_coord[2] = static_cast<int>(bucket_coord[2] / max_distance_between_points) * max_distance_between_points;
+    bucket_coord[0] = static_cast<int>(bucket_coord[0] / kink_max_distance_between_points) * kink_max_distance_between_points;
+    bucket_coord[1] = static_cast<int>(bucket_coord[1] / kink_max_distance_between_points) * kink_max_distance_between_points;
+    bucket_coord[2] = static_cast<int>(bucket_coord[2] / kink_max_distance_between_points) * kink_max_distance_between_points;
 
     auto res = bucket_map.insert({bucket_coord, std::vector<LSKinkPoint>()});
     res.first->second.push_back(point);
   }
 
   DGUtils::Vec<3> bucket_offsets[26] = {
-    DGUtils::Vec<3>(-max_distance_between_points, 0.0, 0.0),
-    DGUtils::Vec<3>(-max_distance_between_points, max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(0.0, max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(max_distance_between_points, max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(max_distance_between_points, 0.0, 0.0),
-    DGUtils::Vec<3>(max_distance_between_points, -max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(0.0, -max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(-max_distance_between_points, -max_distance_between_points, 0.0),
+    DGUtils::Vec<3>(-kink_max_distance_between_points, 0.0, 0.0),
+    DGUtils::Vec<3>(-kink_max_distance_between_points, kink_max_distance_between_points, 0.0),
+    DGUtils::Vec<3>(0.0, kink_max_distance_between_points, 0.0),
+    DGUtils::Vec<3>(kink_max_distance_between_points, kink_max_distance_between_points, 0.0),
+    DGUtils::Vec<3>(kink_max_distance_between_points, 0.0, 0.0),
+    DGUtils::Vec<3>(kink_max_distance_between_points, -kink_max_distance_between_points, 0.0),
+    DGUtils::Vec<3>(0.0, -kink_max_distance_between_points, 0.0),
+    DGUtils::Vec<3>(-kink_max_distance_between_points, -kink_max_distance_between_points, 0.0),
     //
-    DGUtils::Vec<3>(-max_distance_between_points, 0.0, max_distance_between_points),
-    DGUtils::Vec<3>(-max_distance_between_points, max_distance_between_points, max_distance_between_points),
-    DGUtils::Vec<3>(0.0, max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(max_distance_between_points, max_distance_between_points, max_distance_between_points),
-    DGUtils::Vec<3>(max_distance_between_points, 0.0, 0.0),
-    DGUtils::Vec<3>(max_distance_between_points, -max_distance_between_points, max_distance_between_points),
-    DGUtils::Vec<3>(0.0, -max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(-max_distance_between_points, -max_distance_between_points, max_distance_between_points),
-    DGUtils::Vec<3>(0.0, 0.0, max_distance_between_points),
+    DGUtils::Vec<3>(-kink_max_distance_between_points, 0.0, kink_max_distance_between_points),
+    DGUtils::Vec<3>(-kink_max_distance_between_points, kink_max_distance_between_points, kink_max_distance_between_points),
+    DGUtils::Vec<3>(0.0, kink_max_distance_between_points, 0.0),
+    DGUtils::Vec<3>(kink_max_distance_between_points, kink_max_distance_between_points, kink_max_distance_between_points),
+    DGUtils::Vec<3>(kink_max_distance_between_points, 0.0, 0.0),
+    DGUtils::Vec<3>(kink_max_distance_between_points, -kink_max_distance_between_points, kink_max_distance_between_points),
+    DGUtils::Vec<3>(0.0, -kink_max_distance_between_points, 0.0),
+    DGUtils::Vec<3>(-kink_max_distance_between_points, -kink_max_distance_between_points, kink_max_distance_between_points),
+    DGUtils::Vec<3>(0.0, 0.0, kink_max_distance_between_points),
     //
-    DGUtils::Vec<3>(-max_distance_between_points, 0.0, -max_distance_between_points),
-    DGUtils::Vec<3>(-max_distance_between_points, max_distance_between_points, -max_distance_between_points),
-    DGUtils::Vec<3>(0.0, max_distance_between_points, -max_distance_between_points),
-    DGUtils::Vec<3>(max_distance_between_points, max_distance_between_points, -max_distance_between_points),
-    DGUtils::Vec<3>(max_distance_between_points, 0.0, -max_distance_between_points),
-    DGUtils::Vec<3>(max_distance_between_points, -max_distance_between_points, -max_distance_between_points),
-    DGUtils::Vec<3>(0.0, -max_distance_between_points, -max_distance_between_points),
-    DGUtils::Vec<3>(-max_distance_between_points, -max_distance_between_points, -max_distance_between_points),
-    DGUtils::Vec<3>(0.0, 0.0, -max_distance_between_points)
+    DGUtils::Vec<3>(-kink_max_distance_between_points, 0.0, -kink_max_distance_between_points),
+    DGUtils::Vec<3>(-kink_max_distance_between_points, kink_max_distance_between_points, -kink_max_distance_between_points),
+    DGUtils::Vec<3>(0.0, kink_max_distance_between_points, -kink_max_distance_between_points),
+    DGUtils::Vec<3>(kink_max_distance_between_points, kink_max_distance_between_points, -kink_max_distance_between_points),
+    DGUtils::Vec<3>(kink_max_distance_between_points, 0.0, -kink_max_distance_between_points),
+    DGUtils::Vec<3>(kink_max_distance_between_points, -kink_max_distance_between_points, -kink_max_distance_between_points),
+    DGUtils::Vec<3>(0.0, -kink_max_distance_between_points, -kink_max_distance_between_points),
+    DGUtils::Vec<3>(-kink_max_distance_between_points, -kink_max_distance_between_points, -kink_max_distance_between_points),
+    DGUtils::Vec<3>(0.0, 0.0, -kink_max_distance_between_points)
   };
 
   const DG_FP sqr_tol = 0.5 * 0.5;
@@ -555,7 +566,7 @@ void LevelSetSolver3D::create_point_map_for_kink_detection() {
         if(j == i || (points[i].coord - points[j].coord).sqr_magnitude() > max_distance_between_points_sqr)
           continue;
         
-        if(pts.size() < 50) {
+        if(pts.size() < kink_max_neighbours) {
           pts.push_back(points[j].coord);
         } else {
           double sqr_dist_j = (points[i].coord - points[j].coord).sqr_magnitude();
@@ -646,8 +657,6 @@ void LevelSetSolver3D::detect_kinks() {
   }
 
   DG_FP *kink_ptr = getOP2PtrHost(kink, OP_RW);
-  const DG_FP sqr_tol = 0.5 * 0.5;
-
   for(auto const &p : pointMap) {
     auto const neighbouring_points = point_map_for_kink_detection.find(p.first);
     if(neighbouring_points == point_map_for_kink_detection.end())
@@ -655,147 +664,34 @@ void LevelSetSolver3D::detect_kinks() {
 
     const std::vector<DGUtils::Vec<3>> &points = neighbouring_points->second;
     
+    LSKinkPoint main_point = p.second;
+    const DG_FP n1_mag = sqrt(main_point.dsdx * main_point.dsdx + main_point.dsdy * main_point.dsdy + main_point.dsdz * main_point.dsdz);
+    const DG_FP n1_x = main_point.dsdx / n1_mag;
+    const DG_FP n1_y = main_point.dsdy / n1_mag;
+    const DG_FP n1_z = main_point.dsdz / n1_mag;
+
     bool is_a_kink = false;
     for(int j = 0; j < points.size(); j++) {
       LSKinkPoint &point_j = pointMap[points[j]];
-      const DG_FP n1_mag = sqrt(point_j.dsdx * point_j.dsdx + point_j.dsdy * point_j.dsdy + point_j.dsdz * point_j.dsdz);
-      const DG_FP n1_x = point_j.dsdx / n1_mag;
-      const DG_FP n1_y = point_j.dsdy / n1_mag;
-      const DG_FP n1_z = point_j.dsdz / n1_mag;
-        for(int k = j + 1; k < points.size(); k++) {
-          LSKinkPoint &point_k = pointMap[points[k]];
-          const DG_FP n2_mag = sqrt(point_k.dsdx * point_k.dsdx + point_k.dsdy * point_k.dsdy + point_k.dsdz * point_k.dsdz);
-          const DG_FP n2_x = point_k.dsdx / n2_mag;
-          const DG_FP n2_y = point_k.dsdy / n2_mag;
-          const DG_FP n2_z = point_k.dsdz / n2_mag;
+      const DG_FP n2_mag = sqrt(point_j.dsdx * point_j.dsdx + point_j.dsdy * point_j.dsdy + point_j.dsdz * point_j.dsdz);
+      const DG_FP n2_x = point_j.dsdx / n2_mag;
+      const DG_FP n2_y = point_j.dsdy / n2_mag;
+      const DG_FP n2_z = point_j.dsdz / n2_mag;
 
-          const DG_FP sqr_dist = (n1_x - n2_x) * (n1_x - n2_x) + (n1_y - n2_y) * (n1_y - n2_y) + (n1_z - n2_z) * (n1_z - n2_z);
-          if(sqr_dist > sqr_tol) {
-            is_a_kink = true;
-            break;
-          }
-        }
-        if(is_a_kink)
-          break;
-      }
-
-      if(is_a_kink) {
-        for(auto const &ind : p.second.indices) {
-          kink_ptr[ind] = 1.0;
-        }
-      }
-  }
-
-  releaseOP2PtrHost(kink, OP_RW, kink_ptr);
-/*
-  // Create a map consisting of buckets that contain a vector of points.
-  // Each bucket is a square of length max_distance_between_points.
-  // Key to the bucket is the coordinates of its bottom left vertex.
-  // const DG_FP max_distance_between_points = 2.0 * h;
-  const DG_FP max_distance_between_points = h;
-  const DG_FP max_distance_between_points_sqr = max_distance_between_points * max_distance_between_points;
-  std::map<DGUtils::Vec<3>, std::vector<LSKinkPoint>> bucket_map;
-  for(auto const &p : pointMap) {
-    LSKinkPoint point = p.second;
-    point.s = point.s / (DG_FP)point.count;
-    point.dsdx = point.dsdx / (DG_FP)point.count;
-    point.dsdy = point.dsdy / (DG_FP)point.count;
-    point.dsdz = point.dsdz / (DG_FP)point.count;
-    point.count = 1;
-
-    DGUtils::Vec<3> bucket_coord = point.coord;
-    bucket_coord[0] = static_cast<int>(bucket_coord[0] / max_distance_between_points) * max_distance_between_points;
-    bucket_coord[1] = static_cast<int>(bucket_coord[1] / max_distance_between_points) * max_distance_between_points;
-    bucket_coord[2] = static_cast<int>(bucket_coord[2] / max_distance_between_points) * max_distance_between_points;
-
-    auto res = bucket_map.insert({bucket_coord, std::vector<LSKinkPoint>()});
-    res.first->second.push_back(point);
-  }
-
-  DGUtils::Vec<3> bucket_offsets[26] = {
-    DGUtils::Vec<3>(-max_distance_between_points, 0.0, 0.0),
-    DGUtils::Vec<3>(-max_distance_between_points, max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(0.0, max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(max_distance_between_points, max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(max_distance_between_points, 0.0, 0.0),
-    DGUtils::Vec<3>(max_distance_between_points, -max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(0.0, -max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(-max_distance_between_points, -max_distance_between_points, 0.0),
-    //
-    DGUtils::Vec<3>(-max_distance_between_points, 0.0, max_distance_between_points),
-    DGUtils::Vec<3>(-max_distance_between_points, max_distance_between_points, max_distance_between_points),
-    DGUtils::Vec<3>(0.0, max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(max_distance_between_points, max_distance_between_points, max_distance_between_points),
-    DGUtils::Vec<3>(max_distance_between_points, 0.0, 0.0),
-    DGUtils::Vec<3>(max_distance_between_points, -max_distance_between_points, max_distance_between_points),
-    DGUtils::Vec<3>(0.0, -max_distance_between_points, 0.0),
-    DGUtils::Vec<3>(-max_distance_between_points, -max_distance_between_points, max_distance_between_points),
-    DGUtils::Vec<3>(0.0, 0.0, max_distance_between_points),
-    //
-    DGUtils::Vec<3>(-max_distance_between_points, 0.0, -max_distance_between_points),
-    DGUtils::Vec<3>(-max_distance_between_points, max_distance_between_points, -max_distance_between_points),
-    DGUtils::Vec<3>(0.0, max_distance_between_points, -max_distance_between_points),
-    DGUtils::Vec<3>(max_distance_between_points, max_distance_between_points, -max_distance_between_points),
-    DGUtils::Vec<3>(max_distance_between_points, 0.0, -max_distance_between_points),
-    DGUtils::Vec<3>(max_distance_between_points, -max_distance_between_points, -max_distance_between_points),
-    DGUtils::Vec<3>(0.0, -max_distance_between_points, -max_distance_between_points),
-    DGUtils::Vec<3>(-max_distance_between_points, -max_distance_between_points, -max_distance_between_points),
-    DGUtils::Vec<3>(0.0, 0.0, -max_distance_between_points)
-  };
-
-  DG_FP *kink_ptr = getOP2PtrHost(kink, OP_RW);
-  const DG_FP sqr_tol = 0.5 * 0.5;
-  for(auto const &bucket : bucket_map) {
-    // Get points in this bucket
-    std::vector<LSKinkPoint> points(bucket.second);
-    // Get points in surrounding buckets
-    for(int i = 0; i < 26; i++) {
-      DGUtils::Vec<3> bucket_coord = bucket.first + bucket_offsets[i];
-      auto const neighbouring_bucket = bucket_map.find(bucket_coord);
-      if(neighbouring_bucket != bucket_map.end()) {
-        points.insert(points.end(), neighbouring_bucket->second.begin(), neighbouring_bucket->second.end());
+      const DG_FP sqr_dist = (n1_x - n2_x) * (n1_x - n2_x) + (n1_y - n2_y) * (n1_y - n2_y) + (n1_z - n2_z) * (n1_z - n2_z);
+      if(sqr_dist > kink_sqr_tol) {
+        is_a_kink = true;
+        break;
       }
     }
 
-    // Iterate over all points
-    for(int i = 0; i < points.size(); i++) {
-      bool is_a_kink = false;
-      for(int j = 0; j < points.size(); j++) {
-        if(j == i || (points[i].coord - points[j].coord).sqr_magnitude() > max_distance_between_points_sqr)
-          continue;
-
-        const DG_FP n1_mag = sqrt(points[j].dsdx * points[j].dsdx + points[j].dsdy * points[j].dsdy + points[j].dsdz * points[j].dsdz);
-        const DG_FP n1_x = points[j].dsdx / n1_mag;
-        const DG_FP n1_y = points[j].dsdy / n1_mag;
-        const DG_FP n1_z = points[j].dsdz / n1_mag;
-        for(int k = j + 1; k < points.size(); k++) {
-          if(k == i || k == j || (points[i].coord - points[k].coord).sqr_magnitude() > max_distance_between_points_sqr)
-            continue;
-
-          const DG_FP n2_mag = sqrt(points[k].dsdx * points[k].dsdx + points[k].dsdy * points[k].dsdy + points[k].dsdz * points[k].dsdz);
-          const DG_FP n2_x = points[k].dsdx / n2_mag;
-          const DG_FP n2_y = points[k].dsdy / n2_mag;
-          const DG_FP n2_z = points[k].dsdz / n2_mag;
-
-          const DG_FP sqr_dist = (n1_x - n2_x) * (n1_x - n2_x) + (n1_y - n2_y) * (n1_y - n2_y) + (n1_z - n2_z) * (n1_z - n2_z);
-          if(sqr_dist > sqr_tol) {
-            is_a_kink = true;
-            break;
-          }
-        }
-        if(is_a_kink)
-          break;
-      }
-
-      if(is_a_kink) {
-        for(auto const &ind : points[i].indices) {
-          kink_ptr[ind] = 1.0;
-        }
+    if(is_a_kink) {
+      for(auto const &ind : p.second.indices) {
+        kink_ptr[ind] = 1.0;
       }
     }
   }
   releaseOP2PtrHost(kink, OP_RW, kink_ptr);
-*/
 }
 
 #ifdef PRINT_SAMPLE_PTS
@@ -947,6 +843,15 @@ void LevelSetSolver3D::reinitLS() {
     }
 
     polys = kdtree->get_polys();
+  } else {
+    #pragma omp parallel for
+    for(int i = 0; i < mesh->cells->size * DG_NP; i++) {
+      if(surface_ptr[i] > 0.0) {
+        surface_ptr[i] = ls_cap;
+      } else {
+        surface_ptr[i] = -ls_cap;
+      }
+    }
   }
   timer->endTimer("LevelSetSolver3D - query KD-Tree");
 
@@ -956,7 +861,7 @@ void LevelSetSolver3D::reinitLS() {
   if(!kdtree->empty) {
     newton_method(DG_NP * mesh->cells->size, closest_x, closest_y, closest_z,
                   x_ptr, y_ptr, z_ptr, poly_ind, polys, surface_ptr, kink_ptr, 
-                  h, reinit_width, ls_cap);
+                  h, reinit_width, ls_cap, kink_avoid_whole_element);
   }
   releaseOP2PtrHost(kink, OP_RW, kink_ptr);
   releaseOP2PtrHost(s, OP_RW, surface_ptr);
