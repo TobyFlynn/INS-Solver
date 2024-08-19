@@ -56,6 +56,11 @@ KDTree3DMPI::KDTree3DMPI(DGMesh3D *m, const DG_FP alpha) : KDTree3D(m) {
     if(z_ptr[i] > max_z) max_z = z_ptr[i];
   }
 
+  if(min_y < -2.070326 + 1.0)
+    max_y = 2.133586 + 1.0;
+  if(max_y > 2.133586 - 1.0)
+    min_y = -2.070326 - 1.0;
+
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
   releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
   releaseOP2PtrHost(mesh->z, OP_READ, z_ptr);
