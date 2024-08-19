@@ -150,9 +150,14 @@ void LevelSetSolver2D::init() {
   config->getInt("level-set-options", "kink_avoid_whole_element", tmp_kink_element);
   kink_avoid_whole_element = tmp_kink_element == 1;
 
-  kink_max_distance_between_points = 2.0 * h;
+  kink_max_distance_between_points = 2.0;
+  config->getDouble("level-set-options", "kink_max_distance_between_points", kink_max_distance_between_points);
+  kink_max_distance_between_points *= h;
   kink_max_neighbours = 100;
-  kink_sqr_tol = 0.5 * 0.5;
+  config->getInt("level-set-options", "kink_max_neighbours", kink_max_neighbours);
+  kink_sqr_tol = 0.5;
+  config->getDouble("level-set-options", "kink_tol", kink_sqr_tol);
+  kink_sqr_tol *= kink_sqr_tol;
   if(kink_detection)
     create_point_map_for_kink_detection();
 
