@@ -136,6 +136,7 @@ void LevelSetSolver3D::init() {
   // order_width = 12.0 * h;
   // epsilon = h;
   ls_cap = 100.0;
+  config->getDouble("level-set-options", "ls_cap", ls_cap);
   // reinit_width = fmin(4.0 * alpha, ls_cap);
   reinit_width = ls_cap;
   // reinit_dt = 1.0 / ((DG_ORDER * DG_ORDER / h) + epsilon * ((DG_ORDER * DG_ORDER*DG_ORDER * DG_ORDER)/(h*h)));
@@ -842,6 +843,15 @@ void LevelSetSolver3D::reinitLS() {
     }
 
     polys = kdtree->get_polys();
+  } else {
+    #pragma omp parallel for
+    for(int i = 0; i < mesh->cells->size * DG_NP; i++) {
+      if(surface_ptr[i] > 0.0) {
+        surface_ptr[i] = ls_cap;
+      } else {
+        surface_ptr[i] = -ls_cap;
+      }
+    }
   }
   timer->endTimer("LevelSetSolver3D - query KD-Tree");
 

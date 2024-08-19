@@ -20,7 +20,7 @@
 #define BC_TYPE_NATURAL_OUTFLOW 2
 
 // Required definitions
-#define LS_CAP 100.0
+#define LS_CAP 0.1
 // Problem specifc definitions
 
 /************************************************************************
@@ -143,6 +143,8 @@ DEVICE_PREFIX void ps3d_set_surface(const DG_FP x, const DG_FP y, const DG_FP z,
   }
   else
       s = 0.0;
+
+  s = fmax(fmin(LS_CAP, s), -LS_CAP);
 }
 
 // Set level set value on custom BCs (return sM otherwise)
