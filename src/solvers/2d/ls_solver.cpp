@@ -118,7 +118,9 @@ void LevelSetSolver2D::init() {
   // alpha = 2.0 * h / DG_ORDER;
   // order_width = 2.0 * h;
   // epsilon = h / DG_ORDER;
-  alpha = 12.0 * h;
+  alpha = 12.0;
+  config->getDouble("level-set-options", "alpha", alpha);
+  alpha *= h;
   // order_width = 12.0 * h;
   epsilon = h;
   // reinit_width = 20.0 * h;
