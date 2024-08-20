@@ -34,15 +34,20 @@ void KDTree::reset() {
 void KDTree::pre_build_setup(const DG_FP *x, const DG_FP *y, const int num, op_dat s) {
   n = 0;
   for(int i = 0; i < num; i++) {
-    if(!isnan(x[i]) && !isnan(y[i])) {
+    if(!isnan(x[i])) {
       n++;
-      KDCoord pt;
-      pt.coord[0] = x[i];
-      pt.coord[1] = y[i];
-      pt.coord_rot[0] = x[i];
-      pt.coord_rot[1] = y[i];
-      pt.poly = i / LS_SAMPLE_NP;
-      points.push_back(pt);
+    }
+  }
+  points.resize(n);
+  int j = 0;
+  for(int i = 0; i < num; i++) {
+    if(!isnan(x[i])) {
+      points[j].coord[0] = x[i];
+      points[j].coord[1] = y[i];
+      points[j].coord_rot[0] = x[i];
+      points[j].coord_rot[1] = y[i];
+      points[j].poly = i / LS_SAMPLE_NP;
+      j++;
     }
   }
 
