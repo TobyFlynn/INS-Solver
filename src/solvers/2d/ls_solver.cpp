@@ -557,7 +557,7 @@ void LevelSetSolver2D::create_point_map_for_kink_detection() {
   timer->endTimer("LevelSetSolver2D - point map creation");
 }
 
-void LevelSetSolver2D::detect_kinks() {
+void LevelSetSolver2D::detect_kinks(std::set<int> &stencilInds) {
   op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
               op_arg_dat(kink, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
@@ -574,7 +574,8 @@ void LevelSetSolver2D::detect_kinks() {
   std::map<DGUtils::Vec<2>, LSKinkPoint> pointMap;
 
   for(int i = 0; i < mesh->cells->size * DG_NP; i++) {
-    if(fabs(s_ptr[i]) < 4.0 * h) {
+    // if(fabs(s_ptr[i]) < 4.0 * h) {
+    if(stencilInds.count(i / DG_NP) != 0) {
       DGUtils::Vec<2> coord(x_ptr[i], y_ptr[i]);
       LSKinkPoint point;
       auto res = pointMap.insert({coord, point});
@@ -668,12 +669,6 @@ std::string ls_double_to_text(const double &d) {
 void LevelSetSolver2D::reinitLS() {
   timer->startTimer("LevelSetSolver2D - reinitLS");
 
-  if(kink_detection) {
-    timer->startTimer("LevelSetSolver2D - detect kinks");
-    detect_kinks();
-    timer->endTimer("LevelSetSolver2D - detect kinks");
-  }
-
   timer->startTimer("LevelSetSolver2D - get cells containing interface");
   const DG_FP *s_ptr = getOP2PtrHostHE(s, OP_READ);
   std::set<int> cellInds;
@@ -701,8 +696,11 @@ void LevelSetSolver2D::reinitLS() {
 
   // Populate map
   int i = 0;
+  std::set<int> stencilInds;
   for(auto it = cellInds.begin(); it != cellInds.end(); it++) {
     std::set<int> stencil = stencils.at(*it);
+    stencilInds.insert(*it);
+    stencilInds.insert(stencil.begin(), stencil.end());
     PolyApprox p(*it, stencil, _x_ptr, _y_ptr, s_ptr, h);
     _polys.push_back(p);
     _cell2polyMap.insert({*it, i});
@@ -713,6 +711,12 @@ void LevelSetSolver2D::reinitLS() {
   releaseOP2PtrHostHE(mesh->y, OP_READ, _y_ptr);
   releaseOP2PtrHostHE(s, OP_READ, s_ptr);
   timer->endTimer("LevelSetSolver2D - create polynomials");
+
+  if(kink_detection) {
+    timer->startTimer("LevelSetSolver2D - detect kinks");
+    detect_kinks(stencilInds);
+    timer->endTimer("LevelSetSolver2D - detect kinks");
+  }
 
   DGTempDat tmp_sampleX = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);
   DGTempDat tmp_sampleY = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);

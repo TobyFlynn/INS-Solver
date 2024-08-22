@@ -13,6 +13,7 @@
 
 #include <map>
 #include <vector>
+#include <set>
 
 class LevelSetAdvectionSolver2D : public AdvectionSolver2D {
 public:
@@ -53,7 +54,7 @@ private:
                        std::map<int,int> &cell2polyMap, std::set<int> &cellInds);
   void reinitLS();
   bool reinitNeeded();
-  void detect_kinks();
+  void detect_kinks(std::set<int> &stencilInds);
   void create_point_map_for_kink_detection();
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
