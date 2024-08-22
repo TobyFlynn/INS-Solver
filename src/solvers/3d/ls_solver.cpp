@@ -674,6 +674,8 @@ void LevelSetSolver3D::detect_kinks() {
 
     bool is_a_kink = false;
     for(int j = 0; j < points.size(); j++) {
+      if(pointMap.count(points[j]) == 0)
+        continue;
       LSKinkPoint &point_j = pointMap[points[j]];
       const DG_FP n2_mag = sqrt(point_j.dsdx * point_j.dsdx + point_j.dsdy * point_j.dsdy + point_j.dsdz * point_j.dsdz);
       const DG_FP n2_x = point_j.dsdx / n2_mag;
