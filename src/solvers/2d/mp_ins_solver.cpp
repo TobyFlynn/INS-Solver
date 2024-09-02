@@ -419,6 +419,7 @@ void MPINSSolver2D::advection() {
 /*
     // Apply curvature and weber number (placeholder currently)
     op_par_loop(ins_2d_st_6, "ins_2d_st_6", mesh->cells,
+                op_arg_dat(rho, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(tmp_curvature.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
                 op_arg_dat(st[currentInd][0], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW),
                 op_arg_dat(st[currentInd][1], -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
