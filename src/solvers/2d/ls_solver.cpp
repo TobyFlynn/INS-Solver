@@ -837,11 +837,11 @@ void LevelSetSolver2D::reinitLS() {
               op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
               op_arg_dat(s, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(tmp_stencil.dat, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(avg_vals.dat, -2, mesh->face2cells, 1, DG_FP_STR, OP_WRITE));
+              op_arg_dat(avg_vals.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
   
   op_par_loop(ls_2d_stencil_avg_1, "ls_2d_stencil_avg_1", mesh->cells,
               op_arg_dat(tmp_stencil.dat, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(avg_vals.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(avg_vals.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
               op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   dg_dat_pool->releaseTempDatCells(avg_vals);
