@@ -21,9 +21,6 @@
 #define BC_TYPE_SLIP_X 3
 #define BC_TYPE_SLIP_Y 4
 
-#define OUTLET_Y 10.0
-#define WATER_Y 7.0
-
 /************************************************************************
  * You can edit the body of the functions below but not their signature *
  ************************************************************************/
@@ -38,11 +35,7 @@ DEVICE_PREFIX void ps2d_set_ic(const DG_FP x, const DG_FP y, DG_FP &u, DG_FP &v)
 DEVICE_PREFIX void ps2d_set_boundary_type(const DG_FP x0, const DG_FP y0,
                                           const DG_FP x1, const DG_FP y1,
                                           int &bc_type) {
-  if(fp_equal(y0,y1) && y0 > OUTLET_Y - 0.1) {
-    bc_type = BC_TYPE_NATURAL_OUTFLOW;
-  } else {
-    bc_type = BC_TYPE_SLIP;
-  }
+  bc_type = BC_TYPE_SLIP;
 }
 
 // Custom BC pressure and viscosity linear solves BC conditions
@@ -87,10 +80,7 @@ DEVICE_PREFIX void ps2d_custom_bc_get_vis_neumann(const int bc_type, const DG_FP
 
 // Set the initial interface between phases for multiphase simulations
 DEVICE_PREFIX void ps2d_set_surface(const DG_FP x, const DG_FP y, DG_FP &s) {
-  DG_FP s_bubble = sqrt(x * x + y * y) - 1.0;
-  s_bubble = -s_bubble;
-  DG_FP s_liquid = y - WATER_Y;
-  s = fabs(s_bubble) < fabs(s_liquid) ? s_bubble : s_liquid;
+  s = sqrt(x * x + (y - 1.0) * (y - 1.0)) - 0.5;
 }
 
 // Set level set value on custom BCs (return sM otherwise)

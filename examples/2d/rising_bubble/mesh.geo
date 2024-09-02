@@ -1,13 +1,13 @@
 // Target element size
-lc = 0.04;
+lc = 0.225;
 
 // Bottom left coords
 xL = -4.0;
-yL = -1.5;
+yL = 0.0;
 
 // Top right coords
 xR = 4.0;
-yR = 10.0;
+yR = 16.0;
 
 // Points defining the square
 Point(1) = {xL, yL, 0.0, lc};
@@ -30,3 +30,19 @@ Curve Loop(1) = {1, 2, 3, 4};
 Plane Surface(1) = {1};
 
 Physical Surface("fluid") = {1};
+
+
+Field[1] = Box;
+Field[1].VIn = lc / 16.0;
+Field[1].VOut = lc;
+Field[1].XMin = -0.75;
+Field[1].XMax = 0.75;
+Field[1].YMin = 0.0;
+Field[1].YMax = 16.0;
+Field[1].Thickness = 0.75;
+
+Background Field = 1;
+
+Mesh.MeshSizeFromPoints = 0;
+Mesh.MeshSizeFromCurvature = 0;
+Mesh.MeshSizeExtendFromBoundary = 0;
