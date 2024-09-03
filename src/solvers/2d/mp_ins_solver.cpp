@@ -1017,3 +1017,7 @@ op_dat MPINSSolver2D::get_ls() {
 DG_FP MPINSSolver2D::get_ls_alpha() {
   return lsSolver->alpha;
 }
+
+LevelSetSolver2D* MPINSSolver2D::get_ls_solver() {
+  return lsSolver;
+}

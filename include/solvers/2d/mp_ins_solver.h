@@ -35,6 +35,7 @@ public:
   // Getters (used for measurements)
   op_dat get_ls();
   DG_FP get_ls_alpha();
+  LevelSetSolver2D* get_ls_solver();
 
   op_dat rho, mu, st[2][2];
 private:
