@@ -11,6 +11,8 @@
 
 #include "ls_utils/3d/kd_tree.h"
 
+#include <set>
+
 class LevelSetAdvectionSolver3D : public AdvectionSolver3D {
 public:
   LevelSetAdvectionSolver3D(DGMesh3D *m);
@@ -49,14 +51,14 @@ private:
                        std::vector<PolyApprox3D> &polys, std::map<int,int> &cell2polyMap,
                        std::set<int> &cellInds);
   void reinitLS();
-  void detect_kinks();
+  void detect_kinks(std::set<int> &stencilInds);
   void create_point_map_for_kink_detection();
   // bool reinitNeeded();
 
   DG_FP h, epsilon, reinit_dt, reinit_width;
   DG_FP kink_max_distance_between_points, kink_sqr_tol;
   int kink_max_neighbours;
-  bool resuming, reinitialise, kink_detection, kink_avoid_whole_element;
+  bool resuming, reinitialise, kink_detection, kink_avoid_whole_element, kink_avg_stencil;
   int reinit_counter, reinit_frequency;
 
   LevelSetAdvectionSolver3D *advectionSolver;

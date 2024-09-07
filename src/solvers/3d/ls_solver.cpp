@@ -166,6 +166,9 @@ void LevelSetSolver3D::init() {
   int tmp_kink_element = 0;
   config->getInt("level-set-options", "kink_avoid_whole_element", tmp_kink_element);
   kink_avoid_whole_element = tmp_kink_element == 1;
+  int tmp_avg_stencil = 0;
+  config->getInt("level-set-options", "kink_avg_stencil", tmp_avg_stencil);
+  kink_avg_stencil = tmp_avg_stencil == 1;
 
   kink_max_distance_between_points = 2.0;
   config->getDouble("level-set-options", "kink_max_distance_between_points", kink_max_distance_between_points);
@@ -593,7 +596,7 @@ void LevelSetSolver3D::create_point_map_for_kink_detection() {
   timer->endTimer("LevelSetSolver3D - point map creation");
 }
 
-void LevelSetSolver3D::detect_kinks() {
+void LevelSetSolver3D::detect_kinks(std::set<int> &stencilInds) {
   op_par_loop(zero_np_1, "zero_np_1", mesh->cells,
               op_arg_dat(kink, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
 
@@ -613,7 +616,8 @@ void LevelSetSolver3D::detect_kinks() {
   std::map<DGUtils::Vec<3>, LSKinkPoint> pointMap;
 
   for(int i = 0; i < mesh->cells->size * DG_NP; i++) {
-    if(fabs(s_ptr[i]) < 4.0 * h) {
+    // if(fabs(s_ptr[i]) < 4.0 * h) {
+    if(stencilInds.count(i / DG_NP) != 0) {
       DGUtils::Vec<3> coord(x_ptr[i], y_ptr[i], z_ptr[i]);
       LSKinkPoint point;
       auto res = pointMap.insert({coord, point});
@@ -714,11 +718,6 @@ std::string ls_double_to_text(const double &d) {
 
 void LevelSetSolver3D::reinitLS() {
   timer->startTimer("LevelSetSolver3D - reinitLS");
-  if(kink_detection) {
-    timer->startTimer("LevelSetSolver2D - detect kinks");
-    detect_kinks();
-    timer->endTimer("LevelSetSolver2D - detect kinks");
-  }
 
   if(h == 0.0) {
     op_par_loop(calc_h_3d, "calc_h_3d", mesh->faces,
@@ -756,8 +755,11 @@ void LevelSetSolver3D::reinitLS() {
 
   // Populate map
   int i = 0;
+  std::set<int> stencilInds;
   for(auto it = cellInds.begin(); it != cellInds.end(); it++) {
     std::set<int> stencil = stencils.at(*it);
+    stencilInds.insert(*it);
+    stencilInds.insert(stencil.begin(), stencil.end());
     PolyApprox3D p(*it, stencil, _x_ptr, _y_ptr, _z_ptr, s_ptr, h);
     _polys.push_back(p);
     _cell2polyMap.insert({*it, i});
@@ -769,6 +771,12 @@ void LevelSetSolver3D::reinitLS() {
   releaseOP2PtrHostHE(mesh->z, OP_READ, _z_ptr);
   releaseOP2PtrHostHE(s, OP_READ, s_ptr);
   timer->endTimer("LevelSetSolver3D - create polynomials");
+
+  if(kink_detection) {
+    timer->startTimer("LevelSetSolver2D - detect kinks");
+    detect_kinks(stencilInds);
+    timer->endTimer("LevelSetSolver2D - detect kinks");
+  }
 
   DGTempDat tmp_sampleX = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);
   DGTempDat tmp_sampleY = dg_dat_pool->requestTempDatCells(LS_SAMPLE_NP);
@@ -879,5 +887,40 @@ void LevelSetSolver3D::reinitLS() {
   releaseOP2PtrHost(mesh->x, OP_READ, x_ptr);
   releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
   releaseOP2PtrHost(mesh->z, OP_READ, z_ptr);
+
+  // Average colocated points on boundary of stencil
+  if(kink_avg_stencil) {
+    DGTempDat tmp_stencil = dg_dat_pool->requestTempDatCells(1);
+    DG_FP *stencil_ptr = getOP2PtrHost(tmp_stencil.dat, OP_WRITE);
+    for(int i = 0; i < mesh->cells->size; i++) {
+      if(stencilInds.count(i) != 0) {
+        stencil_ptr[i] = 1.0;
+      } else {
+        stencil_ptr[i] = 0.0;
+      }
+    }
+    releaseOP2PtrHost(tmp_stencil.dat, OP_WRITE, stencil_ptr);
+
+    DGTempDat avg_vals = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+                op_arg_dat(avg_vals.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+
+    op_par_loop(ls_3d_stencil_avg_0, "ls_3d_stencil_avg_0", mesh->faces,
+                op_arg_dat(mesh->faceNum, -1, OP_ID, 2, "int", OP_READ),
+                op_arg_dat(mesh->fmaskL,  -1, OP_ID, DG_NPF, "int", OP_READ),
+                op_arg_dat(mesh->fmaskR,  -1, OP_ID, DG_NPF, "int", OP_READ),
+                op_arg_dat(s, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_stencil.dat, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(avg_vals.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+    
+    op_par_loop(ls_2d_stencil_avg_1, "ls_2d_stencil_avg_1", mesh->cells,
+                op_arg_dat(tmp_stencil.dat, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(avg_vals.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
+                op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    dg_dat_pool->releaseTempDatCells(avg_vals);
+    dg_dat_pool->releaseTempDatCells(tmp_stencil);
+  }
+
   timer->endTimer("LevelSetSolver3D - reinitLS");
 }

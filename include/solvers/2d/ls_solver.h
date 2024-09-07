@@ -13,6 +13,7 @@
 
 #include <map>
 #include <vector>
+#include <set>
 
 class LevelSetAdvectionSolver2D : public AdvectionSolver2D {
 public:
@@ -53,14 +54,14 @@ public:
 private:
   void reinitLS();
   bool reinitNeeded();
-  void detect_kinks();
+  void detect_kinks(std::set<int> &stencilInds);
   void create_point_map_for_kink_detection();
 
   DG_FP epsilon, reinit_dt, reinit_width;
   DG_FP kink_max_distance_between_points, kink_sqr_tol;
   int kink_max_neighbours;
   int numSteps;
-  bool resuming, reinitialise, kink_detection, kink_avoid_whole_element;
+  bool resuming, reinitialise, kink_detection, kink_avoid_whole_element, kink_avg_stencil;
   int reinit_counter, reinit_frequency;
 
   LevelSetAdvectionSolver2D *advecSolver;
