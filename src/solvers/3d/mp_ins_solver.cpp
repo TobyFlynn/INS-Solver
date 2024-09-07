@@ -69,6 +69,8 @@ void MPINSSolver3D::setup_common() {
   int tmp_st = 0;
   config->getInt("solver-options", "surface_tension", tmp_st);
   surface_tension = tmp_st == 1;
+  curvature_smoothing = 0;
+  config->getInt("solver-options", "curvature_smoothing", curvature_smoothing);
 
   // Pressure matrix and solver
   std::string pr_solver = "p-multigrid";
@@ -156,6 +158,9 @@ void MPINSSolver3D::setup_common() {
   vis_bc_types = tmp_bc_1;
   pr_bc  = tmp_npf_bc;
   vis_bc = tmp_npf_bc;
+
+  if(curvature_smoothing > 0)
+    curvatureSmoother = new DiffusionSolver3D(mesh);
 }
 
 MPINSSolver3D::~MPINSSolver3D() {
@@ -170,6 +175,8 @@ MPINSSolver3D::~MPINSSolver3D() {
     delete viscosityMatrix;
     delete viscositySolver;
   }
+  if(curvature_smoothing > 0)
+    delete curvatureSmoother;
 }
 
 void MPINSSolver3D::init() {
@@ -367,6 +374,21 @@ void MPINSSolver3D::surface_tension_curvature(op_dat curv) {
   dg_dat_pool->releaseTempDatCells(tmp_normal_x);
   dg_dat_pool->releaseTempDatCells(tmp_normal_y);
   dg_dat_pool->releaseTempDatCells(tmp_normal_z);
+
+  // Smooth curvature
+  if(curvature_smoothing > 0) {
+    DGTempDat tmp_vis = dg_dat_pool->requestTempDatCells(DG_NP);
+    DG_FP curv_vis = 1.0;
+    op_par_loop(set_val_dg_np, "set_val_dg_np", mesh->cells,
+                    op_arg_gbl(&curv_vis, 1, DG_FP_STR, OP_READ),
+                    op_arg_dat(tmp_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    
+    curvatureSmoother->set_dt(tmp_vis.dat);
+    for(int i = 0; i < curvature_smoothing; i++)
+      curvatureSmoother->step(curv, tmp_vis.dat);
+
+    dg_dat_pool->releaseTempDatCells(tmp_vis);
+  }
 }
 
 void MPINSSolver3D::advection() {

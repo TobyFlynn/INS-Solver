@@ -73,6 +73,7 @@ private:
   DG_FP reynolds;
   bool resuming, dt_forced, surface_tension, pr_over_int, over_int_surface_tension;
   bool gravity_modified_pressure, uses_slip_bcs;
+  int curvature_smoothing;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;

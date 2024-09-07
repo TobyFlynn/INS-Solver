@@ -7,6 +7,7 @@
 
 #include "dg_mesh/dg_mesh_3d.h"
 #include "solvers/3d/ls_solver.h"
+#include "solvers/3d/diffusion_solver.h"
 #include "dg_matrices/3d/factor_poisson_coarse_matrix_3d.h"
 #include "dg_matrices/3d/factor_poisson_matrix_free_diag_3d.h"
 #include "dg_matrices/3d/factor_poisson_matrix_free_diag_oi_3d.h"
@@ -58,9 +59,11 @@ private:
 
   FactorViscousMatrix3D *slipViscousMatrix;
   ViscousSolver3D *slipViscousSolver;
+  DiffusionSolver3D *curvatureSmoother;
 
   DG_FP reynolds;
   bool resuming, surface_tension, pr_over_int, uses_slip_bcs;
+  int curvature_smoothing;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;
