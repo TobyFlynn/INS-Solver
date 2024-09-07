@@ -379,7 +379,7 @@ void MPINSSolver2D::surface_tension_curvature(op_dat curv) {
 
   // Curvature correction
   op_par_loop(ins_2d_st_8, "ins_2d_st_8", mesh->cells,
-              op_arg_gbl(&lsSolver->alpha, 1, DG_FP_STR, OP_READ),
+              op_arg_gbl(&h, 1, DG_FP_STR, OP_READ),
               op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
               op_arg_dat(curv, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 

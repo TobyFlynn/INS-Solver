@@ -358,7 +358,11 @@ void MPINSSolver3D::surface_tension_curvature(op_dat curv) {
 
   mesh->div_with_central_flux(tmp_normal_x.dat, tmp_normal_y.dat, tmp_normal_z.dat, curv);
 
-  // TODO Curvature correction
+  // Curvature correction
+  op_par_loop(ins_2d_st_8, "ins_2d_st_8", mesh->cells,
+              op_arg_gbl(&h, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(curv, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   dg_dat_pool->releaseTempDatCells(tmp_normal_x);
   dg_dat_pool->releaseTempDatCells(tmp_normal_y);
