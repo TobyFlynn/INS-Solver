@@ -150,6 +150,9 @@ void LevelSetSolver2D::init() {
   int tmp_kink_element = 0;
   config->getInt("level-set-options", "kink_avoid_whole_element", tmp_kink_element);
   kink_avoid_whole_element = tmp_kink_element == 1;
+  int tmp_avg_stencil = 0;
+  config->getInt("level-set-options", "kink_avg_stencil", tmp_avg_stencil);
+  kink_avg_stencil = tmp_avg_stencil == 1;
 
   kink_max_distance_between_points = 2.0;
   config->getDouble("level-set-options", "kink_max_distance_between_points", kink_max_distance_between_points);
@@ -817,35 +820,37 @@ void LevelSetSolver2D::reinitLS() {
   releaseOP2PtrHost(mesh->y, OP_READ, y_ptr);
 
   // Average colocated points on boundary of stencil
-  DGTempDat tmp_stencil = dg_dat_pool->requestTempDatCells(1);
-  DG_FP *stencil_ptr = getOP2PtrHost(tmp_stencil.dat, OP_WRITE);
-  for(int i = 0; i < mesh->cells->size; i++) {
-    if(stencilInds.count(i) != 0) {
-      stencil_ptr[i] = 1.0;
-    } else {
-      stencil_ptr[i] = 0.0;
+  if(kink_avg_stencil) {
+    DGTempDat tmp_stencil = dg_dat_pool->requestTempDatCells(1);
+    DG_FP *stencil_ptr = getOP2PtrHost(tmp_stencil.dat, OP_WRITE);
+    for(int i = 0; i < mesh->cells->size; i++) {
+      if(stencilInds.count(i) != 0) {
+        stencil_ptr[i] = 1.0;
+      } else {
+        stencil_ptr[i] = 0.0;
+      }
     }
+    releaseOP2PtrHost(tmp_stencil.dat, OP_WRITE, stencil_ptr);
+
+    DGTempDat avg_vals = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
+    op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
+                op_arg_dat(avg_vals.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+
+    op_par_loop(ls_2d_stencil_avg_0, "ls_2d_stencil_avg_0", mesh->faces,
+                op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
+                op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
+                op_arg_dat(s, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
+                op_arg_dat(tmp_stencil.dat, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(avg_vals.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
+    
+    op_par_loop(ls_2d_stencil_avg_1, "ls_2d_stencil_avg_1", mesh->cells,
+                op_arg_dat(tmp_stencil.dat, -1, OP_ID, 1, DG_FP_STR, OP_READ),
+                op_arg_dat(avg_vals.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
+                op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
+
+    dg_dat_pool->releaseTempDatCells(avg_vals);
+    dg_dat_pool->releaseTempDatCells(tmp_stencil);
   }
-  releaseOP2PtrHost(tmp_stencil.dat, OP_WRITE, stencil_ptr);
-
-  DGTempDat avg_vals = dg_dat_pool->requestTempDatCells(DG_NUM_FACES * DG_NPF);
-  op_par_loop(zero_npf_1, "zero_npf_1", mesh->cells,
-              op_arg_dat(avg_vals.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-
-  op_par_loop(ls_2d_stencil_avg_0, "ls_2d_stencil_avg_0", mesh->faces,
-              op_arg_dat(mesh->edgeNum, -1, OP_ID, 2, "int", OP_READ),
-              op_arg_dat(mesh->reverse, -1, OP_ID, 1, "bool", OP_READ),
-              op_arg_dat(s, -2, mesh->face2cells, DG_NP, DG_FP_STR, OP_READ),
-              op_arg_dat(tmp_stencil.dat, -2, mesh->face2cells, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(avg_vals.dat, -2, mesh->face2cells, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_WRITE));
-  
-  op_par_loop(ls_2d_stencil_avg_1, "ls_2d_stencil_avg_1", mesh->cells,
-              op_arg_dat(tmp_stencil.dat, -1, OP_ID, 1, DG_FP_STR, OP_READ),
-              op_arg_dat(avg_vals.dat, -1, OP_ID, DG_NUM_FACES * DG_NPF, DG_FP_STR, OP_READ),
-              op_arg_dat(s, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
-
-  dg_dat_pool->releaseTempDatCells(avg_vals);
-  dg_dat_pool->releaseTempDatCells(tmp_stencil);
 
   timer->endTimer("LevelSetSolver2D - reinitLS");
 }

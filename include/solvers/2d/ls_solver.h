@@ -61,7 +61,7 @@ private:
   DG_FP kink_max_distance_between_points, kink_sqr_tol;
   int kink_max_neighbours;
   int numSteps;
-  bool resuming, reinitialise, kink_detection, kink_avoid_whole_element;
+  bool resuming, reinitialise, kink_detection, kink_avoid_whole_element, kink_avg_stencil;
   int reinit_counter, reinit_frequency;
 
   LevelSetAdvectionSolver2D *advecSolver;
