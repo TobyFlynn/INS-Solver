@@ -13,6 +13,7 @@
 
 #include <map>
 #include <vector>
+#include <set>
 
 class LevelSetAdvectionSolver2D : public AdvectionSolver2D {
 public:
@@ -42,26 +43,30 @@ public:
   void getMuVolOI(op_dat mu);
   void getRhoSurfOI(op_dat rho);
   void getNormalsCurvature(op_dat nx, op_dat ny, op_dat curv);
+  void sampleInterface(op_dat sampleX, op_dat sampleY, std::vector<PolyApprox> &polys,
+                       std::map<int,int> &cell2polyMap, std::set<int> &cellInds);
 
   DGMesh2D *mesh;
 
   op_dat u, v, s, dsdx, dsdy, s_sample_x, s_sample_y, kink;
 
-  DG_FP alpha, order_width, ls_cap;
+  DG_FP alpha, order_width, ls_cap, h;
 private:
-  void sampleInterface(op_dat sampleX, op_dat sampleY, std::vector<PolyApprox> &polys,
-                       std::map<int,int> &cell2polyMap, std::set<int> &cellInds);
   void reinitLS(bool use_kink_detection);
   bool reinitNeeded();
-  void detect_kinks();
+  void detect_kinks(std::set<int> &stencilInds);
+  void create_point_map_for_kink_detection();
 
-  DG_FP h, epsilon, reinit_dt, reinit_width;
+  DG_FP epsilon, reinit_dt, reinit_width;
+  DG_FP kink_max_distance_between_points, kink_sqr_tol;
+  int kink_max_neighbours;
   int numSteps;
-  bool resuming, reinitialise, kink_detection;
+  bool resuming, reinitialise, kink_detection, kink_avoid_whole_element, kink_avg_stencil;
   int reinit_counter, reinit_frequency;
 
   LevelSetAdvectionSolver2D *advecSolver;
   KDTree *kdtree;
+  std::map<DGUtils::Vec<2>,std::vector<DGUtils::Vec<2>>> point_map_for_kink_detection;
 };
 
 #endif

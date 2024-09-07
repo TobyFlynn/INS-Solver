@@ -8,6 +8,7 @@
 #include "dg_mesh/dg_mesh_2d.h"
 #include "dg_dat_pool.h"
 #include "solvers/2d/ls_solver.h"
+#include "solvers/2d/diffusion_solver.h"
 #include "dg_matrices/2d/factor_poisson_coarse_matrix_2d.h"
 #include "dg_matrices/2d/factor_poisson_matrix_free_diag_2d.h"
 #include "dg_matrices/2d/factor_poisson_matrix_free_diag_oi_2d.h"
@@ -35,6 +36,7 @@ public:
   // Getters (used for measurements)
   op_dat get_ls();
   DG_FP get_ls_alpha();
+  LevelSetSolver2D* get_ls_solver();
 
   op_dat rho, mu, st[2][2];
 private:
@@ -68,6 +70,9 @@ private:
 
   FactorViscousMatrix2D *slipViscousMatrix;
   ViscousSolver2D *slipViscousSolver;
+
+  DiffusionSolver2D *curvatureSmoother;
+  int curvature_smoothing;
 
   op_dat tmp_bc_1, tmp_npf_bc;
   op_dat pr_bc, pr_bc_types;

@@ -82,6 +82,9 @@ void MPINSSolver3D::setup_common() {
 
   if(gravity && gravity_modified_pressure)
     dg_abort("Do not use both \'gravity\' and \'gravity_modified_pressure\'");
+  
+  curvature_smoothing = 0;
+  config->getInt("solver-options", "curvature_smoothing", curvature_smoothing);
 
   // Pressure matrix and solver
   std::string pr_solver = "p-multigrid";
@@ -169,6 +172,9 @@ void MPINSSolver3D::setup_common() {
   vis_bc_types = tmp_bc_1;
   pr_bc  = tmp_npf_bc;
   vis_bc = tmp_npf_bc;
+
+  if(curvature_smoothing > 0)
+    curvatureSmoother = new DiffusionSolver3D(mesh);
 }
 
 MPINSSolver3D::~MPINSSolver3D() {
@@ -183,6 +189,8 @@ MPINSSolver3D::~MPINSSolver3D() {
     delete viscosityMatrix;
     delete viscositySolver;
   }
+  if(curvature_smoothing > 0)
+    delete curvatureSmoother;
 }
 
 void MPINSSolver3D::init() {
@@ -371,11 +379,30 @@ void MPINSSolver3D::surface_tension_curvature(op_dat curv) {
 
   mesh->div_with_central_flux(tmp_normal_x.dat, tmp_normal_y.dat, tmp_normal_z.dat, curv);
 
-  // TODO Curvature correction
+  // Curvature correction
+  op_par_loop(ins_2d_st_8, "ins_2d_st_8", mesh->cells,
+              op_arg_gbl(&h, 1, DG_FP_STR, OP_READ),
+              op_arg_dat(lsSolver->s, -1, OP_ID, DG_NP, DG_FP_STR, OP_READ),
+              op_arg_dat(curv, -1, OP_ID, DG_NP, DG_FP_STR, OP_RW));
 
   dg_dat_pool->releaseTempDatCells(tmp_normal_x);
   dg_dat_pool->releaseTempDatCells(tmp_normal_y);
   dg_dat_pool->releaseTempDatCells(tmp_normal_z);
+
+  // Smooth curvature
+  if(curvature_smoothing > 0) {
+    DGTempDat tmp_vis = dg_dat_pool->requestTempDatCells(DG_NP);
+    DG_FP curv_vis = 1.0;
+    op_par_loop(set_val_dg_np, "set_val_dg_np", mesh->cells,
+                    op_arg_gbl(&curv_vis, 1, DG_FP_STR, OP_READ),
+                    op_arg_dat(tmp_vis.dat, -1, OP_ID, DG_NP, DG_FP_STR, OP_WRITE));
+    
+    curvatureSmoother->set_dt(tmp_vis.dat);
+    for(int i = 0; i < curvature_smoothing; i++)
+      curvatureSmoother->step(curv, tmp_vis.dat);
+
+    dg_dat_pool->releaseTempDatCells(tmp_vis);
+  }
 }
 
 void MPINSSolver3D::advection() {
